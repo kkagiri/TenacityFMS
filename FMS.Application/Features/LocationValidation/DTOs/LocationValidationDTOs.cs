@@ -323,3 +323,251 @@ public enum ValidationOutcome
     /// </summary>
     Bypassed
 }
+
+#region Geofence Validation DTOs
+
+/// <summary>
+/// Request to validate if a fueling operation is within allowed geofences
+/// </summary>
+public record GeofenceValidationRequest
+{
+    /// <summary>
+    /// The fueling rule set ID containing geofence assignments
+    /// </summary>
+    public int FuelingRuleSetId { get; init; }
+
+    /// <summary>
+    /// Tank/tanker location (required if RequireTankerInGeofence is true)
+    /// </summary>
+    public GeoLocation? TankerLocation { get; init; }
+
+    /// <summary>
+    /// Mobile app operator location (required if RequireOperatorInGeofence is true)
+    /// </summary>
+    public GeoLocation? OperatorLocation { get; init; }
+
+    /// <summary>
+    /// Vehicle being fueled location (required if RequireVehicleInGeofence is true)
+    /// </summary>
+    public GeoLocation? VehicleLocation { get; init; }
+
+    /// <summary>
+    /// Vehicle ID being fueled
+    /// </summary>
+    public int? VehicleId { get; init; }
+
+    /// <summary>
+    /// PTS device ID performing the fueling
+    /// </summary>
+    public string? PtsId { get; init; }
+}
+
+/// <summary>
+/// Result of geofence validation
+/// </summary>
+public record GeofenceValidationResult
+{
+    /// <summary>
+    /// Overall validation outcome
+    /// </summary>
+    public ValidationOutcome Outcome { get; init; }
+
+    /// <summary>
+    /// Whether geofence validation was enabled
+    /// </summary>
+    public bool WasEnabled { get; init; }
+
+    /// <summary>
+    /// Whether tanker was within allowed geofence (if required)
+    /// </summary>
+    public bool? TankerInGeofence { get; init; }
+
+    /// <summary>
+    /// The geofence ID tanker was found in
+    /// </summary>
+    public int? TankerGeofenceId { get; init; }
+
+    /// <summary>
+    /// The geofence name tanker was found in
+    /// </summary>
+    public string? TankerGeofenceName { get; init; }
+
+    /// <summary>
+    /// Whether operator was within allowed geofence (if required)
+    /// </summary>
+    public bool? OperatorInGeofence { get; init; }
+
+    /// <summary>
+    /// The geofence ID operator was found in
+    /// </summary>
+    public int? OperatorGeofenceId { get; init; }
+
+    /// <summary>
+    /// The geofence name operator was found in
+    /// </summary>
+    public string? OperatorGeofenceName { get; init; }
+
+    /// <summary>
+    /// Whether vehicle was within allowed geofence (if required)
+    /// </summary>
+    public bool? VehicleInGeofence { get; init; }
+
+    /// <summary>
+    /// The geofence ID vehicle was found in
+    /// </summary>
+    public int? VehicleGeofenceId { get; init; }
+
+    /// <summary>
+    /// The geofence name vehicle was found in
+    /// </summary>
+    public string? VehicleGeofenceName { get; init; }
+
+    /// <summary>
+    /// Number of geofences checked
+    /// </summary>
+    public int GeofencesChecked { get; init; }
+
+    /// <summary>
+    /// Reason for failure or skip
+    /// </summary>
+    public string? Reason { get; init; }
+
+    /// <summary>
+    /// Create a passed validation result
+    /// </summary>
+    public static GeofenceValidationResult Passed(string reason = "All required parties within allowed geofences")
+    {
+        return new GeofenceValidationResult
+        {
+            Outcome = ValidationOutcome.Passed,
+            WasEnabled = true,
+            Reason = reason
+        };
+    }
+
+    /// <summary>
+    /// Create a failed validation result
+    /// </summary>
+    public static GeofenceValidationResult Failed(string reason)
+    {
+        return new GeofenceValidationResult
+        {
+            Outcome = ValidationOutcome.Failed,
+            WasEnabled = true,
+            Reason = reason
+        };
+    }
+
+    /// <summary>
+    /// Create a skipped validation result
+    /// </summary>
+    public static GeofenceValidationResult Skipped(string reason)
+    {
+        return new GeofenceValidationResult
+        {
+            Outcome = ValidationOutcome.Skipped,
+            WasEnabled = false,
+            Reason = reason
+        };
+    }
+}
+
+/// <summary>
+/// Result of fixed location validation
+/// </summary>
+public record FixedLocationValidationResult
+{
+    /// <summary>
+    /// Overall validation outcome
+    /// </summary>
+    public ValidationOutcome Outcome { get; init; }
+
+    /// <summary>
+    /// Whether the vehicle is configured as a fixed location asset
+    /// </summary>
+    public bool IsFixedLocation { get; init; }
+
+    /// <summary>
+    /// Whether proximity validation is required for this vehicle
+    /// </summary>
+    public bool RequiresProximityValidation { get; init; }
+
+    /// <summary>
+    /// The vehicle's registered fixed location
+    /// </summary>
+    public GeoLocation? FixedLocation { get; init; }
+
+    /// <summary>
+    /// The actual fueling location being validated
+    /// </summary>
+    public GeoLocation? FuelingLocation { get; init; }
+
+    /// <summary>
+    /// Distance between fixed location and fueling location in meters
+    /// </summary>
+    public double? DistanceMeters { get; init; }
+
+    /// <summary>
+    /// Allowed radius in meters
+    /// </summary>
+    public decimal? AllowedRadiusMeters { get; init; }
+
+    /// <summary>
+    /// Name of the fixed location
+    /// </summary>
+    public string? FixedLocationName { get; init; }
+
+    /// <summary>
+    /// Reason for failure, skip, or bypass
+    /// </summary>
+    public string? Reason { get; init; }
+
+    /// <summary>
+    /// Create a passed validation result
+    /// </summary>
+    public static FixedLocationValidationResult Passed(double distanceMeters, decimal allowedRadius, string locationName = "")
+    {
+        return new FixedLocationValidationResult
+        {
+            Outcome = ValidationOutcome.Passed,
+            IsFixedLocation = true,
+            RequiresProximityValidation = true,
+            DistanceMeters = distanceMeters,
+            AllowedRadiusMeters = allowedRadius,
+            FixedLocationName = locationName,
+            Reason = $"Fueling location within {distanceMeters:F1}m of registered location (allowed: {allowedRadius}m)"
+        };
+    }
+
+    /// <summary>
+    /// Create a failed validation result
+    /// </summary>
+    public static FixedLocationValidationResult Failed(double distanceMeters, decimal allowedRadius, string locationName = "")
+    {
+        return new FixedLocationValidationResult
+        {
+            Outcome = ValidationOutcome.Failed,
+            IsFixedLocation = true,
+            RequiresProximityValidation = true,
+            DistanceMeters = distanceMeters,
+            AllowedRadiusMeters = allowedRadius,
+            FixedLocationName = locationName,
+            Reason = $"Fueling location too far from registered location ({distanceMeters:F1}m, max allowed: {allowedRadius}m)"
+        };
+    }
+
+    /// <summary>
+    /// Create a skipped validation result (not a fixed location vehicle)
+    /// </summary>
+    public static FixedLocationValidationResult Skipped(string reason)
+    {
+        return new FixedLocationValidationResult
+        {
+            Outcome = ValidationOutcome.Skipped,
+            IsFixedLocation = false,
+            Reason = reason
+        };
+    }
+}
+
+#endregion

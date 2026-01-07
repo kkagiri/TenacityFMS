@@ -735,6 +735,22 @@ All fuel transactions are logged with complete validation context:
 
 ---
 
+## 🚀 Upcoming Features
+
+The following features are planned for future releases. See the PRD for full details:
+
+### Fixed Vehicle Proximity Validation
+
+Ensure the mobile tanker is at the same location as fixed vehicles (generators, construction equipment) before fueling.
+
+### Geofence-Based Fueling Restrictions
+
+Fueling rules can specify valid geofence areas where fueling is permitted, integrating with GPSGate geofence data.
+
+📄 **[PRD: Geofence & Fixed Vehicle Location Validation](./PRD_Geofence_Location_Validation.md)**
+
+---
+
 ## Related Documentation
 
 - [Fueling Rules Cascade Hierarchy](../FuelingRule/CASCADE_HIERARCHY_IMPLEMENTATION.md)
@@ -743,6 +759,7 @@ All fuel transactions are logged with complete validation context:
 - [Mobile Fueling Validation Settings](../MobileFuelingValidation/ADMIN_MANAGED_SETTINGS.md)
 - [Fuel Audit System PRD](../FuelAudit/Implementation/FuelAudit_PRD.md)
 - [Mobile Fueling Process](../../Mobile/Features/FuelingProcess.md)
+- [🆕 PRD: Geofence & Fixed Vehicle Validation](./PRD_Geofence_Location_Validation.md)
 
 ---
 

@@ -169,6 +169,9 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement {
                 MasterTagName = masterTag?.Name,
                 MasterTagIsEnabled = masterTag?.IsEnabled,
 
+                // Location Validation Settings
+                BypassLocationValidation = user.BypassLocationValidation,
+
                 // Include roles
                 Roles = userRoles.ToList ()
             };

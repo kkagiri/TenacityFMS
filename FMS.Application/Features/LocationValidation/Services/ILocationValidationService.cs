@@ -1,4 +1,5 @@
 using FMS.Application.Features.LocationValidation.DTOs;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -73,5 +74,56 @@ public interface ILocationValidationService
         LocationValidationResult result,
         string ptsId,
         CancellationToken cancellationToken = default);
-}
 
+    #region Geofence Validation Methods
+
+    /// <summary>
+    /// Validates if a fueling operation is within an allowed geofence.
+    /// Checks the tanker location, operator location, and/or vehicle location based on rule set configuration.
+    /// </summary>
+    /// <param name="request">The geofence validation request</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Geofence validation result with details</returns>
+    Task<GeofenceValidationResult> ValidateGeofenceAsync(
+        GeofenceValidationRequest request,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Validates if a fixed/stationary vehicle is within its registered location for fueling.
+    /// Uses the vehicle's fixed location coordinates and radius tolerance.
+    /// </summary>
+    /// <param name="vehicleId">The fixed vehicle ID</param>
+    /// <param name="fuelingLocation">The location where fueling is being attempted</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Validation result with proximity details</returns>
+    Task<FixedLocationValidationResult> ValidateFixedVehicleLocationAsync(
+        int vehicleId,
+        GeoLocation fuelingLocation,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Gets all geofences assigned to a fueling rule set (both individual and from groups).
+    /// </summary>
+    /// <param name="ruleSetId">The fueling rule set ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>List of geofence IDs</returns>
+    Task<List<int>> GetRuleSetGeofenceIdsAsync(
+        int ruleSetId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Checks if a given location is within any of the specified geofences.
+    /// </summary>
+    /// <param name="latitude">Latitude coordinate</param>
+    /// <param name="longitude">Longitude coordinate</param>
+    /// <param name="geofenceIds">List of geofence IDs to check</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if location is within any geofence, with matching geofence ID</returns>
+    Task<(bool IsInGeofence, int? MatchingGeofenceId, string? GeofenceName)> CheckLocationInGeofencesAsync(
+        decimal latitude,
+        decimal longitude,
+        List<int> geofenceIds,
+        CancellationToken cancellationToken = default);
+
+    #endregion
+}

@@ -127,26 +127,40 @@ namespace FMS.Application.Services
             {
                 // Get transaction context
                 var context = await GetTransactionContext(deviceId, transactionId);
-                if (context == null) return false;
+                if (context == null)
+                {
+                    // CRITICAL FIX: Default to TRUE to prevent lost transactions
+                    // If Redis context is missing (expired, network issue), still auto-complete
+                    _logger.LogWarning("[Completion] No transaction context found for Device {DeviceId}, Transaction {TransactionId}. Defaulting to auto-complete to prevent lost transaction.",
+                        deviceId, transactionId);
+                    return true;
+                }
 
                 // Check if AutoCloseTransaction was enabled during authorization
-                var autoClose = false;
+                var autoClose = true; // Default to true to prevent lost transactions
                 if (context.Value.TryGetProperty("AutoCloseTransaction", out var autoCloseProperty))
                 {
                     autoClose = autoCloseProperty.GetBoolean();
                 }
 
-                if (!autoClose) return false;
+                if (!autoClose)
+                {
+                    _logger.LogInformation("[Completion] AutoCloseTransaction is explicitly disabled for Device {DeviceId}, Transaction {TransactionId}",
+                        deviceId, transactionId);
+                    return false;
+                }
 
-                // Check connection type - only auto-complete for direct connections
+                // CRITICAL FIX: Allow all connection types to auto-complete
+                // HTTPPolling transactions should also be auto-completed
                 var connectionType = await GetConnectionType(deviceId);
-                return connectionType == "WebSocket" || connectionType == "HTTPDirect";
+                _logger.LogDebug("[Completion] Connection type for Device {DeviceId}: {ConnectionType}", deviceId, connectionType);
+                return true; // All connection types can auto-complete
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[Completion] Error checking auto-completion eligibility for Device {DeviceId}, Transaction {TransactionId}",
+                _logger.LogError(ex, "[Completion] Error checking auto-completion eligibility for Device {DeviceId}, Transaction {TransactionId}. Defaulting to auto-complete.",
                     deviceId, transactionId);
-                return false;
+                return true; // CRITICAL FIX: Default to true on error to prevent lost transactions
             }
         }
 

@@ -1,0 +1,124 @@
+.geofence-management {
+  // Custom tab navigation styles
+  .custom-tabs {
+    @apply tw-bg-white tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200;
+
+    .tab-button {
+      @apply tw-flex tw-flex-col tw-items-center tw-px-4 tw-py-3 tw-text-sm tw-font-medium tw-transition-colors tw-border-b-2 tw-min-w-[100px];
+
+      &.active {
+        @apply tw-border-blue-600 tw-text-blue-600 tw-bg-blue-50;
+      }
+
+      &:not(.active) {
+        @apply tw-border-transparent tw-text-gray-600;
+
+        &:hover {
+          @apply tw-text-gray-800 tw-bg-gray-50;
+        }
+      }
+    }
+  }
+
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+
+      .dx-header-row {
+        @apply tw-font-semibold tw-text-gray-700;
+      }
+    }
+
+    .dx-data-row {
+      &:hover {
+        @apply tw-bg-blue-50;
+      }
+
+      &.dx-selection {
+        @apply tw-bg-blue-100;
+      }
+    }
+  }
+
+  .sync-status {
+    @apply tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-500;
+
+    .sync-icon {
+      @apply tw-text-green-500;
+
+      &.stale {
+        @apply tw-text-yellow-500;
+      }
+    }
+  }
+}
+
+// Assignment panel styles
+.geofence-assignment-panel {
+  @apply tw-p-4;
+
+  .rule-set-selector {
+    @apply tw-mb-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200;
+  }
+
+  .assignment-grid {
+    @apply tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4;
+  }
+
+  .assignment-card {
+    @apply tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4;
+
+    .card-header {
+      @apply tw-flex tw-items-center tw-justify-between tw-mb-3 tw-pb-2 tw-border-b tw-border-gray-100;
+
+      h3 {
+        @apply tw-text-sm tw-font-semibold tw-text-gray-700 tw-flex tw-items-center tw-gap-2;
+      }
+    }
+
+    .assignment-list {
+      @apply tw-space-y-2 tw-max-h-64 tw-overflow-y-auto;
+
+      .assignment-item {
+        @apply tw-flex tw-items-center tw-justify-between tw-p-2 tw-bg-gray-50 tw-rounded;
+
+        &:hover {
+          @apply tw-bg-gray-100;
+        }
+
+        .item-info {
+          @apply tw-flex tw-items-center tw-gap-2;
+        }
+
+        .remove-btn {
+          @apply tw-text-red-500 hover:tw-text-red-700 tw-cursor-pointer;
+        }
+      }
+    }
+
+    .empty-state {
+      @apply tw-text-center tw-py-4 tw-text-gray-400;
+    }
+  }
+}
+
+// Fixed location styles
+.fixed-location-vehicles {
+  @apply tw-p-4;
+
+  .vehicle-form {
+    @apply tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-mb-4;
+
+    .form-row {
+      @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4 tw-mb-4;
+    }
+
+    .form-field {
+      @apply tw-flex tw-flex-col tw-gap-1;
+
+      label {
+        @apply tw-text-sm tw-font-medium tw-text-gray-700;
+      }
+    }
+  }
+}

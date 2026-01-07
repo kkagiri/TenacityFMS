@@ -140,7 +140,14 @@ const PTSAutomationConfigPage = () => {
 
   // Memoize the configurations to prevent unnecessary re-renders
   const gridDataSource = useMemo(() => {
-    return configurations ? [...configurations] : [];
+    // Handle various response shapes: array, object with data property, or null/undefined
+    if (Array.isArray(configurations)) {
+      return [...configurations];
+    }
+    if (configurations && Array.isArray(configurations.data)) {
+      return [...configurations.data];
+    }
+    return [];
   }, [configurations]);
 
   // Stable callback for actions column - avoid inline functions in cellRender

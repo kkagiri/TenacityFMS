@@ -18,6 +18,7 @@ import { logoutUser } from "../redux/slices/authSlice";
 import { fetchSiteList } from "../redux/slices/siteSlice";
 import { fetchDeviceList } from "../redux/slices/deviceSlice";
 import fuelingNotificationService from "../services/fuelingNotificationService";
+import { APP_VERSION } from "../config/appVersion";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
@@ -400,7 +401,8 @@ const SettingsScreen = ({ navigation }) => {
 
       {/* App Info */}
       <View style={styles.appInfo}>
-        <Text style={styles.appVersion}>Hyoung FMS v1.0.1</Text>
+        <Text style={styles.appVersion}>{APP_VERSION.displayName}</Text>
+        <Text style={styles.appBuild}>Build {APP_VERSION.versionCode}</Text>
         <Text style={styles.copyright}>© 2026 Hyoung FMS</Text>
       </View>
 
@@ -626,6 +628,11 @@ const styles = StyleSheet.create({
   appVersion: {
     fontSize: 14,
     color: "#9ca3af",
+  },
+  appBuild: {
+    fontSize: 12,
+    color: "#9ca3af",
+    marginTop: 2,
   },
   copyright: {
     fontSize: 12,

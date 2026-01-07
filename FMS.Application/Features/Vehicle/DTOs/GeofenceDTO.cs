@@ -17,6 +17,11 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public decimal? Radius { get; set; } // For circle type
         public DateTime CreatedAt { get; set; }
         public DateTime? UpdatedAt { get; set; }
+
+        /// <summary>
+        /// GeoJSON representation of the geofence geometry for map rendering
+        /// </summary>
+        public string? GeometryJson { get; set; }
     }
 
     public enum GeofenceType

@@ -5,15 +5,13 @@ namespace FMS.Infrastructure.VehicleTracking.Models.GPSGate
     /// <summary>
     /// GPSGate geofence shape type enumeration
     /// </summary>
+    [JsonConverter(typeof(JsonStringEnumConverter))]
     public enum GPSGateShapeType
     {
-        [JsonPropertyName("Polygon")]
         Polygon,
-
-        [JsonPropertyName("Circle")]
         Circle,
-
-        [JsonPropertyName("Route")]
-        Route
+        Route,
+        // Add unknown type to handle unexpected values from GPSGate
+        Unknown
     }
 }

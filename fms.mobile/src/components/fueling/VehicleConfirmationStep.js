@@ -1,10 +1,11 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
@@ -16,6 +17,8 @@ import Icon from "react-native-vector-icons/FontAwesome5";
  * @param {string} scannedTagId - RFID tag ID if scanned
  * @param {Function} onConfirm - Callback when user confirms
  * @param {Function} onCancel - Callback when user cancels
+ * @param {Function} onRefresh - Callback to refresh vehicle details and rules
+ * @param {boolean} isRefreshing - Whether refresh is in progress
  */
 const VehicleConfirmationStep = ({
   vehicle,
@@ -24,6 +27,8 @@ const VehicleConfirmationStep = ({
   scannedTagId,
   onConfirm,
   onCancel,
+  onRefresh,
+  isRefreshing = false,
 }) => {
   if (!vehicle || !rules) return null;
 
@@ -79,10 +84,30 @@ const VehicleConfirmationStep = ({
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.stepTitle}>Confirm Vehicle</Text>
-        <Text style={styles.stepDescription}>
-          Review vehicle details and fueling limits
-        </Text>
+        <View style={styles.headerTop}>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.stepTitle}>Confirm Vehicle</Text>
+            <Text style={styles.stepDescription}>
+              Review vehicle details and fueling limits
+            </Text>
+          </View>
+          {onRefresh && (
+            <TouchableOpacity
+              style={[
+                styles.refreshButton,
+                isRefreshing && styles.refreshButtonDisabled,
+              ]}
+              onPress={onRefresh}
+              disabled={isRefreshing}
+            >
+              {isRefreshing ? (
+                <ActivityIndicator size="small" color="#3b82f6" />
+              ) : (
+                <Icon name="sync-alt" size={18} color="#3b82f6" />
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -328,6 +353,26 @@ const styles = StyleSheet.create({
     backgroundColor: "white",
     borderBottomWidth: 1,
     borderBottomColor: "#e5e7eb",
+  },
+  headerTop: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+  },
+  headerTitleContainer: {
+    flex: 1,
+  },
+  refreshButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 12,
+  },
+  refreshButtonDisabled: {
+    opacity: 0.6,
   },
   stepTitle: {
     fontSize: 20,

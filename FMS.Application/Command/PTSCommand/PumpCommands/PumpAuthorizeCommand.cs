@@ -507,7 +507,15 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 AuthorizedAt = DateTime.UtcNow,
                 ConnectionType = connectionType,
                 AutoCloseTransaction = configuredAutoClose,
-                StartTime = DateTime.UtcNow
+                StartTime = DateTime.UtcNow,
+                // CRITICAL FIX: Add missing fields for transaction completion enrichment
+                Tag = request.Tag,
+                Nozzle = request.Nozzle,
+                FuelGradeId = request.FuelGradeId,
+                // FuelGradeName will be populated from device status during completion if needed
+                FuelGradeName = null,
+                // ConfigurationId can be populated if available from device
+                ConfigurationId = null
             };
 
             await _transactionContextService.StoreTransactionContextAsync(transactionContext);

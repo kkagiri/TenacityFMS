@@ -7,6 +7,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Features.ATG;
+using FMS.Application.Features.PTS.Services; // For TransactionContext
 using FMS.Application.Handlers.Interface;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
@@ -171,17 +172,33 @@ namespace FMS.Application.Handlers
 
                     if (context != null)
                     {
-                        transaction.TankId = context.TankId;
-                        transaction.VehicleId = context.VehicleId;
-                        transaction.Odometer = context.Odometer;
-                        transaction.Tag = context.Tag;
-                        transaction.UserId = context.UserId;
-                        transaction.ConfigurationId = context.ConfigurationId;
-                        transaction.FuelGradeId = context.FuelGradeId;
-                        transaction.FuelGradeName = context.FuelGradeName;
+                        // Enrich from Redis context only if transaction doesn't already have the value
+                        transaction.TankId = transaction.TankId ?? context.TankId;
+                        transaction.VehicleId = transaction.VehicleId ?? context.VehicleId;
+                        transaction.Odometer = transaction.Odometer ?? context.Odometer;
+                        transaction.Tag = string.IsNullOrEmpty(transaction.Tag) ? context.Tag : transaction.Tag;
 
-                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}, Odometer={Odometer}, Tag={Tag}",
-                            context.TankId, context.VehicleId, context.Odometer, context.Tag);
+                        // Handle UserId type conversion (context has string?, transaction expects int?)
+                        if (!transaction.UserId.HasValue && !string.IsNullOrEmpty(context.UserId))
+                        {
+                            if (int.TryParse(context.UserId, out var userId))
+                            {
+                                transaction.UserId = userId;
+                            }
+                        }
+
+                        transaction.ConfigurationId = string.IsNullOrEmpty(transaction.ConfigurationId) ? context.ConfigurationId : transaction.ConfigurationId;
+                        transaction.FuelGradeId = transaction.FuelGradeId ?? context.FuelGradeId;
+                        transaction.FuelGradeName = string.IsNullOrEmpty(transaction.FuelGradeName) ? context.FuelGradeName : transaction.FuelGradeName;
+
+                        // Enrich Nozzle if missing (device may not always include it)
+                        if (transaction.Nozzle <= 0 && context.Nozzle.HasValue)
+                        {
+                            transaction.Nozzle = context.Nozzle.Value;
+                        }
+
+                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}, Odometer={Odometer}, Tag={Tag}, Nozzle={Nozzle}, FuelGradeId={FuelGradeId}",
+                            context.TankId, context.VehicleId, context.Odometer, context.Tag, context.Nozzle, context.FuelGradeId);
 
                         await _redisDb.KeyDeleteAsync(redisKey);
                     }
@@ -198,20 +215,5 @@ namespace FMS.Application.Handlers
                     deviceId, transaction.Transaction);
             }
         }
-    }
-
-    internal class TransactionContext
-    {
-        public string DeviceId { get; set; }
-        public int TransactionId { get; set; }
-        public int? TankId { get; set; }
-        public int? VehicleId { get; set; }
-        public decimal? Odometer { get; set; }
-        public string Tag { get; set; }
-        public int? UserId { get; set; }
-        public string ConfigurationId { get; set; }
-        public int? FuelGradeId { get; set; }
-        public string FuelGradeName { get; set; }
-        public DateTime AuthorizedAt { get; set; }
     }
 }

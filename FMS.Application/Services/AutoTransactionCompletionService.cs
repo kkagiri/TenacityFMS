@@ -121,33 +121,37 @@ namespace FMS.Application.Services
 
                 if (contextJson.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("[AutoComplete] No transaction context found for {DeviceId}:{Transaction}",
+                    // CRITICAL FIX: If no context found, DEFAULT TO TRUE to ensure transaction is saved
+                    // Context might have expired (10 min TTL) or Redis was unavailable during authorization
+                    // It's better to save a transaction without full context than to lose it entirely
+                    _logger.LogWarning("[AutoComplete] ⚠️ No transaction context found for {DeviceId}:{Transaction}. " +
+                        "DEFAULTING TO AUTO-COMPLETE to prevent transaction loss. Context may have expired or authorization happened without storing context.",
                         deviceId, transaction);
-                    return false; // Default to manual completion if no context
+                    return true; // Default to auto-complete to prevent lost transactions
                 }
 
                 var context = JsonSerializer.Deserialize<JsonElement>(contextJson);
                 var autoClose = context.TryGetProperty("AutoCloseTransaction", out var autoCloseElement) ?
                     autoCloseElement.GetBoolean() :
-                    false;
+                    true; // CRITICAL FIX: Default to true if property missing
 
                 // Check connection type - WebSocket and HTTPDirect typically support auto-completion
                 var connectionType = context.TryGetProperty("ConnectionType", out var connTypeElement) ?
                     connTypeElement.GetString() :
                     "Unknown";
 
-                bool supportsAutoCompletion = connectionType
-                switch
+                // CRITICAL FIX: Default to true for unknown connection types to prevent lost transactions
+                bool supportsAutoCompletion = connectionType switch
                 {
                     "WebSocket" => true, // Real-time communication supports auto-completion
                     "HTTPDirect" => true, // Direct HTTP can auto-complete
-                    "HTTPPolling" => false, // Polling typically requires manual completion
-                    _ => false
+                    "HTTPPolling" => true, // CHANGED: Polling should also auto-complete to prevent lost transactions
+                    _ => true // CHANGED: Default to true for unknown types
                 };
 
                 var shouldAuto = autoClose && supportsAutoCompletion;
 
-                _logger.LogDebug("[AutoComplete] Auto-completion check for {DeviceId}:{Transaction} - AutoClose: {AutoClose}, ConnectionType: {ConnectionType}, Result: {ShouldAuto}",
+                _logger.LogInformation("[AutoComplete] Auto-completion check for {DeviceId}:{Transaction} - AutoClose: {AutoClose}, ConnectionType: {ConnectionType}, Result: {ShouldAuto}",
                     deviceId, transaction, autoClose, connectionType, shouldAuto);
 
                 return shouldAuto;
@@ -155,9 +159,9 @@ namespace FMS.Application.Services
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[AutoComplete] Error checking auto-completion eligibility for {DeviceId}:{Transaction}",
+                _logger.LogError(ex, "[AutoComplete] Error checking auto-completion eligibility for {DeviceId}:{Transaction}. DEFAULTING TO TRUE to prevent transaction loss.",
                     deviceId, transaction);
-                return false; // Default to manual completion on error
+                return true; // CRITICAL FIX: Default to auto-complete on error to prevent lost transactions
             }
         }
 
@@ -406,13 +410,17 @@ namespace FMS.Application.Services
                 EnrichPropertyIfMissing(data, context, "ConfigurationId");
                 EnrichPropertyIfMissing(data, context, "FuelGradeId");
                 EnrichPropertyIfMissing(data, context, "FuelGradeName");
+                EnrichPropertyIfMissing(data, context, "Nozzle"); // CRITICAL: Nozzle from authorization
+                EnrichPropertyIfMissing(data, context, "PumpId"); // Pump ID from authorization
+                EnrichPropertyIfMissing(data, context, "SiteId"); // Site ID for configuration lookup
 
-                _logger.LogInformation("[AutoComplete] Enriched transaction data with Redis context - device: {DeviceId}, transaction: {Transaction}, Odometer: {Odometer}, TankId: {TankId}, VehicleId: {VehicleId}, Tag: {Tag}",
+                _logger.LogInformation("[AutoComplete] Enriched transaction data with Redis context - device: {DeviceId}, transaction: {Transaction}, Odometer: {Odometer}, TankId: {TankId}, VehicleId: {VehicleId}, Tag: {Tag}, Nozzle: {Nozzle}",
                     deviceId, transaction,
                     data.Value<decimal?>("Odometer"),
                     data.Value<int?>("TankId"),
                     data.Value<int?>("VehicleId"),
-                    data.Value<string>("Tag"));
+                    data.Value<string>("Tag"),
+                    data.Value<int?>("Nozzle"));
 
             }
             catch (Exception ex)

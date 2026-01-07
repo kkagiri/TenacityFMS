@@ -4,12 +4,16 @@ using FMS.Application.Services;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Enums;
+using FMS.Domain.Entities.Features.FuelRuleSet;
+using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Domain.Entities.Features.LocationValidation;
 using FMS.Domain.Entities.VehicleTracking;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -19,7 +23,10 @@ namespace FMS.Application.Features.LocationValidation.Services;
 /// Implementation of location validation service for fueling operations.
 /// Validates proximity between vehicles, mobile devices, and tanks/dispensers.
 /// </summary>
-public class LocationValidationService : ILocationValidationService
+/// <remarks>
+/// This is a partial class. Geofence-related methods are in LocationValidationService.Geofence.cs
+/// </remarks>
+public partial class LocationValidationService : ILocationValidationService
 {
     private readonly GpsdataContext _context;
     private readonly IGPSService _gpsService;
@@ -31,6 +38,9 @@ public class LocationValidationService : ILocationValidationService
     private const string CONFIG_KEY_ENABLE_LOCATION_VALIDATION = "FuelingRules.EnableLocationValidation";
     private const string CONFIG_KEY_BYPASS_ON_GPS_FAILURE = "FuelingRules.BypassOnGPSFailure";
     private const string CONFIG_KEY_ALLOW_NON_GPS_VEHICLES = "FuelingRules.AllowNonGPSVehicles";
+    private const string CONFIG_KEY_REQUIRE_TANKER_IN_GEOFENCE = "FuelingRules.RequireTankerInGeofence";
+    private const string CONFIG_KEY_REQUIRE_OPERATOR_IN_GEOFENCE = "FuelingRules.RequireOperatorInGeofence";
+    private const string CONFIG_KEY_REQUIRE_VEHICLE_IN_GEOFENCE = "FuelingRules.RequireVehicleInGeofence";
 
     // Earth radius in meters for Haversine formula
     private const double EarthRadiusMeters = 6371000;
@@ -62,7 +72,26 @@ public class LocationValidationService : ILocationValidationService
             _logger.LogDebug("Starting location validation for Tank {TankId}, Vehicle {VehicleId}",
                 request.TankId, request.VehicleId);
 
-            // **STEP 0: Check global location validation setting from SystemConfigurations**
+            // **STEP 0: Check if user has bypass permission**
+            if (!string.IsNullOrEmpty(request.UserId))
+            {
+                var user = await _context.Users
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(u => u.Id == request.UserId, cancellationToken);
+
+                if (user?.BypassLocationValidation == true)
+                {
+                    _logger.LogInformation(
+                        "[LocationValidation] User {UserId} has BypassLocationValidation enabled - skipping all location checks",
+                        request.UserId);
+
+                    result = LocationValidationResult.Bypassed(
+                        "Location validation bypassed - user has BypassLocationValidation permission");
+                    return result;
+                }
+            }
+
+            // **STEP 1: Check global location validation setting from SystemConfigurations**
             var globalLocationValidationEnabled = await _systemConfigService.GetConfigurationValueAsync(
                 CONFIG_KEY_ENABLE_LOCATION_VALIDATION, cancellationToken);
 

@@ -5,7 +5,9 @@ using FMS.Domain.Entities.Features.FuelRuleSet;
 namespace FMS.Persistence.EntityConfigurations
 {
     /// <summary>
-    /// Configuration for the FuelingRuleSet entity
+    /// Configuration for the FuelingRuleSet entity.
+    /// NOTE: Geofence assignments have been removed. Geofence validation is now a
+    /// global system-wide policy configured via SystemConfiguration.
     /// </summary>
     public class FuelingRuleSetConfiguration : EntityTypeConfiguration<FuelingRuleSet>
     {
@@ -25,8 +27,6 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.Name).HasMaxLength(100).IsRequired();
                 builder.Property(e => e.Description).HasMaxLength(255);
             }
-
-
             catch (Exception ex)
             {
                 Console.WriteLine($"Error configuring  : {ex.Message}");

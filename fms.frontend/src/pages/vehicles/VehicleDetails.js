@@ -24,6 +24,7 @@ import EnhancedExpectedAverageForm from "./component/vehicledetails/EnhancedExpe
 import {
   getVehicleById,
   deleteVehicle,
+  updateVehicle,
 } from "../../redux/actions/vehicleActions";
 import { fetchTags } from "../../redux/actions/tagActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
@@ -56,6 +57,7 @@ const VehicleDetails = () => {
   });
   const [tabDataLoaded, setTabDataLoaded] = useState({}); // Track which tabs have loaded their data
   const [dataLoaded, setDataLoaded] = useState(false); // Track if vehicle data is loaded
+  const [isSaving, setIsSaving] = useState(false); // Track save operation
 
   // Reset component state when vehicle ID changes
   useEffect(() => {
@@ -228,10 +230,35 @@ const VehicleDetails = () => {
   );
 
   // Vehicle save handler - Stable reference
-  const handleVehicleSave = useCallback((data) => {
-    setVehicle((prevVehicle) => ({ ...prevVehicle, ...data }));
-    notify("Vehicle updated successfully", "success", 3000);
-  }, []); // Create individual memoized components to prevent unnecessary re-renders
+  const handleVehicleSave = useCallback(
+    async (data) => {
+      try {
+        setIsSaving(true);
+
+        // Build the complete vehicle data for update
+        const updateData = {
+          ...vehicle,
+          ...data,
+          vehicleId: parseInt(id),
+        };
+
+        const response = await dispatch(updateVehicle(id, updateData));
+
+        if (response.success) {
+          setVehicle((prevVehicle) => ({ ...prevVehicle, ...data }));
+          notify("Vehicle updated successfully", "success", 3000);
+        } else {
+          notify(response.message || "Failed to update vehicle", "error", 3000);
+        }
+      } catch (error) {
+        console.error("Error updating vehicle:", error);
+        notify(error.message || "Failed to update vehicle", "error", 3000);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [dispatch, id, vehicle]
+  ); // Create individual memoized components to prevent unnecessary re-renders
   const vehicleEditFormComponent = useMemo(() => {
     if (!vehicle || tabLoadingStates[0]) return null;
     return (
@@ -240,18 +267,15 @@ const VehicleDetails = () => {
         vehicle={vehicle}
         isEditing={false}
         onSave={handleVehicleSave}
+        isSaving={isSaving}
       />
     );
-  }, [vehicle, handleVehicleSave, tabLoadingStates]);
+  }, [vehicle, handleVehicleSave, tabLoadingStates, isSaving]);
 
   const consumptionHistoryComponent = useMemo(() => {
     // Always render the component - let it handle its own loading state
     // This prevents unmount/remount which causes DataGrid DOM errors
-    return (
-      <VehicleConsumptionHistory
-        vehicleId={id}
-      />
-    );
+    return <VehicleConsumptionHistory vehicleId={id} />;
   }, [id]); // Only recreate if vehicle ID changes
 
   const maintenanceHistoryComponent = useMemo(() => {
@@ -287,10 +311,7 @@ const VehicleDetails = () => {
   const gpsInformationComponent = useMemo(() => {
     if (!vehicle || tabLoadingStates[1]) return null;
     return (
-      <VehicleGPSInformation
-        key={`gps-${vehicle?.vehicleId}`}
-        vehicleId={id}
-      />
+      <VehicleGPSInformation key={`gps-${vehicle?.vehicleId}`} vehicleId={id} />
     );
   }, [vehicle, id, tabLoadingStates]);
 
@@ -487,9 +508,13 @@ const VehicleDetails = () => {
                 <i className="fa-light fa-user"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Default Driver</div>
+                <div className="vehicle-details__metric-label">
+                  Default Driver
+                </div>
                 <div className="vehicle-details__metric-value">
-                  {vehicle.defaultDriver?.name || vehicle.defaultDriver?.fullName || "Not Assigned"}
+                  {vehicle.defaultDriver?.name ||
+                    vehicle.defaultDriver?.fullName ||
+                    "Not Assigned"}
                 </div>
               </div>
             </div>
@@ -502,8 +527,11 @@ const VehicleDetails = () => {
               <div className="vehicle-details__metric-content">
                 <div className="vehicle-details__metric-label">Ignition</div>
                 <div className="vehicle-details__metric-value">
-                  {gpsData?.sensorHealth?.ignitionStatus !== null && gpsData?.sensorHealth?.ignitionStatus !== undefined
-                    ? (gpsData.sensorHealth.ignitionStatus ? "ON" : "OFF")
+                  {gpsData?.sensorHealth?.ignitionStatus !== null &&
+                  gpsData?.sensorHealth?.ignitionStatus !== undefined
+                    ? gpsData.sensorHealth.ignitionStatus
+                      ? "ON"
+                      : "OFF"
                     : "N/A"}
                 </div>
               </div>
@@ -515,7 +543,9 @@ const VehicleDetails = () => {
                 <i className="fa-light fa-building"></i>
               </div>
               <div className="vehicle-details__metric-content">
-                <div className="vehicle-details__metric-label">Working Site</div>
+                <div className="vehicle-details__metric-label">
+                  Working Site
+                </div>
                 <div className="vehicle-details__metric-value">
                   {vehicle.workingSite?.name || "Not Assigned"}
                 </div>
@@ -543,8 +573,11 @@ const VehicleDetails = () => {
               <div className="vehicle-details__metric-content">
                 <div className="vehicle-details__metric-label">Fuel Level</div>
                 <div className="vehicle-details__metric-value">
-                  {gpsData?.sensorHealth?.fuelLevel !== null && gpsData?.sensorHealth?.fuelLevel !== undefined
-                    ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${gpsData.sensorHealth.fuelLevelUnit || "L"}`
+                  {gpsData?.sensorHealth?.fuelLevel !== null &&
+                  gpsData?.sensorHealth?.fuelLevel !== undefined
+                    ? `${Math.floor(gpsData.sensorHealth.fuelLevel)} ${
+                        gpsData.sensorHealth.fuelLevelUnit || "L"
+                      }`
                     : "N/A"}
                 </div>
               </div>

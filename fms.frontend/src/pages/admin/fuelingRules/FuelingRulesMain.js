@@ -8,6 +8,7 @@ import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import TagRuleManagement from "../../../components/Tags/TagRuleManagement/TagRuleManagement";
 import LocationRulesSettings from "../../../components/Tags/TagRuleManagement/LocationRulesSettings";
 import { RuleSetAssignmentManager } from "./index";
+import { GeofenceManagement } from "./GeofenceManagement";
 import FuelingRulesHelp from "../../ATG/fuelingprocess/Components/FuelingRulesHelp";
 import "./FuelingRulesMain.scss";
 
@@ -45,6 +46,11 @@ const FuelingRulesMain = () => {
       text: "Location Rules",
       icon: "fa-light fa-location-dot",
     },
+    {
+      id: "geofences",
+      text: "Geofences",
+      icon: "fa-light fa-map-location-dot",
+    },
   ];
 
   const handleTabChange = (e) => {
@@ -68,6 +74,8 @@ const FuelingRulesMain = () => {
         return <RuleSetAssignmentManager />;
       case 2:
         return <LocationRulesSettings />;
+      case 3:
+        return <GeofenceManagement />;
       default:
         return <TagRuleManagement />;
     }

@@ -17,6 +17,12 @@ public partial class User : IdentityUser
     public bool? IsDeleted { get; set; }
 
     public int? MasterRFIDTag { get; set; }
+
+    /// <summary>
+    /// When true, this user can bypass GPS/location validation during mobile fueling.
+    /// Useful for users operating in areas with poor GPS/network coverage.
+    /// </summary>
+    public bool BypassLocationValidation { get; set; }
     public virtual ICollection<ErrorLog> ErrorLogs { get; set; } = new List<ErrorLog>();
     public virtual FuelTag? MasterTags { get; set; } //Navigation
 
@@ -57,6 +63,7 @@ public partial class User : IdentityUser
 
     public virtual ICollection<TankVolumeHistory> TankVolumeHistories { get; set; } = new List<TankVolumeHistory>();
 
+    [NotMapped]
     public virtual ICollection<Vehicle> Vehicles { get; set; } = new List<Vehicle>();
 
     public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport>();

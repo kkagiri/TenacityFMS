@@ -17,6 +17,12 @@ namespace FMS.Application.Dtos.UserManagement
         public bool? MasterTagIsEnabled { get; set; }
         public bool? HasMasterTag { get; set; }
 
+        /// <summary>
+        /// When true, this user can bypass GPS/location validation during mobile fueling.
+        /// Useful for users operating in areas with poor GPS/network coverage.
+        /// </summary>
+        public bool BypassLocationValidation { get; set; }
+
         public List<string> Roles { get; set; } = new List<string>();
         // public List<string> Permissions { get; set; } = new List<string>();
         //Cursor

@@ -171,6 +171,7 @@ const VehicleSelectionStep = ({
   const [searchError, setSearchError] = useState(null);
   const [isCheckingRules, setIsCheckingRules] = useState(false);
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
+  const [isRefreshingRules, setIsRefreshingRules] = useState(false);
 
   // Track keyboard visibility for compact mode
   useEffect(() => {
@@ -433,6 +434,41 @@ const VehicleSelectionStep = ({
     setScannedTagId("");
     if (selectionMode === "rfid") {
       setSelectionMode("none");
+    }
+  };
+
+  // Refresh vehicle details and fueling rules
+  const handleRefreshRules = async () => {
+    if (!pendingVehicle || isRefreshingRules) return;
+
+    setIsRefreshingRules(true);
+    try {
+      console.log(
+        "[VehicleSelection] Refreshing fueling rules for vehicle:",
+        pendingVehicle.vehicleId
+      );
+      const rulesCheck = await pumpControlService.checkVehicleFuelingRules(
+        pendingVehicle.vehicleId
+      );
+      const rules = convertApiResponseToRules(rulesCheck);
+
+      if (rules) {
+        setPendingRules(rules);
+        console.log("[VehicleSelection] Rules refreshed successfully");
+      } else {
+        Alert.alert(
+          "Error",
+          "Unable to refresh fueling rules. Please try again."
+        );
+      }
+    } catch (error) {
+      console.error(
+        "[VehicleSelection] Failed to refresh rules:",
+        error.message
+      );
+      Alert.alert("Refresh Failed", `Failed to refresh: ${error.message}`);
+    } finally {
+      setIsRefreshingRules(false);
     }
   };
 
@@ -704,6 +740,8 @@ const VehicleSelectionStep = ({
         scannedTagId={scannedTagId}
         onConfirm={handleConfirmVehicle}
         onCancel={handleRejectVehicle}
+        onRefresh={handleRefreshRules}
+        isRefreshing={isRefreshingRules}
       />
     );
   }

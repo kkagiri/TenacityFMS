@@ -318,6 +318,9 @@ const FuelingVolumeStep = ({
             <Icon name="gas-pump" size={22} color="#10b981" />
             <View style={styles.fullTankText}>
               <Text style={styles.fullTankTitle}>Fill Full Tank</Text>
+              <Text style={styles.fullTankSubtitle}>
+                Dispense until vehicle tank is full
+              </Text>
             </View>
           </View>
           <Switch

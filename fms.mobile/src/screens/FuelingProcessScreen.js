@@ -393,6 +393,7 @@ const FuelingProcessScreen = () => {
         vehicleInfo={selectedVehicle}
         authorizationType={isFullTank ? "Full" : "Volume"}
         requestedVolume={isFullTank ? null : parseFloat(fuelingVolume) || null}
+        operationMode={operationMode}
         onComplete={handleTransactionComplete}
         onCancel={handleCloseTransactionMonitoring}
         onMinimize={handleMinimizeMonitoring}

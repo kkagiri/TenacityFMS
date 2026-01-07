@@ -120,5 +120,30 @@ namespace FMS.Application.Features.PTS.Services
         /// When the transaction started (for timeout detection).
         /// </summary>
         public DateTime StartTime { get; set; }
+
+        /// <summary>
+        /// The fuel tag associated with this transaction (e.g., RFID tag).
+        /// </summary>
+        public string? Tag { get; set; }
+
+        /// <summary>
+        /// The nozzle ID used for this transaction.
+        /// </summary>
+        public int? Nozzle { get; set; }
+
+        /// <summary>
+        /// The fuel grade ID for this transaction.
+        /// </summary>
+        public int? FuelGradeId { get; set; }
+
+        /// <summary>
+        /// The fuel grade name for this transaction.
+        /// </summary>
+        public string? FuelGradeName { get; set; }
+
+        /// <summary>
+        /// The configuration ID for the device.
+        /// </summary>
+        public string? ConfigurationId { get; set; }
     }
 }

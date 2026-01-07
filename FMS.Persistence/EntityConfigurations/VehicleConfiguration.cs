@@ -100,6 +100,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.Yom)
                     .HasMaxLength(45)
                     .HasColumnName("YOM");
+
                 builder.HasOne(v => v.DefaultExptdAvg)
                     .WithMany()
                     .HasForeignKey(v => v.DefaultExptdAvgid)

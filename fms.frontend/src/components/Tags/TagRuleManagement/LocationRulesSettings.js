@@ -3,12 +3,19 @@ import { useDispatch, useSelector } from "react-redux";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
 import { NumberBox } from "devextreme-react/number-box";
+import { TextArea } from "devextreme-react/text-area";
+import { SelectBox } from "devextreme-react/select-box";
 import notify from "devextreme/ui/notify";
 import { usePermissions } from "../../../hooks/usePermissions";
 import {
   fetchSystemConfigurations,
   updateSystemConfiguration,
 } from "../../../redux/actions/systemConfigActions";
+import {
+  enableTemporaryBypass,
+  getTemporaryBypassStatus,
+  cancelTemporaryBypass,
+} from "../../../api/geofenceService";
 
 const LocationRulesSettings = () => {
   const dispatch = useDispatch();
@@ -19,6 +26,10 @@ const LocationRulesSettings = () => {
 
   const [settings, setSettings] = useState({
     enableLocationValidation: false,
+    enableGeofenceValidation: false,
+    requireTankerInGeofence: true,
+    requireOperatorInGeofence: false,
+    requireVehicleInGeofence: false,
     defaultVehicleProximityRadius: 100,
     defaultMobileProximityRadius: 50,
     allowNonGPSVehicles: true,
@@ -29,6 +40,17 @@ const LocationRulesSettings = () => {
     allowCachedMobileLocation: true,
     enableLocationAuditLog: true,
   });
+
+  // Temporary bypass state
+  const [bypassStatus, setBypassStatus] = useState({
+    isActive: false,
+    expiresAt: null,
+    enabledBy: null,
+    reason: null,
+  });
+  const [bypassLoading, setBypassLoading] = useState(false);
+  const [bypassReason, setBypassReason] = useState("");
+  const [bypassDuration, setBypassDuration] = useState(5); // default 5 minutes
 
   const [configMap, setConfigMap] = useState({});
   const [saving, setSaving] = useState(false);
@@ -62,6 +84,22 @@ const LocationRulesSettings = () => {
         switch (config.configurationKey) {
           case "FuelingRules.EnableLocationValidation":
             newSettings.enableLocationValidation =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
+          case "FuelingRules.EnableGeofenceValidation":
+            newSettings.enableGeofenceValidation =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
+          case "FuelingRules.RequireTankerInGeofence":
+            newSettings.requireTankerInGeofence =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
+          case "FuelingRules.RequireOperatorInGeofence":
+            newSettings.requireOperatorInGeofence =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
+          case "FuelingRules.RequireVehicleInGeofence":
+            newSettings.requireVehicleInGeofence =
               config.configurationValue?.toLowerCase() === "true";
             break;
           case "FuelingRules.DefaultVehicleProximityRadius":
@@ -142,6 +180,10 @@ const LocationRulesSettings = () => {
 
       const settingsToConfigMap = {
         enableLocationValidation: "FuelingRules.EnableLocationValidation",
+        enableGeofenceValidation: "FuelingRules.EnableGeofenceValidation",
+        requireTankerInGeofence: "FuelingRules.RequireTankerInGeofence",
+        requireOperatorInGeofence: "FuelingRules.RequireOperatorInGeofence",
+        requireVehicleInGeofence: "FuelingRules.RequireVehicleInGeofence",
         defaultVehicleProximityRadius:
           "FuelingRules.DefaultVehicleProximityRadius",
         defaultMobileProximityRadius:
@@ -200,7 +242,144 @@ const LocationRulesSettings = () => {
 
   const handleRefresh = useCallback(() => {
     dispatch(fetchSystemConfigurations({ category: "FuelingRules" }));
+    fetchBypassStatus();
   }, [dispatch]);
+
+  // Fetch temporary bypass status
+  const fetchBypassStatus = useCallback(async () => {
+    try {
+      const response = await getTemporaryBypassStatus();
+      if (response?.data) {
+        setBypassStatus({
+          isActive: response.data.isActive || false,
+          expiresAt: response.data.expiresAt
+            ? new Date(response.data.expiresAt)
+            : null,
+          enabledBy: response.data.enabledBy || null,
+          reason: response.data.reason || null,
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching bypass status:", error);
+    }
+  }, []);
+
+  // Fetch bypass status on component mount
+  useEffect(() => {
+    fetchBypassStatus();
+    // Set up interval to check bypass status every 30 seconds
+    const interval = setInterval(fetchBypassStatus, 30000);
+    return () => clearInterval(interval);
+  }, [fetchBypassStatus]);
+
+  // Handle enabling temporary bypass
+  const handleEnableBypass = async () => {
+    if (!hasAdminPermission) {
+      notify(
+        "You do not have permission to enable temporary bypass",
+        "error",
+        4000
+      );
+      return;
+    }
+
+    setBypassLoading(true);
+    try {
+      const response = await enableTemporaryBypass(
+        bypassDuration,
+        bypassReason
+      );
+      if (response?.success) {
+        notify(
+          `Location validation bypassed for ${bypassDuration} minutes`,
+          "success",
+          4000
+        );
+        setBypassStatus({
+          isActive: true,
+          expiresAt: response.data?.expiresAt
+            ? new Date(response.data.expiresAt)
+            : new Date(Date.now() + bypassDuration * 60000),
+          enabledBy: userInfo?.fullName || userInfo?.userName || "Admin",
+          reason: bypassReason,
+        });
+        setBypassReason("");
+      } else {
+        notify(response?.message || "Failed to enable bypass", "error", 4000);
+      }
+    } catch (error) {
+      console.error("Error enabling temporary bypass:", error);
+      notify(
+        "Failed to enable temporary bypass. Please try again.",
+        "error",
+        4000
+      );
+    } finally {
+      setBypassLoading(false);
+    }
+  };
+
+  // Handle canceling temporary bypass
+  const handleCancelBypass = async () => {
+    if (!hasAdminPermission) {
+      notify(
+        "You do not have permission to cancel temporary bypass",
+        "error",
+        4000
+      );
+      return;
+    }
+
+    setBypassLoading(true);
+    try {
+      const response = await cancelTemporaryBypass();
+      if (response?.success) {
+        notify(
+          "Temporary bypass has been cancelled. Location validation is now active.",
+          "success",
+          4000
+        );
+        setBypassStatus({
+          isActive: false,
+          expiresAt: null,
+          enabledBy: null,
+          reason: null,
+        });
+      } else {
+        notify(response?.message || "Failed to cancel bypass", "error", 4000);
+      }
+    } catch (error) {
+      console.error("Error canceling temporary bypass:", error);
+      notify(
+        "Failed to cancel temporary bypass. Please try again.",
+        "error",
+        4000
+      );
+    } finally {
+      setBypassLoading(false);
+    }
+  };
+
+  // Calculate remaining time for bypass
+  const getRemainingTime = () => {
+    if (!bypassStatus.isActive || !bypassStatus.expiresAt) return null;
+    const now = new Date();
+    const expiresAt = new Date(bypassStatus.expiresAt);
+    const remainingMs = expiresAt - now;
+    if (remainingMs <= 0) return null;
+    const minutes = Math.floor(remainingMs / 60000);
+    const seconds = Math.floor((remainingMs % 60000) / 1000);
+    return `${minutes}m ${seconds}s`;
+  };
+
+  // Duration options for bypass
+  const bypassDurationOptions = [
+    { value: 5, text: "5 minutes" },
+    { value: 10, text: "10 minutes" },
+    { value: 15, text: "15 minutes" },
+    { value: 30, text: "30 minutes" },
+    { value: 60, text: "1 hour" },
+  ];
 
   // Setting card component
   const SettingCard = ({ icon, iconColor, title, description, children }) => (
@@ -313,6 +492,266 @@ const LocationRulesSettings = () => {
             </label>
           </div>
         </div>
+
+        {/* Temporary Bypass Section */}
+        <div
+          className={`tw-rounded-xl tw-p-5 tw-border ${
+            bypassStatus.isActive
+              ? "tw-bg-gradient-to-r tw-from-red-50 tw-to-orange-50 tw-border-red-300"
+              : "tw-bg-gradient-to-r tw-from-amber-50 tw-to-yellow-50 tw-border-amber-200"
+          }`}
+        >
+          <div className="tw-flex tw-flex-col lg:tw-flex-row tw-items-start lg:tw-items-center tw-justify-between tw-gap-4">
+            <div className="tw-flex tw-items-center tw-gap-4">
+              <div
+                className={`tw-w-14 tw-h-14 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
+                  bypassStatus.isActive ? "tw-bg-red-100" : "tw-bg-amber-100"
+                }`}
+              >
+                <i
+                  className={`fa-light fa-shield-xmark tw-text-2xl ${
+                    bypassStatus.isActive
+                      ? "tw-text-red-600"
+                      : "tw-text-amber-600"
+                  }`}
+                ></i>
+              </div>
+              <div>
+                <h3 className="tw-text-lg tw-font-bold tw-text-gray-900 tw-mb-1 tw-flex tw-items-center tw-gap-2">
+                  Temporary Location Bypass
+                  {bypassStatus.isActive && (
+                    <span className="tw-px-2 tw-py-0.5 tw-bg-red-500 tw-text-white tw-text-xs tw-font-semibold tw-rounded-full tw-animate-pulse">
+                      ACTIVE
+                    </span>
+                  )}
+                </h3>
+                <p className="tw-text-sm tw-text-gray-600">
+                  {bypassStatus.isActive
+                    ? `Location validation is temporarily disabled. Expires in ${
+                        getRemainingTime() || "soon"
+                      }.`
+                    : "Temporarily disable location validation for emergency or troubleshooting purposes."}
+                </p>
+                {bypassStatus.isActive && bypassStatus.enabledBy && (
+                  <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+                    <i className="fa-light fa-user tw-mr-1"></i>
+                    Enabled by: {bypassStatus.enabledBy}
+                    {bypassStatus.reason && ` - ${bypassStatus.reason}`}
+                  </p>
+                )}
+              </div>
+            </div>
+
+            {bypassStatus.isActive ? (
+              <Button
+                icon="fa-light fa-shield-check"
+                text="Cancel Bypass"
+                type="danger"
+                stylingMode="contained"
+                onClick={handleCancelBypass}
+                disabled={!hasAdminPermission || bypassLoading}
+              />
+            ) : (
+              <div className="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-gap-3 tw-w-full lg:tw-w-auto">
+                <SelectBox
+                  items={bypassDurationOptions}
+                  value={bypassDuration}
+                  displayExpr="text"
+                  valueExpr="value"
+                  onValueChanged={(e) => setBypassDuration(e.value)}
+                  disabled={!hasAdminPermission || bypassLoading}
+                  width={140}
+                  placeholder="Duration"
+                />
+                <TextArea
+                  value={bypassReason}
+                  onValueChanged={(e) => setBypassReason(e.value)}
+                  placeholder="Reason (optional)"
+                  disabled={!hasAdminPermission || bypassLoading}
+                  height={36}
+                  width={200}
+                  maxLength={200}
+                />
+                <Button
+                  icon="fa-light fa-shield-xmark"
+                  text="Enable Bypass"
+                  type="danger"
+                  stylingMode="outlined"
+                  onClick={handleEnableBypass}
+                  disabled={!hasAdminPermission || bypassLoading}
+                />
+              </div>
+            )}
+          </div>
+          {!bypassStatus.isActive && (
+            <div className="tw-mt-4 tw-p-3 tw-bg-amber-100 tw-rounded-lg tw-border tw-border-amber-200">
+              <div className="tw-flex tw-items-start tw-gap-2">
+                <i className="fa-light fa-triangle-exclamation tw-text-amber-600 tw-mt-0.5"></i>
+                <p className="tw-text-xs tw-text-amber-800 tw-m-0">
+                  <strong>Warning:</strong> Enabling bypass will temporarily
+                  disable ALL location validation checks. Fueling will be
+                  permitted regardless of GPS location or geofence boundaries.
+                  Use only for emergency situations or troubleshooting.
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* Secondary Feature Toggles */}
+        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+          {/* Geofence Validation Toggle */}
+          <div className="tw-bg-gradient-to-r tw-from-blue-50 tw-to-indigo-50 tw-rounded-xl tw-p-5 tw-border tw-border-blue-200">
+            <div className="tw-flex tw-items-center tw-justify-between">
+              <div className="tw-flex tw-items-center tw-gap-3">
+                <div className="tw-w-12 tw-h-12 tw-rounded-full tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                  <i className="fa-light fa-map-location-dot tw-text-xl tw-text-blue-600"></i>
+                </div>
+                <div>
+                  <h3 className="tw-text-base tw-font-bold tw-text-gray-900 tw-mb-1">
+                    Enable Geofence Validation
+                  </h3>
+                  <p className="tw-text-xs tw-text-gray-600">
+                    Validate fueling locations against configured geofence
+                    boundaries.
+                  </p>
+                </div>
+              </div>
+              <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={settings.enableGeofenceValidation}
+                  onChange={(e) =>
+                    handleSettingChange(
+                      "enableGeofenceValidation",
+                      e.target.checked
+                    )
+                  }
+                  disabled={!hasAdminPermission}
+                  className="tw-sr-only tw-peer"
+                />
+                <div className="tw-w-12 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-blue-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-0.5 after:tw-left-[4px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-blue-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        {/* Geofence Requirements Section - Only show when geofence validation is enabled */}
+        {settings.enableGeofenceValidation && (
+          <div className="tw-bg-blue-50 tw-rounded-xl tw-p-5 tw-border tw-border-blue-200">
+            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+              <i className="fa-light fa-shield-check tw-text-blue-600"></i>
+              Geofence Validation Requirements
+            </h3>
+            <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
+              Configure which entities must be within an allowed geofence during
+              fueling operations.
+            </p>
+            <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4">
+              {/* Require Tanker In Geofence */}
+              <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-shadow-sm">
+                <div className="tw-flex tw-items-center tw-justify-between">
+                  <div className="tw-flex tw-items-center tw-gap-3">
+                    <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-orange-100 tw-flex tw-items-center tw-justify-center">
+                      <i className="fa-light fa-truck-container tw-text-lg tw-text-orange-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="tw-text-sm tw-font-semibold tw-text-gray-900">
+                        Require Tanker in Geofence
+                      </h4>
+                      <p className="tw-text-xs tw-text-gray-500">
+                        Tanker/pump must be within geofence
+                      </p>
+                    </div>
+                  </div>
+                  <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.requireTankerInGeofence}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          "requireTankerInGeofence",
+                          e.target.checked
+                        )
+                      }
+                      disabled={!hasAdminPermission}
+                      className="tw-sr-only tw-peer"
+                    />
+                    <div className="tw-w-11 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-orange-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-orange-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Require Operator In Geofence */}
+              <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-shadow-sm">
+                <div className="tw-flex tw-items-center tw-justify-between">
+                  <div className="tw-flex tw-items-center tw-gap-3">
+                    <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-teal-100 tw-flex tw-items-center tw-justify-center">
+                      <i className="fa-light fa-user-helmet-safety tw-text-lg tw-text-teal-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="tw-text-sm tw-font-semibold tw-text-gray-900">
+                        Require Operator in Geofence
+                      </h4>
+                      <p className="tw-text-xs tw-text-gray-500">
+                        Mobile app user must be within geofence
+                      </p>
+                    </div>
+                  </div>
+                  <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.requireOperatorInGeofence}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          "requireOperatorInGeofence",
+                          e.target.checked
+                        )
+                      }
+                      disabled={!hasAdminPermission}
+                      className="tw-sr-only tw-peer"
+                    />
+                    <div className="tw-w-11 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-teal-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-teal-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+                  </label>
+                </div>
+              </div>
+
+              {/* Require Vehicle In Geofence */}
+              <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-shadow-sm">
+                <div className="tw-flex tw-items-center tw-justify-between">
+                  <div className="tw-flex tw-items-center tw-gap-3">
+                    <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-indigo-100 tw-flex tw-items-center tw-justify-center">
+                      <i className="fa-light fa-truck tw-text-lg tw-text-indigo-600"></i>
+                    </div>
+                    <div>
+                      <h4 className="tw-text-sm tw-font-semibold tw-text-gray-900">
+                        Require Vehicle in Geofence
+                      </h4>
+                      <p className="tw-text-xs tw-text-gray-500">
+                        Vehicle being fueled must be in geofence
+                      </p>
+                    </div>
+                  </div>
+                  <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={settings.requireVehicleInGeofence}
+                      onChange={(e) =>
+                        handleSettingChange(
+                          "requireVehicleInGeofence",
+                          e.target.checked
+                        )
+                      }
+                      disabled={!hasAdminPermission}
+                      className="tw-sr-only tw-peer"
+                    />
+                    <div className="tw-w-11 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-indigo-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-indigo-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Proximity Settings */}
         <div>

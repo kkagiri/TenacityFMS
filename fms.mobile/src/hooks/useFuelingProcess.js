@@ -247,15 +247,35 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
       dispatch(fetchVehicleList());
       dispatch(fetchSiteList());
 
-      // Pre-warm location service
-      locationService
-        .warmUpLocation()
-        .catch((err) =>
-          console.log(
-            "[useFuelingProcess] Location warm-up failed:",
-            err.message
-          )
+      // Pre-warm location service if mobile location validation might be needed
+      // This requests permission early and caches location to avoid prompts during authorization
+      const requireMobileLocation = ptsDevice?.requireMobileAppProximity === 1;
+      if (requireMobileLocation) {
+        console.log(
+          "[useFuelingProcess] Mobile location required - warming up location service"
         );
+        locationService
+          .warmUpLocation(true) // Request permission if not granted
+          .then((result) => {
+            console.log("[useFuelingProcess] Location warm-up result:", result);
+          })
+          .catch((err) =>
+            console.log(
+              "[useFuelingProcess] Location warm-up failed:",
+              err.message
+            )
+          );
+      } else {
+        // Still warm up silently for logging purposes
+        locationService
+          .warmUpLocation(false) // Don't request permission if not required
+          .catch((err) =>
+            console.log(
+              "[useFuelingProcess] Location warm-up failed (non-critical):",
+              err.message
+            )
+          );
+      }
 
       const targetSiteId = ptsDevice?.site || siteId;
 
@@ -676,19 +696,70 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
         const typeMapping = { Volume: 0, Amount: 1, Full: 2, FullTank: 2 };
 
-        console.log(
-          "[useFuelingProcess] Getting device location for authorization..."
-        );
-        const deviceLocation = await locationService.getLocationForFueling();
+        // Check if mobile location validation is required for this PTS device
+        const requireMobileLocation =
+          ptsDevice?.requireMobileAppProximity === 1;
+        // User-level bypass takes precedence, then device-level bypass
+        const userBypassEnabled =
+          loggedInUser?.bypassLocationValidation === true;
+        const bypassOnGPSFailure =
+          userBypassEnabled || ptsDevice?.bypassOnGPSFailure === 1;
 
-        if (!deviceLocation) {
-          console.warn(
-            "[useFuelingProcess] Could not get device location - proceeding without location"
+        if (userBypassEnabled) {
+          console.log(
+            "[useFuelingProcess] User has GPS bypass enabled - location validation will be relaxed"
           );
+        }
+
+        let deviceLocation = null;
+
+        if (requireMobileLocation && !userBypassEnabled) {
+          console.log(
+            "[useFuelingProcess] Mobile location required for this device, getting location..."
+          );
+
+          // Get location with configuration from PTS device
+          deviceLocation = await locationService.getLocationForFueling({
+            requireHighAccuracy: false, // Use network location first for reliability
+            silentMode: locationService.permissionVerified, // Silent if already verified
+            allowCachedLocation: bypassOnGPSFailure, // Allow cached if bypass is enabled
+            maxAccuracyMeters: ptsDevice?.mobileAppProximityRadius || 500,
+          });
+
+          if (!deviceLocation && !bypassOnGPSFailure) {
+            // Location is required but couldn't be obtained and bypass is disabled
+            console.warn(
+              "[useFuelingProcess] Could not get location and bypass is disabled"
+            );
+            setIsAuthorizing(false);
+            setAuthError(
+              "Location is required for fueling at this site but could not be obtained. " +
+                "Please enable location services and try again."
+            );
+            return;
+          }
         } else {
+          // Location not required, but try to get it anyway for logging (silent mode)
+          console.log(
+            "[useFuelingProcess] Mobile location not required, attempting silent location fetch..."
+          );
+          deviceLocation = await locationService.getLocationForFueling({
+            requireHighAccuracy: false,
+            silentMode: true, // Never show alerts if not required
+            allowCachedLocation: true,
+            maxAccuracyMeters: 1000, // Accept lower accuracy since it's optional
+          });
+        }
+
+        if (deviceLocation) {
           console.log(
             "[useFuelingProcess] Device location obtained:",
             `lat=${deviceLocation.latitude}, lng=${deviceLocation.longitude}, accuracy=${deviceLocation.accuracy}m`
+          );
+        } else {
+          console.log(
+            "[useFuelingProcess] Proceeding without location" +
+              (bypassOnGPSFailure ? " (bypass enabled)" : "")
           );
         }
 
@@ -699,10 +770,9 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
           pumpId: selectedPump.id,
           nozzle: selectedNozzle.id,
           type: typeMapping[authType] ?? 2,
-          dose:
-            authType === "Full" || authType === "FullTank"
-              ? 0
-              : parseFloat(dose) || 0,
+          // For Full/FullTank: use the dose passed (which now contains maxFuelAllowed)
+          // The pump needs a non-zero cutoff value to know when to stop
+          dose: parseFloat(dose) || 0,
           vehicleId: vehicleId,
           tankId: selectedTank?.tankId || selectedTank?.id,
           tag: shouldUseMasterTag ? loggedInUser?.masterTag : tagId,
@@ -780,6 +850,7 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
       isAuthorizing,
       dispatch,
       ptsId,
+      ptsDevice,
       selectedPump,
       selectedNozzle,
       selectedTank,
@@ -789,9 +860,32 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   );
 
   const handleVehicleFuelingConfirm = useCallback(async () => {
+    // Calculate the dose to send to the pump
+    // When full tank is selected, use the maximum allowed from fueling rules
+    // The pump needs a specific cutoff value - it cannot accept 0 for full tank
+    let doseToSend = null;
+
+    if (isFullTank) {
+      // For full tank: use maxFuelAllowed from rules, fallback to hardLimit, then tankCapacity
+      doseToSend =
+        fuelingRules?.maxFuelAllowed ||
+        fuelingRules?.hardLimit ||
+        fuelingRules?.tankCapacity ||
+        selectedVehicle?.fuelTankCapacity ||
+        null;
+
+      console.log(
+        "[useFuelingProcess] Full tank selected, using max allowed dose:",
+        doseToSend
+      );
+    } else {
+      // For manual volume: use the entered value
+      doseToSend = parseFloat(fuelingVolume) || null;
+    }
+
     const authData = {
       authType: isFullTank ? "Full" : fuelingVolume ? "Volume" : "Full",
-      dose: isFullTank ? null : parseFloat(fuelingVolume) || null,
+      dose: doseToSend,
       vehicleId: selectedVehicle?.vehicleId || selectedVehicle?.id,
       tagId: selectedTag || tagDetails?.tagId || vehicleInfo?.tagId,
       useMasterTag: useMasterTag,
@@ -808,6 +902,7 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   }, [
     isFullTank,
     fuelingVolume,
+    fuelingRules,
     selectedVehicle,
     selectedTag,
     tagDetails,

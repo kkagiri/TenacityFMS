@@ -20,38 +20,82 @@ class LocationService {
     this.isWarmingUp = false; // Track if we're pre-fetching location
     this.pendingLocationRequest = null; // Track pending request to prevent duplicate callbacks
     this.requestId = 0; // Unique ID for each request to prevent stale callbacks
+    this.permissionVerified = false; // Track if permission was already verified this session
   }
 
   /**
-   * Pre-warm location service by getting an initial location
+   * Pre-warm location service by getting an initial location and verifying permissions
    * Call this early (e.g., when user opens fueling screen) to improve later fetch speed
-   * @returns {Promise<void>}
+   * and avoid permission prompts during authorization
+   * @param {boolean} requestPermission - If true, request permission if not granted (default: true)
+   * @returns {Promise<{permissionGranted: boolean, locationAvailable: boolean}>}
    */
-  async warmUpLocation() {
+  async warmUpLocation(requestPermission = true) {
     if (this.isWarmingUp) {
       console.log("[LocationService] Already warming up location...");
-      return;
+      return {
+        permissionGranted: this.permissionVerified,
+        locationAvailable: !!this.lastKnownLocation,
+      };
     }
 
     this.isWarmingUp = true;
     console.log("[LocationService] Warming up location service...");
 
     try {
-      // Try to get a quick location with relaxed settings
+      // First check permission
+      const { granted } = await this.checkLocationPermission();
+
+      if (!granted && requestPermission) {
+        console.log("[LocationService] Permission not granted, requesting...");
+        const permissionGranted = await this.requestLocationPermission();
+        if (permissionGranted) {
+          this.permissionVerified = true;
+        } else {
+          console.log("[LocationService] Permission denied during warm-up");
+          return { permissionGranted: false, locationAvailable: false };
+        }
+      } else if (granted) {
+        this.permissionVerified = true;
+      }
+
+      // Try to get a quick location with relaxed settings (silent mode)
       const location = await this.getCurrentLocation({
         enableHighAccuracy: false, // Network location is faster
         timeout: 5000, // Quick attempt
         maximumAge: 300000, // Accept old cached locations (5 min)
+        silentMode: true, // Don't show any alerts during warm-up
       });
 
       if (location) {
         console.log("[LocationService] Location warmed up successfully");
+        return { permissionGranted: true, locationAvailable: true };
       }
+
+      return {
+        permissionGranted: this.permissionVerified,
+        locationAvailable: false,
+      };
     } catch (error) {
-      console.log("[LocationService] Location warm-up failed (non-critical)");
+      console.log(
+        "[LocationService] Location warm-up failed (non-critical):",
+        error
+      );
+      return {
+        permissionGranted: this.permissionVerified,
+        locationAvailable: !!this.lastKnownLocation,
+      };
     } finally {
       this.isWarmingUp = false;
     }
+  }
+
+  /**
+   * Check if permission has been verified in this session
+   * @returns {boolean}
+   */
+  isPermissionVerified() {
+    return this.permissionVerified;
   }
 
   /**
@@ -162,6 +206,7 @@ class LocationService {
    * @param {number} options.timeout - Timeout in milliseconds (default: 15000)
    * @param {boolean} options.enableHighAccuracy - Use GPS for better accuracy (default: true)
    * @param {number} options.maximumAge - Max age of cached location in ms (default: 10000)
+   * @param {boolean} options.silentMode - If true, don't show alerts on errors (default: false)
    * @returns {Promise<{latitude: number, longitude: number, accuracy: number, isCached: boolean} | null>}
    */
   async getCurrentLocation(options = {}) {
@@ -169,6 +214,7 @@ class LocationService {
       timeout = 15000,
       enableHighAccuracy = true,
       maximumAge = 10000,
+      silentMode = false,
     } = options;
 
     try {
@@ -181,6 +227,9 @@ class LocationService {
           return null;
         }
       }
+
+      // Mark permission as verified for this session
+      this.permissionVerified = true;
 
       // Cancel any pending request to prevent callback conflicts
       this.cancelPendingLocationRequest();
@@ -238,30 +287,51 @@ class LocationService {
           (error) => {
             console.error("[LocationService] Geolocation error:", error);
 
-            switch (error.code) {
-              case 1: // PERMISSION_DENIED
-                this.showEnableLocationAlert(true);
-                break;
-              case 2: // POSITION_UNAVAILABLE
-                this.showEnableLocationAlert(false);
-                break;
-              case 3: // TIMEOUT
-                // Try to return cached location if available
-                if (this.lastKnownLocation) {
-                  console.log(
-                    "[LocationService] Using cached location due to timeout"
+            // In silent mode, don't show alerts - just return null or cached location
+            if (!silentMode) {
+              switch (error.code) {
+                case 1: // PERMISSION_DENIED
+                  // Only show alert if permission wasn't already verified
+                  if (!this.permissionVerified) {
+                    this.showEnableLocationAlert(true);
+                  }
+                  break;
+                case 2: // POSITION_UNAVAILABLE
+                  // Only show alert if we don't have a cached location to fall back to
+                  if (!this.lastKnownLocation) {
+                    this.showEnableLocationAlert(false);
+                  }
+                  break;
+                case 3: // TIMEOUT
+                  // Try to return cached location if available
+                  if (this.lastKnownLocation) {
+                    console.log(
+                      "[LocationService] Using cached location due to timeout"
+                    );
+                    safeResolve({
+                      ...this.lastKnownLocation,
+                      isCached: true,
+                    });
+                    return;
+                  }
+                  Alert.alert(
+                    "Location Timeout",
+                    "Unable to get your location. Please ensure you have a clear view of the sky and try again."
                   );
-                  safeResolve({
-                    ...this.lastKnownLocation,
-                    isCached: true,
-                  });
-                  return;
-                }
-                Alert.alert(
-                  "Location Timeout",
-                  "Unable to get your location. Please ensure you have a clear view of the sky and try again."
+                  break;
+              }
+            } else {
+              // Silent mode - try to use cached location for any error
+              if (this.lastKnownLocation) {
+                console.log(
+                  "[LocationService] Silent mode - using cached location due to error"
                 );
-                break;
+                safeResolve({
+                  ...this.lastKnownLocation,
+                  isCached: true,
+                });
+                return;
+              }
             }
 
             safeResolve(null);
@@ -298,36 +368,74 @@ class LocationService {
   /**
    * Get location for fueling authorization
    * Returns location or shows appropriate error/settings prompt
-   * Uses fallback strategy: high accuracy first, then low accuracy, then cached
+   * Uses fallback strategy based on configuration
+   *
+   * @param {Object} options - Configuration options
+   * @param {boolean} options.requireHighAccuracy - If true, prefer GPS over network location (default: false for better reliability)
+   * @param {boolean} options.silentMode - If true, don't show any alerts/prompts (default: true if permission already verified)
+   * @param {boolean} options.allowCachedLocation - Allow returning cached location if fresh fails (default: true)
+   * @param {number} options.maxAccuracyMeters - Maximum acceptable accuracy in meters (default: 500)
    * @returns {Promise<{latitude: number, longitude: number, accuracy: number, isCached: boolean} | null>}
    */
-  async getLocationForFueling() {
+  async getLocationForFueling(options = {}) {
+    const {
+      requireHighAccuracy = false, // Default to low accuracy for better reliability in poor GPS areas
+      silentMode = this.permissionVerified, // If we already verified permission, use silent mode
+      allowCachedLocation = true,
+      maxAccuracyMeters = 500, // Accept up to 500m accuracy for mobile proximity
+    } = options;
+
     console.log(
-      "[LocationService] Getting location for fueling authorization..."
+      "[LocationService] Getting location for fueling authorization...",
+      {
+        requireHighAccuracy,
+        silentMode,
+        allowCachedLocation,
+        maxAccuracyMeters,
+      }
     );
 
-    // Strategy 1: Try high accuracy first (GPS) with extended timeout
-    console.log("[LocationService] Attempting high-accuracy GPS location...");
-    let location = await this.getCurrentLocation({
-      enableHighAccuracy: true,
-      timeout: 30000, // 30 seconds for GPS lock
-      maximumAge: 60000, // Accept location up to 60 seconds old
-    });
+    let location = null;
 
-    // Strategy 2: If high accuracy fails, try low accuracy (network/cell tower)
-    if (!location) {
-      console.log(
-        "[LocationService] High-accuracy failed, trying low-accuracy location..."
-      );
+    // If high accuracy is required, try GPS first
+    if (requireHighAccuracy) {
+      console.log("[LocationService] Attempting high-accuracy GPS location...");
       location = await this.getCurrentLocation({
-        enableHighAccuracy: false, // Use network/cell tower location
-        timeout: 10000, // Faster for network location
-        maximumAge: 120000, // Accept older locations for network
+        enableHighAccuracy: true,
+        timeout: 20000, // 20 seconds for GPS lock
+        maximumAge: 60000, // Accept location up to 60 seconds old
+        silentMode: true, // Don't show alerts on first attempt
       });
     }
 
-    // Strategy 3: If all fails, use last known cached location
-    if (!location && this.lastKnownLocation) {
+    // Strategy 2: Try low accuracy (network/cell tower) - works better in poor GPS areas
+    if (!location) {
+      console.log(
+        "[LocationService] Trying low-accuracy (network) location..."
+      );
+      location = await this.getCurrentLocation({
+        enableHighAccuracy: false, // Use network/cell tower location
+        timeout: 15000, // 15 seconds for network location
+        maximumAge: 120000, // Accept older locations for network
+        silentMode, // Use configured silent mode
+      });
+    }
+
+    // Strategy 3: If low accuracy also failed, try high accuracy as last resort
+    if (!location && !requireHighAccuracy) {
+      console.log(
+        "[LocationService] Low-accuracy failed, trying high-accuracy as fallback..."
+      );
+      location = await this.getCurrentLocation({
+        enableHighAccuracy: true,
+        timeout: 15000,
+        maximumAge: 120000,
+        silentMode, // Use configured silent mode
+      });
+    }
+
+    // Strategy 4: If all fails, use last known cached location
+    if (!location && allowCachedLocation && this.lastKnownLocation) {
       console.log(
         "[LocationService] Using last known cached location as fallback"
       );
@@ -342,12 +450,14 @@ class LocationService {
       return null;
     }
 
-    // Warn if accuracy is poor (> 100 meters)
-    if (location.accuracy > 100) {
+    // Warn if accuracy is poor (> maxAccuracyMeters)
+    if (location.accuracy > maxAccuracyMeters) {
       console.warn(
-        "[LocationService] Poor GPS accuracy:",
+        "[LocationService] Location accuracy exceeds maximum:",
         location.accuracy,
-        "meters",
+        "meters (max:",
+        maxAccuracyMeters,
+        ")",
         location.isCached ? "(cached)" : ""
       );
     }

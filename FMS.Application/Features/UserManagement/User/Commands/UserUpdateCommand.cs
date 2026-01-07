@@ -12,7 +12,12 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement
 {
-    public record UserUpdateCommand(string UserId, string Email, string UserName, string RoleName) : IRequest<bool>;
+    public record UserUpdateCommand(
+        string UserId, 
+        string Email, 
+        string UserName, 
+        string RoleName,
+        bool? BypassLocationValidation = null) : IRequest<bool>;
 
     public class UserUpdateCommandHandler : IRequestHandler<UserUpdateCommand, bool>
     {
@@ -41,6 +46,12 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
 
                 user.Email = request.Email;
                 user.UserName = request.UserName;
+                
+                // Update bypass location validation if provided
+                if (request.BypassLocationValidation.HasValue)
+                {
+                    user.BypassLocationValidation = request.BypassLocationValidation.Value;
+                }
 
                 var result = await _userManager.UpdateAsync(user);
 

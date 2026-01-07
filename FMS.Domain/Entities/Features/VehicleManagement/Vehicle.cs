@@ -123,4 +123,8 @@ public partial class Vehicle
     /// </summary>
     public virtual ICollection<VehicleExpectedAverageAssignment> ExpectedAverageAssignments { get; set; } = new List<VehicleExpectedAverageAssignment>();
 
+    // NOTE: Fixed Location Properties have been REMOVED.
+    // Valid fueling locations for stationary equipment (generators, pumps, etc.)
+    // should be defined as geofences in GPSGate instead.
+
 }

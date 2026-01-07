@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
@@ -25,7 +26,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
     {
         private readonly IGPSGateLocationService _locationService;
         private readonly IGPSGateSensorService _sensorService;
-        private readonly IGPSGateGeofenceService _geofenceService;
+        private readonly FMS.Application.CommonInterface.IGPSGateGeofenceService _geofenceService;
         private readonly IGPSGateEventService _eventService;
         private readonly IGPSGateHealthService _healthService;
         private readonly ILogger<GPSGateService> _logger;
@@ -33,7 +34,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         public GPSGateService(
             IGPSGateLocationService locationService,
             IGPSGateSensorService sensorService,
-            IGPSGateGeofenceService geofenceService,
+            FMS.Application.CommonInterface.IGPSGateGeofenceService geofenceService,
             IGPSGateEventService eventService,
             IGPSGateHealthService healthService,
             ILogger<GPSGateService> logger)

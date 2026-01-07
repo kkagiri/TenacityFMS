@@ -13,7 +13,13 @@
  * - Emergency stop functionality
  * - Persistent notification with fueling progress
  */
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, {
+  useEffect,
+  useState,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import {
   View,
   Text,
@@ -75,6 +81,8 @@ const TransactionMonitoringModal = ({
   initialVolume = 0,
   initialAmount = 0,
   isExternalFueling = false,
+  // Operation mode passed from parent (vehicle or transfer)
+  operationMode = null,
 }) => {
   const dispatch = useDispatch();
 
@@ -124,6 +132,27 @@ const TransactionMonitoringModal = ({
 
   // Enhanced: Get fueling context from Redux (includes mode, vehicle, tank, fueled by)
   const fuelingContext = useSelector(selectFuelingContext(deviceId, pumpId));
+
+  // Determine the display mode - use fuelingContext from Redux, fallback to operationMode prop
+  // operationMode from parent is lowercase (vehicle, transfer), normalize for display
+  const displayMode = useMemo(() => {
+    // First try fuelingContext from Redux (comes from backend)
+    if (fuelingContext?.mode) {
+      return fuelingContext.mode;
+    }
+    // Fallback to operationMode prop from parent
+    if (operationMode === "transfer") {
+      return "Transfer";
+    }
+    if (operationMode === "vehicle") {
+      return "Vehicle";
+    }
+    // Default to Vehicle for external fueling or when unknown
+    return "Vehicle";
+  }, [fuelingContext?.mode, operationMode]);
+
+  // Check if this is a transfer operation
+  const isTransferMode = displayMode === "Transfer";
 
   // Add to status history
   // Can be called with just a message string or with (status, volume, amount)
@@ -1164,23 +1193,18 @@ const TransactionMonitoringModal = ({
               </View>
               <View style={styles.detailItem}>
                 <Icon
-                  name={
-                    fuelingContext?.mode === "Transfer" ? "exchange-alt" : "car"
-                  }
+                  name={isTransferMode ? "exchange-alt" : "car"}
                   size={16}
-                  color={
-                    fuelingContext?.mode === "Transfer" ? "#8b5cf6" : "#6b7280"
-                  }
+                  color={isTransferMode ? "#8b5cf6" : "#6b7280"}
                 />
                 <Text style={styles.detailLabel}>Mode</Text>
                 <Text
                   style={[
                     styles.detailValue,
-                    fuelingContext?.mode === "Transfer" &&
-                      styles.transferModeText,
+                    isTransferMode && styles.transferModeText,
                   ]}
                 >
-                  {fuelingContext?.mode || "Vehicle"}
+                  {displayMode}
                 </Text>
               </View>
             </View>
@@ -1213,18 +1237,17 @@ const TransactionMonitoringModal = ({
             )}
 
             {/* Enhanced: Tank Info for transfer mode */}
-            {fuelingContext?.mode === "Transfer" &&
-              fuelingContext?.tankName && (
-                <View style={styles.detailRow}>
-                  <View style={styles.detailItem}>
-                    <Icon name="database" size={16} color="#8b5cf6" />
-                    <Text style={styles.detailLabel}>Target Tank</Text>
-                    <Text style={styles.detailValue}>
-                      {fuelingContext.tankName}
-                    </Text>
-                  </View>
+            {isTransferMode && fuelingContext?.tankName && (
+              <View style={styles.detailRow}>
+                <View style={styles.detailItem}>
+                  <Icon name="database" size={16} color="#8b5cf6" />
+                  <Text style={styles.detailLabel}>Target Tank</Text>
+                  <Text style={styles.detailValue}>
+                    {fuelingContext.tankName}
+                  </Text>
                 </View>
-              )}
+              </View>
+            )}
 
             {/* Enhanced: Fueled By info */}
             {fuelingContext?.fueledByUserName && (

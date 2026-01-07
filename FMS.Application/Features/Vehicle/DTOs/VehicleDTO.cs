@@ -71,5 +71,49 @@ namespace FMS.Application.Features.Vehicle.DTOs
 
         public List<string> Tags { get; set; } = new List<string>();
 
+        #region Fixed Location Properties
+
+        /// <summary>
+        /// Indicates if this vehicle is a fixed/stationary asset (e.g., generator, pump, crane)
+        /// </summary>
+        public bool IsFixedLocation { get; set; }
+
+        /// <summary>
+        /// The registered latitude for this fixed location asset
+        /// </summary>
+        public decimal? FixedLatitude { get; set; }
+
+        /// <summary>
+        /// The registered longitude for this fixed location asset
+        /// </summary>
+        public decimal? FixedLongitude { get; set; }
+
+        /// <summary>
+        /// The allowed proximity radius in meters for fueling validation (default: 50m)
+        /// </summary>
+        public decimal? FixedLocationRadiusMeters { get; set; }
+
+        /// <summary>
+        /// A descriptive name for the fixed location (e.g., "Main Generator Building A")
+        /// </summary>
+        public string? FixedLocationName { get; set; }
+
+        /// <summary>
+        /// When the fixed location was last verified/updated
+        /// </summary>
+        public DateTime? FixedLocationLastVerifiedAt { get; set; }
+
+        /// <summary>
+        /// User who last verified/updated the fixed location
+        /// </summary>
+        public string? FixedLocationVerifiedBy { get; set; }
+
+        /// <summary>
+        /// Whether to require proximity validation for fueling this fixed asset
+        /// </summary>
+        public bool RequireProximityValidation { get; set; } = true;
+
+        #endregion
+
     }
 }
