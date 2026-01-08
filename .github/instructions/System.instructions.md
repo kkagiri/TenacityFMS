@@ -18,6 +18,7 @@
   - Example: `documentation/features/vehicle/fleet-management/V1/bug-fix/`
   - Example: `documentation/features/taskmanagement/assignment/V2/implementation/`
   - Example: `documentation/features/tankstock/reconciliation/V1/enhancement/`
+  Do not use devextreme checkbox for boolean values; use standard HTML checkbox inputs instead. or any other
 
 **Correct Pattern**:
 ```

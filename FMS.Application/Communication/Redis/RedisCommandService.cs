@@ -29,6 +29,17 @@ namespace FMS.Application.Communication.Redis
         // Extended timeout for pump authorization commands (device needs time to process and confirm)
         private readonly TimeSpan _pumpAuthorizeTimeout = TimeSpan.FromSeconds(15);
 
+        // Extended timeout for configuration commands (device may take longer to respond)
+        private readonly TimeSpan _configurationCommandTimeout = TimeSpan.FromSeconds(30);
+
+        // Commands that require extended timeout
+        private static readonly HashSet<string> _extendedTimeoutCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "PumpAuthorize",
+            "SetRemoteServerConfiguration",
+            "GetRemoteServerConfiguration"
+        };
+
         // Track processed correlation IDs to prevent duplicate processing (keep for 5 minutes)
         private readonly ConcurrentDictionary<string, DateTime> _processedCorrelationIds;
         private readonly TimeSpan _correlationIdCacheDuration = TimeSpan.FromMinutes(5);
@@ -173,8 +184,10 @@ namespace FMS.Application.Communication.Redis
             int attempt = 0;
             TimeSpan retryDelay = TimeSpan.FromSeconds(1);
 
-            // Use extended timeout for pump authorization commands
-            var effectiveTimeout = command.CommandType == "PumpAuthorize" ? _pumpAuthorizeTimeout : _commandTimeout;
+            // Use extended timeout for pump authorization and configuration commands
+            var effectiveTimeout = _extendedTimeoutCommands.Contains(command.CommandType)
+                ? (command.CommandType == "PumpAuthorize" ? _pumpAuthorizeTimeout : _configurationCommandTimeout)
+                : _commandTimeout;
 
             _logger.LogDebug("Sending {CommandType} command with {Timeout}s timeout (correlation: {CorrelationId})",
                 command.CommandType, effectiveTimeout.TotalSeconds, command.CorrelationId);

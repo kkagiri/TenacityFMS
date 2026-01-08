@@ -164,37 +164,37 @@ namespace FMS.Domain.PTSCommon.Responses
     public class SetRemoteServerConfigurationRequest
     {
         // Server Address (optional)
-        public List<int> IpAddress { get; set; }
-        public string DomainName { get; set; }
+        public List<int>? IpAddress { get; set; }
+        public string? DomainName { get; set; }
         public int? UserId { get; set; }
-        public string ProtocolType { get; set; }
+        public string? ProtocolType { get; set; }
         public int? ServerResponseTimeoutSeconds { get; set; }
         public bool? UseDeviceIdentifierAsLogin { get; set; }
 
         // HTTP Upload Settings (optional)
         public bool? UploadPumpTransactions { get; set; }
-        public string UploadPumpTransactionsUri { get; set; }
+        public string? UploadPumpTransactionsUri { get; set; }
         public bool? UploadTankMeasurements { get; set; }
-        public string UploadTankMeasurementsUri { get; set; }
+        public string? UploadTankMeasurementsUri { get; set; }
         public bool? UploadInTankDeliveries { get; set; }
-        public string UploadInTankDeliveriesUri { get; set; }
+        public string? UploadInTankDeliveriesUri { get; set; }
         public bool? UploadGpsRecords { get; set; }
-        public string UploadGpsRecordsUri { get; set; }
+        public string? UploadGpsRecordsUri { get; set; }
         public bool? UploadAlertRecords { get; set; }
-        public string UploadAlertRecordsUri { get; set; }
+        public string? UploadAlertRecordsUri { get; set; }
         public bool? UploadConfiguration { get; set; }
-        public string UploadConfigurationUri { get; set; }
+        public string? UploadConfigurationUri { get; set; }
         public bool? UploadStatus { get; set; }
-        public string UploadStatusUri { get; set; }
+        public string? UploadStatusUri { get; set; }
         public int? UploadStatusRequestsPeriodSeconds { get; set; }
         public bool? RequestTagsInformation { get; set; }
-        public string RequestTagsInformationUri { get; set; }
+        public string? RequestTagsInformationUri { get; set; }
         public int? Port { get; set; }
-        public string SecretKey { get; set; }
+        public string? SecretKey { get; set; }
         public bool? UpdateSecretKey { get; set; }
 
         // WebSocket Settings (optional)
-        public string WebsocketsUri { get; set; }
+        public string? WebsocketsUri { get; set; }
         public int? WebsocketsPort { get; set; }
         public bool? WebsocketsUploadPumpTransactions { get; set; }
         public bool? WebsocketsUploadTankMeasurements { get; set; }

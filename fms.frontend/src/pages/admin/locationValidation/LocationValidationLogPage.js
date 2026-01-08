@@ -555,15 +555,14 @@ const LocationValidationLogPage = () => {
         visible={showMapPopup}
         onHiding={handleClosePopup}
         dragEnabled={true}
-        closeOnOutsideClick={true}
+        closeOnOutsideClick={false}
         showCloseButton={true}
         showTitle={true}
         title="Location Validation Details"
         width={900}
         height={700}
-      >
-        {popupLog && (
-          <div className="tw-flex tw-flex-col tw-h-full">
+        contentRender={() => popupLog ? (
+          <div className="tw-flex tw-flex-col tw-h-full tw-p-4">
             {/* Details Section */}
             <div className="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4 tw-mb-4">
               <div className="tw-bg-gray-50 tw-rounded tw-p-3">
@@ -685,8 +684,8 @@ const LocationValidationLogPage = () => {
               </div>
             </div>
           </div>
-        )}
-      </Popup>
+        ) : <div className="tw-p-4">Loading...</div>}
+      />
 
       {/* Loading overlay */}
       {isLoading && (
