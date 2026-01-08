@@ -57,6 +57,40 @@ namespace FMS.Application.Communication.webSocket
         //Add constants for WebSocket frame parsing
         private const byte OPCODE_PING = 0x9;
 
+        // Timeout configuration for different command types
+        private const int DEFAULT_TIMEOUT_SECONDS = 15;
+        private const int CONFIGURATION_TIMEOUT_SECONDS = 45;
+        private static readonly HashSet<string> _longTimeoutCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "SetRemoteServerConfiguration",
+            "GetRemoteServerConfiguration",
+            "RemoteServerConfiguration",
+            "SetDateTime",
+            "GetDateTime"
+        };
+
+        /// <summary>
+        /// Determines the appropriate timeout based on the command type in the message
+        /// </summary>
+        private int GetTimeoutForMessage(PTSMessage message)
+        {
+            if (message?.Packets == null || message.Packets.Count == 0)
+                return DEFAULT_TIMEOUT_SECONDS;
+
+            // Check if any packet requires extended timeout
+            foreach (var packet in message.Packets)
+            {
+                if (!string.IsNullOrEmpty(packet.Type) && _longTimeoutCommands.Contains(packet.Type))
+                {
+                    _logger.LogDebug("Using extended timeout ({Timeout}s) for command type {CommandType}",
+                        CONFIGURATION_TIMEOUT_SECONDS, packet.Type);
+                    return CONFIGURATION_TIMEOUT_SECONDS;
+                }
+            }
+
+            return DEFAULT_TIMEOUT_SECONDS;
+        }
+
         // new dictionary to handle request/response correlation
         private readonly ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>> _pendingRequests = new ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>>();
 
@@ -578,7 +612,10 @@ namespace FMS.Application.Communication.webSocket
             }
 
             using var linkedCts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
-            linkedCts.CancelAfter(TimeSpan.FromSeconds(15)); // or your desired timeout
+
+            // Determine timeout based on command type - configuration commands need longer timeout
+            var timeoutSeconds = GetTimeoutForMessage(message);
+            linkedCts.CancelAfter(TimeSpan.FromSeconds(timeoutSeconds));
 
             var completed = await Task.WhenAny(tcs.Task, Task.Delay(-1, linkedCts.Token));
             if (completed != tcs.Task)
