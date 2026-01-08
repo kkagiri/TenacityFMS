@@ -91,6 +91,32 @@ namespace FMS.Application.Communication.webSocket
             return DEFAULT_TIMEOUT_SECONDS;
         }
 
+        /// <summary>
+        /// Cancels all pending requests with an exception.
+        /// Called when connection is being closed/replaced.
+        /// </summary>
+        private void CancelAllPendingRequests(string reason)
+        {
+            var pendingCount = _pendingRequests.Count;
+            if (pendingCount == 0) return;
+
+            _logger.LogWarning("Cancelling {Count} pending request(s) for device {DeviceId}: {Reason}",
+                pendingCount, _deviceId, reason);
+
+            foreach (var kvp in _pendingRequests)
+            {
+                if (_pendingRequests.TryRemove(kvp.Key, out var tcs))
+                {
+                    tcs.TrySetException(new OperationCanceledException($"Connection closed: {reason}"));
+                    _logger.LogDebug("Cancelled pending request {CorrelationId} for device {DeviceId}",
+                        kvp.Key, _deviceId);
+                }
+            }
+
+            // Also clear packet ID mappings
+            _packetIdToCorrelationId.Clear();
+        }
+
         // new dictionary to handle request/response correlation
         private readonly ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>> _pendingRequests = new ConcurrentDictionary<string, TaskCompletionSource<PTSMessage>>();
 
@@ -455,25 +481,22 @@ namespace FMS.Application.Communication.webSocket
 
                     try
                     {
+                        // Cancel all pending requests before closing - they won't get responses on this connection
+                        CancelAllPendingRequests("Connection closing");
+
                         if (_webSocket.State == WebSocketState.Open || _webSocket.State == WebSocketState.CloseReceived || _webSocket.State == WebSocketState.CloseSent)
                         {
                             using var closeTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(3));
                             try
                             {
-                                //Step 1: close the *sending* side, but still allow receiving data
-                                await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Connection closed", closeTimeoutCts.Token);
-
-                                // Step 2: if you want to fully close afterwards:
-                                if (_webSocket.State == WebSocketState.Open || _webSocket.State == WebSocketState.CloseReceived)
-                                {
-                                    await _webSocket.CloseAsync(WebSocketCloseStatus.NormalClosure, "Connection fully closed", closeTimeoutCts.Token);
-                                }
+                                // Use CloseOutputAsync to close output while still allowing receiving
+                                // This prevents the "message type 'Text' is invalid after CloseAsync" error
+                                await _webSocket.CloseOutputAsync(WebSocketCloseStatus.NormalClosure, "Connection closed", closeTimeoutCts.Token);
                             }
                             catch (WebSocketException ex)
                             {
                                 _logger.LogWarning(ex, "Error closing WebSocket for device {DeviceId} lifecycle {LifecycleId}", _deviceId, lifecycle.ConnectionId);
                             }
-
                         }
                     }
                     finally
