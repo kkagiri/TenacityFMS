@@ -57,6 +57,7 @@ using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Infrastructure.Communication.SignalR;
 using FMS.Application.Infrastructure.Services.Authentication;
+using FMS.Application.PTSServices.PTSConfigService;
 using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.WidgetFactories;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
@@ -528,6 +529,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); // Required by UploadStatusCommandHandler
             services.AddScoped<IAuthorizationHandler, PermissionHandler>();
             services.AddScoped<IPumpService, PumpService>();
+            services.AddScoped<IPTSConfigService, PTSConfigService>();
             services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
             services.AddScoped<IDeviceCommunicationService, DeviceCommunicationService>();
             services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();

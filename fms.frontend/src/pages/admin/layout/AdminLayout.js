@@ -103,6 +103,11 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Fueling Rules Management",
         subtitle: "Create rule sets and assign fueling restrictions",
       };
+    } else if (pathname.includes("/location-validation")) {
+      return {
+        title: "Location Validation Logs",
+        subtitle: "View and analyze location validation attempts",
+      };
     } else {
       return {
         title: "Admin Dashboard",
@@ -222,6 +227,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Expected Averages",
       icon: "fa-light fa-chart-line-up",
       path: adminRoutes.expectedAverages,
+    },
+    {
+      id: "location-validation",
+      title: "Location Logs",
+      icon: "fa-light fa-location-crosshairs",
+      path: adminRoutes.locationValidation,
     },
   ];
 

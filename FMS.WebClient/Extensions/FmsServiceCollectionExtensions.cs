@@ -66,6 +66,7 @@ using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Services.Logging;
 using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
+using FMS.Application.PTSServices.PTSConfigService;
 
 namespace FMS.WebClient.Extensions;
 
@@ -433,6 +434,7 @@ public static class FmsServiceCollectionExtensions
         // PTS Services
         services.AddScoped<IServiceControlService, ServiceControlService>();
         services.AddScoped<IPumpService, PumpService>();
+        services.AddScoped<IPTSConfigService, PTSConfigService>();
         services.AddScoped<PumpTransactionIntegrationService>();
         services.AddScoped<ICommandExecutor, CommandExecutor>();
         services.AddScoped<ITransactionMonitoringService, TransactionMonitoringService>();

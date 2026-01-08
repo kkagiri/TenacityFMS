@@ -24,6 +24,7 @@ import TaskManagement from "../taskManagement";
 import LogManagementPage from "./logManagement/LogManagementPage";
 import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
+import { LocationValidationLogPage } from "./locationValidation";
 
 const AdminMain = () => {
   const location = useLocation();
@@ -91,6 +92,16 @@ const AdminMain = () => {
         {/* Fueling Rules Management Route */}
         <Route path="fueling-rules" element={<FuelingRulesMain />} />
         <Route path="fueling-rules/*" element={<FuelingRulesMain />} />
+
+        {/* Location Validation Logs Route */}
+        <Route
+          path="location-validation"
+          element={<LocationValidationLogPage />}
+        />
+        <Route
+          path="location-validation/*"
+          element={<LocationValidationLogPage />}
+        />
 
         {/* Fallback route */}
         <Route path="*" element={<Navigate to="/admin/dashboard" replace />} />

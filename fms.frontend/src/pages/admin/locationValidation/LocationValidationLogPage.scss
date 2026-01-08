@@ -1,0 +1,27 @@
+.location-validation-page {
+  min-height: calc(100vh - 100px);
+
+  .dx-datagrid {
+    .dx-row {
+      cursor: pointer;
+
+      &:hover {
+        @apply tw-bg-blue-50;
+      }
+    }
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row-alt {
+        @apply tw-bg-gray-50;
+      }
+    }
+  }
+
+  .dx-popup-content {
+    padding: 16px;
+  }
+}

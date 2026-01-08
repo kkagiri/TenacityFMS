@@ -115,6 +115,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IFuelPriceService _fuelPriceService;
         private readonly IPumpAuthorizationLoggingService _loggingService;
         private readonly IDeviceConnectionTypeService _connectionTypeService;
+        private readonly Features.LocationValidation.Services.ILocationValidationService _locationValidationService;
 
         public PumpAuthorizeCommandHandler(
             IAuthorizationStateTracker authstatetracker,
@@ -129,6 +130,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             IFuelPriceService fuelPriceService,
             IPumpAuthorizationLoggingService loggingService,
             IDeviceConnectionTypeService connectionTypeService,
+            Features.LocationValidation.Services.ILocationValidationService locationValidationService,
             ILogger<PumpAuthorizeCommandHandler> logger)
         {
             _authTracker = authstatetracker;
@@ -143,6 +145,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _fuelPriceService = fuelPriceService;
             _loggingService = loggingService;
             _connectionTypeService = connectionTypeService;
+            _locationValidationService = locationValidationService;
             _logger = logger;
         }
 
@@ -532,6 +535,18 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             };
 
             await _transactionContextService.StoreTransactionContextAsync(transactionContext);
+
+            // Update LocationValidationLog with the TransactionId
+            // (The log was created before authorization when we didn't have the ID yet)
+            if (request.TankId.HasValue && confirmation.Transaction > 0)
+            {
+                await _locationValidationService.UpdateTransactionIdAsync(
+                    request.DeviceId!,
+                    request.TankId.Value,
+                    request.VehicleId,
+                    confirmation.Transaction,
+                    cancellationToken);
+            }
 
             // Start monitoring the transaction
             await _transactionMonitoringService.StartMonitoringTransaction(

@@ -20,6 +20,7 @@ export const adminRoutes = {
   logs: "/admin/logs",
   expectedAverages: "/admin/expected-averages",
   fuelingRules: "/admin/fueling-rules",
+  locationValidation: "/admin/location-validation",
 };
 
 export const getAdminRoute = (subPath = "") => {

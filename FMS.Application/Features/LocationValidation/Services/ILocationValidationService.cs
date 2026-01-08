@@ -75,6 +75,23 @@ public interface ILocationValidationService
         string ptsId,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Updates the TransactionId on the most recent LocationValidationLog for the given context.
+    /// This is called after pump authorization when the PTS device assigns the transaction ID.
+    /// </summary>
+    /// <param name="ptsId">The PTS device ID</param>
+    /// <param name="tankId">The tank ID</param>
+    /// <param name="vehicleId">The vehicle ID (optional)</param>
+    /// <param name="transactionId">The transaction ID to set</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if a log entry was updated, false otherwise</returns>
+    Task<bool> UpdateTransactionIdAsync(
+        string ptsId,
+        int tankId,
+        int? vehicleId,
+        int transactionId,
+        CancellationToken cancellationToken = default);
+
     #region Geofence Validation Methods
 
     /// <summary>

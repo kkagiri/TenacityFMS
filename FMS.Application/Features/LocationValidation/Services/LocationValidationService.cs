@@ -792,6 +792,51 @@ public partial class LocationValidationService : ILocationValidationService
         }
     }
 
+    /// <inheritdoc />
+    public async Task<bool> UpdateTransactionIdAsync(
+        string ptsId,
+        int tankId,
+        int? vehicleId,
+        int transactionId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            // Find the most recent LocationValidationLog for this context within the last 5 minutes
+            // that doesn't already have a TransactionId
+            var cutoffTime = DateTime.UtcNow.AddMinutes(-5);
+
+            var logEntry = await _context.LocationValidationLogs
+                .Where(l => l.PtsId == ptsId &&
+                            l.TankId == tankId &&
+                            l.VehicleId == vehicleId &&
+                            l.ValidationTime >= cutoffTime &&
+                            l.TransactionId == null)
+                .OrderByDescending(l => l.ValidationTime)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (logEntry == null)
+            {
+                _logger.LogDebug("No pending LocationValidationLog found for PTS {PtsId}, Tank {TankId}, Vehicle {VehicleId}",
+                    ptsId, tankId, vehicleId);
+                return false;
+            }
+
+            logEntry.TransactionId = transactionId;
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogDebug("Updated LocationValidationLog {LogId} with TransactionId {TransactionId}",
+                logEntry.Id, transactionId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update TransactionId for LocationValidationLog - PTS {PtsId}, Tank {TankId}",
+                ptsId, tankId);
+            return false;
+        }
+    }
+
     #endregion
 
     #region Debug Logging

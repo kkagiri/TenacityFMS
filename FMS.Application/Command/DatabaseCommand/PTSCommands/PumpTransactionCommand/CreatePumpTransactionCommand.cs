@@ -201,9 +201,9 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
 
         private async Task<Pumptransaction> CheckExistingTransaction(PumpTransactionDto dto, CancellationToken cancellationToken)
         {
-            return await _context.Pumptransactions.FindAsync(
-                new object[] { dto.PtsId, dto.Transaction },
-                cancellationToken);
+            return await _context.Pumptransactions
+                .FirstOrDefaultAsync(p => p.PtsId == dto.PtsId && p.Transaction == dto.Transaction,
+                    cancellationToken);
         }
     }
 }
