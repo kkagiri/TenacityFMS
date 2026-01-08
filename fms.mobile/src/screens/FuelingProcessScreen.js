@@ -4,9 +4,10 @@
  * Business logic is handled by useFuelingProcess hook
  */
 import React, { useEffect, useCallback } from "react";
-import { View, StyleSheet, SafeAreaView, BackHandler } from "react-native";
+import { View, StyleSheet, SafeAreaView, BackHandler, TouchableOpacity, Text } from "react-native";
 import { useRoute, useFocusEffect } from "@react-navigation/native";
 import Toast from "react-native-toast-message";
+import Icon from "react-native-vector-icons/FontAwesome5";
 
 // Import mobile components
 import TankSelectionStep from "../components/fueling/TankSelectionStep";
@@ -124,8 +125,10 @@ const FuelingProcessScreen = () => {
     currentTransactionId,
     isViewingExternalFueling,
     viewingPumpData,
+    isTransactionMinimized,
     handleTransactionComplete,
     handleMinimizeMonitoring,
+    handleRestoreMonitoring,
     handleCloseTransactionMonitoring,
     handleViewFuelingFromHeader,
 
@@ -415,6 +418,28 @@ const FuelingProcessScreen = () => {
         />
       )}
 
+      {/* Minimized Transaction Banner */}
+      {isTransactionMinimized && currentTransactionId && !showTransactionMonitoring && (
+        <TouchableOpacity
+          style={styles.minimizedBanner}
+          onPress={handleRestoreMonitoring}
+          activeOpacity={0.8}
+        >
+          <View style={styles.minimizedBannerContent}>
+            <View style={styles.minimizedPulse}>
+              <Icon name="gas-pump" size={16} color="white" />
+            </View>
+            <View style={styles.minimizedTextContainer}>
+              <Text style={styles.minimizedTitle}>Fueling in Progress</Text>
+              <Text style={styles.minimizedSubtitle}>
+                Transaction #{currentTransactionId} • Tap to view
+              </Text>
+            </View>
+            <Icon name="chevron-up" size={16} color="white" />
+          </View>
+        </TouchableOpacity>
+      )}
+
       <TransactionMonitoringModal
         visible={showTransactionMonitoring}
         deviceId={ptsId}
@@ -448,6 +473,48 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+  },
+  minimizedBanner: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: "#1e40af",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopLeftRadius: 16,
+    borderTopRightRadius: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  minimizedBannerContent: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  minimizedPulse: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  minimizedTextContainer: {
+    flex: 1,
+  },
+  minimizedTitle: {
+    color: "white",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  minimizedSubtitle: {
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: 12,
+    marginTop: 2,
   },
 });
 

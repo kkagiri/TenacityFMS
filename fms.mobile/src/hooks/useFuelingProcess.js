@@ -965,6 +965,7 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
     setShowTransactionMonitoring(false);
     setCurrentTransactionId(null);
+    setIsTransactionMinimized(false);
 
     // Store completed transaction data for summary step display
     setCompletedTransactionData({
@@ -1119,26 +1120,29 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   // ===========================================
   // MINIMIZE MONITORING
   // ===========================================
-  const handleMinimizeMonitoring = useCallback(() => {
-    setShowTransactionMonitoring(false);
-    setIsViewingExternalFueling(false);
-    setViewingPumpData(null);
+  // State to track if we have a minimized transaction
+  const [isTransactionMinimized, setIsTransactionMinimized] = useState(false);
 
-    setStep("pump");
-    setSelectedPump(null);
-    setSelectedNozzle(null);
-    setOperationMode(null);
-    setSelectedVehicle(null);
-    setFuelingVolume("");
-    setIsFullTank(false);
+  const handleMinimizeMonitoring = useCallback(() => {
+    // Just hide the modal but preserve all transaction state
+    setShowTransactionMonitoring(false);
+    setIsTransactionMinimized(true);
 
     Toast.show({
       type: "info",
       text1: "Fueling Minimized",
-      text2: "You can start another fueling or tap the banner to view",
+      text2: "Tap the banner to return to your transaction",
       visibilityTime: 3000,
     });
   }, []);
+
+  // Restore minimized transaction monitoring
+  const handleRestoreMonitoring = useCallback(() => {
+    if (currentTransactionId) {
+      setShowTransactionMonitoring(true);
+      setIsTransactionMinimized(false);
+    }
+  }, [currentTransactionId]);
 
   // ===========================================
   // CLOSE TRANSACTION MONITORING
@@ -1262,8 +1266,10 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     currentTransactionId,
     isViewingExternalFueling,
     viewingPumpData,
+    isTransactionMinimized,
     handleTransactionComplete,
     handleMinimizeMonitoring,
+    handleRestoreMonitoring,
     handleCloseTransactionMonitoring,
     handleViewFuelingFromHeader,
 

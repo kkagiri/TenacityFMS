@@ -429,7 +429,8 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
     }
 
     /// <summary>
-    /// Sync a single geofence from GPSGate to local database
+    /// Sync a single geofence from GPSGate to local database.
+    /// All synced geofences are set to IsActive = true since GPSGate only returns active geofences.
     /// </summary>
     private async Task SyncSingleGeofenceAsync(Vehicle.DTOs.GeofenceDTO externalGf)
     {
@@ -451,7 +452,7 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
                 CenterLatitude = centerLat,
                 CenterLongitude = centerLng,
                 RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : null,
-                IsActive = externalGf.IsActive,
+                IsActive = true, // Always set to true - if GPSGate returns it, it's active
                 LastSyncedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
             };
@@ -465,7 +466,7 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
             existingGeofence.CenterLatitude = centerLat ?? existingGeofence.CenterLatitude;
             existingGeofence.CenterLongitude = centerLng ?? existingGeofence.CenterLongitude;
             existingGeofence.RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : existingGeofence.RadiusMeters;
-            existingGeofence.IsActive = externalGf.IsActive;
+            existingGeofence.IsActive = true; // Always set to true - if GPSGate returns it, it's active
             existingGeofence.LastSyncedAt = DateTime.UtcNow;
             existingGeofence.UpdatedAt = DateTime.UtcNow;
         }

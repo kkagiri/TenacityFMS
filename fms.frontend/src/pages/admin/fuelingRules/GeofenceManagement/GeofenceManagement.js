@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
-import { Switch } from "devextreme-react/switch";
 import {
   DataGrid,
   Column,
@@ -137,15 +136,15 @@ const GeofenceManagement = () => {
     const isSelectiveSync = groupIds && groupIds.length > 0;
     setSyncing(true);
     setSyncProgress(0);
-    setSyncStatusMessage(isSelectiveSync 
-      ? `Starting sync for ${groupIds.length} group(s)...` 
+    setSyncStatusMessage(isSelectiveSync
+      ? `Starting sync for ${groupIds.length} group(s)...`
       : "Starting full sync...");
 
     try {
       // Start the async sync job
-      const startResponse = await geofenceService.startSyncJob({ 
-        forceFullSync, 
-        groupIds: isSelectiveSync ? groupIds : null 
+      const startResponse = await geofenceService.startSyncJob({
+        forceFullSync,
+        groupIds: isSelectiveSync ? groupIds : null
       });
 
       if (!startResponse?.isSuccess || !startResponse?.data?.jobId) {
@@ -294,13 +293,25 @@ const GeofenceManagement = () => {
   };
 
   const renderAllowedForFuelingCell = (cellData) => {
+    const isChecked = cellData.value;
     return (
       <div className="tw-flex tw-items-center tw-justify-center">
-        <Switch
-          value={cellData.value}
-          onValueChanged={(e) => handleToggleAllowedForFueling(cellData.data.id, e.value)}
+        <button
+          type="button"
+          role="switch"
+          aria-checked={isChecked}
+          onClick={() => handleToggleAllowedForFueling(cellData.data.id, !isChecked)}
           disabled={saving}
-        />
+          className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 ${
+            isChecked ? "tw-bg-green-500" : "tw-bg-gray-300"
+          } ${saving ? "tw-opacity-50 tw-cursor-not-allowed" : ""}`}
+        >
+          <span
+            className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${
+              isChecked ? "tw-translate-x-5" : "tw-translate-x-0"
+            }`}
+          />
+        </button>
       </div>
     );
   };
@@ -562,7 +573,7 @@ const GeofenceManagement = () => {
             {/* Action bar */}
             <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
               <div className="tw-text-sm tw-text-gray-600">
-                {selectedGroupIds.length > 0 
+                {selectedGroupIds.length > 0
                   ? <span className="tw-font-medium tw-text-blue-600">{selectedGroupIds.length} group(s) selected</span>
                   : "Select groups to sync"}
               </div>
@@ -670,7 +681,7 @@ const GeofenceManagement = () => {
                 dataType="datetime"
                 format="yyyy-MM-dd HH:mm"
                 cellRender={(cellData) => (
-                  cellData.value 
+                  cellData.value
                     ? new Date(cellData.value).toLocaleString()
                     : <span className="tw-text-gray-400">Never</span>
                 )}
