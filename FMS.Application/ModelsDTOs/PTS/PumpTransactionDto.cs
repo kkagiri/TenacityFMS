@@ -110,6 +110,16 @@ namespace FMS.Application.Features.ATG
         public string? DriverName { get; set; }
 
         /// <summary>
+        /// Employee/Driver ID who performed the fueling
+        /// </summary>
+        public int? EmployeeId { get; set; }
+
+        /// <summary>
+        /// Employee/Driver name from Employee table
+        /// </summary>
+        public string? EmployeeName { get; set; }
+
+        /// <summary>
         /// FuelRefill record ID if linked
         /// </summary>
         public int? FuelRefillId { get; set; }

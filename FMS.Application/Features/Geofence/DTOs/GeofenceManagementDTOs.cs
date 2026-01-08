@@ -93,7 +93,43 @@ public class FuelingRuleSetGeofenceConfigDTO
 /// </summary>
 public class SyncGeofencesRequestDTO
 {
+    /// <summary>
+    /// Whether to force a full sync (delete and re-sync all)
+    /// </summary>
     public bool ForceFullSync { get; set; }
+
+    /// <summary>
+    /// Specific group IDs to sync. If null or empty, syncs all groups.
+    /// </summary>
+    public List<int>? GroupIds { get; set; }
+}
+
+/// <summary>
+/// DTO for a GPSGate group available for sync (lightweight, from GPSGate API)
+/// </summary>
+public class AvailableGeofenceGroupDTO
+{
+    public int ExternalGroupId { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string? Colour { get; set; }
+    public int GeofenceCount { get; set; }
+    /// <summary>
+    /// Whether this group is already synced to the local database
+    /// </summary>
+    public bool IsSynced { get; set; }
+    /// <summary>
+    /// Local database ID if synced
+    /// </summary>
+    public int? LocalId { get; set; }
+    /// <summary>
+    /// Whether this group is allowed for fueling (only applicable if synced)
+    /// </summary>
+    public bool IsAllowedForFueling { get; set; }
+    /// <summary>
+    /// Last sync time (only applicable if synced)
+    /// </summary>
+    public DateTime? LastSyncedAt { get; set; }
 }
 
 /// <summary>
@@ -101,10 +137,40 @@ public class SyncGeofencesRequestDTO
 /// </summary>
 public class SyncGeofencesResponseDTO
 {
+    /// <summary>
+    /// Unique job ID for tracking the background sync operation
+    /// </summary>
+    public string? JobId { get; set; }
+
+    /// <summary>
+    /// Current job status: Queued, Running, Completed, Failed, Cancelled
+    /// </summary>
+    public string Status { get; set; } = "Queued";
+
+    /// <summary>
+    /// Progress percentage (0-100)
+    /// </summary>
+    public int ProgressPercent { get; set; }
+
+    /// <summary>
+    /// Human-readable status message
+    /// </summary>
+    public string? StatusMessage { get; set; }
+
     public int GeofencesSynced { get; set; }
     public int GroupsSynced { get; set; }
+    public int TotalGeofences { get; set; }
+    public int TotalGroups { get; set; }
+    public int FailedCount { get; set; }
+    public DateTime? StartedAt { get; set; }
+    public DateTime? CompletedAt { get; set; }
     public DateTime SyncedAt { get; set; }
     public string Message { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Estimated time remaining in seconds (only during running state)
+    /// </summary>
+    public double? EstimatedSecondsRemaining { get; set; }
 }
 
 /// <summary>

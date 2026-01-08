@@ -18,6 +18,7 @@ import VehicleSelectionStep from "../components/fueling/VehicleSelectionStep";
 import FuelingVolumeStep from "../components/fueling/FuelingVolumeStep";
 import ScanStep from "../components/fueling/ScanStep";
 import TransactionMonitoringModal from "../components/fueling/TransactionMonitoringModal";
+import TransactionSummaryStep from "../components/fueling/TransactionSummaryStep";
 import FuelingHeader from "../components/fueling/FuelingHeader";
 import LoadingOverlay from "../components/common/LoadingOverlay";
 
@@ -100,6 +101,10 @@ const FuelingProcessScreen = () => {
     setFuelingRules,
     handleVehicleFuelingConfirm,
 
+    // Driver/Employee state
+    selectedDriver,
+    setSelectedDriver,
+
     // Authorization state
     isAuthorizing,
     authorizingStatus,
@@ -124,6 +129,11 @@ const FuelingProcessScreen = () => {
     handleCloseTransactionMonitoring,
     handleViewFuelingFromHeader,
 
+    // Summary step
+    completedTransactionData,
+    handleStartNewFueling,
+    handleBackToPumps,
+
     // Active fueling
     activeFuelingProcesses,
     activeFuelingPump,
@@ -132,6 +142,7 @@ const FuelingProcessScreen = () => {
     validationSettings,
 
     // Site info
+    sites,
     siteName,
   } = useFuelingProcess(ptsId, siteId);
 
@@ -299,6 +310,11 @@ const FuelingProcessScreen = () => {
               validationSettings.gpsFuelLevelCheckEnabled
             }
             fuelingRules={fuelingRules}
+            selectedDriver={selectedDriver}
+            onDriverChange={setSelectedDriver}
+            siteId={siteId}
+            sites={sites}
+            siteName={siteName}
           />
         );
 
@@ -327,6 +343,17 @@ const FuelingProcessScreen = () => {
           />
         );
 
+      case "summary":
+        return (
+          <TransactionSummaryStep
+            transactionData={completedTransactionData}
+            onStartNewFueling={handleStartNewFueling}
+            onBackToPumps={handleBackToPumps}
+            siteName={siteName()}
+            deviceName={ptsDevice?.ptsName}
+          />
+        );
+
       default:
         return null;
     }
@@ -347,7 +374,11 @@ const FuelingProcessScreen = () => {
             connectionStatus={deviceConnectionStatus}
             deviceOnline={deviceConnectionStatus === "connected"}
             onBack={
-              step === "tank" ? () => navigation.goBack() : handleStepBack
+              step === "summary"
+                ? null // No back button on summary - use buttons in step
+                : step === "tank"
+                ? () => navigation.goBack()
+                : handleStepBack
             }
             selectedTank={selectedTank}
             operationMode={operationMode}

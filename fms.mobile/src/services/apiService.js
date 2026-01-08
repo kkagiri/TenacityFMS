@@ -520,6 +520,74 @@ class ApiService {
     }
   }
 
+  // ==================== Employee/Driver Endpoints ====================
+
+  /**
+   * Search employees by search term (name, work number, phone)
+   * @param {string} searchTerm - Search query (minimum 2 characters)
+   * @param {number} limit - Maximum results to return (default 10)
+   * @param {boolean} active - Filter by active status (default true)
+   * @param {number} siteId - Optional site ID filter
+   * @returns {Promise<Array>} List of matching employees
+   */
+  async searchEmployees(searchTerm, limit = 10, active = true, siteId = null) {
+    try {
+      const params = { searchTerm, limit, active };
+      if (siteId) {
+        params.siteId = siteId;
+      }
+      const response = await this.api.get("/v1/Employee/quick-search", {
+        params,
+      });
+      // Handle FMSResponse wrapper - data is in response.data.data
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to search employees");
+    }
+  }
+
+  /**
+   * Get employee by ID
+   * @param {number} employeeId - Employee ID
+   * @returns {Promise<Object>} Employee details
+   */
+  async getEmployeeById(employeeId) {
+    try {
+      const response = await this.api.get(`/v1/Employee/${employeeId}`);
+      return response.data?.data || response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch employee details");
+    }
+  }
+
+  /**
+   * Create a new employee
+   * @param {Object} employeeData - Employee data (fullName, employeeWorkNo, employeephoneNumber, siteId)
+   * @returns {Promise<Object>} Created employee
+   */
+  async createEmployee(employeeData) {
+    try {
+      const response = await this.api.post("/v1/Employee", employeeData);
+      return response.data?.data || response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to create employee");
+    }
+  }
+
+  /**
+   * Get employees by site ID
+   * @param {number} siteId - Site ID
+   * @returns {Promise<Array>} List of employees at the site
+   */
+  async getEmployeesBySite(siteId) {
+    try {
+      const response = await this.api.get(`/v1/Employee/site/${siteId}`);
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch employees for site");
+    }
+  }
+
   /**
    * Get GPS information for a vehicle
    * @param {number} vehicleId - Vehicle ID

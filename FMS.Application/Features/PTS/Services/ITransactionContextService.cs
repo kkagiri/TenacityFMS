@@ -145,5 +145,10 @@ namespace FMS.Application.Features.PTS.Services
         /// The configuration ID for the device.
         /// </summary>
         public string? ConfigurationId { get; set; }
+
+        /// <summary>
+        /// The employee/driver ID who is performing the fueling.
+        /// </summary>
+        public int? EmployeeId { get; set; }
     }
 }

@@ -67,6 +67,12 @@ public partial class Pumptransaction
     public int? DestinationTankId { get; set; }
 
     /// <summary>
+    /// FK to Employee table - identifies the driver/operator who performed the fueling.
+    /// This is captured during pump authorization from mobile app.
+    /// </summary>
+    public int? EmployeeId { get; set; }
+
+    /// <summary>
     /// Indicates whether this is a tank-to-tank transfer (true) or vehicle fueling (false).
     /// When true, TankId is source and DestinationTankId is destination.
     /// When false, TankId is source and VehicleId is the receiving vehicle.
@@ -97,4 +103,9 @@ public partial class Pumptransaction
     /// Navigation property to destination tank (only for tank-to-tank transfers)
     /// </summary>
     public virtual Tank? DestinationTank { get; set; }
+
+    /// <summary>
+    /// Navigation property to employee (driver/operator)
+    /// </summary>
+    public virtual Employee? Employee { get; set; }
 }

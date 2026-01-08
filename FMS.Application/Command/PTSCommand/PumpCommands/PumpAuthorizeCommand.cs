@@ -86,6 +86,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         /// Required when PTS device has RequireMobileAppProximity enabled.
         /// </summary>
         public GeoLocation? MobileLocation { get; set; }
+
+        /// <summary>
+        /// Employee/Driver ID who is performing the fueling.
+        /// Selected from mobile app during authorization flow.
+        /// </summary>
+        public int? EmployeeId { get; set; }
     }
 
     /// <summary>
@@ -520,7 +526,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // FuelGradeName will be populated from device status during completion if needed
                 FuelGradeName = null,
                 // ConfigurationId can be populated if available from device
-                ConfigurationId = null
+                ConfigurationId = null,
+                // Employee/Driver who is performing the fueling
+                EmployeeId = request.EmployeeId
             };
 
             await _transactionContextService.StoreTransactionContextAsync(transactionContext);

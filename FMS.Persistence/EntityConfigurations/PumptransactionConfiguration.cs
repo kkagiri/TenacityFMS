@@ -27,6 +27,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.TankId, "idx_pumptransaction_tankid");
                 builder.HasIndex(e => e.VehicleId, "idx_pumptransaction_vehicleid");
                 builder.HasIndex(e => e.DestinationTankId, "idx_pumptransaction_destinationtankid");
+                builder.HasIndex(e => e.EmployeeId, "idx_pumptransaction_employeeid");
                 builder.HasIndex(e => e.IsTransferMode, "idx_pumptransaction_istransfermode");
                 builder.HasIndex(e => e.HasBeenProcessed, "idx_pumptransaction_processed");
                 builder.HasIndex(e => e.DateTime, "idx_pumptransaction_datetime");
@@ -61,6 +62,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.TankId).HasColumnType("int(11)");
                 builder.Property(e => e.VehicleId).HasColumnType("int(11)");
                 builder.Property(e => e.DestinationTankId).HasColumnType("int(11)");
+                builder.Property(e => e.EmployeeId).HasColumnType("int(11)");
                 builder.Property(e => e.IsTransferMode)
                     .HasColumnType("tinyint(1)")
                     .HasDefaultValue(false)
@@ -94,6 +96,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.DestinationTankId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .HasConstraintName("FK_destination_tank");
+
+                // Relationship for employee/driver who performed the fueling
+                builder.HasOne(d => d.Employee)
+                    .WithMany() // No inverse navigation collection needed
+                    .HasForeignKey(d => d.EmployeeId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("FK_pumptransaction_employee");
 
             }
             catch (Exception ex)

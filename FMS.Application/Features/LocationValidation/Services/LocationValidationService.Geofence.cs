@@ -261,7 +261,7 @@ public partial class LocationValidationService
                             longitude,
                             geofence.CenterLatitude ?? 0,
                             geofence.CenterLongitude ?? 0,
-                            geofence.RadiusMeters ?? 0);
+                            geofence.RadiusMeters ?? DefaultCircleRadiusMeters);
                         break;
 
                     case GpsGeofenceType.Polygon:
@@ -276,7 +276,7 @@ public partial class LocationValidationService
                         // For now, we can treat them similarly to polygons
                         if (!string.IsNullOrEmpty(geofence.GeometryJson))
                         {
-                            isInside = IsPointNearRoute(latitude, longitude, geofence.GeometryJson, geofence.RadiusMeters ?? 50);
+                            isInside = IsPointNearRoute(latitude, longitude, geofence.GeometryJson, geofence.RadiusMeters ?? DefaultRouteBufferMeters);
                         }
                         break;
                 }
@@ -301,6 +301,20 @@ public partial class LocationValidationService
             return (false, null, null);
         }
     }
+
+    #endregion
+
+    #region Constants
+
+    /// <summary>
+    /// Default buffer radius in meters for route geofences when not specified
+    /// </summary>
+    private const int DefaultRouteBufferMeters = 50;
+
+    /// <summary>
+    /// Default radius in meters for circle geofences when not specified
+    /// </summary>
+    private const int DefaultCircleRadiusMeters = 0;
 
     #endregion
 
@@ -338,11 +352,13 @@ public partial class LocationValidationService
 
             for (int i = 0; i < coordinates.Count; i++)
             {
-                var (xi, yi) = coordinates[i];
-                var (xj, yj) = coordinates[j];
+                var (latI, lngI) = coordinates[i];
+                var (latJ, lngJ) = coordinates[j];
 
-                if (((yi > (double)lng) != (yj > (double)lng)) &&
-                    ((double)lat < (xi - xj) * ((double)lng - yi) / (yj - yi) + xi))
+                // Ray casting algorithm: cast a ray from the point eastward
+                // and count how many polygon edges it crosses
+                if (((lngI > (double)lng) != (lngJ > (double)lng)) &&
+                    ((double)lat < (latI - latJ) * ((double)lng - lngI) / (lngJ - lngI) + latI))
                 {
                     inside = !inside;
                 }
@@ -397,36 +413,63 @@ public partial class LocationValidationService
     }
 
     /// <summary>
-    /// Parses GeoJSON coordinates into a list of (lat, lng) tuples
+    /// Parses GeoJSON coordinates into a list of (lat, lng) tuples.
+    /// Handles multiple GeoJSON formats:
+    /// - LineString: {"coordinates": [[lng1, lat1], [lng2, lat2], ...]}
+    /// - Polygon: {"coordinates": [[[lng1, lat1], [lng2, lat2], ...]]}
+    /// - Simple array: [[lng1, lat1], [lng2, lat2], ...]
     /// </summary>
-    private List<(double, double)>? ParseGeoJsonCoordinates(string geometryJson)
+    private List<(double Lat, double Lng)>? ParseGeoJsonCoordinates(string geometryJson)
     {
         try
         {
-            var doc = System.Text.Json.JsonDocument.Parse(geometryJson);
+            using var doc = System.Text.Json.JsonDocument.Parse(geometryJson);
             var root = doc.RootElement;
 
-            if (root.TryGetProperty("coordinates", out var coordsElement) && coordsElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            // Try to get coordinates property, or use root if it's already an array
+            System.Text.Json.JsonElement coordsElement;
+            if (root.TryGetProperty("coordinates", out var coords))
             {
-                var result = new List<(double, double)>();
-
-                foreach (var coord in coordsElement.EnumerateArray())
-                {
-                    if (coord.ValueKind == System.Text.Json.JsonValueKind.Array)
-                    {
-                        var items = coord.EnumerateArray().ToList();
-                        if (items.Count >= 2)
-                        {
-                            // GeoJSON is [lng, lat] order
-                            var lng = items[0].GetDouble();
-                            var lat = items[1].GetDouble();
-                            result.Add((lat, lng));
-                        }
-                    }
-                }
-
-                return result;
+                coordsElement = coords;
             }
+            else if (root.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                coordsElement = root;
+            }
+            else
+            {
+                _logger.LogWarning("GeoJSON has no 'coordinates' property and is not an array");
+                return null;
+            }
+
+            if (coordsElement.ValueKind != System.Text.Json.JsonValueKind.Array)
+            {
+                return null;
+            }
+
+            var result = new List<(double Lat, double Lng)>();
+
+            // Detect nesting level and extract coordinates accordingly
+            var firstElement = coordsElement.EnumerateArray().FirstOrDefault();
+
+            if (firstElement.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var firstInner = firstElement.EnumerateArray().FirstOrDefault();
+
+                if (firstInner.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    // Polygon format: [[[lng, lat], [lng, lat], ...]]
+                    // Take the first (outer) ring
+                    ExtractCoordinatesFromArray(firstElement, result);
+                }
+                else if (firstInner.ValueKind == System.Text.Json.JsonValueKind.Number)
+                {
+                    // LineString format: [[lng, lat], [lng, lat], ...]
+                    ExtractCoordinatesFromArray(coordsElement, result);
+                }
+            }
+
+            return result.Count > 0 ? result : null;
         }
         catch (Exception ex)
         {
@@ -434,6 +477,27 @@ public partial class LocationValidationService
         }
 
         return null;
+    }
+
+    /// <summary>
+    /// Extracts coordinate pairs from a JSON array of [lng, lat] arrays
+    /// </summary>
+    private void ExtractCoordinatesFromArray(System.Text.Json.JsonElement arrayElement, List<(double Lat, double Lng)> result)
+    {
+        foreach (var coord in arrayElement.EnumerateArray())
+        {
+            if (coord.ValueKind == System.Text.Json.JsonValueKind.Array)
+            {
+                var items = coord.EnumerateArray().ToList();
+                if (items.Count >= 2)
+                {
+                    // GeoJSON uses [lng, lat] order
+                    var lng = items[0].GetDouble();
+                    var lat = items[1].GetDouble();
+                    result.Add((lat, lng));
+                }
+            }
+        }
     }
 
     /// <summary>

@@ -10,4 +10,5 @@ export { default as VehicleSelectionStep } from "./VehicleSelectionStep";
 export { default as FuelingVolumeStep } from "./FuelingVolumeStep";
 export { default as ScanStep } from "./ScanStep";
 export { default as TransactionMonitoringModal } from "./TransactionMonitoringModal";
+export { default as TransactionSummaryStep } from "./TransactionSummaryStep";
 export { default as FuelingHeader } from "./FuelingHeader";

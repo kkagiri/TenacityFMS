@@ -133,6 +133,9 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   const [selectedType, setSelectedType] = useState("Full");
   const [volume, setVolume] = useState("");
 
+  // Driver/Employee state
+  const [selectedDriver, setSelectedDriver] = useState(null);
+
   // Authorization state
   const [isAuthorizing, setIsAuthorizing] = useState(false);
   const [authorizingStatus, setAuthorizingStatus] = useState("");
@@ -155,6 +158,9 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   const [isViewingExternalFueling, setIsViewingExternalFueling] =
     useState(false);
   const [viewingPumpData, setViewingPumpData] = useState(null);
+
+  // Completed transaction data for summary step
+  const [completedTransactionData, setCompletedTransactionData] = useState(null);
 
   // Validation state
   const [fuelingRules, setFuelingRules] = useState(null);
@@ -518,10 +524,22 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
       case "vehicle":
         setStep("mode");
         setOperationMode(null);
+        // Clear volume step data when going back to mode
+        setFuelingVolume("");
+        setVolume("");
+        setOdometer("");
+        setIsFullTank(false);
+        setSelectedDriver(null);
         break;
       case "volume":
         setStep("vehicle");
         setSelectedVehicle(null);
+        // Clear volume step data when going back to vehicle
+        setFuelingVolume("");
+        setVolume("");
+        setOdometer("");
+        setIsFullTank(false);
+        setSelectedDriver(null);
         break;
       case "scan":
         setStep("nozzle");
@@ -777,6 +795,7 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
           tankId: selectedTank?.tankId || selectedTank?.id,
           tag: shouldUseMasterTag ? loggedInUser?.masterTag : tagId,
           odometer: odometer ? parseFloat(odometer) : null,
+          employeeId: selectedDriver?.id || null,
           mobileLocation: deviceLocation
             ? locationService.formatForApi(deviceLocation)
             : null,
@@ -940,17 +959,73 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   // ===========================================
   // TRANSACTION HANDLERS
   // ===========================================
-  const handleTransactionComplete = useCallback((transactionId) => {
+  const handleTransactionComplete = useCallback((transactionId, transactionData) => {
+    console.log("[useFuelingProcess] Transaction complete:", transactionId);
+    console.log("[useFuelingProcess] Transaction data:", transactionData);
+
     setShowTransactionMonitoring(false);
     setCurrentTransactionId(null);
-    resetFuelingProcess();
+
+    // Store completed transaction data for summary step display
+    setCompletedTransactionData({
+      ...transactionData,
+      transactionId,
+      tankInfo: selectedTank,
+      destinationTank: destinationTank,
+      driverInfo: selectedDriver,
+    });
+
+    // Navigate to summary step to show transaction receipt
+    setStep("summary");
 
     Toast.show({
       type: "success",
       text1: "Transaction Complete",
       text2: `Transaction ${transactionId} completed successfully`,
     });
-  }, []);
+  }, [selectedTank, destinationTank, selectedDriver]);
+
+  // Handler for starting new fueling from summary step
+  const handleStartNewFueling = useCallback(() => {
+    const preservedTank = selectedTank;
+
+    // Clear completed transaction data
+    setCompletedTransactionData(null);
+
+    // Reset to pump selection if tank is preserved, otherwise tank selection
+    setStep(preservedTank ? "pump" : "tank");
+    setSelectedPump(null);
+    setSelectedNozzle(null);
+    setOperationMode(null);
+    setDestinationTank(null);
+    setTransferVolume("");
+    setTransferReason("");
+    setSelectedVehicle(null);
+    setSelectedVehicleId(null);
+    setVehicleReg("");
+    setFuelingVolume("");
+    setIsFullTank(false);
+    setOdometer("");
+    setNotes("");
+    setScanResult(null);
+    setVehicleInfo(null);
+    setTagDetails(null);
+    setSelectedTag(null);
+    setVolume("");
+    setSelectedType("Full");
+    setUseMasterTag(false);
+    setSelectedDriver(null);
+  }, [selectedTank]);
+
+  // Handler for going back to pump selection from summary step
+  const handleBackToPumps = useCallback(() => {
+    setCompletedTransactionData(null);
+    // Go back to pump selection, preserving the selected tank
+    setStep(selectedTank ? "pump" : "tank");
+    setSelectedPump(null);
+    setSelectedNozzle(null);
+    setOperationMode(null);
+  }, [selectedTank]);
 
   const resetFuelingProcess = useCallback(() => {
     const preservedTank = selectedTank;
@@ -1155,6 +1230,10 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     setFuelingRules,
     handleVehicleFuelingConfirm,
 
+    // Driver/Employee state
+    selectedDriver,
+    setSelectedDriver,
+
     // Authorization state
     isAuthorizing,
     authorizingStatus,
@@ -1187,6 +1266,11 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     handleMinimizeMonitoring,
     handleCloseTransactionMonitoring,
     handleViewFuelingFromHeader,
+
+    // Summary step
+    completedTransactionData,
+    handleStartNewFueling,
+    handleBackToPumps,
 
     // Active fueling
     activeFuelingProcesses,

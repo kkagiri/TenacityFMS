@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,12 @@ import {
   Platform,
   ScrollView,
   Keyboard,
+  Modal,
+  ActivityIndicator,
+  FlatList,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import ApiService from "../../services/apiService";
 
 const FuelingVolumeStep = ({
   selectedVehicle,
@@ -29,6 +33,12 @@ const FuelingVolumeStep = ({
   onNotesChange,
   onNext,
   onBack,
+  // Driver/Employee selection
+  selectedDriver,
+  onDriverChange,
+  siteId,
+  sites = [],
+  siteName,
   // Fueling rules from validation step (contains maxFuelAllowed, limits, etc.)
   fuelingRules = null,
   // Legacy props - kept for backward compatibility but deprecated
@@ -39,6 +49,20 @@ const FuelingVolumeStep = ({
   const [odometerError, setOdometerError] = useState("");
   const [isKeyboardVisible, setIsKeyboardVisible] = useState(false);
   const scrollViewRef = useRef(null);
+
+  // Driver search state
+  const [driverSearchQuery, setDriverSearchQuery] = useState("");
+  const [driverSearchResults, setDriverSearchResults] = useState([]);
+  const [isSearchingDriver, setIsSearchingDriver] = useState(false);
+  const [showDriverResults, setShowDriverResults] = useState(false);
+
+  // Quick-add driver modal state
+  const [showAddDriverModal, setShowAddDriverModal] = useState(false);
+  const [newDriverName, setNewDriverName] = useState("");
+  const [newDriverSiteId, setNewDriverSiteId] = useState(siteId);
+  const [showSitePicker, setShowSitePicker] = useState(false);
+  const [isCreatingDriver, setIsCreatingDriver] = useState(false);
+  const [createDriverError, setCreateDriverError] = useState("");
 
   // Track keyboard visibility
   useEffect(() => {
@@ -56,6 +80,124 @@ const FuelingVolumeStep = ({
       keyboardDidHideListener.remove();
     };
   }, []);
+
+  // Clear driver search query when selectedDriver is cleared (on step back)
+  useEffect(() => {
+    if (!selectedDriver) {
+      setDriverSearchQuery("");
+      setDriverSearchResults([]);
+      setShowDriverResults(false);
+    }
+  }, [selectedDriver]);
+
+  // Driver search effect with debounce
+  // Skip search if a driver is already selected (query matches selected driver's name)
+  useEffect(() => {
+    // If a driver is selected and query matches their name, don't search
+    if (selectedDriver && driverSearchQuery === selectedDriver.fullName) {
+      setShowDriverResults(false);
+      setDriverSearchResults([]);
+      return;
+    }
+
+    if (driverSearchQuery.length >= 2) {
+      setIsSearchingDriver(true);
+      setShowDriverResults(true);
+
+      const timer = setTimeout(async () => {
+        try {
+          const results = await ApiService.searchEmployees(
+            driverSearchQuery,
+            10,
+            true,
+            siteId
+          );
+          // Normalize results
+          const normalizedResults = (results || []).map((e) => ({
+            id: e.EmployeeId || e.employeeId || e.Id || e.id,
+            fullName: e.FullName || e.fullName || e.Name || e.name || "",
+            workNo: e.EmployeeWorkNo || e.employeeWorkNo || e.WorkNo || e.workNo || "",
+            phone: e.EmployeephoneNumber || e.employeephoneNumber || e.Phone || e.phone || "",
+            siteName: e.SiteName || e.siteName || "",
+          }));
+          setDriverSearchResults(normalizedResults);
+        } catch (error) {
+          console.error("[FuelingVolumeStep] Driver search error:", error);
+          setDriverSearchResults([]);
+        } finally {
+          setIsSearchingDriver(false);
+        }
+      }, 400);
+
+      return () => clearTimeout(timer);
+    } else {
+      setDriverSearchResults([]);
+      setShowDriverResults(false);
+    }
+  }, [driverSearchQuery, siteId, selectedDriver]);
+
+  // Handle driver selection
+  const handleDriverSelect = useCallback((driver) => {
+    onDriverChange?.(driver);
+    setDriverSearchQuery(driver.fullName);
+    setShowDriverResults(false);
+    setDriverSearchResults([]);
+  }, [onDriverChange]);
+
+  // Clear driver selection
+  const handleClearDriver = useCallback(() => {
+    onDriverChange?.(null);
+    setDriverSearchQuery("");
+    setShowDriverResults(false);
+    setDriverSearchResults([]);
+  }, [onDriverChange]);
+
+  // Open add driver modal
+  const handleOpenAddDriverModal = useCallback(() => {
+    setNewDriverName(driverSearchQuery || "");
+    setNewDriverSiteId(siteId);
+    setCreateDriverError("");
+    setShowAddDriverModal(true);
+    setShowDriverResults(false);
+  }, [driverSearchQuery, siteId]);
+
+  // Create new driver
+  const handleCreateDriver = useCallback(async () => {
+    if (!newDriverName.trim()) {
+      setCreateDriverError("Please enter employee name");
+      return;
+    }
+
+    setIsCreatingDriver(true);
+    setCreateDriverError("");
+
+    try {
+      const newEmployee = await ApiService.createEmployee({
+        fullName: newDriverName.trim(),
+        siteId: newDriverSiteId,
+        isActive: true,
+      });
+
+      // Normalize the response
+      const normalizedDriver = {
+        id: newEmployee.EmployeeId || newEmployee.employeeId || newEmployee.Id || newEmployee.id,
+        fullName: newEmployee.FullName || newEmployee.fullName || newDriverName.trim(),
+        workNo: newEmployee.EmployeeWorkNo || newEmployee.employeeWorkNo || "",
+        phone: newEmployee.EmployeephoneNumber || newEmployee.employeephoneNumber || "",
+      };
+
+      // Select the new driver
+      onDriverChange?.(normalizedDriver);
+      setDriverSearchQuery(normalizedDriver.fullName);
+      setShowAddDriverModal(false);
+      setNewDriverName("");
+    } catch (error) {
+      console.error("[FuelingVolumeStep] Create driver error:", error);
+      setCreateDriverError(error.message || "Failed to create employee");
+    } finally {
+      setIsCreatingDriver(false);
+    }
+  }, [newDriverName, siteId, onDriverChange]);
 
   // Extract limits from fueling rules (from effective rules API)
   const maxFuelAllowed = useMemo(() => {
@@ -436,6 +578,100 @@ const FuelingVolumeStep = ({
           ) : null}
         </View>
 
+        {/* Driver/Employee Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>
+            Driver <Text style={styles.optionalText}>(Optional)</Text>
+          </Text>
+          <View style={styles.driverSearchContainer}>
+            <View style={[styles.driverInputWrapper, selectedDriver && styles.driverInputSelected]}>
+              <Icon
+                name="user"
+                size={18}
+                color={selectedDriver ? "#10b981" : "#6b7280"}
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={styles.input}
+                value={selectedDriver ? selectedDriver.fullName : driverSearchQuery}
+                onChangeText={(text) => {
+                  if (selectedDriver) {
+                    handleClearDriver();
+                  }
+                  setDriverSearchQuery(text);
+                }}
+                onFocus={() => {
+                  if (selectedDriver) {
+                    setDriverSearchQuery(selectedDriver.fullName);
+                    handleClearDriver();
+                  }
+                  setTimeout(() => {
+                    scrollViewRef.current?.scrollTo({ y: 600, animated: true });
+                  }, 100);
+                }}
+                placeholder="Search driver by name..."
+                placeholderTextColor="#9ca3af"
+                editable={!selectedDriver}
+              />
+              {(selectedDriver || driverSearchQuery) && (
+                <TouchableOpacity onPress={handleClearDriver} style={styles.clearButton}>
+                  <Icon name="times-circle" size={16} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Search Results Dropdown */}
+            {showDriverResults && (
+              <View style={styles.driverResultsContainer}>
+                {isSearchingDriver ? (
+                  <View style={styles.driverLoadingContainer}>
+                    <ActivityIndicator size="small" color="#2563eb" />
+                    <Text style={styles.driverLoadingText}>Searching...</Text>
+                  </View>
+                ) : driverSearchResults.length > 0 ? (
+                  <FlatList
+                    data={driverSearchResults}
+                    keyExtractor={(item) => item.id?.toString()}
+                    style={styles.driverResultsList}
+                    keyboardShouldPersistTaps="handled"
+                    renderItem={({ item }) => (
+                      <TouchableOpacity
+                        style={styles.driverResultItem}
+                        onPress={() => handleDriverSelect(item)}
+                      >
+                        <View style={styles.driverResultIcon}>
+                          <Icon name="user" size={14} color="#10b981" />
+                        </View>
+                        <View style={styles.driverResultInfo}>
+                          <Text style={styles.driverResultName}>{item.fullName}</Text>
+                          <Text style={styles.driverResultMeta}>
+                            {item.workNo && `#${item.workNo}`}
+                            {item.workNo && item.siteName && " • "}
+                            {item.siteName}
+                          </Text>
+                        </View>
+                      </TouchableOpacity>
+                    )}
+                  />
+                ) : driverSearchQuery.length >= 2 ? (
+                  <View style={styles.noDriverResults}>
+                    <Text style={styles.noDriverResultsText}>No drivers found</Text>
+                    <TouchableOpacity
+                      style={styles.addDriverButton}
+                      onPress={handleOpenAddDriverModal}
+                    >
+                      <Icon name="plus-circle" size={16} color="#2563eb" />
+                      <Text style={styles.addDriverButtonText}>
+                        Add "{driverSearchQuery}" as new driver
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : null}
+              </View>
+            )}
+          </View>
+        </View>
+
         {/* Notes */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>
@@ -467,7 +703,9 @@ const FuelingVolumeStep = ({
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Source Tank:</Text>
-            <Text style={styles.summaryValue}>{sourceTank?.tankName}</Text>
+            <Text style={styles.summaryValue}>
+              {sourceTank?.tankName || sourceTank?.name || sourceTank?.TankName || '-'}
+            </Text>
           </View>
           <View style={styles.summaryRow}>
             <Text style={styles.summaryLabel}>Volume:</Text>
@@ -483,12 +721,131 @@ const FuelingVolumeStep = ({
             <View style={styles.summaryRow}>
               <Text style={styles.summaryLabel}>Odometer:</Text>
               <Text style={styles.summaryValue}>
-                {parseFloat(odometer).toLocaleString()} km
+                {parseFloat(odometer).toLocaleString()} {selectedVehicle?.averageKmL ? 'km' : 'hr'}
               </Text>
+            </View>
+          ) : null}
+          {selectedDriver ? (
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryLabel}>Driver:</Text>
+              <Text style={styles.summaryValue}>{selectedDriver.fullName}</Text>
             </View>
           ) : null}
         </View>
       </ScrollView>
+
+      {/* Add Driver Modal */}
+      <Modal
+        visible={showAddDriverModal}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setShowAddDriverModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContainer}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Add New Driver</Text>
+              <TouchableOpacity
+                onPress={() => setShowAddDriverModal(false)}
+                style={styles.modalCloseButton}
+              >
+                <Icon name="times" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.modalContent}>
+              <View style={styles.modalField}>
+                <Text style={styles.modalFieldLabel}>Full Name *</Text>
+                <TextInput
+                  style={styles.modalInput}
+                  value={newDriverName}
+                  onChangeText={setNewDriverName}
+                  placeholder="Enter employee full name"
+                  placeholderTextColor="#9ca3af"
+                  autoFocus={true}
+                />
+              </View>
+
+              <View style={styles.modalField}>
+                <Text style={styles.modalFieldLabel}>Site</Text>
+                <TouchableOpacity
+                  style={styles.modalSiteSelector}
+                  onPress={() => setShowSitePicker(!showSitePicker)}
+                >
+                  <Icon name="map-marker-alt" size={14} color="#2563eb" />
+                  <Text style={styles.modalSiteSelectorText}>
+                    {sites?.find(s => s.id === newDriverSiteId)?.name ||
+                     sites?.find(s => s.siteId === newDriverSiteId)?.siteName ||
+                     siteName ||
+                     `Site ${newDriverSiteId}`}
+                  </Text>
+                  <Icon name={showSitePicker ? "chevron-up" : "chevron-down"} size={12} color="#6b7280" />
+                </TouchableOpacity>
+
+                {showSitePicker && sites?.length > 0 && (
+                  <View style={styles.sitePickerList}>
+                    <FlatList
+                      data={sites}
+                      keyExtractor={(item) => (item.id || item.siteId)?.toString()}
+                      style={{ maxHeight: 150 }}
+                      keyboardShouldPersistTaps="handled"
+                      renderItem={({ item }) => (
+                        <TouchableOpacity
+                          style={[
+                            styles.sitePickerItem,
+                            (item.id === newDriverSiteId || item.siteId === newDriverSiteId) && styles.sitePickerItemSelected
+                          ]}
+                          onPress={() => {
+                            setNewDriverSiteId(item.id || item.siteId);
+                            setShowSitePicker(false);
+                          }}
+                        >
+                          <Text style={[
+                            styles.sitePickerItemText,
+                            (item.id === newDriverSiteId || item.siteId === newDriverSiteId) && styles.sitePickerItemTextSelected
+                          ]}>
+                            {item.name || item.siteName}
+                          </Text>
+                          {(item.id === newDriverSiteId || item.siteId === newDriverSiteId) && (
+                            <Icon name="check" size={12} color="#2563eb" />
+                          )}
+                        </TouchableOpacity>
+                      )}
+                    />
+                  </View>
+                )}
+              </View>
+
+              {createDriverError ? (
+                <Text style={styles.modalError}>{createDriverError}</Text>
+              ) : null}
+            </View>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancelButton}
+                onPress={() => setShowAddDriverModal(false)}
+              >
+                <Text style={styles.modalCancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirmButton, isCreatingDriver && styles.buttonDisabled]}
+                onPress={handleCreateDriver}
+                disabled={isCreatingDriver}
+              >
+                {isCreatingDriver ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Icon name="check" size={14} color="#ffffff" />
+                    <Text style={styles.modalConfirmButtonText}>Add Driver</Text>
+                  </>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
 
       {/* Action Buttons */}
       <View style={styles.actionContainer}>
@@ -545,7 +902,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   stepTitle: {
-    fontSize: 20,
+    fontSize: 17,
     fontWeight: "700",
     color: "#1f2937",
   },
@@ -1040,6 +1397,270 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
     color: "#166534",
+  },
+  // Driver Search Styles
+  driverSearchContainer: {
+    position: "relative",
+    zIndex: 100,
+  },
+  driverInputWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    paddingHorizontal: 14,
+    height: 48,
+  },
+  driverInputSelected: {
+    borderColor: "#10b981",
+    backgroundColor: "#f0fdf4",
+  },
+  clearButton: {
+    padding: 4,
+    marginLeft: 8,
+  },
+  driverResultsContainer: {
+    position: "absolute",
+    top: 52,
+    left: 0,
+    right: 0,
+    backgroundColor: "white",
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+    maxHeight: 240,
+    zIndex: 1000,
+  },
+  driverResultsList: {
+    maxHeight: 180,
+  },
+  driverResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  driverResultIcon: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#dcfce7",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 12,
+  },
+  driverResultInfo: {
+    flex: 1,
+  },
+  driverResultName: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  driverResultMeta: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginTop: 2,
+  },
+  driverLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+  },
+  driverLoadingText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  noDriverResults: {
+    padding: 16,
+    alignItems: "center",
+  },
+  noDriverResultsText: {
+    fontSize: 14,
+    color: "#6b7280",
+    marginBottom: 12,
+  },
+  addDriverButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  addDriverButtonText: {
+    marginLeft: 8,
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#2563eb",
+  },
+  // Modal Styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContainer: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    width: "100%",
+    maxWidth: 400,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1f2937",
+  },
+  modalCloseButton: {
+    padding: 4,
+  },
+  modalContent: {
+    padding: 16,
+  },
+  modalField: {
+    marginBottom: 16,
+  },
+  modalFieldLabel: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#374151",
+    marginBottom: 8,
+  },
+  modalInput: {
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: "#1f2937",
+  },
+  modalSiteInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+  },
+  modalSiteText: {
+    marginLeft: 8,
+    fontSize: 14,
+    color: "#6b7280",
+  },
+  modalSiteSelector: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f9fafb",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    gap: 8,
+  },
+  modalSiteSelectorText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+  },
+  sitePickerList: {
+    maxHeight: 150,
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    marginTop: 4,
+    overflow: "hidden",
+  },
+  sitePickerItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  sitePickerItemSelected: {
+    backgroundColor: "#eff6ff",
+  },
+  sitePickerItemText: {
+    fontSize: 14,
+    color: "#374151",
+  },
+  sitePickerItemTextSelected: {
+    color: "#2563eb",
+    fontWeight: "600",
+  },
+  modalError: {
+    color: "#dc2626",
+    fontSize: 13,
+    marginTop: 4,
+  },
+  modalActions: {
+    flexDirection: "row",
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#e5e7eb",
+    gap: 12,
+  },
+  modalCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalCancelButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  modalConfirmButton: {
+    flex: 1,
+    flexDirection: "row",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#2563eb",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+  },
+  modalConfirmButtonText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#ffffff",
   },
 });
 

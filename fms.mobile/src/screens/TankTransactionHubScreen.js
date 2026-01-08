@@ -256,6 +256,74 @@ const TankTransactionHubScreen = ({ navigation }) => {
     return "#6B7280";
   };
 
+  // Calculate detailed summary by reason type
+  const detailedSummary = useMemo(() => {
+    const summaryByReason = {
+      openingStock: { count: 0, volume: 0 },    // id: 0
+      closingStock: { count: 0, volume: 0 },    // id: 1
+      delivery: { count: 0, volume: 0 },        // id: 2
+      transferIn: { count: 0, volume: 0 },      // id: 3
+      transferOut: { count: 0, volume: 0 },     // id: 4
+      adjustment: { count: 0, volume: 0 },      // id: 5
+      dispensing: { count: 0, volume: 0 },      // id: 6
+      autoDispensing: { count: 0, volume: 0 },  // id: 7
+      reconciliation: { count: 0, volume: 0 },  // id: 8
+      autoReconciliation: { count: 0, volume: 0 }, // id: 9
+    };
+
+    transactions.forEach((tx) => {
+      const volumeChange = parseFloat(tx.volumeChange || tx.amount || 0);
+      const reasonId = tx.reason ?? tx.volumeChangeReason ?? -1;
+
+      switch (reasonId) {
+        case 0:
+          summaryByReason.openingStock.count++;
+          summaryByReason.openingStock.volume += volumeChange;
+          break;
+        case 1:
+          summaryByReason.closingStock.count++;
+          summaryByReason.closingStock.volume += volumeChange;
+          break;
+        case 2:
+          summaryByReason.delivery.count++;
+          summaryByReason.delivery.volume += volumeChange;
+          break;
+        case 3:
+          summaryByReason.transferIn.count++;
+          summaryByReason.transferIn.volume += volumeChange;
+          break;
+        case 4:
+          summaryByReason.transferOut.count++;
+          summaryByReason.transferOut.volume += volumeChange;
+          break;
+        case 5:
+          summaryByReason.adjustment.count++;
+          summaryByReason.adjustment.volume += volumeChange;
+          break;
+        case 6:
+          summaryByReason.dispensing.count++;
+          summaryByReason.dispensing.volume += volumeChange;
+          break;
+        case 7:
+          summaryByReason.autoDispensing.count++;
+          summaryByReason.autoDispensing.volume += volumeChange;
+          break;
+        case 8:
+          summaryByReason.reconciliation.count++;
+          summaryByReason.reconciliation.volume += volumeChange;
+          break;
+        case 9:
+          summaryByReason.autoReconciliation.count++;
+          summaryByReason.autoReconciliation.volume += volumeChange;
+          break;
+        default:
+          break;
+      }
+    });
+
+    return summaryByReason;
+  }, [transactions]);
+
   // Render transaction item
   const renderTransactionItem = ({ item, index }) => {
     const reason = getReasonDetails(
@@ -363,34 +431,135 @@ const TankTransactionHubScreen = ({ navigation }) => {
     );
   };
 
+  // Helper to format summary volume
+  const formatSummaryVolume = (volume) => {
+    const absVolume = Math.abs(volume);
+    return absVolume.toLocaleString("en-US", { maximumFractionDigits: 0 });
+  };
+
+  // Summary items configuration - ordered as requested
+  const summaryItems = [
+    // Opening Stock - first
+    {
+      key: "openingStock",
+      label: "Opening",
+      icon: "play-circle",
+      color: "#3B82F6",
+      data: detailedSummary.openingStock,
+    },
+    // Dispensing (combined manual + auto)
+    {
+      key: "dispensing",
+      label: "Dispensed",
+      icon: "gas-pump",
+      color: "#EF4444",
+      data: {
+        count: detailedSummary.dispensing.count + detailedSummary.autoDispensing.count,
+        volume: detailedSummary.dispensing.volume + detailedSummary.autoDispensing.volume,
+      },
+    },
+    // Transfer In
+    {
+      key: "transferIn",
+      label: "Transfer In",
+      icon: "arrow-right",
+      color: "#3B82F6",
+      data: detailedSummary.transferIn,
+    },
+    // Transfer Out
+    {
+      key: "transferOut",
+      label: "Transfer Out",
+      icon: "arrow-left",
+      color: "#F59E0B",
+      data: detailedSummary.transferOut,
+    },
+    // Delivery
+    {
+      key: "delivery",
+      label: "Delivery",
+      icon: "truck-loading",
+      color: "#10B981",
+      data: detailedSummary.delivery,
+    },
+    // Others (Adjustment + Reconciliation + Auto Reconciliation)
+    {
+      key: "others",
+      label: "Adjustment",
+      icon: "edit",
+      color: "#8B5CF6",
+      data: {
+        count:
+          detailedSummary.adjustment.count +
+          detailedSummary.reconciliation.count +
+          detailedSummary.autoReconciliation.count,
+        volume:
+          detailedSummary.adjustment.volume +
+          detailedSummary.reconciliation.volume +
+          detailedSummary.autoReconciliation.volume,
+      },
+    },
+    // Closing Stock - last
+    {
+      key: "closingStock",
+      label: "Closing",
+      icon: "stop-circle",
+      color: "#6B7280",
+      data: detailedSummary.closingStock,
+    },
+  ];
+
+  // Filter out items with no transactions
+  const activeSummaryItems = summaryItems.filter((item) => item.data.count > 0);
+
   // Render summary cards
   const renderSummary = () => (
-    <View style={styles.summaryContainer}>
-      <View style={styles.summaryCard}>
-        <Icon name="exchange-alt" size={20} color="#3B82F6" />
-        <Text style={styles.summaryValue}>{summary.totalTransactions}</Text>
-        <Text style={styles.summaryLabel}>Transactions</Text>
+    <View style={styles.summarySection}>
+      {/* Total transactions header */}
+      <View style={styles.summaryHeader}>
+        <Icon name="exchange-alt" size={14} color="#6B7280" />
+        <Text style={styles.summaryHeaderText}>
+          {summary.totalTransactions} Transactions
+        </Text>
       </View>
 
-      <View style={styles.summaryCard}>
-        <Icon name="arrow-down" size={20} color="#EF4444" />
-        <Text style={[styles.summaryValue, { color: "#EF4444" }]}>
-          {summary.totalDispensed.toLocaleString("en-US", {
-            maximumFractionDigits: 0,
-          })}
-        </Text>
-        <Text style={styles.summaryLabel}>Dispensed (L)</Text>
-      </View>
-
-      <View style={styles.summaryCard}>
-        <Icon name="arrow-up" size={20} color="#10B981" />
-        <Text style={[styles.summaryValue, { color: "#10B981" }]}>
-          {summary.totalReceived.toLocaleString("en-US", {
-            maximumFractionDigits: 0,
-          })}
-        </Text>
-        <Text style={styles.summaryLabel}>Received (L)</Text>
-      </View>
+      {/* Detailed breakdown */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.summaryScrollView}
+        contentContainerStyle={styles.summaryScrollContent}
+      >
+        {activeSummaryItems.length > 0 ? (
+          activeSummaryItems.map((item) => (
+            <View key={item.key} style={styles.summaryCard}>
+              <View
+                style={[
+                  styles.summaryIconBadge,
+                  { backgroundColor: `${item.color}20` },
+                ]}
+              >
+                <Icon name={item.icon} size={14} color={item.color} />
+              </View>
+              <Text
+                style={[
+                  styles.summaryValue,
+                  { color: item.data.volume < 0 ? "#EF4444" : item.color },
+                ]}
+              >
+                {item.data.volume < 0 ? "-" : "+"}
+                {formatSummaryVolume(item.data.volume)}
+              </Text>
+              <Text style={styles.summaryLabel}>{item.label}</Text>
+              <Text style={styles.summaryCount}>({item.data.count})</Text>
+            </View>
+          ))
+        ) : (
+          <View style={styles.summaryEmptyCard}>
+            <Text style={styles.summaryEmptyText}>No transactions</Text>
+          </View>
+        )}
+      </ScrollView>
     </View>
   );
 
@@ -799,31 +968,79 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // Summary Cards
-  summaryContainer: {
+  // Summary Section
+  summarySection: {
+    paddingTop: 8,
+  },
+  summaryHeader: {
     flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
-    gap: 12,
+    marginBottom: 10,
+  },
+  summaryHeaderText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+    marginLeft: 6,
+  },
+  summaryScrollView: {
+    flexGrow: 0,
+  },
+  summaryScrollContent: {
+    paddingHorizontal: 16,
+    gap: 10,
   },
   summaryCard: {
-    flex: 1,
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 12,
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#E5E7EB",
+    minWidth: 85,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  summaryIconBadge: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
   summaryValue: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: "700",
     color: "#1F2937",
-    marginTop: 4,
+    marginTop: 6,
   },
   summaryLabel: {
     fontSize: 10,
     color: "#6B7280",
     marginTop: 2,
+    fontWeight: "500",
+  },
+  summaryCount: {
+    fontSize: 9,
+    color: "#9CA3AF",
+    marginTop: 1,
+  },
+  summaryEmptyCard: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    flex: 1,
+  },
+  summaryEmptyText: {
+    fontSize: 12,
+    color: "#9CA3AF",
   },
 
   // Transaction Card

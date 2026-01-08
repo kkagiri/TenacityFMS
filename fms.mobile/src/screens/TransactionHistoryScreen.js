@@ -30,54 +30,32 @@ import {
 
 const { width } = Dimensions.get("window");
 
-// Mock location data for sites - fallback when site coords not available from API
-const MOCK_SITE_LOCATIONS = {
-  1: {
-    name: "Nairobi Main Depot",
-    latitude: -1.2921,
-    longitude: 36.8219,
-    address: "Industrial Area, Nairobi",
-  },
-  2: {
-    name: "Mombasa Port Station",
-    latitude: -4.0435,
-    longitude: 39.6682,
-    address: "Port Reitz, Mombasa",
-  },
-  3: {
-    name: "Kisumu Depot",
-    latitude: -0.1022,
-    longitude: 34.7617,
-    address: "Milimani, Kisumu",
-  },
-  4: {
-    name: "Nakuru Station",
-    latitude: -0.3031,
-    longitude: 36.08,
-    address: "Industrial Area, Nakuru",
-  },
-  5: {
-    name: "Eldoret Depot",
-    latitude: 0.5143,
-    longitude: 35.2698,
-    address: "West Indies, Eldoret",
-  },
-  default: {
-    name: "Unknown Site",
-    latitude: -1.2864,
-    longitude: 36.8172,
-    address: "Nairobi, Kenya",
-  },
+// Helper to open location in maps using real API coordinates
+const openLocationInMapsHelper = (latitude, longitude, siteName) => {
+  if (!latitude || !longitude) {
+    Alert.alert("Location Unavailable", "Site coordinates are not available.");
+    return;
+  }
+  // Note: Google Maps expects latitude,longitude order
+  const url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+  Linking.openURL(url).catch(() => {
+    Alert.alert("Error", "Could not open maps application");
+  });
 };
 
-// Helper to get site location - uses API data if available, falls back to mock
-const getSiteLocation = (siteId, siteName) => {
-  const mockLocation =
-    MOCK_SITE_LOCATIONS[siteId] || MOCK_SITE_LOCATIONS.default;
-  return {
-    ...mockLocation,
-    name: siteName || mockLocation.name,
-  };
+// Helper to get display name for the person who fueled
+const getFueledByDisplay = (item) => {
+  // Check various possible field names from API
+  return (
+    item.fueledByUserName ||
+    item.fueledByName ||
+    item.userName ||
+    item.operatorName ||
+    item.createdByName ||
+    item.createdBy ||
+    (item.fueledBy && typeof item.fueledBy === "string" ? item.fueledBy : null) ||
+    "N/A"
+  );
 };
 
 const TransactionHistoryScreen = ({ navigation }) => {
@@ -366,28 +344,26 @@ const TransactionHistoryScreen = ({ navigation }) => {
     return `${distance.toLocaleString()} km`;
   };
 
-  const openLocationInMaps = (siteId, siteName) => {
-    const location = getSiteLocation(siteId, siteName);
-    const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
-    Linking.openURL(url).catch((err) => {
-      Alert.alert("Error", "Could not open maps application");
-    });
+  const openLocationInMaps = (item) => {
+    // Use real coordinates from API - latitude first, then longitude
+    const lat = item.siteLatitude || item.latitude;
+    const lng = item.siteLongitude || item.longitude;
+    openLocationInMapsHelper(lat, lng, item.siteName);
   };
 
   const handleTransactionPress = (item) => {
-    // Use real data from API, with fallbacks for mock data
-    const siteLocation = getSiteLocation(item.siteId, item.siteName);
-
+    // Use real data from API only - no mock fallbacks
     const auditData = {
       ...item,
-      // Site info - use API data with fallback
-      siteName: item.siteName || siteLocation.name,
-      siteAddress: siteLocation.address,
-      siteId: item.siteId || 1,
+      // Site info - from API
+      siteName: item.siteName || "Unknown Site",
+      siteAddress: item.siteAddress || item.siteLocation || "",
+      siteId: item.siteId,
+      siteLatitude: item.siteLatitude || item.latitude,
+      siteLongitude: item.siteLongitude || item.longitude,
 
-      // User who fueled - from API
-      fueledBy:
-        item.fueledByUserName || item.fueledBy || item.createdBy || "N/A",
+      // User who fueled - use helper function
+      fueledBy: getFueledByDisplay(item),
 
       // Odometer data - from API (FuelRefill)
       currentOdometer: item.odometer,
@@ -402,6 +378,10 @@ const TransactionHistoryScreen = ({ navigation }) => {
 
       // Driver info
       driverName: item.driverName,
+
+      // Employee info
+      employeeName: item.employeeName || item.assignedDriverName || item.driverName,
+      employeeId: item.employeeId || item.assignedDriverId,
     };
 
     setSelectedTransaction(auditData);
@@ -439,8 +419,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
   };
 
   const renderTransactionItem = ({ item, index }) => {
-    const siteLocation = getSiteLocation(item.siteId, item.siteName);
-    // Use API consumption data if available
+    // Use real API data directly - no mock locations
     const consumption = item.consumptionSinceLastRefuel;
 
     return (
@@ -537,6 +516,15 @@ const TransactionHistoryScreen = ({ navigation }) => {
               <Icon name="car" size={14} color="#6b7280" />
               <Text style={styles.detailText}>
                 {item.vehicleName || item.vehicleNumberPlate}
+              </Text>
+            </View>
+          )}
+
+          {item.driverName && (
+            <View style={styles.detailRow}>
+              <Icon name="id-badge" size={14} color="#10b981" />
+              <Text style={[styles.detailText, { color: "#10b981" }]}>
+                Driver: {item.driverName}
               </Text>
             </View>
           )}
@@ -701,7 +689,8 @@ const TransactionHistoryScreen = ({ navigation }) => {
               <Text style={styles.auditSectionTitle}>Location</Text>
               <TouchableOpacity
                 style={styles.auditLocationCard}
-                onPress={() => openLocationInMaps(selectedTransaction.siteId)}
+                onPress={() => openLocationInMaps(selectedTransaction)}
+                disabled={!selectedTransaction.siteLatitude || !selectedTransaction.siteLongitude}
               >
                 <View style={styles.locationIconContainer}>
                   <Icon name="map-marker-alt" size={24} color="#2563eb" />
@@ -710,11 +699,19 @@ const TransactionHistoryScreen = ({ navigation }) => {
                   <Text style={styles.locationName}>
                     {selectedTransaction.siteName}
                   </Text>
-                  <Text style={styles.locationAddress}>
-                    {selectedTransaction.siteAddress}
-                  </Text>
+                  {selectedTransaction.siteAddress ? (
+                    <Text style={styles.locationAddress}>
+                      {selectedTransaction.siteAddress}
+                    </Text>
+                  ) : selectedTransaction.siteLatitude && selectedTransaction.siteLongitude ? (
+                    <Text style={styles.locationAddress}>
+                      {selectedTransaction.siteLatitude.toFixed(4)}, {selectedTransaction.siteLongitude.toFixed(4)}
+                    </Text>
+                  ) : null}
                 </View>
-                <Icon name="external-link-alt" size={16} color="#2563eb" />
+                {(selectedTransaction.siteLatitude && selectedTransaction.siteLongitude) && (
+                  <Icon name="external-link-alt" size={16} color="#2563eb" />
+                )}
               </TouchableOpacity>
             </View>
 
@@ -728,6 +725,14 @@ const TransactionHistoryScreen = ({ navigation }) => {
                     {selectedTransaction.fueledBy}
                   </Text>
                 </View>
+                {selectedTransaction.driverName && (
+                  <View style={styles.auditRow}>
+                    <Text style={styles.auditLabel}>Driver</Text>
+                    <Text style={[styles.auditValue, { color: "#10b981", fontWeight: "500" }]}>
+                      {selectedTransaction.driverName}
+                    </Text>
+                  </View>
+                )}
                 <View style={styles.auditRow}>
                   <Text style={styles.auditLabel}>Volume Dispensed</Text>
                   <Text style={styles.auditValueHighlight}>
@@ -848,6 +853,22 @@ const TransactionHistoryScreen = ({ navigation }) => {
                         selectedTransaction.vehicleNumberPlate}
                     </Text>
                   </View>
+                  {selectedTransaction.vehicleNumberPlate && selectedTransaction.vehicleName && (
+                    <View style={styles.auditRow}>
+                      <Text style={styles.auditLabel}>Plate Number</Text>
+                      <Text style={styles.auditValue}>
+                        {selectedTransaction.vehicleNumberPlate}
+                      </Text>
+                    </View>
+                  )}
+                  {selectedTransaction.employeeName && (
+                    <View style={styles.auditRow}>
+                      <Text style={styles.auditLabel}>Assigned Employee</Text>
+                      <Text style={[styles.auditValue, { color: "#059669", fontWeight: "600" }]}>
+                        {selectedTransaction.employeeName}
+                      </Text>
+                    </View>
+                  )}
                   {selectedTransaction.tag && (
                     <View style={styles.auditRow}>
                       <Text style={styles.auditLabel}>Tag</Text>

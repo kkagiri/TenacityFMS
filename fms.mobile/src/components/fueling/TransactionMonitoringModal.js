@@ -782,12 +782,24 @@ const TransactionMonitoringModal = ({
         console.log(
           "[TransactionMonitoringModal] Auto-closing after completion"
         );
-        onComplete(transactionId);
+        // Pass transaction data for summary step
+        const transactionData = {
+          transactionId,
+          volume,
+          amount,
+          elapsedTime,
+          vehicleInfo,
+          pumpId,
+          nozzleId,
+          operationMode: displayMode,
+          completedAt: new Date(),
+        };
+        onComplete(transactionId, transactionData);
       }, 3000);
 
       return () => clearTimeout(timer);
     }
-  }, [status, visible, transactionId, onComplete]);
+  }, [status, visible, transactionId, onComplete, volume, amount, elapsedTime, vehicleInfo, pumpId, nozzleId, displayMode]);
 
   // Pulse animation for waiting/fueling states
   useEffect(() => {
@@ -923,6 +935,22 @@ const TransactionMonitoringModal = ({
     );
   };
 
+  // Create transaction data object for summary step
+  const getTransactionData = useCallback(() => {
+    return {
+      transactionId,
+      volume,
+      amount,
+      elapsedTime,
+      vehicleInfo,
+      pumpId,
+      nozzleId,
+      operationMode: displayMode,
+      completedAt: new Date(),
+      fuelGrade: null, // Could be added from nozzle config
+    };
+  }, [transactionId, volume, amount, elapsedTime, vehicleInfo, pumpId, nozzleId, displayMode]);
+
   // Handle manual complete (for EOT scenarios)
   // NOTE: The backend auto-completes transactions via AutoTransactionCompletionService when EOT is detected.
   // This button is for the user to acknowledge completion and close the monitoring modal.
@@ -937,7 +965,7 @@ const TransactionMonitoringModal = ({
 
     // Auto-close after a short delay to show completion status
     setTimeout(() => {
-      onComplete(transactionId);
+      onComplete(transactionId, getTransactionData());
     }, 1500);
   };
 
@@ -1352,7 +1380,20 @@ const TransactionMonitoringModal = ({
                 {status === TransactionStatus.COMPLETED && (
                   <TouchableOpacity
                     style={[styles.actionButton, styles.doneButton]}
-                    onPress={() => onComplete(transactionId)}
+                    onPress={() => {
+                      const transactionData = {
+                        transactionId,
+                        volume,
+                        amount,
+                        elapsedTime,
+                        vehicleInfo,
+                        pumpId,
+                        nozzleId,
+                        operationMode: displayMode,
+                        completedAt: new Date(),
+                      };
+                      onComplete(transactionId, transactionData);
+                    }}
                   >
                     <Icon name="check" size={20} color="white" />
                     <Text style={styles.actionText}>Done</Text>

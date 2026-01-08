@@ -86,6 +86,7 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         .ThenInclude(t => t.Site)  // Tank's site (primary - every fueling is from a tank)
                     .Include(pt => pt.Vehicle)
                     .Include(pt => pt.DestinationTank)  // Destination tank for tank-to-tank transfers
+                    .Include(pt => pt.Employee)  // Employee/Driver who performed the fueling
                     .OrderByDescending(pt => pt.DateTime)
                     .ToListAsync(cancellationToken);
 
@@ -177,7 +178,9 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         FueledByUserName = fr?.FuelByNavigation?.UserName,
                         PreviousOdometer = fr?.PreviousMeterReading,
                         ConsumptionSinceLastRefuel = CalculateConsumption(fr?.CurrentMeterReading, fr?.PreviousMeterReading),
-                        DriverName = fr?.Driver?.FullName,
+                        DriverName = pt.Employee?.FullName ?? fr?.Driver?.FullName, // Prefer Employee from pump transaction
+                        EmployeeId = pt.EmployeeId,
+                        EmployeeName = pt.Employee?.FullName,
                         FuelRefillId = fr?.Id,
 
                         // Fuel level data - placeholder, will be populated from GPS data if available

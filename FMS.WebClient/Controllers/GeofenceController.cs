@@ -65,7 +65,8 @@ public class GeofenceController : ControllerBase
     }
 
     /// <summary>
-    /// Sync geofences from GPSGate
+    /// Sync geofences from GPSGate (synchronous - blocks until complete)
+    /// For long-running syncs, use the async endpoint POST /geofences/sync-jobs instead
     /// </summary>
     [HttpPost("geofences/sync")]
     public async Task<IActionResult> SyncGeofences([FromBody] SyncGeofencesRequestDTO? request)
@@ -81,7 +82,84 @@ public class GeofenceController : ControllerBase
 
     #endregion
 
+    #region Async Sync Jobs
+
+    /// <summary>
+    /// Start an asynchronous geofence sync job
+    /// Returns immediately with a job ID that can be used to poll for status.
+    /// If GroupIds are provided, only those specific groups will be synced (selective sync).
+    /// If GroupIds are not provided, all geofences and groups will be synced (full sync).
+    /// </summary>
+    [HttpPost("sync-jobs")]
+    public async Task<IActionResult> StartSyncJob([FromBody] SyncGeofencesRequestDTO? request)
+    {
+        var command = new StartGeofenceSyncJobCommand
+        {
+            ForceFullSync = request?.ForceFullSync ?? false,
+            InitiatedBy = GetCurrentUserName(),
+            GroupIds = request?.GroupIds
+        };
+
+        var result = await _mediator.Send(command);
+
+        if (result.IsSuccess)
+        {
+            // Return 202 Accepted for async operations
+            return AcceptedAtAction(
+                nameof(GetSyncJobStatus),
+                new { jobId = result.Data?.JobId },
+                result);
+        }
+
+        return BadRequest(result);
+    }
+
+    /// <summary>
+    /// Get the status of a sync job by ID
+    /// </summary>
+    [HttpGet("sync-jobs/{jobId}")]
+    public async Task<IActionResult> GetSyncJobStatus(string jobId)
+    {
+        var result = await _mediator.Send(new GetGeofenceSyncJobStatusQuery(jobId));
+
+        if (!result.IsSuccess)
+        {
+            return NotFound(result);
+        }
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Get recent sync job history
+    /// </summary>
+    [HttpGet("sync-jobs")]
+    public async Task<IActionResult> GetSyncJobHistory([FromQuery] int limit = 10)
+    {
+        if (limit < 1 || limit > 100)
+        {
+            limit = 10;
+        }
+
+        var result = await _mediator.Send(new GetGeofenceSyncJobHistoryQuery(limit));
+        return Ok(result);
+    }
+
+    #endregion
+
     #region Geofence Groups
+
+    /// <summary>
+    /// Get available geofence groups directly from GPSGate.
+    /// This is a lightweight call that returns groups with their sync status.
+    /// Use this to show users which groups are available to sync.
+    /// </summary>
+    [HttpGet("available-groups")]
+    public async Task<IActionResult> GetAvailableGeofenceGroups()
+    {
+        var result = await _mediator.Send(new GetAvailableGeofenceGroupsQuery());
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
 
     /// <summary>
     /// Get all cached geofence groups

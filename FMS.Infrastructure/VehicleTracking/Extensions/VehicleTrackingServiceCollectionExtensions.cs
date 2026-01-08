@@ -67,6 +67,10 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.AddHttpClient<FMS.Application.CommonInterface.IGPSGateGeofenceService, GPSGateGeofenceService>();
             services.TryAddScoped<FMS.Application.CommonInterface.IGPSGateGeofenceService, GPSGateGeofenceService>();
 
+            // Geofence sync job processor for background sync operations
+            services.TryAddScoped<FMS.Application.Features.Geofence.Commands.IGeofenceSyncJobProcessor,
+                FMS.Application.Features.Geofence.Commands.GeofenceSyncJobProcessor>();
+
             services.AddHttpClient<IGPSGateEventService, GPSGateEventService>();
             services.TryAddScoped<IGPSGateEventService, GPSGateEventService>();
 
