@@ -129,7 +129,7 @@ const RuleSetAssignmentManager = () => {
   const getTargetOptions = (targetType) => {
     // Normalize targetType to number for comparison
     const normalizedType = typeof targetType === 'string' ? parseInt(targetType, 10) : targetType;
-    
+
     switch (normalizedType) {
       case AssignmentTargetType.Site:
       case 1:
@@ -349,10 +349,10 @@ const RuleSetAssignmentManager = () => {
   const handleTargetChange = (value) => {
     const updates = { ...formData };
     // Normalize targetType to number for comparison
-    const normalizedType = typeof formData.targetType === 'string' 
-      ? parseInt(formData.targetType, 10) 
+    const normalizedType = typeof formData.targetType === 'string'
+      ? parseInt(formData.targetType, 10)
       : formData.targetType;
-      
+
     switch (normalizedType) {
       case AssignmentTargetType.Site:
       case 1:
@@ -377,10 +377,10 @@ const RuleSetAssignmentManager = () => {
   // Get current target value for form
   const getCurrentTargetValue = () => {
     // Normalize targetType to number for comparison
-    const normalizedType = typeof formData.targetType === 'string' 
-      ? parseInt(formData.targetType, 10) 
+    const normalizedType = typeof formData.targetType === 'string'
+      ? parseInt(formData.targetType, 10)
       : formData.targetType;
-      
+
     switch (normalizedType) {
       case AssignmentTargetType.Site:
       case 1:
