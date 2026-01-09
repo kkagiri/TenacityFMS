@@ -28,7 +28,23 @@ public partial class LocationValidationService
     {
         try
         {
-            _logger.LogDebug("Starting geofence validation for RuleSet {RuleSetId}", request.FuelingRuleSetId);
+            _logger.LogInformation(
+                "[GEOFENCE_VALIDATION] ========== STARTING GEOFENCE VALIDATION ==========\n" +
+                "  RuleSetId: {RuleSetId}\n" +
+                "  PtsId: {PtsId}\n" +
+                "  VehicleId: {VehicleId}\n" +
+                "  TankerLocation: {TankerLat}, {TankerLng}\n" +
+                "  OperatorLocation: {OperatorLat}, {OperatorLng}\n" +
+                "  VehicleLocation: {VehicleLat}, {VehicleLng}",
+                request.FuelingRuleSetId,
+                request.PtsId ?? "N/A",
+                request.VehicleId?.ToString() ?? "N/A",
+                request.TankerLocation?.Latitude.ToString() ?? "N/A",
+                request.TankerLocation?.Longitude.ToString() ?? "N/A",
+                request.OperatorLocation?.Latitude.ToString() ?? "N/A",
+                request.OperatorLocation?.Longitude.ToString() ?? "N/A",
+                request.VehicleLocation?.Latitude.ToString() ?? "N/A",
+                request.VehicleLocation?.Longitude.ToString() ?? "N/A");
 
             // Get the fueling rule set configuration (still needed for reference)
             var ruleSetConfig = await _context.FuelingRuleSets
@@ -37,9 +53,13 @@ public partial class LocationValidationService
 
             if (ruleSetConfig == null)
             {
-                _logger.LogWarning("Fueling rule set {RuleSetId} not found", request.FuelingRuleSetId);
+                _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ Fueling rule set {RuleSetId} not found - SKIPPING validation",
+                    request.FuelingRuleSetId);
                 return GeofenceValidationResult.Skipped("Fueling rule set not found");
             }
+
+            _logger.LogInformation("[GEOFENCE_VALIDATION] Found RuleSet: {RuleSetName} (ID: {RuleSetId})",
+                ruleSetConfig.Name ?? "Unnamed", ruleSetConfig.Id);
 
             // Get geofence validation settings from system configuration (global settings)
             var requireTankerStr = await _systemConfigService.GetConfigurationValueAsync(
@@ -54,13 +74,40 @@ public partial class LocationValidationService
             var requireOperatorInGeofence = bool.TryParse(requireOperatorStr, out var operatorSetting) && operatorSetting; // Default false
             var requireVehicleInGeofence = bool.TryParse(requireVehicleStr, out var vehicleSetting) && vehicleSetting; // Default false
 
+            _logger.LogInformation(
+                "[GEOFENCE_VALIDATION] Configuration Settings:\n" +
+                "  RequireTankerInGeofence: {RequireTanker} (raw value: '{RawTanker}')\n" +
+                "  RequireOperatorInGeofence: {RequireOperator} (raw value: '{RawOperator}')\n" +
+                "  RequireVehicleInGeofence: {RequireVehicle} (raw value: '{RawVehicle}')",
+                requireTankerInGeofence, requireTankerStr ?? "null",
+                requireOperatorInGeofence, requireOperatorStr ?? "null",
+                requireVehicleInGeofence, requireVehicleStr ?? "null");
+
             // Get all geofence IDs from globally allowed groups (ignores ruleSetId)
             var geofenceIds = await GetRuleSetGeofenceIdsAsync(request.FuelingRuleSetId, cancellationToken);
 
+            _logger.LogInformation("[GEOFENCE_VALIDATION] Found {Count} geofences from allowed groups: [{GeofenceIds}]",
+                geofenceIds.Count, string.Join(", ", geofenceIds));
+
             if (geofenceIds.Count == 0)
             {
-                _logger.LogWarning("No geofences available from globally allowed groups");
+                _logger.LogWarning("[GEOFENCE_VALIDATION] ⚠️ No geofences available from globally allowed groups - SKIPPING validation. " +
+                    "This means NO groups have IsAllowedForFueling=true or groups have no geofences assigned.");
                 return GeofenceValidationResult.Skipped("No geofences available from globally allowed groups");
+            }
+
+            // Load geofence details for logging
+            var geofenceDetails = await _context.Set<GpsGeofence>()
+                .AsNoTracking()
+                .Where(g => geofenceIds.Contains(g.Id) && g.IsActive)
+                .Select(g => new { g.Id, g.Name, g.GeofenceType, g.CenterLatitude, g.CenterLongitude, g.RadiusMeters })
+                .ToListAsync(cancellationToken);
+
+            _logger.LogInformation("[GEOFENCE_VALIDATION] Active geofences to check:");
+            foreach (var gf in geofenceDetails)
+            {
+                _logger.LogInformation("  - ID: {Id}, Name: '{Name}', Type: {Type}, Center: ({Lat}, {Lng}), Radius: {Radius}m",
+                    gf.Id, gf.Name, gf.GeofenceType, gf.CenterLatitude, gf.CenterLongitude, gf.RadiusMeters);
             }
 
             var result = new GeofenceValidationResult
@@ -74,77 +121,164 @@ public partial class LocationValidationService
             bool vehiclePassed = true;
 
             // Check tanker location if required (from global system settings)
-            if (requireTankerInGeofence && request.TankerLocation != null)
+            if (requireTankerInGeofence)
             {
-                var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
-                    request.TankerLocation.Latitude,
-                    request.TankerLocation.Longitude,
-                    geofenceIds,
-                    cancellationToken);
+                _logger.LogInformation("[GEOFENCE_VALIDATION] 🚛 TANKER GEOFENCE CHECK REQUIRED");
 
-                tankerPassed = isInGeofence;
-                result = result with
+                if (request.TankerLocation != null)
                 {
-                    TankerInGeofence = isInGeofence,
-                    TankerGeofenceId = geofenceId,
-                    TankerGeofenceName = geofenceName
-                };
+                    _logger.LogInformation("[GEOFENCE_VALIDATION] Checking tanker at ({Lat}, {Lng}) against {Count} geofences",
+                        request.TankerLocation.Latitude, request.TankerLocation.Longitude, geofenceIds.Count);
+
+                    var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
+                        request.TankerLocation.Latitude,
+                        request.TankerLocation.Longitude,
+                        geofenceIds,
+                        cancellationToken);
+
+                    tankerPassed = isInGeofence;
+                    result = result with
+                    {
+                        TankerInGeofence = isInGeofence,
+                        TankerGeofenceId = geofenceId,
+                        TankerGeofenceName = geofenceName
+                    };
+
+                    if (isInGeofence)
+                    {
+                        _logger.LogInformation("[GEOFENCE_VALIDATION] ✅ TANKER IS INSIDE geofence '{GeofenceName}' (ID: {GeofenceId})",
+                            geofenceName, geofenceId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ TANKER IS OUTSIDE all allowed geofences! Location: ({Lat}, {Lng})",
+                            request.TankerLocation.Latitude, request.TankerLocation.Longitude);
+
+                        // Log distance to each geofence for debugging
+                        foreach (var gf in geofenceDetails.Where(g => g.CenterLatitude.HasValue && g.CenterLongitude.HasValue))
+                        {
+                            var tankerLoc = new GeoLocation(request.TankerLocation.Latitude, request.TankerLocation.Longitude);
+                            var geofenceCenter = new GeoLocation(gf.CenterLatitude!.Value, gf.CenterLongitude!.Value);
+                            var distance = CalculateDistanceMeters(tankerLoc, geofenceCenter);
+                            _logger.LogWarning("[GEOFENCE_VALIDATION] Distance to geofence '{Name}' (ID: {Id}): {Distance:F0}m (radius: {Radius}m, outside by: {OutsideBy:F0}m)",
+                                gf.Name, gf.Id, distance, gf.RadiusMeters ?? 0, distance - (gf.RadiusMeters ?? 0));
+                        }
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ TANKER LOCATION NOT PROVIDED but RequireTankerInGeofence=true");
+                    tankerPassed = false;
+                    result = result with { TankerInGeofence = false };
+                }
             }
-            else if (requireTankerInGeofence && request.TankerLocation == null)
+            else
             {
-                tankerPassed = false;
-                result = result with { TankerInGeofence = false };
+                _logger.LogInformation("[GEOFENCE_VALIDATION] Tanker geofence check NOT required (RequireTankerInGeofence=false)");
             }
 
             // Check operator location if required (from global system settings)
-            if (requireOperatorInGeofence && request.OperatorLocation != null)
+            if (requireOperatorInGeofence)
             {
-                var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
-                    request.OperatorLocation.Latitude,
-                    request.OperatorLocation.Longitude,
-                    geofenceIds,
-                    cancellationToken);
+                _logger.LogInformation("[GEOFENCE_VALIDATION] 👤 OPERATOR GEOFENCE CHECK REQUIRED");
 
-                operatorPassed = isInGeofence;
-                result = result with
+                if (request.OperatorLocation != null)
                 {
-                    OperatorInGeofence = isInGeofence,
-                    OperatorGeofenceId = geofenceId,
-                    OperatorGeofenceName = geofenceName
-                };
+                    _logger.LogInformation("[GEOFENCE_VALIDATION] Checking operator at ({Lat}, {Lng}) against {Count} geofences",
+                        request.OperatorLocation.Latitude, request.OperatorLocation.Longitude, geofenceIds.Count);
+
+                    var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
+                        request.OperatorLocation.Latitude,
+                        request.OperatorLocation.Longitude,
+                        geofenceIds,
+                        cancellationToken);
+
+                    operatorPassed = isInGeofence;
+                    result = result with
+                    {
+                        OperatorInGeofence = isInGeofence,
+                        OperatorGeofenceId = geofenceId,
+                        OperatorGeofenceName = geofenceName
+                    };
+
+                    if (isInGeofence)
+                    {
+                        _logger.LogInformation("[GEOFENCE_VALIDATION] ✅ OPERATOR IS INSIDE geofence '{GeofenceName}' (ID: {GeofenceId})",
+                            geofenceName, geofenceId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ OPERATOR IS OUTSIDE all allowed geofences! Location: ({Lat}, {Lng})",
+                            request.OperatorLocation.Latitude, request.OperatorLocation.Longitude);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ OPERATOR LOCATION NOT PROVIDED but RequireOperatorInGeofence=true");
+                    operatorPassed = false;
+                    result = result with { OperatorInGeofence = false };
+                }
             }
-            else if (requireOperatorInGeofence && request.OperatorLocation == null)
+            else
             {
-                operatorPassed = false;
-                result = result with { OperatorInGeofence = false };
+                _logger.LogDebug("[GEOFENCE_VALIDATION] Operator geofence check NOT required (RequireOperatorInGeofence=false)");
             }
 
             // Check vehicle location if required (from global system settings)
-            if (requireVehicleInGeofence && request.VehicleLocation != null)
+            if (requireVehicleInGeofence)
             {
-                var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
-                    request.VehicleLocation.Latitude,
-                    request.VehicleLocation.Longitude,
-                    geofenceIds,
-                    cancellationToken);
+                _logger.LogInformation("[GEOFENCE_VALIDATION] 🚗 VEHICLE GEOFENCE CHECK REQUIRED");
 
-                vehiclePassed = isInGeofence;
-                result = result with
+                if (request.VehicleLocation != null)
                 {
-                    VehicleInGeofence = isInGeofence,
-                    VehicleGeofenceId = geofenceId,
-                    VehicleGeofenceName = geofenceName
-                };
+                    _logger.LogInformation("[GEOFENCE_VALIDATION] Checking vehicle at ({Lat}, {Lng}) against {Count} geofences",
+                        request.VehicleLocation.Latitude, request.VehicleLocation.Longitude, geofenceIds.Count);
+
+                    var (isInGeofence, geofenceId, geofenceName) = await CheckLocationInGeofencesAsync(
+                        request.VehicleLocation.Latitude,
+                        request.VehicleLocation.Longitude,
+                        geofenceIds,
+                        cancellationToken);
+
+                    vehiclePassed = isInGeofence;
+                    result = result with
+                    {
+                        VehicleInGeofence = isInGeofence,
+                        VehicleGeofenceId = geofenceId,
+                        VehicleGeofenceName = geofenceName
+                    };
+
+                    if (isInGeofence)
+                    {
+                        _logger.LogInformation("[GEOFENCE_VALIDATION] ✅ VEHICLE IS INSIDE geofence '{GeofenceName}' (ID: {GeofenceId})",
+                            geofenceName, geofenceId);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ VEHICLE IS OUTSIDE all allowed geofences! Location: ({Lat}, {Lng})",
+                            request.VehicleLocation.Latitude, request.VehicleLocation.Longitude);
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ VEHICLE LOCATION NOT PROVIDED but RequireVehicleInGeofence=true");
+                    vehiclePassed = false;
+                    result = result with { VehicleInGeofence = false };
+                }
             }
-            else if (requireVehicleInGeofence && request.VehicleLocation == null)
+            else
             {
-                vehiclePassed = false;
-                result = result with { VehicleInGeofence = false };
+                _logger.LogDebug("[GEOFENCE_VALIDATION] Vehicle geofence check NOT required (RequireVehicleInGeofence=false)");
             }
 
             // Determine overall result
             if (tankerPassed && operatorPassed && vehiclePassed)
             {
+                _logger.LogInformation(
+                    "[GEOFENCE_VALIDATION] ✅✅✅ GEOFENCE VALIDATION PASSED ✅✅✅\n" +
+                    "  TankerPassed: {TankerPassed}, OperatorPassed: {OperatorPassed}, VehiclePassed: {VehiclePassed}",
+                    tankerPassed, operatorPassed, vehiclePassed);
+
                 return result with
                 {
                     Outcome = ValidationOutcome.Passed,
@@ -158,16 +292,26 @@ public partial class LocationValidationService
                 if (!operatorPassed) failedChecks.Add("operator");
                 if (!vehiclePassed) failedChecks.Add("vehicle");
 
+                var failureReason = $"The following are not within allowed geofences: {string.Join(", ", failedChecks)}";
+
+                _logger.LogWarning(
+                    "[GEOFENCE_VALIDATION] ❌❌❌ GEOFENCE VALIDATION FAILED ❌❌❌\n" +
+                    "  Failed Checks: [{FailedChecks}]\n" +
+                    "  TankerPassed: {TankerPassed}, OperatorPassed: {OperatorPassed}, VehiclePassed: {VehiclePassed}\n" +
+                    "  Reason: {Reason}",
+                    string.Join(", ", failedChecks), tankerPassed, operatorPassed, vehiclePassed, failureReason);
+
                 return result with
                 {
                     Outcome = ValidationOutcome.Failed,
-                    Reason = $"The following are not within allowed geofences: {string.Join(", ", failedChecks)}"
+                    Reason = failureReason
                 };
             }
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during geofence validation for rule set {RuleSetId}", request.FuelingRuleSetId);
+            _logger.LogError(ex, "[GEOFENCE_VALIDATION] ❌ EXCEPTION during geofence validation for rule set {RuleSetId}: {Error}",
+                request.FuelingRuleSetId, ex.Message);
             return GeofenceValidationResult.Failed($"Error during geofence validation: {ex.Message}");
         }
     }

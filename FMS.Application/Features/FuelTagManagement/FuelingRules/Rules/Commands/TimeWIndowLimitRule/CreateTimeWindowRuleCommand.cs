@@ -5,7 +5,7 @@ using FMS.Application.Common;
 using FMS.Domain.Entities.Features.FuelRule.Rules;
 using FMS.Persistence.DataAccess;
 using MediatR;
-using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.TimeWIndowLimitRule;
@@ -38,20 +38,25 @@ public class CreateTimeWindowRuleCommandHandler : IRequestHandler<CreateTimeWind
     {
         try
         {
-            var ruleSet = await _context.FuelingRuleSets.FindAsync(request.RuleSetId);
+            // Verify rule set exists
+            var ruleSetExists = await _context.FuelingRuleSets.AnyAsync(rs => rs.Id == request.RuleSetId, cancellationToken);
+            if (!ruleSetExists) return new FMSResponseMessage(false, "Rule set Not Found");
 
-            if (ruleSet == null) return new FMSResponseMessage(false, "Rule set Not Found");
-
+            // Create rule with foreign key set directly
             var rule = new TimeWindowRule
             {
+                FuelingRuleSetId = request.RuleSetId,
                 RuleName = request.RuleName,
                 IsActive = request.IsActive,
                 StartTime = request.StartTime,
                 EndTime = request.EndTime
             };
-            ruleSet.Rules.Add(rule);
 
+            // Add directly to DbSet to ensure proper tracking
+            _context.FuelingRules.Add(rule);
             await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("Created TimeWindowRule {RuleId} for RuleSet {RuleSetId}", rule.Id, request.RuleSetId);
             return new FMSResponseMessage(true, "Time rule Created");
         }
         catch (Exception ex)

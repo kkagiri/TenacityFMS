@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Geofence.DTOs;
+using FMS.Domain.Entities.Features.LocationValidation;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -11,13 +14,29 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Features.Geofence.Commands;
 
 /// <summary>
-/// Command to enable temporary location validation bypass
+/// Command to enable temporary location validation bypass.
+/// Supports system-wide, vehicle-specific, and user-specific bypasses.
 /// </summary>
 public class EnableTemporaryBypassCommand : IRequest<FMSResponse<TemporaryBypassStatusDTO>>
 {
-    public int DurationMinutes { get; set; } = 5;
+    public int? DurationMinutes { get; set; } = 5;
     public string? Reason { get; set; }
     public string EnabledBy { get; set; } = "system";
+
+    /// <summary>
+    /// Type of bypass: 'All', 'Vehicle', 'User'
+    /// </summary>
+    public string BypassType { get; set; } = "All";
+
+    /// <summary>
+    /// Vehicle IDs for vehicle-specific bypass
+    /// </summary>
+    public List<int>? VehicleIds { get; set; }
+
+    /// <summary>
+    /// User IDs for user-specific bypass
+    /// </summary>
+    public List<string>? UserIds { get; set; }
 }
 
 /// <summary>
@@ -45,44 +64,236 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
     {
         try
         {
-            // Validate duration (1-120 minutes)
-            if (request.DurationMinutes < 1 || request.DurationMinutes > 120)
+            // Validate duration (1-120 minutes, or null for permanent)
+            if (request.DurationMinutes.HasValue && (request.DurationMinutes < 1 || request.DurationMinutes > 120))
             {
                 return FMSResponse<TemporaryBypassStatusDTO>.Failed("Duration must be between 1 and 120 minutes");
             }
 
             var now = DateTime.UtcNow;
-            var expiresAt = now.AddMinutes(request.DurationMinutes);
+            DateTime? expiresAt = request.DurationMinutes.HasValue
+                ? now.AddMinutes(request.DurationMinutes.Value)
+                : null;
 
-            // Update or create system configurations
-            await UpdateOrCreateConfig(BYPASS_ACTIVE_KEY, "true", cancellationToken);
-            await UpdateOrCreateConfig(BYPASS_EXPIRES_KEY, expiresAt.ToString("O"), cancellationToken);
-            await UpdateOrCreateConfig(BYPASS_ENABLED_BY_KEY, request.EnabledBy, cancellationToken);
-            await UpdateOrCreateConfig(BYPASS_ENABLED_AT_KEY, now.ToString("O"), cancellationToken);
-            await UpdateOrCreateConfig(BYPASS_REASON_KEY, request.Reason ?? "", cancellationToken);
-
-            await _context.SaveChangesAsync(cancellationToken);
-
-            _logger.LogWarning(
-                "Temporary location bypass ENABLED by {EnabledBy} for {Duration} minutes. Reason: {Reason}. Expires at: {ExpiresAt}",
-                request.EnabledBy, request.DurationMinutes, request.Reason ?? "No reason provided", expiresAt);
-
-            var status = new TemporaryBypassStatusDTO
+            // Handle based on bypass type
+            switch (request.BypassType?.ToLower())
             {
-                IsActive = true,
-                ExpiresAt = expiresAt,
-                EnabledBy = request.EnabledBy,
-                EnabledAt = now,
-                Reason = request.Reason
-            };
+                case "vehicle":
+                    return await EnableVehicleBypassAsync(request, now, expiresAt, cancellationToken);
 
-            return FMSResponse<TemporaryBypassStatusDTO>.Success(status, $"Temporary bypass enabled for {request.DurationMinutes} minutes");
+                case "user":
+                    return await EnableUserBypassAsync(request, now, expiresAt, cancellationToken);
+
+                case "all":
+                default:
+                    return await EnableSystemBypassAsync(request, now, expiresAt, cancellationToken);
+            }
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error enabling temporary bypass");
             return FMSResponse<TemporaryBypassStatusDTO>.Failed($"Failed to enable temporary bypass: {ex.Message}");
         }
+    }
+
+    private async Task<FMSResponse<TemporaryBypassStatusDTO>> EnableSystemBypassAsync(
+        EnableTemporaryBypassCommand request,
+        DateTime now,
+        DateTime? expiresAt,
+        CancellationToken cancellationToken)
+    {
+        // Update or create system configurations
+        await UpdateOrCreateConfig(BYPASS_ACTIVE_KEY, "true", cancellationToken);
+        await UpdateOrCreateConfig(BYPASS_EXPIRES_KEY, expiresAt?.ToString("O") ?? "", cancellationToken);
+        await UpdateOrCreateConfig(BYPASS_ENABLED_BY_KEY, request.EnabledBy, cancellationToken);
+        await UpdateOrCreateConfig(BYPASS_ENABLED_AT_KEY, now.ToString("O"), cancellationToken);
+        await UpdateOrCreateConfig(BYPASS_REASON_KEY, request.Reason ?? "", cancellationToken);
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogWarning(
+            "SYSTEM-WIDE location bypass ENABLED by {EnabledBy} for {Duration} minutes. Reason: {Reason}. Expires at: {ExpiresAt}",
+            request.EnabledBy,
+            request.DurationMinutes ?? -1,
+            request.Reason ?? "No reason provided",
+            expiresAt?.ToString() ?? "Never");
+
+        var status = new TemporaryBypassStatusDTO
+        {
+            IsActive = true,
+            ExpiresAt = expiresAt,
+            EnabledBy = request.EnabledBy,
+            EnabledAt = now,
+            Reason = request.Reason
+        };
+
+        var message = request.DurationMinutes.HasValue
+            ? $"System-wide bypass enabled for {request.DurationMinutes} minutes"
+            : "System-wide bypass enabled (permanent until cancelled)";
+
+        return FMSResponse<TemporaryBypassStatusDTO>.Success(status, message);
+    }
+
+    private async Task<FMSResponse<TemporaryBypassStatusDTO>> EnableVehicleBypassAsync(
+        EnableTemporaryBypassCommand request,
+        DateTime now,
+        DateTime? expiresAt,
+        CancellationToken cancellationToken)
+    {
+        if (request.VehicleIds == null || !request.VehicleIds.Any())
+        {
+            return FMSResponse<TemporaryBypassStatusDTO>.ValidationFailed(
+                new List<string> { "At least one vehicle ID is required for vehicle-specific bypass" });
+        }
+
+        var vehicleBypasses = new List<VehicleBypassDTO>();
+
+        foreach (var vehicleId in request.VehicleIds)
+        {
+            // Check if vehicle exists
+            var vehicle = await _context.Vehicles
+                .AsNoTracking()
+                .FirstOrDefaultAsync(v => v.VehicleId == vehicleId, cancellationToken);
+
+            if (vehicle == null)
+            {
+                _logger.LogWarning("Vehicle {VehicleId} not found for bypass", vehicleId);
+                continue;
+            }
+
+            // Deactivate any existing active bypass for this vehicle
+            var existingBypass = await _context.LocationValidationBypasses
+                .FirstOrDefaultAsync(b => b.VehicleId == vehicleId && b.IsActive && b.CancelledAt == null, cancellationToken);
+
+            if (existingBypass != null)
+            {
+                existingBypass.IsActive = false;
+                existingBypass.CancelledAt = now;
+                existingBypass.CancelledBy = request.EnabledBy;
+            }
+
+            // Create new bypass
+            var bypass = new LocationValidationBypass
+            {
+                BypassType = Domain.Entities.Features.LocationValidation.BypassType.Vehicle,
+                VehicleId = vehicleId,
+                IsActive = true,
+                ExpiresAt = expiresAt,
+                Reason = request.Reason,
+                EnabledBy = request.EnabledBy,
+                EnabledAt = now
+            };
+
+            _context.LocationValidationBypasses.Add(bypass);
+
+            vehicleBypasses.Add(new VehicleBypassDTO
+            {
+                VehicleId = vehicleId,
+                VehicleName = vehicle.HyoungNo, // Vehicle entity uses HyoungNo as name
+                VehicleHyoungNo = vehicle.HyoungNo,
+                IsActive = true,
+                ExpiresAt = expiresAt,
+                Reason = request.Reason,
+                EnabledBy = request.EnabledBy,
+                EnabledAt = now
+            });
+
+            _logger.LogWarning(
+                "VEHICLE-SPECIFIC location bypass ENABLED for Vehicle {VehicleId} ({VehicleName}) by {EnabledBy}. Reason: {Reason}. Expires at: {ExpiresAt}",
+                vehicleId, vehicle.HyoungNo, request.EnabledBy, request.Reason ?? "No reason provided", expiresAt?.ToString() ?? "Never");
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var status = new TemporaryBypassStatusDTO
+        {
+            IsActive = false, // System bypass not active
+            VehicleBypasses = vehicleBypasses
+        };
+
+        return FMSResponse<TemporaryBypassStatusDTO>.Success(status,
+            $"Bypass enabled for {vehicleBypasses.Count} vehicle(s)");
+    }
+
+    private async Task<FMSResponse<TemporaryBypassStatusDTO>> EnableUserBypassAsync(
+        EnableTemporaryBypassCommand request,
+        DateTime now,
+        DateTime? expiresAt,
+        CancellationToken cancellationToken)
+    {
+        if (request.UserIds == null || !request.UserIds.Any())
+        {
+            return FMSResponse<TemporaryBypassStatusDTO>.ValidationFailed(
+                new List<string> { "At least one user ID is required for user-specific bypass" });
+        }
+
+        var userBypasses = new List<UserBypassDTO>();
+
+        foreach (var userId in request.UserIds)
+        {
+            // Check if user exists
+            var user = await _context.Users
+                .AsNoTracking()
+                .FirstOrDefaultAsync(u => u.Id == userId, cancellationToken);
+
+            if (user == null)
+            {
+                _logger.LogWarning("User {UserId} not found for bypass", userId);
+                continue;
+            }
+
+            // Deactivate any existing active bypass for this user
+            var existingBypass = await _context.LocationValidationBypasses
+                .FirstOrDefaultAsync(b => b.UserId == userId && b.IsActive && b.CancelledAt == null, cancellationToken);
+
+            if (existingBypass != null)
+            {
+                existingBypass.IsActive = false;
+                existingBypass.CancelledAt = now;
+                existingBypass.CancelledBy = request.EnabledBy;
+            }
+
+            // Create new bypass
+            var bypass = new LocationValidationBypass
+            {
+                BypassType = Domain.Entities.Features.LocationValidation.BypassType.User,
+                UserId = userId,
+                IsActive = true,
+                ExpiresAt = expiresAt,
+                Reason = request.Reason,
+                EnabledBy = request.EnabledBy,
+                EnabledAt = now
+            };
+
+            _context.LocationValidationBypasses.Add(bypass);
+
+            userBypasses.Add(new UserBypassDTO
+            {
+                UserId = userId,
+                UserName = user.UserName,
+                FullName = user.UserName, // User entity doesn't have FullName property
+                IsActive = true,
+                ExpiresAt = expiresAt,
+                Reason = request.Reason,
+                EnabledBy = request.EnabledBy,
+                EnabledAt = now
+            });
+
+            _logger.LogWarning(
+                "USER-SPECIFIC location bypass ENABLED for User {UserId} ({UserName}) by {EnabledBy}. Reason: {Reason}. Expires at: {ExpiresAt}",
+                userId, user.UserName, request.EnabledBy, request.Reason ?? "No reason provided", expiresAt?.ToString() ?? "Never");
+        }
+
+        await _context.SaveChangesAsync(cancellationToken);
+
+        var status = new TemporaryBypassStatusDTO
+        {
+            IsActive = false, // System bypass not active
+            UserBypasses = userBypasses
+        };
+
+        return FMSResponse<TemporaryBypassStatusDTO>.Success(status,
+            $"Bypass enabled for {userBypasses.Count} user(s)");
     }
 
     private async Task UpdateOrCreateConfig(string key, string value, CancellationToken cancellationToken)
@@ -160,6 +371,62 @@ public class CancelTemporaryBypassCommandHandler : IRequestHandler<CancelTempora
         {
             _logger.LogError(ex, "Error cancelling temporary bypass");
             return FMSResponse<bool>.Failed($"Failed to cancel temporary bypass: {ex.Message}");
+        }
+    }
+}
+
+/// <summary>
+/// Command to cancel a specific bypass by ID
+/// </summary>
+public class CancelBypassByIdCommand : IRequest<FMSResponse<bool>>
+{
+    public int BypassId { get; set; }
+    public string CancelledBy { get; set; } = "system";
+}
+
+/// <summary>
+/// Handler for CancelBypassByIdCommand
+/// </summary>
+public class CancelBypassByIdCommandHandler : IRequestHandler<CancelBypassByIdCommand, FMSResponse<bool>>
+{
+    private readonly GpsdataContext _context;
+    private readonly ILogger<CancelBypassByIdCommandHandler> _logger;
+
+    public CancelBypassByIdCommandHandler(GpsdataContext context, ILogger<CancelBypassByIdCommandHandler> logger)
+    {
+        _context = context;
+        _logger = logger;
+    }
+
+    public async Task<FMSResponse<bool>> Handle(CancelBypassByIdCommand request, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var bypass = await _context.LocationValidationBypasses
+                .FirstOrDefaultAsync(b => b.Id == request.BypassId, cancellationToken);
+
+            if (bypass == null)
+            {
+                return FMSResponse<bool>.Failed($"Bypass with ID {request.BypassId} not found");
+            }
+
+            // Remove the bypass
+            _context.LocationValidationBypasses.Remove(bypass);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            var bypassType = bypass.BypassType;
+            var targetId = bypass.VehicleId?.ToString() ?? bypass.UserId ?? "unknown";
+
+            _logger.LogInformation(
+                "Bypass ID {BypassId} ({BypassType} for {TargetId}) CANCELLED by {CancelledBy}",
+                request.BypassId, bypassType, targetId, request.CancelledBy);
+
+            return FMSResponse<bool>.Success(true, "Bypass has been cancelled");
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error cancelling bypass ID {BypassId}", request.BypassId);
+            return FMSResponse<bool>.Failed($"Failed to cancel bypass: {ex.Message}");
         }
     }
 }

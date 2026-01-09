@@ -1,0 +1,317 @@
+.rule-simulator {
+  // Card transitions
+  .card-transition {
+    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+
+  // Status cards
+  .status-card {
+    &.allowed {
+      border-color: #bbf7d0;
+      background-color: #f0fdf4;
+    }
+    &.blocked {
+      border-color: #fecaca;
+      background-color: #fef2f2;
+    }
+    &.no-rules {
+      border-color: #e5e7eb;
+      background-color: #f9fafb;
+    }
+  }
+
+  // Priority badges
+  .priority-badge {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    border-radius: 9999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+
+    &.high {
+      background-color: #fecaca;
+      color: #991b1b;
+    }
+    &.medium {
+      background-color: #fef08a;
+      color: #854d0e;
+    }
+    &.low {
+      background-color: #bfdbfe;
+      color: #1e40af;
+    }
+  }
+
+  // Rule set cards in applied rules section
+  .rule-set-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    border-width: 1px;
+    border-style: solid;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    }
+
+    &.site {
+      background-color: #eff6ff;
+      border-color: #bfdbfe;
+    }
+    &.vehicle-type {
+      background-color: #f0fdf4;
+      border-color: #bbf7d0;
+    }
+    &.tag {
+      background-color: #faf5ff;
+      border-color: #e9d5ff;
+    }
+    &.vehicle {
+      background-color: #fff7ed;
+      border-color: #fed7aa;
+    }
+  }
+
+  // Data grid styling
+  .dx-datagrid {
+    .dx-row {
+      &.allowed-row {
+        background-color: rgba(16, 185, 129, 0.05);
+      }
+      &.blocked-row {
+        background-color: rgba(239, 68, 68, 0.05);
+      }
+      &.no-rules-row {
+        background-color: rgba(156, 163, 175, 0.05);
+      }
+    }
+
+    .dx-header-row {
+      background-color: #f9fafb;
+      font-weight: 600;
+    }
+
+    .dx-cell-focus-disabled {
+      border-color: transparent !important;
+    }
+  }
+
+  // Empty state styling
+  .empty-state {
+    background-color: #f9fafb;
+    border-radius: 0.5rem;
+    border: 2px dashed #e5e7eb;
+    padding: 2rem;
+    text-align: center;
+
+    .icon {
+      font-size: 2.25rem;
+      color: #9ca3af;
+      margin-bottom: 0.75rem;
+    }
+
+    .title {
+      font-size: 1.125rem;
+      font-weight: 500;
+      color: #374151;
+      margin-bottom: 0.5rem;
+    }
+
+    .description {
+      font-size: 0.875rem;
+      color: #6b7280;
+      max-width: 28rem;
+      margin-left: auto;
+      margin-right: auto;
+    }
+  }
+
+  // Quick tips cards
+  .tip-card {
+    padding: 0.75rem;
+    background-color: #ffffff;
+    border-radius: 0.5rem;
+    border: 1px solid #e5e7eb;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+    }
+
+    .tip-icon {
+      font-size: 1.125rem;
+      margin-right: 0.5rem;
+    }
+
+    .tip-title {
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: #374151;
+    }
+
+    .tip-description {
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+  }
+
+  // Loading state
+  .loading-overlay {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    padding: 1rem;
+
+    .loading-text {
+      font-size: 0.875rem;
+      color: #4b5563;
+    }
+  }
+
+  // Action buttons styling
+  .dx-button {
+    &.simulate-btn {
+      background-color: #2563eb;
+      &:hover {
+        background-color: #1d4ed8;
+      }
+    }
+    &.bulk-btn {
+      background-color: #16a34a;
+      &:hover {
+        background-color: #15803d;
+      }
+    }
+    &.reset-btn {
+      border-color: #d1d5db;
+      color: #374151;
+      &:hover {
+        background-color: #f9fafb;
+      }
+    }
+  }
+
+  // Responsive grid
+  @media (max-width: 768px) {
+    .parameters-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .result-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .action-buttons {
+      flex-wrap: wrap;
+
+      .dx-button {
+        width: 100%;
+        margin-bottom: 0.5rem;
+      }
+    }
+  }
+
+  // Scrollable results section
+  .results-container {
+    max-height: 600px;
+    overflow-y: auto;
+
+    &::-webkit-scrollbar {
+      width: 6px;
+    }
+
+    &::-webkit-scrollbar-track {
+      background: #f1f1f1;
+      border-radius: 3px;
+    }
+
+    &::-webkit-scrollbar-thumb {
+      background: #c1c1c1;
+      border-radius: 3px;
+
+      &:hover {
+        background: #a1a1a1;
+      }
+    }
+  }
+
+  // Fuel meter visualization
+  .fuel-meter {
+    position: relative;
+    height: 1rem;
+    background-color: #e5e7eb;
+    border-radius: 9999px;
+    overflow: hidden;
+
+    .fuel-level {
+      position: absolute;
+      left: 0;
+      top: 0;
+      height: 100%;
+      border-radius: 9999px;
+      transition: width 0.3s ease;
+
+      &.low {
+        background-color: #ef4444;
+      }
+      &.medium {
+        background-color: #eab308;
+      }
+      &.high {
+        background-color: #22c55e;
+      }
+    }
+
+    .fuel-label {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 500;
+    }
+  }
+
+  // Time window visualization
+  .time-window-bar {
+    position: relative;
+    height: 2rem;
+    background-color: #f3f4f6;
+    border-radius: 0.25rem;
+    overflow: hidden;
+
+    .allowed-window {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      background-color: #bbf7d0;
+    }
+
+    .current-time-marker {
+      position: absolute;
+      top: 0;
+      height: 100%;
+      width: 2px;
+      background-color: #2563eb;
+    }
+
+    .time-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 0.75rem;
+      color: #6b7280;
+      margin-top: 0.25rem;
+    }
+  }
+}

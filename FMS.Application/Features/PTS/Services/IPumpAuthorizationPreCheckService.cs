@@ -41,6 +41,18 @@ namespace FMS.Application.Features.PTS.Services
         Task<LocationValidationResult> ValidateLocationProximityAsync(
             LocationValidationRequest request,
             CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Validates that the fueling location is within allowed geofences.
+        /// This is separate from proximity validation - geofence validation ensures
+        /// tankers cannot fuel outside designated areas.
+        /// </summary>
+        /// <param name="request">Geofence validation request containing locations to validate</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Geofence validation result</returns>
+        Task<GeofenceValidationResult> ValidateGeofenceAsync(
+            GeofenceValidationRequest request,
+            CancellationToken cancellationToken = default);
     }
 
     /// <summary>

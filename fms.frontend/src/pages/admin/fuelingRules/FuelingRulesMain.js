@@ -9,6 +9,7 @@ import TagRuleManagement from "../../../components/Tags/TagRuleManagement/TagRul
 import LocationRulesSettings from "../../../components/Tags/TagRuleManagement/LocationRulesSettings";
 import { RuleSetAssignmentManager } from "./index";
 import { GeofenceManagement } from "./GeofenceManagement";
+import { RuleSimulator } from "./RuleSimulator";
 import FuelingRulesHelp from "../../ATG/fuelingprocess/Components/FuelingRulesHelp";
 import "./FuelingRulesMain.scss";
 
@@ -17,6 +18,9 @@ import "./FuelingRulesMain.scss";
  * Contains tabs for:
  * 1. Rule Sets - Create and manage rule set templates with rules
  * 2. Assignments - Assign rule sets to Sites, VehicleTypes, Tags, or Vehicles
+ * 3. Location Rules - Configure location-based fueling rules
+ * 4. Geofences - Manage geofence definitions
+ * 5. Simulator - Test and visualize rule application
  */
 const FuelingRulesMain = () => {
   const dispatch = useDispatch();
@@ -51,6 +55,11 @@ const FuelingRulesMain = () => {
       text: "Geofences",
       icon: "fa-light fa-map-location-dot",
     },
+    {
+      id: "simulator",
+      text: "Simulator",
+      icon: "fa-light fa-flask",
+    },
   ];
 
   const handleTabChange = (e) => {
@@ -76,6 +85,8 @@ const FuelingRulesMain = () => {
         return <LocationRulesSettings />;
       case 3:
         return <GeofenceManagement />;
+      case 4:
+        return <RuleSimulator />;
       default:
         return <TagRuleManagement />;
     }

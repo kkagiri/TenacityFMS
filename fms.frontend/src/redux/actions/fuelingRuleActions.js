@@ -59,9 +59,11 @@ export const fetchAllRuleSets = () => async (dispatch) => {
   dispatch({ type: FUELING_RULE_ACTIONS.FETCH_RULESETS_REQUEST });
   try {
     const response = await axiosInstance.get("/fuelingrule/rulesets");
+    // Handle both wrapped { success, data } and direct array responses
+    const data = response.data?.data || response.data;
     dispatch({
       type: FUELING_RULE_ACTIONS.FETCH_RULESETS_SUCCESS,
-      payload: response.data,
+      payload: data,
     });
   } catch (error) {
     dispatch({
@@ -711,4 +713,62 @@ export const checkVehicleHasRules =
       };
     }
     return { success: false, hasRules: false, error: result.error };
+  };
+
+// =========== FUELING RULE SIMULATION ===========
+
+/**
+ * Simulate fueling rules for a vehicle at a specific time.
+ * This allows testing how rules would apply at different times of day.
+ *
+ * @param {number} vehicleId - Vehicle ID
+ * @param {number} siteId - Optional site ID (uses vehicle's working site if not provided)
+ * @param {string} simulationTime - ISO timestamp for the simulation time
+ * @param {number} tagId - Optional tag ID to include tag-level rules
+ */
+export const simulateFuelingRules =
+  (vehicleId, siteId = null, simulationTime = null, tagId = null) =>
+  async (dispatch) => {
+    dispatch({ type: FUELING_RULE_ACTIONS.FETCH_EFFECTIVE_RULES_REQUEST });
+    try {
+      const params = new URLSearchParams();
+      if (siteId) params.append("siteId", siteId);
+      if (tagId) params.append("tagId", tagId);
+      if (simulationTime) params.append("simulationTime", simulationTime);
+
+      const queryString = params.toString();
+      const url = `/fuelingrule/vehicle/${vehicleId}/simulate${
+        queryString ? `?${queryString}` : ""
+      }`;
+
+      const response = await axiosInstance.get(url);
+
+      dispatch({
+        type: FUELING_RULE_ACTIONS.FETCH_EFFECTIVE_RULES_SUCCESS,
+        payload: {
+          vehicleId,
+          effectiveRules: response.data?.data || response.data,
+        },
+      });
+
+      return {
+        success: true,
+        data: response.data?.data || response.data,
+      };
+    } catch (error) {
+      dispatch({
+        type: FUELING_RULE_ACTIONS.FETCH_EFFECTIVE_RULES_FAILURE,
+        payload:
+          error.response?.data?.message ||
+          error.response?.data ||
+          "Failed to simulate fueling rules",
+      });
+      return {
+        success: false,
+        error:
+          error.response?.data?.message ||
+          error.response?.data ||
+          "Failed to simulate fueling rules",
+      };
+    }
   };

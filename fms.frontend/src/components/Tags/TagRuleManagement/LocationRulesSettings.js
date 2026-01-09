@@ -5,6 +5,7 @@ import { LoadPanel } from "devextreme-react/load-panel";
 import { NumberBox } from "devextreme-react/number-box";
 import { TextArea } from "devextreme-react/text-area";
 import { SelectBox } from "devextreme-react/select-box";
+import { TagBox } from "devextreme-react/tag-box";
 import notify from "devextreme/ui/notify";
 import { usePermissions } from "../../../hooks/usePermissions";
 import {
@@ -15,7 +16,10 @@ import {
   enableTemporaryBypass,
   getTemporaryBypassStatus,
   cancelTemporaryBypass,
+  cancelBypassById,
 } from "../../../api/geofenceService";
+import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
+import { fetchUsers } from "../../../redux/actions/userActions";
 
 const LocationRulesSettings = () => {
   const dispatch = useDispatch();
@@ -47,10 +51,21 @@ const LocationRulesSettings = () => {
     expiresAt: null,
     enabledBy: null,
     reason: null,
+    vehicleBypasses: [],
+    userBypasses: [],
   });
   const [bypassLoading, setBypassLoading] = useState(false);
   const [bypassReason, setBypassReason] = useState("");
   const [bypassDuration, setBypassDuration] = useState(5); // default 5 minutes
+
+  // Granular bypass state
+  const [bypassType, setBypassType] = useState("All"); // "All", "Vehicle", "User"
+  const [selectedVehicleIds, setSelectedVehicleIds] = useState([]);
+  const [selectedUserIds, setSelectedUserIds] = useState([]);
+
+  // Load vehicles and users from Redux
+  const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
+  const users = useSelector((state) => state.user?.users || []);
 
   const [configMap, setConfigMap] = useState({});
   const [saving, setSaving] = useState(false);
@@ -257,6 +272,8 @@ const LocationRulesSettings = () => {
             : null,
           enabledBy: response.data.enabledBy || null,
           reason: response.data.reason || null,
+          vehicleBypasses: response.data.vehicleBypasses || [],
+          userBypasses: response.data.userBypasses || [],
         });
       }
     } catch (error) {
@@ -264,13 +281,51 @@ const LocationRulesSettings = () => {
     }
   }, []);
 
-  // Fetch bypass status on component mount
+  // Fetch bypass status and load vehicles/users on component mount
   useEffect(() => {
     fetchBypassStatus();
+    dispatch(fetchVehicleList());
+    dispatch(fetchUsers());
     // Set up interval to check bypass status every 30 seconds
     const interval = setInterval(fetchBypassStatus, 30000);
     return () => clearInterval(interval);
-  }, [fetchBypassStatus]);
+  }, [fetchBypassStatus, dispatch]);
+
+  // State for countdown display - updates every second for real-time countdown
+  const [countdownDisplay, setCountdownDisplay] = useState(null);
+
+  // Update countdown display every second when bypass is active
+  useEffect(() => {
+    if (!bypassStatus.isActive || !bypassStatus.expiresAt) {
+      setCountdownDisplay(null);
+      return;
+    }
+
+    const updateCountdown = () => {
+      const now = new Date();
+      const expiresAt = new Date(bypassStatus.expiresAt);
+      const remainingMs = expiresAt - now;
+
+      if (remainingMs <= 0) {
+        // Bypass has expired, refresh status
+        setCountdownDisplay(null);
+        fetchBypassStatus();
+        return;
+      }
+
+      const minutes = Math.floor(remainingMs / 60000);
+      const seconds = Math.floor((remainingMs % 60000) / 1000);
+      setCountdownDisplay(`${minutes}m ${seconds}s`);
+    };
+
+    // Update immediately
+    updateCountdown();
+
+    // Update every second
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [bypassStatus.isActive, bypassStatus.expiresAt, fetchBypassStatus]);
 
   // Handle enabling temporary bypass
   const handleEnableBypass = async () => {
@@ -283,27 +338,39 @@ const LocationRulesSettings = () => {
       return;
     }
 
+    // Validate selection based on bypass type
+    if (bypassType === "Vehicle" && selectedVehicleIds.length === 0) {
+      notify("Please select at least one vehicle for vehicle bypass", "warning", 3000);
+      return;
+    }
+    if (bypassType === "User" && selectedUserIds.length === 0) {
+      notify("Please select at least one user for user bypass", "warning", 3000);
+      return;
+    }
+
     setBypassLoading(true);
     try {
       const response = await enableTemporaryBypass(
         bypassDuration,
-        bypassReason
+        bypassReason,
+        bypassType,
+        bypassType === "Vehicle" ? selectedVehicleIds : null,
+        bypassType === "User" ? selectedUserIds : null
       );
       if (response?.success) {
+        const bypassTypeLabel = bypassType === "All" ? "system-wide" :
+          bypassType === "Vehicle" ? `${selectedVehicleIds.length} vehicle(s)` :
+          `${selectedUserIds.length} user(s)`;
         notify(
-          `Location validation bypassed for ${bypassDuration} minutes`,
+          `Location validation bypassed for ${bypassTypeLabel} for ${bypassDuration} minutes`,
           "success",
           4000
         );
-        setBypassStatus({
-          isActive: true,
-          expiresAt: response.data?.expiresAt
-            ? new Date(response.data.expiresAt)
-            : new Date(Date.now() + bypassDuration * 60000),
-          enabledBy: userInfo?.fullName || userInfo?.userName || "Admin",
-          reason: bypassReason,
-        });
+        // Refresh status to get updated bypass list
+        await fetchBypassStatus();
         setBypassReason("");
+        setSelectedVehicleIds([]);
+        setSelectedUserIds([]);
       } else {
         notify(response?.message || "Failed to enable bypass", "error", 4000);
       }
@@ -339,12 +406,7 @@ const LocationRulesSettings = () => {
           "success",
           4000
         );
-        setBypassStatus({
-          isActive: false,
-          expiresAt: null,
-          enabledBy: null,
-          reason: null,
-        });
+        await fetchBypassStatus();
       } else {
         notify(response?.message || "Failed to cancel bypass", "error", 4000);
       }
@@ -355,6 +417,30 @@ const LocationRulesSettings = () => {
         "error",
         4000
       );
+    } finally {
+      setBypassLoading(false);
+    }
+  };
+
+  // Handle canceling a specific bypass by ID
+  const handleCancelSpecificBypass = async (bypassId, bypassLabel) => {
+    if (!hasAdminPermission) {
+      notify("You do not have permission to cancel bypass", "error", 4000);
+      return;
+    }
+
+    setBypassLoading(true);
+    try {
+      const response = await cancelBypassById(bypassId);
+      if (response?.success) {
+        notify(`Bypass for ${bypassLabel} has been cancelled.`, "success", 3000);
+        await fetchBypassStatus();
+      } else {
+        notify(response?.message || "Failed to cancel bypass", "error", 4000);
+      }
+    } catch (error) {
+      console.error("Error canceling bypass:", error);
+      notify("Failed to cancel bypass. Please try again.", "error", 4000);
     } finally {
       setBypassLoading(false);
     }
@@ -380,6 +466,24 @@ const LocationRulesSettings = () => {
     { value: 30, text: "30 minutes" },
     { value: 60, text: "1 hour" },
   ];
+
+  // Bypass type options
+  const bypassTypeOptions = [
+    { value: "All", text: "All Vehicles (System-wide)" },
+    { value: "Vehicle", text: "Specific Vehicles" },
+    { value: "User", text: "Specific Users" },
+  ];
+
+  // Check if there are any active granular bypasses
+  const hasActiveGranularBypasses =
+    (bypassStatus.vehicleBypasses?.length > 0) ||
+    (bypassStatus.userBypasses?.length > 0);
+
+  // Total active bypass count
+  const activeBypassCount =
+    (bypassStatus.isActive ? 1 : 0) +
+    (bypassStatus.vehicleBypasses?.length || 0) +
+    (bypassStatus.userBypasses?.length || 0);
 
   // Setting card component
   const SettingCard = ({ icon, iconColor, title, description, children }) => (
@@ -496,21 +600,22 @@ const LocationRulesSettings = () => {
         {/* Temporary Bypass Section */}
         <div
           className={`tw-rounded-xl tw-p-5 tw-border ${
-            bypassStatus.isActive
+            activeBypassCount > 0
               ? "tw-bg-gradient-to-r tw-from-red-50 tw-to-orange-50 tw-border-red-300"
               : "tw-bg-gradient-to-r tw-from-amber-50 tw-to-yellow-50 tw-border-amber-200"
           }`}
         >
-          <div className="tw-flex tw-flex-col lg:tw-flex-row tw-items-start lg:tw-items-center tw-justify-between tw-gap-4">
+          {/* Header */}
+          <div className="tw-flex tw-flex-col lg:tw-flex-row tw-items-start lg:tw-items-center tw-justify-between tw-gap-4 tw-mb-4">
             <div className="tw-flex tw-items-center tw-gap-4">
               <div
                 className={`tw-w-14 tw-h-14 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
-                  bypassStatus.isActive ? "tw-bg-red-100" : "tw-bg-amber-100"
+                  activeBypassCount > 0 ? "tw-bg-red-100" : "tw-bg-amber-100"
                 }`}
               >
                 <i
                   className={`fa-light fa-shield-xmark tw-text-2xl ${
-                    bypassStatus.isActive
+                    activeBypassCount > 0
                       ? "tw-text-red-600"
                       : "tw-text-amber-600"
                   }`}
@@ -519,40 +624,147 @@ const LocationRulesSettings = () => {
               <div>
                 <h3 className="tw-text-lg tw-font-bold tw-text-gray-900 tw-mb-1 tw-flex tw-items-center tw-gap-2">
                   Temporary Location Bypass
-                  {bypassStatus.isActive && (
+                  {activeBypassCount > 0 && (
                     <span className="tw-px-2 tw-py-0.5 tw-bg-red-500 tw-text-white tw-text-xs tw-font-semibold tw-rounded-full tw-animate-pulse">
-                      ACTIVE
+                      {activeBypassCount} ACTIVE
                     </span>
                   )}
                 </h3>
                 <p className="tw-text-sm tw-text-gray-600">
-                  {bypassStatus.isActive
-                    ? `Location validation is temporarily disabled. Expires in ${
-                        getRemainingTime() || "soon"
-                      }.`
+                  {activeBypassCount > 0
+                    ? "Location validation is bypassed for some vehicles or users."
                     : "Temporarily disable location validation for emergency or troubleshooting purposes."}
                 </p>
-                {bypassStatus.isActive && bypassStatus.enabledBy && (
-                  <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+              </div>
+            </div>
+          </div>
+
+          {/* Active System-Wide Bypass */}
+          {bypassStatus.isActive && (
+            <div className="tw-bg-red-100 tw-rounded-lg tw-p-4 tw-mb-4 tw-border tw-border-red-200">
+              <div className="tw-flex tw-items-center tw-justify-between">
+                <div>
+                  <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1">
+                    <i className="fa-light fa-globe tw-text-red-600"></i>
+                    <span className="tw-font-semibold tw-text-red-800">System-Wide Bypass</span>
+                    <span className="tw-text-red-600 tw-text-sm">
+                      (Expires: {countdownDisplay || getRemainingTime() || "soon"})
+                    </span>
+                  </div>
+                  <p className="tw-text-xs tw-text-red-700">
                     <i className="fa-light fa-user tw-mr-1"></i>
                     Enabled by: {bypassStatus.enabledBy}
                     {bypassStatus.reason && ` - ${bypassStatus.reason}`}
                   </p>
-                )}
+                </div>
+                <Button
+                  icon="fa-light fa-times"
+                  text="Cancel"
+                  type="danger"
+                  stylingMode="contained"
+                  onClick={handleCancelBypass}
+                  disabled={!hasAdminPermission || bypassLoading}
+                />
               </div>
             </div>
+          )}
 
-            {bypassStatus.isActive ? (
-              <Button
-                icon="fa-light fa-shield-check"
-                text="Cancel Bypass"
-                type="danger"
-                stylingMode="contained"
-                onClick={handleCancelBypass}
-                disabled={!hasAdminPermission || bypassLoading}
-              />
-            ) : (
-              <div className="tw-flex tw-flex-col sm:tw-flex-row tw-items-stretch sm:tw-items-center tw-gap-3 tw-w-full lg:tw-w-auto">
+          {/* Active Vehicle Bypasses */}
+          {bypassStatus.vehicleBypasses?.length > 0 && (
+            <div className="tw-mb-4">
+              <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-2 tw-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-car tw-text-blue-600"></i>
+                Vehicle-Specific Bypasses
+              </h4>
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
+                {bypassStatus.vehicleBypasses.map((bypass) => (
+                  <div
+                    key={bypass.bypassId}
+                    className="tw-bg-blue-50 tw-rounded-lg tw-p-3 tw-border tw-border-blue-200 tw-flex tw-items-center tw-justify-between"
+                  >
+                    <div>
+                      <span className="tw-font-medium tw-text-blue-800">
+                        {bypass.vehicleName || bypass.hyoungNo || `Vehicle #${bypass.vehicleId}`}
+                      </span>
+                      <p className="tw-text-xs tw-text-blue-600">
+                        Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}
+                      </p>
+                    </div>
+                    <Button
+                      icon="fa-light fa-times"
+                      type="danger"
+                      stylingMode="text"
+                      onClick={() => handleCancelSpecificBypass(bypass.bypassId, bypass.vehicleName || bypass.hyoungNo)}
+                      disabled={!hasAdminPermission || bypassLoading}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Active User Bypasses */}
+          {bypassStatus.userBypasses?.length > 0 && (
+            <div className="tw-mb-4">
+              <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-2 tw-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-user tw-text-purple-600"></i>
+                User-Specific Bypasses
+              </h4>
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
+                {bypassStatus.userBypasses.map((bypass) => (
+                  <div
+                    key={bypass.bypassId}
+                    className="tw-bg-purple-50 tw-rounded-lg tw-p-3 tw-border tw-border-purple-200 tw-flex tw-items-center tw-justify-between"
+                  >
+                    <div>
+                      <span className="tw-font-medium tw-text-purple-800">
+                        {bypass.fullName || bypass.userName || `User #${bypass.userId}`}
+                      </span>
+                      <p className="tw-text-xs tw-text-purple-600">
+                        Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}
+                      </p>
+                    </div>
+                    <Button
+                      icon="fa-light fa-times"
+                      type="danger"
+                      stylingMode="text"
+                      onClick={() => handleCancelSpecificBypass(bypass.bypassId, bypass.fullName || bypass.userName)}
+                      disabled={!hasAdminPermission || bypassLoading}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Add New Bypass Form */}
+          <div className="tw-bg-white tw-rounded-lg tw-p-4 tw-border tw-border-gray-200">
+            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+              <i className="fa-light fa-plus tw-text-green-600"></i>
+              Add New Bypass
+            </h4>
+            <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-3 tw-mb-3">
+              {/* Bypass Type */}
+              <div>
+                <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">Bypass Type</label>
+                <SelectBox
+                  items={bypassTypeOptions}
+                  value={bypassType}
+                  displayExpr="text"
+                  valueExpr="value"
+                  onValueChanged={(e) => {
+                    setBypassType(e.value);
+                    setSelectedVehicleIds([]);
+                    setSelectedUserIds([]);
+                  }}
+                  disabled={!hasAdminPermission || bypassLoading}
+                  width="100%"
+                />
+              </div>
+
+              {/* Duration */}
+              <div>
+                <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">Duration</label>
                 <SelectBox
                   items={bypassDurationOptions}
                   value={bypassDuration}
@@ -560,42 +772,92 @@ const LocationRulesSettings = () => {
                   valueExpr="value"
                   onValueChanged={(e) => setBypassDuration(e.value)}
                   disabled={!hasAdminPermission || bypassLoading}
-                  width={140}
-                  placeholder="Duration"
+                  width="100%"
                 />
+              </div>
+
+              {/* Vehicle Selection - Show when Vehicle type selected */}
+              {bypassType === "Vehicle" && (
+                <div className="md:tw-col-span-2">
+                  <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                    Select Vehicles
+                  </label>
+                  <TagBox
+                    dataSource={vehicles}
+                    value={selectedVehicleIds}
+                    displayExpr="hyoungNo"
+                    valueExpr="vehicleId"
+                    onValueChanged={(e) => setSelectedVehicleIds(e.value || [])}
+                    disabled={!hasAdminPermission || bypassLoading}
+                    searchEnabled={true}
+                    showSelectionControls={true}
+                    placeholder="Select vehicles..."
+                    width="100%"
+                  />
+                </div>
+              )}
+
+              {/* User Selection - Show when User type selected */}
+              {bypassType === "User" && (
+                <div className="md:tw-col-span-2">
+                  <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
+                    Select Users
+                  </label>
+                  <TagBox
+                    dataSource={users.filter(u => !u.isDeleted)}
+                    value={selectedUserIds}
+                    displayExpr={(item) => item ? `${item.fullname || item.username || item.userName}` : ""}
+                    valueExpr="id"
+                    onValueChanged={(e) => setSelectedUserIds(e.value || [])}
+                    disabled={!hasAdminPermission || bypassLoading}
+                    searchEnabled={true}
+                    showSelectionControls={true}
+                    placeholder="Select users..."
+                    width="100%"
+                  />
+                </div>
+              )}
+
+              {/* Reason - Full width when All type, partial when vehicle/user */}
+              <div className={bypassType === "All" ? "md:tw-col-span-2" : ""}>
+                <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">Reason (optional)</label>
                 <TextArea
                   value={bypassReason}
                   onValueChanged={(e) => setBypassReason(e.value)}
-                  placeholder="Reason (optional)"
+                  placeholder="Enter reason..."
                   disabled={!hasAdminPermission || bypassLoading}
-                  height={36}
-                  width={200}
+                  height={32}
                   maxLength={200}
                 />
-                <Button
-                  icon="fa-light fa-shield-xmark"
-                  text="Enable Bypass"
-                  type="danger"
-                  stylingMode="outlined"
-                  onClick={handleEnableBypass}
-                  disabled={!hasAdminPermission || bypassLoading}
-                />
-              </div>
-            )}
-          </div>
-          {!bypassStatus.isActive && (
-            <div className="tw-mt-4 tw-p-3 tw-bg-amber-100 tw-rounded-lg tw-border tw-border-amber-200">
-              <div className="tw-flex tw-items-start tw-gap-2">
-                <i className="fa-light fa-triangle-exclamation tw-text-amber-600 tw-mt-0.5"></i>
-                <p className="tw-text-xs tw-text-amber-800 tw-m-0">
-                  <strong>Warning:</strong> Enabling bypass will temporarily
-                  disable ALL location validation checks. Fueling will be
-                  permitted regardless of GPS location or geofence boundaries.
-                  Use only for emergency situations or troubleshooting.
-                </p>
               </div>
             </div>
-          )}
+
+            <div className="tw-flex tw-justify-end">
+              <Button
+                icon="fa-light fa-shield-xmark"
+                text={`Enable ${bypassType === "All" ? "System-Wide" : bypassType} Bypass`}
+                type="danger"
+                stylingMode="contained"
+                onClick={handleEnableBypass}
+                disabled={!hasAdminPermission || bypassLoading}
+              />
+            </div>
+          </div>
+
+          {/* Warning */}
+          <div className="tw-mt-4 tw-p-3 tw-bg-amber-100 tw-rounded-lg tw-border tw-border-amber-200">
+            <div className="tw-flex tw-items-start tw-gap-2">
+              <i className="fa-light fa-triangle-exclamation tw-text-amber-600 tw-mt-0.5"></i>
+              <p className="tw-text-xs tw-text-amber-800 tw-m-0">
+                <strong>Warning:</strong> {bypassType === "All"
+                  ? "System-wide bypass will disable ALL location validation checks for all vehicles and users."
+                  : bypassType === "Vehicle"
+                  ? "Vehicle bypass will disable location validation only for the selected vehicles."
+                  : "User bypass will disable location validation only when the selected users are fueling."}
+                {" "}Use only for emergency situations or troubleshooting.
+              </p>
+            </div>
+          </div>
         </div>
 
         {/* Secondary Feature Toggles */}

@@ -225,14 +225,29 @@ public class UpdateFixedLocationVehicleRequestDTO
 public class EnableTemporaryBypassRequestDTO
 {
     /// <summary>
-    /// Duration of the bypass in minutes (default: 5)
+    /// Duration of the bypass in minutes (default: 5, null for permanent until cancelled)
     /// </summary>
-    public int DurationMinutes { get; set; } = 5;
+    public int? DurationMinutes { get; set; } = 5;
 
     /// <summary>
     /// Optional reason for enabling the bypass
     /// </summary>
     public string? Reason { get; set; }
+
+    /// <summary>
+    /// Type of bypass: 'All', 'Vehicle', 'User' (default: 'All')
+    /// </summary>
+    public string BypassType { get; set; } = "All";
+
+    /// <summary>
+    /// Vehicle ID(s) for vehicle-specific bypass (required when BypassType = 'Vehicle')
+    /// </summary>
+    public List<int>? VehicleIds { get; set; }
+
+    /// <summary>
+    /// User ID(s) for user-specific bypass (required when BypassType = 'User')
+    /// </summary>
+    public List<string>? UserIds { get; set; }
 }
 
 /// <summary>
@@ -241,12 +256,12 @@ public class EnableTemporaryBypassRequestDTO
 public class TemporaryBypassStatusDTO
 {
     /// <summary>
-    /// Whether a temporary bypass is currently active
+    /// Whether a system-wide temporary bypass is currently active
     /// </summary>
     public bool IsActive { get; set; }
 
     /// <summary>
-    /// When the bypass will expire (null if not active)
+    /// When the system-wide bypass will expire (null if not active)
     /// </summary>
     public DateTime? ExpiresAt { get; set; }
 
@@ -266,6 +281,24 @@ public class TemporaryBypassStatusDTO
     public string? Reason { get; set; }
 
     /// <summary>
+    /// List of active vehicle-specific bypasses
+    /// </summary>
+    public List<VehicleBypassDTO>? VehicleBypasses { get; set; }
+
+    /// <summary>
+    /// List of active user-specific bypasses
+    /// </summary>
+    public List<UserBypassDTO>? UserBypasses { get; set; }
+
+    /// <summary>
+    /// Total count of active bypasses (system + vehicle + user)
+    /// </summary>
+    public int ActiveBypassCount =>
+        (IsActive ? 1 : 0) +
+        (VehicleBypasses?.Count ?? 0) +
+        (UserBypasses?.Count ?? 0);
+
+    /// <summary>
     /// Remaining time in minutes (calculated)
     /// </summary>
     public int? RemainingMinutes
@@ -277,6 +310,84 @@ public class TemporaryBypassStatusDTO
             return remaining > 0 ? (int)Math.Ceiling(remaining) : 0;
         }
     }
+}
+
+/// <summary>
+/// DTO for vehicle-specific bypass
+/// </summary>
+public class VehicleBypassDTO
+{
+    public int Id { get; set; }
+    public int VehicleId { get; set; }
+    public string? VehicleName { get; set; }
+    public string? VehicleHyoungNo { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public string? Reason { get; set; }
+    public string? EnabledBy { get; set; }
+    public DateTime EnabledAt { get; set; }
+
+    public int? RemainingMinutes
+    {
+        get
+        {
+            if (!IsActive || !ExpiresAt.HasValue) return null;
+            var remaining = (ExpiresAt.Value - DateTime.UtcNow).TotalMinutes;
+            return remaining > 0 ? (int)Math.Ceiling(remaining) : 0;
+        }
+    }
+}
+
+/// <summary>
+/// DTO for user-specific bypass
+/// </summary>
+public class UserBypassDTO
+{
+    public int Id { get; set; }
+    public string UserId { get; set; } = string.Empty;
+    public string? UserName { get; set; }
+    public string? FullName { get; set; }
+    public bool IsActive { get; set; }
+    public DateTime? ExpiresAt { get; set; }
+    public string? Reason { get; set; }
+    public string? EnabledBy { get; set; }
+    public DateTime EnabledAt { get; set; }
+
+    public int? RemainingMinutes
+    {
+        get
+        {
+            if (!IsActive || !ExpiresAt.HasValue) return null;
+            var remaining = (ExpiresAt.Value - DateTime.UtcNow).TotalMinutes;
+            return remaining > 0 ? (int)Math.Ceiling(remaining) : 0;
+        }
+    }
+}
+
+/// <summary>
+/// Request DTO for cancelling specific bypasses
+/// </summary>
+public class CancelBypassRequestDTO
+{
+    /// <summary>
+    /// Cancel system-wide bypass
+    /// </summary>
+    public bool CancelSystemBypass { get; set; }
+
+    /// <summary>
+    /// Specific bypass IDs to cancel
+    /// </summary>
+    public List<int>? BypassIds { get; set; }
+
+    /// <summary>
+    /// Vehicle IDs to cancel bypasses for
+    /// </summary>
+    public List<int>? VehicleIds { get; set; }
+
+    /// <summary>
+    /// User IDs to cancel bypasses for
+    /// </summary>
+    public List<string>? UserIds { get; set; }
 }
 
 /// <summary>

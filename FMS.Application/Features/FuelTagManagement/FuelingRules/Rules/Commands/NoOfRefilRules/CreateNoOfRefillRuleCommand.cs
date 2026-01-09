@@ -6,6 +6,7 @@ using FMS.Application.Common;
 using FMS.Domain.Entities.Features.FuelRule.Rules;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Rules.Commands.NoOfRefilRules;
 
@@ -26,11 +27,14 @@ public class CreateNoOfRefillRuleCommandHandler : IRequestHandler<CreateNoOfRefi
     {
         try
         {
-            var ruleSet = await _context.FuelingRuleSets.FindAsync(new object[] { request.RuleSetId }, cancellationToken);
-            if (ruleSet == null) return new FMSResponseMessage(false, "Rule set not found");
+            // Verify rule set exists
+            var ruleSetExists = await _context.FuelingRuleSets.AnyAsync(rs => rs.Id == request.RuleSetId, cancellationToken);
+            if (!ruleSetExists) return new FMSResponseMessage(false, "Rule set not found");
 
+            // Create rule with foreign key set directly
             var rule = new NoOfRefillRule
             {
+                FuelingRuleSetId = request.RuleSetId,
                 RuleName = request.RuleName,
                 IsActive = request.IsActive,
                 MaxRefillsPerDay = request.MaxRefillsPerDay,
@@ -38,9 +42,11 @@ public class CreateNoOfRefillRuleCommandHandler : IRequestHandler<CreateNoOfRefi
                 MaxRefillsPerMonth = request.MaxRefillsPerMonth
             };
 
-            ruleSet.Rules.Add(rule);
+            // Add directly to DbSet to ensure proper tracking
+            _context.FuelingRules.Add(rule);
             await _context.SaveChangesAsync(cancellationToken);
 
+            _logger.LogInformation("Created NoOfRefillRule {RuleId} for RuleSet {RuleSetId}", rule.Id, request.RuleSetId);
             return new FMSResponseMessage(true, "No-of-refill rule created");
         }
         catch (Exception ex)

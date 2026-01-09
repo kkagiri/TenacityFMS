@@ -1,4 +1,6 @@
+using System;
 using System.Collections.Generic;
+using System.Text.Json.Serialization;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
 {
@@ -13,6 +15,70 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         public GPSGatePosition? Position { get; set; }
         public GPSGateVelocity? Velocity { get; set; }
         public List<GPSGateVariable>? Variables { get; set; }
+
+        /// <summary>
+        /// Track point containing position, velocity, utc, and valid flag (new API structure)
+        /// </summary>
+        [JsonPropertyName("trackPoint")]
+        public GPSGateTrackPointInfo? TrackPoint { get; set; }
+
+        /// <summary>
+        /// Last device activity timestamp - CRITICAL for validation
+        /// </summary>
+        [JsonPropertyName("deviceActivity")]
+        public DateTime? DeviceActivity { get; set; }
+
+        #region Computed Properties
+
+        /// <summary>
+        /// Gets the effective position - prefers TrackPoint, falls back to legacy Position
+        /// </summary>
+        [JsonIgnore]
+        public GPSGatePosition? EffectivePosition => TrackPoint?.Position ?? Position;
+
+        /// <summary>
+        /// Gets the effective velocity - prefers TrackPoint, falls back to legacy Velocity
+        /// </summary>
+        [JsonIgnore]
+        public GPSGateVelocity? EffectiveVelocity => TrackPoint?.Velocity ?? Velocity;
+
+        /// <summary>
+        /// Gets the effective UTC timestamp - prefers TrackPoint, falls back to legacy UTC
+        /// </summary>
+        [JsonIgnore]
+        public string? EffectiveUtc => TrackPoint?.Utc ?? UTC;
+
+        /// <summary>
+        /// Gets whether the GPS position is valid (from TrackPoint.Valid)
+        /// </summary>
+        [JsonIgnore]
+        public bool IsGPSValid => TrackPoint?.Valid ?? (EffectivePosition != null);
+
+        #endregion
+    }
+
+    /// <summary>
+    /// Track point information containing position, velocity, and validity status
+    /// </summary>
+    public class GPSGateTrackPointInfo
+    {
+        [JsonPropertyName("position")]
+        public GPSGatePosition? Position { get; set; }
+
+        [JsonPropertyName("velocity")]
+        public GPSGateVelocity? Velocity { get; set; }
+
+        /// <summary>
+        /// UTC timestamp of this track point
+        /// </summary>
+        [JsonPropertyName("utc")]
+        public string? Utc { get; set; }
+
+        /// <summary>
+        /// Whether the GPS position is valid - CRITICAL for location validation
+        /// </summary>
+        [JsonPropertyName("valid")]
+        public bool Valid { get; set; }
     }
 
     /// <summary>

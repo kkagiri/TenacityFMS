@@ -224,9 +224,11 @@ public class GeofenceController : ControllerBase
     }
 
     /// <summary>
-    /// Enable temporary location validation bypass
-    /// WARNING: This will disable ALL location validation for the specified duration
+    /// Enable temporary location validation bypass.
+    /// Supports system-wide, vehicle-specific, and user-specific bypasses.
     /// </summary>
+    /// <param name="request">Bypass configuration including type, duration, and target IDs</param>
+    /// <returns>The bypass status including active bypasses</returns>
     [HttpPost("validation/temporary-bypass")]
     public async Task<IActionResult> EnableTemporaryBypass([FromBody] EnableTemporaryBypassRequestDTO request)
     {
@@ -234,7 +236,10 @@ public class GeofenceController : ControllerBase
         {
             DurationMinutes = request.DurationMinutes,
             Reason = request.Reason,
-            EnabledBy = GetCurrentUserName()
+            EnabledBy = GetCurrentUserName(),
+            BypassType = request.BypassType,
+            VehicleIds = request.VehicleIds,
+            UserIds = request.UserIds
         };
 
         var result = await _mediator.Send(command);
@@ -249,6 +254,23 @@ public class GeofenceController : ControllerBase
     {
         var command = new CancelTemporaryBypassCommand
         {
+            CancelledBy = GetCurrentUserName()
+        };
+
+        var result = await _mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Cancel a specific bypass by its ID
+    /// </summary>
+    /// <param name="bypassId">The ID of the bypass to cancel</param>
+    [HttpDelete("validation/temporary-bypass/{bypassId}")]
+    public async Task<IActionResult> CancelBypassById(int bypassId)
+    {
+        var command = new CancelBypassByIdCommand
+        {
+            BypassId = bypassId,
             CancelledBy = GetCurrentUserName()
         };
 

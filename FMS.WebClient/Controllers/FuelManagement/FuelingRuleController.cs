@@ -295,17 +295,18 @@ public class FuelingRuleController : ControllerBase
 
     // Get RuleSets and Rules
     [HttpGet("rulesets")]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public async Task<IActionResult> GetRuleSets()
     {
         try
         {
             var result = await _mediator.Send(new GetAllFuelRuleSetsQuery());
-            return Ok(result);
+            return Ok(new { success = true, data = result });
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting rule sets");
-            return StatusCode(500, "Internal server error");
+            return StatusCode(500, new { success = false, message = "Internal server error" });
         }
     }
 
@@ -422,6 +423,39 @@ public class FuelingRuleController : ControllerBase
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting effective rules for vehicle {VehicleId}", vehicleId);
+            return StatusCode(500, "Internal server error");
+        }
+    }
+
+    /// <summary>
+    /// Simulate fueling rules for a vehicle at a specific time.
+    /// This allows testing how rules would apply at different times of day,
+    /// useful for verifying time window rules and understanding rule cascade behavior.
+    /// </summary>
+    /// <param name="vehicleId">Vehicle ID to simulate</param>
+    /// <param name="siteId">Optional site ID (uses vehicle's working site if not provided)</param>
+    /// <param name="tagId">Optional tag ID to include tag-level rules</param>
+    /// <param name="simulationTime">ISO timestamp for the simulation time (defaults to current time)</param>
+    [HttpGet("vehicle/{vehicleId}/simulate")]
+    public async Task<IActionResult> SimulateFuelingRules(
+        int vehicleId,
+        [FromQuery] int? siteId = null,
+        [FromQuery] int? tagId = null,
+        [FromQuery] DateTime? simulationTime = null)
+    {
+        try
+        {
+            var result = await _mediator.Send(
+                new SimulateFuelingRulesQuery(vehicleId, siteId, tagId, simulationTime));
+
+            if (!result.IsSuccess)
+                return result.ErrorCode == "VEHICLE_NOT_FOUND" ? NotFound(result) : BadRequest(result);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error simulating fueling rules for vehicle {VehicleId} at {SimulationTime}",
+                vehicleId, simulationTime);
             return StatusCode(500, "Internal server error");
         }
     }

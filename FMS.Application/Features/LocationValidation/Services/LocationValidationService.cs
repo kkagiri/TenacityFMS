@@ -42,6 +42,10 @@ public partial class LocationValidationService : ILocationValidationService
     private const string CONFIG_KEY_REQUIRE_OPERATOR_IN_GEOFENCE = "FuelingRules.RequireOperatorInGeofence";
     private const string CONFIG_KEY_REQUIRE_VEHICLE_IN_GEOFENCE = "FuelingRules.RequireVehicleInGeofence";
 
+    // Temporary bypass configuration keys
+    private const string CONFIG_KEY_TEMPORARY_BYPASS_ACTIVE = "FuelingRules.TemporaryBypass.IsActive";
+    private const string CONFIG_KEY_TEMPORARY_BYPASS_EXPIRES = "FuelingRules.TemporaryBypass.ExpiresAt";
+
     // Earth radius in meters for Haversine formula
     private const double EarthRadiusMeters = 6371000;
 
@@ -72,7 +76,7 @@ public partial class LocationValidationService : ILocationValidationService
             _logger.LogDebug("Starting location validation for Tank {TankId}, Vehicle {VehicleId}",
                 request.TankId, request.VehicleId);
 
-            // **STEP 0: Check if user has bypass permission**
+            // **STEP 0: Check if user has permanent bypass permission (BypassLocationValidation flag)**
             if (!string.IsNullOrEmpty(request.UserId))
             {
                 var user = await _context.Users
@@ -89,6 +93,58 @@ public partial class LocationValidationService : ILocationValidationService
                         "Location validation bypassed - user has BypassLocationValidation permission");
                     return result;
                 }
+
+                // **STEP 0.1: Check for USER-SPECIFIC temporary bypass**
+                var userBypassResult = await CheckUserSpecificBypassAsync(request.UserId, cancellationToken);
+                if (userBypassResult.IsActive)
+                {
+                    _logger.LogWarning(
+                        "[LocationValidation] USER-SPECIFIC bypass active for {UserId} - skipping all location checks",
+                        request.UserId);
+
+                    var expiresInfo = userBypassResult.ExpiresAt.HasValue
+                        ? $"until {userBypassResult.ExpiresAt:HH:mm:ss}"
+                        : "(permanent)";
+                    result = LocationValidationResult.Bypassed(
+                        $"Location validation bypassed for user {expiresInfo}. Reason: {userBypassResult.Reason ?? "Admin override"}");
+                    return result;
+                }
+            }
+
+            // **STEP 0.2: Check for VEHICLE-SPECIFIC bypass (e.g., vehicle with poor GPS)**
+            if (request.VehicleId.HasValue)
+            {
+                var vehicleBypassResult = await CheckVehicleBypassAsync(request.VehicleId.Value, cancellationToken);
+                if (vehicleBypassResult.IsActive)
+                {
+                    _logger.LogWarning(
+                        "[LocationValidation] VEHICLE-SPECIFIC bypass active for Vehicle {VehicleId} - skipping all location checks",
+                        request.VehicleId.Value);
+
+                    var expiresInfo = vehicleBypassResult.ExpiresAt.HasValue
+                        ? $"until {vehicleBypassResult.ExpiresAt:HH:mm:ss}"
+                        : "(permanent)";
+                    result = LocationValidationResult.Bypassed(
+                        $"Location validation bypassed for this vehicle {expiresInfo}. Reason: {vehicleBypassResult.Reason ?? "Poor GPS/Offline"}");
+                    return result;
+                }
+            }
+
+            // **STEP 0.5: Check for SYSTEM-WIDE TEMPORARY BYPASS (for offline vehicles, poor GPS, etc.)**
+            var temporaryBypassResult = await CheckTemporaryBypassAsync(cancellationToken);
+            if (temporaryBypassResult.IsActive)
+            {
+                _logger.LogWarning(
+                    "[LocationValidation] SYSTEM-WIDE TEMPORARY BYPASS is active - skipping all location checks. Expires at: {ExpiresAt}, Reason: {Reason}",
+                    temporaryBypassResult.ExpiresAt,
+                    temporaryBypassResult.Reason ?? "Not specified");
+
+                var expiresInfo = temporaryBypassResult.ExpiresAt.HasValue
+                    ? $"until {temporaryBypassResult.ExpiresAt:HH:mm:ss}"
+                    : "(permanent)";
+                result = LocationValidationResult.Bypassed(
+                    $"Location validation temporarily bypassed {expiresInfo}. Reason: {temporaryBypassResult.Reason ?? "Admin override"}");
+                return result;
             }
 
             // **STEP 1: Check global location validation setting from SystemConfigurations**
@@ -455,13 +511,96 @@ public partial class LocationValidationService : ILocationValidationService
             return new GeoLocation(dto.Latitude, dto.Longitude)
             {
                 Source = "GPSProvider",
-                Timestamp = dto.LastUpdated
+                Timestamp = dto.LastUpdated,
+                // Pass through GPS validation info from the DTO
+                IsGPSValid = dto.IsGPSValid,
+                DeviceActivityTime = dto.DeviceActivityTime,
+                ValidationStatus = dto.ValidationStatus,
+                ValidationStatusReason = dto.ValidationStatusReason
             };
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting GPS location for vehicle {VehicleId}", vehicleId);
             return null;
+        }
+    }
+
+    /// <summary>
+    /// Gets vehicle location with full validation details.
+    /// Use this method when you need to check GPS validation status for fueling.
+    /// </summary>
+    public async Task<VehicleLocationValidationResult> GetVehicleLocationWithValidationAsync(
+        int vehicleId,
+        CancellationToken cancellationToken = default)
+    {
+        try
+        {
+            var locationResult = await _gpsService.GetVehicleLocationAsync(vehicleId);
+
+            if (!locationResult.IsSuccess || locationResult.Data == null)
+            {
+                _logger.LogDebug("Could not get GPS location for vehicle {VehicleId}: {Message}",
+                    vehicleId, locationResult.Message);
+                return new VehicleLocationValidationResult
+                {
+                    VehicleId = vehicleId,
+                    HasLocation = false,
+                    CanFuel = false,
+                    ValidationStatus = Features.Vehicle.DTOs.GPSValidationStatus.NoData,
+                    FailureReason = locationResult.Message ?? "GPS location unavailable"
+                };
+            }
+
+            var dto = locationResult.Data;
+
+            // Check for zero coordinates
+            if (dto.Latitude == 0 && dto.Longitude == 0)
+            {
+                _logger.LogDebug("Vehicle {VehicleId} has zero coordinates", vehicleId);
+                return new VehicleLocationValidationResult
+                {
+                    VehicleId = vehicleId,
+                    HasLocation = false,
+                    CanFuel = dto.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.NoGPSInstalled,
+                    ValidationStatus = dto.ValidationStatus,
+                    FailureReason = "GPS coordinates are zero"
+                };
+            }
+
+            var location = new GeoLocation(dto.Latitude, dto.Longitude)
+            {
+                Source = "GPSProvider",
+                Timestamp = dto.LastUpdated,
+                IsGPSValid = dto.IsGPSValid,
+                DeviceActivityTime = dto.DeviceActivityTime,
+                ValidationStatus = dto.ValidationStatus,
+                ValidationStatusReason = dto.ValidationStatusReason
+            };
+
+            return new VehicleLocationValidationResult
+            {
+                VehicleId = vehicleId,
+                HasLocation = true,
+                Location = location,
+                CanFuel = dto.CanFuel,
+                RequiresNotification = dto.RequiresDeviceIssueNotification,
+                ValidationStatus = dto.ValidationStatus,
+                ValidationStatusReason = dto.ValidationStatusReason,
+                DeviceActivityTime = dto.DeviceActivityTime
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting GPS location with validation for vehicle {VehicleId}", vehicleId);
+            return new VehicleLocationValidationResult
+            {
+                VehicleId = vehicleId,
+                HasLocation = false,
+                CanFuel = false,
+                ValidationStatus = Features.Vehicle.DTOs.GPSValidationStatus.NoData,
+                FailureReason = $"Error: {ex.Message}"
+            };
         }
     }
 
@@ -547,7 +686,7 @@ public partial class LocationValidationService : ILocationValidationService
         bool bypassOnFailure,
         CancellationToken cancellationToken)
     {
-        // Check if vehicle has GPS
+        // Check if vehicle exists
         var vehicle = await _context.Vehicles
             .AsNoTracking()
             .FirstOrDefaultAsync(v => v.VehicleId == vehicleId, cancellationToken);
@@ -563,15 +702,16 @@ public partial class LocationValidationService : ILocationValidationService
             };
         }
 
-        // Get vehicle location
-        var vehicleLocation = await GetVehicleLocationAsync(vehicleId, cancellationToken);
+        // Get vehicle location with full validation details
+        var locationValidation = await GetVehicleLocationWithValidationAsync(vehicleId, cancellationToken);
 
-        if (vehicleLocation == null || !vehicleLocation.IsValid)
+        // Handle case where location could not be retrieved
+        if (!locationValidation.HasLocation || locationValidation.Location == null)
         {
             // Check if vehicle even has GPS tracking
             var hasGPS = await VehicleHasGPSAsync(vehicleId, cancellationToken);
 
-            if (!hasGPS)
+            if (!hasGPS || locationValidation.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.NoGPSInstalled)
             {
                 // Non-GPS vehicles can fuel (per user requirement)
                 return new ProximityCheckResult
@@ -587,11 +727,56 @@ public partial class LocationValidationService : ILocationValidationService
                 WasRequired = true,
                 IsValid = bypassOnFailure,
                 WasBypassedDueToGPSFailure = bypassOnFailure,
-                Reason = bypassOnFailure ? "Vehicle GPS unavailable - bypassed" : "Vehicle GPS unavailable"
+                Reason = bypassOnFailure ? "Vehicle GPS unavailable - bypassed" : locationValidation.FailureReason ?? "Vehicle GPS unavailable"
             };
         }
 
-        // Check GPS accuracy first (per user requirement)
+        var vehicleLocation = locationValidation.Location;
+
+        // **NEW: Check GPS validation status from device activity and valid flag**
+        if (!locationValidation.CanFuel)
+        {
+            var statusReason = locationValidation.ValidationStatus switch
+            {
+                Features.Vehicle.DTOs.GPSValidationStatus.ValidButStaleDevice =>
+                    $"GPS position is valid but device has been offline for too long. Last activity: {locationValidation.DeviceActivityTime?.ToString("g") ?? "Unknown"}. " +
+                    "This vehicle cannot receive fuel until the GPS device is checked.",
+                Features.Vehicle.DTOs.GPSValidationStatus.InvalidAndStale =>
+                    $"GPS position is invalid and device has been inactive too long. Last activity: {locationValidation.DeviceActivityTime?.ToString("g") ?? "Unknown"}. " +
+                    "Cannot verify vehicle location.",
+                _ => locationValidation.ValidationStatusReason ?? "GPS validation failed"
+            };
+
+            _logger.LogWarning(
+                "[LocationValidation] ❌ Vehicle {VehicleId} GPS validation FAILED. Status: {Status}, Reason: {Reason}",
+                vehicleId, locationValidation.ValidationStatus, statusReason);
+
+            // Create notification for stale device
+            if (locationValidation.RequiresNotification)
+            {
+                await CreateStaleDeviceNotificationAsync(vehicleId, vehicle.HyoungNo ?? vehicleId.ToString(),
+                    locationValidation.DeviceActivityTime, cancellationToken);
+            }
+
+            return new ProximityCheckResult
+            {
+                WasRequired = true,
+                IsValid = false,
+                Location = vehicleLocation,
+                Reason = statusReason,
+                GPSValidationStatus = locationValidation.ValidationStatus
+            };
+        }
+
+        // Log if GPS was invalid but we're allowing due to recent activity
+        if (locationValidation.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.InvalidButRecentActivity)
+        {
+            _logger.LogInformation(
+                "[LocationValidation] ⚠️ Vehicle {VehicleId} GPS is INVALID but device was active recently. Allowing fueling.",
+                vehicleId);
+        }
+
+        // Check GPS accuracy (per user requirement)
         if (vehicleLocation.Accuracy.HasValue && vehicleLocation.Accuracy > minimumGPSAccuracy)
         {
             _logger.LogWarning("Vehicle GPS accuracy {Accuracy}m exceeds threshold {Threshold}m",
@@ -628,8 +813,61 @@ public partial class LocationValidationService : ILocationValidationService
             Location = vehicleLocation,
             DistanceMeters = distance,
             AllowedRadiusMeters = allowedRadius,
-            Reason = reason
+            Reason = reason,
+            GPSValidationStatus = locationValidation.ValidationStatus
         };
+    }
+
+    /// <summary>
+    /// Creates a notification for administrators when a vehicle's GPS device is stale (>1 month inactive).
+    /// Also creates a device issue record.
+    /// </summary>
+    private async Task CreateStaleDeviceNotificationAsync(
+        int vehicleId,
+        string vehicleName,
+        DateTime? lastActivity,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            _logger.LogWarning(
+                "[LocationValidation] Creating stale GPS device notification for Vehicle {VehicleId} ({VehicleName}). Last activity: {LastActivity}",
+                vehicleId, vehicleName, lastActivity);
+
+            // TODO: Inject INotificationService and create notification
+            // For now, just log the issue. The notification service injection should be added.
+
+            // Create issue tracker record for device offline
+            var issue = new Issuetracker
+            {
+                ProblemTitle = $"GPS Device Offline - Vehicle {vehicleName}",
+                ProblemDescription = $"The GPS device for vehicle {vehicleName} (ID: {vehicleId}) has not reported " +
+                    $"for over 30 days. Last activity was {(lastActivity.HasValue ? lastActivity.Value.ToString("g") : "unknown")}. " +
+                    "Vehicle cannot receive fuel until this is resolved.",
+                IssueCategoryId = 1, // GPS category
+                Priority = 1, // High priority
+                Status = 1, // Open
+                VehicleId = vehicleId,
+                SiteId = 1, // Default site
+                OpenDate = DateTime.UtcNow,
+                Openby = "LocationValidationService",
+                AssignTo = "System"
+            };
+
+            _context.Issuetrackers.Add(issue);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "[LocationValidation] Created issue tracker #{IssueId} for stale GPS device on vehicle {VehicleId}",
+                issue.Id, vehicleId);
+        }
+        catch (Exception ex)
+        {
+            // Don't fail the validation if notification creation fails
+            _logger.LogError(ex,
+                "[LocationValidation] Failed to create stale device notification for vehicle {VehicleId}",
+                vehicleId);
+        }
     }
 
     private Task<ProximityCheckResult> CheckMobileProximityAsync(
@@ -940,6 +1178,152 @@ public partial class LocationValidationService : ILocationValidationService
         catch (Exception ex)
         {
             _logger.LogWarning(ex, "📍 [LocationDebug] Error calculating debug distances");
+        }
+    }
+
+    #endregion
+
+    #region Temporary Bypass
+
+    /// <summary>
+    /// Result of checking temporary bypass status
+    /// </summary>
+    private record TemporaryBypassCheckResult(bool IsActive, DateTime? ExpiresAt, string? Reason);
+
+    /// <summary>
+    /// Checks if a temporary location validation bypass is currently active.
+    /// Temporary bypasses are used for offline vehicles, poor GPS conditions, or emergency situations.
+    /// </summary>
+    private async Task<TemporaryBypassCheckResult> CheckTemporaryBypassAsync(CancellationToken cancellationToken)
+    {
+        try
+        {
+            // Check if temporary bypass is active
+            var isActiveValue = await _systemConfigService.GetConfigurationValueAsync(
+                CONFIG_KEY_TEMPORARY_BYPASS_ACTIVE, cancellationToken);
+
+            if (!string.Equals(isActiveValue, "true", StringComparison.OrdinalIgnoreCase))
+            {
+                return new TemporaryBypassCheckResult(false, null, null);
+            }
+
+            // Check if bypass has expired (empty string means permanent bypass)
+            var expiresAtValue = await _systemConfigService.GetConfigurationValueAsync(
+                CONFIG_KEY_TEMPORARY_BYPASS_EXPIRES, cancellationToken);
+
+            // Handle permanent bypass (no expiration)
+            if (string.IsNullOrEmpty(expiresAtValue))
+            {
+                _logger.LogInformation("[LocationValidation] System-wide PERMANENT bypass is active");
+                var permanentReason = await _context.SystemConfigurations
+                    .AsNoTracking()
+                    .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
+                    .Select(c => c.ConfigurationValue)
+                    .FirstOrDefaultAsync(cancellationToken);
+                return new TemporaryBypassCheckResult(true, null, permanentReason ?? "Permanent bypass");
+            }
+
+            if (!DateTime.TryParse(expiresAtValue, out var expiresAt))
+            {
+                _logger.LogWarning("[LocationValidation] Temporary bypass has invalid expiration time: {Value}", expiresAtValue);
+                return new TemporaryBypassCheckResult(false, null, null);
+            }
+
+            // Check if expired
+            if (expiresAt <= DateTime.UtcNow)
+            {
+                _logger.LogInformation("[LocationValidation] Temporary bypass has expired at {ExpiresAt}", expiresAt);
+                return new TemporaryBypassCheckResult(false, expiresAt, null);
+            }
+
+            // Get the reason if available
+            var reason = await _context.SystemConfigurations
+                .AsNoTracking()
+                .Where(c => c.ConfigurationKey == "FuelingRules.TemporaryBypass.Reason")
+                .Select(c => c.ConfigurationValue)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return new TemporaryBypassCheckResult(true, expiresAt, reason);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LocationValidation] Error checking temporary bypass status");
+            // On error, assume bypass is not active for safety
+            return new TemporaryBypassCheckResult(false, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a specific vehicle has an active bypass.
+    /// </summary>
+    private async Task<TemporaryBypassCheckResult> CheckVehicleBypassAsync(
+        int vehicleId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var bypass = await _context.LocationValidationBypasses
+                .AsNoTracking()
+                .Where(b => b.BypassType == Domain.Entities.Features.LocationValidation.BypassType.Vehicle &&
+                            b.VehicleId == vehicleId &&
+                            b.IsActive &&
+                            b.CancelledAt == null &&
+                            (b.ExpiresAt == null || b.ExpiresAt > now))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (bypass != null)
+            {
+                _logger.LogInformation(
+                    "[LocationValidation] VEHICLE-SPECIFIC bypass active for Vehicle {VehicleId}. Reason: {Reason}. Expires: {ExpiresAt}",
+                    vehicleId, bypass.Reason ?? "Not specified", bypass.ExpiresAt?.ToString() ?? "Never");
+
+                return new TemporaryBypassCheckResult(true, bypass.ExpiresAt, bypass.Reason);
+            }
+
+            return new TemporaryBypassCheckResult(false, null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LocationValidation] Error checking vehicle bypass for {VehicleId}", vehicleId);
+            return new TemporaryBypassCheckResult(false, null, null);
+        }
+    }
+
+    /// <summary>
+    /// Checks if a specific user has an active bypass.
+    /// </summary>
+    private async Task<TemporaryBypassCheckResult> CheckUserSpecificBypassAsync(
+        string userId,
+        CancellationToken cancellationToken)
+    {
+        try
+        {
+            var now = DateTime.UtcNow;
+            var bypass = await _context.LocationValidationBypasses
+                .AsNoTracking()
+                .Where(b => b.BypassType == Domain.Entities.Features.LocationValidation.BypassType.User &&
+                            b.UserId == userId &&
+                            b.IsActive &&
+                            b.CancelledAt == null &&
+                            (b.ExpiresAt == null || b.ExpiresAt > now))
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (bypass != null)
+            {
+                _logger.LogInformation(
+                    "[LocationValidation] USER-SPECIFIC bypass active for User {UserId}. Reason: {Reason}. Expires: {ExpiresAt}",
+                    userId, bypass.Reason ?? "Not specified", bypass.ExpiresAt?.ToString() ?? "Never");
+
+                return new TemporaryBypassCheckResult(true, bypass.ExpiresAt, bypass.Reason);
+            }
+
+            return new TemporaryBypassCheckResult(false, null, null);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[LocationValidation] Error checking user bypass for {UserId}", userId);
+            return new TemporaryBypassCheckResult(false, null, null);
         }
     }
 

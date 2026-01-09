@@ -519,11 +519,38 @@ const RuleDetailForm = ({
   });
 
   useEffect(() => {
+    // Only populate form when popup becomes visible
+    if (!isVisible) return;
+
     if (ruleSet && ruleSet.id) {
-      // Set rule set ID for all form types
-      setDailyMonthlyFormData((prev) => ({ ...prev, ruleSetId: ruleSet.id }));
-      setRefillCountFormData((prev) => ({ ...prev, ruleSetId: ruleSet.id }));
-      setTimeWindowFormData((prev) => ({ ...prev, ruleSetId: ruleSet.id }));
+      // Reset all form data first to ensure clean state
+      setDailyMonthlyFormData({
+        ruleSetId: ruleSet.id,
+        ruleId: null,
+        ruleName: "",
+        dailyLimit: 50,
+        monthlyLimit: 500,
+        fuelingLimit: 100,
+        isActive: true,
+      });
+      setRefillCountFormData({
+        ruleSetId: ruleSet.id,
+        ruleId: null,
+        ruleName: "",
+        maxRefillsPerDay: 2,
+        maxRefillsPerWeek: 10,
+        maxRefillsPerMonth: 30,
+        isActive: true,
+      });
+      setTimeWindowFormData({
+        ruleSetId: ruleSet.id,
+        ruleId: null,
+        ruleName: "",
+        startTime: timeStringToDate("07:00"),
+        endTime: timeStringToDate("18:00"),
+        allowedDays: [1, 2, 3, 4, 5],
+        isActive: true,
+      });
 
       if (rule && editMode === "edit") {
         // Helper to normalize discriminator - handles both DB values and frontend values
@@ -581,7 +608,10 @@ const RuleDetailForm = ({
         setSelectedRuleType("DailyMonthlyLimitRule");
       }
     }
-  }, [ruleSet, rule, editMode]);
+
+    // Clear validation errors when popup opens
+    setValidationErrors({});
+  }, [ruleSet, rule, editMode, isVisible]);
 
   const handleRuleTypeChange = async (newType) => {
     if (newType && newType !== selectedRuleType) {

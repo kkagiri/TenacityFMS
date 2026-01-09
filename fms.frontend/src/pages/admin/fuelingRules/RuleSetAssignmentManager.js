@@ -127,24 +127,31 @@ const RuleSetAssignmentManager = () => {
 
   // Get targets based on selected target type
   const getTargetOptions = (targetType) => {
-    switch (targetType) {
+    // Normalize targetType to number for comparison
+    const normalizedType = typeof targetType === 'string' ? parseInt(targetType, 10) : targetType;
+    
+    switch (normalizedType) {
       case AssignmentTargetType.Site:
+      case 1:
         return sites.map((s) => ({
           id: s.siteId || s.id,
           name: s.siteName || s.name,
         }));
       case AssignmentTargetType.VehicleType:
+      case 2:
         return vehicleTypes.map((vt) => ({
           id: vt.vehicleTypeId || vt.id,
           name: vt.vehicleTypeName || vt.name,
         }));
       case AssignmentTargetType.Tag:
+      case 3:
         // Tag entity uses: id (PK), name (RFID tag number like "TAG001")
         return tags.map((t) => ({
           id: t.id,
           name: t.name || t.tagName || `Tag ${t.id}`,
         }));
       case AssignmentTargetType.Vehicle:
+      case 4:
         return vehicles.map((v) => ({
           id: v.vehicleId || v.id,
           name: v.hyoungNo || v.name || v.numberPlate,
@@ -173,15 +180,25 @@ const RuleSetAssignmentManager = () => {
 
   // Handle edit assignment
   const handleEditClick = (assignment) => {
+    // Handle both camelCase and PascalCase property names from API
+    const fuelingRuleSetId = assignment.fuelingRuleSetId ?? assignment.FuelingRuleSetId;
+    const targetType = assignment.targetType ?? assignment.TargetType;
+    const siteId = assignment.siteId ?? assignment.SiteId;
+    const vehicleTypeId = assignment.vehicleTypeId ?? assignment.VehicleTypeId;
+    const vehicleId = assignment.vehicleId ?? assignment.VehicleId;
+    const tagId = assignment.tagId ?? assignment.TagId;
+    const priority = assignment.priority ?? assignment.Priority;
+    const isActive = assignment.isActive ?? assignment.IsActive ?? true;
+
     setFormData({
-      fuelingRuleSetId: assignment.fuelingRuleSetId,
-      targetType: assignment.targetType,
-      siteId: assignment.siteId,
-      vehicleTypeId: assignment.vehicleTypeId,
-      vehicleId: assignment.vehicleId,
-      tagId: assignment.tagId,
-      priority: assignment.priority,
-      isActive: assignment.isActive,
+      fuelingRuleSetId,
+      targetType,
+      siteId,
+      vehicleTypeId,
+      vehicleId,
+      tagId,
+      priority,
+      isActive,
     });
     setIsEditing(true);
     setSelectedAssignment(assignment);
@@ -331,17 +348,26 @@ const RuleSetAssignmentManager = () => {
   // Handle target selection based on type
   const handleTargetChange = (value) => {
     const updates = { ...formData };
-    switch (formData.targetType) {
+    // Normalize targetType to number for comparison
+    const normalizedType = typeof formData.targetType === 'string' 
+      ? parseInt(formData.targetType, 10) 
+      : formData.targetType;
+      
+    switch (normalizedType) {
       case AssignmentTargetType.Site:
+      case 1:
         updates.siteId = value;
         break;
       case AssignmentTargetType.VehicleType:
+      case 2:
         updates.vehicleTypeId = value;
         break;
       case AssignmentTargetType.Tag:
+      case 3:
         updates.tagId = value;
         break;
       case AssignmentTargetType.Vehicle:
+      case 4:
         updates.vehicleId = value;
         break;
     }
@@ -350,14 +376,23 @@ const RuleSetAssignmentManager = () => {
 
   // Get current target value for form
   const getCurrentTargetValue = () => {
-    switch (formData.targetType) {
+    // Normalize targetType to number for comparison
+    const normalizedType = typeof formData.targetType === 'string' 
+      ? parseInt(formData.targetType, 10) 
+      : formData.targetType;
+      
+    switch (normalizedType) {
       case AssignmentTargetType.Site:
+      case 1:
         return formData.siteId;
       case AssignmentTargetType.VehicleType:
+      case 2:
         return formData.vehicleTypeId;
       case AssignmentTargetType.Tag:
+      case 3:
         return formData.tagId;
       case AssignmentTargetType.Vehicle:
+      case 4:
         return formData.vehicleId;
       default:
         return null;

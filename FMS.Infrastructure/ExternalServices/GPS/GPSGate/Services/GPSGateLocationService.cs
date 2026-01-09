@@ -6,6 +6,7 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Domain.Entities.VehicleTracking;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -14,7 +15,16 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 {
     /// <summary>
-    /// Implementation of location and tracking services for GPSGate
+    /// Implementation of location and tracking services for GPSGate.
+    ///
+    /// IMPORTANT: This service uses VehicleProviderMapping.ExternalDeviceId to query the GPS provider,
+    /// NOT the legacy Vehicle.DeviceId field.
+    ///
+    /// GPS Validation Rules for Fueling:
+    /// - If TrackPoint.Valid = true AND DeviceActivity within 1 month → Allow fueling (Valid)
+    /// - If TrackPoint.Valid = false BUT DeviceActivity within 2 hours → Allow fueling (InvalidButRecentActivity)
+    /// - If TrackPoint.Valid = true BUT DeviceActivity older than 1 month → Block fueling + Create notification (ValidButStaleDevice)
+    /// - If TrackPoint.Valid = false AND DeviceActivity older than 2 hours → Block fueling (InvalidAndStale)
     /// </summary>
     public class GPSGateLocationService : IGPSGateLocationService
     {
@@ -22,6 +32,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateLocationService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
+
+        // Configuration thresholds
+        private static readonly TimeSpan InvalidGpsActivityThreshold = TimeSpan.FromHours(2);
+        private static readonly TimeSpan StaleDeviceThreshold = TimeSpan.FromDays(30); // 1 month
 
         public GPSGateLocationService(
             GpsdataContext context,
@@ -39,64 +53,136 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
+                // Step 1: Get vehicle info
                 var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
+                    .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
                 if (vehicle == null)
-                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle not found or doesn't have GPS installed");
+                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle not found");
 
-                if (!vehicle.DeviceId.HasValue)
-                    return FMSResponse<VehicleLocationDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
-
-                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
-
-                using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}/users/{vehicle.DeviceId}/status");
-                request.Headers.Authorization = authHeader;
-                var response = await _httpClient.SendAsync(request);
-
-                if (!response.IsSuccessStatusCode)
+                // Step 2: Check if vehicle has GPS installed
+                if (vehicle.HasGPSInstalled != 1)
                 {
-                    _logger.LogWarning("Failed to get GPS data for vehicle {VehicleId}. Status: {StatusCode}",
-                        vehicleId, response.StatusCode);
-                    return FMSResponse<VehicleLocationDTO>.Failed("Failed to retrieve vehicle location from GPS provider");
-                }
-
-                var content = await response.Content.ReadAsStringAsync();
-                var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
-                {
-                    PropertyNameCaseInsensitive = true
-                });
-
-                if (gpsData?.Position == null)
-                {
+                    _logger.LogDebug("Vehicle {VehicleId} does not have GPS installed - returning NoGPSInstalled status", vehicleId);
                     return FMSResponse<VehicleLocationDTO>.Success(new VehicleLocationDTO
                     {
                         VehicleId = vehicleId,
                         VehicleName = vehicle.HyoungNo ?? string.Empty,
                         NumberPlate = vehicle.NumberPlate,
-                        HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                        DeviceId = vehicle.DeviceId,
+                        HasGPSInstalled = false,
                         IsOnline = false,
-                        LastUpdated = DateTime.UtcNow
+                        LastUpdated = DateTime.UtcNow,
+                        ValidationStatus = GPSValidationStatus.NoGPSInstalled,
+                        ValidationStatusReason = "Vehicle does not have GPS installed"
                     });
                 }
 
+                // Step 3: Get the ExternalDeviceId from VehicleProviderMapping (NOT Vehicle.DeviceId)
+                var providerMapping = await _context.Set<VehicleProviderMappingEntity>()
+                    .Where(m => m.VehicleId == vehicleId && m.IsActive)
+                    .FirstOrDefaultAsync();
+
+                if (providerMapping == null || string.IsNullOrEmpty(providerMapping.ExternalDeviceId))
+                {
+                    _logger.LogWarning("Vehicle {VehicleId} has GPS installed but no active provider mapping with ExternalDeviceId", vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Failed(
+                        "Vehicle has GPS installed but no GPS provider mapping configured. Please set up the VehicleProviderMapping with ExternalDeviceId.");
+                }
+
+                // Parse ExternalDeviceId as int for GPSGate API
+                if (!int.TryParse(providerMapping.ExternalDeviceId, out int gpsGateUserId))
+                {
+                    _logger.LogError("Invalid ExternalDeviceId '{ExternalDeviceId}' for vehicle {VehicleId} - must be numeric for GPSGate",
+                        providerMapping.ExternalDeviceId, vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Failed(
+                        $"Invalid GPS provider device ID format: {providerMapping.ExternalDeviceId}");
+                }
+
+                // Step 4: Get GPS provider settings
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+
+                // Step 5: Call GPSGate API with the correct endpoint
+                // API: GET /applications/{applicationId}/users/{userId}
+                var requestUrl = $"{baseUrl}/applications/{applicationId}/users/{gpsGateUserId}";
+
+                _logger.LogDebug("Fetching GPS location for vehicle {VehicleId} from GPSGate: {Url}",
+                    vehicleId, requestUrl);
+
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
+                request.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(request);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    _logger.LogWarning("Failed to get GPS data for vehicle {VehicleId} (GPSGate user {GpsUserId}). Status: {StatusCode}",
+                        vehicleId, gpsGateUserId, response.StatusCode);
+                    return FMSResponse<VehicleLocationDTO>.Failed("Failed to retrieve vehicle location from GPS provider");
+                }
+
+                // Step 6: Parse response with new structure
+                var content = await response.Content.ReadAsStringAsync();
+
+                _logger.LogTrace("GPSGate response for vehicle {VehicleId}: {Response}", vehicleId, content);
+
+                var gpsData = JsonSerializer.Deserialize<GPSGateUserStatus>(content, new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true
+                });
+
+                if (gpsData == null)
+                {
+                    _logger.LogWarning("Failed to parse GPS response for vehicle {VehicleId}", vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Success(CreateOfflineLocationDto(vehicle, providerMapping, GPSValidationStatus.NoData, "No GPS data received from provider"));
+                }
+
+                // Step 7: Extract position from TrackPoint (new structure) or legacy Position field
+                var position = gpsData.EffectivePosition;
+                var velocity = gpsData.EffectiveVelocity;
+                var utcString = gpsData.EffectiveUtc;
+                var isGpsValid = gpsData.IsGPSValid;
+                var deviceActivity = gpsData.DeviceActivity;
+
+                if (position == null)
+                {
+                    _logger.LogDebug("No position data available for vehicle {VehicleId}", vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Success(CreateOfflineLocationDto(vehicle, providerMapping, GPSValidationStatus.NoData, "No GPS position available"));
+                }
+
+                // Step 8: Determine GPS validation status based on valid flag and deviceActivity
+                var (validationStatus, validationReason) = DetermineValidationStatus(
+                    isGpsValid,
+                    deviceActivity,
+                    vehicleId,
+                    gpsGateUserId);
+
+                // Step 9: Build the location DTO
                 var locationDto = new VehicleLocationDTO
                 {
                     VehicleId = vehicleId,
                     VehicleName = vehicle.HyoungNo ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
-                    Latitude = (decimal)gpsData.Position.Latitude,
-                    Longitude = (decimal)gpsData.Position.Longitude,
-                    Altitude = gpsData.Position.Altitude.HasValue ? (decimal)gpsData.Position.Altitude : null,
-                    LastUpdated = DateTime.TryParse(gpsData.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
-                    Speed = gpsData.Velocity?.GroundSpeed.HasValue == true ? (decimal)gpsData.Velocity.GroundSpeed : null,
-                    Heading = gpsData.Velocity?.Heading.HasValue == true ? (decimal)gpsData.Velocity.Heading : null,
+                    Latitude = (decimal)position.Latitude,
+                    Longitude = (decimal)position.Longitude,
+                    Altitude = position.Altitude.HasValue ? (decimal)position.Altitude : null,
+                    LastUpdated = DateTime.TryParse(utcString, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
+                    Speed = velocity?.GroundSpeed.HasValue == true ? (decimal)velocity.GroundSpeed : null,
+                    Heading = velocity?.Heading.HasValue == true ? (decimal)velocity.Heading : null,
                     IsOnline = true,
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId
+                    HasGPSInstalled = true,
+                    DeviceId = vehicle.DeviceId, // Keep legacy field for backward compatibility
+                    ExternalDeviceId = providerMapping.ExternalDeviceId,
+
+                    // GPS Validation fields
+                    IsGPSValid = isGpsValid,
+                    DeviceActivityTime = deviceActivity,
+                    ValidationStatus = validationStatus,
+                    ValidationStatusReason = validationReason
                 };
+
+                _logger.LogDebug(
+                    "Vehicle {VehicleId} GPS location: ({Lat}, {Lng}), Valid: {Valid}, DeviceActivity: {Activity}, ValidationStatus: {Status}",
+                    vehicleId, position.Latitude, position.Longitude, isGpsValid, deviceActivity, validationStatus);
 
                 return FMSResponse<VehicleLocationDTO>.Success(locationDto);
             }
@@ -107,22 +193,143 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
         }
 
+        /// <summary>
+        /// Determines the GPS validation status based on the valid flag and device activity time.
+        ///
+        /// Rules:
+        /// - Valid=true AND DeviceActivity within 1 month → Valid (allow fueling)
+        /// - Valid=false AND DeviceActivity within 2 hours → InvalidButRecentActivity (allow fueling)
+        /// - Valid=true AND DeviceActivity older than 1 month → ValidButStaleDevice (block + notify)
+        /// - Valid=false AND DeviceActivity older than 2 hours → InvalidAndStale (block)
+        /// </summary>
+        private (GPSValidationStatus Status, string Reason) DetermineValidationStatus(
+            bool isGpsValid,
+            DateTime? deviceActivity,
+            int vehicleId,
+            int gpsGateUserId)
+        {
+            var now = DateTime.UtcNow;
+
+            // If no device activity timestamp, we can't make a determination
+            if (!deviceActivity.HasValue)
+            {
+                if (isGpsValid)
+                {
+                    // GPS is valid but we don't know device activity - assume it's okay
+                    return (GPSValidationStatus.Valid, "GPS position is valid (no device activity timestamp available)");
+                }
+                else
+                {
+                    // GPS invalid and no activity timestamp - can't trust it
+                    _logger.LogWarning("Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS invalid with no device activity timestamp",
+                        vehicleId, gpsGateUserId);
+                    return (GPSValidationStatus.InvalidAndStale, "GPS position is invalid and device activity time is unknown");
+                }
+            }
+
+            var timeSinceActivity = now - deviceActivity.Value;
+
+            if (isGpsValid)
+            {
+                // GPS is valid - check if device is stale (older than 1 month)
+                if (timeSinceActivity > StaleDeviceThreshold)
+                {
+                    _logger.LogWarning(
+                        "⚠️ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is VALID but device activity is STALE ({Days} days old). " +
+                        "BLOCKING FUELING and requiring notification.",
+                        vehicleId, gpsGateUserId, timeSinceActivity.TotalDays);
+
+                    return (GPSValidationStatus.ValidButStaleDevice,
+                        $"GPS position is valid but device has not reported for {timeSinceActivity.TotalDays:F0} days. " +
+                        "Device may be offline. Administrator notification required.");
+                }
+                else
+                {
+                    // GPS valid and device is active - all good
+                    return (GPSValidationStatus.Valid, "GPS position is valid and device is active");
+                }
+            }
+            else
+            {
+                // GPS is invalid - check if device was active recently (within 2 hours)
+                if (timeSinceActivity <= InvalidGpsActivityThreshold)
+                {
+                    _logger.LogInformation(
+                        "Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is INVALID but device was active {Minutes} minutes ago. " +
+                        "ALLOWING FUELING based on recent activity.",
+                        vehicleId, gpsGateUserId, timeSinceActivity.TotalMinutes);
+
+                    return (GPSValidationStatus.InvalidButRecentActivity,
+                        $"GPS position is invalid but device was active {timeSinceActivity.TotalMinutes:F0} minutes ago. Fueling allowed.");
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "❌ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is INVALID and device activity is too old ({Hours} hours). " +
+                        "BLOCKING FUELING.",
+                        vehicleId, gpsGateUserId, timeSinceActivity.TotalHours);
+
+                    return (GPSValidationStatus.InvalidAndStale,
+                        $"GPS position is invalid and device has not been active for {timeSinceActivity.TotalHours:F1} hours. " +
+                        "Cannot verify vehicle location.");
+                }
+            }
+        }
+
+        private VehicleLocationDTO CreateOfflineLocationDto(
+            Domain.Entities.Vehicle vehicle,
+            VehicleProviderMappingEntity? providerMapping,
+            GPSValidationStatus status,
+            string reason)
+        {
+            return new VehicleLocationDTO
+            {
+                VehicleId = vehicle.VehicleId,
+                VehicleName = vehicle.HyoungNo ?? string.Empty,
+                NumberPlate = vehicle.NumberPlate,
+                HasGPSInstalled = vehicle.HasGPSInstalled == 1,
+                DeviceId = vehicle.DeviceId,
+                ExternalDeviceId = providerMapping?.ExternalDeviceId,
+                IsOnline = false,
+                LastUpdated = DateTime.UtcNow,
+                ValidationStatus = status,
+                ValidationStatusReason = reason
+            };
+        }
+
         public async Task<FMSResponse<List<VehicleLocationDTO>>> GetAllVehicleLocationsAsync(bool onlineOnly = false, bool gpsEnabledOnly = true)
         {
             try
             {
+                // Step 1: Get vehicles with GPS installed
                 var vehiclesQuery = _context.Vehicles.AsQueryable();
 
                 if (gpsEnabledOnly)
-                    vehiclesQuery = vehiclesQuery.Where(v => v.HasGPSInstalled == 1 && v.DeviceId.HasValue);
+                    vehiclesQuery = vehiclesQuery.Where(v => v.HasGPSInstalled == 1);
 
                 var vehicles = await vehiclesQuery.Where(v => v.IsActive == 1).ToListAsync();
 
                 if (!vehicles.Any())
                     return FMSResponse<List<VehicleLocationDTO>>.Success(new List<VehicleLocationDTO>());
 
+                // Step 2: Get all active provider mappings for these vehicles
+                var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
+                var providerMappings = await _context.Set<VehicleProviderMappingEntity>()
+                    .Where(m => vehicleIds.Contains(m.VehicleId) && m.IsActive && !string.IsNullOrEmpty(m.ExternalDeviceId))
+                    .ToDictionaryAsync(m => m.VehicleId, m => m);
+
+                // Filter vehicles to only those with provider mappings if GPS enabled only
+                if (gpsEnabledOnly)
+                {
+                    vehicles = vehicles.Where(v => providerMappings.ContainsKey(v.VehicleId)).ToList();
+                }
+
+                if (!vehicles.Any())
+                    return FMSResponse<List<VehicleLocationDTO>>.Success(new List<VehicleLocationDTO>());
+
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 
+                // Step 3: Call GPSGate bulk status API
                 using var request = new HttpRequestMessage(HttpMethod.Get, $"{baseUrl}/applications/{applicationId}/usersstatus?PageSize=1000");
                 request.Headers.Authorization = authHeader;
                 var response = await _httpClient.SendAsync(request);
@@ -135,16 +342,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                     foreach (var vehicle in vehicles)
                     {
-                        locations.Add(new VehicleLocationDTO
-                        {
-                            VehicleId = vehicle.VehicleId,
-                            VehicleName = vehicle.HyoungNo ?? string.Empty,
-                            NumberPlate = vehicle.NumberPlate,
-                            HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                            DeviceId = vehicle.DeviceId,
-                            IsOnline = false,
-                            LastUpdated = DateTime.UtcNow
-                        });
+                        providerMappings.TryGetValue(vehicle.VehicleId, out var mapping);
+                        locations.Add(CreateOfflineLocationDto(vehicle, mapping, GPSValidationStatus.NoData, "GPS provider unavailable"));
                     }
                 }
                 else
@@ -157,7 +356,41 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                     foreach (var vehicle in vehicles)
                     {
-                        var userStatus = usersStatus?.FirstOrDefault(u => u.Id == vehicle.DeviceId);
+                        providerMappings.TryGetValue(vehicle.VehicleId, out var mapping);
+
+                        // Match by ExternalDeviceId (parsed as int)
+                        GPSGateUserStatus? userStatus = null;
+                        if (mapping != null && int.TryParse(mapping.ExternalDeviceId, out int externalId))
+                        {
+                            userStatus = usersStatus?.FirstOrDefault(u => u.Id == externalId);
+                        }
+
+                        if (userStatus == null)
+                        {
+                            if (!onlineOnly)
+                                locations.Add(CreateOfflineLocationDto(vehicle, mapping, GPSValidationStatus.NoData, "No GPS data from provider"));
+                            continue;
+                        }
+
+                        // Use effective position/velocity (supports both old and new API structure)
+                        var position = userStatus.EffectivePosition;
+                        var velocity = userStatus.EffectiveVelocity;
+                        var isGpsValid = userStatus.IsGPSValid;
+                        var deviceActivity = userStatus.DeviceActivity;
+
+                        if (position == null)
+                        {
+                            if (!onlineOnly)
+                                locations.Add(CreateOfflineLocationDto(vehicle, mapping, GPSValidationStatus.NoData, "No GPS position available"));
+                            continue;
+                        }
+
+                        // Determine validation status
+                        var (validationStatus, validationReason) = DetermineValidationStatus(
+                            isGpsValid,
+                            deviceActivity,
+                            vehicle.VehicleId,
+                            int.TryParse(mapping?.ExternalDeviceId, out int gpsId) ? gpsId : 0);
 
                         var location = new VehicleLocationDTO
                         {
@@ -166,22 +399,19 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             NumberPlate = vehicle.NumberPlate,
                             HasGPSInstalled = vehicle.HasGPSInstalled == 1,
                             DeviceId = vehicle.DeviceId,
-                            IsOnline = userStatus?.Position != null
+                            ExternalDeviceId = mapping?.ExternalDeviceId,
+                            IsOnline = true,
+                            Latitude = (decimal)position.Latitude,
+                            Longitude = (decimal)position.Longitude,
+                            Altitude = position.Altitude.HasValue ? (decimal)position.Altitude : null,
+                            Speed = velocity?.GroundSpeed.HasValue == true ? (decimal)velocity.GroundSpeed : null,
+                            Heading = velocity?.Heading.HasValue == true ? (decimal)velocity.Heading : null,
+                            LastUpdated = DateTime.TryParse(userStatus.EffectiveUtc, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
+                            IsGPSValid = isGpsValid,
+                            DeviceActivityTime = deviceActivity,
+                            ValidationStatus = validationStatus,
+                            ValidationStatusReason = validationReason
                         };
-
-                        if (userStatus?.Position != null)
-                        {
-                            location.Latitude = (decimal)userStatus.Position.Latitude;
-                            location.Longitude = (decimal)userStatus.Position.Longitude;
-                            location.Altitude = userStatus.Position.Altitude.HasValue ? (decimal)userStatus.Position.Altitude : null;
-                            location.Speed = userStatus.Velocity?.GroundSpeed.HasValue == true ? (decimal)userStatus.Velocity.GroundSpeed : null;
-                            location.Heading = userStatus.Velocity?.Heading.HasValue == true ? (decimal)userStatus.Velocity.Heading : null;
-                            location.LastUpdated = DateTime.TryParse(userStatus.UTC, out var lastUpdate) ? lastUpdate : DateTime.UtcNow;
-                        }
-                        else
-                        {
-                            location.LastUpdated = DateTime.UtcNow;
-                        }
 
                         if (!onlineOnly || location.IsOnline)
                             locations.Add(location);

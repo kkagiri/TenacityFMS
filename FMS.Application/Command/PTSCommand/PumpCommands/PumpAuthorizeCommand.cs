@@ -245,6 +245,60 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         {
                             _logger.LogWarning("[PumpAuth] Location validation was bypassed due to GPS unavailability");
                         }
+
+                        // **STEP 3.5: GEOFENCE VALIDATION**
+                        // This ensures tankers cannot fuel outside designated geofenced areas
+                        {
+                            _logger.LogInformation("[PumpAuth] Starting geofence validation for TankId: {TankId}, VehicleId: {VehicleId}",
+                                effectiveTankId, request.VehicleId);
+
+                            // Get tank location for geofence check (for mobile tankers)
+                            GeoLocation? tankerLocation = null;
+                            if (effectiveTankId.HasValue)
+                            {
+                                var (tankLoc, _) = await _locationValidationService.GetTankLocationAsync(effectiveTankId.Value, cancellationToken);
+                                tankerLocation = tankLoc;
+                            }
+
+                            // Get vehicle location for geofence check
+                            GeoLocation? vehicleLocation = null;
+                            if (request.VehicleId.HasValue)
+                            {
+                                vehicleLocation = await _locationValidationService.GetVehicleLocationAsync(request.VehicleId.Value, cancellationToken);
+                            }
+
+                            // Build geofence validation request
+                            // Note: We pass FuelingRuleSetId=0 as the system now uses global geofence groups (IsAllowedForFueling flag)
+                            var geofenceRequest = new GeofenceValidationRequest
+                            {
+                                FuelingRuleSetId = 0, // Global policy - uses groups with IsAllowedForFueling=true
+                                TankerLocation = tankerLocation,
+                                OperatorLocation = request.MobileLocation,
+                                VehicleLocation = vehicleLocation,
+                                VehicleId = request.VehicleId,
+                                PtsId = request.DeviceId
+                            };
+
+                            var geofenceResult = await _preCheckService.ValidateGeofenceAsync(geofenceRequest, cancellationToken);
+
+                            // Fail if geofence validation was performed and failed
+                            if (geofenceResult.WasEnabled && geofenceResult.Outcome == ValidationOutcome.Failed)
+                            {
+                                _logger.LogWarning("[PumpAuth] ❌ GEOFENCE validation FAILED - {Reason}", geofenceResult.Reason);
+                                return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                    new List<string>
+                                    {
+                                        "⚠️ Geofence validation failed",
+                                        geofenceResult.Reason ?? "Tanker or vehicle is not within an allowed fueling zone",
+                                        "Please move to a designated fueling area and try again"
+                                    });
+                            }
+
+                            if (geofenceResult.Outcome == ValidationOutcome.Skipped)
+                            {
+                                _logger.LogDebug("[PumpAuth] Geofence validation skipped - {Reason}", geofenceResult.Reason);
+                            }
+                        }
                     }
                 }
 

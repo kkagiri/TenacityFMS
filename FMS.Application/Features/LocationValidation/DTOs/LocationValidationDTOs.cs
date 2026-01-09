@@ -1,4 +1,5 @@
 using System;
+using FMS.Application.Features.Vehicle.DTOs;
 
 namespace FMS.Application.Features.LocationValidation.DTOs;
 
@@ -37,6 +38,31 @@ public record GeoLocation
     /// </summary>
     public bool IsCached { get; init; }
 
+    #region GPS Validation Properties (for Location Validation during Fueling)
+
+    /// <summary>
+    /// Whether the GPS position is valid (from GPSGate TrackPoint.Valid)
+    /// </summary>
+    public bool IsGPSValid { get; init; } = true;
+
+    /// <summary>
+    /// Last device activity timestamp from GPS provider.
+    /// Used to determine if device is stale even when GPS is valid.
+    /// </summary>
+    public DateTime? DeviceActivityTime { get; init; }
+
+    /// <summary>
+    /// GPS validation status for fueling operations
+    /// </summary>
+    public GPSValidationStatus ValidationStatus { get; init; } = GPSValidationStatus.Valid;
+
+    /// <summary>
+    /// Reason for the validation status (for logging/debugging)
+    /// </summary>
+    public string? ValidationStatusReason { get; init; }
+
+    #endregion
+
     public GeoLocation() { }
 
     public GeoLocation(decimal latitude, decimal longitude)
@@ -59,6 +85,19 @@ public record GeoLocation
         Latitude >= -90 && Latitude <= 90 &&
         Longitude >= -180 && Longitude <= 180 &&
         (Latitude != 0 || Longitude != 0);
+
+    /// <summary>
+    /// Determines if this location can be used for fueling validation.
+    /// Returns true for Valid or InvalidButRecentActivity statuses.
+    /// </summary>
+    public bool CanFuel => ValidationStatus == GPSValidationStatus.Valid ||
+                           ValidationStatus == GPSValidationStatus.InvalidButRecentActivity ||
+                           ValidationStatus == GPSValidationStatus.NoGPSInstalled;
+
+    /// <summary>
+    /// Indicates if a notification should be created for device issues
+    /// </summary>
+    public bool RequiresDeviceIssueNotification => ValidationStatus == GPSValidationStatus.ValidButStaleDevice;
 
     /// <summary>
     /// Checks if GPS accuracy meets the threshold (lower accuracy value = better)
@@ -94,7 +133,62 @@ public record GeoLocation
     public override string ToString() =>
         $"({Latitude:F6}, {Longitude:F6})" +
         (Accuracy.HasValue ? $" ±{Accuracy}m" : "") +
-        (IsCached ? " [cached]" : "");
+        (IsCached ? " [cached]" : "") +
+        (!IsGPSValid ? " [invalid GPS]" : "") +
+        (ValidationStatus != GPSValidationStatus.Valid ? $" [{ValidationStatus}]" : "");
+}
+
+/// <summary>
+/// Result of vehicle location validation for fueling operations.
+/// Contains both the location data and validation status.
+/// </summary>
+public class VehicleLocationValidationResult
+{
+    /// <summary>
+    /// Vehicle ID
+    /// </summary>
+    public int VehicleId { get; init; }
+
+    /// <summary>
+    /// Whether a GPS location was retrieved
+    /// </summary>
+    public bool HasLocation { get; init; }
+
+    /// <summary>
+    /// The GPS location if available
+    /// </summary>
+    public GeoLocation? Location { get; init; }
+
+    /// <summary>
+    /// Whether this vehicle can proceed with fueling based on GPS validation rules.
+    /// True if GPS is valid, or invalid but device was active recently.
+    /// </summary>
+    public bool CanFuel { get; init; }
+
+    /// <summary>
+    /// Whether a notification should be created for device issues (stale device).
+    /// </summary>
+    public bool RequiresNotification { get; init; }
+
+    /// <summary>
+    /// GPS validation status
+    /// </summary>
+    public GPSValidationStatus ValidationStatus { get; init; }
+
+    /// <summary>
+    /// Detailed reason for the validation status
+    /// </summary>
+    public string? ValidationStatusReason { get; init; }
+
+    /// <summary>
+    /// Last device activity timestamp
+    /// </summary>
+    public DateTime? DeviceActivityTime { get; init; }
+
+    /// <summary>
+    /// Failure reason if CanFuel is false
+    /// </summary>
+    public string? FailureReason { get; init; }
 }
 
 /// <summary>
@@ -296,6 +390,23 @@ public record ProximityCheckResult
     /// When false, GPS was available and actual distance was calculated.
     /// </summary>
     public bool WasBypassedDueToGPSFailure { get; init; }
+
+    /// <summary>
+    /// GPS validation status for the vehicle's GPS device.
+    /// Indicates whether GPS data is valid, stale, or has issues.
+    /// </summary>
+    public GPSValidationStatus GPSValidationStatus { get; init; } = GPSValidationStatus.Valid;
+
+    /// <summary>
+    /// Whether the vehicle's GPS device requires issue notification.
+    /// True when GPS is valid but device activity is stale (>30 days).
+    /// </summary>
+    public bool RequiresDeviceIssueNotification { get; init; }
+
+    /// <summary>
+    /// Additional information about the GPS validation status.
+    /// </summary>
+    public string? GPSValidationReason { get; init; }
 }
 
 /// <summary>

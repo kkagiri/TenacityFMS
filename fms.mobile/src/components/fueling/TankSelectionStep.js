@@ -62,28 +62,43 @@ const TankSelectionStep = ({
       item.CurrentStock ?? item.currentStock ?? item.currentVolume ?? 0;
     const capacity =
       item.TankVolume ?? item.tankVolume ?? item.capacity ?? 50000;
-    const percentFull =
-      item.percentFull ||
-      (capacity > 0 ? Math.round((currentVolume / capacity) * 100) : 0);
+
+    // Calculate available space and overfill status
+    const availableSpace = capacity - currentVolume;
+    const isOverfilled = currentVolume > capacity;
+    const overfillAmount = isOverfilled ? currentVolume - capacity : 0;
+
+    // Cap percentage at 100 for display, but track actual for warnings
+    const actualPercent = capacity > 0 ? Math.round((currentVolume / capacity) * 100) : 0;
+    const percentFull = item.percentFull || Math.min(actualPercent, 100);
+
     const temperature = item.temperature;
     // Support both API property name (fuelGradeName) and legacy (productName)
     const productName = item.fuelGradeName ?? item.productName;
 
+    // Get fill color - red if overfilled
+    const fillColor = isOverfilled ? "#dc2626" : getFillColor(percentFull);
+
     return (
       <TouchableOpacity
-        style={[styles.tankCard, isSelected && styles.tankCardSelected]}
+        style={[
+          styles.tankCard,
+          isSelected && styles.tankCardSelected,
+          isOverfilled && styles.tankCardOverfilled,
+        ]}
         onPress={() => handleTankSelect(item)}
       >
         <View
           style={[
             styles.tankIconContainer,
             isSelected && styles.tankIconContainerSelected,
+            isOverfilled && styles.tankIconContainerOverfilled,
           ]}
         >
           <Icon
-            name="database"
+            name={isOverfilled ? "exclamation-triangle" : "database"}
             size={24}
-            color={isSelected ? "#ffffff" : "#6366f1"}
+            color={isSelected ? "#ffffff" : isOverfilled ? "#dc2626" : "#6366f1"}
           />
         </View>
         <View style={styles.tankInfo}>
@@ -92,6 +107,16 @@ const TankSelectionStep = ({
           >
             {item.name}
           </Text>
+
+          {/* Overfill Warning Badge */}
+          {isOverfilled && (
+            <View style={styles.overfillBadge}>
+              <Icon name="exclamation-circle" size={10} color="#ffffff" />
+              <Text style={styles.overfillText}>
+                OVERFILLED by {overfillAmount.toLocaleString()} L
+              </Text>
+            </View>
+          )}
 
           {/* Product Badge */}
           {productName && (
@@ -107,7 +132,9 @@ const TankSelectionStep = ({
               <Text style={styles.stockValue}>
                 {currentVolume.toLocaleString()} L
               </Text>
-              <Text style={styles.stockLabel}>current stock</Text>
+              <Text style={styles.stockLabel}>
+                / {capacity.toLocaleString()} L
+              </Text>
             </View>
 
             {/* Percentage Bar */}
@@ -117,18 +144,24 @@ const TankSelectionStep = ({
                   styles.percentFill,
                   {
                     width: `${percentFull}%`,
-                    backgroundColor: getFillColor(percentFull),
+                    backgroundColor: fillColor,
                   },
                 ]}
               />
             </View>
 
-            {/* Percentage Text */}
-            <Text
-              style={[styles.percentText, { color: getFillColor(percentFull) }]}
-            >
-              {percentFull}% Full
-            </Text>
+            {/* Percentage & Available Space */}
+            <View style={styles.stockInfoRow}>
+              <Text style={[styles.percentText, { color: fillColor }]}>
+                {actualPercent}% Full
+              </Text>
+              <Text style={[
+                styles.availableSpaceText,
+                isOverfilled && styles.availableSpaceNegative
+              ]}>
+                {isOverfilled ? "⚠️ No space" : `${availableSpace.toLocaleString()} L available`}
+              </Text>
+            </View>
           </View>
 
           {/* Temperature - Show if available */}
@@ -382,6 +415,10 @@ const styles = StyleSheet.create({
     borderColor: "#6366f1",
     backgroundColor: "#f0f0ff",
   },
+  tankCardOverfilled: {
+    borderColor: "#fca5a5",
+    backgroundColor: "#fef2f2",
+  },
   tankIconContainer: {
     width: 52,
     height: 52,
@@ -392,6 +429,9 @@ const styles = StyleSheet.create({
   },
   tankIconContainerSelected: {
     backgroundColor: "#6366f1",
+  },
+  tankIconContainerOverfilled: {
+    backgroundColor: "#fee2e2",
   },
   tankInfo: {
     flex: 1,
@@ -456,6 +496,37 @@ const styles = StyleSheet.create({
   percentText: {
     fontSize: 12,
     fontWeight: "600",
+  },
+  stockInfoRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  availableSpaceText: {
+    fontSize: 11,
+    color: "#059669",
+    fontWeight: "500",
+  },
+  availableSpaceNegative: {
+    color: "#dc2626",
+    fontWeight: "600",
+  },
+  overfillBadge: {
+    backgroundColor: "#dc2626",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    alignSelf: "flex-start",
+    marginTop: 4,
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  overfillText: {
+    fontSize: 10,
+    color: "#ffffff",
+    fontWeight: "700",
+    marginLeft: 4,
+    textTransform: "uppercase",
   },
   selectIndicator: {
     marginLeft: 8,

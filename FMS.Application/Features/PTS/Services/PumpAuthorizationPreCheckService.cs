@@ -193,5 +193,38 @@ namespace FMS.Application.Features.PTS.Services
 
             return result;
         }
+
+        /// <inheritdoc/>
+        public async Task<GeofenceValidationResult> ValidateGeofenceAsync(
+            GeofenceValidationRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            _logger.LogInformation("[PreCheck] Validating geofence for RuleSetId {RuleSetId}, VehicleId {VehicleId}, PtsId {PtsId}",
+                request.FuelingRuleSetId, request.VehicleId, request.PtsId);
+
+            var result = await _locationValidationService.ValidateGeofenceAsync(request, cancellationToken);
+
+            if (result.Outcome == ValidationOutcome.Failed)
+            {
+                _logger.LogWarning("[PreCheck] Geofence validation FAILED - {Reason}. " +
+                    "TankerInGeofence: {TankerInGeofence}, OperatorInGeofence: {OperatorInGeofence}, VehicleInGeofence: {VehicleInGeofence}",
+                    result.Reason,
+                    result.TankerInGeofence,
+                    result.OperatorInGeofence,
+                    result.VehicleInGeofence);
+            }
+            else if (result.Outcome == ValidationOutcome.Skipped)
+            {
+                _logger.LogInformation("[PreCheck] Geofence validation skipped - {Reason}", result.Reason);
+            }
+            else if (result.Outcome == ValidationOutcome.Passed)
+            {
+                _logger.LogInformation("[PreCheck] Geofence validation passed ✅ - Tanker in '{TankerGeofence}', GeofencesChecked: {Count}",
+                    result.TankerGeofenceName ?? "N/A",
+                    result.GeofencesChecked);
+            }
+
+            return result;
+        }
     }
 }
