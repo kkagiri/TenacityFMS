@@ -16,12 +16,21 @@ CREATE TABLE IF NOT EXISTS `location_validation_bypasses` (
     `enabled_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT 'When the bypass was enabled',
     `cancelled_by` VARCHAR(256) NULL COMMENT 'Who cancelled this bypass',
     `cancelled_at` DATETIME NULL COMMENT 'When the bypass was cancelled',
+    `notes` VARCHAR(1000) NULL COMMENT 'Additional notes or metadata',
     PRIMARY KEY (`id`),
     INDEX `idx_bypass_vehicle` (`vehicle_id`, `is_active`),
     INDEX `idx_bypass_user` (`user_id`, `is_active`),
     INDEX `idx_bypass_expires` (`expires_at`, `is_active`),
     INDEX `idx_bypass_type_active` (`bypass_type`, `is_active`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- =============================================================================
+-- MIGRATION: Add 'notes' column if table already exists
+-- Run this if you get "Unknown column 'l.notes' in 'field list'" error
+-- =============================================================================
+ALTER TABLE `location_validation_bypasses`
+ADD COLUMN `notes` VARCHAR(1000) NULL COMMENT 'Additional notes or metadata'
+AFTER `cancelled_at`;
 
 -- Add foreign key constraints (optional - only if referential integrity is desired)
 -- Note: Commented out to avoid issues if vehicles/users are deleted

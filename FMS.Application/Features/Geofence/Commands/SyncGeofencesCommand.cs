@@ -72,11 +72,14 @@ public class SyncGeofencesCommandHandler : IRequestHandler<SyncGeofencesCommand,
                             CenterLatitude = centerLat,
                             CenterLongitude = centerLng,
                             RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : null,
+                            GeometryJson = externalGf.GeometryJson, // ✅ Save polygon/route geometry
                             IsActive = externalGf.IsActive,
                             LastSyncedAt = DateTime.UtcNow,
                             CreatedAt = DateTime.UtcNow
                         };
                         _context.GpsGeofences.Add(newGeofence);
+                        _logger.LogDebug("Creating geofence {Id} '{Name}', Type: {Type}, HasGeometry: {HasGeometry}",
+                            externalGf.Id, externalGf.Name, externalGf.Type, !string.IsNullOrEmpty(externalGf.GeometryJson));
                     }
                     else
                     {
@@ -86,9 +89,12 @@ public class SyncGeofencesCommandHandler : IRequestHandler<SyncGeofencesCommand,
                         existingGeofence.CenterLatitude = centerLat ?? existingGeofence.CenterLatitude;
                         existingGeofence.CenterLongitude = centerLng ?? existingGeofence.CenterLongitude;
                         existingGeofence.RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : existingGeofence.RadiusMeters;
+                        existingGeofence.GeometryJson = externalGf.GeometryJson ?? existingGeofence.GeometryJson; // ✅ Update polygon/route geometry
                         existingGeofence.IsActive = externalGf.IsActive;
                         existingGeofence.LastSyncedAt = DateTime.UtcNow;
                         existingGeofence.UpdatedAt = DateTime.UtcNow;
+                        _logger.LogDebug("Updating geofence {Id} '{Name}', Type: {Type}, HasGeometry: {HasGeometry}",
+                            externalGf.Id, externalGf.Name, externalGf.Type, !string.IsNullOrEmpty(externalGf.GeometryJson));
                     }
                     geofencesSynced++;
                 }

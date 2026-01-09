@@ -46,20 +46,31 @@ public partial class LocationValidationService
                 request.VehicleLocation?.Latitude.ToString() ?? "N/A",
                 request.VehicleLocation?.Longitude.ToString() ?? "N/A");
 
-            // Get the fueling rule set configuration (still needed for reference)
-            var ruleSetConfig = await _context.FuelingRuleSets
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.Id == request.FuelingRuleSetId, cancellationToken);
-
-            if (ruleSetConfig == null)
+            // NOTE: RuleSetId=0 means "use global policy" - we don't need a specific rule set
+            // The geofence validation uses global groups (IsAllowedForFueling=true) regardless of rule set
+            string? ruleSetName = null;
+            if (request.FuelingRuleSetId > 0)
             {
-                _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ Fueling rule set {RuleSetId} not found - SKIPPING validation",
-                    request.FuelingRuleSetId);
-                return GeofenceValidationResult.Skipped("Fueling rule set not found");
-            }
+                var ruleSetConfig = await _context.FuelingRuleSets
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(r => r.Id == request.FuelingRuleSetId, cancellationToken);
 
-            _logger.LogInformation("[GEOFENCE_VALIDATION] Found RuleSet: {RuleSetName} (ID: {RuleSetId})",
-                ruleSetConfig.Name ?? "Unnamed", ruleSetConfig.Id);
+                if (ruleSetConfig != null)
+                {
+                    ruleSetName = ruleSetConfig.Name;
+                    _logger.LogInformation("[GEOFENCE_VALIDATION] Found RuleSet: {RuleSetName} (ID: {RuleSetId})",
+                        ruleSetConfig.Name ?? "Unnamed", ruleSetConfig.Id);
+                }
+                else
+                {
+                    _logger.LogDebug("[GEOFENCE_VALIDATION] RuleSetId {RuleSetId} not found - will use global geofence policy",
+                        request.FuelingRuleSetId);
+                }
+            }
+            else
+            {
+                _logger.LogInformation("[GEOFENCE_VALIDATION] Using GLOBAL GEOFENCE POLICY (RuleSetId=0)");
+            }
 
             // Get geofence validation settings from system configuration (global settings)
             var requireTankerStr = await _systemConfigService.GetConfigurationValueAsync(
@@ -397,6 +408,11 @@ public partial class LocationValidationService
             {
                 bool isInside = false;
 
+                _logger.LogDebug("[GEOFENCE_CHECK] Checking geofence {Id} '{Name}', Type: {Type}, HasGeometryJson: {HasJson}, GeometryJson length: {Length}",
+                    geofence.Id, geofence.Name, geofence.GeofenceType,
+                    !string.IsNullOrEmpty(geofence.GeometryJson),
+                    geofence.GeometryJson?.Length ?? 0);
+
                 switch (geofence.GeofenceType)
                 {
                     case GpsGeofenceType.Circle:
@@ -406,12 +422,21 @@ public partial class LocationValidationService
                             geofence.CenterLatitude ?? 0,
                             geofence.CenterLongitude ?? 0,
                             geofence.RadiusMeters ?? DefaultCircleRadiusMeters);
+                        _logger.LogDebug("[GEOFENCE_CHECK] Circle check: center=({CenterLat}, {CenterLng}), radius={Radius}m, isInside={IsInside}",
+                            geofence.CenterLatitude, geofence.CenterLongitude, geofence.RadiusMeters, isInside);
                         break;
 
                     case GpsGeofenceType.Polygon:
                         if (!string.IsNullOrEmpty(geofence.GeometryJson))
                         {
                             isInside = IsPointInPolygon(latitude, longitude, geofence.GeometryJson);
+                            _logger.LogDebug("[GEOFENCE_CHECK] Polygon check: isInside={IsInside}, GeometryJson preview: {Preview}",
+                                isInside, geofence.GeometryJson.Length > 200 ? geofence.GeometryJson.Substring(0, 200) + "..." : geofence.GeometryJson);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[GEOFENCE_CHECK] ⚠️ Polygon geofence {Id} '{Name}' has NO GeometryJson! Cannot check point-in-polygon.",
+                                geofence.Id, geofence.Name);
                         }
                         break;
 
@@ -421,6 +446,13 @@ public partial class LocationValidationService
                         if (!string.IsNullOrEmpty(geofence.GeometryJson))
                         {
                             isInside = IsPointNearRoute(latitude, longitude, geofence.GeometryJson, geofence.RadiusMeters ?? DefaultRouteBufferMeters);
+                            _logger.LogDebug("[GEOFENCE_CHECK] Route check: buffer={Buffer}m, isInside={IsInside}",
+                                geofence.RadiusMeters ?? DefaultRouteBufferMeters, isInside);
+                        }
+                        else
+                        {
+                            _logger.LogWarning("[GEOFENCE_CHECK] ⚠️ Route geofence {Id} '{Name}' has NO GeometryJson! Cannot check point-near-route.",
+                                geofence.Id, geofence.Name);
                         }
                         break;
                 }

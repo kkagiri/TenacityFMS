@@ -1247,9 +1247,12 @@ public partial class LocationValidationService : ILocationValidationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LocationValidation] Error checking temporary bypass status");
-            // On error, assume bypass is not active for safety
-            return new TemporaryBypassCheckResult(false, null, null);
+            _logger.LogError(ex,
+                "[LocationValidation] CRITICAL: Error checking temporary bypass status. " +
+                "Re-throwing to prevent unsafe fuel authorization.");
+            // SECURITY FIX: Re-throw exception so outer handler can properly fail the validation
+            // Previously this returned (false, null, null) which masked DB errors and allowed fuel to flow
+            throw;
         }
     }
 
@@ -1285,8 +1288,12 @@ public partial class LocationValidationService : ILocationValidationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LocationValidation] Error checking vehicle bypass for {VehicleId}", vehicleId);
-            return new TemporaryBypassCheckResult(false, null, null);
+            _logger.LogError(ex,
+                "[LocationValidation] CRITICAL: Error checking vehicle bypass for {VehicleId}. " +
+                "Re-throwing to prevent unsafe fuel authorization.", vehicleId);
+            // SECURITY FIX: Re-throw exception so outer handler can properly fail the validation
+            // Previously this returned (false, null, null) which masked DB errors and allowed fuel to flow
+            throw;
         }
     }
 
@@ -1322,8 +1329,12 @@ public partial class LocationValidationService : ILocationValidationService
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "[LocationValidation] Error checking user bypass for {UserId}", userId);
-            return new TemporaryBypassCheckResult(false, null, null);
+            _logger.LogError(ex,
+                "[LocationValidation] CRITICAL: Error checking user bypass for {UserId}. " +
+                "Re-throwing to prevent unsafe fuel authorization.", userId);
+            // SECURITY FIX: Re-throw exception so outer handler can properly fail the validation
+            // Previously this returned (false, null, null) which masked DB errors and allowed fuel to flow
+            throw;
         }
     }
 

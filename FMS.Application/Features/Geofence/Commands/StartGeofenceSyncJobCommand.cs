@@ -441,6 +441,11 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
         decimal? centerLat = firstCoord?.Latitude;
         decimal? centerLng = firstCoord?.Longitude;
 
+        _logger.LogDebug("Syncing geofence {Id} '{Name}', Type: {Type}, HasGeometryJson: {HasGeometry}, CoordsCount: {CoordsCount}",
+            externalGf.Id, externalGf.Name, externalGf.Type,
+            !string.IsNullOrEmpty(externalGf.GeometryJson),
+            externalGf.Coordinates?.Count ?? 0);
+
         if (existingGeofence == null)
         {
             var newGeofence = new GpsGeofence
@@ -452,6 +457,7 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
                 CenterLatitude = centerLat,
                 CenterLongitude = centerLng,
                 RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : null,
+                GeometryJson = externalGf.GeometryJson, // ✅ Save polygon/route geometry
                 IsActive = true, // Always set to true - if GPSGate returns it, it's active
                 LastSyncedAt = DateTime.UtcNow,
                 CreatedAt = DateTime.UtcNow
@@ -466,6 +472,7 @@ public class GeofenceSyncJobProcessor : IGeofenceSyncJobProcessor
             existingGeofence.CenterLatitude = centerLat ?? existingGeofence.CenterLatitude;
             existingGeofence.CenterLongitude = centerLng ?? existingGeofence.CenterLongitude;
             existingGeofence.RadiusMeters = externalGf.Radius.HasValue ? (int?)decimal.ToInt32(externalGf.Radius.Value) : existingGeofence.RadiusMeters;
+            existingGeofence.GeometryJson = externalGf.GeometryJson ?? existingGeofence.GeometryJson; // ✅ Update polygon/route geometry
             existingGeofence.IsActive = true; // Always set to true - if GPSGate returns it, it's active
             existingGeofence.LastSyncedAt = DateTime.UtcNow;
             existingGeofence.UpdatedAt = DateTime.UtcNow;
