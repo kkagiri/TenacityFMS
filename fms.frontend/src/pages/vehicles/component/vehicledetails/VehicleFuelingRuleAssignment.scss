@@ -1,0 +1,139 @@
+.vehicle-fueling-rule-assignment {
+  // Container styling
+  &__header {
+    @apply tw-mb-4;
+  }
+
+  // Info box styling
+  .info-box {
+    @apply tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3;
+
+    &__icon {
+      @apply tw-text-blue-600;
+    }
+
+    &__content {
+      @apply tw-text-sm tw-text-blue-800;
+    }
+  }
+
+  // Context cards
+  .context-card {
+    @apply tw-bg-gray-50 tw-rounded-lg tw-p-3 tw-border tw-border-gray-200;
+
+    &__label {
+      @apply tw-text-xs tw-text-gray-500 tw-uppercase tw-mb-1;
+    }
+
+    &__value {
+      @apply tw-font-medium tw-text-gray-800;
+    }
+  }
+
+  // Tag badges
+  .tag-badge {
+    @apply tw-bg-green-100 tw-text-green-700 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs;
+  }
+
+  // Empty state
+  .empty-state {
+    @apply tw-text-center tw-py-12 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200;
+
+    &__icon {
+      @apply tw-text-4xl tw-text-gray-400 tw-mb-3;
+    }
+
+    &__title {
+      @apply tw-text-gray-600 tw-mb-2;
+    }
+
+    &__description {
+      @apply tw-text-sm tw-text-gray-500 tw-mb-4;
+    }
+  }
+
+  // Target type badges
+  .target-type-badge {
+    @apply tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium;
+
+    &--site {
+      @apply tw-bg-purple-100 tw-text-purple-700;
+    }
+
+    &--vehicle-type {
+      @apply tw-bg-blue-100 tw-text-blue-700;
+    }
+
+    &--tag {
+      @apply tw-bg-green-100 tw-text-green-700;
+    }
+
+    &--vehicle {
+      @apply tw-bg-orange-100 tw-text-orange-700;
+    }
+  }
+
+  // Inheritance indicators
+  .inheritance-indicator {
+    &--direct {
+      @apply tw-text-green-600 tw-font-medium;
+    }
+
+    &--inherited {
+      @apply tw-text-blue-600;
+    }
+  }
+
+  // DataGrid customization
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      background-color: #f8fafc;
+    }
+
+    .dx-row-alt {
+      background-color: #f8fafc;
+    }
+  }
+
+  // Popup form styling
+  .popup-form {
+    &__field {
+      @apply tw-mb-4;
+    }
+
+    &__label {
+      @apply tw-block tw-text-sm tw-font-medium tw-mb-1;
+    }
+
+    &__required {
+      @apply tw-text-red-500;
+    }
+
+    &__hint {
+      @apply tw-text-xs tw-text-gray-500 tw-mt-1;
+    }
+
+    &__actions {
+      @apply tw-flex tw-justify-end tw-gap-2 tw-mt-6;
+    }
+  }
+
+  // Effective rules display
+  .effective-rules {
+    &__item {
+      @apply tw-flex tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded;
+    }
+
+    &__label {
+      @apply tw-text-gray-600;
+    }
+
+    &__value {
+      @apply tw-font-semibold;
+    }
+
+    &__source {
+      @apply tw-bg-blue-50 tw-text-blue-600;
+    }
+  }
+}

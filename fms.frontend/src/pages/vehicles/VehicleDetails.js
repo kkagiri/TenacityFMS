@@ -15,6 +15,7 @@ import VehicleMaintenanceHistory from "./component/VehicleMaintenanceHistory";
 import VehicleFuelingHistory from "./component/VehicleFuelingHistory";
 import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
 import VehicleGPSInformation from "./component/VehicleGPSInformation";
+import VehicleFuelingRuleAssignment from "./component/vehicledetails/VehicleFuelingRuleAssignment";
 
 // Import popup components
 import TagAssignmentForm from "../../components/Tags/TagAssignmentForm/TagAssignmentForm";
@@ -315,6 +316,16 @@ const VehicleDetails = () => {
     );
   }, [vehicle, id, tabLoadingStates]);
 
+  const fuelingRulesComponent = useMemo(() => {
+    if (!vehicle || tabLoadingStates[6]) return null;
+    return (
+      <VehicleFuelingRuleAssignment
+        key={`fueling-rules-${vehicle?.vehicleId}`}
+        vehicle={vehicle}
+      />
+    );
+  }, [vehicle, tabLoadingStates]);
+
   // Memoize tab items with stable dependencies
   const tabItems = useMemo(() => {
     if (!vehicle) return [];
@@ -372,6 +383,13 @@ const VehicleDetails = () => {
           ? loadingSpinner("documents")
           : documentsComponent,
       },
+      {
+        title: "Fueling Rules",
+        icon: "fa-solid fa-gavel",
+        component: tabLoadingStates[6]
+          ? loadingSpinner("fueling rules")
+          : fuelingRulesComponent,
+      },
     ];
   }, [
     vehicle,
@@ -381,6 +399,7 @@ const VehicleDetails = () => {
     maintenanceHistoryComponent,
     fuelingHistoryComponent,
     documentsComponent,
+    fuelingRulesComponent,
     tabLoadingStates,
   ]);
 

@@ -74,9 +74,6 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
 
   // Load dropdown data - Only load once and use existing data from Redux store when possible
   useEffect(() => {
-    // Create a flag in local storage to track if dropdown data is loaded for the session
-    const cachedDataFlag = sessionStorage.getItem("vehicleEditFormDataLoaded");
-
     const loadDropdownData = async () => {
       // Check if we already have data in the Redux store
       const state = store.getState();
@@ -89,9 +86,8 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         state.expectedAvg?.expectedAverages?.length > 0;
 
       // Skip loading if we've already loaded the data in this component instance
-      // or if it's been loaded in this session (using sessionStorage)
       // or if we already have data in Redux store
-      if (dropdownDataLoaded || cachedDataFlag === "true" || hasExistingData) {
+      if (dropdownDataLoaded || hasExistingData) {
         // Use existing data from Redux store
         setVehicleTypes(state.vehicleType?.vehicleTypes || []);
         setVehicleModels(state.vehicleModel?.vehicleModels || []);
@@ -130,7 +126,6 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         setExpectedAverages(expectedAvgResponse?.data || []);
 
         setDropdownDataLoaded(true); // Mark as loaded
-        sessionStorage.setItem("vehicleEditFormDataLoaded", "true"); // Cache for session
       } catch (error) {
         console.error("Error loading dropdown data:", error);
       } finally {

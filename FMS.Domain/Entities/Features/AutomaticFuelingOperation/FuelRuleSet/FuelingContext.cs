@@ -159,9 +159,11 @@ namespace FMS.Domain.Entities.Features.FuelRule
         public decimal? RequestedFuelAmount { get; set; }
 
         /// <summary>
-        /// Current time for time window rule evaluation
+        /// Current time for time window rule evaluation.
+        /// This should be set to LOCAL time (converted from UTC using system timezone)
+        /// since time window rules are configured in local time by users.
         /// </summary>
-        public DateTime CurrentTime { get; set; } = DateTime.UtcNow;
+        public DateTime CurrentTime { get; set; } = DateTime.Now;
 
         #endregion
     }

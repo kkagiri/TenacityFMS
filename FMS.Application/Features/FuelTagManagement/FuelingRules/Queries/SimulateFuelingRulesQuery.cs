@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.FuelTagManagement.FuelingRules.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities.Features.FuelRule;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -18,9 +19,29 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Queries;
 public class SimulationResultDTO : EffectiveRulesDTO
 {
     /// <summary>
-    /// The time used for simulation
+    /// The time used for simulation (in local time)
     /// </summary>
     public DateTime SimulationTime { get; set; }
+
+    /// <summary>
+    /// The simulation time in UTC for reference
+    /// </summary>
+    public DateTime SimulationTimeUtc { get; set; }
+
+    /// <summary>
+    /// Current server time in local timezone
+    /// </summary>
+    public DateTime ServerTimeLocal { get; set; }
+
+    /// <summary>
+    /// Current server time in UTC
+    /// </summary>
+    public DateTime ServerTimeUtc { get; set; }
+
+    /// <summary>
+    /// The configured timezone ID
+    /// </summary>
+    public string? Timezone { get; set; }
 
     /// <summary>
     /// Whether the simulation time is within any configured time window
@@ -49,15 +70,18 @@ public class SimulateFuelingRulesQueryHandler
 {
     private readonly GpsdataContext _context;
     private readonly IFuelingRuleEvaluationService _ruleEvaluationService;
+    private readonly ISystemConfigurationService _systemConfigService;
     private readonly ILogger<SimulateFuelingRulesQueryHandler> _logger;
 
     public SimulateFuelingRulesQueryHandler(
         GpsdataContext context,
         IFuelingRuleEvaluationService ruleEvaluationService,
+        ISystemConfigurationService systemConfigService,
         ILogger<SimulateFuelingRulesQueryHandler> logger)
     {
         _context = context;
         _ruleEvaluationService = ruleEvaluationService;
+        _systemConfigService = systemConfigService;
         _logger = logger;
     }
 
@@ -67,6 +91,35 @@ public class SimulateFuelingRulesQueryHandler
     {
         try
         {
+            // Get timezone and calculate local times for diagnostics
+            var timezone = await _systemConfigService.GetTimezoneAsync(cancellationToken);
+            TimeZoneInfo timeZoneInfo;
+            try
+            {
+                timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timezone);
+            }
+            catch
+            {
+                _logger.LogWarning("Invalid timezone {Timezone}, falling back to local", timezone);
+                timeZoneInfo = TimeZoneInfo.Local;
+            }
+
+            var serverTimeUtc = DateTime.UtcNow;
+            var serverTimeLocal = TimeZoneInfo.ConvertTimeFromUtc(serverTimeUtc, timeZoneInfo);
+
+            // Convert simulation time from UTC to local time
+            // The frontend sends time in UTC (via toISOString()), but time window rules are in local time
+            var simulationTimeUtc = request.SimulationTime ?? DateTime.UtcNow;
+            var simulationTimeLocal = TimeZoneInfo.ConvertTimeFromUtc(
+                simulationTimeUtc.Kind == DateTimeKind.Local
+                    ? simulationTimeUtc.ToUniversalTime()
+                    : simulationTimeUtc,
+                timeZoneInfo);
+
+            _logger.LogInformation(
+                "Simulation time conversion: UTC={SimulationTimeUtc}, Local={SimulationTimeLocal}, Timezone={Timezone}",
+                simulationTimeUtc, simulationTimeLocal, timezone);
+
             // Get the vehicle with type and site
             var vehicle = await _context.Vehicles
                 .Include(v => v.VehicleType)
@@ -81,11 +134,10 @@ public class SimulateFuelingRulesQueryHandler
             }
 
             var siteId = request.SiteId ?? vehicle.WorkingSiteId ?? 0;
-            var simulationTime = request.SimulationTime ?? DateTime.UtcNow;
 
             _logger.LogInformation(
-                "Simulating fueling rules for vehicle {VehicleId} at site {SiteId} for time {SimulationTime}",
-                request.VehicleId, siteId, simulationTime);
+                "Simulating fueling rules for vehicle {VehicleId} at site {SiteId} for time {SimulationTime} (local)",
+                request.VehicleId, siteId, simulationTimeLocal);
 
             // Build fueling context with the simulation time
             var fuelingContext = await _ruleEvaluationService.BuildFuelingContextAsync(
@@ -94,21 +146,22 @@ public class SimulateFuelingRulesQueryHandler
                 request.TagId,
                 cancellationToken);
 
-            // Override the current time with the simulation time
-            fuelingContext.CurrentTime = simulationTime;
+            // Override the current time with the LOCAL simulation time
+            // Time window rules are configured in local time, so we use local time for comparison
+            fuelingContext.CurrentTime = simulationTimeLocal;
 
             // Calculate fuel allowance with the simulated time
             var allowanceResult = await _ruleEvaluationService.CalculateFuelAllowanceAsync(
                 fuelingContext,
                 cancellationToken);
 
-            // Check time window status
+            // Check time window status (using local time)
             var isWithinTimeWindow = true;
             var timeWindowStatus = "No time window configured";
 
             if (allowanceResult.TimeWindowStart.HasValue && allowanceResult.TimeWindowEnd.HasValue)
             {
-                var simTimeOfDay = simulationTime.TimeOfDay;
+                var simTimeOfDay = simulationTimeLocal.TimeOfDay;
                 var start = allowanceResult.TimeWindowStart.Value;
                 var end = allowanceResult.TimeWindowEnd.Value;
 
@@ -131,8 +184,12 @@ public class SimulateFuelingRulesQueryHandler
             // Build response DTO
             var response = new SimulationResultDTO
             {
-                // Simulation-specific properties
-                SimulationTime = simulationTime,
+                // Simulation-specific properties with timezone diagnostics
+                SimulationTime = simulationTimeLocal,           // Local time (for display and comparison)
+                SimulationTimeUtc = simulationTimeUtc,          // Original UTC time from request
+                ServerTimeLocal = serverTimeLocal,               // Current server local time
+                ServerTimeUtc = serverTimeUtc,                   // Current server UTC time
+                Timezone = timezone,                             // Configured timezone ID
                 IsWithinTimeWindow = isWithinTimeWindow,
                 TimeWindowStatus = timeWindowStatus,
 
@@ -192,14 +249,14 @@ public class SimulateFuelingRulesQueryHandler
             };
 
             _logger.LogInformation(
-                "Simulation complete for vehicle {VehicleId} at {SimulationTime}: HasRules={HasRules}, IsAllowed={IsAllowed}, MaxFuel={MaxFuel}L, TimeWindowStatus={TimeWindowStatus}",
-                request.VehicleId, simulationTime, response.HasRules, response.IsAllowed,
+                "Simulation complete for vehicle {VehicleId} at {SimulationTimeLocal} (UTC: {SimulationTimeUtc}): HasRules={HasRules}, IsAllowed={IsAllowed}, MaxFuel={MaxFuel}L, TimeWindowStatus={TimeWindowStatus}",
+                request.VehicleId, simulationTimeLocal, simulationTimeUtc, response.HasRules, response.IsAllowed,
                 response.MaxFuelAllowed, timeWindowStatus);
 
             return FMSResponse<SimulationResultDTO>.Success(
                 response,
                 response.HasRules
-                    ? $"Simulation complete. At {simulationTime:HH:mm}: {(response.IsAllowed ? "Fueling allowed" : "Fueling blocked")}. Max fuel: {response.MaxFuelAllowed:F1}L"
+                    ? $"Simulation complete. At {simulationTimeLocal:HH:mm} (local): {(response.IsAllowed ? "Fueling allowed" : "Fueling blocked")}. Max fuel: {response.MaxFuelAllowed:F1}L"
                     : "No rules configured for this vehicle/site combination.");
         }
         catch (Exception ex)

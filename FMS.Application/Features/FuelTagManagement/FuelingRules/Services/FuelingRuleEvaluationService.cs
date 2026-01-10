@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.FuelRule;
 using FMS.Domain.Entities.Features.FuelRule.Rules;
@@ -51,14 +52,17 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
         private readonly GpsdataContext _context;
         private readonly ILogger<FuelingRuleEvaluationService> _logger;
         private readonly IGPSService _gpsService;
+        private readonly ISystemConfigurationService _systemConfigService;
 
         public FuelingRuleEvaluationService(
             GpsdataContext context,
             IGPSService gpsService,
+            ISystemConfigurationService systemConfigService,
             ILogger<FuelingRuleEvaluationService> logger)
         {
             _context = context;
             _gpsService = gpsService;
+            _systemConfigService = systemConfigService;
             _logger = logger;
         }
 
@@ -157,8 +161,12 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
 
                     if (!result.IsWithinTimeWindow)
                     {
-                        return FuelAllowanceResult.Blocked(
-                            $"Outside allowed fueling hours. Allowed: {mergedRules.TimeWindowStart:hh\\:mm} - {mergedRules.TimeWindowEnd:hh\\:mm}");
+                        // Set blocked state but preserve AppliedRuleSets
+                        result.IsAllowed = false;
+                        result.MaxFuelAllowed = 0;
+                        result.BlockedReason = $"Outside allowed fueling hours. Allowed: {mergedRules.TimeWindowStart:hh\\:mm} - {mergedRules.TimeWindowEnd:hh\\:mm}";
+                        result.Message = $"Fueling blocked: {result.BlockedReason}";
+                        return result;
                     }
                 }
 
@@ -168,8 +176,12 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                     result.MaxRefillsPerDay = mergedRules.MaxRefillsPerDay;
                     if (context.NoOfRefillToday >= mergedRules.MaxRefillsPerDay.Value)
                     {
-                        return FuelAllowanceResult.Blocked(
-                            $"Maximum refills per day reached ({mergedRules.MaxRefillsPerDay} refills)");
+                        // Set blocked state but preserve AppliedRuleSets
+                        result.IsAllowed = false;
+                        result.MaxFuelAllowed = 0;
+                        result.BlockedReason = $"Maximum refills per day reached ({mergedRules.MaxRefillsPerDay} refills)";
+                        result.Message = $"Fueling blocked: {result.BlockedReason}";
+                        return result;
                     }
                 }
 
@@ -217,9 +229,12 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
 
                 if (result.MaxFuelAllowed <= 0)
                 {
-                    // Find which limit caused the block
+                    // Find which limit caused the block - preserve AppliedRuleSets
                     var zeroLimit = allLimits.FirstOrDefault(x => x.Value <= 0);
-                    return FuelAllowanceResult.Blocked($"Limit reached: {zeroLimit.Name}");
+                    result.IsAllowed = false;
+                    result.BlockedReason = $"Limit reached: {zeroLimit.Name}";
+                    result.Message = $"Fueling blocked: {result.BlockedReason}";
+                    return result;
                 }
 
                 result.IsAllowed = true;
@@ -235,6 +250,26 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
             {
                 _logger.LogError(ex, "Error calculating fuel allowance for vehicle {VehicleId}", context.VehicleId);
                 throw;
+            }
+        }
+
+        /// <summary>
+        /// Gets the current local time based on the system timezone configuration.
+        /// Time window rules are configured in local time by users, so we need to
+        /// convert UTC to local time for proper comparison.
+        /// </summary>
+        private async Task<DateTime> GetLocalTimeAsync(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var timezone = await _systemConfigService.GetTimezoneAsync(cancellationToken);
+                var timeZoneInfo = TimeZoneInfo.FindSystemTimeZoneById(timezone);
+                return TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, timeZoneInfo);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting local time, falling back to server local time");
+                return DateTime.Now;
             }
         }
 
@@ -255,6 +290,10 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                 throw new ArgumentException($"Vehicle {vehicleId} not found", nameof(vehicleId));
             }
 
+            // Get local time for time window rule evaluation
+            // Time window rules are configured in local time, so we need to compare against local time
+            var localTime = await GetLocalTimeAsync(cancellationToken);
+
             var context = new FuelingContext
             {
                 Vehicle = vehicle,
@@ -263,7 +302,7 @@ namespace FMS.Application.Features.FuelTagManagement.FuelingRules.Services
                 SiteId = siteId,
                 TagId = tagId,
                 TankCapacity = vehicle.FuelTankCapacity ?? 0,
-                CurrentTime = DateTime.UtcNow
+                CurrentTime = localTime  // Use local time for time window comparisons
             };
 
             // Get tag if provided
