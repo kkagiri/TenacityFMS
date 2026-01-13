@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Services;
 using FMS.Application.Services.AutomatedReconciliation;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.AutomaticReconciliation;
@@ -18,75 +18,85 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Application.Features.AutomatedReconciliation.Services;
 
 //Cursor - Enhanced AutomatedReconciliationService with notification system integration and configuration support
-public class AutomatedReconciliationService {
+public class AutomatedReconciliationService
+{
     private readonly GpsdataContext _context;
     private readonly PolicyEvaluationEngine _policyEvaluationEngine;
     private readonly DiscrepancyDetectionService _discrepancyDetectionService;
     private readonly ReconciliationOrchestrationService _orchestrationService;
     private readonly DailyReconciliationPolicyService _dailyReconciliationService;
     private readonly INotificationService _notificationService; //Cursor - Add notification service
-    private readonly IAutomatedFuelingConfigurationService _configurationService; //Cursor - Add configuration service
+    private readonly ISystemConfigurationService _systemConfigService; // System configuration service
     private readonly ILogger<AutomatedReconciliationService> _logger;
 
-    public AutomatedReconciliationService (
+    public AutomatedReconciliationService(
         GpsdataContext context,
         PolicyEvaluationEngine policyEvaluationEngine,
         DiscrepancyDetectionService discrepancyDetectionService,
         ReconciliationOrchestrationService orchestrationService,
         DailyReconciliationPolicyService dailyReconciliationService,
         INotificationService notificationService, //Cursor - Add notification service
-        IAutomatedFuelingConfigurationService configurationService, //Cursor - Add configuration service
-        ILogger<AutomatedReconciliationService> logger) {
+        ISystemConfigurationService systemConfigService, // System configuration service
+        ILogger<AutomatedReconciliationService> logger)
+    {
         _context = context;
         _policyEvaluationEngine = policyEvaluationEngine;
         _discrepancyDetectionService = discrepancyDetectionService;
         _orchestrationService = orchestrationService;
         _dailyReconciliationService = dailyReconciliationService;
         _notificationService = notificationService; //Cursor - Initialize notification service
-        _configurationService = configurationService; //Cursor - Initialize configuration service
+        _systemConfigService = systemConfigService; // Initialize system configuration service
         _logger = logger;
     }
 
     //Cursor - Enhanced ExecuteReconciliationCycleAsync with metrics emission and notifications
-    public async Task<ReconciliationCycleResult> ExecuteReconciliationCycleAsync (CancellationToken cancellationToken = default) {
-        var cycleResult = new ReconciliationCycleResult {
-        StartedAt = DateTime.UtcNow,
-        CycleId = Guid.NewGuid ()
+    public async Task<ReconciliationCycleResult> ExecuteReconciliationCycleAsync(CancellationToken cancellationToken = default)
+    {
+        var cycleResult = new ReconciliationCycleResult
+        {
+            StartedAt = DateTime.UtcNow,
+            CycleId = Guid.NewGuid()
         };
 
         //Cursor - Emit metrics using ILogger.BeginScope for structured logging
-        using var scope = _logger.BeginScope (new Dictionary<string, object> {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
             ["Operation"] = "ReconciliationCycle",
             ["CycleId"] = cycleResult.CycleId,
             ["StartTime"] = cycleResult.StartedAt
         });
 
-        try {
-            _logger.LogInformation ("Starting reconciliation cycle {CycleId}", cycleResult.CycleId);
+        try
+        {
+            _logger.LogInformation("Starting reconciliation cycle {CycleId}", cycleResult.CycleId);
 
             // Get all active policies that are due for execution
-            var duePolicies = await GetDuePoliciesAsync (cancellationToken);
+            var duePolicies = await GetDuePoliciesAsync(cancellationToken);
             cycleResult.ProcessedPolicies = duePolicies.Count;
 
-            _logger.LogInformation ("Found {PolicyCount} policies due for execution", duePolicies.Count);
+            _logger.LogInformation("Found {PolicyCount} policies due for execution", duePolicies.Count);
 
             // Execute each policy
-            foreach (var policy in duePolicies) {
-                try {
-                    var policyResult = await ExecuteSinglePolicyAsync (policy.Id, cancellationToken);
-                    cycleResult.PolicyResults.Add (policyResult);
+            foreach (var policy in duePolicies)
+            {
+                try
+                {
+                    var policyResult = await ExecuteSinglePolicyAsync(policy.Id, cancellationToken);
+                    cycleResult.PolicyResults.Add(policyResult);
 
                     if (policyResult.Success)
                         cycleResult.SuccessfulPolicies++;
                     else
                         cycleResult.FailedPolicies++;
-                } catch (Exception policyEx) {
-                    _logger.LogError (policyEx, "Failed to execute policy {PolicyId} during cycle {CycleId}",
+                }
+                catch (Exception policyEx)
+                {
+                    _logger.LogError(policyEx, "Failed to execute policy {PolicyId} during cycle {CycleId}",
                         policy.Id, cycleResult.CycleId);
                     cycleResult.FailedPolicies++;
 
                     //Cursor - Send notification for policy execution failure
-                    await SendPolicyExecutionFailureNotificationAsync (policy.Id, policyEx.Message, cancellationToken);
+                    await SendPolicyExecutionFailureNotificationAsync(policy.Id, policyEx.Message, cancellationToken);
                 }
             }
 
@@ -95,19 +105,21 @@ public class AutomatedReconciliationService {
             cycleResult.Success = cycleResult.FailedPolicies == 0;
 
             //Cursor - Send cycle summary notification if there were failures
-            if (cycleResult.FailedPolicies > 0) {
-                await SendCycleSummaryNotificationAsync (cycleResult, cancellationToken);
+            if (cycleResult.FailedPolicies > 0)
+            {
+                await SendCycleSummaryNotificationAsync(cycleResult, cancellationToken);
             }
 
             //Cursor - Emit final metrics before returning result
-            _logger.LogInformation ("Reconciliation cycle {CycleId} completed in {Duration}ms. Success: {SuccessCount}, Failed: {FailedCount}",
+            _logger.LogInformation("Reconciliation cycle {CycleId} completed in {Duration}ms. Success: {SuccessCount}, Failed: {FailedCount}",
                 cycleResult.CycleId,
                 cycleResult.Duration.TotalMilliseconds,
                 cycleResult.SuccessfulPolicies,
                 cycleResult.FailedPolicies);
 
             // Emit structured metrics for monitoring systems
-            using var metricsScope = _logger.BeginScope (new Dictionary<string, object> {
+            using var metricsScope = _logger.BeginScope(new Dictionary<string, object>
+            {
                 ["MetricType"] = "ReconciliationCycleCompleted",
                 ["CycleId"] = cycleResult.CycleId,
                 ["Duration"] = cycleResult.Duration.TotalMilliseconds,
@@ -117,53 +129,61 @@ public class AutomatedReconciliationService {
             });
 
             return cycleResult;
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Reconciliation cycle {CycleId} failed", cycleResult.CycleId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Reconciliation cycle {CycleId} failed", cycleResult.CycleId);
             cycleResult.CompletedAt = DateTime.UtcNow;
             cycleResult.Duration = cycleResult.CompletedAt - cycleResult.StartedAt;
             cycleResult.Success = false;
             cycleResult.ErrorMessage = ex.Message;
 
             //Cursor - Send critical failure notification
-            await SendCycleCriticalFailureNotificationAsync (cycleResult.CycleId, ex.Message, cancellationToken);
+            await SendCycleCriticalFailureNotificationAsync(cycleResult.CycleId, ex.Message, cancellationToken);
 
             throw;
         }
     }
 
     //Cursor - Enhanced ExecuteSinglePolicyAsync with configuration checks and notifications
-    public async Task<PolicyExecutionResult> ExecuteSinglePolicyAsync (int policyId, CancellationToken cancellationToken = default) {
-        var executionResult = new PolicyExecutionResult {
-        PolicyId = policyId,
-        StartedAt = DateTime.UtcNow,
-        ExecutionId = Guid.NewGuid ()
+    public async Task<PolicyExecutionResult> ExecuteSinglePolicyAsync(int policyId, CancellationToken cancellationToken = default)
+    {
+        var executionResult = new PolicyExecutionResult
+        {
+            PolicyId = policyId,
+            StartedAt = DateTime.UtcNow,
+            ExecutionId = Guid.NewGuid()
         };
 
-        using var scope = _logger.BeginScope (new Dictionary<string, object> {
+        using var scope = _logger.BeginScope(new Dictionary<string, object>
+        {
             ["Operation"] = "SinglePolicyExecution",
             ["PolicyId"] = policyId,
             ["ExecutionId"] = executionResult.ExecutionId
         });
 
-        try {
+        try
+        {
             //Cursor - Fetch policy with proper navigation properties
             var policy = await _context.ReconciliationPolicies
-                .Include (p => p.Site)
-                .FirstOrDefaultAsync (p => p.Id == policyId && p.IsActive, cancellationToken);
+                .Include(p => p.Site)
+                .FirstOrDefaultAsync(p => p.Id == policyId && p.IsActive, cancellationToken);
 
-            if (policy == null) {
+            if (policy == null)
+            {
                 executionResult.Success = false;
                 executionResult.ErrorMessage = "Policy not found or inactive";
                 return executionResult;
             }
 
-            _logger.LogInformation ("Executing policy {PolicyId} - {PolicyName}", policy.Id, policy.Name);
+            _logger.LogInformation("Executing policy {PolicyId} - {PolicyName}", policy.Id, policy.Name);
 
-            //Cursor - Check configuration before execution
-            var configuration = await _configurationService.GetConfigurationAsync (policy.SiteId, cancellationToken);
-            if (!configuration.AutoReconcileTankVolumes) {
-                _logger.LogInformation ("Auto-reconciliation disabled for site {SiteId}, skipping policy {PolicyId}",
-                    policy.SiteId, policy.Id);
+            // Check configuration before execution
+            var autoReconcile = await _systemConfigService.GetPtsAutoReconcileTankVolumesAsync();
+            if (!autoReconcile)
+            {
+                _logger.LogInformation("Auto-reconciliation disabled, skipping policy {PolicyId}",
+                    policy.Id);
 
                 executionResult.Success = true;
                 executionResult.CompletedAt = DateTime.UtcNow;
@@ -172,38 +192,44 @@ public class AutomatedReconciliationService {
             }
 
             //Cursor - Check if this is a daily reconciliation policy and handle accordingly
-            if (_dailyReconciliationService.IsDailyReconciliationPolicy (policy)) {
-                _logger.LogInformation ("Executing daily reconciliation policy {PolicyId}", policy.Id);
-                return await _dailyReconciliationService.ExecuteDailyReconciliationPolicyAsync (policy, cancellationToken);
+            if (_dailyReconciliationService.IsDailyReconciliationPolicy(policy))
+            {
+                _logger.LogInformation("Executing daily reconciliation policy {PolicyId}", policy.Id);
+                return await _dailyReconciliationService.ExecuteDailyReconciliationPolicyAsync(policy, cancellationToken);
             }
 
             // Create execution record
-            var execution = new ReconciliationPolicyExecution {
+            var execution = new ReconciliationPolicyExecution
+            {
                 PolicyId = policyId,
                 ExecutionStartTime = DateTime.UtcNow,
                 Status = ReconciliationExecutionStatus.InProgress,
                 ExecutedBy = SystemConstants.Defaults.SystemTriggeredBy
             };
 
-            _context.ReconciliationPolicyExecutions.Add (execution);
-            await _context.SaveChangesAsync (cancellationToken);
+            _context.ReconciliationPolicyExecutions.Add(execution);
+            await _context.SaveChangesAsync(cancellationToken);
 
-            try {
+            try
+            {
                 // Get tanks requiring reconciliation based on policy
-                var tanksToReconcile = await _policyEvaluationEngine.GetTanksRequiringReconciliation (policy, cancellationToken);
+                var tanksToReconcile = await _policyEvaluationEngine.GetTanksRequiringReconciliation(policy, cancellationToken);
                 executionResult.ProcessedTanks = tanksToReconcile.Count;
 
                 // Process each tank - using ReconciliationDiscrepancy as primary entity
-                var reconciliationDiscrepancies = new List<ReconciliationDiscrepancy> ();
+                var reconciliationDiscrepancies = new List<ReconciliationDiscrepancy>();
 
-                foreach (var tank in tanksToReconcile) {
-                    var discrepancyResult = await _discrepancyDetectionService.DetectDiscrepancies (tank, policy, cancellationToken);
+                foreach (var tank in tanksToReconcile)
+                {
+                    var discrepancyResult = await _discrepancyDetectionService.DetectDiscrepancies(tank, policy, cancellationToken);
 
-                    if (discrepancyResult.IsSignificant) {
+                    if (discrepancyResult.IsSignificant)
+                    {
                         // Determine severity based on variance thresholds
-                        var severity = DetermineSeverity (discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
+                        var severity = DetermineSeverity(discrepancyResult.VarianceLiters, discrepancyResult.VariancePercentage);
 
-                        var reconciliationDiscrepancy = new ReconciliationDiscrepancy {
+                        var reconciliationDiscrepancy = new ReconciliationDiscrepancy
+                        {
                             PolicyExecutionId = execution.Id,
                             TankId = tank.Id,
                             DetectedAt = DateTime.UtcNow,
@@ -214,26 +240,27 @@ public class AutomatedReconciliationService {
                             Severity = severity,
                             IsResolved = false,
                             AnalysisNotes = $"Discrepancy detected by policy '{policy.Name}' (ID: {policyId})",
-                            BusinessImpactScore = CalculateBusinessImpact (discrepancyResult.VarianceLiters, tank)
+                            BusinessImpactScore = CalculateBusinessImpact(discrepancyResult.VarianceLiters, tank)
                         };
 
-                        reconciliationDiscrepancies.Add (reconciliationDiscrepancy);
+                        reconciliationDiscrepancies.Add(reconciliationDiscrepancy);
 
                         //Cursor - Send discrepancy detection notification
-                        await SendDiscrepancyDetectedNotificationAsync (tank, discrepancyResult, policy, cancellationToken);
+                        await SendDiscrepancyDetectedNotificationAsync(tank, discrepancyResult, policy, cancellationToken);
                     }
                 }
 
                 // Process all discrepancies
-                if (reconciliationDiscrepancies.Any ()) {
-                    var reconciliationResults = await _orchestrationService.ProcessAllDiscrepanciesAsync (
+                if (reconciliationDiscrepancies.Any())
+                {
+                    var reconciliationResults = await _orchestrationService.ProcessAllDiscrepanciesAsync(
                         reconciliationDiscrepancies, policy, execution.Id, cancellationToken);
 
                     executionResult.DiscrepanciesFound = reconciliationDiscrepancies.Count;
-                    executionResult.DiscrepanciesResolved = reconciliationResults.Count (r => r.Success);
+                    executionResult.DiscrepanciesResolved = reconciliationResults.Count(r => r.Success);
 
                     //Cursor - Send reconciliation completion notification
-                    await SendReconciliationCompletionNotificationAsync (policy, executionResult.DiscrepanciesFound,
+                    await SendReconciliationCompletionNotificationAsync(policy, executionResult.DiscrepanciesFound,
                         executionResult.DiscrepanciesResolved, cancellationToken);
                 }
 
@@ -246,9 +273,11 @@ public class AutomatedReconciliationService {
                 executionResult.Success = true;
                 executionResult.CompletedAt = DateTime.UtcNow;
 
-                _logger.LogInformation ("Policy {PolicyId} execution completed successfully. Discrepancies: {Found}/{Resolved}",
+                _logger.LogInformation("Policy {PolicyId} execution completed successfully. Discrepancies: {Found}/{Resolved}",
                     policyId, executionResult.DiscrepanciesFound, executionResult.DiscrepanciesResolved);
-            } catch (Exception ex) {
+            }
+            catch (Exception ex)
+            {
                 execution.ExecutionEndTime = DateTime.UtcNow;
                 execution.Status = ReconciliationExecutionStatus.Failed;
                 execution.ErrorMessage = ex.Message;
@@ -257,13 +286,15 @@ public class AutomatedReconciliationService {
                 executionResult.ErrorMessage = ex.Message;
                 executionResult.CompletedAt = DateTime.UtcNow;
 
-                _logger.LogError (ex, "Policy {PolicyId} execution failed", policyId);
+                _logger.LogError(ex, "Policy {PolicyId} execution failed", policyId);
             }
 
-            await _context.SaveChangesAsync (cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
             return executionResult;
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Critical error during policy {PolicyId} execution", policyId);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Critical error during policy {PolicyId} execution", policyId);
             executionResult.Success = false;
             executionResult.ErrorMessage = ex.Message;
             executionResult.CompletedAt = DateTime.UtcNow;
@@ -272,11 +303,14 @@ public class AutomatedReconciliationService {
     }
 
     //Cursor - Notification methods for reconciliation events
-    private async Task SendPolicyExecutionFailureNotificationAsync (int policyId, string errorMessage, CancellationToken cancellationToken) {
-        try {
-            var request = new CreateNotificationRequest {
+    private async Task SendPolicyExecutionFailureNotificationAsync(int policyId, string errorMessage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new CreateNotificationRequest
+            {
                 Type = Features.Notification.Enums.NotificationType.Alert,
-                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                CategoryId = (int)Features.Notification.Enums.WellKnownCategories.Reconciliation,
                 Priority = Features.Notification.Enums.NotificationPriority.High,
                 Title = "Reconciliation Policy Execution Failed",
                 Message = $"Policy {policyId} execution failed: {errorMessage}",
@@ -285,17 +319,22 @@ public class AutomatedReconciliationService {
 
             };
 
-            await _notificationService.CreateNotificationAsync (request, cancellationToken);
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Failed to send policy execution failure notification for policy {PolicyId}", policyId);
+            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send policy execution failure notification for policy {PolicyId}", policyId);
         }
     }
 
-    private async Task SendCycleSummaryNotificationAsync (ReconciliationCycleResult cycleResult, CancellationToken cancellationToken) {
-        try {
-            var request = new CreateNotificationRequest {
+    private async Task SendCycleSummaryNotificationAsync(ReconciliationCycleResult cycleResult, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new CreateNotificationRequest
+            {
                 Type = Features.Notification.Enums.NotificationType.Alert,
-                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                CategoryId = (int)Features.Notification.Enums.WellKnownCategories.Reconciliation,
                 Priority = cycleResult.FailedPolicies > cycleResult.SuccessfulPolicies ? Features.Notification.Enums.NotificationPriority.High : Features.Notification.Enums.NotificationPriority.Medium,
                 Title = "Reconciliation Cycle Summary",
                 Message = $"Cycle {cycleResult.CycleId}: {cycleResult.SuccessfulPolicies} successful, {cycleResult.FailedPolicies} failed policies. Duration: {cycleResult.Duration.TotalMinutes:F1}min",
@@ -303,17 +342,22 @@ public class AutomatedReconciliationService {
                 TriggeredBy = "System"
             };
 
-            await _notificationService.CreateNotificationAsync (request, cancellationToken);
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Failed to send cycle summary notification for cycle {CycleId}", cycleResult.CycleId);
+            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send cycle summary notification for cycle {CycleId}", cycleResult.CycleId);
         }
     }
 
-    private async Task SendCycleCriticalFailureNotificationAsync (Guid cycleId, string errorMessage, CancellationToken cancellationToken) {
-        try {
-            var request = new CreateNotificationRequest {
+    private async Task SendCycleCriticalFailureNotificationAsync(Guid cycleId, string errorMessage, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var request = new CreateNotificationRequest
+            {
                 Type = Features.Notification.Enums.NotificationType.Alert,
-                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                CategoryId = (int)Features.Notification.Enums.WellKnownCategories.Reconciliation,
                 Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Critical Reconciliation System Failure",
                 Message = $"Reconciliation cycle {cycleId} failed critically: {errorMessage}",
@@ -322,20 +366,25 @@ public class AutomatedReconciliationService {
 
             };
 
-            await _notificationService.CreateNotificationAsync (request, cancellationToken);
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Failed to send critical failure notification for cycle {CycleId}", cycleId);
+            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send critical failure notification for cycle {CycleId}", cycleId);
         }
     }
 
-    private async Task SendDiscrepancyDetectedNotificationAsync (Tank tank, DiscrepancyDetectionResult discrepancyResult,
-        ReconciliationPolicy policy, CancellationToken cancellationToken) {
-        try {
-            var priority = Math.Abs (discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
+    private async Task SendDiscrepancyDetectedNotificationAsync(Tank tank, DiscrepancyDetectionResult discrepancyResult,
+        ReconciliationPolicy policy, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var priority = Math.Abs(discrepancyResult.VarianceLiters) > 50 ? "High" : "Medium";
 
-            var request = new CreateNotificationRequest {
+            var request = new CreateNotificationRequest
+            {
                 Type = Features.Notification.Enums.NotificationType.Alert,
-                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.DiscrepancyDetected,
+                CategoryId = (int)Features.Notification.Enums.WellKnownCategories.DiscrepancyDetected,
                 Priority = Features.Notification.Enums.NotificationPriority.Critical,
                 Title = "Tank Volume Discrepancy Detected",
                 Message = $"Tank {tank.Name} discrepancy: {discrepancyResult.VarianceLiters:F2}L ({discrepancyResult.VariancePercentage:F1}%)",
@@ -346,21 +395,26 @@ public class AutomatedReconciliationService {
 
             };
 
-            await _notificationService.CreateNotificationAsync (request, cancellationToken);
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Failed to send discrepancy detection notification for tank {TankId}", tank.Id);
+            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send discrepancy detection notification for tank {TankId}", tank.Id);
         }
     }
 
-    private async Task SendReconciliationCompletionNotificationAsync (ReconciliationPolicy policy,
-        int discrepanciesFound, int discrepanciesResolved, CancellationToken cancellationToken) {
-        try {
+    private async Task SendReconciliationCompletionNotificationAsync(ReconciliationPolicy policy,
+        int discrepanciesFound, int discrepanciesResolved, CancellationToken cancellationToken)
+    {
+        try
+        {
             var unresolvedCount = discrepanciesFound - discrepanciesResolved;
             var priority = unresolvedCount > 0 ? "Medium" : "Low";
 
-            var request = new CreateNotificationRequest {
+            var request = new CreateNotificationRequest
+            {
                 Type = Features.Notification.Enums.NotificationType.Info,
-                CategoryId = (int) Features.Notification.Enums.WellKnownCategories.Reconciliation,
+                CategoryId = (int)Features.Notification.Enums.WellKnownCategories.Reconciliation,
                 Priority = unresolvedCount > 0 ? Features.Notification.Enums.NotificationPriority.Medium : Features.Notification.Enums.NotificationPriority.Low,
                 Title = "Reconciliation Policy Completed",
                 Message = $"Policy '{policy.Name}': {discrepanciesFound} discrepancies found, {discrepanciesResolved} resolved",
@@ -370,28 +424,34 @@ public class AutomatedReconciliationService {
 
             };
 
-            await _notificationService.CreateNotificationAsync (request, cancellationToken);
-        } catch (Exception ex) {
-            _logger.LogError (ex, "Failed to send reconciliation completion notification for policy {PolicyId}", policy.Id);
+            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to send reconciliation completion notification for policy {PolicyId}", policy.Id);
         }
     }
 
-    private async Task<List<ReconciliationPolicy>> GetDuePoliciesAsync (CancellationToken cancellationToken) {
+    private async Task<List<ReconciliationPolicy>> GetDuePoliciesAsync(CancellationToken cancellationToken)
+    {
         var activePolicies = await _context.ReconciliationPolicies
-            .Where (p => p.IsActive)
-            .ToListAsync (cancellationToken);
+            .Where(p => p.IsActive)
+            .ToListAsync(cancellationToken);
 
-        var duePolicies = new List<ReconciliationPolicy> ();
+        var duePolicies = new List<ReconciliationPolicy>();
 
-        foreach (var policy in activePolicies) {
-            //Cursor - Check configuration before evaluating policy
-            var configuration = await _configurationService.GetConfigurationAsync (policy.SiteId, cancellationToken);
-            if (!configuration.AutoReconcileTankVolumes) {
-                continue; // Skip policies for sites with auto-reconciliation disabled
+        foreach (var policy in activePolicies)
+        {
+            //Cursor - Check configuration before evaluating policy (now uses global SystemConfiguration)
+            var autoReconcileEnabled = await _systemConfigService.GetPtsAutoReconcileTankVolumesAsync(cancellationToken);
+            if (!autoReconcileEnabled)
+            {
+                continue; // Skip policies when auto-reconciliation is disabled globally
             }
 
-            if (await _policyEvaluationEngine.IsPolicyDueForExecution (policy, cancellationToken)) {
-                duePolicies.Add (policy);
+            if (await _policyEvaluationEngine.IsPolicyDueForExecution(policy, cancellationToken))
+            {
+                duePolicies.Add(policy);
             }
         }
 
@@ -399,42 +459,48 @@ public class AutomatedReconciliationService {
     }
 
     //Cursor - Helper methods for ReconciliationDiscrepancy processing
-    private DiscrepancySeverity DetermineSeverity (decimal varianceLiters, decimal variancePercentage) {
-        decimal absVarianceLiters = Math.Abs (varianceLiters);
-        decimal absVariancePercentage = Math.Abs (variancePercentage);
+    private DiscrepancySeverity DetermineSeverity(decimal varianceLiters, decimal variancePercentage)
+    {
+        decimal absVarianceLiters = Math.Abs(varianceLiters);
+        decimal absVariancePercentage = Math.Abs(variancePercentage);
 
         // Define severity thresholds - these could be configurable
-        if (absVarianceLiters > 100 || absVariancePercentage > 10) {
+        if (absVarianceLiters > 100 || absVariancePercentage > 10)
+        {
             return DiscrepancySeverity.High;
         }
 
-        if (absVarianceLiters > 50 || absVariancePercentage > 5) {
+        if (absVarianceLiters > 50 || absVariancePercentage > 5)
+        {
             return DiscrepancySeverity.Medium;
         }
 
         return DiscrepancySeverity.Low;
     }
 
-    private decimal CalculateBusinessImpact (decimal varianceLiters, Tank tank) {
+    private decimal CalculateBusinessImpact(decimal varianceLiters, Tank tank)
+    {
         // Simple business impact calculation based on variance amount
         // This could be enhanced with fuel cost, tank capacity, operational criticality, etc.
-        decimal absVariance = Math.Abs (varianceLiters);
+        decimal absVariance = Math.Abs(varianceLiters);
 
         // Base impact score (0-100 scale)
-        decimal impactScore = Math.Min (absVariance / 10, 100); // 10 liters = 1 point, max 100
+        decimal impactScore = Math.Min(absVariance / 10, 100); // 10 liters = 1 point, max 100
 
         // Adjust based on tank capacity if available
-        if (tank.TankVolume > 0) {
+        if (tank.TankVolume > 0)
+        {
             decimal percentageOfCapacity = absVariance / tank.TankVolume * 100;
-            impactScore = Math.Max (impactScore, percentageOfCapacity * 2); // Weight capacity percentage higher
+            impactScore = Math.Max(impactScore, percentageOfCapacity * 2); // Weight capacity percentage higher
         }
 
-        return Math.Round (impactScore, 2);
+        return Math.Round(impactScore, 2);
     }
 }
 
 //Cursor - Result classes for execution tracking
-public class ReconciliationCycleResult {
+public class ReconciliationCycleResult
+{
     public Guid CycleId { get; set; }
     public DateTime StartedAt { get; set; }
     public DateTime CompletedAt { get; set; }
@@ -444,10 +510,11 @@ public class ReconciliationCycleResult {
     public int ProcessedPolicies { get; set; }
     public int SuccessfulPolicies { get; set; }
     public int FailedPolicies { get; set; }
-    public List<PolicyExecutionResult> PolicyResults { get; set; } = new ();
+    public List<PolicyExecutionResult> PolicyResults { get; set; } = new();
 }
 
-public class PolicyExecutionResult {
+public class PolicyExecutionResult
+{
     public int PolicyId { get; set; }
     public Guid ExecutionId { get; set; }
     public DateTime StartedAt { get; set; }

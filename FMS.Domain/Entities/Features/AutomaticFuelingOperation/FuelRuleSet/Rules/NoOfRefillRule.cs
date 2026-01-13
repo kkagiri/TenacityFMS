@@ -2,9 +2,9 @@ namespace FMS.Domain.Entities.Features.FuelRule.Rules
 {
     public class NoOfRefillRule : FuelingRule
     {
-        public int? MaxRefillsPerDay { get; set; }
-        public int? MaxRefillsPerWeek { get; set; }
-        public int? MaxRefillsPerMonth { get; set; }
+        // Note: MaxRefillsPerDay, MaxRefillsPerWeek, MaxRefillsPerMonth are inherited from FuelingRule base class
+        // This is required for EF Core TPH (Table Per Hierarchy) inheritance pattern
+        // Do NOT redefine these properties here as it causes property hiding/shadowing issues
 
         public override bool Evaluate(FuelingContext context)
         {

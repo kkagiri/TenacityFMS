@@ -27,6 +27,12 @@ import { checkAuthStatus } from "./redux/slices/authSlice";
 import { ENV } from "./config/environment";
 import fuelingNotificationService from "./services/fuelingNotificationService";
 import signalRService from "./services/signalRService";
+import pushNotificationService, {
+  setupBackgroundMessageHandler,
+} from "./services/pushNotificationService";
+
+// Setup background message handler at app startup (must be outside component)
+setupBackgroundMessageHandler();
 
 // Ignore specific warnings
 LogBox.ignoreLogs([
@@ -132,6 +138,32 @@ const AppContent = () => {
   const appState = useRef(AppState.currentState);
   const backgroundTimestamp = useRef(null);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
+  const authToken = useSelector((state) => state.auth.token);
+  const userId = useSelector((state) => state.auth.user?.Id);
+
+  // Initialize push notifications when user authenticates
+  useEffect(() => {
+    const initializePushNotifications = async () => {
+      if (isAuthenticated && authToken && userId) {
+        console.log("📲 [App] User authenticated, initializing push notifications...");
+        try {
+          const success = await pushNotificationService.initialize(authToken, userId);
+          if (success) {
+            console.log("✅ [App] Push notifications initialized");
+          } else {
+            console.log("ℹ️ [App] Push notifications not available or disabled");
+          }
+        } catch (error) {
+          console.warn("⚠️ [App] Push notification init failed:", error.message);
+        }
+      } else if (!isAuthenticated) {
+        // Cleanup push notifications on logout
+        pushNotificationService.cleanup();
+      }
+    };
+
+    initializePushNotifications();
+  }, [isAuthenticated, authToken, userId]);
 
   // Handle app state changes for SignalR connection management
   const handleAppStateChange = useCallback(

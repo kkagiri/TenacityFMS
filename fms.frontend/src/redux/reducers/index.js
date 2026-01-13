@@ -29,7 +29,6 @@ import realtimeStatusReducer from "./ptsReducers/realtimeStatusReducer";
 import deviceConnectionReducer from "./deviceConnectionReducer";
 import fuelingEventsReducer from "./fuelingEventsReducer";
 import configReducer from "./configReducer";
-import ptsAutomationConfigReducer from "./ptsAutomationConfigReducer";
 import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
@@ -84,7 +83,7 @@ const rootReducer = combineReducers({
   deviceConnections: deviceConnectionReducer,
   fuelingEvents: fuelingEventsReducer,
   config: configReducer,
-  ptsAutomationConfig: ptsAutomationConfigReducer,
+  // ptsAutomationConfig removed - migrated to systemConfig
   automatedReconciliation: automatedReconciliationReducer,
   fuelReport: fuelReportReducer,
   notification: notificationReducer,

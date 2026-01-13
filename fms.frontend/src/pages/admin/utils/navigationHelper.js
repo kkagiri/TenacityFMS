@@ -15,7 +15,7 @@ export const adminRoutes = {
   configuration: "/admin/configuration",
   systemconfig: "/admin/systemconfig",
   ptsService: "/admin/pts-service",
-  notifications: "/admin/notifications",
+  notification: "/admin/notification",
   providers: "/admin/providers",
   logs: "/admin/logs",
   expectedAverages: "/admin/expected-averages",

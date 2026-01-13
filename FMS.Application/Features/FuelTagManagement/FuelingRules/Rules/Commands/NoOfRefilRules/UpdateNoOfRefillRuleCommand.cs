@@ -33,9 +33,20 @@ public class UpdateNoOfRefillRuleCommandHandler : IRequestHandler<UpdateNoOfRefi
     {
         try
         {
+            _logger.LogInformation("UpdateNoOfRefillRule: Starting update for RuleId={RuleId}, " +
+                "MaxRefillsPerDay={MaxRefillsPerDay}, MaxRefillsPerWeek={MaxRefillsPerWeek}, MaxRefillsPerMonth={MaxRefillsPerMonth}",
+                request.RuleId, request.MaxRefillsPerDay, request.MaxRefillsPerWeek, request.MaxRefillsPerMonth);
+
             var rule = await _context.FuelingRules.FindAsync(new object[] { request.RuleId }, cancellationToken);
+
+            _logger.LogInformation("UpdateNoOfRefillRule: Found rule type={RuleType}, IsNoOfRefillRule={IsNoOfRefillRule}",
+                rule?.GetType().Name ?? "null", rule is NoOfRefillRule);
+
             if (rule is not NoOfRefillRule noOfRefillRule)
                 return new FMSResponseMessage(false, "No-of-refill rule not found");
+
+            _logger.LogInformation("UpdateNoOfRefillRule: Before update - MaxRefillsPerDay={MaxRefillsPerDay}, MaxRefillsPerWeek={MaxRefillsPerWeek}, MaxRefillsPerMonth={MaxRefillsPerMonth}",
+                noOfRefillRule.MaxRefillsPerDay, noOfRefillRule.MaxRefillsPerWeek, noOfRefillRule.MaxRefillsPerMonth);
 
             noOfRefillRule.RuleName = request.RuleName;
             noOfRefillRule.IsActive = request.IsActive;
@@ -43,7 +54,12 @@ public class UpdateNoOfRefillRuleCommandHandler : IRequestHandler<UpdateNoOfRefi
             noOfRefillRule.MaxRefillsPerWeek = request.MaxRefillsPerWeek;
             noOfRefillRule.MaxRefillsPerMonth = request.MaxRefillsPerMonth;
 
-            await _context.SaveChangesAsync(cancellationToken);
+            _logger.LogInformation("UpdateNoOfRefillRule: After assignment - MaxRefillsPerDay={MaxRefillsPerDay}, MaxRefillsPerWeek={MaxRefillsPerWeek}, MaxRefillsPerMonth={MaxRefillsPerMonth}",
+                noOfRefillRule.MaxRefillsPerDay, noOfRefillRule.MaxRefillsPerWeek, noOfRefillRule.MaxRefillsPerMonth);
+
+            var saveResult = await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation("UpdateNoOfRefillRule: SaveChangesAsync returned {SaveResult} rows affected", saveResult);
 
             return new FMSResponseMessage(true, "No-of-refill rule updated successfully");
         }

@@ -10,6 +10,8 @@ import LoadIndicator from 'devextreme-react/load-indicator';
 import { ValidationSummary } from 'devextreme-react/validation-summary';
 import notify from 'devextreme/ui/notify';
 import VehicleSearchableSelector from '../../components/selectors/VehicleSearchableSelector';
+import DeviceTypeDropdown from './components/DeviceTypeDropdown';
+import IssueTemplateDropdown from './components/IssueTemplateDropdown';
 import {
   fetchIssueById,
   createIssue,
@@ -59,9 +61,16 @@ const IssueTrackerFormPage = ({
   const isQuickCreate = workflowType === 'quick-create';
   const isGpsTriggered = workflowType === 'gps-triggered';
 
-  // State management - Updated to match IssueTrackerDTO properties
+  // State management - Updated to match IssueTrackerDTO properties with V2 enhancements
   const [formData, setFormData] = useState({
     id: null,
+    // V2 Fields - Device Type and Template driven
+    deviceTypeId: null,         // V2: int? DeviceTypeId - FK to devicetype table
+    issueTemplateId: null,      // V2: int? IssueTemplateId - FK to issuetemplate table
+    canAutoClose: false,        // V2: bool - inherited from template
+    isAutoCreated: false,       // V2: bool - created by monitoring system
+
+    // Legacy fields (still supported)
     issueCategory: null,        // int IssueCategory -> Maps to categoryId
     site: null,                 // int Site -> Maps to siteId
     openby: 'System',           // string Openby - default to 'System'
@@ -76,7 +85,7 @@ const IssueTrackerFormPage = ({
     lastModfield: null,         // DateTime? LastModfield
     vehicle: null,              // int Vehicle -> Maps to vehicleId
     device: null,               // int? Device
-    deviceType: null,           // int? DeviceType
+    deviceType: null,           // int? DeviceType (legacy - keep for backward compat)
     assignTo: '',               // string AssignTo
 
     // Additional UI fields for enhanced functionality
@@ -289,6 +298,12 @@ const IssueTrackerFormPage = ({
         // Only include id for edit mode, and ensure it's a number
         ...(isEditMode && formData.id ? { id: parseInt(formData.id) } : {}),
 
+        // V2 Fields - Device Type and Template
+        IssueTemplateId: formData.issueTemplateId,
+        DeviceTypeId: formData.deviceTypeId,
+        CanAutoClose: formData.canAutoClose || false,
+        IsAutoCreated: formData.isAutoCreated || false,
+
         // Map to backend field names (case-sensitive matching IssueTrackerDTO)
         IssueCategory: formData.issueCategory,
         Site: formData.site,
@@ -366,6 +381,43 @@ const IssueTrackerFormPage = ({
     }
   };
 
+  // V2: Handle device type selection
+  const handleDeviceTypeChange = (e) => {
+    setFormData(prev => ({
+      ...prev,
+      deviceTypeId: e.value,
+      // Clear template when device type changes
+      issueTemplateId: null,
+      // If template was pre-filling values, don't clear them - user may want to keep
+    }));
+  };
+
+  // V2: Handle template selection - pre-fill form fields from template
+  const handleTemplateSelected = (template) => {
+    if (!template) return;
+
+    setFormData(prev => ({
+      ...prev,
+      issueTemplateId: template.id,
+      // Pre-fill from template (only if not already set)
+      problemTitle: prev.problemTitle || template.titleTemplate || '',
+      problemDescription: prev.problemDescription || template.descriptionTemplate || '',
+      priority: prev.priority || template.defaultPriorityId,
+      canAutoClose: template.canAutoClose || false,
+      // Calculate due date if template has default days
+      dueDate: prev.dueDate || (template.defaultDueDays
+        ? new Date(Date.now() + template.defaultDueDays * 24 * 60 * 60 * 1000)
+        : null),
+    }));
+
+    // Show notification about pre-filled fields
+    notify({
+      message: `Form pre-filled from template: ${template.name}`,
+      type: 'info',
+      displayTime: 2000
+    });
+  };
+
   const handleFieldValueChanged = (field, value) => {
     setFormData(prev => ({
       ...prev,
@@ -373,49 +425,47 @@ const IssueTrackerFormPage = ({
     }));
   };
 
-  // Quick create simplified fields - Updated for DTO
+  // Quick create simplified fields - Updated for V2 with device type/template
   const quickCreateFields = [
+    'deviceTypeId',      // V2
+    'issueTemplateId',   // V2
     'problemTitle',
     'problemDescription',
-    'issueCategory',
     'priority',
     'vehicle',
     'site',
     'assignTo',
-    'openby',
-    'isUrgent'
+    'openby'
   ];
 
-  // Standard workflow fields - Updated for DTO
+  // Standard workflow fields - Updated for V2 with device type/template
   const standardFields = [
+    'deviceTypeId',      // V2
+    'issueTemplateId',   // V2
     'problemTitle',
     'problemDescription',
-    'issueCategory',
+    'issueCategory',     // Legacy - kept for backward compat
     'priority',
     'status',
     'assignTo',
     'openby',
     'vehicle',
     'site',
-    'dueDate',
-    'notes',
-    'isUrgent',
-    'requiresApproval'
+    'dueDate'
   ];
 
-  // GPS triggered fields (pre-filled + editable) - Updated for DTO
+  // GPS triggered fields (pre-filled + editable) - Updated for V2
   const gpsTriggeredFields = [
+    'deviceTypeId',      // V2 - pre-set to GPS device type
+    'issueTemplateId',   // V2
     'problemTitle',
     'problemDescription',
-    'issueCategory',
     'priority',
     'vehicle',
     'site',
     'assignTo',
     'openby',
-    'gpsAddress',
-    'isUrgent',
-    'notes'
+    'gpsAddress'
   ];
 
   const getFieldsForWorkflow = () => {
@@ -534,6 +584,48 @@ const IssueTrackerFormPage = ({
           colCount={isPopup ? 1 : 2}
           labelLocation="top"
         >
+          {/* V2: Device Type and Template Selection */}
+          <GroupItem caption="Issue Classification" colCount={isPopup ? 1 : 2}>
+            {shouldShowField('deviceTypeId') && (
+              <SimpleItem
+                render={() => (
+                  <DeviceTypeDropdown
+                    value={formData.deviceTypeId}
+                    onValueChanged={handleDeviceTypeChange}
+                    isRequired={true}
+                    placeholder="Select device type..."
+                  />
+                )}
+              />
+            )}
+
+            {shouldShowField('issueTemplateId') && (
+              <SimpleItem
+                render={() => (
+                  <IssueTemplateDropdown
+                    value={formData.issueTemplateId}
+                    deviceTypeId={formData.deviceTypeId}
+                    onValueChanged={(e) => setFormData(prev => ({ ...prev, issueTemplateId: e.value }))}
+                    onTemplateSelected={handleTemplateSelected}
+                    isRequired={false}
+                    placeholder="Select template (optional)..."
+                  />
+                )}
+              />
+            )}
+
+            {formData.canAutoClose && (
+              <SimpleItem colSpan={isPopup ? 1 : 2}>
+                <div className="tw-flex tw-items-center tw-gap-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded tw-px-3 tw-py-2">
+                  <i className="fa-light fa-robot tw-text-blue-500"></i>
+                  <span className="tw-text-sm tw-text-blue-700">
+                    This issue type supports automatic resolution when conditions are met
+                  </span>
+                </div>
+              </SimpleItem>
+            )}
+          </GroupItem>
+
           {/* Basic Information Group */}
           <GroupItem caption="Issue Details" colCount={isPopup ? 1 : 2}>
             {shouldShowField('problemTitle') && (

@@ -3,7 +3,8 @@ import {
   SelectBox,
   DateBox,
   TextBox,
-  Button
+  Button,
+  CheckBox
 } from 'devextreme-react';
 
 import Form, {
@@ -11,9 +12,12 @@ import Form, {
   GroupItem
 } from 'devextreme-react/form';
 
+import DeviceTypeDropdown from './DeviceTypeDropdown';
+
 /**
  * Issue Filters Component
  * Advanced filtering interface for issues with multiple criteria
+ * Updated with V2 filters: Device Type, Auto-Created
  */
 const IssueFilters = ({
   categories = [],
@@ -33,6 +37,10 @@ const IssueFilters = ({
     dateFrom: null,
     dateTo: null,
     searchText: '',
+    // V2 Filters
+    deviceTypeId: null,
+    isAutoCreated: null,      // null = all, true = auto-created only, false = manual only
+    canAutoClose: null,       // null = all, true = auto-close enabled, false = manual close
     ...currentFilters
   });
 
@@ -46,6 +54,10 @@ const IssueFilters = ({
       dateFrom: null,
       dateTo: null,
       searchText: '',
+      // V2 Filters
+      deviceTypeId: null,
+      isAutoCreated: null,
+      canAutoClose: null,
       ...currentFilters
     });
   }, [currentFilters]);
@@ -78,7 +90,11 @@ const IssueFilters = ({
       assignedTo: '',
       dateFrom: null,
       dateTo: null,
-      searchText: ''
+      searchText: '',
+      // V2 Filters
+      deviceTypeId: null,
+      isAutoCreated: null,
+      canAutoClose: null
     };
     setFilters(emptyFilters);
     onClearFilters && onClearFilters();
@@ -182,6 +198,53 @@ const IssueFilters = ({
               onValueChanged={(e) => handleFilterChange('assignedTo', e.value)}
               showClearButton={true}
             />
+          </Item>
+        </GroupItem>
+
+        {/* V2: Device Type Filter */}
+        <GroupItem colSpan={2} caption="Device Type">
+          <Item dataField="deviceTypeId">
+            <DeviceTypeDropdown
+              value={filters.deviceTypeId}
+              onValueChanged={(e) => handleFilterChange('deviceTypeId', e.value)}
+              showLabel={false}
+              placeholder="Filter by device type..."
+              showClearButton={true}
+            />
+          </Item>
+        </GroupItem>
+
+        {/* V2: Auto-Created / Auto-Close Filters */}
+        <GroupItem colSpan={2} caption="Issue Source">
+          <Item>
+            <div className="tw-flex tw-flex-wrap tw-gap-4">
+              <SelectBox
+                dataSource={[
+                  { id: null, name: 'All Issues' },
+                  { id: true, name: 'Auto-Created Only' },
+                  { id: false, name: 'Manual Only' }
+                ]}
+                displayExpr="name"
+                valueExpr="id"
+                value={filters.isAutoCreated}
+                onValueChanged={(e) => handleFilterChange('isAutoCreated', e.value)}
+                placeholder="Issue source..."
+                width={180}
+              />
+              <SelectBox
+                dataSource={[
+                  { id: null, name: 'All' },
+                  { id: true, name: 'Auto-Close Enabled' },
+                  { id: false, name: 'Manual Close Only' }
+                ]}
+                displayExpr="name"
+                valueExpr="id"
+                value={filters.canAutoClose}
+                onValueChanged={(e) => handleFilterChange('canAutoClose', e.value)}
+                placeholder="Auto-close..."
+                width={180}
+              />
+            </div>
           </Item>
         </GroupItem>
 

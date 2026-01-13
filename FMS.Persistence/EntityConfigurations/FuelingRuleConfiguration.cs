@@ -34,11 +34,12 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.VehicleId).HasColumnType("int(11)");
                 builder.Property(e => e.SiteId).HasColumnType("int(11)");
 
-                // DailyMonthlyLimitRule properties
+                // DailyMonthlyLimitRule properties (all on base class for TPH)
                 builder.Property(e => e.DailyLimitLiter).HasColumnName("DailyLimitLiter").HasColumnType("int(11)");
                 builder.Property(e => e.MonthlyLimitLiter).HasColumnName("MonthlyLimitLiter").HasColumnType("int(11)");
+                builder.Property(e => e.FuelingLimitPerTransaction).HasColumnName("FuelingLimitPerTransaction").HasColumnType("int(11)");
 
-                // NoOfRefillRule properties
+                // NoOfRefillRule properties (all on base class for TPH)
                 builder.Property(e => e.MaxRefillsPerDay).HasColumnName("MaxRefillsPerDay").HasColumnType("int(11)");
                 builder.Property(e => e.MaxRefillsPerWeek).HasColumnName("MaxRefillsPerWeek").HasColumnType("int(11)");
                 builder.Property(e => e.MaxRefillsPerMonth).HasColumnName("MaxRefillsPerMonth").HasColumnType("int(11)");
@@ -76,22 +77,9 @@ namespace FMS.Persistence.EntityConfigurations
     }
 }
 
-/// <summary>
-/// Configuration for DailyMonthlyLimitRule derived entity
-/// NOTE: FuelingLimitPerTransaction column must exist in database
-/// Run migration: Documentation/database_migrations/2026-01-03_fueling_rules_cascade_model.sql
-/// </summary>
-public class DailyMonthlyLimitRuleConfiguration : IEntityTypeConfiguration<DailyMonthlyLimitRule>
-{
-    public void Configure(EntityTypeBuilder<DailyMonthlyLimitRule> builder)
-    {
-        // New property for per-transaction limit
-        // Column: fueling_limit_per_transaction (added by migration script)
-        builder.Property(e => e.FuelingLimitPerTransaction)
-            .HasColumnName("FuelingLimitPerTransaction")
-            .HasColumnType("int(11)");
-    }
-}
+// Note: DailyMonthlyLimitRuleConfiguration removed - FuelingLimitPerTransaction is now
+// configured on the base FuelingRule class for proper TPH inheritance pattern.
+// All TPH properties are on the base class to avoid property shadowing issues.
 
 /// <summary>
 /// Configuration for TimeWindowRule derived entity

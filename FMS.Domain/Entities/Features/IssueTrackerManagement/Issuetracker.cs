@@ -5,11 +5,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 namespace FMS.Domain.Entities;
 
 /// <summary>
-///
+/// Issue Tracker entity - tracks issues related to vehicles and devices
 /// </summary>
-public partial class Issuetracker {
+public partial class Issuetracker
+{
     public int Id { get; set; }
 
+    // Legacy category (still supported)
     public int IssueCategoryId { get; set; }
 
     public int SiteId { get; set; }
@@ -47,6 +49,53 @@ public partial class Issuetracker {
     /// </summary>
     public int? ActiveAlarmId { get; set; }
 
+    // ========== V2 Template-based fields ==========
+
+    /// <summary>
+    /// Issue Template ID (v2) - links to template that defines issue type
+    /// </summary>
+    public int? IssueTemplateId { get; set; }
+
+    /// <summary>
+    /// Device Type ID (v2) - foreign key to devicetype table
+    /// </summary>
+    public int? DeviceTypeId { get; set; }
+
+    /// <summary>
+    /// Whether this issue can be auto-closed (v2)
+    /// </summary>
+    public bool CanAutoClose { get; set; }
+
+    /// <summary>
+    /// Reason for auto-close (v2) - e.g., "Device came back online"
+    /// </summary>
+    public string? AutoCloseReason { get; set; }
+
+    /// <summary>
+    /// Whether this issue was auto-created from alarm/monitoring (v2)
+    /// </summary>
+    public bool IsAutoCreated { get; set; }
+
+    /// <summary>
+    /// Related entity ID for auto-created issues (device ID, vehicle ID, etc.)
+    /// </summary>
+    public int? RelatedEntityId { get; set; }
+
+    /// <summary>
+    /// Related entity type for auto-created issues (tank_monitor, vehicle, pts, etc.)
+    /// </summary>
+    public string? RelatedEntityType { get; set; }
+
+    /// <summary>
+    /// User or role the issue is assigned to
+    /// </summary>
+    public string? AssignedTo { get; set; }
+
+    /// <summary>
+    /// User or system that reported the issue
+    /// </summary>
+    public string? ReportedBy { get; set; }
+
     [NotMapped]
     public virtual User AssignToNavigation { get; set; } = null!;
 
@@ -56,7 +105,11 @@ public partial class Issuetracker {
 
     public virtual ActiveAlarm? ActiveAlarm { get; set; }
 
-    public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker> ();
+    // V2 Navigation Properties
+    public virtual Issuetemplate? IssueTemplate { get; set; }
+    public virtual Devicetype? DeviceTypeNavigation { get; set; }
+
+    public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker>();
     [NotMapped]
 
     public virtual User OpenbyNavigation { get; set; } = null!;

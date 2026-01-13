@@ -1,0 +1,49 @@
+using System;
+
+namespace FMS.Domain.Entities;
+
+public partial class Issuetemplate
+{
+    public int Id { get; set; }
+
+    public int DeviceTypeId { get; set; }
+
+    public string Name { get; set; } = null!;
+
+    public string? TitleTemplate { get; set; }
+
+    public string? DescriptionTemplate { get; set; }
+
+    public int? DefaultPriorityId { get; set; }
+
+    public int? DefaultStatusId { get; set; }
+
+    public bool IsActive { get; set; } = true;
+
+    /// <summary>
+    /// Whether issues can be auto-created from monitoring based on this template
+    /// </summary>
+    public bool CanAutoCreate { get; set; }
+
+    /// <summary>
+    /// Device offline threshold in minutes for auto-creating issues
+    /// </summary>
+    public int? OfflineThresholdMinutes { get; set; }
+
+    /// <summary>
+    /// Default user/role to assign auto-created issues to
+    /// </summary>
+    public string? DefaultAssignee { get; set; }
+
+    public DateTime? CreatedAt { get; set; }
+
+    public DateTime? UpdatedAt { get; set; }
+
+    public virtual Devicetype DeviceType { get; set; } = null!;
+
+    public virtual Issuepriority? DefaultPriority { get; set; }
+
+    public virtual Issuestatus? DefaultStatus { get; set; }
+
+    public virtual Issueautocloseconfig? AutoCloseConfig { get; set; }
+}

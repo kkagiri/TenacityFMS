@@ -67,6 +67,7 @@ using FMS.Application.Services.Logging;
 using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
+using FMS.BackgroundServices.IssueTracker;
 
 namespace FMS.WebClient.Extensions;
 
@@ -392,7 +393,6 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IPermissionAuthorizationService, PermissionAuthorizationService>();
 
         services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();
-        services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService>();
         services.AddSingleton<IPTSConnectionManager, PTSConnectionManager>();
         // Register the device connection tracker (shared Redis-based tracker)
         services.AddSingleton<FMS.Application.Communication.DeviceConnectionTracker>();
@@ -467,10 +467,17 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<AutomatedReconciliationBackgroundService>();
         services.AddHostedService<ActiveAlarmProcessingService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
+
+        // Issue Tracker V2 Background Services
+        services.AddHostedService<IssueAutoCloseService>();
+        services.AddHostedService<IssueMonitoringService>();
+
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISmsService, SmsService>();
         services.AddScoped<INotificationService, NotificationService>();
+        // Push notification service for mobile/web push
+        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
         // Real-time notification abstraction
         services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
@@ -516,6 +523,12 @@ public static class FmsServiceCollectionExtensions
 
         // Fueling Rules Services
         services.AddScoped<FMS.Application.Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService, FMS.Application.Features.FuelTagManagement.FuelingRules.Services.FuelingRuleEvaluationService>();
+
+        // Location Bypass Notification Service (SignalR broadcast for bypass status changes)
+        services.AddScoped<FMS.Application.Features.Geofence.Services.ILocationBypassNotificationService, FMS.Application.Features.Geofence.Services.LocationBypassNotificationService>();
+
+        // Location Bypass Monitor Background Service (auto-expires bypasses and notifies clients via SignalR)
+        services.AddHostedService<LocationBypassMonitorService>();
 
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();

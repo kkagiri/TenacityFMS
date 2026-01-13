@@ -9,7 +9,7 @@ using FMS.Application.Common;
 using FMS.Application.Common.PTSResponse;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.ATG.Common;
-using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -26,14 +26,14 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
         private readonly GpsdataContext _context;
         private readonly ILogger<CreatePumpTransactionCommandHandler> _logger;
         private readonly PumpTransactionIntegrationService _integrationService;
-        private readonly IAutomatedFuelingConfigurationService _configurationService;
+        private readonly ISystemConfigurationService _systemConfigService;
         private readonly IMediator _mediator;
 
         public CreatePumpTransactionCommandHandler(
             GpsdataContext context,
             ILogger<CreatePumpTransactionCommandHandler> logger,
             PumpTransactionIntegrationService integrationService,
-            IAutomatedFuelingConfigurationService configurationService,
+            ISystemConfigurationService systemConfigService,
             IMediator mediator)
         {
             _context = context ??
@@ -42,8 +42,8 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 throw new ArgumentNullException(nameof(logger));
             _integrationService = integrationService ??
                 throw new ArgumentNullException(nameof(integrationService));
-            _configurationService = configurationService ??
-                throw new ArgumentNullException(nameof(configurationService));
+            _systemConfigService = systemConfigService ??
+                throw new ArgumentNullException(nameof(systemConfigService));
             _mediator = mediator ??
                 throw new ArgumentNullException(nameof(mediator));
         }
@@ -108,10 +108,10 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 }
 
                 // Check configuration to see if we should check for duplicates
-                var config = await _configurationService.GetConfigurationAsync(siteId, cancellationToken);
+                var checkForDuplicates = await _systemConfigService.GetPtsCheckForDuplicateManualEntriesAsync(cancellationToken);
 
                 // Check for potential duplicate manual entry if configured and we have vehicle ID
-                if (config.CheckForDuplicateManualEntries &&
+                if (checkForDuplicates &&
                     pumpTransactionData.VehicleId.HasValue &&
                     pumpTransactionData.Volume.HasValue)
                 {
@@ -133,11 +133,11 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     }
                 }
 
-                _context.Pumptransactions.Add(pumpTransactionData);
                 await _context.SaveChangesAsync(cancellationToken);
 
                 // Process tank volume history if configured, not a duplicate, and we have tank ID
-                if (config.AutoCreateLedgerEntries &&
+                var autoCreateLedger = await _systemConfigService.GetPtsAutoCreateLedgerEntriesAsync(cancellationToken);
+                if (autoCreateLedger &&
                     !pumpTransactionData.HasBeenProcessed &&
                     pumpTransactionData.TankId.HasValue)
                 {

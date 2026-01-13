@@ -208,8 +208,8 @@ const NotificationCategoriesTab = () => {
   }, [handleEdit, handleDelete]);
 
   return (
-    <div className="notification-categories-tab">
-      <div className="categories-content">
+    <div className="notification-categories-tab tw-h-full tw-flex tw-flex-col">
+      <div className="categories-content tw-flex-1 tw-overflow-hidden">
         <DataGrid
           ref={gridRef}
           dataSource={categories}
@@ -219,6 +219,7 @@ const NotificationCategoriesTab = () => {
           showColumnLines={false}
           allowColumnResizing={true}
           columnAutoWidth={true}
+          height="100%"
           className="categories-grid"
         >
           <Toolbar>

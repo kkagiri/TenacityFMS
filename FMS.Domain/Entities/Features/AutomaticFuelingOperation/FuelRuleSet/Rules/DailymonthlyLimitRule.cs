@@ -3,27 +3,12 @@ namespace FMS.Domain.Entities.Features.FuelRule.Rules
     /// <summary>
     /// Rule that limits fuel based on daily volume, monthly volume, and per-transaction amount.
     /// All limits are optional - only set limits are enforced.
+    /// Note: DailyLimitLiter, MonthlyLimitLiter, and FuelingLimitPerTransaction are inherited from FuelingRule base class.
+    /// This is required for EF Core TPH (Table Per Hierarchy) inheritance pattern.
+    /// Do NOT redefine these properties here as it causes property hiding/shadowing issues.
     /// </summary>
     public class DailyMonthlyLimitRule : FuelingRule
     {
-        /// <summary>
-        /// Maximum fuel allowed per day in liters (e.g., 200L/day)
-        /// </summary>
-        public int? DailyLimitLiter { get; set; }
-
-        /// <summary>
-        /// Maximum fuel allowed per month in liters (e.g., 3000L/month)
-        /// </summary>
-        public int? MonthlyLimitLiter { get; set; }
-
-        /// <summary>
-        /// Maximum fuel allowed per single transaction in liters (e.g., 100L/refill)
-        /// This prevents over-fueling in a single transaction, especially useful for:
-        /// - Tippers that shouldn't get more than X liters at once
-        /// - Preventing fraud by limiting single transaction size
-        /// </summary>
-        public int? FuelingLimitPerTransaction { get; set; }
-
         public override bool Evaluate(FuelingContext context)
         {
             // If a daily limit is set, check remaining allowance

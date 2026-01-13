@@ -11,23 +11,23 @@ import RecipientManagement from './recipients/RecipientManagement';
 import UserPreferences from './preferences/UserPreferences';
 import NotificationHistory from './history/NotificationHistory';
 import TestingPanel from './testing/TestingPanel';
+import NotificationCategoriesTab from '../admin/notification-settings/NotificationCategoriesTab';
+import { NOTIFICATION_BASE_PATH } from './utils/navigationHelper';
 
 const NotificationSystem = () => {
   const location = useLocation();
 
   // Extract the sub-route from the current path
-  // If we're at /notifications, show dashboard
-  // If we're at /notifications/policies, show policies, etc.
+  // Base path is /admin/notification
   const getSubRoute = () => {
     const path = location.pathname;
-    const basePath = '/notifications';
 
-    if (path === basePath || path === basePath + '/') {
+    if (path === NOTIFICATION_BASE_PATH || path === NOTIFICATION_BASE_PATH + '/') {
       return 'dashboard';
     }
 
-    // Extract sub-route (everything after /notifications/)
-    const subPath = path.replace(basePath + '/', '').split('/')[0];
+    // Extract sub-route (everything after /admin/notification/)
+    const subPath = path.replace(NOTIFICATION_BASE_PATH + '/', '').split('/')[0];
     return subPath || 'dashboard';
   };
 
@@ -44,6 +44,8 @@ const NotificationSystem = () => {
           return <PolicyEdit />;
         }
         return <PolicyManagement />;
+      case 'categories':
+        return <NotificationCategoriesTab />;
       case 'configuration':
         if (location.pathname.includes('/email')) {
           return <EmailConfiguration />;

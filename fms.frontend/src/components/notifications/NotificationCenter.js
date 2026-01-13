@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { useNavigate } from "react-router-dom";
 import {
   fetchNotifications,
   markNotificationAsRead,
@@ -8,6 +7,7 @@ import {
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
 import signalRService from "../../signalR/SignalRService";
+import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
 
 // Maximum notifications to show initially
 const MAX_VISIBLE_NOTIFICATIONS = 3;
@@ -45,7 +45,6 @@ class NotificationErrorBoundary extends React.Component {
 
 const NotificationCenter = () => {
   const dispatch = useDispatch();
-  const navigate = useNavigate();
 
   // Get notifications and import progress from Redux store
   const { notifications, importProgress, backendNotifications } = useSelector(
@@ -56,6 +55,7 @@ const NotificationCenter = () => {
   const [hasUnread, setHasUnread] = useState(false);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [visibleNotifications, setVisibleNotifications] = useState([]);
+  const [preferencesPopupVisible, setPreferencesPopupVisible] = useState(false);
   const isMounted = useRef(true);
   const isLoading = useRef(false);
   const popoverRef = useRef(null);
@@ -260,9 +260,9 @@ const NotificationCenter = () => {
 
   // Navigate to notification preferences
   const handlePreferences = useCallback(() => {
-    navigate("/notifications/preferences");
+    setPreferencesPopupVisible(true);
     setIsOpen(false); // Close the notification center
-  }, [navigate]);
+  }, []);
 
   // Format timestamp into relative time
   const formatTimeAgo = (timestamp) => {
@@ -598,6 +598,12 @@ const NotificationCenter = () => {
             </div>
           </div>
         )}
+
+        {/* Notification Preferences Popup */}
+        <NotificationPreferencesPopup
+          visible={preferencesPopupVisible}
+          onHiding={() => setPreferencesPopupVisible(false)}
+        />
       </div>
     </NotificationErrorBoundary>
   );

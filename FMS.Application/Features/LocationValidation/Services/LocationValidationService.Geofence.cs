@@ -445,9 +445,15 @@ public partial class LocationValidationService
                         // For now, we can treat them similarly to polygons
                         if (!string.IsNullOrEmpty(geofence.GeometryJson))
                         {
-                            isInside = IsPointNearRoute(latitude, longitude, geofence.GeometryJson, geofence.RadiusMeters ?? DefaultRouteBufferMeters);
+                            var buffer = geofence.RadiusMeters.GetValueOrDefault(DefaultRouteBufferMeters);
+                            if (buffer <= 0)
+                            {
+                                buffer = DefaultRouteBufferMeters;
+                            }
+
+                            isInside = IsPointNearRoute(latitude, longitude, geofence.GeometryJson, buffer);
                             _logger.LogDebug("[GEOFENCE_CHECK] Route check: buffer={Buffer}m, isInside={IsInside}",
-                                geofence.RadiusMeters ?? DefaultRouteBufferMeters, isInside);
+                                buffer, isInside);
                         }
                         else
                         {
@@ -491,6 +497,12 @@ public partial class LocationValidationService
     /// Default radius in meters for circle geofences when not specified
     /// </summary>
     private const int DefaultCircleRadiusMeters = 0;
+
+    /// <summary>
+    /// Maximum number of vertices allowed when parsing GeoJSON.
+    /// Safety guard to avoid extremely large payloads causing CPU spikes.
+    /// </summary>
+    private const int MaxGeoJsonVertices = 10_000;
 
     #endregion
 
@@ -572,7 +584,7 @@ public partial class LocationValidationService
                 var p1 = new GeoLocation { Latitude = (decimal)coordinates[i].Item1, Longitude = (decimal)coordinates[i].Item2 };
                 var p2 = new GeoLocation { Latitude = (decimal)coordinates[i + 1].Item1, Longitude = (decimal)coordinates[i + 1].Item2 };
 
-                var distance = DistanceToLineSegment(point, p1, p2);
+                var distance = DistanceToLineSegmentMeters(point, p1, p2);
                 if (distance <= bufferMeters)
                 {
                     return true;
@@ -601,6 +613,30 @@ public partial class LocationValidationService
         {
             using var doc = System.Text.Json.JsonDocument.Parse(geometryJson);
             var root = doc.RootElement;
+
+            // Support GeoJSON Feature / FeatureCollection wrappers if stored that way
+            // - Feature: {"type":"Feature","geometry":{...}}
+            // - FeatureCollection: {"type":"FeatureCollection","features":[{"geometry":{...}}]}
+            if (root.ValueKind == System.Text.Json.JsonValueKind.Object && root.TryGetProperty("type", out var typeProp))
+            {
+                var typeValue = typeProp.GetString();
+                if (string.Equals(typeValue, "Feature", StringComparison.OrdinalIgnoreCase) &&
+                    root.TryGetProperty("geometry", out var geometryProp))
+                {
+                    root = geometryProp;
+                }
+                else if (string.Equals(typeValue, "FeatureCollection", StringComparison.OrdinalIgnoreCase) &&
+                    root.TryGetProperty("features", out var featuresProp) &&
+                    featuresProp.ValueKind == System.Text.Json.JsonValueKind.Array)
+                {
+                    var firstFeature = featuresProp.EnumerateArray().FirstOrDefault();
+                    if (firstFeature.ValueKind == System.Text.Json.JsonValueKind.Object &&
+                        firstFeature.TryGetProperty("geometry", out var firstGeometry))
+                    {
+                        root = firstGeometry;
+                    }
+                }
+            }
 
             // Try to get coordinates property, or use root if it's already an array
             System.Text.Json.JsonElement coordsElement;
@@ -645,7 +681,47 @@ public partial class LocationValidationService
                 }
             }
 
-            return result.Count > 0 ? result : null;
+            if (result.Count == 0)
+            {
+                return null;
+            }
+
+            // Validate & normalize coordinates: remove invalid ranges and consecutive duplicates
+            var filtered = new List<(double Lat, double Lng)>(Math.Min(result.Count, MaxGeoJsonVertices));
+            (double Lat, double Lng)? last = null;
+
+            foreach (var (lat, lng) in result)
+            {
+                if (filtered.Count >= MaxGeoJsonVertices)
+                {
+                    _logger.LogWarning("GeoJSON contains more than {Max} vertices; truncating", MaxGeoJsonVertices);
+                    break;
+                }
+
+                if (double.IsNaN(lat) || double.IsNaN(lng) || double.IsInfinity(lat) || double.IsInfinity(lng))
+                {
+                    continue;
+                }
+
+                if (lat < -90 || lat > 90 || lng < -180 || lng > 180)
+                {
+                    continue;
+                }
+
+                if (last.HasValue)
+                {
+                    var (lastLat, lastLng) = last.Value;
+                    if (Math.Abs(lastLat - lat) < 1e-12 && Math.Abs(lastLng - lng) < 1e-12)
+                    {
+                        continue;
+                    }
+                }
+
+                filtered.Add((lat, lng));
+                last = (lat, lng);
+            }
+
+            return filtered.Count > 0 ? filtered : null;
         }
         catch (Exception ex)
         {
@@ -679,35 +755,51 @@ public partial class LocationValidationService
     /// <summary>
     /// Calculates the perpendicular distance from a point to a line segment
     /// </summary>
-    private double DistanceToLineSegment(GeoLocation point, GeoLocation lineStart, GeoLocation lineEnd)
+    private double DistanceToLineSegmentMeters(GeoLocation point, GeoLocation lineStart, GeoLocation lineEnd)
     {
-        // Calculate distances
-        var d1 = CalculateDistanceMeters(point, lineStart);
-        var d2 = CalculateDistanceMeters(point, lineEnd);
-        var lineLength = CalculateDistanceMeters(lineStart, lineEnd);
+        // Use a local equirectangular projection so projection math is performed in meters.
+        // This avoids mixing degree-based dot-products with meter-based distances.
+        const double metersPerDegreeLat = 111_320.0;
 
-        if (lineLength == 0)
+        var lat0 = (double)lineStart.Latitude;
+        var lng0 = (double)lineStart.Longitude;
+        var meanLatRad = DegreesToRadians(((double)lineStart.Latitude + (double)lineEnd.Latitude) / 2.0);
+        var metersPerDegreeLng = metersPerDegreeLat * Math.Cos(meanLatRad);
+
+        double ToX(double lng) => (lng - lng0) * metersPerDegreeLng;
+        double ToY(double lat) => (lat - lat0) * metersPerDegreeLat;
+
+        var px = ToX((double)point.Longitude);
+        var py = ToY((double)point.Latitude);
+        var ax = ToX((double)lineStart.Longitude);
+        var ay = ToY((double)lineStart.Latitude);
+        var bx = ToX((double)lineEnd.Longitude);
+        var by = ToY((double)lineEnd.Latitude);
+
+        var abx = bx - ax;
+        var aby = by - ay;
+        var apx = px - ax;
+        var apy = py - ay;
+
+        var abLenSq = abx * abx + aby * aby;
+        if (abLenSq <= 0)
         {
-            return d1;
+            // Segment collapses to a point
+            var dx = px - ax;
+            var dy = py - ay;
+            return Math.Sqrt(dx * dx + dy * dy);
         }
 
-        // Use projection to find closest point on line segment
-        var t = Math.Max(0, Math.Min(1, DotProduct(point, lineStart, lineEnd) / (lineLength * lineLength)));
+        var t = (apx * abx + apy * aby) / abLenSq;
+        if (t < 0) t = 0;
+        else if (t > 1) t = 1;
 
-        var closestLat = (double)lineStart.Latitude + t * ((double)lineEnd.Latitude - (double)lineStart.Latitude);
-        var closestLng = (double)lineStart.Longitude + t * ((double)lineEnd.Longitude - (double)lineStart.Longitude);
+        var cx = ax + t * abx;
+        var cy = ay + t * aby;
 
-        var closestPoint = new GeoLocation { Latitude = (decimal)closestLat, Longitude = (decimal)closestLng };
-        return CalculateDistanceMeters(point, closestPoint);
-    }
-
-    /// <summary>
-    /// Calculates the dot product for projection onto line segment
-    /// </summary>
-    private double DotProduct(GeoLocation point, GeoLocation lineStart, GeoLocation lineEnd)
-    {
-        return ((double)point.Latitude - (double)lineStart.Latitude) * ((double)lineEnd.Latitude - (double)lineStart.Latitude) +
-               ((double)point.Longitude - (double)lineStart.Longitude) * ((double)lineEnd.Longitude - (double)lineStart.Longitude);
+        var ddx = px - cx;
+        var ddy = py - cy;
+        return Math.Sqrt(ddx * ddx + ddy * ddy);
     }
 
     #endregion

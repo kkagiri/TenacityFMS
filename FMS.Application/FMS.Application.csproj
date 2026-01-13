@@ -11,6 +11,7 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
+    <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
     <PackageReference Include="MediatR" Version="12.5.0" />
     <PackageReference Include="NLog" Version="5.1.5" />
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
@@ -26,8 +27,6 @@
     <!-- <ProjectReference Include="..\FMS.Infrastructure\FMS.Infrastructure.csproj" /> -->
     <ProjectReference Include="..\FMS.Persistence\FMS.Persistence.csproj" />
   </ItemGroup>
-  <!-- chatgpt: treat warnings as non-visible messages -->
-  <!-- chatgpt: treat warnings as messages (low importance) -->
   <PropertyGroup>
     <WarningsAsMessages>$(WarningsNotAsErrors)</WarningsAsMessages>
   </PropertyGroup>

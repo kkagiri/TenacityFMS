@@ -180,5 +180,88 @@ namespace FMS.Application.Configuration
         /// </summary>
         public const string DB_CONFIG_TANK_STOCK_MAX_HISTORICAL_DAYS_KEY = "TankStock.MaxHistoricalDays";
         #endregion
+
+        #region PTS Automated Fueling Configuration Keys
+        /// <summary>
+        /// Configuration key for whether to update tank current volume from book keeping (ledger)
+        /// </summary>
+        public const string DB_CONFIG_PTS_UPDATE_TANK_VOLUME_FROM_BOOKKEEPING_KEY = "PTS.AutomatedFueling.UpdateTankVolumeFromBookKeeping";
+
+        /// <summary>
+        /// Configuration key for whether to use PTS probe readings for tank volume
+        /// </summary>
+        public const string DB_CONFIG_PTS_USE_PTS_PROBE_READINGS_KEY = "PTS.AutomatedFueling.UsePtsProbeReadings";
+
+        /// <summary>
+        /// Configuration key for volume source priority: 1=BookKeeping, 2=PTS Probe
+        /// </summary>
+        public const string DB_CONFIG_PTS_VOLUME_SOURCE_PRIORITY_KEY = "PTS.AutomatedFueling.VolumeSourcePriority";
+
+        /// <summary>
+        /// Configuration key for whether to automatically create ledger entries for pump transactions
+        /// </summary>
+        public const string DB_CONFIG_PTS_AUTO_CREATE_LEDGER_ENTRIES_KEY = "PTS.AutomatedFueling.AutoCreateLedgerEntries";
+
+        /// <summary>
+        /// Configuration key for whether to check for duplicate manual entries
+        /// </summary>
+        public const string DB_CONFIG_PTS_CHECK_FOR_DUPLICATE_MANUAL_ENTRIES_KEY = "PTS.AutomatedFueling.CheckForDuplicateManualEntries";
+
+        /// <summary>
+        /// Configuration key for volume tolerance percentage for duplicate detection (e.g., 0.01 = 1%)
+        /// </summary>
+        public const string DB_CONFIG_PTS_DUPLICATE_VOLUME_TOLERANCE_KEY = "PTS.AutomatedFueling.DuplicateVolumeTolerance";
+
+        /// <summary>
+        /// Configuration key for whether to reconcile tank volumes automatically
+        /// </summary>
+        public const string DB_CONFIG_PTS_AUTO_RECONCILE_TANK_VOLUMES_KEY = "PTS.AutomatedFueling.AutoReconcileTankVolumes";
+
+        /// <summary>
+        /// Configuration key for reconciliation frequency in minutes
+        /// </summary>
+        public const string DB_CONFIG_PTS_RECONCILIATION_FREQUENCY_MINUTES_KEY = "PTS.AutomatedFueling.ReconciliationFrequencyMinutes";
+
+        /// <summary>
+        /// Configuration key for maximum allowed discrepancy between book keeping and probe readings (liters)
+        /// </summary>
+        public const string DB_CONFIG_PTS_MAX_VOLUME_DISCREPANCY_THRESHOLD_KEY = "PTS.AutomatedFueling.MaxVolumeDiscrepancyThreshold";
+
+        /// <summary>
+        /// Configuration key for action to take when discrepancy exceeds threshold: 1=Alert, 2=Block, 3=AutoAdjust
+        /// </summary>
+        public const string DB_CONFIG_PTS_DISCREPANCY_ACTION_KEY = "PTS.AutomatedFueling.DiscrepancyAction";
+
+        /// <summary>
+        /// Configuration key for whether to check if vehicle has fueling rules before allowing fueling (mobile app)
+        /// </summary>
+        public const string DB_CONFIG_PTS_ENABLE_FUEL_RULES_CHECK_KEY = "PTS.AutomatedFueling.EnableFuelRulesCheck";
+
+        /// <summary>
+        /// Configuration key for whether to validate fuel volume against vehicle tank capacity (mobile app)
+        /// </summary>
+        public const string DB_CONFIG_PTS_ENABLE_FUEL_CAPACITY_VALIDATION_KEY = "PTS.AutomatedFueling.EnableFuelCapacityValidation";
+
+        /// <summary>
+        /// Configuration key for whether to use GPS fuel level sensor to calculate remaining tank capacity (mobile app)
+        /// </summary>
+        public const string DB_CONFIG_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK_KEY = "PTS.AutomatedFueling.EnableGPSFuelLevelCheck";
+        #endregion
+
+        #region PTS Automated Fueling Default Values
+        public const bool DEFAULT_PTS_UPDATE_TANK_VOLUME_FROM_BOOKKEEPING = true;
+        public const bool DEFAULT_PTS_USE_PTS_PROBE_READINGS = false;
+        public const int DEFAULT_PTS_VOLUME_SOURCE_PRIORITY = 1; // BookKeeping
+        public const bool DEFAULT_PTS_AUTO_CREATE_LEDGER_ENTRIES = true;
+        public const bool DEFAULT_PTS_CHECK_FOR_DUPLICATE_MANUAL_ENTRIES = true;
+        public const decimal DEFAULT_PTS_DUPLICATE_VOLUME_TOLERANCE = 0.01m; // 1%
+        public const bool DEFAULT_PTS_AUTO_RECONCILE_TANK_VOLUMES = false;
+        public const int DEFAULT_PTS_RECONCILIATION_FREQUENCY_MINUTES = 60;
+        public const decimal DEFAULT_PTS_MAX_VOLUME_DISCREPANCY_THRESHOLD = 10.0m; // liters
+        public const int DEFAULT_PTS_DISCREPANCY_ACTION = 1; // Alert
+        public const bool DEFAULT_PTS_ENABLE_FUEL_RULES_CHECK = true;
+        public const bool DEFAULT_PTS_ENABLE_FUEL_CAPACITY_VALIDATION = true;
+        public const bool DEFAULT_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK = true;
+        #endregion
     }
 }

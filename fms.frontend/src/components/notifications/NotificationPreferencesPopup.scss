@@ -1,0 +1,47 @@
+/* Notification Preferences Popup Styles */
+
+.notification-preferences-popup {
+  .dx-popup-content {
+    padding: 0 !important;
+  }
+}
+
+.preferences-popup-content {
+  height: 100%;
+}
+
+.preferences-table-container {
+  max-height: 100%;
+  overflow-y: auto;
+}
+
+.preferences-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th {
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+    font-weight: 600;
+    font-size: 0.875rem;
+    color: #374151;
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+
+  td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f3f4f6;
+    vertical-align: middle;
+  }
+
+  tbody tr:hover {
+    background-color: #f9fafb;
+  }
+
+  tbody tr:last-child td {
+    border-bottom: none;
+  }
+}

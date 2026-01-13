@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
@@ -20,6 +20,7 @@ import {
 } from "../../../api/geofenceService";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchUsers } from "../../../redux/actions/userActions";
+import dashboardSignalRService from "../../../signalR/dashboardSignalRService";
 
 const LocationRulesSettings = () => {
   const dispatch = useDispatch();
@@ -264,16 +265,17 @@ const LocationRulesSettings = () => {
   const fetchBypassStatus = useCallback(async () => {
     try {
       const response = await getTemporaryBypassStatus();
-      if (response?.data) {
+      // getTemporaryBypassStatus already returns the data object (TemporaryBypassStatusDTO)
+      if (response) {
         setBypassStatus({
-          isActive: response.data.isActive || false,
-          expiresAt: response.data.expiresAt
-            ? new Date(response.data.expiresAt)
+          isActive: response.isActive || false,
+          expiresAt: response.expiresAt
+            ? new Date(response.expiresAt)
             : null,
-          enabledBy: response.data.enabledBy || null,
-          reason: response.data.reason || null,
-          vehicleBypasses: response.data.vehicleBypasses || [],
-          userBypasses: response.data.userBypasses || [],
+          enabledBy: response.enabledBy || null,
+          reason: response.reason || null,
+          vehicleBypasses: response.vehicleBypasses || [],
+          userBypasses: response.userBypasses || [],
         });
       }
     } catch (error) {
@@ -282,13 +284,51 @@ const LocationRulesSettings = () => {
   }, []);
 
   // Fetch bypass status and load vehicles/users on component mount
+  // Use SignalR for real-time updates instead of polling
   useEffect(() => {
+    // Initial fetch
     fetchBypassStatus();
     dispatch(fetchVehicleList());
     dispatch(fetchUsers());
-    // Set up interval to check bypass status every 30 seconds
-    const interval = setInterval(fetchBypassStatus, 30000);
-    return () => clearInterval(interval);
+
+    // Subscribe to SignalR updates for bypass status
+    const handleBypassStatusUpdate = (payload) => {
+      console.log("[LocationRulesSettings] Received bypass status update via SignalR:", payload);
+
+      if (payload?.status) {
+        const status = payload.status;
+        setBypassStatus({
+          isActive: status.isActive || false,
+          expiresAt: status.expiresAt
+            ? new Date(status.expiresAt)
+            : null,
+          enabledBy: status.enabledBy || null,
+          reason: status.reason || null,
+          vehicleBypasses: status.vehicleBypasses || [],
+          userBypasses: status.userBypasses || [],
+        });
+
+        // Show notification for bypass changes
+        if (payload.action === "expired") {
+          notify(payload.message || "Location bypass has expired", "warning", 4000);
+        } else if (payload.action === "enabled") {
+          notify(payload.message || "Location bypass has been enabled", "info", 4000);
+        } else if (payload.action === "cancelled") {
+          notify(payload.message || "Location bypass has been cancelled", "info", 4000);
+        }
+      }
+    };
+
+    // Register SignalR event listener
+    const unsubscribe = dashboardSignalRService.on(
+      "LocationBypassStatusUpdate",
+      handleBypassStatusUpdate
+    );
+
+    return () => {
+      // Cleanup SignalR subscription
+      if (unsubscribe) unsubscribe();
+    };
   }, [fetchBypassStatus, dispatch]);
 
   // State for countdown display - updates every second for real-time countdown
@@ -357,7 +397,8 @@ const LocationRulesSettings = () => {
         bypassType === "Vehicle" ? selectedVehicleIds : null,
         bypassType === "User" ? selectedUserIds : null
       );
-      if (response?.success) {
+      // FMSResponse uses IsSuccess which serializes to isSuccess in JSON
+      if (response?.isSuccess) {
         const bypassTypeLabel = bypassType === "All" ? "system-wide" :
           bypassType === "Vehicle" ? `${selectedVehicleIds.length} vehicle(s)` :
           `${selectedUserIds.length} user(s)`;
@@ -400,7 +441,8 @@ const LocationRulesSettings = () => {
     setBypassLoading(true);
     try {
       const response = await cancelTemporaryBypass();
-      if (response?.success) {
+      // FMSResponse uses IsSuccess which serializes to isSuccess in JSON
+      if (response?.isSuccess) {
         notify(
           "Temporary bypass has been cancelled. Location validation is now active.",
           "success",
@@ -432,7 +474,8 @@ const LocationRulesSettings = () => {
     setBypassLoading(true);
     try {
       const response = await cancelBypassById(bypassId);
-      if (response?.success) {
+      // FMSResponse uses IsSuccess which serializes to isSuccess in JSON
+      if (response?.isSuccess) {
         notify(`Bypass for ${bypassLabel} has been cancelled.`, "success", 3000);
         await fetchBypassStatus();
       } else {
@@ -648,7 +691,8 @@ const LocationRulesSettings = () => {
                     <i className="fa-light fa-globe tw-text-red-600"></i>
                     <span className="tw-font-semibold tw-text-red-800">System-Wide Bypass</span>
                     <span className="tw-text-red-600 tw-text-sm">
-                      (Expires: {countdownDisplay || getRemainingTime() || "soon"})
+                      (Expires at {bypassStatus.expiresAt ? new Date(bypassStatus.expiresAt).toLocaleTimeString() : "N/A"}
+                      {countdownDisplay && ` - ${countdownDisplay} remaining`})
                     </span>
                   </div>
                   <p className="tw-text-xs tw-text-red-700">

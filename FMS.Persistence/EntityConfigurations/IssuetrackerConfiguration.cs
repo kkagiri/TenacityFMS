@@ -85,6 +85,52 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.LastModfield)
                     .HasColumnName("LastModfield");
 
+                // V2 Template-based fields
+                builder.Property(e => e.IssueTemplateId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("IssueTemplateId");
+
+                builder.Property(e => e.DeviceTypeId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("DeviceTypeId");
+
+                builder.Property(e => e.CanAutoClose)
+                    .HasDefaultValue(false)
+                    .HasColumnName("CanAutoClose");
+
+                builder.Property(e => e.AutoCloseReason)
+                    .HasMaxLength(500)
+                    .HasColumnName("AutoCloseReason")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
+                builder.Property(e => e.IsAutoCreated)
+                    .HasDefaultValue(false)
+                    .HasColumnName("IsAutoCreated");
+
+                // V2 Related entity fields for background service auto-creation
+                builder.Property(e => e.RelatedEntityId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("RelatedEntityId");
+
+                builder.Property(e => e.RelatedEntityType)
+                    .HasMaxLength(50)
+                    .HasColumnName("RelatedEntityType")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
+                builder.Property(e => e.AssignedTo)
+                    .HasMaxLength(100)
+                    .HasColumnName("AssignedTo")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
+                builder.Property(e => e.ReportedBy)
+                    .HasMaxLength(100)
+                    .HasColumnName("ReportedBy")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
                 builder.HasOne(d => d.AssignToNavigation)
                     .WithMany(p => p.IssuetrackerAssignToNavigations)
                     .HasForeignKey(d => d.AssignTo)
@@ -135,6 +181,25 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.ActiveAlarmId)
                     .OnDelete(DeleteBehavior.SetNull)
                     .HasConstraintName("issuetracker_activealarm");
+
+                // V2 Navigation relationships
+                builder.HasOne(d => d.IssueTemplate)
+                    .WithMany()
+                    .HasForeignKey(d => d.IssueTemplateId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("issuetracker_template");
+
+                builder.HasOne(d => d.DeviceTypeNavigation)
+                    .WithMany()
+                    .HasForeignKey(d => d.DeviceTypeId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("issuetracker_devicetype_v2");
+
+                // V2 Indexes
+                builder.HasIndex(e => e.IssueTemplateId, "issuetracker_template_idx");
+                builder.HasIndex(e => e.DeviceTypeId, "issuetracker_devicetype_v2_idx");
+                builder.HasIndex(e => e.CanAutoClose, "issuetracker_canautoclose_idx");
+                builder.HasIndex(e => e.IsAutoCreated, "issuetracker_isautocreated_idx");
             }
 
 
