@@ -69,6 +69,12 @@ using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
 using FMS.BackgroundServices.IssueTracker;
 
+// DevExpress Reporting
+using DevExpress.AspNetCore;
+using DevExpress.AspNetCore.Reporting;
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.WebClient.Report;
+
 namespace FMS.WebClient.Extensions;
 
 /// <summary>
@@ -131,6 +137,9 @@ public static class FmsServiceCollectionExtensions
 
         // Register vehicle tracking provider infrastructure (Phase 1-4)
         services.AddVehicleTracking();
+
+        // Register DevExpress Reporting services
+        RegisterDevExpressReporting(services);
 
         return services;
     }
@@ -538,5 +547,58 @@ public static class FmsServiceCollectionExtensions
     private static string GetEnvRequired(string key)
     {
         return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine) ?? throw new InvalidOperationException($"Missing environment variable: {key}");
+    }
+
+    /// <summary>
+    /// Registers DevExpress Reporting services for Report Viewer and Report Designer.
+    /// </summary>
+    private static void RegisterDevExpressReporting(IServiceCollection services)
+    {
+        // Get connection string for DevExpress Report Designer data sources
+        var fmsConnectionString = GetEnvRequired("ConnectionStrings__FMSConnection");
+        if (!fmsConnectionString.Contains("AllowZeroDateTime") && !fmsConnectionString.Contains("ConvertZeroDateTime"))
+        {
+            fmsConnectionString += fmsConnectionString.Contains("?") ? "&" : ";";
+            fmsConnectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
+        }
+
+        // Add DevExpress controls support - this registers all required services including:
+        // - IWebDocumentViewerMvcControllerService
+        // - IReportDesignerMvcControllerService
+        // - IQueryBuilderMvcControllerService
+        services.AddDevExpressControls();
+
+        // Configure DevExpress Reporting services with custom routes
+        services.ConfigureReportingServices(configurator =>
+        {
+            // Configure the Report Designer route
+            configurator.ConfigureReportDesigner(designerConfigurator =>
+            {
+                // Intentionally rely on DefaultConnectionStringProvider (single FMSConnection)
+            });
+
+            // Configure the Web Document Viewer route
+            configurator.ConfigureWebDocumentViewer(viewerConfigurator =>
+            {
+                viewerConfigurator.UseCachedReportSourceBuilder();
+            });
+        });
+
+        // Register default connection string provider for DevExpress Report Designer
+        // This provides connection strings for the Query Builder and data source wizard
+        DevExpress.DataAccess.DefaultConnectionStringProvider.AssignConnectionStrings(() =>
+            new Dictionary<string, string>
+            {
+                { "FMSConnection", fmsConnectionString }
+            });
+
+        // Configure report storage to use database
+        services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
+
+        // Add MVC with Views for DevExpress Reporting controllers
+        // DevExpress controllers inherit from Controller (not ControllerBase) and need full MVC
+        services.AddControllersWithViews();
+
+        Log.Information("DevExpress Reporting services registered with FMS data connection");
     }
 }

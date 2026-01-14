@@ -306,7 +306,7 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
         <div className="tw-flex tw-gap-2">
           <Button
             text="Refresh"
-            icon="fa-light fa-refresh"
+            icon="refresh"
             type="default"
             stylingMode="outlined"
             onClick={loadReportData}
@@ -314,7 +314,7 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
           />
           <Button
             text="Export"
-            icon="fa-light fa-file-excel"
+            icon="xlsxfile"
             type="success"
             stylingMode="contained"
             onClick={reportDefinition.type === 1 ? handleExportPivotGrid : handleExportDataGrid}
@@ -338,7 +338,7 @@ const ReportBuilder = ({ reportDefinition, filters, onFiltersChange, autoLoad = 
             <p className="tw-mb-4">Click "Refresh" to load report data</p>
             <Button
               text="Load Report"
-              icon="fa-light fa-play"
+              icon="runner"
               type="default"
               onClick={loadReportData}
             />

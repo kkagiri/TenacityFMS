@@ -14,6 +14,10 @@ import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 import VehicleConsumptionReport from "./vehicleConsumption/VehicleConsumptionReport";
 import VehicleConsumptionDetails from "./vehicleConsumption/VehicleConsumptionDetails";
 
+// DevExtreme Report Viewer and Designer components
+import DevExtremeReportViewer from "./DevExtremeReportViewer";
+import DevExtremeReportDesigner from "./DevExtremeReportDesigner";
+
 const ReportsMain = () => {
   return (
     <ReportsLayout>
@@ -28,6 +32,13 @@ const ReportsMain = () => {
           path="tank-volume-history"
           element={<TankVolumeHistoryReport />}
         />
+
+        {/* DevExtreme Report Viewer Routes */}
+        <Route path="viewer/:reportName" element={<DevExtremeReportViewer />} />
+
+        {/* DevExtreme Report Designer Routes */}
+        <Route path="designer" element={<DevExtremeReportDesigner />} />
+        <Route path="designer/:reportName" element={<DevExtremeReportDesigner />} />
 
         {/* Data Import Routes */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />

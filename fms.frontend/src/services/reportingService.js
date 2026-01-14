@@ -213,6 +213,137 @@ class ReportingService {
 
     return formatted;
   }
+
+  // =============================================
+  // DevExtreme Report Storage Methods
+  // =============================================
+
+  /**
+   * Get all DevExtreme report items from database
+   * @param {string} category - Optional category filter
+   * @returns {Promise}
+   */
+  async getDevExtremeReports(category = null) {
+    try {
+      const params = category ? { category } : {};
+      const response = await axiosInstance.get('/Reports', { params });
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error getting DevExtreme reports:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Get all unique categories for DevExtreme reports
+   * @returns {Promise}
+   */
+  async getDevExtremeReportCategories() {
+    try {
+      const response = await axiosInstance.get('/Reports/categories');
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error getting DevExtreme report categories:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Get a specific DevExtreme report by ID
+   * @param {number} id - Report ID
+   * @returns {Promise}
+   */
+  async getDevExtremeReport(id) {
+    try {
+      const response = await axiosInstance.get(`/Reports/${id}`);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error getting DevExtreme report:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Create a new DevExtreme report
+   * @param {Object} report - Report data (name, displayName, layoutData)
+   * @returns {Promise}
+   */
+  async createDevExtremeReport(report) {
+    try {
+      const response = await axiosInstance.post('/Reports', report);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error creating DevExtreme report:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Update an existing DevExtreme report
+   * @param {number} id - Report ID
+   * @param {Object} report - Report data (displayName, layoutData)
+   * @returns {Promise}
+   */
+  async updateDevExtremeReport(id, report) {
+    try {
+      const response = await axiosInstance.put(`/Reports/${id}`, report);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error updating DevExtreme report:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Delete a DevExtreme report
+   * @param {number} id - Report ID
+   * @returns {Promise}
+   */
+  async deleteDevExtremeReport(id) {
+    try {
+      const response = await axiosInstance.delete(`/Reports/${id}`);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error deleting DevExtreme report:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
 }
 
 export default new ReportingService();

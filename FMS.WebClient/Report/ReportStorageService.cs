@@ -1,78 +1,111 @@
-﻿// using DevExpress.XtraReports.UI;
-// using DevExpress.XtraReports.Web.Extensions;
-// using FMS.Domain.Entities.Reports;
-// using FMS.Persistence.DataAccess;
-// using Microsoft.EntityFrameworkCore;
+﻿using DevExpress.XtraReports.UI;
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.Domain.Entities.Reports;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
 
-// namespace FMS.WebClient.Report
-// {
-//     public class ReportStorageService : ReportStorageWebExtension
-//     {
+namespace FMS.WebClient.Report;
 
-//         private readonly GpsdataContext _context;
+/// <summary>
+/// Custom report storage extension that persists reports to the database.
+/// This allows reports to be stored, retrieved, and managed from the reportitems table.
+/// </summary>
+public class ReportStorageService : ReportStorageWebExtension
+{
+    private readonly IServiceProvider _serviceProvider;
 
-//         public ReportStorageService(GpsdataContext context)
-//         {
-//             _context = context;
-//         }
+    public ReportStorageService(IServiceProvider serviceProvider)
+    {
+        _serviceProvider = serviceProvider;
+    }
 
-//         public override bool CanSetData(string url)
-//         {
-//             return true;
-//         }
+    /// <summary>
+    /// Creates a scoped DbContext to ensure proper connection management.
+    /// </summary>
+    private GpsdataContext CreateDbContext()
+    {
+        var scope = _serviceProvider.CreateScope();
+        return scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+    }
 
-//         public override bool IsValidUrl(string url)
-//         {
-//             return !string.IsNullOrEmpty(url);
-//         }
+    public override bool CanSetData(string url)
+    {
+        // Allow saving all reports - could add permission checks here
+        return true;
+    }
 
-//         public override byte[] GetData(string url)
-//         {
-//             var reportItem = _context.ReportItems.FirstOrDefault(x => x.Name == url);
-//             return reportItem?.LayoutData;
-//         }
+    public override bool IsValidUrl(string url)
+    {
+        // Validate URL format - only allow simple names without path separators
+        return !string.IsNullOrEmpty(url) && !url.Contains('/') && !url.Contains('\\');
+    }
 
-//         public override void SetData(XtraReport report, string url)
-//         {
-//             using (var ms = new MemoryStream())
-//             {
-//                 report.SaveLayoutToXml(ms);
-//                 var layoutData = ms.ToArray();
+    public override byte[] GetData(string url)
+    {
+        using var context = CreateDbContext();
+        var reportItem = context.ReportItems.FirstOrDefault(x => x.Name == url);
 
-//                 var existingReport = _context.ReportItems.FirstOrDefault(x => x.Name == url);
+        if (reportItem?.LayoutData == null)
+        {
+            throw new InvalidOperationException($"Report '{url}' not found or has no layout data.");
+        }
 
-//                 if (existingReport != null)
-//                 {
-//                     existingReport.LayoutData = layoutData;
-//                     existingReport.DisplayName = url;
-//                 }
-//                 else
-//                 {
-//                     _context.ReportItems.Add(new ReportItem
-//                     {
-//                         Name = url,
-//                         DisplayName = url,
-//                         LayoutData = layoutData
-//                     });
-//                 }
+        return reportItem.LayoutData;
+    }
 
-//                 _context.SaveChanges();
-//             }
-//         }
+    public override void SetData(XtraReport report, string url)
+    {
+        using var context = CreateDbContext();
+        using var ms = new MemoryStream();
 
-//         public override string SetNewData(XtraReport report, string defaultUrl)
-//         {
-//             SetData(report, defaultUrl);
-//             return defaultUrl;
-//         }
+        report.SaveLayoutToXml(ms);
+        var layoutData = ms.ToArray();
 
-//         public override Dictionary<string, string> GetUrls()
-//         {
-//             return _context.ReportItems
-//                 .ToDictionary(
-//                     x => x.Name,
-//                     x => x.DisplayName ?? x.Name
-//                 );
-//         }
-//     }
-// }
+        var existingReport = context.ReportItems.FirstOrDefault(x => x.Name == url);
+
+        if (existingReport != null)
+        {
+            existingReport.LayoutData = layoutData;
+            existingReport.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            context.ReportItems.Add(new ReportItem
+            {
+                Name = url,
+                DisplayName = url,
+                LayoutData = layoutData,
+                CreatedAt = DateTime.UtcNow
+            });
+        }
+
+        context.SaveChanges();
+    }
+
+    public override string SetNewData(XtraReport report, string defaultUrl)
+    {
+        // Ensure unique name
+        using var context = CreateDbContext();
+        var name = defaultUrl;
+        var counter = 1;
+
+        while (context.ReportItems.Any(r => r.Name == name))
+        {
+            name = $"{defaultUrl}_{counter++}";
+        }
+
+        SetData(report, name);
+        return name;
+    }
+
+    public override Dictionary<string, string> GetUrls()
+    {
+        using var context = CreateDbContext();
+        return context.ReportItems
+            .AsNoTracking()
+            .ToDictionary(
+                x => x.Name,
+                x => x.DisplayName ?? x.Name
+            );
+    }
+}

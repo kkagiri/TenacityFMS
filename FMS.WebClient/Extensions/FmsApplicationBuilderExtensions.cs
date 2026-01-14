@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.AspNetCore.Http; // For WebSocketOptions
 using FMS.Application.Communication.SignalR; // Hubs (DashboardHub, PTSHub, FrontEndHub)
 using FMS.WebClient.Util; // UseUserActivity extension (IApplicationBuilder)
+using DevExpress.AspNetCore;
+using DevExpress.XtraReports.Web.Extensions;
 
 namespace FMS.WebClient.Extensions;
 
@@ -54,6 +56,9 @@ public static class FmsApplicationBuilderExtensions
         app.UseWebSockets(webSocketOptions);
 
         app.UseRouting();
+
+        // DevExpress Reporting
+        app.UseDevExpressControls();
 
         // CORS must be AFTER UseRouting() but BEFORE UseEndpoints() for SignalR hubs
         if (env.IsDevelopment())
@@ -109,8 +114,14 @@ public static class FmsApplicationBuilderExtensions
         // Map endpoints with explicit CORS
         app.UseEndpoints(endpoints =>
         {
-            // Map controllers
+            // Map API controllers (attribute-routed)
             endpoints.MapControllers();
+
+            // Map default MVC controller route for DevExpress Reporting controllers
+            // DevExpress controllers use conventional MVC routing pattern
+            endpoints.MapControllerRoute(
+                name: "default",
+                pattern: "{controller=Home}/{action=Index}/{id?}");
 
             // Map SignalR hubs with CORS enabled
             var corsPolicy = env.IsDevelopment() ? "DevelopmentCorsPolicy" : "ProductionCorsPolicy";

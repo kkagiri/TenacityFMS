@@ -86,6 +86,23 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                             newVolume = previousVolume + request.VolumeChange;
                         }
 
+                        // CRITICAL VALIDATION: Prevent negative stock
+                        // Tank volume can never go below zero - this would indicate data corruption or invalid operation
+                        if (newVolume < 0)
+                        {
+                            _logger.LogWarning(
+                                "NEGATIVE STOCK PREVENTED: Tank {TankId}, Operation: {ChangeReason}, " +
+                                "Previous Volume: {PreviousVolume:F2}L, Volume Change: {VolumeChange:F2}L, " +
+                                "Would Result In: {NewVolume:F2}L",
+                                request.TankId, request.ChangeReason,
+                                newVolume - request.VolumeChange, request.VolumeChange, newVolume);
+
+                            return new FMSResponseMessage(false,
+                                $"Operation would result in negative tank stock ({newVolume:F2}L). " +
+                                $"Current available volume is insufficient for this {GetOperationDescription(request.ChangeReason)} of {Math.Abs(request.VolumeChange):F2}L. " +
+                                "Please verify the transaction amount or check tank stock levels.");
+                        }
+
                         // Create new tank volume history record
                         var newRecord = new TankVolumeHistory
                         {
@@ -319,6 +336,27 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 VolumeChangeReasonEnum.Adjustment => "Adjustment",
                 VolumeChangeReasonEnum.AutomatedDispensing => "PumpTransaction",
                 _ => "System"
+            };
+        }
+
+        /// <summary>
+        /// Gets a user-friendly description of the operation for error messages
+        /// </summary>
+        private static string GetOperationDescription(VolumeChangeReasonEnum changeReason)
+        {
+            return changeReason switch
+            {
+                VolumeChangeReasonEnum.OpeningStock => "opening stock entry",
+                VolumeChangeReasonEnum.ClosingStock => "closing stock entry",
+                VolumeChangeReasonEnum.Delivery => "fuel delivery",
+                VolumeChangeReasonEnum.Dispensing => "fuel dispensing/refill",
+                VolumeChangeReasonEnum.TransferIn => "transfer in",
+                VolumeChangeReasonEnum.TransferOut => "transfer out",
+                VolumeChangeReasonEnum.Adjustment => "stock adjustment",
+                VolumeChangeReasonEnum.AutomatedDispensing => "automated pump transaction",
+                VolumeChangeReasonEnum.AutomatedReconciliation => "automated reconciliation",
+                VolumeChangeReasonEnum.Reconciliation => "reconciliation",
+                _ => "operation"
             };
         }
 
