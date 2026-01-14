@@ -117,6 +117,15 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 {
                     _logger.LogWarning("Failed to get GPS data for vehicle {VehicleId} (GPSGate user {GpsUserId}). Status: {StatusCode}",
                         vehicleId, gpsGateUserId, response.StatusCode);
+
+                    // Try cached location as fallback
+                    var cachedLocation = await GetCachedVehicleLocationAsync(vehicleId, 60);
+                    if (cachedLocation != null)
+                    {
+                        _logger.LogWarning("[GPS_CACHE] API call failed, using cached location for vehicle {VehicleId}", vehicleId);
+                        return FMSResponse<VehicleLocationDTO>.Success(cachedLocation);
+                    }
+
                     return FMSResponse<VehicleLocationDTO>.Failed("Failed to retrieve vehicle location from GPS provider");
                 }
 
@@ -133,6 +142,15 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (gpsData == null)
                 {
                     _logger.LogWarning("Failed to parse GPS response for vehicle {VehicleId}", vehicleId);
+
+                    // Try cached location as fallback
+                    var cachedLocation = await GetCachedVehicleLocationAsync(vehicleId, 60);
+                    if (cachedLocation != null)
+                    {
+                        _logger.LogWarning("[GPS_CACHE] No GPS data from provider, using cached location for vehicle {VehicleId}", vehicleId);
+                        return FMSResponse<VehicleLocationDTO>.Success(cachedLocation);
+                    }
+
                     return FMSResponse<VehicleLocationDTO>.Success(CreateOfflineLocationDto(vehicle, providerMapping, GPSValidationStatus.NoData, "No GPS data received from provider"));
                 }
 
@@ -146,6 +164,15 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (position == null)
                 {
                     _logger.LogDebug("No position data available for vehicle {VehicleId}", vehicleId);
+
+                    // Try cached location as fallback
+                    var cachedLocation = await GetCachedVehicleLocationAsync(vehicleId, 60);
+                    if (cachedLocation != null)
+                    {
+                        _logger.LogWarning("[GPS_CACHE] No position data from GPS provider, using cached location for vehicle {VehicleId}", vehicleId);
+                        return FMSResponse<VehicleLocationDTO>.Success(cachedLocation);
+                    }
+
                     return FMSResponse<VehicleLocationDTO>.Success(CreateOfflineLocationDto(vehicle, providerMapping, GPSValidationStatus.NoData, "No GPS position available"));
                 }
 
@@ -184,11 +211,23 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     "Vehicle {VehicleId} GPS location: ({Lat}, {Lng}), Valid: {Valid}, DeviceActivity: {Activity}, ValidationStatus: {Status}",
                     vehicleId, position.Latitude, position.Longitude, isGpsValid, deviceActivity, validationStatus);
 
+                // Cache this location for future fallback
+                _ = CacheVehicleLocationAsync(locationDto);
+
                 return FMSResponse<VehicleLocationDTO>.Success(locationDto);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error retrieving vehicle location for {VehicleId}", vehicleId);
+
+                // Try to return cached location on exception
+                var cachedLocation = await GetCachedVehicleLocationAsync(vehicleId, 60);
+                if (cachedLocation != null)
+                {
+                    _logger.LogWarning("[GPS_CACHE] Live GPS failed, using cached location for vehicle {VehicleId}", vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Success(cachedLocation);
+                }
+
                 return FMSResponse<VehicleLocationDTO>.Failed($"Error retrieving vehicle location: {ex.Message}");
             }
         }
@@ -702,6 +741,114 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
 
             return stops;
+        }
+
+        #endregion
+
+        #region Location Caching
+
+        /// <summary>
+        /// Cache a vehicle's location for fallback when live GPS is unavailable
+        /// </summary>
+        private async Task CacheVehicleLocationAsync(VehicleLocationDTO locationDto)
+        {
+            try
+            {
+                var cached = await _context.VehicleLastKnownLocations
+                    .FirstOrDefaultAsync(c => c.VehicleId == locationDto.VehicleId);
+
+                if (cached == null)
+                {
+                    cached = new VehicleLastKnownLocationEntity
+                    {
+                        VehicleId = locationDto.VehicleId
+                    };
+                    _context.VehicleLastKnownLocations.Add(cached);
+                }
+
+                // Update cached location
+                cached.Latitude = locationDto.Latitude;
+                cached.Longitude = locationDto.Longitude;
+                cached.Altitude = locationDto.Altitude;
+                cached.Speed = locationDto.Speed;
+                cached.Heading = locationDto.Heading;
+                cached.IsGpsValid = locationDto.IsGPSValid;
+                cached.DeviceActivityTime = locationDto.DeviceActivityTime;
+                cached.ExternalDeviceId = locationDto.ExternalDeviceId;
+                cached.CachedAt = DateTime.UtcNow;
+                cached.Source = "GPSGate";
+
+                await _context.SaveChangesAsync();
+
+                _logger.LogDebug("Cached location for vehicle {VehicleId}: ({Lat}, {Lng}) at {CachedAt}",
+                    locationDto.VehicleId, locationDto.Latitude, locationDto.Longitude, cached.CachedAt);
+            }
+            catch (Exception ex)
+            {
+                // Don't fail the main operation if caching fails
+                _logger.LogWarning(ex, "Failed to cache location for vehicle {VehicleId}", locationDto.VehicleId);
+            }
+        }
+
+        /// <summary>
+        /// Get cached location for a vehicle when live GPS is unavailable
+        /// </summary>
+        /// <param name="vehicleId">Vehicle ID</param>
+        /// <param name="maxAgeMinutes">Maximum cache age in minutes (null = no limit)</param>
+        /// <returns>Cached location DTO with IsCached=true, or null if not found/expired</returns>
+        public async Task<VehicleLocationDTO?> GetCachedVehicleLocationAsync(int vehicleId, int? maxAgeMinutes = 60)
+        {
+            try
+            {
+                var cached = await _context.VehicleLastKnownLocations
+                    .Include(c => c.Vehicle)
+                    .FirstOrDefaultAsync(c => c.VehicleId == vehicleId);
+
+                if (cached == null)
+                {
+                    _logger.LogDebug("No cached location found for vehicle {VehicleId}", vehicleId);
+                    return null;
+                }
+
+                // Check cache age
+                var cacheAge = DateTime.UtcNow - cached.CachedAt;
+                if (maxAgeMinutes.HasValue && cacheAge.TotalMinutes > maxAgeMinutes.Value)
+                {
+                    _logger.LogDebug("Cached location for vehicle {VehicleId} is too old ({Age} minutes, max {Max})",
+                        vehicleId, cacheAge.TotalMinutes, maxAgeMinutes);
+                    return null;
+                }
+
+                _logger.LogInformation(
+                    "[GPS_CACHE] Using cached location for vehicle {VehicleId}: ({Lat}, {Lng}), cached {Age} minutes ago",
+                    vehicleId, cached.Latitude, cached.Longitude, cacheAge.TotalMinutes);
+
+                return new VehicleLocationDTO
+                {
+                    VehicleId = vehicleId,
+                    VehicleName = cached.Vehicle?.HyoungNo ?? string.Empty,
+                    NumberPlate = cached.Vehicle?.NumberPlate,
+                    Latitude = cached.Latitude,
+                    Longitude = cached.Longitude,
+                    Altitude = cached.Altitude,
+                    Speed = cached.Speed,
+                    Heading = cached.Heading,
+                    IsGPSValid = cached.IsGpsValid,
+                    DeviceActivityTime = cached.DeviceActivityTime,
+                    ExternalDeviceId = cached.ExternalDeviceId,
+                    HasGPSInstalled = true,
+                    IsOnline = false, // Not currently online
+                    IsCached = true,  // Flag indicating this is from cache
+                    LastUpdated = cached.CachedAt,
+                    ValidationStatus = GPSValidationStatus.CachedLocation,
+                    ValidationStatusReason = $"Using cached location from {cacheAge.TotalMinutes:F0} minutes ago"
+                };
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error retrieving cached location for vehicle {VehicleId}", vehicleId);
+                return null;
+            }
         }
 
         #endregion

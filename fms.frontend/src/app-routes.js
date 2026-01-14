@@ -62,6 +62,7 @@ const resolvedComponents = (pageName) => {
     case "active-alarms":
       return ActiveAlarmMain;
     case "issue-tracker":
+    case "issue tracker":
       return IssueTrackerMain;
     case "provider management":
     case "providermanagement":

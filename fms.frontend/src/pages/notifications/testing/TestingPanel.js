@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   TextBox,
   TextArea,
@@ -7,11 +7,15 @@ import {
   LoadIndicator
 } from 'devextreme-react';
 import notify from 'devextreme/ui/notify';
+import axiosInstance from '../../../api/axiosInstance';
+import { useSelector } from 'react-redux';
 
 const TestingPanel = () => {
   const [loading, setLoading] = useState(false);
+  const user = useSelector((state) => state.auth?.user);
+
   const [testEmail, setTestEmail] = useState({
-    toAddress: 'admin@company.com',
+    toAddress: user?.email || '',
     subject: 'FMS Test Notification',
     message: 'This is a test email from the FMS Notification System.'
   });
@@ -26,6 +30,15 @@ const TestingPanel = () => {
     lastResult: ''
   });
 
+  const [diagnostics, setDiagnostics] = useState(null);
+
+  // Set user email when user is available
+  useEffect(() => {
+    if (user?.email && !testEmail.toAddress) {
+      setTestEmail(prev => ({ ...prev, toAddress: user.email }));
+    }
+  }, [user?.email, testEmail.toAddress]);
+
   const policyOptions = [
     { value: 1, text: 'Tank Level Critical Alert' },
     { value: 2, text: 'Pump Maintenance Reminder' },
@@ -34,13 +47,27 @@ const TestingPanel = () => {
   ];
 
   const sendTestEmail = async () => {
+    if (!testEmail.toAddress) {
+      notify('Please enter an email address', 'warning', 3000);
+      return;
+    }
+
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      notify('Test email sent successfully', 'success', 3000);
+      const response = await axiosInstance.post('v1/notifications/test-email', {
+        toAddress: testEmail.toAddress,
+        subject: testEmail.subject,
+        message: testEmail.message
+      });
+
+      if (response.data?.success) {
+        notify(response.data.message || 'Test email sent successfully', 'success', 3000);
+      } else {
+        notify(response.data?.message || 'Failed to send test email', 'error', 3000);
+      }
     } catch (error) {
-      notify('Failed to send test email', 'error', 3000);
+      console.error('Error sending test email:', error);
+      notify(error.response?.data?.message || 'Failed to send test email', 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -54,11 +81,20 @@ const TestingPanel = () => {
 
     setLoading(true);
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      notify('Policy test completed successfully', 'success', 3000);
+      const response = await axiosInstance.post('v1/notifications/test', {
+        title: 'Policy Test',
+        message: `Testing policy ID: ${policyTest.policyId}`,
+        testData: policyTest.testData
+      });
+
+      if (response.data?.success) {
+        notify(response.data.message || 'Policy test completed successfully', 'success', 3000);
+      } else {
+        notify(response.data?.message || 'Policy test failed', 'error', 3000);
+      }
     } catch (error) {
-      notify('Policy test failed', 'error', 3000);
+      console.error('Error testing policy:', error);
+      notify(error.response?.data?.message || 'Policy test failed', 'error', 3000);
     } finally {
       setLoading(false);
     }
@@ -67,21 +103,46 @@ const TestingPanel = () => {
   const testConnection = async () => {
     setConnectionTest({ status: 'testing', lastResult: '' });
     try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      setConnectionTest({
-        status: 'success',
-        lastResult: 'SMTP connection successful. Server is reachable and credentials are valid.'
-      });
-      notify('Connection test successful', 'success', 3000);
+      const response = await axiosInstance.post('v1/notifications/test-smtp-connection');
+
+      if (response.data?.success) {
+        setConnectionTest({
+          status: 'success',
+          lastResult: response.data.message || 'SMTP connection successful. Server is reachable and credentials are valid.'
+        });
+        notify('Connection test successful', 'success', 3000);
+      } else {
+        setConnectionTest({
+          status: 'error',
+          lastResult: response.data?.message || 'Connection failed. Please check your SMTP settings.'
+        });
+        notify('Connection test failed', 'error', 3000);
+      }
     } catch (error) {
+      console.error('Error testing SMTP connection:', error);
       setConnectionTest({
         status: 'error',
-        lastResult: 'Connection failed. Please check your SMTP settings.'
+        lastResult: error.response?.data?.message || 'Connection failed. Please check your SMTP settings.'
       });
       notify('Connection test failed', 'error', 3000);
     }
   };
+
+  const loadDiagnostics = async () => {
+    try {
+      const response = await axiosInstance.get('v1/notifications/diagnostics');
+      if (response.data?.success) {
+        setDiagnostics(response.data.data);
+      }
+    } catch (error) {
+      console.error('Error loading diagnostics:', error);
+    }
+  };
+
+  // Load diagnostics on mount
+  useEffect(() => {
+    loadDiagnostics();
+  }, []);
 
   return (
     <div>
@@ -101,20 +162,23 @@ const TestingPanel = () => {
           <div className="tw-space-y-4">
             <TextBox
               label="To Address"
+              labelMode="floating"
               value={testEmail.toAddress}
               onValueChanged={(e) => setTestEmail(prev => ({ ...prev, toAddress: e.value }))}
-              placeholder="admin@company.com"
+              placeholder="Enter email address"
             />
 
             <TextBox
               label="Subject"
+              labelMode="floating"
               value={testEmail.subject}
               onValueChanged={(e) => setTestEmail(prev => ({ ...prev, subject: e.value }))}
-              placeholder="Test Email Subject"
+              placeholder="Enter email subject"
             />
 
             <TextArea
               label="Message"
+              labelMode="floating"
               value={testEmail.message}
               onValueChanged={(e) => setTestEmail(prev => ({ ...prev, message: e.value }))}
               placeholder="Enter test message..."
@@ -195,6 +259,7 @@ const TestingPanel = () => {
           <div className="tw-space-y-4">
             <SelectBox
               label="Select Policy"
+              labelMode="floating"
               value={policyTest.policyId}
               dataSource={policyOptions}
               valueExpr="value"
@@ -205,6 +270,7 @@ const TestingPanel = () => {
 
             <TextArea
               label="Test Data (JSON)"
+              labelMode="floating"
               value={policyTest.testData}
               onValueChanged={(e) => setPolicyTest(prev => ({ ...prev, testData: e.value }))}
               placeholder='{"tankLevel": 5, "tankName": "Tank #1"}'
@@ -238,52 +304,52 @@ const TestingPanel = () => {
               <div>
                 <div className="tw-text-gray-500">Email Service</div>
                 <div className="tw-flex tw-items-center tw-font-medium">
-                  <div className="tw-w-2 tw-h-2 tw-bg-green-400 tw-rounded-full tw-mr-2"></div>
-                  Online
+                  <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${
+                    diagnostics?.emailServiceConfigured ? 'tw-bg-green-400' : 'tw-bg-red-400'
+                  }`}></div>
+                  {diagnostics?.emailServiceConfigured ? 'Online' : 'Not Configured'}
                 </div>
               </div>
               <div>
                 <div className="tw-text-gray-500">SMTP Server</div>
                 <div className="tw-flex tw-items-center tw-font-medium">
-                  <div className="tw-w-2 tw-h-2 tw-bg-green-400 tw-rounded-full tw-mr-2"></div>
-                  Connected
+                  <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${
+                    diagnostics?.smtpHost ? 'tw-bg-green-400' : 'tw-bg-gray-400'
+                  }`}></div>
+                  {diagnostics?.smtpHost || 'Not Set'}
                 </div>
               </div>
               <div>
-                <div className="tw-text-gray-500">Queue Status</div>
-                <div className="tw-flex tw-items-center tw-font-medium">
-                  <div className="tw-w-2 tw-h-2 tw-bg-yellow-400 tw-rounded-full tw-mr-2"></div>
-                  3 Pending
-                </div>
+                <div className="tw-text-gray-500">SMTP Port</div>
+                <div className="tw-font-medium tw-text-gray-900">{diagnostics?.smtpPort || 'N/A'}</div>
               </div>
               <div>
-                <div className="tw-text-gray-500">Last Delivery</div>
-                <div className="tw-font-medium tw-text-gray-900">2 min ago</div>
+                <div className="tw-text-gray-500">SSL Enabled</div>
+                <div className="tw-font-medium tw-text-gray-900">
+                  {diagnostics?.sslEnabled !== undefined ? (diagnostics.sslEnabled ? 'Yes' : 'No') : 'N/A'}
+                </div>
               </div>
             </div>
 
             <div className="tw-border-t tw-border-gray-200 tw-pt-4">
-              <div className="tw-text-sm tw-text-gray-600 tw-mb-3">Recent Activity</div>
+              <div className="tw-text-sm tw-text-gray-600 tw-mb-3">Email Configuration</div>
               <div className="tw-space-y-2 tw-text-sm">
                 <div className="tw-flex tw-justify-between">
-                  <span className="tw-text-gray-600">Tank Alert #1001</span>
-                  <span className="tw-text-green-600">Delivered</span>
+                  <span className="tw-text-gray-600">From Address</span>
+                  <span className="tw-text-gray-900">{diagnostics?.fromAddress || 'Not configured'}</span>
                 </div>
                 <div className="tw-flex tw-justify-between">
-                  <span className="tw-text-gray-600">Maintenance Reminder</span>
-                  <span className="tw-text-green-600">Delivered</span>
-                </div>
-                <div className="tw-flex tw-justify-between">
-                  <span className="tw-text-gray-600">System Report</span>
-                  <span className="tw-text-yellow-600">Pending</span>
+                  <span className="tw-text-gray-600">System Name</span>
+                  <span className="tw-text-gray-900">{diagnostics?.systemName || 'FMS'}</span>
                 </div>
               </div>
             </div>
 
             <Button
-              text="Run Full Diagnostics"
+              text="Refresh Diagnostics"
               type="default"
               stylingMode="outlined"
+              onClick={loadDiagnostics}
               className="tw-w-full"
             />
           </div>

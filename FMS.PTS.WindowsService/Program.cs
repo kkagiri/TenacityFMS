@@ -481,7 +481,6 @@ namespace FMS.PTS.WindowsService
 
             //Cursor: Register missing configuration and alarm services
             services.AddScoped<ISystemConfigurationService, SystemConfigurationService>(); //Cursor
-            services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService>(); //Cursor
             // IAlarmHandlerService is obsolete but still used by some handlers - keep registration
             services.AddScoped<FMS.Application.Services.IAlarmHandlerService, FMS.Application.Services.AlarmHandlerService>();
             services.AddScoped<PumpTransactionIntegrationService>(); //Cursor

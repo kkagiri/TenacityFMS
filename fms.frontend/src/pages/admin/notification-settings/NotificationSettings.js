@@ -1,31 +1,20 @@
-import React, { useState, useCallback } from "react";
-import { TabPanel, LoadPanel } from "devextreme-react";
+import React, { useState } from "react";
+import { LoadPanel } from "devextreme-react";
+import { Link } from "react-router-dom";
 import NotificationCategoriesTab from "./NotificationCategoriesTab";
-import NotificationPoliciesTab from "./NotificationPoliciesTab";
 import "./NotificationSettings.css";
 
+/**
+ * Admin Notification Settings
+ *
+ * This page manages SYSTEM-WIDE notification configuration:
+ * - Categories: Define notification types (Tank Alerts, Security, etc.)
+ *
+ * NOTE: Policies are managed in the /notifications/policies page
+ * to avoid duplication. Link provided below for convenience.
+ */
 const NotificationSettings = () => {
   const [loading] = useState(false);
-  const [selectedTab, setSelectedTab] = useState(0);
-
-  const tabs = [
-    {
-      id: "categories",
-      title: "Categories",
-      icon: "fa-light fa-tags",
-      component: NotificationCategoriesTab
-    },
-    {
-      id: "policies",
-      title: "Policies",
-      icon: "fa-light fa-shield-check",
-      component: NotificationPoliciesTab
-    }
-  ];
-
-  const handleTabChange = useCallback((e) => {
-    setSelectedTab(e.component.option("selectedIndex") ?? 0);
-  }, []);
 
   return (
     <div className="notification-settings">
@@ -33,32 +22,33 @@ const NotificationSettings = () => {
         <div className="header-content">
           <h1 className="settings-title">
             <i className="fa-light fa-bell tw-mr-3"></i>
-            Notification Settings
+            Notification Categories
           </h1>
           <p className="settings-subtitle">
-            Manage notification categories, policies, and system-wide notification configuration
+            Manage notification categories that define how notifications are grouped and configured.
+            Categories set default priorities, delivery methods, and acknowledgment requirements.
           </p>
+        </div>
+        <div className="tw-flex tw-items-center tw-gap-4 tw-mt-4">
+          <Link
+            to="/admin/notification/policies"
+            className="tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-blue-600 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-md hover:tw-bg-blue-100"
+          >
+            <i className="fa-light fa-shield-check tw-mr-2"></i>
+            Manage Notification Policies
+          </Link>
+          <Link
+            to="/admin/notification/preferences"
+            className="tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-600 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-md hover:tw-bg-gray-100"
+          >
+            <i className="fa-light fa-user-cog tw-mr-2"></i>
+            User Preferences
+          </Link>
         </div>
       </div>
 
-      <div className="settings-content">
-        <TabPanel
-          selectedIndex={selectedTab}
-          onSelectionChanged={handleTabChange}
-          showNavButtons={false}
-          dataSource={tabs}
-          itemTitleRender={(tab) => (
-            <span className="tab-title">
-              <i className={`${tab.icon} tw-mr-2`}></i>
-              {tab.title}
-            </span>
-          )}
-          itemRender={(tab) => (
-            <div className="tab-content">
-              <tab.component />
-            </div>
-          )}
-        />
+      <div className="settings-content tw-mt-6">
+        <NotificationCategoriesTab />
       </div>
 
       <LoadPanel visible={loading} message="Loading notification settings..." />

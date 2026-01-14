@@ -23,13 +23,15 @@
 
 <ItemGroup>
     <RestoreSources Include="https://api.nuget.org/v3/index.json" />
+    <!-- DevExpress 23.2 packages - local folder (repacked from network share) -->
+    <RestoreSources Include="$(MSBuildThisFileDirectory)..\packages" />
 <!--Production link -->
     <!-- <RestoreSources Include="E:\Dependancy\Components\System\Components\packages" /> -->
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
-    <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="23.2.3" /> -->
+    <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="23.2.3" />
     <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="22.2.5" /> -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />

@@ -201,7 +201,8 @@ class NotificationPreferencesApi {
     return [
       { id: "System", name: "System Notification", icon: "fa-regular fa-bell" },
       { id: "Email", name: "Email", icon: "fa-regular fa-envelope" },
-      { id: "SMS", name: "SMS", icon: "fa-regular fa-mobile" }
+      { id: "SMS", name: "SMS", icon: "fa-regular fa-mobile" },
+      { id: "Push", name: "Push Notification", icon: "fa-regular fa-mobile-notch" }
     ];
   }
 

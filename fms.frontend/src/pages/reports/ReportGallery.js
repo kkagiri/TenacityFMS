@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { TileView } from 'devextreme-react/tile-view';
 import { TextBox } from 'devextreme-react/text-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { LoadPanel } from 'devextreme-react/load-panel';
@@ -14,6 +13,7 @@ import './ReportGallery.scss';
 const ReportGallery = () => {
   const navigate = useNavigate();
   const [reports, setReports] = useState([]);
+  const [devExtremeReports, setDevExtremeReports] = useState([]);
   const [filteredReports, setFilteredReports] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,21 +27,52 @@ const ReportGallery = () => {
     const loadData = async () => {
       setLoading(true);
       try {
-        // Load all reports
+        // Load all reports (built-in)
         const reportsResult = await reportingService.getReportDefinitions();
         if (reportsResult.success) {
           setReports(reportsResult.data);
-          setFilteredReports(reportsResult.data);
         }
 
-        // Load categories
-        const categoriesResult = await reportingService.getReportCategories();
-        if (categoriesResult.success) {
-          setCategories([
-            { name: 'All', icon: 'fa-light fa-list' },
-            ...categoriesResult.data
-          ]);
+        // Load DevExtreme reports from database
+        const devExtremeResult = await reportingService.getDevExtremeReports();
+        if (devExtremeResult.success && devExtremeResult.data) {
+          // Transform DevExtreme reports to match the report format
+          // Now using real metadata from API
+          const transformedReports = devExtremeResult.data.map(r => ({
+            reportId: `devextreme-${r.id}`,
+            reportName: r.displayName || r.name,
+            description: r.description || `DevExtreme report: ${r.name}`,
+            category: r.category || 'DevExtreme Reports',
+            type: r.reportType ?? 4,
+            icon: r.icon || 'fa-light fa-file-chart-column',
+            isDevExtreme: true,
+            devExtremeId: r.id,
+            devExtremeName: r.name,
+            createdAt: r.createdAt,
+            createdBy: r.createdBy
+          }));
+          setDevExtremeReports(transformedReports);
         }
+
+        // Load categories from both sources
+        const categoriesResult = await reportingService.getReportCategories();
+        const devExtremeCategoriesResult = await reportingService.getDevExtremeReportCategories();
+
+        // Combine and dedupe categories
+        const allCategories = new Set(['All']);
+        if (categoriesResult.success && categoriesResult.data) {
+          categoriesResult.data.forEach(c => allCategories.add(c.name));
+        }
+        if (devExtremeCategoriesResult.success && devExtremeCategoriesResult.data) {
+          devExtremeCategoriesResult.data.forEach(c => allCategories.add(c.name));
+        }
+
+        setCategories([
+          { name: 'All', icon: 'fa-light fa-list' },
+          ...Array.from(allCategories)
+            .filter(c => c !== 'All')
+            .map(c => ({ name: c, icon: 'fa-light fa-folder' }))
+        ]);
       } catch (error) {
         console.error('Error loading reports:', error);
         notify({ message: 'Error loading reports', type: 'error' });
@@ -55,7 +86,9 @@ const ReportGallery = () => {
 
   // Apply filters
   useEffect(() => {
-    let filtered = [...reports];
+    // Combine built-in reports and DevExtreme reports
+    let allReports = [...reports, ...devExtremeReports];
+    let filtered = [...allReports];
 
     // Filter by category
     if (selectedCategory && selectedCategory !== 'All') {
@@ -73,10 +106,17 @@ const ReportGallery = () => {
     }
 
     setFilteredReports(filtered);
-  }, [reports, searchText, selectedCategory]);
+  }, [reports, devExtremeReports, searchText, selectedCategory]);
 
   // Handle report selection
   const handleReportClick = (report) => {
+    // Check if this is a DevExtreme report
+    if (report.isDevExtreme) {
+      // Navigate to DevExtreme Report Viewer
+      navigate(`/reports/viewer/${encodeURIComponent(report.devExtremeName)}`);
+      return;
+    }
+
     // Navigate to the report page
     // You can define routes for each report type
     switch (report.reportId) {
@@ -91,6 +131,17 @@ const ReportGallery = () => {
     }
   };
 
+  // Handle edit DevExtreme report
+  const handleEditDevExtremeReport = (e, report) => {
+    e.stopPropagation();
+    navigate(`/reports/designer/${encodeURIComponent(report.devExtremeName)}`);
+  };
+
+  // Handle create new DevExtreme report
+  const handleCreateNewReport = () => {
+    navigate('/reports/designer');
+  };
+
   // Render report tile
   const renderReportTile = (report) => {
     const getReportTypeLabel = (type) => {
@@ -99,13 +150,19 @@ const ReportGallery = () => {
         case 1: return 'Pivot Grid';
         case 2: return 'Chart';
         case 3: return 'Dashboard';
+        case 4: return 'DevExtreme';
         default: return 'Report';
       }
     };
 
+    const isDevExtreme = report.isDevExtreme;
+    const headerGradient = isDevExtreme
+      ? 'tw-from-purple-500 tw-to-purple-600'
+      : 'tw-from-blue-500 tw-to-blue-600';
+
     return (
       <div className="report-tile tw-bg-white tw-rounded-lg tw-shadow-md hover:tw-shadow-xl tw-transition-shadow tw-cursor-pointer tw-overflow-hidden">
-        <div className="report-tile__header tw-bg-gradient-to-r tw-from-blue-500 tw-to-blue-600 tw-p-4 tw-text-white">
+        <div className={`report-tile__header tw-bg-gradient-to-r ${headerGradient} tw-p-4 tw-text-white`}>
           <div className="tw-flex tw-items-center tw-justify-between">
             <i className={`${report.icon} tw-text-3xl`}></i>
             <span className="tw-text-xs tw-bg-white tw-bg-opacity-20 tw-px-2 tw-py-1 tw-rounded">
@@ -127,15 +184,26 @@ const ReportGallery = () => {
               <i className="fa-light fa-folder"></i>
               {report.category}
             </span>
-            <button
-              className="tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleReportClick(report);
-              }}
-            >
-              Open →
-            </button>
+            <div className="tw-flex tw-items-center tw-gap-2">
+              {isDevExtreme && (
+                <button
+                  className="tw-text-purple-600 hover:tw-text-purple-800 tw-font-medium"
+                  onClick={(e) => handleEditDevExtremeReport(e, report)}
+                  title="Edit Report"
+                >
+                  <i className="fa-light fa-pen-to-square"></i>
+                </button>
+              )}
+              <button
+                className="tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleReportClick(report);
+                }}
+              >
+                Open →
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -157,9 +225,18 @@ const ReportGallery = () => {
             </p>
           </div>
 
-          <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
-            <i className="fa-light fa-file-chart-column"></i>
-            <span>{filteredReports.length} reports available</span>
+          <div className="tw-flex tw-items-center tw-gap-4">
+            <button
+              onClick={handleCreateNewReport}
+              className="tw-px-4 tw-py-2 tw-bg-green-500 tw-text-white tw-rounded-md hover:tw-bg-green-600 tw-flex tw-items-center tw-gap-2 tw-font-medium"
+            >
+              <i className="fa-light fa-plus"></i>
+              Create Report
+            </button>
+            <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
+              <i className="fa-light fa-file-chart-column"></i>
+              <span>{filteredReports.length} reports available</span>
+            </div>
           </div>
         </div>
 

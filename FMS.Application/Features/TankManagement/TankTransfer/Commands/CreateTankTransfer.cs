@@ -54,6 +54,37 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 // Always use UTC for internal storage
                 var transferDate = request.TankTransferDTO.Date ?? DateTime.UtcNow;
 
+                // NEW VALIDATION: Check for existing transfer (manual or automated) with same tanks and volume on same date
+                // This prevents double-counting when an automated pump transfer has already recorded this operation
+                const decimal VOLUME_TOLERANCE = 0.01m; // 1% tolerance for volume comparison
+
+                var existingTransfer = await _context.TankTransfers
+                    .FirstOrDefaultAsync(tt =>
+                        tt.SourceTankId == request.TankTransferDTO.SourceTankId &&
+                        tt.DestinationTankId == request.TankTransferDTO.DestinationTankId &&
+                        tt.TransferDate.HasValue &&
+                        tt.TransferDate.Value.Date == transferDate.Date &&
+                        tt.Amount.HasValue &&
+                        Math.Abs(tt.Amount.Value - transferAmount) / transferAmount <= VOLUME_TOLERANCE &&
+                        !tt.IsDeleted,
+                        cancellationToken);
+
+                if (existingTransfer != null)
+                {
+                    _logger.LogWarning(
+                        "Blocked duplicate tank transfer: Existing transfer already exists. " +
+                        "Source Tank {SourceTankId} -> Dest Tank {DestTankId}, Date {Date}, " +
+                        "Existing Volume: {ExistingVolume}L, Requested Volume: {RequestedVolume}L, " +
+                        "Existing Transfer ID: {TransferId}",
+                        request.TankTransferDTO.SourceTankId, request.TankTransferDTO.DestinationTankId,
+                        transferDate.Date, existingTransfer.Amount, transferAmount, existingTransfer.Id);
+
+                    return new FMSResponseMessage<TankTransferDTO>(false,
+                        $"⚠️ DUPLICATE PREVENTED: A transfer from '{sourceTank.Name}' to '{destinationTank.Name}' already exists on {transferDate.Date:yyyy-MM-dd} " +
+                        $"with volume {existingTransfer.Amount:F2}L (Transfer ID: {existingTransfer.Id}). " +
+                        "This may have been recorded automatically by the PTS pump system. Manual entry is not required.", null);
+                }
+
                 // Check if there is opening stock for both source and destination tanks on the transfer day
                 var sourceOpeningStock = await _context.TankVolumeHistories
                     .Where(x => x.TankId == request.TankTransferDTO.SourceTankId &&
@@ -200,6 +231,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                     if (sourceTank.PhysicalStockValue.HasValue)
                     {
                         sourcePhysicalStockValue = sourceTank.PhysicalStockValue.Value - transferAmount;
+
+                        // CRITICAL VALIDATION: Prevent negative stock in source tank
+                        if (sourcePhysicalStockValue < 0)
+                        {
+                            return new FMSResponseMessage<TankTransferDTO>(false,
+                                $"Transfer would result in negative stock for source tank '{sourceTank.Name}'. " +
+                                $"Current physical stock: {sourceTank.PhysicalStockValue.Value:F2}L, Transfer amount: {transferAmount:F2}L. " +
+                                "Please reduce the transfer amount or verify tank stock levels.", null);
+                        }
                     }
                     if (destinationTank.PhysicalStockValue.HasValue)
                     {

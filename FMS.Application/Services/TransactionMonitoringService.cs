@@ -5,10 +5,10 @@ using System.Threading.Tasks;
 using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities.PTS.Enums;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
-using FMS.Application.Services;
 
 namespace FMS.Application.Services
 {
@@ -27,7 +27,7 @@ namespace FMS.Application.Services
         private readonly IPumpService _pumpService;
         private readonly IDatabase _redisDb;
         private readonly ILogger<TransactionMonitoringService> _logger;
-        private readonly IAutomatedFuelingConfigurationService _configurationService;
+        private readonly ISystemConfigurationService _systemConfigService;
 
         public TransactionMonitoringService(
             DeviceConnectionTracker deviceConnectionTracker,
@@ -35,14 +35,14 @@ namespace FMS.Application.Services
             IPumpService pumpService,
             IConnectionMultiplexer redisConnection,
             ILogger<TransactionMonitoringService> logger,
-            IAutomatedFuelingConfigurationService configurationService)
+            ISystemConfigurationService systemConfigService)
         {
             _deviceConnectionTracker = deviceConnectionTracker;
             _authTracker = authTracker;
             _pumpService = pumpService;
             _redisDb = redisConnection.GetDatabase();
             _logger = logger;
-            _configurationService = configurationService;
+            _systemConfigService = systemConfigService;
         }
 
         public async Task StartMonitoringTransaction(string deviceId, int pumpId, int nozzleId, int transactionId)
@@ -327,25 +327,27 @@ namespace FMS.Application.Services
                 }
 
                 // Check configuration for reconciliation settings
-                var config = await _configurationService.GetConfigurationAsync(siteId);
+                var autoReconcile = await _systemConfigService.GetPtsAutoReconcileTankVolumesAsync();
 
-                if (!config.AutoReconcileTankVolumes)
+                if (!autoReconcile)
                 {
-                    _logger.LogDebug("Auto-reconciliation disabled for site {SiteId}, skipping discrepancy check", siteId);
+                    _logger.LogDebug("Auto-reconciliation disabled by system configuration, skipping discrepancy check");
                     return;
                 }
 
                 // Check if volume discrepancy exceeds threshold
-                if (config.MaxVolumeDiscrepancyThreshold.HasValue && volume > config.MaxVolumeDiscrepancyThreshold.Value)
+                var maxDiscrepancyThreshold = await _systemConfigService.GetPtsMaxVolumeDiscrepancyThresholdAsync();
+                if (volume > maxDiscrepancyThreshold)
                 {
                     _logger.LogWarning("Volume discrepancy detected: {Volume}L exceeds threshold {Threshold}L for tank {TankId}",
-                        volume, config.MaxVolumeDiscrepancyThreshold.Value, tankId);
+                        volume, maxDiscrepancyThreshold, tankId);
 
                     // Trigger reconciliation policy based on discrepancy action
-                    switch (config.DiscrepancyAction)
+                    var discrepancyAction = await _systemConfigService.GetPtsDiscrepancyActionAsync();
+                    switch (discrepancyAction)
                     {
                         case 1: // Alert
-                            await TriggerDiscrepancyAlert(tankId.Value, volume, config.MaxVolumeDiscrepancyThreshold.Value);
+                            await TriggerDiscrepancyAlert(tankId.Value, volume, maxDiscrepancyThreshold);
                             break;
                         case 2: // Block
                             await TriggerDiscrepancyBlock(tankId.Value, volume);

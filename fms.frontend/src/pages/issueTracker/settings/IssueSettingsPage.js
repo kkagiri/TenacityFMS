@@ -12,6 +12,8 @@ import {
   fetchIssueStatuses
 } from '../../../redux/actions/issueTrackerActions';
 import issueTrackerService from '../../../services/issueTrackerService';
+import DeviceTypesSettingsPage from './DeviceTypesSettingsPage';
+import IssueTemplatesSettingsPage from './IssueTemplatesSettingsPage';
 
 const IssueSettingsPage = () => {
   const dispatch = useDispatch();
@@ -33,7 +35,9 @@ const IssueSettingsPage = () => {
   const tabData = React.useMemo(() => [
     { text: "Categories", icon: "fa-light fa-tags", count: categories?.length || 0 },
     { text: "Priorities", icon: "fa-light fa-exclamation-triangle", count: priorities?.length || 0 },
-    { text: "Statuses", icon: "fa-light fa-list-check", count: statuses?.length || 0 }
+    { text: "Statuses", icon: "fa-light fa-list-check", count: statuses?.length || 0 },
+    { text: "Device Types", icon: "fa-light fa-microchip", count: null },
+    { text: "Templates", icon: "fa-light fa-file-lines", count: null }
   ], [categories?.length, priorities?.length, statuses?.length]);
 
   // Custom tab item renderer
@@ -42,9 +46,11 @@ const IssueSettingsPage = () => {
       <div className="tw-flex tw-items-center tw-gap-2">
         <i className={item.icon}></i>
         <span>{item.text}</span>
-        <span className="tw-bg-blue-100 tw-text-blue-800 tw-text-xs tw-font-medium tw-px-2 tw-py-0.5 tw-rounded-full">
-          {item.count}
-        </span>
+        {item.count !== null && (
+          <span className="tw-bg-blue-100 tw-text-blue-800 tw-text-xs tw-font-medium tw-px-2 tw-py-0.5 tw-rounded-full">
+            {item.count}
+          </span>
+        )}
       </div>
     );
   };
@@ -439,6 +445,14 @@ const IssueSettingsPage = () => {
           </DataGrid>
         );
 
+      case 3:
+        // Device Types (V2)
+        return loadedTabs.has(3) && <DeviceTypesSettingsPage />;
+
+      case 4:
+        // Issue Templates (V2)
+        return loadedTabs.has(4) && <IssueTemplatesSettingsPage />;
+
       default:
         return null;
     }
@@ -470,7 +484,7 @@ const IssueSettingsPage = () => {
                 <div>
                   <h2 className="tw-text-2xl tw-font-semibold">Issue Tracker Configuration</h2>
                   <p className="tw-text-blue-100 tw-mt-1">
-                    Manage categories, priorities, and statuses for issue tracking
+                    Manage categories, priorities, statuses, device types, and issue templates
                   </p>
                 </div>
                 <Button

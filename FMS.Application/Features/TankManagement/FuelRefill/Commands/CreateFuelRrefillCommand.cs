@@ -124,6 +124,36 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 if (existingRefuel != null) return new FMSResponseMessage(false, $"Duplicate entry: A fuel refill for vehicle already exists on {fuelRefilDto.Date.Value.Date:yyyy-MM-dd} with the same volume ({fuelRefilDto.ManualFuelrefillAmount}L). Please check the existing entry or use a different volume.");
 
+                // NEW VALIDATION: Check for existing AUTOMATED pump transaction for the same vehicle
+                // This prevents double-counting when an automated PTS transaction has already recorded this fueling
+                // Uses a 1% volume tolerance to account for minor discrepancies between systems
+                const decimal VOLUME_TOLERANCE = 0.01m; // 1% tolerance for volume comparison
+                var requestedVolume = (decimal)fuelRefilDto.ManualFuelrefillAmount;
+
+                var existingPumpTransaction = await _context.Pumptransactions
+                    .FirstOrDefaultAsync(pt =>
+                        pt.VehicleId == fuelRefilDto.VehicleId &&
+                        pt.DateTime.Date == fuelRefilDto.Date.Value.Date &&
+                        pt.Volume.HasValue &&
+                        Math.Abs(pt.Volume.Value - requestedVolume) / requestedVolume <= VOLUME_TOLERANCE,
+                        cancellationToken);
+
+                if (existingPumpTransaction != null)
+                {
+                    _logger.LogWarning(
+                        "Blocked duplicate manual fuel refill: Automated pump transaction already exists. " +
+                        "Vehicle {VehicleId}, Date {Date}, PTS Volume: {PtsVolume}L, Requested Volume: {RequestedVolume}L, " +
+                        "Transaction ID: {TransactionId}, PTS: {PtsId}",
+                        fuelRefilDto.VehicleId, fuelRefilDto.Date.Value.Date,
+                        existingPumpTransaction.Volume, fuelRefilDto.ManualFuelrefillAmount,
+                        existingPumpTransaction.Transaction, existingPumpTransaction.PtsId);
+
+                    return new FMSResponseMessage(false,
+                        $"⚠️ DUPLICATE PREVENTED: An automated pump transaction already exists for this vehicle on {fuelRefilDto.Date.Value.Date:yyyy-MM-dd} " +
+                        $"with volume {existingPumpTransaction.Volume:F2}L (PTS Transaction ID: {existingPumpTransaction.Transaction}). " +
+                        "This fueling was already recorded by the PTS system automatically. Manual entry is not required.");
+                }
+
                 if (request.FuelRefilDTO.ManualFuelrefillAmount == null || request.FuelRefilDTO.ManualFuelrefillAmount <= 0) return new FMSResponseMessage(false, "Fuel refill amount should be greater than 0.");
 
                 var vehicle = await _context.Vehicles
@@ -267,6 +297,19 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 if (entryDate.Date == DateTime.UtcNow.Date && tank.PhysicalStockValue.HasValue)
                 {
                     newPhysicalStockValue = tank.PhysicalStockValue.Value - (decimal)fuelRefil.ManualFuelrefillAmount;
+                    
+                    // CRITICAL VALIDATION: Prevent negative stock
+                    if (newPhysicalStockValue < 0)
+                    {
+                        // Rollback the saved fuel refill since we detected insufficient stock
+                        _context.FuelRefills.Remove(fuelRefil);
+                        await _context.SaveChangesAsync(cancellationToken);
+                        
+                        return new FMSResponseMessage(false,
+                            $"Fuel refill would result in negative tank stock. " +
+                            $"Current physical stock: {tank.PhysicalStockValue.Value:F2}L, Refill amount: {fuelRefil.ManualFuelrefillAmount:F2}L. " +
+                            "Please verify the refill amount or check tank stock levels.");
+                    }
                     physicalStockSource = "FuelRefill";
                 }
 

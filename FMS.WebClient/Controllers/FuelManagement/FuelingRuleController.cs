@@ -181,6 +181,10 @@ public class FuelingRuleController : ControllerBase
     [HttpPost("rulesets/{ruleSetId}/refillcount")]
     public async Task<IActionResult> CreateRefillCountRule(int ruleSetId, [FromBody] CreateNoOfRefillRuleCommand command)
     {
+        _logger.LogInformation("CreateRefillCountRule received: RuleSetId={RuleSetId}, RuleName={RuleName}, " +
+            "MaxRefillsPerDay={MaxRefillsPerDay}, MaxRefillsPerWeek={MaxRefillsPerWeek}, MaxRefillsPerMonth={MaxRefillsPerMonth}",
+            command.RuleSetId, command.RuleName, command.MaxRefillsPerDay, command.MaxRefillsPerWeek, command.MaxRefillsPerMonth);
+
         if (ruleSetId != command.RuleSetId)
             return BadRequest("RuleSet ID mismatch");
 
@@ -201,6 +205,10 @@ public class FuelingRuleController : ControllerBase
     [HttpPut("rules/refillcount/{ruleId}")]
     public async Task<IActionResult> UpdateRefillCountRule(int ruleId, [FromBody] UpdateNoOfRefillRuleCommand command)
     {
+        _logger.LogInformation("UpdateRefillCountRule received: RuleId={RuleId}, RuleName={RuleName}, " +
+            "MaxRefillsPerDay={MaxRefillsPerDay}, MaxRefillsPerWeek={MaxRefillsPerWeek}, MaxRefillsPerMonth={MaxRefillsPerMonth}",
+            command.RuleId, command.RuleName, command.MaxRefillsPerDay, command.MaxRefillsPerWeek, command.MaxRefillsPerMonth);
+
         if (ruleId != command.RuleId)
             return BadRequest("Rule ID mismatch");
 

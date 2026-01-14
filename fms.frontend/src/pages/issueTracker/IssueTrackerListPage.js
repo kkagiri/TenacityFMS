@@ -362,6 +362,71 @@ const IssueTrackerListPage = () => {
               allowSorting={true}
             />
 
+            {/* V2: Device Type Column */}
+            <Column
+              dataField="deviceTypeName"
+              caption="Device Type"
+              width="130"
+              allowSorting={true}
+              cellRender={(data) => {
+                if (!data.value) return <span className="tw-text-gray-400">-</span>;
+                const iconMap = {
+                  'ATG': 'fa-gauge-high',
+                  'PTS': 'fa-gas-pump',
+                  'GPS': 'fa-satellite-dish',
+                  'Vehicle': 'fa-car',
+                  'Fuel Card': 'fa-credit-card',
+                  'Network': 'fa-network-wired',
+                  'Software': 'fa-laptop-code',
+                  'Other': 'fa-question-circle'
+                };
+                const icon = iconMap[data.value] || 'fa-microchip';
+                return (
+                  <div className="tw-flex tw-items-center tw-gap-1">
+                    <i className={`fa-light ${icon} tw-text-blue-500`}></i>
+                    <span className="tw-text-sm">{data.value}</span>
+                  </div>
+                );
+              }}
+            />
+
+            {/* V2: Template Name Column */}
+            <Column
+              dataField="templateName"
+              caption="Template"
+              width="150"
+              allowSorting={true}
+              cellRender={(data) => {
+                if (!data.value) return <span className="tw-text-gray-400">-</span>;
+                return (
+                  <div className="tw-flex tw-items-center tw-gap-1">
+                    <i className="fa-light fa-file-lines tw-text-orange-500"></i>
+                    <span className="tw-text-sm tw-truncate" title={data.value}>{data.value}</span>
+                  </div>
+                );
+              }}
+            />
+
+            {/* V2: Auto-Close Indicator */}
+            <Column
+              dataField="canAutoClose"
+              caption="Auto-Close"
+              width="100"
+              allowSorting={true}
+              cellRender={(data) => (
+                <div className="tw-flex tw-justify-center">
+                  {data.value ? (
+                    <span className="tw-inline-flex tw-items-center tw-bg-green-100 tw-text-green-700 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs">
+                      <i className="fa-light fa-robot tw-mr-1"></i>
+                      Yes
+                    </span>
+                  ) : (
+                    <span className="tw-text-gray-400 tw-text-xs">Manual</span>
+                  )}
+                </div>
+              )}
+            />
+
             <Column
               dataField="vehicleHyoungNo"
               caption="Vehicle"

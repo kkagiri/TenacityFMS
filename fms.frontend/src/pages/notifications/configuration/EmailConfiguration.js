@@ -62,7 +62,7 @@ const EmailConfiguration = () => {
     setLoading(true);
     try {
       // Simulate API call - replace with actual API call
-      const response = await axiosInstance.get("/notifications/email-config");
+      const response = await axiosInstance.get("v1/notifications/email-config");
       if (response.status === 200) {
         setConfig((prev) => ({ ...prev, ...response.data }));
       }
@@ -79,7 +79,7 @@ const EmailConfiguration = () => {
     try {
       // Simulate API call - replace with actual API call
       const response = await axiosInstance.post(
-        "/notifications/email-config",
+        "v1/notifications/email-config",
         config
       );
 
@@ -100,31 +100,23 @@ const EmailConfiguration = () => {
     setTesting(true);
     setConnectionStatus("testing");
     try {
-      // Simulate API call - replace with actual API call
       const response = await axiosInstance.post(
-        "/notifications/test-connection",
-        {
-          server: config.server,
-          port: config.port,
-          security: config.security,
-          username: config.username,
-          password: config.password,
-        }
+        "v1/notifications/test-smtp-connection"
       );
 
-      if (response.status === 200) {
+      if (response.data?.success) {
         setConnectionStatus("success");
         setLastTestResult(
-          "Connection successful! SMTP server is reachable and authentication passed."
+          response.data.message || "Connection successful! SMTP server is reachable and authentication passed."
         );
         notify("SMTP connection test successful", "success", 3000);
       } else {
-        throw new Error("Connection failed");
+        throw new Error(response.data?.message || "Connection failed");
       }
     } catch (error) {
       setConnectionStatus("error");
       setLastTestResult(
-        "Connection failed: Please check your server settings and credentials."
+        error.response?.data?.message || "Connection failed: Please check your server settings and credentials."
       );
       notify("SMTP connection test failed", "error", 3000);
     } finally {
@@ -136,22 +128,21 @@ const EmailConfiguration = () => {
     setTestingEmail(true);
     setTestEmailStatus("sending");
     try {
-      // Simulate API call - replace with actual API call
-      const response = await axiosInstance.post("/notifications/test-email", {
+      const response = await axiosInstance.post("v1/notifications/test-email", {
         toAddress: testEmail.toAddress,
         subject: testEmail.subject,
         message: testEmail.message,
       });
 
-      if (response.status === 200) {
+      if (response.data?.success) {
         setTestEmailStatus("success");
-        notify("Test email sent successfully", "success", 3000);
+        notify(response.data.message || "Test email sent successfully", "success", 3000);
       } else {
-        throw new Error("Failed to send test email");
+        throw new Error(response.data?.message || "Failed to send test email");
       }
     } catch (error) {
       setTestEmailStatus("error");
-      notify("Failed to send test email", "error", 3000);
+      notify(error.response?.data?.message || "Failed to send test email", "error", 3000);
     } finally {
       setTestingEmail(false);
     }
@@ -240,6 +231,7 @@ const EmailConfiguration = () => {
                 <Form formData={config} colCount={2}>
                   <TextBox
                     label="SMTP Server"
+                    labelMode="floating"
                     value={config.server}
                     onValueChanged={(e) =>
                       handleConfigChange("server", e.value)
@@ -253,6 +245,7 @@ const EmailConfiguration = () => {
 
                   <NumberBox
                     label="Port"
+                    labelMode="floating"
                     value={config.port}
                     onValueChanged={(e) => handleConfigChange("port", e.value)}
                     min={1}
@@ -266,6 +259,7 @@ const EmailConfiguration = () => {
 
                   <SelectBox
                     label="Security"
+                    labelMode="floating"
                     value={config.security}
                     dataSource={securityOptions}
                     valueExpr="value"
@@ -277,6 +271,7 @@ const EmailConfiguration = () => {
 
                   <NumberBox
                     label="Timeout (seconds)"
+                    labelMode="floating"
                     value={config.timeout}
                     onValueChanged={(e) =>
                       handleConfigChange("timeout", e.value)
@@ -287,6 +282,7 @@ const EmailConfiguration = () => {
 
                   <TextBox
                     label="Username"
+                    labelMode="floating"
                     value={config.username}
                     onValueChanged={(e) =>
                       handleConfigChange("username", e.value)
@@ -301,6 +297,7 @@ const EmailConfiguration = () => {
 
                   <TextBox
                     label="Password"
+                    labelMode="floating"
                     mode="password"
                     value={config.password}
                     onValueChanged={(e) =>
@@ -315,6 +312,7 @@ const EmailConfiguration = () => {
 
                   <TextBox
                     label="From Address"
+                    labelMode="floating"
                     value={config.fromAddress}
                     onValueChanged={(e) =>
                       handleConfigChange("fromAddress", e.value)
@@ -329,6 +327,7 @@ const EmailConfiguration = () => {
 
                   <TextBox
                     label="From Name"
+                    labelMode="floating"
                     value={config.fromName}
                     onValueChanged={(e) =>
                       handleConfigChange("fromName", e.value)
@@ -342,6 +341,7 @@ const EmailConfiguration = () => {
 
                   <TextBox
                     label="Reply To"
+                    labelMode="floating"
                     value={config.replyTo}
                     onValueChanged={(e) =>
                       handleConfigChange("replyTo", e.value)
@@ -355,6 +355,7 @@ const EmailConfiguration = () => {
 
                   <NumberBox
                     label="Max Retries"
+                    labelMode="floating"
                     value={config.maxRetries}
                     onValueChanged={(e) =>
                       handleConfigChange("maxRetries", e.value)
@@ -445,6 +446,7 @@ const EmailConfiguration = () => {
               <div className="tw-space-y-4">
                 <TextBox
                   label="To Address"
+                  labelMode="floating"
                   value={testEmail.toAddress}
                   onValueChanged={(e) =>
                     setTestEmail((prev) => ({ ...prev, toAddress: e.value }))
@@ -459,6 +461,7 @@ const EmailConfiguration = () => {
 
                 <TextBox
                   label="Subject"
+                  labelMode="floating"
                   value={testEmail.subject}
                   onValueChanged={(e) =>
                     setTestEmail((prev) => ({ ...prev, subject: e.value }))

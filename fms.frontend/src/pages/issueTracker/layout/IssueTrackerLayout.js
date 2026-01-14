@@ -176,11 +176,14 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
       {/* Main Content */}
       <main className="issue-tracker-main">
         {/* Header */}
-        <header className="page-header">
-          <div className="header-content">
-            <div className="header-text">
-              <h1 className="page-title">{finalTitle}</h1>
-              {finalSubtitle && <p className="page-subtitle">{finalSubtitle}</p>}
+        <header className="main-header">
+          {/* Title on LEFT - Single line compact header */}
+          <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
+            {/* Title Section - LEFT (Compact, no subtitle) */}
+            <div className="tw-flex-shrink-0">
+              <h1 className="tw-text-xl tw-font-bold tw-text-gray-800">
+                {finalTitle}
+              </h1>
             </div>
           </div>
         </header>

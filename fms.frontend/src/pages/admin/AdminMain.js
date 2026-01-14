@@ -14,11 +14,11 @@ import SitePage from "../site/sitePage";
 import TankPage from "../tank/tankPage";
 import DeviceDashboard from "../PTSDevice/DeviceDashboard";
 import PTSDeviceDetailPage from "../PTSDevice/PTSDeviceDetail/PTSDeviceDetailPage";
-import PTSAutomationConfigPage from "../PTSAutomationConfig/PTSAutomationConfigPage";
+// PTSAutomationConfigPage removed - migrated to SystemConfiguration
 import ConfigurationPage from "./configuration";
 import SystemConfiguration from "./systemConfig/SystemConfigPage";
 import PTSServiceControl from "./ptsService/PTSServiceControl";
-import NotificationSettings from "./notification-settings/NotificationSettings";
+import NotificationSystem from "../notifications";
 import ProviderManagementMain from "../providermanagement/ProviderManagementMain";
 import TaskManagement from "../taskManagement";
 import LogManagementPage from "./logManagement/LogManagementPage";
@@ -45,8 +45,8 @@ const AdminMain = () => {
         <Route path="permissions/*" element={<PermissionTreeList />} />
         <Route path="navigation" element={<NavigationPage />} />
         <Route path="navigation/*" element={<NavigationPage />} />
-        <Route path="notifications" element={<NotificationSettings />} />
-        <Route path="notifications/*" element={<NotificationSettings />} />
+        <Route path="notification" element={<NotificationSystem />} />
+        <Route path="notification/*" element={<NotificationSystem />} />
         <Route path="task-management" element={<TaskManagement />} />
         <Route path="task-management/*" element={<TaskManagement />} />
 
@@ -64,8 +64,7 @@ const AdminMain = () => {
         <Route path="ptsdevice" element={<DeviceDashboard />} />
         <Route path="ptsdevice/:deviceid" element={<PTSDeviceDetailPage />} />
         <Route path="ptsdevice/*" element={<DeviceDashboard />} />
-        <Route path="ptsconfig" element={<PTSAutomationConfigPage />} />
-        <Route path="ptsconfig/*" element={<PTSAutomationConfigPage />} />
+        {/* ptsconfig routes removed - migrated to systemconfig */}
         <Route path="systemconfig" element={<SystemConfiguration />} />
         <Route path="systemconfig/*" element={<SystemConfiguration />} />
         <Route path="configuration" element={<ConfigurationPage />} />

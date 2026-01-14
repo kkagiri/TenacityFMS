@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Geofence.DTOs;
+using FMS.Application.Features.Geofence.Services;
 using FMS.Domain.Entities.Features.LocationValidation;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -46,6 +47,7 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<EnableTemporaryBypassCommandHandler> _logger;
+    private readonly ILocationBypassNotificationService? _notificationService;
 
     // Configuration keys for temporary bypass
     private const string BYPASS_ACTIVE_KEY = "FuelingRules.TemporaryBypass.IsActive";
@@ -54,10 +56,14 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
     private const string BYPASS_ENABLED_AT_KEY = "FuelingRules.TemporaryBypass.EnabledAt";
     private const string BYPASS_REASON_KEY = "FuelingRules.TemporaryBypass.Reason";
 
-    public EnableTemporaryBypassCommandHandler(GpsdataContext context, ILogger<EnableTemporaryBypassCommandHandler> logger)
+    public EnableTemporaryBypassCommandHandler(
+        GpsdataContext context,
+        ILogger<EnableTemporaryBypassCommandHandler> logger,
+        ILocationBypassNotificationService? notificationService = null)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<FMSResponse<TemporaryBypassStatusDTO>> Handle(EnableTemporaryBypassCommand request, CancellationToken cancellationToken)
@@ -130,6 +136,12 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
         var message = request.DurationMinutes.HasValue
             ? $"System-wide bypass enabled for {request.DurationMinutes} minutes"
             : "System-wide bypass enabled (permanent until cancelled)";
+
+        // Broadcast status update via SignalR
+        if (_notificationService != null)
+        {
+            await _notificationService.BroadcastBypassStatusAsync(status, "enabled", message);
+        }
 
         return FMSResponse<TemporaryBypassStatusDTO>.Success(status, message);
     }
@@ -211,8 +223,15 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
             VehicleBypasses = vehicleBypasses
         };
 
-        return FMSResponse<TemporaryBypassStatusDTO>.Success(status,
-            $"Bypass enabled for {vehicleBypasses.Count} vehicle(s)");
+        var message = $"Bypass enabled for {vehicleBypasses.Count} vehicle(s)";
+
+        // Broadcast status update via SignalR
+        if (_notificationService != null)
+        {
+            await _notificationService.BroadcastBypassStatusAsync(status, "enabled", message);
+        }
+
+        return FMSResponse<TemporaryBypassStatusDTO>.Success(status, message);
     }
 
     private async Task<FMSResponse<TemporaryBypassStatusDTO>> EnableUserBypassAsync(
@@ -292,8 +311,15 @@ public class EnableTemporaryBypassCommandHandler : IRequestHandler<EnableTempora
             UserBypasses = userBypasses
         };
 
-        return FMSResponse<TemporaryBypassStatusDTO>.Success(status,
-            $"Bypass enabled for {userBypasses.Count} user(s)");
+        var message = $"Bypass enabled for {userBypasses.Count} user(s)";
+
+        // Broadcast status update via SignalR
+        if (_notificationService != null)
+        {
+            await _notificationService.BroadcastBypassStatusAsync(status, "enabled", message);
+        }
+
+        return FMSResponse<TemporaryBypassStatusDTO>.Success(status, message);
     }
 
     private async Task UpdateOrCreateConfig(string key, string value, CancellationToken cancellationToken)
@@ -340,13 +366,18 @@ public class CancelTemporaryBypassCommandHandler : IRequestHandler<CancelTempora
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<CancelTemporaryBypassCommandHandler> _logger;
+    private readonly ILocationBypassNotificationService? _notificationService;
 
     private const string BYPASS_ACTIVE_KEY = "FuelingRules.TemporaryBypass.IsActive";
 
-    public CancelTemporaryBypassCommandHandler(GpsdataContext context, ILogger<CancelTemporaryBypassCommandHandler> logger)
+    public CancelTemporaryBypassCommandHandler(
+        GpsdataContext context,
+        ILogger<CancelTemporaryBypassCommandHandler> logger,
+        ILocationBypassNotificationService? notificationService = null)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<FMSResponse<bool>> Handle(CancelTemporaryBypassCommand request, CancellationToken cancellationToken)
@@ -364,6 +395,13 @@ public class CancelTemporaryBypassCommandHandler : IRequestHandler<CancelTempora
             }
 
             _logger.LogInformation("Temporary location bypass CANCELLED by {CancelledBy}", request.CancelledBy);
+
+            // Broadcast status update via SignalR
+            if (_notificationService != null)
+            {
+                var status = new TemporaryBypassStatusDTO { IsActive = false };
+                await _notificationService.BroadcastBypassStatusAsync(status, "cancelled", "System-wide bypass has been cancelled");
+            }
 
             return FMSResponse<bool>.Success(true, "Temporary bypass has been cancelled");
         }
@@ -391,11 +429,16 @@ public class CancelBypassByIdCommandHandler : IRequestHandler<CancelBypassByIdCo
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<CancelBypassByIdCommandHandler> _logger;
+    private readonly ILocationBypassNotificationService? _notificationService;
 
-    public CancelBypassByIdCommandHandler(GpsdataContext context, ILogger<CancelBypassByIdCommandHandler> logger)
+    public CancelBypassByIdCommandHandler(
+        GpsdataContext context,
+        ILogger<CancelBypassByIdCommandHandler> logger,
+        ILocationBypassNotificationService? notificationService = null)
     {
         _context = context;
         _logger = logger;
+        _notificationService = notificationService;
     }
 
     public async Task<FMSResponse<bool>> Handle(CancelBypassByIdCommand request, CancellationToken cancellationToken)
@@ -410,16 +453,23 @@ public class CancelBypassByIdCommandHandler : IRequestHandler<CancelBypassByIdCo
                 return FMSResponse<bool>.Failed($"Bypass with ID {request.BypassId} not found");
             }
 
+            var bypassType = bypass.BypassType;
+            var targetId = bypass.VehicleId?.ToString() ?? bypass.UserId ?? "unknown";
+
             // Remove the bypass
             _context.LocationValidationBypasses.Remove(bypass);
             await _context.SaveChangesAsync(cancellationToken);
 
-            var bypassType = bypass.BypassType;
-            var targetId = bypass.VehicleId?.ToString() ?? bypass.UserId ?? "unknown";
-
             _logger.LogInformation(
                 "Bypass ID {BypassId} ({BypassType} for {TargetId}) CANCELLED by {CancelledBy}",
                 request.BypassId, bypassType, targetId, request.CancelledBy);
+
+            // Broadcast status update via SignalR
+            if (_notificationService != null)
+            {
+                var status = new TemporaryBypassStatusDTO { IsActive = false };
+                await _notificationService.BroadcastBypassStatusAsync(status, "cancelled", $"Bypass for {bypassType} {targetId} has been cancelled");
+            }
 
             return FMSResponse<bool>.Success(true, "Bypass has been cancelled");
         }

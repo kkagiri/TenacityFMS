@@ -1,8 +1,10 @@
-namespace FMS.Application.Features.Notification.Enums {
+namespace FMS.Application.Features.Notification.Enums
+{
     /// <summary>
     /// Well-known notification categories - these should match database entries
     /// </summary>
-    public enum WellKnownCategories {
+    public enum WellKnownCategories
+    {
         SensorVariance = 1,
         TankVariance = 2,
         OpeningStock = 3,
@@ -32,7 +34,8 @@ namespace FMS.Application.Features.Notification.Enums {
     /// <summary>
     /// Well-known notification priorities
     /// </summary>
-    public enum NotificationPriority {
+    public enum NotificationPriority
+    {
         Low,
         Medium,
         High,
@@ -42,7 +45,8 @@ namespace FMS.Application.Features.Notification.Enums {
     /// <summary>
     /// Well-known notification types
     /// </summary>
-    public enum NotificationType {
+    public enum NotificationType
+    {
         Info,
         Warning,
         Alert,
@@ -52,9 +56,15 @@ namespace FMS.Application.Features.Notification.Enums {
     /// <summary>
     /// Well-known delivery methods
     /// </summary>
-    public enum DeliveryMethod {
+    public enum DeliveryMethod
+    {
+        /// <summary>In-app notification via SignalR</summary>
         System,
+        /// <summary>Email notification via SMTP</summary>
         Email,
-        SMS
+        /// <summary>SMS text message</summary>
+        SMS,
+        /// <summary>Mobile/Web push notification (FCM, Expo, APNS)</summary>
+        Push
     }
 }

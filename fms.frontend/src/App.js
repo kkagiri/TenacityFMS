@@ -30,6 +30,7 @@ import { loadUser } from "./redux/actions/AuthActions";
 import { initializeAxiosInstance } from "./api/axiosInstance";
 import GlobalErrorBoundary from "./GlobalErrorBoundary";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
+import webPushNotificationService from "./services/webPushNotificationService";
 
 function App() {
   const dispatch = useDispatch();
@@ -65,6 +66,38 @@ function App() {
     };
     initialize();
   }, [dispatch]);
+
+  // Initialize push notifications when user is authenticated
+  useEffect(() => {
+    const initializePushNotifications = async () => {
+      if (isAuthenticated && user) {
+        console.log('📲 [App] User authenticated, initializing web push notifications...');
+        try {
+          // Check if push is already enabled or if user has previously granted permission
+          const permission = webPushNotificationService.getPermissionStatus();
+
+          if (permission === 'granted') {
+            // User already granted permission, auto-register
+            const success = await webPushNotificationService.enablePushNotifications();
+            if (success) {
+              console.log('✅ [App] Web push notifications enabled');
+            }
+          } else if (permission === 'default') {
+            // Permission not yet requested - will be requested via preferences UI
+            console.log('ℹ️ [App] Push permission not yet requested');
+          }
+          // If 'denied', don't try to request again
+        } catch (error) {
+          console.warn('⚠️ [App] Web push init failed:', error.message);
+        }
+      } else if (!isAuthenticated) {
+        // Cleanup on logout
+        webPushNotificationService.cleanup();
+      }
+    };
+
+    initializePushNotifications();
+  }, [isAuthenticated, user]);
 
   //Cursor: Only show loading if API is not initialized or if we're actually loading user data (and there's a token)
   const shouldShowLoading = !isApiInitialized || (loading && localStorage.getItem('token'));

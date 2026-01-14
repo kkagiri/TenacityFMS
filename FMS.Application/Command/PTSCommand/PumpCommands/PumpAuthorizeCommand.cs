@@ -37,6 +37,7 @@ using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Application.Validation.PTSValidators.PumpAuthorization;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
@@ -105,7 +106,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IAuthorizationStateTracker _authTracker;
         private readonly IPumpService _pumpService;
         private readonly ITransactionMonitoringService _transactionMonitoringService;
-        private readonly IAutomatedFuelingConfigurationService _configurationService;
+        private readonly ISystemConfigurationService _systemConfigService;
         private readonly Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService _fuelingRuleService;
 
         // Refactored services
@@ -122,7 +123,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             GpsdataContext context,
             IPumpService pumpService,
             ITransactionMonitoringService transactionMonitoringService,
-            IAutomatedFuelingConfigurationService configurationService,
+            ISystemConfigurationService systemConfigService,
             Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService fuelingRuleService,
             IPumpAuthorizationValidator validator,
             IPumpAuthorizationPreCheckService preCheckService,
@@ -137,7 +138,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _context = context;
             _pumpService = pumpService;
             _transactionMonitoringService = transactionMonitoringService;
-            _configurationService = configurationService;
+            _systemConfigService = systemConfigService;
             _fuelingRuleService = fuelingRuleService;
             _validator = validator;
             _preCheckService = preCheckService;
@@ -254,10 +255,21 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
                             // Get tank location for geofence check (for mobile tankers)
                             GeoLocation? tankerLocation = null;
+                            string? tankerLocationSource = null;
                             if (effectiveTankId.HasValue)
                             {
-                                var (tankLoc, _) = await _locationValidationService.GetTankLocationAsync(effectiveTankId.Value, cancellationToken);
+                                var (tankLoc, source) = await _locationValidationService.GetTankLocationAsync(effectiveTankId.Value, cancellationToken);
                                 tankerLocation = tankLoc;
+                                tankerLocationSource = source;
+                            }
+
+                            // FALLBACK: For mobile tankers without linked vehicle GPS, use operator's mobile location
+                            // The operator is physically with the tanker, so their phone location is a valid proxy
+                            if (tankerLocation == null && request.MobileLocation != null)
+                            {
+                                _logger.LogInformation("[PumpAuth] 📍 Using OPERATOR MOBILE LOCATION as tanker location fallback (tanker has no linked vehicle GPS)");
+                                tankerLocation = request.MobileLocation;
+                                tankerLocationSource = "OperatorMobileFallback";
                             }
 
                             // Get vehicle location for geofence check
@@ -266,6 +278,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                             {
                                 vehicleLocation = await _locationValidationService.GetVehicleLocationAsync(request.VehicleId.Value, cancellationToken);
                             }
+
+                            _logger.LogInformation("[PumpAuth] Geofence locations - Tanker: {TankerLoc} (source: {Source}), Operator: {OpLoc}, Vehicle: {VehLoc}",
+                                tankerLocation != null ? $"({tankerLocation.Latitude}, {tankerLocation.Longitude})" : "N/A",
+                                tankerLocationSource ?? "N/A",
+                                request.MobileLocation != null ? $"({request.MobileLocation.Latitude}, {request.MobileLocation.Longitude})" : "N/A",
+                                vehicleLocation != null ? $"({vehicleLocation.Latitude}, {vehicleLocation.Longitude})" : "N/A");
 
                             // Build geofence validation request
                             // Note: We pass FuelingRuleSetId=0 as the system now uses global geofence groups (IsAllowedForFueling flag)
@@ -538,7 +556,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
             await _authTracker.SetAuthorized(request.DeviceId!, request.Nozzle, authState);
 
-            // Get site ID and configuration
+            // Get site ID for context
             int? siteId = null;
             if (request.TankId.HasValue)
             {
@@ -546,11 +564,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 siteId = tank?.SiteId;
             }
 
-            var config = await _configurationService.GetConfigurationAsync(siteId, cancellationToken);
+            // Get auto-create ledger setting from system configuration
+            var autoCreateLedgerEntries = await _systemConfigService.GetPtsAutoCreateLedgerEntriesAsync(cancellationToken);
 
             // Determine auto-close behavior
             var configuredAutoClose = request.AutoCloseTransaction;
-            if (config.AutoCreateLedgerEntries && connectionType != "HTTPPolling")
+            if (autoCreateLedgerEntries && connectionType != "HTTPPolling")
             {
                 configuredAutoClose = true;
                 _logger.LogDebug("[PumpAuth] Auto-close enabled based on configuration for transaction {TransactionId}",

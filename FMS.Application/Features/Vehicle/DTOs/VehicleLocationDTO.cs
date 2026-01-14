@@ -23,7 +23,10 @@ namespace FMS.Application.Features.Vehicle.DTOs
         NoData,
 
         /// <summary>Vehicle has no GPS installed - bypass validation</summary>
-        NoGPSInstalled
+        NoGPSInstalled,
+
+        /// <summary>Using cached location because live GPS is unavailable</summary>
+        CachedLocation
     }
 
     public class VehicleLocationDTO
@@ -71,6 +74,11 @@ namespace FMS.Application.Features.Vehicle.DTOs
         /// </summary>
         public string? ValidationStatusReason { get; set; }
 
+        /// <summary>
+        /// Indicates this location is from cache (not live GPS)
+        /// </summary>
+        public bool IsCached { get; set; }
+
         #endregion
 
         // Status properties
@@ -79,11 +87,12 @@ namespace FMS.Application.Features.Vehicle.DTOs
 
         /// <summary>
         /// Determines if this location can be used for fueling validation
-        /// Returns true for Valid or InvalidButRecentActivity statuses
+        /// Returns true for Valid, InvalidButRecentActivity, NoGPSInstalled, or CachedLocation statuses
         /// </summary>
         public bool CanFuel => ValidationStatus == GPSValidationStatus.Valid ||
                                ValidationStatus == GPSValidationStatus.InvalidButRecentActivity ||
-                               ValidationStatus == GPSValidationStatus.NoGPSInstalled;
+                               ValidationStatus == GPSValidationStatus.NoGPSInstalled ||
+                               ValidationStatus == GPSValidationStatus.CachedLocation;
 
         /// <summary>
         /// Indicates if a notification should be created for device issues

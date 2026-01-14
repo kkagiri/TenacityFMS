@@ -554,6 +554,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     geofence.Type = GeofenceType.Route;
                     if (gpsGateGeofence.RouteShape?.Points != null && gpsGateGeofence.RouteShape.Points.Count > 0)
                     {
+                        // GPSGate route geofences define a corridor width via RouteShape.Radius (meters)
+                        // Persist it so sync commands can store it into GpsGeofence.RadiusMeters
+                        geofence.Radius = (decimal)gpsGateGeofence.RouteShape.Radius;
+
                         int order = 0;
                         foreach (var point in gpsGateGeofence.RouteShape.Points)
                         {

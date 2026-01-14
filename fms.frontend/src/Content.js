@@ -130,15 +130,7 @@ export default function Content() {
           path="/tankstock/*"
           element={React.createElement(resolvedComponents("tank stock"))}
         />
-        {/* notification Stock System Routes - Handle all notification sub-routes internally */}
-        <Route
-          path="/notifications"
-          element={React.createElement(resolvedComponents("notifications"))}
-        />
-        <Route
-          path="/notifications/*"
-          element={React.createElement(resolvedComponents("notifications"))}
-        />
+        {/* Notification System Routes removed - now handled under /admin/notification */}
 
         {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
         <Route

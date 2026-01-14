@@ -1,6 +1,5 @@
 using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.Vehicle.Services;
-using FMS.Application.Services;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Enums;
@@ -32,7 +31,6 @@ public partial class LocationValidationService : ILocationValidationService
     private readonly IGPSService _gpsService;
     private readonly ILogger<LocationValidationService> _logger;
     private readonly ISystemConfigurationService _systemConfigService;
-    private readonly IAutomatedFuelingConfigurationService _automatedFuelingConfigService;
 
     // Configuration keys for FuelingRules
     private const string CONFIG_KEY_ENABLE_LOCATION_VALIDATION = "FuelingRules.EnableLocationValidation";
@@ -53,13 +51,11 @@ public partial class LocationValidationService : ILocationValidationService
         GpsdataContext context,
         IGPSService gpsService,
         ISystemConfigurationService systemConfigService,
-        IAutomatedFuelingConfigurationService automatedFuelingConfigService,
         ILogger<LocationValidationService> logger)
     {
         _context = context ?? throw new ArgumentNullException(nameof(context));
         _gpsService = gpsService ?? throw new ArgumentNullException(nameof(gpsService));
         _systemConfigService = systemConfigService ?? throw new ArgumentNullException(nameof(systemConfigService));
-        _automatedFuelingConfigService = automatedFuelingConfigService ?? throw new ArgumentNullException(nameof(automatedFuelingConfigService));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
 

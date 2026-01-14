@@ -96,9 +96,12 @@ const TankVolumeHistoryReport = () => {
       try {
         // Load sites
         try {
-          const sitesResponse = await axios.get('/Site');
+          const sitesResponse = await axios.get('/site');
           if (sitesResponse.data) {
-            setSites(sitesResponse.data.map(s => ({ id: s.siteId, name: s.siteName })));
+            const siteData = Array.isArray(sitesResponse.data)
+              ? sitesResponse.data
+              : (sitesResponse.data.data || []);
+            setSites(siteData.map(s => ({ id: s.siteId, name: s.siteName })));
           }
         } catch (error) {
           console.warn('Error loading sites:', error);
@@ -106,9 +109,12 @@ const TankVolumeHistoryReport = () => {
 
         // Load tanks
         try {
-          const tanksResponse = await axios.get('/Tanks');
+          const tanksResponse = await axios.get('/tank');
           if (tanksResponse.data) {
-            setTanks(tanksResponse.data.map(t => ({ id: t.tankId, name: t.tankName, siteId: t.siteId })));
+            const tankData = Array.isArray(tanksResponse.data)
+              ? tanksResponse.data
+              : (tanksResponse.data.data || []);
+            setTanks(tankData.map(t => ({ id: t.tankId, name: t.tankName, siteId: t.siteId })));
           }
         } catch (error) {
           console.warn('Error loading tanks:', error);
@@ -205,14 +211,14 @@ const TankVolumeHistoryReport = () => {
           <div className="tw-flex tw-gap-2">
             <Button
               text="Reset"
-              icon="fa-light fa-undo"
+              icon="undo"
               type="normal"
               stylingMode="text"
               onClick={handleResetFilters}
             />
             <Button
               text="Apply Filters"
-              icon="fa-light fa-check"
+              icon="check"
               type="default"
               stylingMode="contained"
               onClick={handleApplyFilters}

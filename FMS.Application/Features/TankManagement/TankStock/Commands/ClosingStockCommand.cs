@@ -61,8 +61,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var tank = await _context.Tanks.FindAsync(request.TankId, cancellationToken);
                 if (tank == null) return new FMSResponseMessage(false, $"TankID {request.TankId} not found ");
 
-                // Validate closing stock value is positive
-                if (request.ClosingStock <= 0) return new FMSResponseMessage(false, "Closing stock must be greater than 0");
+                // CRITICAL VALIDATION: Closing stock cannot be negative or zero
+                // Tank volume must always be a positive value
+                if (request.ClosingStock < 0)
+                {
+                    return new FMSResponseMessage(false,
+                        $"Invalid closing stock: {request.ClosingStock:F2}L. Tank stock cannot be negative. " +
+                        "Please enter a valid positive closing stock value.");
+                }
+
+                if (request.ClosingStock == 0)
+                {
+                    return new FMSResponseMessage(false,
+                        "Closing stock cannot be zero. If the tank is empty, please verify this is correct " +
+                        "and enter a small minimum value or contact system administrator.");
+                }
 
                 // Validate historical entry against future records policy
                 if (entryDate.Date < DateTime.UtcNow.Date)

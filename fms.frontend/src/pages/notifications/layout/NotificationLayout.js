@@ -1,178 +1,113 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { notificationRoutes, isActiveRoute } from '../utils/navigationHelper';
+import Tabs from 'devextreme-react/tabs';
+import { notificationRoutes } from '../utils/navigationHelper';
+import NotificationHelpPopup from '../components/NotificationHelpPopup';
 import './NotificationLayout.scss';
-import '../shared/mobileStyles.scss';
 
-const NotificationLayout = ({ children, currentPath }) => {
+/**
+ * Notification Module Layout
+ * Uses tab navigation (similar to Provider Management) for clean integration with Admin layout
+ */
+const NotificationLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [helpPopupVisible, setHelpPopupVisible] = useState(false);
 
-  const navigationItems = [
-    {
-      id: 'dashboard',
-      title: 'Dashboard',
-      icon: 'fa-light fa-chart-line',
-      path: notificationRoutes.dashboard,
-      badge: null,
-    },
-    {
-      id: 'policies',
-      title: 'Policies',
-      icon: 'fa-light fa-shield',
-      path: notificationRoutes.policies,
-      badge: '12',
-    },
-    {
-      id: 'recipients',
-      title: 'Recipients',
-      icon: 'fa-light fa-users',
-      path: notificationRoutes.recipients,
-      badge: null,
-    },
-    {
-      id: 'preferences',
-      title: 'My Preferences',
-      icon: 'fa-light fa-user-cog',
-      path: notificationRoutes.preferences,
-      badge: null,
-    },
-    {
-      id: 'history',
-      title: 'History',
-      icon: 'fa-light fa-history',
-      path: notificationRoutes.history,
-      badge: '3',
-    },
-    {
-      id: 'testing',
-      title: 'Testing',
-      icon: 'fa-light fa-vial',
-      path: notificationRoutes.testing,
-      badge: null,
-    }
-  ];
+  const tabs = useMemo(
+    () => [
+      { id: 'dashboard', text: 'Dashboard', icon: 'fa-light fa-chart-line', path: notificationRoutes.dashboard },
+      { id: 'policies', text: 'Notification Rules', icon: 'fa-light fa-shield', path: notificationRoutes.policies },
+      { id: 'categories', text: 'Categories', icon: 'fa-light fa-tags', path: notificationRoutes.categories },
+      { id: 'recipients', text: 'Recipient Groups', icon: 'fa-light fa-users-gear', path: notificationRoutes.recipients },
+      { id: 'history', text: 'History', icon: 'fa-light fa-clock-rotate-left', path: notificationRoutes.history },
+      { id: 'email-config', text: 'Email Settings', icon: 'fa-light fa-envelope-open-text', path: notificationRoutes.emailConfig },
+    ],
+    []
+  );
 
-  const configurationItems = [
-    {
-      id: 'email-config',
-      title: 'Email Settings',
-      icon: 'fa-light fa-envelope',
-      path: notificationRoutes.emailConfig,
-    },
-    {
-      id: 'templates',
-      title: 'Templates',
-      icon: 'fa-light fa-file-text',
-      path: notificationRoutes.templates,
-    }
-  ];
-
-  const handleNavigation = (path) => {
+  const handleTabClick = (path) => {
     navigate(path);
   };
 
+  const selectedIndex = useMemo(() => {
+    const pathname = location.pathname;
+
+    // Check for exact or prefix match
+    const idx = tabs.findIndex((t) => {
+      if (t.path === notificationRoutes.dashboard) {
+        // Dashboard is base path - exact match or with trailing slash
+        return pathname === t.path || pathname === t.path + '/';
+      }
+      return pathname.startsWith(t.path);
+    });
+
+    if (idx >= 0) return idx;
+    // default route maps to dashboard
+    return 0;
+  }, [location.pathname, tabs]);
+
   return (
-    <div className="notification-layout">
-      {/* Sidebar */}
-      <aside className={`notification-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
-        {/* Header */}
-        <div className="sidebar-header">
-          <div className="sidebar-brand">
-            <i className="fa-light fa-bell tw-text-blue-600"></i>
-            {!sidebarCollapsed && (
-              <span className="tw-text-lg tw-font-semibold tw-ml-2">Notifications</span>
-            )}
+    <div className="tw-h-full tw-flex tw-flex-col">
+      {/* Header */}
+      <div className="tw-bg-white tw-border-b tw-border-gray-200 tw-px-6 tw-py-4">
+        <div className="tw-flex tw-items-center tw-justify-between">
+          <div>
+            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">
+              <i className="fa-light fa-bell tw-mr-3 tw-text-blue-600"></i>
+              Notification System
+            </h1>
+            <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
+              Manage notification rules, categories, recipients, and delivery settings
+            </p>
           </div>
-          <button
-            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
-            className="collapse-btn"
-            aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-          >
-            <i className={`fa-light ${sidebarCollapsed ? 'fa-angles-right' : 'fa-angles-left'}`}></i>
-          </button>
-        </div>
-
-        {/* Navigation */}
-        <div className="sidebar-content">
-          <div className="nav-group">
-            <nav className="nav-menu">
-              {navigationItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
-                    </div>
-                    {!sidebarCollapsed && item.badge && (
-                      <span className="nav-badge">{item.badge}</span>
-                    )}
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="nav-separator"></div>
-
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Settings</div>}
-            <nav className="nav-menu">
-              {configurationItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={() => handleNavigation(item.path)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
-                    </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
-
-          <div className="nav-separator"></div>
-
-          <div className="nav-group">
-            <div
-              onClick={() => handleNavigation(notificationRoutes.policyCreate)}
-              className="create-new-btn"
-              title={sidebarCollapsed ? 'Create Policy' : ''}
+          <div className="tw-flex tw-items-center tw-gap-2">
+            <button
+              onClick={() => setHelpPopupVisible(true)}
+              className="tw-inline-flex tw-items-center tw-px-3 tw-py-2 tw-text-sm tw-font-medium tw-text-gray-600 tw-bg-white tw-border tw-border-gray-300 tw-rounded-md hover:tw-bg-gray-50 tw-transition-colors"
+              title="Help"
             >
-              <i className="fa-light fa-plus"></i>
-              {!sidebarCollapsed && <span>Create Policy</span>}
-            </div>
+              <i className="fa-light fa-circle-question tw-mr-2"></i>
+              Help
+            </button>
+            <button
+              onClick={() => navigate(notificationRoutes.policyCreate)}
+              className="tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-text-white tw-bg-blue-600 tw-border tw-border-transparent tw-rounded-md hover:tw-bg-blue-700 tw-transition-colors"
+            >
+              <i className="fa-light fa-plus tw-mr-2"></i>
+              Create Policy
+            </button>
           </div>
         </div>
-      </aside>
+      </div>
 
-      {/* Main Content */}
-      <main className="notification-main">
-        {/* Header */}
-        <header className="main-header">
-          <div className="header-content">
-            <h1 className="main-title">Notification System</h1>
-          </div>
-        </header>
-
-        {/* Content */}
-        <div className="main-content">
-          {children}
+      {/* Tab Navigation using DevExtreme Tabs */}
+      <div className="tw-bg-white tw-border-b tw-border-gray-200">
+        <div className="tw-px-6">
+          <Tabs
+            dataSource={tabs}
+            selectedIndex={selectedIndex}
+            onItemClick={(e) => handleTabClick(e.itemData.path)}
+            width="100%"
+            itemRender={(item) => (
+              <span className="tw-flex tw-items-center tw-gap-2">
+                <i className={item.icon}></i>
+                {item.text}
+              </span>
+            )}
+            className="tw-pt-2"
+          />
         </div>
-      </main>
+      </div>
+
+      {/* Content Area - conditionally remove padding for full-width grids */}
+      <div className="tw-flex-1 tw-overflow-auto tw-bg-gray-50">{children}</div>
+
+      {/* Help Popup */}
+      <NotificationHelpPopup
+        visible={helpPopupVisible}
+        onHiding={() => setHelpPopupVisible(false)}
+      />
     </div>
   );
 };

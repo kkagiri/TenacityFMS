@@ -67,6 +67,13 @@ using FMS.Application.Services.Logging;
 using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
+using FMS.BackgroundServices.IssueTracker;
+
+// DevExpress Reporting
+using DevExpress.AspNetCore;
+using DevExpress.AspNetCore.Reporting;
+using DevExpress.XtraReports.Web.Extensions;
+using FMS.WebClient.Report;
 
 namespace FMS.WebClient.Extensions;
 
@@ -130,6 +137,9 @@ public static class FmsServiceCollectionExtensions
 
         // Register vehicle tracking provider infrastructure (Phase 1-4)
         services.AddVehicleTracking();
+
+        // Register DevExpress Reporting services
+        RegisterDevExpressReporting(services);
 
         return services;
     }
@@ -392,7 +402,6 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IPermissionAuthorizationService, PermissionAuthorizationService>();
 
         services.AddScoped<IDeviceHttpCommandPusher, DeviceHttpCommandPusher>();
-        services.AddScoped<IAutomatedFuelingConfigurationService, AutomatedFuelingConfigurationService>();
         services.AddSingleton<IPTSConnectionManager, PTSConnectionManager>();
         // Register the device connection tracker (shared Redis-based tracker)
         services.AddSingleton<FMS.Application.Communication.DeviceConnectionTracker>();
@@ -467,10 +476,17 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<AutomatedReconciliationBackgroundService>();
         services.AddHostedService<ActiveAlarmProcessingService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
+
+        // Issue Tracker V2 Background Services
+        services.AddHostedService<IssueAutoCloseService>();
+        services.AddHostedService<IssueMonitoringService>();
+
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISmsService, SmsService>();
         services.AddScoped<INotificationService, NotificationService>();
+        // Push notification service for mobile/web push
+        services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
         // Real-time notification abstraction
         services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
@@ -517,6 +533,12 @@ public static class FmsServiceCollectionExtensions
         // Fueling Rules Services
         services.AddScoped<FMS.Application.Features.FuelTagManagement.FuelingRules.Services.IFuelingRuleEvaluationService, FMS.Application.Features.FuelTagManagement.FuelingRules.Services.FuelingRuleEvaluationService>();
 
+        // Location Bypass Notification Service (SignalR broadcast for bypass status changes)
+        services.AddScoped<FMS.Application.Features.Geofence.Services.ILocationBypassNotificationService, FMS.Application.Features.Geofence.Services.LocationBypassNotificationService>();
+
+        // Location Bypass Monitor Background Service (auto-expires bypasses and notifies clients via SignalR)
+        services.AddHostedService<LocationBypassMonitorService>();
+
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
         services.AddHostedService<LogCleanupBackgroundService>();
@@ -525,5 +547,58 @@ public static class FmsServiceCollectionExtensions
     private static string GetEnvRequired(string key)
     {
         return Environment.GetEnvironmentVariable(key, EnvironmentVariableTarget.Machine) ?? throw new InvalidOperationException($"Missing environment variable: {key}");
+    }
+
+    /// <summary>
+    /// Registers DevExpress Reporting services for Report Viewer and Report Designer.
+    /// </summary>
+    private static void RegisterDevExpressReporting(IServiceCollection services)
+    {
+        // Get connection string for DevExpress Report Designer data sources
+        var fmsConnectionString = GetEnvRequired("ConnectionStrings__FMSConnection");
+        if (!fmsConnectionString.Contains("AllowZeroDateTime") && !fmsConnectionString.Contains("ConvertZeroDateTime"))
+        {
+            fmsConnectionString += fmsConnectionString.Contains("?") ? "&" : ";";
+            fmsConnectionString += "AllowZeroDateTime=True;ConvertZeroDateTime=True";
+        }
+
+        // Add DevExpress controls support - this registers all required services including:
+        // - IWebDocumentViewerMvcControllerService
+        // - IReportDesignerMvcControllerService
+        // - IQueryBuilderMvcControllerService
+        services.AddDevExpressControls();
+
+        // Configure DevExpress Reporting services with custom routes
+        services.ConfigureReportingServices(configurator =>
+        {
+            // Configure the Report Designer route
+            configurator.ConfigureReportDesigner(designerConfigurator =>
+            {
+                // Intentionally rely on DefaultConnectionStringProvider (single FMSConnection)
+            });
+
+            // Configure the Web Document Viewer route
+            configurator.ConfigureWebDocumentViewer(viewerConfigurator =>
+            {
+                viewerConfigurator.UseCachedReportSourceBuilder();
+            });
+        });
+
+        // Register default connection string provider for DevExpress Report Designer
+        // This provides connection strings for the Query Builder and data source wizard
+        DevExpress.DataAccess.DefaultConnectionStringProvider.AssignConnectionStrings(() =>
+            new Dictionary<string, string>
+            {
+                { "FMSConnection", fmsConnectionString }
+            });
+
+        // Configure report storage to use database
+        services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
+
+        // Add MVC with Views for DevExpress Reporting controllers
+        // DevExpress controllers inherit from Controller (not ControllerBase) and need full MVC
+        services.AddControllersWithViews();
+
+        Log.Information("DevExpress Reporting services registered with FMS data connection");
     }
 }
