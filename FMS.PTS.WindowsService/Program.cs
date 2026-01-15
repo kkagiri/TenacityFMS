@@ -553,6 +553,10 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IEmailService, EmailService>();
             services.AddScoped<ISmsService, SmsService>();
 
+            // Register push notification service - Required by PushNotificationChannel
+            services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService,
+                FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
+
             // Register SignalR notification service
             services.AddScoped<ISignalRNotificationService, SignalRNotificationService>();
 

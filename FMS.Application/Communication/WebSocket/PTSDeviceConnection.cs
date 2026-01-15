@@ -352,7 +352,7 @@ namespace FMS.Application.Communication.webSocket
         {
             var errorPacket = new Packet
             {
-                Id = packetId.Value,
+                Id = packetId.GetValueOrDefault(0),
                 Type = type,
                 Error = true,
                 Code = code,
