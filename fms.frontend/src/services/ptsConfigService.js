@@ -276,6 +276,70 @@ const ptsConfigService = {
 
     return ptsConfigService.setRemoteServerConfiguration(deviceId, config);
   },
+
+  /**
+   * Set the pumps configuration on a PTS device (ports and pump assignments)
+   * Based on protocol 49. SetPumpsConfiguration
+   *
+   * @param {string} deviceId - The PTS device ID
+   * @param {object} config - Pumps configuration
+   * @param {Array} [config.ports] - Array of port configurations {id, protocol, baudRate}
+   * @param {Array} [config.pumps] - Array of pump configurations {id, port, address}
+   * @returns {Promise<{isSuccess: boolean, data: boolean, message: string}>}
+   */
+  setPumpsConfiguration: async (deviceId, config) => {
+    try {
+      const response = await axiosInstance.post(
+        `${BASE_URL}/${deviceId}/config/pumps`,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error setting pumps configuration:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Get the pump nozzles configuration from a PTS device
+   * Based on protocol 66. GetPumpNozzlesConfiguration
+   *
+   * @param {string} deviceId - The PTS device ID
+   * @returns {Promise<{isSuccess: boolean, data: object, message: string}>}
+   */
+  getPumpNozzlesConfiguration: async (deviceId) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/pump-nozzles`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting pump nozzles configuration:", error);
+      throw error;
+    }
+  },
+
+  /**
+   * Set the pump nozzles configuration on a PTS device
+   * Based on protocol 67. SetPumpNozzlesConfiguration
+   *
+   * @param {string} deviceId - The PTS device ID
+   * @param {object} config - Pump nozzles configuration
+   * @param {Array} config.pumpNozzles - Array of pump nozzle configs {pumpId, fuelGradeIds, tankIds, paymentFormIds}
+   * @returns {Promise<{isSuccess: boolean, data: boolean, message: string}>}
+   */
+  setPumpNozzlesConfiguration: async (deviceId, config) => {
+    try {
+      const response = await axiosInstance.post(
+        `${BASE_URL}/${deviceId}/config/pump-nozzles`,
+        config
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error setting pump nozzles configuration:", error);
+      throw error;
+    }
+  },
 };
 
 export default ptsConfigService;

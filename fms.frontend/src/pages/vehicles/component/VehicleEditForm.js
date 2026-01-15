@@ -1,4 +1,13 @@
-//Cursor - Created Vehicle Edit Form component based on Vehicle.cs entity
+/**
+ * File: VehicleEditForm.js
+ * Purpose: Display and (optionally) allow editing of a vehicle record within Vehicle Details.
+ * Dependencies: DevExtreme Form, Redux actions for dropdown data.
+ * Last Modified: 2026-01-15
+ *
+ * Notes:
+ * - Edit controls are gated via `canEdit` (admin-only).
+ * - Fixed-location settings were removed from the domain Vehicle entity.
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import store from "../../../store"; // Import the Redux store directly
@@ -23,7 +32,13 @@ import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchEmployees } from "../../../redux/actions/employeeActions";
 import { fetchExpectedAvg } from "../../../redux/actions/expectedAvgActions";
 
-const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
+const VehicleEditForm = ({
+  vehicle,
+  isEditing = false,
+  onSave,
+  isSaving,
+  canEdit = true,
+}) => {
   const dispatch = useDispatch();
 
   // State
@@ -61,16 +76,16 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         isCompanyVehicle: vehicle.isCompanyVehicle || false,
         isActive: vehicle.isActive || true,
         gpsgategeneratedId: vehicle.gpsgategeneratedId || false,
-        // Fixed Location Settings
-        isFixedLocation: vehicle.isFixedLocation || false,
-        fixedLatitude: vehicle.fixedLatitude || null,
-        fixedLongitude: vehicle.fixedLongitude || null,
-        fixedLocationRadiusMeters: vehicle.fixedLocationRadiusMeters || 50,
-        fixedLocationName: vehicle.fixedLocationName || "",
-        requireProximityValidation: vehicle.requireProximityValidation ?? true,
       });
     }
   }, [vehicle?.vehicleId]); // Only depend on vehicle ID
+
+  // Ensure non-editable mode cannot be toggled accidentally
+  useEffect(() => {
+    if (!canEdit && isEditingInternal) {
+      setIsEditingInternal(false);
+    }
+  }, [canEdit, isEditingInternal]);
 
   // Load dropdown data - Only load once and use existing data from Redux store when possible
   useEffect(() => {
@@ -180,13 +195,6 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
         isCompanyVehicle: vehicle.isCompanyVehicle || false,
         isActive: vehicle.isActive || true,
         gpsgategeneratedId: vehicle.gpsgategeneratedId || false,
-        // Fixed Location Settings
-        isFixedLocation: vehicle.isFixedLocation || false,
-        fixedLatitude: vehicle.fixedLatitude || null,
-        fixedLongitude: vehicle.fixedLongitude || null,
-        fixedLocationRadiusMeters: vehicle.fixedLocationRadiusMeters || 50,
-        fixedLocationName: vehicle.fixedLocationName || "",
-        requireProximityValidation: vehicle.requireProximityValidation ?? true,
       });
     }
   }, [vehicle]);
@@ -202,11 +210,83 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
     );
   }
 
-  const isFormDisabled = !(isEditing || isEditingInternal);
+  const isEditMode = canEdit && (isEditing || isEditingInternal);
+  const isFormDisabled = !isEditMode;
 
   return (
-    <div className="vehicle-edit-form">
+    <div
+      className={`vehicle-edit-form ${
+        isEditMode ? "vehicle-edit-form--editing" : "vehicle-edit-form--view"
+      }`}
+    >
       <form id="vehicle-form" onSubmit={handleSubmit}>
+        {/* Form Actions - Top of page */}
+        <div className="vehicle-edit-form__actions tw-flex tw-items-center tw-justify-between tw-gap-3 tw-mb-4 tw-pb-4 tw-border-b tw-border-gray-200">
+          <div className="tw-text-sm tw-text-gray-600">
+            {!canEdit ? (
+              <span className="tw-inline-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-lock"></i>
+                Read-only (admin only)
+              </span>
+            ) : isEditMode ? (
+              <span className="tw-inline-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-pen"></i>
+                Editing enabled
+              </span>
+            ) : (
+              <span className="tw-inline-flex tw-items-center tw-gap-2">
+                <i className="fa-light fa-eye"></i>
+                Viewing
+              </span>
+            )}
+          </div>
+
+          {canEdit && (
+            <div className="tw-flex tw-justify-end tw-gap-3">
+              {!isEditMode ? (
+                <Button
+                  text="Edit Vehicle"
+                  icon="fa-light fa-edit"
+                  type="default"
+                  stylingMode="contained"
+                  onClick={() => {
+                    setIsEditingInternal(true);
+                  }}
+                  className="tw-bg-blue-600 tw-text-white hover:tw-bg-blue-700 tw-min-w-32"
+                />
+              ) : (
+                <>
+                  <Button
+                    text="Cancel"
+                    icon="fa-light fa-times"
+                    type="normal"
+                    stylingMode="outlined"
+                    onClick={() => {
+                      setIsEditingInternal(false);
+                      resetFormData();
+                    }}
+                    disabled={isSaving}
+                    className="tw-border-gray-300 tw-text-gray-600 hover:tw-bg-gray-50 tw-min-w-24"
+                  />
+                  <Button
+                    text={isSaving ? "Saving..." : "Save Vehicle"}
+                    icon={
+                      isSaving
+                        ? "fa-light fa-spinner fa-spin"
+                        : "fa-light fa-save"
+                    }
+                    type="success"
+                    stylingMode="contained"
+                    disabled={isSaving}
+                    onClick={handleSubmit}
+                    className="tw-bg-green-600 tw-text-white hover:tw-bg-green-700 tw-min-w-32"
+                  />
+                </>
+              )}
+            </div>
+          )}
+        </div>
+
         <Form
           formData={formData}
           // disabled={isFormDisabled}
@@ -465,111 +545,6 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
             />
           </GroupItem>
 
-          {/* Fixed Location Settings Group */}
-          <GroupItem caption="Fixed Location Settings" colCount={2} colSpan={2}>
-            <SimpleItem
-              dataField="isFixedLocation"
-              caption="Is Fixed/Stationary Asset"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) =>
-                  handleFieldChange("isFixedLocation", e.value),
-                readOnly: isFormDisabled,
-                hint: "Enable for fixed assets like generators, pumps, cranes",
-              }}
-            />
-
-            <SimpleItem
-              dataField="requireProximityValidation"
-              caption="Require Proximity Validation"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) =>
-                  handleFieldChange("requireProximityValidation", e.value),
-                readOnly: isFormDisabled || !formData.isFixedLocation,
-                hint: "Validate fueling location proximity",
-              }}
-            />
-
-            <SimpleItem
-              dataField="fixedLocationName"
-              caption="Location Name"
-              editorOptions={{
-                placeholder: "e.g., Main Generator Building A",
-                onValueChanged: (e) =>
-                  handleFieldChange("fixedLocationName", e.value),
-                readOnly: isFormDisabled || !formData.isFixedLocation,
-                stylingMode: "outlined",
-              }}
-            />
-
-            <SimpleItem
-              dataField="fixedLocationRadiusMeters"
-              caption="Allowed Radius (meters)"
-              editorType="dxNumberBox"
-              editorOptions={{
-                format: "#0",
-                min: 1,
-                max: 1000,
-                placeholder: "Default: 50m",
-                onValueChanged: (e) =>
-                  handleFieldChange("fixedLocationRadiusMeters", e.value),
-                readOnly: isFormDisabled || !formData.isFixedLocation,
-                stylingMode: "outlined",
-              }}
-            >
-              <RangeRule
-                min={1}
-                max={1000}
-                message="Radius must be between 1 and 1000 meters"
-              />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="fixedLatitude"
-              caption="Fixed Latitude"
-              editorType="dxNumberBox"
-              editorOptions={{
-                format: "#0.000000",
-                min: -90,
-                max: 90,
-                placeholder: "Enter latitude",
-                onValueChanged: (e) =>
-                  handleFieldChange("fixedLatitude", e.value),
-                readOnly: isFormDisabled || !formData.isFixedLocation,
-                stylingMode: "outlined",
-              }}
-            >
-              <RangeRule
-                min={-90}
-                max={90}
-                message="Latitude must be between -90 and 90"
-              />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="fixedLongitude"
-              caption="Fixed Longitude"
-              editorType="dxNumberBox"
-              editorOptions={{
-                format: "#0.000000",
-                min: -180,
-                max: 180,
-                placeholder: "Enter longitude",
-                onValueChanged: (e) =>
-                  handleFieldChange("fixedLongitude", e.value),
-                readOnly: isFormDisabled || !formData.isFixedLocation,
-                stylingMode: "outlined",
-              }}
-            >
-              <RangeRule
-                min={-180}
-                max={180}
-                message="Longitude must be between -180 and 180"
-              />
-            </SimpleItem>
-          </GroupItem>
-
           {/* Status Group */}
           <GroupItem caption="Status" colCount={2}>
             <SimpleItem
@@ -594,52 +569,6 @@ const VehicleEditForm = ({ vehicle, isEditing = false, onSave, isSaving }) => {
             />
           </GroupItem>
         </Form>
-
-        {/* Form Actions - Always visible */}
-        <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-          {!(isEditing || isEditingInternal) ? (
-            <Button
-              text="Edit Vehicle"
-              icon="fa-light fa-edit"
-              type="default"
-              stylingMode="contained"
-              onClick={() => {
-                console.log(
-                  "Edit button clicked, setting isEditingInternal to true"
-                );
-                setIsEditingInternal(true);
-              }}
-              className="tw-bg-blue-600 tw-text-white hover:tw-bg-blue-700 tw-min-w-32"
-            />
-          ) : (
-            <>
-              <Button
-                text="Cancel"
-                icon="fa-light fa-times"
-                type="normal"
-                stylingMode="outlined"
-                onClick={() => {
-                  console.log("Cancel button clicked");
-                  setIsEditingInternal(false);
-                  resetFormData();
-                }}
-                disabled={isSaving}
-                className="tw-border-gray-300 tw-text-gray-600 hover:tw-bg-gray-50 tw-min-w-24"
-              />
-              <Button
-                text={isSaving ? "Saving..." : "Save Vehicle"}
-                icon={
-                  isSaving ? "fa-light fa-spinner fa-spin" : "fa-light fa-save"
-                }
-                type="success"
-                stylingMode="contained"
-                disabled={isSaving}
-                onClick={handleSubmit}
-                className="tw-bg-green-600 tw-text-white hover:tw-bg-green-700 tw-min-w-32"
-              />
-            </>
-          )}
-        </div>
       </form>
     </div>
   );

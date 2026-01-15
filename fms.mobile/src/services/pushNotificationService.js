@@ -4,7 +4,7 @@
  * Handles token registration with backend and message handling
  */
 
-import { Platform, AppState } from "react-native";
+import { Platform, AppState, Alert, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DeviceInfo from "react-native-device-info";
 import { API_CONFIG } from "../config/environment";
@@ -137,6 +137,24 @@ class PushNotificationService {
       console.log(
         `[PushNotification] Permission status: ${authStatus}, enabled: ${enabled}`
       );
+      if (!enabled) {
+        Alert.alert(
+          "Enable Notifications",
+          "Notifications are disabled. Open settings to enable push notifications?",
+          [
+            { text: "Not now", style: "cancel" },
+            {
+              text: "Open Settings",
+              onPress: () => {
+                Linking.openSettings().catch((error) => {
+                  console.warn("[PushNotification] Failed to open settings:", error);
+                });
+              },
+            },
+          ]
+        );
+      }
+
       return enabled;
     } catch (error) {
       console.error("[PushNotification] Permission request failed:", error);
@@ -252,17 +270,17 @@ class PushNotificationService {
 
     try {
       const deviceInfo = {
-        token: token,
+        deviceToken: token,
         platform: Platform.OS,
         deviceName: await DeviceInfo.getDeviceName(),
-        deviceModel: DeviceInfo.getModel(),
+        deviceId: DeviceInfo.getModel(),
         appVersion: DeviceInfo.getVersion(),
       };
 
       console.log("[PushNotification] Registering device with backend...");
 
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/push-devices/register`,
+        `${API_CONFIG.BASE_URL}/v1/push-devices/register`,
         {
           method: "POST",
           headers: {
@@ -299,14 +317,14 @@ class PushNotificationService {
 
     try {
       const response = await fetch(
-        `${API_CONFIG.BASE_URL}/push-devices/unregister`,
+        `${API_CONFIG.BASE_URL}/v1/push-devices/unregister`,
         {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${this.authToken}`,
           },
-          body: JSON.stringify({ token: this.currentToken }),
+          body: JSON.stringify({ deviceToken: this.currentToken }),
         }
       );
 

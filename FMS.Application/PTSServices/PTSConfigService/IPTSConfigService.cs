@@ -38,5 +38,23 @@ namespace FMS.Application.PTSServices.PTSConfigService
         /// Disables WebSocket UploadStatus on a PTS device.
         /// </summary>
         Task<FMSResponse<bool>> DisableWebSocketUploadStatusAsync(string ptsDeviceId);
+
+        /// <summary>
+        /// Sets the pumps configuration on the PTS device (ports and pump assignments).
+        /// Based on protocol 49. SetPumpsConfiguration
+        /// </summary>
+        Task<FMSResponse<bool>> SetPumpsConfigurationAsync(string ptsDeviceId, SetPumpsConfigurationRequest request);
+
+        /// <summary>
+        /// Gets the pump nozzles configuration from the PTS device.
+        /// Based on protocol 66. GetPumpNozzlesConfiguration
+        /// </summary>
+        Task<FMSResponse<PumpNozzlesConfigurationResponse>> GetPumpNozzlesConfigurationAsync(string ptsDeviceId);
+
+        /// <summary>
+        /// Sets the pump nozzles configuration on the PTS device.
+        /// Based on protocol 67. SetPumpNozzlesConfiguration
+        /// </summary>
+        Task<FMSResponse<bool>> SetPumpNozzlesConfigurationAsync(string ptsDeviceId, SetPumpNozzlesConfigurationRequest request);
     }
 }

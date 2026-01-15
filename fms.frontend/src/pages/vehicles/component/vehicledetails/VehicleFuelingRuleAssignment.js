@@ -1,3 +1,10 @@
+/**
+ * File: VehicleFuelingRuleAssignment.js
+ * Purpose: Manage fueling rule assignments for a specific vehicle.
+ * Dependencies: Redux fuelingRule actions, DevExtreme DataGrid/Popup.
+ * Last Modified: 2026-01-15
+ */
+
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import DataGrid, {
@@ -35,7 +42,7 @@ import "./VehicleFuelingRuleAssignment.scss";
  * @param {Object} props - Component props
  * @param {Object} props.vehicle - Vehicle object with vehicleId, workingSiteId, vehicleTypeId, etc.
  */
-const VehicleFuelingRuleAssignment = ({ vehicle }) => {
+const VehicleFuelingRuleAssignment = ({ vehicle, canEdit = true }) => {
   const dispatch = useDispatch();
 
   // Redux state
@@ -119,6 +126,10 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
 
   // Handle add new assignment
   const handleAddClick = () => {
+    if (!canEdit) {
+      notify("Only admins can change fueling rule assignments", "warning", 3000);
+      return;
+    }
     setFormData({
       fuelingRuleSetId: null,
       priority: 400, // Vehicle priority default
@@ -131,6 +142,10 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
 
   // Handle edit assignment
   const handleEditClick = (assignment) => {
+    if (!canEdit) {
+      notify("Only admins can change fueling rule assignments", "warning", 3000);
+      return;
+    }
     const fuelingRuleSetId =
       assignment.fuelingRuleSetId ?? assignment.FuelingRuleSetId;
     const priority = assignment.priority ?? assignment.Priority;
@@ -148,6 +163,10 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
 
   // Handle save assignment
   const handleSave = async () => {
+    if (!canEdit) {
+      notify("Only admins can change fueling rule assignments", "warning", 3000);
+      return;
+    }
     if (!formData.fuelingRuleSetId) {
       notify("Please select a rule set", "warning", 3000);
       return;
@@ -195,6 +214,10 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
 
   // Handle delete assignment
   const handleDelete = async (assignment) => {
+    if (!canEdit) {
+      notify("Only admins can change fueling rule assignments", "warning", 3000);
+      return;
+    }
     // Only allow deleting direct vehicle assignments
     const targetType = assignment.targetType ?? assignment.TargetType;
     if (targetType !== AssignmentTargetType.Vehicle && targetType !== 4) {
@@ -295,22 +318,27 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
 
     return (
       <div className="tw-flex tw-gap-2">
-        {isDirect && (
-          <>
-            <Button
-              icon="edit"
-              stylingMode="text"
-              hint="Edit"
-              onClick={() => handleEditClick(cellData.data)}
-            />
-            <Button
-              icon="trash"
-              stylingMode="text"
-              hint="Delete"
-              onClick={() => handleDelete(cellData.data)}
-            />
-          </>
-        )}
+        {isDirect &&
+          (canEdit ? (
+            <>
+              <Button
+                icon="edit"
+                stylingMode="text"
+                hint="Edit"
+                onClick={() => handleEditClick(cellData.data)}
+              />
+              <Button
+                icon="trash"
+                stylingMode="text"
+                hint="Delete"
+                onClick={() => handleDelete(cellData.data)}
+              />
+            </>
+          ) : (
+            <span className="tw-text-xs tw-text-gray-400 tw-italic">
+              Admin only
+            </span>
+          ))}
         {!isDirect && (
           <span className="tw-text-xs tw-text-gray-400 tw-italic">
             Manage in Admin
@@ -348,6 +376,8 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
             type="default"
             stylingMode="contained"
             onClick={handleAddClick}
+            disabled={!canEdit}
+            hint={!canEdit ? "Admin only" : "Assign a rule set"}
           />
           <Button
             text="View Effective Rules"
@@ -448,6 +478,8 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
             type="default"
             stylingMode="contained"
             onClick={handleAddClick}
+            disabled={!canEdit}
+            hint={!canEdit ? "Admin only" : "Assign a rule set"}
           />
         </div>
       ) : (
@@ -565,13 +597,14 @@ const VehicleFuelingRuleAssignment = ({ vehicle }) => {
               text="Cancel"
               stylingMode="outlined"
               onClick={() => setShowAddPopup(false)}
+              disabled={isSaving}
             />
             <Button
               text={isSaving ? "Saving..." : "Save"}
               type="default"
               stylingMode="contained"
               onClick={handleSave}
-              disabled={isSaving}
+              disabled={isSaving || !canEdit}
             />
           </div>
         </div>

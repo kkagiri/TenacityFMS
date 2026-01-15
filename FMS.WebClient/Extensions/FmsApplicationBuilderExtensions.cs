@@ -11,6 +11,7 @@ using FMS.Application.Communication.SignalR; // Hubs (DashboardHub, PTSHub, Fron
 using FMS.WebClient.Util; // UseUserActivity extension (IApplicationBuilder)
 using DevExpress.AspNetCore;
 using DevExpress.XtraReports.Web.Extensions;
+using FMS.WebClient.Diagnostics;
 
 namespace FMS.WebClient.Extensions;
 
@@ -56,6 +57,12 @@ public static class FmsApplicationBuilderExtensions
         app.UseWebSockets(webSocketOptions);
 
         app.UseRouting();
+
+        // DevExpress Web Reporting diagnostics (Development only)
+        if (env.IsDevelopment())
+        {
+            app.UseMiddleware<DevExpressReportingDiagnosticsMiddleware>();
+        }
 
         // DevExpress Reporting
         app.UseDevExpressControls();

@@ -1,3 +1,15 @@
+/**
+ * File: FmsServiceCollectionExtensions.cs
+ * Purpose: Centralized dependency injection registration for FMS WebClient.
+ * Dependencies: ASP.NET Core DI, FMS services, background services, MediatR
+ * Last Modified: 2026-01-15
+ *
+ * Key Functions:
+ * - AddFmsCore(): Registers core framework, infrastructure, and app services
+ * - AddFmsAuthentication(): Registers JWT auth and permission policies
+ * - AddFmsDatabase(): Registers EF Core DbContext and Identity
+ */
+
 using System;
 using System.Linq;
 using System.Text.Json;
@@ -477,9 +489,8 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<ActiveAlarmProcessingService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
 
-        // Issue Tracker V2 Background Services
-        services.AddHostedService<IssueAutoCloseService>();
-        services.AddHostedService<IssueMonitoringService>();
+        // Issue Tracker V2 Background Services (includes checker factory + checkers)
+        services.AddIssueTrackerBackgroundServices();
 
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IEmailService, EmailService>();

@@ -1,3 +1,10 @@
+/**
+ * File: VehicleDetails.js
+ * Purpose: Vehicle details screen with tabbed information, history, and admin-managed settings.
+ * Dependencies: Redux actions, DevExtreme UI components, permissions via JWT.
+ * Last Modified: 2026-01-15
+ */
+
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 
 import { useParams, useNavigate } from "react-router-dom";
@@ -30,6 +37,7 @@ import {
 import { fetchTags } from "../../redux/actions/tagActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import axiosInstance from "../../api/axiosInstance";
+import { usePermissions } from "../../hooks/usePermissions";
 
 import "./VehicleDetails.scss";
 
@@ -37,6 +45,10 @@ const VehicleDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+
+  // Permissions (admin-only editing for settings)
+  const { hasRole } = usePermissions();
+  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
 
   // Redux state
   const vehicles = useSelector((state) => state.vehicle.vehicles);
@@ -137,6 +149,10 @@ const VehicleDetails = () => {
 
   // Quick action handlers
   const handleAssignTag = () => {
+    if (!isAdmin) {
+      notify("Only admins can change vehicle settings", "warning", 3000);
+      return;
+    }
     setShowTagPopup(true);
   };
 
@@ -146,6 +162,10 @@ const VehicleDetails = () => {
   };
 
   const handleAssignExpectedAverage = () => {
+    if (!isAdmin) {
+      notify("Only admins can change vehicle settings", "warning", 3000);
+      return;
+    }
     setShowExpectedAvgPopup(true);
   };
 
@@ -269,9 +289,10 @@ const VehicleDetails = () => {
         isEditing={false}
         onSave={handleVehicleSave}
         isSaving={isSaving}
+        canEdit={isAdmin}
       />
     );
-  }, [vehicle, handleVehicleSave, tabLoadingStates, isSaving]);
+  }, [vehicle, handleVehicleSave, tabLoadingStates, isSaving, isAdmin]);
 
   const consumptionHistoryComponent = useMemo(() => {
     // Always render the component - let it handle its own loading state
@@ -322,9 +343,10 @@ const VehicleDetails = () => {
       <VehicleFuelingRuleAssignment
         key={`fueling-rules-${vehicle?.vehicleId}`}
         vehicle={vehicle}
+        canEdit={isAdmin}
       />
     );
-  }, [vehicle, tabLoadingStates]);
+  }, [vehicle, tabLoadingStates, isAdmin]);
 
   // Memoize tab items with stable dependencies
   const tabItems = useMemo(() => {
@@ -498,6 +520,8 @@ const VehicleDetails = () => {
               type="default"
               stylingMode="outlined"
               className="vehicle-details__action-btn vehicle-details__action-btn--first"
+              disabled={!isAdmin}
+              hint={!isAdmin ? "Admin only" : "Assign RFID tag"}
             />
             <Button
               text="Expected Average"
@@ -506,6 +530,8 @@ const VehicleDetails = () => {
               type="default"
               stylingMode="outlined"
               className="vehicle-details__action-btn vehicle-details__action-btn--middle"
+              disabled={!isAdmin}
+              hint={!isAdmin ? "Admin only" : "Set expected average"}
             />
             <Button
               text="Generate Report"

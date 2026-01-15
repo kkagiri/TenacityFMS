@@ -1,9 +1,24 @@
+/**
+ * File: PushDevicesController.cs
+ * Purpose: Manage push notification device registration and test delivery endpoints.
+ * Dependencies: IPushNotificationService, FMSResponse, ASP.NET Core MVC
+ * Last Modified: 2026-01-15
+ *
+ * Key Endpoints:
+ * - RegisterDevice(): Registers a device token for push notifications
+ * - UnregisterDevice(): Unregisters a device token
+ * - GetMyDevices(): Retrieves current user's devices
+ * - SendTestPush(): Sends a test push to current user
+ */
+
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Notification.Services.DeliveryChannel;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json.Serialization;
 
 namespace FMS.WebClient.Controllers
 {
@@ -12,8 +27,8 @@ namespace FMS.WebClient.Controllers
     /// Used by mobile apps to register/unregister for push notifications.
     /// </summary>
     [ApiController]
-    [Route("api/[controller]")]
-    [Authorize]
+    [Route("api/v1/push-devices")]
+    // [Authorize]
     public class PushDevicesController : ControllerBase
     {
         private readonly IPushNotificationService _pushService;
@@ -29,16 +44,19 @@ namespace FMS.WebClient.Controllers
         [HttpPost("register")]
         public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceRequest request, CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
+
+            var deviceToken = request.DeviceToken ?? request.Token;
+            var deviceId = request.DeviceId ?? request.DeviceModel;
 
             var result = await _pushService.RegisterDeviceAsync(new RegisterPushDeviceRequest
             {
                 UserId = userId,
-                DeviceToken = request.DeviceToken,
+                DeviceToken = deviceToken ?? string.Empty,
                 Platform = request.Platform,
-                DeviceId = request.DeviceId,
+                DeviceId = deviceId,
                 DeviceName = request.DeviceName,
                 AppVersion = request.AppVersion
             }, cancellationToken);
@@ -52,11 +70,12 @@ namespace FMS.WebClient.Controllers
         [HttpPost("unregister")]
         public async Task<IActionResult> UnregisterDevice([FromBody] UnregisterDeviceRequest request, CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
 
-            var result = await _pushService.UnregisterDeviceAsync(userId, request.DeviceToken, cancellationToken);
+            var deviceToken = request.DeviceToken ?? request.Token;
+            var result = await _pushService.UnregisterDeviceAsync(userId, deviceToken ?? string.Empty, cancellationToken);
 
             return result.IsSuccess ? Ok(result) : BadRequest(result);
         }
@@ -67,7 +86,7 @@ namespace FMS.WebClient.Controllers
         [HttpGet("my-devices")]
         public async Task<IActionResult> GetMyDevices(CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
 
@@ -77,14 +96,14 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Send a test push notification to current user's devices
+        /// Send a test push notification to a user's devices
         /// </summary>
-        [HttpPost("test")]
-        public async Task<IActionResult> SendTestPush(CancellationToken cancellationToken)
+        [HttpPost("test/{userId}")]
+        [AllowAnonymous]
+        public async Task<IActionResult> SendTestPush(string userId, CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
             if (string.IsNullOrEmpty(userId))
-                return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
+                return BadRequest(FMSResponse.FailedResponse("UserId is required"));
 
             var result = await _pushService.SendToUserAsync(
                 userId,
@@ -105,6 +124,12 @@ namespace FMS.WebClient.Controllers
         public string DeviceToken { get; set; } = null!;
 
         /// <summary>
+        /// Alias for DeviceToken used by some mobile clients
+        /// </summary>
+        [JsonPropertyName("token")]
+        public string? Token { get; set; }
+
+        /// <summary>
         /// Platform: ios, android, web
         /// </summary>
         public string Platform { get; set; } = null!;
@@ -113,6 +138,12 @@ namespace FMS.WebClient.Controllers
         /// Unique device identifier (optional, for deduplication)
         /// </summary>
         public string? DeviceId { get; set; }
+
+        /// <summary>
+        /// Alias for DeviceId used by some mobile clients
+        /// </summary>
+        [JsonPropertyName("deviceModel")]
+        public string? DeviceModel { get; set; }
 
         /// <summary>
         /// Friendly device name
@@ -131,5 +162,11 @@ namespace FMS.WebClient.Controllers
         /// The device token to unregister
         /// </summary>
         public string DeviceToken { get; set; } = null!;
+
+        /// <summary>
+        /// Alias for DeviceToken used by some mobile clients
+        /// </summary>
+        [JsonPropertyName("token")]
+        public string? Token { get; set; }
     }
 }

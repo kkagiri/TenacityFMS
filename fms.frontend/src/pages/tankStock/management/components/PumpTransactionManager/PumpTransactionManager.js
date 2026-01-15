@@ -6,7 +6,13 @@ import React, {
   useRef,
 } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { DataGrid } from "devextreme-react/data-grid";
+import DataGrid, {
+  Column,
+  Grouping,
+  Summary,
+  TotalItem,
+  GroupItem,
+} from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
 import { ScrollView } from "devextreme-react/scroll-view";
 import { SelectBox, TagBox } from "devextreme-react";
@@ -14,17 +20,27 @@ import { Workbook } from "exceljs";
 import { saveAs } from "file-saver";
 import { exportDataGrid } from "devextreme/excel_exporter";
 import notify from "devextreme/ui/notify";
-import { useStockFilters } from "../../shared/context/StockFilterContext";
+import { useStockFilters } from "../../../shared/context/StockFilterContext";
 import {
   fetchPumpTransactions,
   clearPumpTransactions,
-} from "../../../../redux/actions/consumptionActions";
-import { fetchVehicleList } from "../../../../redux/actions/vehicleActions";
-import { fetchPTSDeviceList } from "../../../../redux/actions/ptsActions/ptsDeviceActions";
-import { fetchTanks } from "../../../../redux/actions/tankActions";
-import { fetchSiteList } from "../../../../redux/actions/siteActions";
-import { fetchUsers } from "../../../../redux/actions/userActions";
+} from "../../../../../redux/actions/consumptionActions";
+import { fetchVehicleList } from "../../../../../redux/actions/vehicleActions";
+import { fetchPTSDeviceList } from "../../../../../redux/actions/ptsActions/ptsDeviceActions";
+import { fetchTanks } from "../../../../../redux/actions/tankActions";
+import { fetchSiteList } from "../../../../../redux/actions/siteActions";
+import { fetchUsers } from "../../../../../redux/actions/userActions";
+import PumpTransactionGroupingControls from "./PumpTransactionGroupingControls";
 import "./PumpTransactionManager.scss";
+
+// Default grouping state
+const defaultGroupByState = {
+  date: false,
+  site: false,
+  tank: false,
+  vehicle: false,
+  ptsDevice: false,
+};
 
 const PumpTransactionManager = ({ selectedSite, dateRange }) => {
   const dispatch = useDispatch();
@@ -62,6 +78,20 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
     userIds: [],
     processedOnly: null,
   });
+
+  // Grouping state
+  const [groupBy, setGroupBy] = useState(defaultGroupByState);
+  const [isGroupsExpanded, setIsGroupsExpanded] = useState(false);
+
+  const hasActiveGrouping = useMemo(() => {
+    return (
+      groupBy.date ||
+      groupBy.site ||
+      groupBy.tank ||
+      groupBy.vehicle ||
+      groupBy.ptsDevice
+    );
+  }, [groupBy.date, groupBy.site, groupBy.tank, groupBy.vehicle, groupBy.ptsDevice]);
 
   // Load reference data on mount
   useEffect(() => {
@@ -134,10 +164,7 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
       ...new Map(
         pumpTransactions
           .filter((t) => t.fueledBy && t.fueledByUserName)
-          .map((t) => [
-            t.fueledBy,
-            { id: t.fueledBy, name: t.fueledByUserName },
-          ])
+          .map((t) => [t.fueledBy, { id: t.fueledBy, name: t.fueledByUserName }])
       ).values(),
     ];
 
@@ -150,13 +177,21 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
     };
   }, [pumpTransactions]);
 
-  // Apply client-side filters to the data
+  // Apply client-side filters to the data and add computed date/time fields
   const filteredTransactions = useMemo(() => {
     if (!pumpTransactions || pumpTransactions.length === 0) {
       return [];
     }
 
-    let filtered = [...pumpTransactions];
+    // Add computed date and time fields plus unique row key
+    let filtered = pumpTransactions.map((t) => {
+      const dateObj = t.dateTime ? new Date(t.dateTime) : null;
+      return {
+        ...t,
+        transactionDate: dateObj ? dateObj.toISOString().split("T")[0] : null,
+        transactionTime: dateObj ? dateObj.toTimeString().split(" ")[0] : null,
+      };
+    });
 
     // Filter by vehicles
     if (clientFilters.vehicleIds.length > 0) {
@@ -201,197 +236,71 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
     return filtered;
   }, [pumpTransactions, clientFilters]);
 
-  // DataGrid columns configuration
-  const columns = useMemo(
-    () => [
-      {
-        dataField: "dateTime",
-        caption: "Date/Time",
-        width: 160,
-        dataType: "datetime",
-        format: "dd/MM/yyyy HH:mm:ss",
-        sortOrder: "desc",
-      },
-      {
-        dataField: "ptsId",
-        caption: "PTS Device",
-        width: 180,
-        filterOperations: ["contains", "startswith", "="],
-        cellRender: (data) => (
-          <div>
-            <div className="tw-text-xs tw-text-gray-500">{data.value}</div>
-            {data.data.ptsName && (
-              <div className="tw-font-medium">{data.data.ptsName}</div>
-            )}
-          </div>
-        ),
-      },
-      {
-        dataField: "siteName",
-        caption: "Site",
-        width: 150,
-      },
-      {
-        dataField: "vehicleName",
-        caption: "Vehicle",
-        width: 140,
-        cellRender: (data) => (
-          <div>
-            <div className="tw-font-medium">{data.value || "N/A"}</div>
-            {data.data.vehicleNumberPlate && (
-              <div className="tw-text-xs tw-text-gray-500">
-                {data.data.vehicleNumberPlate}
-              </div>
-            )}
-          </div>
-        ),
-      },
-      {
-        dataField: "tankName",
-        caption: "Source Tank",
-        width: 120,
-      },
-      {
-        dataField: "isTransferMode",
-        caption: "Type",
-        width: 110,
-        cellRender: (data) => (
-          <span
-            className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
-              data.value
-                ? "tw-bg-purple-100 tw-text-purple-800"
-                : "tw-bg-blue-100 tw-text-blue-800"
-            }`}
-          >
-            {data.value ? (
-              <><i className="fa-light fa-arrow-right-arrow-left tw-mr-1"></i>Transfer</>
-            ) : (
-              <><i className="fa-light fa-gas-pump tw-mr-1"></i>Vehicle</>
-            )}
-          </span>
-        ),
-      },
-      {
-        dataField: "destinationTankName",
-        caption: "Dest. Tank",
-        width: 120,
-        cellRender: (data) => (
-          <span className={data.value ? "tw-text-purple-700 tw-font-medium" : "tw-text-gray-400"}>
-            {data.value || "-"}
-          </span>
-        ),
-      },
-      {
-        dataField: "fuelGradeName",
-        caption: "Fuel Grade",
-        width: 120,
-      },
-      {
-        dataField: "pump",
-        caption: "Pump",
-        width: 80,
-        dataType: "number",
-      },
-      {
-        dataField: "nozzle",
-        caption: "Nozzle",
-        width: 80,
-        dataType: "number",
-      },
-      {
-        dataField: "volume",
-        caption: "Volume (L)",
-        width: 120,
-        dataType: "number",
-        format: { type: "fixedPoint", precision: 2 },
-        alignment: "right",
-      },
-      {
-        dataField: "tcVolume",
-        caption: "TC Volume (L)",
-        width: 130,
-        dataType: "number",
-        format: { type: "fixedPoint", precision: 2 },
-        alignment: "right",
-      },
-      {
-        dataField: "odometer",
-        caption: "Odometer",
-        width: 110,
-        dataType: "number",
-        format: { type: "fixedPoint", precision: 0 },
-        alignment: "right",
-        cellRender: (data) => (
-          <div>
-            <div className="tw-font-medium">
-              {data.value ? data.value.toLocaleString() : "N/A"}
-            </div>
-            {data.data.previousOdometer && (
-              <div className="tw-text-xs tw-text-gray-500">
-                Prev: {data.data.previousOdometer.toLocaleString()}
-              </div>
-            )}
-          </div>
-        ),
-      },
-      {
-        dataField: "consumptionSinceLastRefuel",
-        caption: "Consumption (L/100km)",
-        width: 140,
-        dataType: "number",
-        format: { type: "fixedPoint", precision: 2 },
-        alignment: "right",
-        cellRender: (data) => {
-          if (!data.value || data.value === 0) return <span>N/A</span>;
-          const consumptionValue = data.value;
-          const colorClass =
-            consumptionValue > 15
-              ? "tw-text-red-600"
-              : consumptionValue > 10
-              ? "tw-text-yellow-600"
-              : "tw-text-green-600";
-          return (
-            <span className={`tw-font-medium ${colorClass}`}>
-              {consumptionValue.toFixed(2)}
-            </span>
-          );
-        },
-      },
-      {
-        dataField: "driverName",
-        caption: "Driver",
-        width: 130,
-      },
-      {
-        dataField: "fueledByUserName",
-        caption: "Fueled By",
-        width: 120,
-      },
-      {
-        dataField: "transaction",
-        caption: "Transaction",
-        width: 120,
-        dataType: "number",
-      },
-      {
-        dataField: "hasBeenProcessed",
-        caption: "Status",
-        width: 120,
-        cellRender: (data) => (
-          <span
-            className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
-              data.value
-                ? "tw-bg-green-100 tw-text-green-800"
-                : "tw-bg-yellow-100 tw-text-yellow-800"
-            }`}
-          >
-            {data.value ? "Processed" : "Pending"}
-          </span>
-        ),
-      },
-    ],
-    []
+  // Render group cell for date grouping
+  const groupCellRenderDate = useCallback((cellInfo) => {
+    if (!cellInfo.value) return "No Date";
+    const date = new Date(cellInfo.value);
+    if (isNaN(date.getTime())) return cellInfo.value;
+    return date.toLocaleDateString("en-US", {
+      weekday: "short",
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  }, []);
+
+  // Grouping handlers
+  const handleGroupByChange = useCallback(
+    (groupType) => {
+      const dataGrid = dataGridRef.current?.instance;
+      if (!dataGrid) return;
+
+      const newGroupBy = { ...groupBy };
+      newGroupBy[groupType] = !newGroupBy[groupType];
+
+      dataGrid.clearGrouping();
+
+      let groupIndex = 0;
+      if (newGroupBy.date) {
+        dataGrid.columnOption("transactionDate", "groupIndex", groupIndex++);
+      }
+      if (newGroupBy.site) {
+        dataGrid.columnOption("siteName", "groupIndex", groupIndex++);
+      }
+      if (newGroupBy.tank) {
+        dataGrid.columnOption("tankName", "groupIndex", groupIndex++);
+      }
+      if (newGroupBy.vehicle) {
+        dataGrid.columnOption("vehicleName", "groupIndex", groupIndex++);
+      }
+      if (newGroupBy.ptsDevice) {
+        dataGrid.columnOption("ptsId", "groupIndex", groupIndex++);
+      }
+
+      setGroupBy(newGroupBy);
+    },
+    [groupBy]
   );
+
+  const handleClearGrouping = useCallback(() => {
+    const dataGrid = dataGridRef.current?.instance;
+    if (!dataGrid || !hasActiveGrouping) return;
+
+    dataGrid.clearGrouping();
+    setGroupBy(defaultGroupByState);
+  }, [hasActiveGrouping]);
+
+  const handleToggleExpandGroups = useCallback(() => {
+    const dataGrid = dataGridRef.current?.instance;
+    if (dataGrid) {
+      if (isGroupsExpanded) {
+        dataGrid.collapseAll(-1);
+      } else {
+        dataGrid.expandAll(-1);
+      }
+      setIsGroupsExpanded(!isGroupsExpanded);
+    }
+  }, [isGroupsExpanded]);
 
   // Processing status options
   const processingStatusOptions = useMemo(
@@ -465,8 +374,8 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
           if (gridCell.column.dataField === "odometer") {
             excelCell.numFmt = "#,##0";
           }
-          if (gridCell.column.dataField === "dateTime") {
-            excelCell.numFmt = "dd/mm/yyyy hh:mm:ss";
+          if (gridCell.column.dataField === "transactionDate") {
+            excelCell.numFmt = "dd/mm/yyyy";
           }
         }
         // Style header row
@@ -931,7 +840,7 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
         <DataGrid
           ref={dataGridRef}
           dataSource={filteredTransactions}
-          columns={columns}
+          keyExpr="id"
           loading={pumpTransactionsLoading}
           showBorders={true}
           showRowLines={true}
@@ -964,8 +873,214 @@ const PumpTransactionManager = ({ selectedSite, dateRange }) => {
             storageKey: "pumpTransactionDataGrid",
           }}
           noDataText="No pump transactions found. Use filters to search for transactions."
-        />
+        >
+          {/* Define columns inside DataGrid for proper grouping */}
+          <Column
+            dataField="transactionDate"
+            caption="Date"
+            width={110}
+            dataType="date"
+            format="dd/MM/yyyy"
+            sortOrder="desc"
+            allowGrouping={true}
+            groupCellRender={groupCellRenderDate}
+          />
+          <Column
+            dataField="transactionTime"
+            caption="Time"
+            width={90}
+            dataType="string"
+          />
+          <Column
+            dataField="ptsId"
+            caption="PTS Device"
+            width={180}
+            allowGrouping={true}
+            cellRender={(data) => (
+              <div>
+                <div className="tw-text-xs tw-text-gray-500">{data.value}</div>
+                {data.data.ptsName && (
+                  <div className="tw-font-medium">{data.data.ptsName}</div>
+                )}
+              </div>
+            )}
+          />
+          <Column
+            dataField="siteName"
+            caption="Site"
+            width={150}
+            allowGrouping={true}
+          />
+          <Column
+            dataField="vehicleName"
+            caption="Vehicle"
+            width={140}
+            allowGrouping={true}
+            cellRender={(data) => (
+              <div>
+                <div className="tw-font-medium">{data.value || "N/A"}</div>
+                {data.data.vehicleNumberPlate && (
+                  <div className="tw-text-xs tw-text-gray-500">
+                    {data.data.vehicleNumberPlate}
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <Column
+            dataField="tankName"
+            caption="Source Tank"
+            width={120}
+            allowGrouping={true}
+          />
+          <Column
+            dataField="destinationTankName"
+            caption="Dest. Tank"
+            width={120}
+            cellRender={(data) => (
+              <span
+                className={
+                  data.value
+                    ? "tw-text-purple-700 tw-font-medium"
+                    : "tw-text-gray-400"
+                }
+              >
+                {data.value || "-"}
+              </span>
+            )}
+          />
+          <Column dataField="fuelGradeName" caption="Fuel Grade" width={120} />
+          <Column dataField="pump" caption="Pump" width={80} dataType="number" />
+          <Column
+            dataField="nozzle"
+            caption="Nozzle"
+            width={80}
+            dataType="number"
+          />
+          <Column
+            dataField="volume"
+            caption="Volume (L)"
+            width={120}
+            dataType="number"
+            format={{ type: "fixedPoint", precision: 2 }}
+            alignment="right"
+          />
+          <Column
+            dataField="odometer"
+            caption="Odometer"
+            width={110}
+            dataType="number"
+            alignment="right"
+            cellRender={(data) => (
+              <div>
+                <div className="tw-font-medium">
+                  {data.value ? data.value.toLocaleString() : "N/A"}
+                </div>
+                {data.data.previousOdometer && (
+                  <div className="tw-text-xs tw-text-gray-500">
+                    Prev: {data.data.previousOdometer.toLocaleString()}
+                  </div>
+                )}
+              </div>
+            )}
+          />
+          <Column
+            dataField="consumptionSinceLastRefuel"
+            caption="Consumption (L/100km)"
+            width={140}
+            dataType="number"
+            alignment="right"
+            cellRender={(data) => {
+              if (!data.value || data.value === 0) return <span>N/A</span>;
+              const consumptionValue = data.value;
+              const colorClass =
+                consumptionValue > 15
+                  ? "tw-text-red-600"
+                  : consumptionValue > 10
+                  ? "tw-text-yellow-600"
+                  : "tw-text-green-600";
+              return (
+                <span className={`tw-font-medium ${colorClass}`}>
+                  {consumptionValue.toFixed(2)}
+                </span>
+              );
+            }}
+          />
+          <Column dataField="driverName" caption="Driver" width={130} />
+          <Column
+            dataField="fueledByUserName"
+            caption="Fueled By"
+            width={120}
+            cellRender={(data) => {
+              const fueledBy =
+                data.data.fueledByUserName ||
+                data.data.operatorName ||
+                data.data.userName ||
+                "-";
+              return <span>{fueledBy}</span>;
+            }}
+          />
+          <Column
+            dataField="transaction"
+            caption="Transaction"
+            width={120}
+            dataType="number"
+          />
+          <Column
+            dataField="hasBeenProcessed"
+            caption="Status"
+            width={120}
+            cellRender={(data) => (
+              <span
+                className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
+                  data.value
+                    ? "tw-bg-green-100 tw-text-green-800"
+                    : "tw-bg-yellow-100 tw-text-yellow-800"
+                }`}
+              >
+                {data.value ? "Processed" : "Pending"}
+              </span>
+            )}
+          />
+          <Grouping autoExpandAll={isGroupsExpanded} allowCollapsing={true} />
+          <Summary>
+            <GroupItem
+              column="volume"
+              summaryType="sum"
+              valueFormat="#,##0.00"
+              displayFormat="Volume: {0}L"
+              alignByColumn={true}
+            />
+            <GroupItem
+              column="transactionDate"
+              summaryType="count"
+              displayFormat="Transactions: {0}"
+              alignByColumn={true}
+            />
+            <TotalItem
+              column="volume"
+              summaryType="sum"
+              valueFormat="#,##0.00"
+              displayFormat="Total Volume: {0}L"
+            />
+            <TotalItem
+              column="transactionDate"
+              summaryType="count"
+              displayFormat="Total Transactions: {0}"
+            />
+          </Summary>
+        </DataGrid>
       </div>
+
+      {/* Grouping Controls Panel */}
+      <PumpTransactionGroupingControls
+        groupBy={groupBy}
+        hasActiveGrouping={hasActiveGrouping}
+        isGroupsExpanded={isGroupsExpanded}
+        onGroupByChange={handleGroupByChange}
+        onClearGrouping={handleClearGrouping}
+        onToggleExpandGroups={handleToggleExpandGroups}
+      />
     </div>
   );
 };

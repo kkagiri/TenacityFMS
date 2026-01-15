@@ -211,5 +211,77 @@ namespace FMS.WebClient.Controllers.PTSController
                 return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
             }
         }
+
+        /// <summary>
+        /// Sets the pumps configuration on the PTS device (ports and pump assignments).
+        /// Based on protocol 49. SetPumpsConfiguration
+        /// </summary>
+        [HttpPost("pumps")]
+        public async Task<ActionResult<FMSResponse<bool>>> SetPumpsConfiguration(string deviceId, [FromBody] SetPumpsConfigurationRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("API: Setting Pumps Configuration for device {DeviceId}", deviceId);
+                var result = await _ptsConfigService.SetPumpsConfigurationAsync(deviceId, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting Pumps Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        /// <summary>
+        /// Gets the pump nozzles configuration from the PTS device.
+        /// Based on protocol 66. GetPumpNozzlesConfiguration
+        /// </summary>
+        [HttpGet("pump-nozzles")]
+        public async Task<ActionResult<FMSResponse<PumpNozzlesConfigurationResponse>>> GetPumpNozzlesConfiguration(string deviceId)
+        {
+            try
+            {
+                _logger.LogInformation("API: Getting Pump Nozzles Configuration for device {DeviceId}", deviceId);
+                var result = await _ptsConfigService.GetPumpNozzlesConfigurationAsync(deviceId);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Pump Nozzles Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<PumpNozzlesConfigurationResponse>.Failed("Internal server error"));
+            }
+        }
+
+        /// <summary>
+        /// Sets the pump nozzles configuration on the PTS device.
+        /// Based on protocol 67. SetPumpNozzlesConfiguration
+        /// </summary>
+        [HttpPost("pump-nozzles")]
+        public async Task<ActionResult<FMSResponse<bool>>> SetPumpNozzlesConfiguration(string deviceId, [FromBody] SetPumpNozzlesConfigurationRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("API: Setting Pump Nozzles Configuration for device {DeviceId}", deviceId);
+                var result = await _ptsConfigService.SetPumpNozzlesConfigurationAsync(deviceId, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting Pump Nozzles Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
     }
 }

@@ -8,6 +8,8 @@ namespace FMS.Application.Features.ATG
 {
     public class PumpTransactionDto
     {
+        public int Id { get; set; }
+
         public string PtsId { get; set; }
         public string? PtsName { get; set; }
         public int PacketId { get; set; }

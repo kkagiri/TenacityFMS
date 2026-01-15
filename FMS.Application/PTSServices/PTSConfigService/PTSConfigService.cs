@@ -316,5 +316,139 @@ namespace FMS.Application.PTSServices.PTSConfigService
 
             return data;
         }
+
+        /// <summary>
+        /// Sets the pumps configuration on the PTS device.
+        /// Based on protocol 49. SetPumpsConfiguration
+        /// </summary>
+        public async Task<FMSResponse<bool>> SetPumpsConfigurationAsync(string ptsDeviceId, SetPumpsConfigurationRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Setting Pumps Configuration on PTS device {DeviceId}", ptsDeviceId);
+
+                var commandData = new JObject();
+                if (request.Ports != null && request.Ports.Count > 0)
+                {
+                    commandData["Ports"] = JArray.FromObject(request.Ports);
+                }
+                if (request.Pumps != null && request.Pumps.Count > 0)
+                {
+                    commandData["Pumps"] = JArray.FromObject(request.Pumps);
+                }
+
+                _logger.LogDebug("SetPumpsConfiguration command data: {CommandData}",
+                    commandData.ToString(Newtonsoft.Json.Formatting.None));
+
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, "SetPumpsConfiguration", commandData);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning("Failed to set Pumps Configuration on PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<bool>.Failed(result.Message ?? "Failed to set Pumps Configuration on device.");
+                }
+
+                _logger.LogInformation("Successfully set Pumps Configuration on device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Success(true, "Pumps Configuration updated successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while setting Pumps Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting Pumps Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Failed("Internal server error while setting Pumps Configuration");
+            }
+        }
+
+        /// <summary>
+        /// Gets the pump nozzles configuration from the PTS device.
+        /// Based on protocol 66. GetPumpNozzlesConfiguration
+        /// </summary>
+        public async Task<FMSResponse<PumpNozzlesConfigurationResponse>> GetPumpNozzlesConfigurationAsync(string ptsDeviceId)
+        {
+            try
+            {
+                _logger.LogInformation("Requesting Pump Nozzles Configuration from PTS device {DeviceId}", ptsDeviceId);
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, "GetPumpNozzlesConfiguration", null);
+
+                if (!result.Success || result.CommandData == null)
+                {
+                    _logger.LogWarning("Failed to get Pump Nozzles Configuration from PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<PumpNozzlesConfigurationResponse>.Failed(result.Message ?? "Failed to retrieve Pump Nozzles Configuration from device.");
+                }
+
+                var data = JObject.FromObject(result.CommandData);
+                var nozzlesConfigResponse = data.ToObject<PumpNozzlesConfigurationResponse>();
+
+                if (nozzlesConfigResponse == null)
+                {
+                    _logger.LogError("Failed to parse Pump Nozzles Configuration response from PTS device {DeviceId}. Data: {CommandData}", ptsDeviceId, result.CommandData);
+                    return FMSResponse<PumpNozzlesConfigurationResponse>.Failed("Failed to parse Pump Nozzles Configuration response from device");
+                }
+
+                _logger.LogInformation("Successfully retrieved Pump Nozzles Configuration from device {DeviceId}. PumpNozzles count: {Count}",
+                    ptsDeviceId, nozzlesConfigResponse.PumpNozzles?.Count ?? 0);
+
+                return FMSResponse<PumpNozzlesConfigurationResponse>.Success(nozzlesConfigResponse, "Pump Nozzles Configuration retrieved successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while getting Pump Nozzles Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<PumpNozzlesConfigurationResponse>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Pump Nozzles Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<PumpNozzlesConfigurationResponse>.Failed("Internal server error while getting Pump Nozzles Configuration");
+            }
+        }
+
+        /// <summary>
+        /// Sets the pump nozzles configuration on the PTS device.
+        /// Based on protocol 67. SetPumpNozzlesConfiguration
+        /// </summary>
+        public async Task<FMSResponse<bool>> SetPumpNozzlesConfigurationAsync(string ptsDeviceId, SetPumpNozzlesConfigurationRequest request)
+        {
+            try
+            {
+                _logger.LogInformation("Setting Pump Nozzles Configuration on PTS device {DeviceId}", ptsDeviceId);
+
+                var commandData = new JObject();
+                if (request.PumpNozzles != null && request.PumpNozzles.Count > 0)
+                {
+                    commandData["PumpNozzles"] = JArray.FromObject(request.PumpNozzles);
+                }
+
+                _logger.LogDebug("SetPumpNozzlesConfiguration command data: {CommandData}",
+                    commandData.ToString(Newtonsoft.Json.Formatting.None));
+
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, "SetPumpNozzlesConfiguration", commandData);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning("Failed to set Pump Nozzles Configuration on PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<bool>.Failed(result.Message ?? "Failed to set Pump Nozzles Configuration on device.");
+                }
+
+                _logger.LogInformation("Successfully set Pump Nozzles Configuration on device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Success(true, "Pump Nozzles Configuration updated successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while setting Pump Nozzles Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error setting Pump Nozzles Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<bool>.Failed("Internal server error while setting Pump Nozzles Configuration");
+            }
+        }
     }
 }

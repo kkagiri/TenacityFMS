@@ -3,7 +3,7 @@
 buildscript {
     ext {
         buildToolsVersion = "34.0.0"
-        minSdkVersion = 21
+        minSdkVersion = 23
         compileSdkVersion = 34
         targetSdkVersion = 34
 
@@ -11,7 +11,8 @@ buildscript {
         ndkVersion = "23.1.7779620"
 
         // Kotlin JVM target for consistency
-        kotlinJvmTarget = "17"
+        kotlinJvmTarget = "11"
+        kotlinVersion = "1.9.22"
     }
     repositories {
         google()
@@ -20,6 +21,7 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.1")
         classpath("com.facebook.react:react-native-gradle-plugin")
+        classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.22")
     }
 }
 
@@ -53,15 +55,19 @@ subprojects {
             if (project.android.hasProperty('buildFeatures')) {
                 project.android.buildFeatures.buildConfig = true
             }
+
+            // Align Java version for ALL android projects
+            project.android {
+                compileOptions {
+                    sourceCompatibility JavaVersion.VERSION_11
+                    targetCompatibility JavaVersion.VERSION_11
+                }
+            }
         }
 
         // Align Kotlin JVM target if Kotlin plugin is applied
         if (project.plugins.hasPlugin('kotlin-android') || project.plugins.hasPlugin('org.jetbrains.kotlin.android')) {
             project.android {
-                compileOptions {
-                    sourceCompatibility JavaVersion.VERSION_17
-                    targetCompatibility JavaVersion.VERSION_17
-                }
                 kotlinOptions {
                     jvmTarget = rootProject.ext.kotlinJvmTarget
                 }

@@ -1,0 +1,85 @@
+/**
+ * ConfigControls.scss
+ * Styles for HTML-based configuration controls
+ */
+
+.config-toggle {
+  .toggle-track {
+    cursor: inherit;
+  }
+
+  .toggle-dot {
+    pointer-events: none;
+  }
+}
+
+.config-slider {
+  .slider-input {
+    &::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform 0.1s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+
+    &::-moz-range-thumb {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #3b82f6;
+      cursor: pointer;
+      border: 2px solid white;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+      transition: transform 0.1s;
+
+      &:hover {
+        transform: scale(1.1);
+      }
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+
+      &::-webkit-slider-thumb {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+
+      &::-moz-range-thumb {
+        background: #9ca3af;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.config-card {
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.config-section {
+  transition: all 0.2s;
+}
+
+// Number input - hide spin buttons
+.config-number-input {
+  input[type="number"] {
+    -moz-appearance: textfield;
+
+    &::-webkit-outer-spin-button,
+    &::-webkit-inner-spin-button {
+      -webkit-appearance: none;
+      margin: 0;
+    }
+  }
+}

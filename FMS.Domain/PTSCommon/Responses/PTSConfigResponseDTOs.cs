@@ -207,4 +207,49 @@ namespace FMS.Domain.PTSCommon.Responses
         public bool? WebsocketsRequestTagsInformation { get; set; }
         public bool? UseWebsocketsCommunication { get; set; }
     }
+
+    /// <summary>
+    /// Based on 68. PumpNozzlesConfiguration response
+    /// Contains pump nozzle assignments to fuel grades, tanks, and payment forms
+    /// </summary>
+    public class PumpNozzlesConfigurationResponse
+    {
+        public List<PumpNozzleConfig> PumpNozzles { get; set; }
+    }
+
+    public class PumpNozzleConfig
+    {
+        /// <summary>Identifier of pump (1-120)</summary>
+        public int PumpId { get; set; }
+
+        /// <summary>Array of fuel grade IDs for nozzles (up to 6 elements, 0-20)</summary>
+        public List<int> FuelGradeIds { get; set; }
+
+        /// <summary>Array of tank IDs for nozzles (optional, up to 6 elements, 0-20)</summary>
+        public List<int> TankIds { get; set; }
+
+        /// <summary>Array of payment form IDs for nozzles (optional, up to 6 elements, 0-10)</summary>
+        public List<int> PaymentFormIds { get; set; }
+    }
+
+    /// <summary>
+    /// Request DTO for setting pumps configuration (49. SetPumpsConfiguration)
+    /// </summary>
+    public class SetPumpsConfigurationRequest
+    {
+        /// <summary>Array of pump port configurations</summary>
+        public List<PumpPortConfig> Ports { get; set; }
+
+        /// <summary>Array of pump configurations</summary>
+        public List<PumpConfig> Pumps { get; set; }
+    }
+
+    /// <summary>
+    /// Request DTO for setting pump nozzles configuration (67. SetPumpNozzlesConfiguration)
+    /// </summary>
+    public class SetPumpNozzlesConfigurationRequest
+    {
+        /// <summary>Array of pump nozzle configurations</summary>
+        public List<PumpNozzleConfig> PumpNozzles { get; set; }
+    }
 }

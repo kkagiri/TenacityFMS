@@ -1,4 +1,29 @@
 .vehicle-edit-form {
+  &.vehicle-edit-form--editing {
+    .dx-form {
+      .dx-texteditor,
+      .dx-textbox,
+      .dx-numberbox,
+      .dx-selectbox {
+        &.dx-editor-outlined {
+          border-color: #fb923c !important;
+        }
+
+        .dx-texteditor-input {
+          background-color: #fff7ed !important;
+          color: #111827 !important;
+        }
+      }
+
+      .dx-state-focused {
+        &.dx-editor-outlined {
+          border-color: #f97316 !important;
+          box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.2) !important;
+        }
+      }
+    }
+  }
+
   .dx-form {
     // Improve visibility for disabled form fields
     &.dx-state-readonly {
@@ -136,6 +161,15 @@
     margin-top: 1.5rem;
     padding-top: 1rem;
     border-top: 1px solid #e5e7eb;
+  }
+
+  // Top actions container
+  .vehicle-edit-form__actions {
+    .tw-flex.tw-justify-end.tw-gap-3 {
+      margin-top: 0;
+      padding-top: 0;
+      border-top: 0;
+    }
   }
 
   // Loading state
