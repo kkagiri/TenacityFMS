@@ -12,7 +12,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
     /// <summary>
     /// Tests to validate that DI service registrations exist in the PTS Windows Service.
     /// Uses static code analysis to verify registrations without requiring full service instantiation.
-    /// 
+    ///
     /// IMPORTANT: Run these tests before deploying to catch DI registration errors
     /// that would cause runtime failures in production.
     /// </summary>
@@ -25,11 +25,11 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public PTSServiceDIValidationTests(ITestOutputHelper output)
         {
             _output = output;
-            
+
             // Find the PTS Service Program.cs file
             var solutionRoot = FindSolutionRoot();
             _ptsServiceProgramPath = Path.Combine(solutionRoot, "FMS.PTS.WindowsService", "Program.cs");
-            
+
             if (File.Exists(_ptsServiceProgramPath))
             {
                 _programFileContent = File.ReadAllText(_ptsServiceProgramPath);
@@ -52,7 +52,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 }
                 dir = Path.GetDirectoryName(dir);
             }
-            
+
             return @"c:\Users\kkagiri\Sources\Repo\Hyoung.FMS";
         }
 
@@ -71,7 +71,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 "AddSingleton<IPushNotificationService"
             };
 
-            bool found = registrationPatterns.Any(pattern => 
+            bool found = registrationPatterns.Any(pattern =>
                 _programFileContent.Contains(pattern, StringComparison.OrdinalIgnoreCase));
 
             if (found)
@@ -83,7 +83,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 _output.WriteLine("✗ CRITICAL: IPushNotificationService NOT found!");
             }
 
-            Assert.True(found, 
+            Assert.True(found,
                 "IPushNotificationService must be registered in FMS.PTS.WindowsService/Program.cs");
         }
 
@@ -97,7 +97,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public void CriticalMobileServices_MustBeRegistered(string serviceName, string purpose)
         {
             bool found = _programFileContent.Contains(serviceName, StringComparison.OrdinalIgnoreCase);
-            
+
             _output.WriteLine($"{serviceName}: {(found ? "✓ REGISTERED" : "✗ MISSING")} - {purpose}");
 
             Assert.True(found, $"{serviceName} must be registered in PTS Service for: {purpose}");
@@ -108,13 +108,13 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         /// </summary>
         [Theory]
         [InlineData("PushNotificationChannel", "Mobile push notifications")]
-        [InlineData("EmailNotificationChannel", "Email alerts")]  
+        [InlineData("EmailNotificationChannel", "Email alerts")]
         [InlineData("SmsNotificationChannel", "SMS alerts")]
         [InlineData("SystemNotificationChannel", "In-app notifications")]
         public void NotificationChannels_MustBeRegistered(string channelName, string purpose)
         {
             bool found = _programFileContent.Contains(channelName, StringComparison.OrdinalIgnoreCase);
-            
+
             _output.WriteLine($"{channelName}: {(found ? "✓" : "✗")} - {purpose}");
 
             Assert.True(found, $"{channelName} should be registered for: {purpose}");
@@ -128,21 +128,21 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         {
             var channelType = typeof(PushNotificationChannel);
             var constructors = channelType.GetConstructors();
-            
+
             Assert.Single(constructors);
-            
+
             var parameters = constructors[0].GetParameters();
-            
+
             _output.WriteLine($"PushNotificationChannel constructor parameters:");
             foreach (var param in parameters)
             {
                 _output.WriteLine($"  - {param.ParameterType.Name} {param.Name}");
             }
 
-            Assert.Contains(parameters, p => 
+            Assert.Contains(parameters, p =>
                 p.ParameterType == typeof(IPushNotificationService) ||
                 p.ParameterType.Name.Contains("IPushNotificationService"));
-            
+
             _output.WriteLine("✓ IPushNotificationService is required by PushNotificationChannel");
         }
     }

@@ -23,12 +23,12 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public MobileFuelingCriticalServicesTests(ITestOutputHelper output)
         {
             _output = output;
-            
+
             var solutionRoot = FindSolutionRoot();
             var ptsPath = Path.Combine(solutionRoot, "FMS.PTS.WindowsService", "Program.cs");
-            
+
             _ptsServiceProgram = File.Exists(ptsPath) ? File.ReadAllText(ptsPath) : string.Empty;
-            
+
             if (string.IsNullOrEmpty(_ptsServiceProgram))
             {
                 _output.WriteLine($"WARNING: Could not read {ptsPath}");
@@ -46,7 +46,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 }
                 dir = Path.GetDirectoryName(dir);
             }
-            
+
             return @"c:\Users\kkagiri\Sources\Repo\Hyoung.FMS";
         }
 
@@ -57,7 +57,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public void CriticalFix_IPushNotificationService_MustBeRegistered()
         {
             bool found = _ptsServiceProgram.Contains("IPushNotificationService");
-            
+
             if (found)
             {
                 _output.WriteLine("✓ IPushNotificationService is registered");
@@ -66,8 +66,8 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
             {
                 _output.WriteLine("✗ CRITICAL: IPushNotificationService is NOT registered!");
             }
-            
-            Assert.True(found, 
+
+            Assert.True(found,
                 "CRITICAL: IPushNotificationService must be registered in Program.cs");
         }
 
@@ -83,9 +83,9 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public void NotificationChannel_MustBeRegistered(string channelName, string purpose)
         {
             bool found = _ptsServiceProgram.Contains(channelName);
-            
+
             _output.WriteLine($"{channelName}: {(found ? "✓" : "✗")} - {purpose}");
-            
+
             Assert.True(found, $"{channelName} should be registered for: {purpose}");
         }
 
@@ -99,9 +99,9 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
         public void DeliveryService_MustBeRegistered(string serviceName, string purpose)
         {
             bool found = _ptsServiceProgram.Contains(serviceName);
-            
+
             _output.WriteLine($"{serviceName}: {(found ? "✓" : "✗")} - {purpose}");
-            
+
             Assert.True(found, $"{serviceName} must be registered for: {purpose}");
         }
 
@@ -114,16 +114,16 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
             var patterns = new[] { "AddScoped<", "AddTransient<", "AddSingleton<" };
 
             _output.WriteLine("=== PTS SERVICE REGISTRATIONS ===");
-            
+
             var lines = _ptsServiceProgram.Split('\n')
                 .Select(l => l.Trim())
                 .Where(l => patterns.Any(p => l.Contains(p)));
-            
+
             foreach (var line in lines.Take(50))
             {
                 _output.WriteLine($"  {line}");
             }
-            
+
             Assert.True(true);
         }
     }
@@ -150,7 +150,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
             var constructor = channelType.GetConstructors().First();
             var parameters = constructor.GetParameters();
 
-            var hasDependency = parameters.Any(p => 
+            var hasDependency = parameters.Any(p =>
                 p.ParameterType == typeof(IPushNotificationService));
 
             _output.WriteLine("PushNotificationChannel constructor dependencies:");
@@ -159,9 +159,9 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 _output.WriteLine($"  - {p.ParameterType.Name}");
             }
 
-            Assert.True(hasDependency, 
+            Assert.True(hasDependency,
                 "PushNotificationChannel should require IPushNotificationService");
-            
+
             _output.WriteLine("✓ Confirmed: PushNotificationChannel requires IPushNotificationService");
         }
 
@@ -180,7 +180,7 @@ namespace FMS.Testing.IntegrationTests.DependencyInjection
                 .ToList();
 
             _output.WriteLine($"Found {channelTypes.Count} implementations:");
-            
+
             foreach (var type in channelTypes)
             {
                 _output.WriteLine($"  - {type.Name}");

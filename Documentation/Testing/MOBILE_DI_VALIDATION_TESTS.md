@@ -50,7 +50,7 @@ Add to your deployment pipeline:
   run: |
     cd FMS.Testing
     dotnet test --filter "Category=Critical" --logger "trx;LogFileName=di-validation.trx"
-  
+
 - name: Fail on DI Errors
   if: failure()
   run: echo "CRITICAL: DI registration errors detected. Mobile app will not function."
@@ -67,11 +67,11 @@ public void MobileAppDependency_ServiceMustBeRegistered(Type serviceType, string
 {
     // Register your services
     _services.AddScoped<INewService, NewService>();
-    
+
     var sp = _services.BuildServiceProvider();
     using var scope = sp.CreateScope();
     var service = scope.ServiceProvider.GetService(serviceType);
-    
+
     Assert.NotNull(service);
 }
 ```
