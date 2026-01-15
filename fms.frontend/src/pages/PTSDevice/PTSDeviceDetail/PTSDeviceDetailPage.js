@@ -59,6 +59,18 @@ const PTSDeviceDetailPage = () => {
 
       setIsLoading(true);
       try {
+        // Ensure PTS SignalR service is connected
+        if (!ptsSignalRService.getConnectionStatus()) {
+          console.log("[PTSDeviceDetail] Starting PTS SignalR service...");
+          try {
+            await ptsSignalRService.start();
+            console.log("[PTSDeviceDetail] PTS SignalR service started");
+          } catch (signalRError) {
+            console.warn("[PTSDeviceDetail] Failed to start PTS SignalR:", signalRError);
+            // Continue loading device data even if SignalR fails
+          }
+        }
+
         await dispatch(getPTSDeviceById(deviceid));
         setDataLoaded(true);
 
@@ -120,7 +132,7 @@ const PTSDeviceDetailPage = () => {
 
     // Subscribe to device-specific updates
     const unsubscribeUploadStatus = ptsSignalRService.on(
-      "UploadStatus",
+      "uploadStatusUpdate",
       handleDeviceUpdate
     );
 

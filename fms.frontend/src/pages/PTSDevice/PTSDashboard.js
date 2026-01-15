@@ -129,7 +129,7 @@ const PTSDashboard = () => {
 
     // Subscribe to dashboard metrics updates via SignalR
     const unsubscribeMetrics = ptsSignalRService.on(
-      "DashboardMetricsUpdate",
+      "dashboardMetricsUpdate",
       (metrics) => {
         console.log("[PTSDashboard] Received dashboard metrics update via SignalR:", metrics);
         // Update Redux state directly with SignalR data instead of polling

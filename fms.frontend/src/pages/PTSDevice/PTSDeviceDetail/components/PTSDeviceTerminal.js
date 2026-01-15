@@ -53,8 +53,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
   // Filter options (matching camelCase event names from ptsSignalRService)
   const filterOptions = [
     { value: "all", label: "All Messages" },
-    { value: "uploadStatus", label: "Upload Status" },
-    { value: "uploadStatusUpdate", label: "Status Updates" },
+    { value: "uploadStatusUpdate", label: "Upload Status" },
     { value: "nozzleStateChange", label: "Nozzle Events" },
     { value: "fillingStatus", label: "Filling" },
     { value: "pumpTransactionCompleted", label: "Transactions" },
@@ -66,19 +65,19 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
     { value: "fuelingEvent", label: "Fueling Events" },
   ];
 
-  // Auto-scroll to bottom when new logs arrive (if not paused and auto-scroll enabled)
+  // Auto-scroll to top when new logs arrive (newest first)
   useEffect(() => {
     if (!isPaused && autoScrollRef.current && terminalRef.current) {
-      terminalRef.current.scrollTop = terminalRef.current.scrollHeight;
+      terminalRef.current.scrollTop = 0;
     }
   }, [logs, isPaused]);
 
-  // Detect manual scroll - disable auto-scroll if user scrolls up
+  // Detect manual scroll - disable auto-scroll if user scrolls down
   const handleScroll = () => {
     if (terminalRef.current) {
-      const { scrollTop, scrollHeight, clientHeight } = terminalRef.current;
-      const isAtBottom = Math.abs(scrollHeight - clientHeight - scrollTop) < 10;
-      autoScrollRef.current = isAtBottom;
+      const { scrollTop } = terminalRef.current;
+      // Auto-scroll is enabled when at the top
+      autoScrollRef.current = scrollTop < 10;
     }
   };
 
@@ -117,17 +116,16 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
 
       console.log(`[PTSDeviceTerminal] ✓ Adding log entry:`, eventType, logEntry);
 
-      // Direct state update - no batching, no refs
+      // Prepend new logs (newest first) and limit buffer size
       setLogs((prev) => {
-        const newLogs = [...prev, logEntry];
-        return newLogs.slice(-maxLogs);
+        const newLogs = [logEntry, ...prev];
+        return newLogs.slice(0, maxLogs);
       });
     };
 
     // Subscribe to all PTS events (using camelCase as defined in ptsSignalRService)
     const ptsEvents = [
-      "uploadStatus",               // Was: UploadStatus
-      "uploadStatusUpdate",         // Was: UploadStatusUpdate
+      "uploadStatusUpdate",         // Full status updates from device
       "nozzleStateChange",          // Was: NozzleStateChange
       "fillingStatus",              // Was: FillingStatus
       "pumpTransactionCompleted",   // Was: PumpTransactionCompleted
@@ -186,8 +184,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
   // Get event type color (matching camelCase event names from ptsSignalRService)
   const getEventTypeColor = (eventType) => {
     const colors = {
-      uploadStatus: "tw-text-blue-600",
-      uploadStatusUpdate: "tw-text-blue-500",
+      uploadStatusUpdate: "tw-text-blue-600",
       nozzleStateChange: "tw-text-purple-600",
       fillingStatus: "tw-text-green-600",
       pumpTransactionCompleted: "tw-text-indigo-600",
@@ -244,7 +241,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
     if (filteredLogs.length === 0) {
       return (
         <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full">
-          <i className="fa-light fa-terminal tw-text-6xl tw-text-gray-600 tw-mb-4"></i>
+          <span><i className="fa-light fa-terminal tw-text-6xl tw-text-gray-600 tw-mb-4"></i></span>
           <p className="tw-text-gray-500 tw-mb-2">
             {isPaused ? "Message capture paused" : "Waiting for device messages..."}
           </p>
@@ -257,32 +254,124 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
       );
     }
 
+    // Render collapsible JSON section
+    const renderJsonSection = (label, data, defaultOpen = false) => {
+      if (!data || (Array.isArray(data) && data.length === 0) || (typeof data === 'object' && Object.keys(data).length === 0)) {
+        return null;
+      }
+      return (
+        <details className="tw-ml-2 tw-my-1" open={defaultOpen}>
+          <summary className="tw-cursor-pointer tw-text-xs tw-text-gray-400 hover:tw-text-gray-200 tw-select-none">
+            <span className="tw-font-medium">{label}</span>
+            <span className="tw-text-gray-500 tw-ml-2">
+              {Array.isArray(data) ? `[${data.length} items]` : `{${Object.keys(data).length} keys}`}
+            </span>
+          </summary>
+          <pre className="tw-text-xs tw-text-gray-300 tw-whitespace-pre-wrap tw-break-words tw-ml-4 tw-mt-1 tw-bg-gray-800 tw-bg-opacity-50 tw-p-2 tw-rounded">
+            {formatJson(data)}
+          </pre>
+        </details>
+      );
+    };
+
+    // Render smart formatted log data
+    const renderLogData = (data) => {
+      // For uploadStatusUpdate, show structured view
+      if (data.status && typeof data.status === 'object') {
+        const { status, fuelingContexts, ...rest } = data;
+        const { pumps, probes, readers, fuelGrades, ...statusRest } = status || {};
+
+        return (
+          <div className="tw-text-xs tw-text-gray-300">
+            {/* Key metrics at a glance */}
+            <div className="tw-flex tw-flex-wrap tw-gap-3 tw-mb-2 tw-p-2 tw-bg-gray-800 tw-bg-opacity-30 tw-rounded">
+              {status?.batteryVoltage && (
+                <span className="tw-text-green-400">
+                  <span className="tw-text-gray-500">Battery:</span> {(status.batteryVoltage / 1000).toFixed(2)}V
+                </span>
+              )}
+              {status?.cpuTemperature && (
+                <span className={status.cpuTemperature > 60 ? 'tw-text-red-400' : 'tw-text-blue-400'}>
+                  <span className="tw-text-gray-500">CPU:</span> {status.cpuTemperature}°C
+                </span>
+              )}
+              {status?.sdMounted !== undefined && (
+                <span className={status.sdMounted ? 'tw-text-green-400' : 'tw-text-red-400'}>
+                  <span className="tw-text-gray-500">SD:</span> {status.sdMounted ? 'Mounted' : 'Not Mounted'}
+                </span>
+              )}
+              {status?.configurationId && (
+                <span className="tw-text-purple-400">
+                  <span className="tw-text-gray-500">Config:</span> {status.configurationId}
+                </span>
+              )}
+            </div>
+
+            {/* Collapsible sections */}
+            {renderJsonSection('Pumps', pumps)}
+            {renderJsonSection('Probes', probes)}
+            {renderJsonSection('Readers', readers)}
+            {renderJsonSection('Fuel Grades', fuelGrades)}
+            {renderJsonSection('Fueling Contexts', fuelingContexts)}
+            {Object.keys(statusRest).length > 0 && renderJsonSection('Other Status', statusRest)}
+            {Object.keys(rest).length > 0 && renderJsonSection('Message Info', rest)}
+          </div>
+        );
+      }
+
+      // For other event types, show formatted JSON
+      return (
+        <pre className="tw-text-xs tw-text-gray-300 tw-whitespace-pre-wrap tw-break-words tw-bg-gray-800 tw-bg-opacity-30 tw-p-2 tw-rounded">
+          {formatJson(data)}
+        </pre>
+      );
+    };
+
+    // Copy message to clipboard
+    const handleCopyMessage = async (log) => {
+      try {
+        const textToCopy = JSON.stringify(log.data, null, 2);
+        await navigator.clipboard.writeText(textToCopy);
+        // Visual feedback handled by button state
+      } catch (err) {
+        console.error('Failed to copy:', err);
+      }
+    };
+
     return (
-      <div className="tw-space-y-2">
+      <div className="tw-space-y-3">
         {filteredLogs.map((log, idx) => (
           <div
             key={`${log.timestamp}-${idx}`}
-            className="terminal-line tw-border-l-2 tw-border-gray-700 tw-pl-3 tw-py-2 hover:tw-bg-gray-800 tw-transition-colors"
+            className="terminal-line tw-relative tw-border-l-4 tw-border-gray-600 tw-pl-4 tw-pr-10 tw-py-3 tw-bg-gray-800 tw-bg-opacity-40 tw-rounded-r hover:tw-bg-opacity-60 tw-transition-colors"
           >
+            {/* Copy Button - positioned at top right */}
+            <button
+              type="button"
+              className="tw-absolute tw-top-2 tw-right-2 tw-p-1.5 tw-text-gray-500 hover:tw-text-gray-200 hover:tw-bg-gray-700 tw-rounded tw-transition-colors tw-opacity-60 hover:tw-opacity-100"
+              onClick={() => handleCopyMessage(log)}
+              title="Copy message to clipboard"
+            >
+              <span><i className="fa-light fa-copy tw-text-sm"></i></span>
+            </button>
+
             {/* Log Header */}
-            <div className="tw-flex tw-items-center tw-gap-3 tw-mb-1">
-              <span className="tw-text-xs tw-text-gray-500">
+            <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-mb-2">
+              <span className="tw-text-sm tw-font-mono tw-text-gray-400">
                 {new Date(log.timestamp).toLocaleTimeString()}
               </span>
-              <span className={`tw-font-semibold ${getEventTypeColor(log.eventType)}`}>
+              <span className={`tw-font-semibold tw-px-2 tw-py-0.5 tw-rounded tw-text-sm ${getEventTypeColor(log.eventType)} tw-bg-gray-700 tw-bg-opacity-50`}>
                 {log.eventType}
               </span>
               {log.deviceId && (
-                <span className="tw-text-xs tw-text-gray-400">
-                  [{log.deviceId}]
+                <span className="tw-text-xs tw-text-gray-500 tw-font-mono">
+                  {log.deviceId}
                 </span>
               )}
             </div>
 
             {/* Log Data */}
-            <pre className="tw-text-xs tw-text-gray-300 tw-whitespace-pre-wrap tw-break-words">
-              {formatJson(log.data)}
-            </pre>
+            {renderLogData(log.data)}
           </div>
         ))}
       </div>
@@ -293,7 +382,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
     return (
       <div className="pts-device-terminal">
         <div className="tw-text-center tw-py-12">
-          <i className="fa-light fa-circle-exclamation tw-text-6xl tw-text-gray-400 tw-mb-4"></i>
+          <span><i className="fa-light fa-circle-exclamation tw-text-6xl tw-text-gray-400 tw-mb-4"></i></span>
           <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">
             No Device Selected
           </h3>
@@ -310,7 +399,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
       {/* Terminal Header with Controls */}
       <div className="terminal-header tw-flex tw-flex-col md:tw-flex-row tw-gap-4 tw-p-4 tw-bg-gray-800 tw-border-b tw-border-gray-700">
         <div className="tw-flex tw-items-center tw-gap-2 tw-flex-1">
-          <i className="fa-light fa-terminal tw-text-green-400"></i>
+          <span><i className="fa-light fa-terminal tw-text-green-400"></i></span>
           <span className="tw-font-semibold tw-text-gray-100">
             Device Terminal - {device.ptsid}
           </span>
@@ -345,7 +434,9 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
             onClick={handleTogglePause}
             title={isPaused ? "Resume message capture" : "Pause message capture"}
           >
-            <i className={isPaused ? "fa-light fa-play" : "fa-light fa-pause"}></i>
+            <span key={`pause-icon-${isPaused}`}>
+              <i className={isPaused ? "fa-light fa-play" : "fa-light fa-pause"}></i>
+            </span>
             <span>{isPaused ? "Resume" : "Pause"}</span>
           </button>
 
@@ -356,7 +447,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
             onClick={handleClear}
             title="Clear all messages"
           >
-            <i className="fa-light fa-trash"></i>
+            <span><i className="fa-light fa-trash"></i></span>
             <span>Clear</span>
           </button>
 
@@ -368,7 +459,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
             title="Export logs to file"
             disabled={filteredLogs.length === 0}
           >
-            <i className="fa-light fa-download"></i>
+            <span><i className="fa-light fa-download"></i></span>
             <span>Export</span>
           </button>
         </div>
@@ -388,31 +479,34 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
       <div className="terminal-footer tw-p-3 tw-bg-gray-800 tw-border-t tw-border-gray-700">
         <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-4 tw-text-xs tw-text-gray-400">
           <div className="tw-flex tw-items-center tw-gap-2">
-            <i className={`fa-light fa-circle ${isConnected ? 'tw-text-green-500' : 'tw-text-red-500'}`}></i>
+            {/* Wrap icon in span with key to prevent FontAwesome DOM conflicts */}
+            <span key={`conn-icon-${isConnected}`}>
+              <i className={`fa-light fa-circle ${isConnected ? 'tw-text-green-500' : 'tw-text-red-500'}`}></i>
+            </span>
             <span>{isConnected ? "Connected" : "Disconnected"}</span>
           </div>
 
           <div className="tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-filter"></i>
+            <span><i className="fa-light fa-filter"></i></span>
             <span>Filter: {filterOptions.find(f => f.value === filterType)?.label}</span>
           </div>
 
           <div className="tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-database"></i>
+            <span><i className="fa-light fa-database"></i></span>
             <span>Buffer: {logs.length}/{maxLogs}</span>
           </div>
 
           {isPaused && (
             <div className="tw-flex tw-items-center tw-gap-2 tw-text-yellow-500">
-              <i className="fa-light fa-pause"></i>
+              <span><i className="fa-light fa-pause"></i></span>
               <span>PAUSED</span>
             </div>
           )}
 
           {!autoScrollRef.current && !isPaused && (
             <div className="tw-flex tw-items-center tw-gap-2 tw-text-blue-500">
-              <i className="fa-light fa-arrow-down"></i>
-              <span>Scroll to bottom for auto-scroll</span>
+              <span><i className="fa-light fa-arrow-up"></i></span>
+              <span>Scroll to top for auto-scroll</span>
             </div>
           )}
         </div>

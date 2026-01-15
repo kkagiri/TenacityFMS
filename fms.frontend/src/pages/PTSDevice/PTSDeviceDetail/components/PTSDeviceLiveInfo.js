@@ -13,7 +13,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
     return (
       <div className="pts-device-live-info">
         <div className="tw-text-center tw-py-12">
-          <i className="fa-light fa-circle-exclamation tw-text-6xl tw-text-gray-400 tw-mb-4"></i>
+          <span><i className="fa-light fa-circle-exclamation tw-text-6xl tw-text-gray-400 tw-mb-4"></i></span>
           <h3 className="tw-text-lg tw-font-semibold tw-text-gray-600 tw-mb-2">
             Device Not Connected
           </h3>
@@ -31,7 +31,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
         {/* System Status Card */}
         <div className="info-card">
           <div className="card-header">
-            <i className="fa-light fa-server"></i>
+            <span><i className="fa-light fa-server"></i></span>
             <h4>System Status</h4>
           </div>
           <div className="card-body">
@@ -71,7 +71,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
         {/* Connection Info Card */}
         <div className="info-card">
           <div className="card-header">
-            <i className="fa-light fa-signal-stream"></i>
+            <span><i className="fa-light fa-signal-stream"></i></span>
             <h4>Connection Info</h4>
           </div>
           <div className="card-body">
@@ -109,7 +109,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
         {/* Live Updates Indicator */}
         <div className="info-card">
           <div className="card-header">
-            <i className="fa-light fa-rss"></i>
+            <span><i className="fa-light fa-rss"></i></span>
             <h4>Live Updates</h4>
           </div>
           <div className="card-body">
@@ -132,7 +132,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
       {displayData.pumps && (
         <div className="tw-mt-6">
           <h4 className="tw-text-lg tw-font-semibold tw-mb-4">
-            <i className="fa-light fa-gas-pump tw-mr-2"></i>
+            <span><i className="fa-light fa-gas-pump tw-mr-2"></i></span>
             Pump Status
           </h4>
           <div className="info-card">
@@ -148,7 +148,7 @@ const PTSDeviceLiveInfo = ({ device, liveData, isConnected }) => {
       {displayData.tanks && displayData.tanks.length > 0 && (
         <div className="tw-mt-6">
           <h4 className="tw-text-lg tw-font-semibold tw-mb-4">
-            <i className="fa-light fa-truck-container tw-mr-2"></i>
+            <span><i className="fa-light fa-truck-container tw-mr-2"></i></span>
             Tank Status
           </h4>
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
