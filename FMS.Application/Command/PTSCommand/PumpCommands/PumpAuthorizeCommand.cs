@@ -332,6 +332,45 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(validationResult.ValidationErrors);
                 }
 
+                // **STEP 5.5: OPENING STOCK VALIDATION**
+                // Ensure the tank has opening stock recorded for today before allowing fueling
+                // This prevents automated transactions from creating ledger entries when opening stock hasn't been established
+                if (request.TankId.HasValue)
+                {
+                    var tank = await _context.Tanks.FindAsync(new object[] { request.TankId.Value }, cancellationToken);
+
+                    // Only validate if tank uses book keeping (ledger system)
+                    if (tank?.UseBookKeeping == 1)
+                    {
+                        var today = DateTime.UtcNow.Date;
+                        var hasOpeningStock = await _context.TankVolumeHistories
+                            .AnyAsync(tvh =>
+                                tvh.TankId == request.TankId.Value &&
+                                tvh.Timestamp.Date == today &&
+                                tvh.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.OpeningStock &&
+                                tvh.IsDeleted != true,
+                                cancellationToken);
+
+                        if (!hasOpeningStock)
+                        {
+                            _logger.LogWarning(
+                                "[PumpAuth] ⚠️ OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date} before fueling can proceed",
+                                tank.Id, tank.Name, today.ToString("yyyy-MM-dd"));
+
+                            return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                new List<string>
+                                {
+                                    $"⚠️ Opening stock not recorded for tank '{tank.Name}' on {today:yyyy-MM-dd}",
+                                    "Opening stock must be recorded before automated fueling can begin.",
+                                    "Please record today's opening stock in the Stock Management system first."
+                                });
+                        }
+
+                        _logger.LogDebug("[PumpAuth] ✅ Opening stock validated for tank {TankId} on {Date}",
+                            request.TankId.Value, today.ToString("yyyy-MM-dd"));
+                    }
+                }
+
                 // **STEP 6: CHECK IF ALREADY AUTHORIZED**
                 if (request.Nozzle > 0 && await _authTracker.IsAuthorized(request.DeviceId!, request.Nozzle))
                 {

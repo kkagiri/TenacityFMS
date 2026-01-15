@@ -123,6 +123,71 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(validationResult.ValidationErrors);
                 }
 
+                // **STEP 2.5: OPENING STOCK VALIDATION FOR BOTH TANKS**
+                // Ensure both source and destination tanks have opening stock recorded for today
+                // This prevents automated transfer transactions from creating ledger entries when opening stock hasn't been established
+                _logger.LogInformation("[TankTransferAuth] **STEP 2.5** - Validating opening stock for both tanks");
+
+                var sourceTank = await _context.Tanks.FindAsync(new object[] { request.SourceTankId }, CancellationToken.None);
+                var destinationTank = await _context.Tanks.FindAsync(new object[] { request.DestinationTankId }, CancellationToken.None);
+                var today = DateTime.UtcNow.Date;
+
+                // Check source tank opening stock (if using book keeping)
+                if (sourceTank?.UseBookKeeping == 1)
+                {
+                    var hasSourceOpeningStock = await _context.TankVolumeHistories
+                        .AnyAsync(tvh =>
+                            tvh.TankId == request.SourceTankId &&
+                            tvh.Timestamp.Date == today &&
+                            tvh.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.OpeningStock &&
+                            tvh.IsDeleted != true,
+                            cancellationToken);
+
+                    if (!hasSourceOpeningStock)
+                    {
+                        _logger.LogWarning(
+                            "[TankTransferAuth] ⚠️ SOURCE TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}",
+                            sourceTank.Id, sourceTank.Name, today.ToString("yyyy-MM-dd"));
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                $"⚠️ Opening stock not recorded for SOURCE tank '{sourceTank.Name}' on {today:yyyy-MM-dd}",
+                                "Opening stock must be recorded for both tanks before automated transfer can begin.",
+                                "Please record today's opening stock in the Stock Management system first."
+                            });
+                    }
+                }
+
+                // Check destination tank opening stock (if using book keeping)
+                if (destinationTank?.UseBookKeeping == 1)
+                {
+                    var hasDestOpeningStock = await _context.TankVolumeHistories
+                        .AnyAsync(tvh =>
+                            tvh.TankId == request.DestinationTankId &&
+                            tvh.Timestamp.Date == today &&
+                            tvh.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.OpeningStock &&
+                            tvh.IsDeleted != true,
+                            cancellationToken);
+
+                    if (!hasDestOpeningStock)
+                    {
+                        _logger.LogWarning(
+                            "[TankTransferAuth] ⚠️ DESTINATION TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}",
+                            destinationTank.Id, destinationTank.Name, today.ToString("yyyy-MM-dd"));
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                $"⚠️ Opening stock not recorded for DESTINATION tank '{destinationTank.Name}' on {today:yyyy-MM-dd}",
+                                "Opening stock must be recorded for both tanks before automated transfer can begin.",
+                                "Please record today's opening stock in the Tank Management system first."
+                            });
+                    }
+                }
+
+                _logger.LogInformation("[TankTransferAuth] ✅ Opening stock validated for both tanks on {Date}", today.ToString("yyyy-MM-dd"));
+
                 // **STEP 3: CHECK FOR STUCK TRANSACTIONS**
                 _logger.LogInformation("[TankTransferAuth] **STEP 3** - Checking for stuck transactions");
 

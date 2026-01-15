@@ -1,32 +1,44 @@
-import React, { useEffect, useRef, useCallback, useState } from "react";
+import React, { useEffect, useRef, useCallback, useMemo, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import ko from "knockout";
 import "devexpress-reporting/dx-webdocumentviewer";
+import { DxReportViewer } from "devexpress-reporting/dx-webdocumentviewer";
 import { getResolvedApiBaseUrlSync, resolveApiBaseUrl } from "../../api/axiosInstance";
 
 // Import DevExtreme Report Viewer styles
 import "../../reportDesignerStyles.css";
+import "devexpress-reporting/dist/css/dx-webdocumentviewer.css";
 
 const DevExtremeReportViewer = () => {
   const { reportName } = useParams();
   const navigate = useNavigate();
   const viewerRef = useRef(null);
-  const koApplied = useRef(false);
+  const viewerInstanceRef = useRef(null);
   const [serverOrigin, setServerOrigin] = useState(null);
 
   // Resolve the server origin from axios instance (same as rest of app)
   useEffect(() => {
     const resolveOrigin = async () => {
-      await resolveApiBaseUrl();
-      const baseUrl = getResolvedApiBaseUrlSync();
-      // Extract origin from baseUrl (e.g., "http://localhost:7009/api/" -> "http://localhost:7009")
-      if (baseUrl) {
-        const url = new URL(baseUrl);
-        setServerOrigin(url.origin);
-      } else {
-        // Fallback to window.location.origin
-        setServerOrigin(window.location.origin);
+      try {
+        await resolveApiBaseUrl();
+      } catch {
+        // Ignore base URL resolution failures; fall back below.
       }
+
+      const baseUrl = getResolvedApiBaseUrlSync();
+
+      // Extract origin from baseUrl.
+      // Handles both absolute ("http://localhost:7009/api/") and relative ("/api/") base URLs.
+      try {
+        if (baseUrl) {
+          const url = new URL(baseUrl, window.location.origin);
+          setServerOrigin(url.origin);
+          return;
+        }
+      } catch {
+        // Fall back below.
+      }
+
+      setServerOrigin(window.location.origin);
     };
     resolveOrigin();
   }, []);
@@ -37,8 +49,17 @@ const DevExtremeReportViewer = () => {
     return token ? `Bearer ${token}` : "";
   }, []);
 
+  const decodedReportName = useMemo(() => {
+    if (!reportName) return null;
+    try {
+      return decodeURIComponent(reportName);
+    } catch {
+      return reportName;
+    }
+  }, [reportName]);
+
   useEffect(() => {
-    if (!reportName) {
+    if (!decodedReportName) {
       navigate("/reports/gallery");
       return;
     }
@@ -48,66 +69,71 @@ const DevExtremeReportViewer = () => {
       return;
     }
 
-    if (viewerRef.current && !koApplied.current) {
-      const viewerOptions = {
-        reportUrl: ko.observable(reportName),
-        requestOptions: {
-          // Host is the server origin only
-          host: serverOrigin,
-          // invokeAction uses DevExpress default route
-          invokeAction: "/DXXRDV/Invoke",
-        },
+    if (!viewerRef.current) return;
+
+    // Dispose any previous instance (e.g., navigating between reports).
+    if (viewerInstanceRef.current) {
+      try {
+        viewerInstanceRef.current.dispose();
+      } catch {
+        // Ignore disposal errors.
+      }
+      viewerInstanceRef.current = null;
+    }
+
+    const requestOptions = {
+      host: serverOrigin,
+      invokeAction: "/DXXRDV/Invoke",
+      headers: {
+        Authorization: getAuthToken(),
+      },
+    };
+
+    try {
+      const viewer = new DxReportViewer(viewerRef.current, {
+        reportUrl: decodedReportName,
+        requestOptions,
         callbacks: {
           BeforeRender: (s, e) => {
-            // Add authorization header to all requests
             e.args.RequestOptions.headers = {
+              ...(e.args.RequestOptions.headers || {}),
               Authorization: getAuthToken(),
             };
           },
-          CustomizeExportOptions: (s, e) => {
-            // Customize export options if needed
-          },
           OnServerError: (s, e) => {
             console.error("Report Viewer Error:", e);
-            // Handle unauthorized errors
             if (e.Error?.status === 401) {
               navigate("/login");
             }
           },
         },
-        // Enable zoom and search
-        zoom: 1,
-        zoomStep: 0.1,
-        rtl: false,
-      };
+      });
 
-      try {
-        ko.applyBindings(viewerOptions, viewerRef.current);
-        koApplied.current = true;
-      } catch (error) {
-        console.error("Error applying Knockout bindings:", error);
-      }
+      viewer.render();
+      viewerInstanceRef.current = viewer;
+    } catch (error) {
+      console.error("Error initializing report viewer:", error);
     }
 
     // Cleanup function
     return () => {
-      if (viewerRef.current && koApplied.current) {
+      if (viewerInstanceRef.current) {
         try {
-          ko.cleanNode(viewerRef.current);
-          koApplied.current = false;
-        } catch (error) {
-          console.error("Error cleaning Knockout bindings:", error);
+          viewerInstanceRef.current.dispose();
+        } catch {
+          // Ignore disposal errors.
         }
+        viewerInstanceRef.current = null;
       }
     };
-  }, [reportName, navigate, serverOrigin, getAuthToken]);
+  }, [decodedReportName, navigate, serverOrigin, getAuthToken]);
 
   // Handle back navigation
   const handleBackClick = () => {
     navigate("/reports/gallery");
   };
 
-  if (!reportName) {
+  if (!decodedReportName) {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-h-full">
         <div className="tw-text-center">
@@ -142,7 +168,7 @@ const DevExtremeReportViewer = () => {
             Report Viewer
           </h1>
           <span className="tw-ml-4 tw-text-sm tw-text-gray-500">
-            {decodeURIComponent(reportName)}
+            {decodedReportName}
           </span>
         </div>
       </div>
@@ -151,7 +177,6 @@ const DevExtremeReportViewer = () => {
       <div className="tw-flex-1 tw-overflow-hidden report-designer-container">
         <div
           ref={viewerRef}
-          data-bind="dxReportViewer: $data"
           style={{ width: "100%", height: "100%" }}
         ></div>
       </div>
