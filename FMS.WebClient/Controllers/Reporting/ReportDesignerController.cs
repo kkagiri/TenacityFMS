@@ -16,13 +16,16 @@ namespace FMS.WebClient.Controllers.Reporting;
 public class ReportDesignerController : DevExpress.AspNetCore.Reporting.ReportDesigner.ReportDesignerController
 {
     private readonly IWebHostEnvironment _env;
+    private readonly ILogger<ReportDesignerController> _logger;
 
     public ReportDesignerController(
         IReportDesignerMvcControllerService controllerService,
-        IWebHostEnvironment env)
+        IWebHostEnvironment env,
+        ILogger<ReportDesignerController> logger)
         : base(controllerService)
     {
         _env = env;
+        _logger = logger;
     }
 
     /// <summary>
@@ -33,6 +36,8 @@ public class ReportDesignerController : DevExpress.AspNetCore.Reporting.ReportDe
     public IActionResult GetDesignerModel([FromForm] string? reportUrl)
     {
         var host = $"{Request.Scheme}://{Request.Host}";
+
+        _logger.LogInformation("GetDesignerModel called - ReportUrl: {ReportUrl}, Host: {Host}", reportUrl ?? "(new)", host);
 
         // Build the client-side model that DevExpress JS expects
         var model = new
@@ -86,6 +91,12 @@ public class ReportDesignerController : DevExpress.AspNetCore.Reporting.ReportDe
             allowMDI = true,
             rightToLeft = false
         };
+
+        _logger.LogInformation(
+            "GetDesignerModel returning - Designer: {DesignerInvoke}, Preview: {PreviewInvoke}, QueryBuilder: {QBInvoke}",
+            model.requestOptions.invokeAction,
+            model.reportPreviewOptions.requestOptions.invokeAction,
+            model.queryBuilderOptions.requestOptions.invokeAction);
 
         return Ok(model);
     }

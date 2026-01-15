@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useCallback, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import ko from "knockout";
-import "devexpress-reporting/dx-reportdesigner";
+import { DxReportDesigner } from "devexpress-reporting/dx-reportdesigner";
 import { getResolvedApiBaseUrlSync, resolveApiBaseUrl } from "../../api/axiosInstance";
 
 // Import DevExtreme Report Designer styles
@@ -11,7 +11,7 @@ const DevExtremeReportDesigner = () => {
   const { reportName } = useParams();
   const navigate = useNavigate();
   const designerRef = useRef(null);
-  const koApplied = useRef(false);
+  const designerInstanceRef = useRef(null);
   const [serverOrigin, setServerOrigin] = useState(null);
 
   // Resolve the server origin from axios instance (same as rest of app)
@@ -43,43 +43,31 @@ const DevExtremeReportDesigner = () => {
       return;
     }
 
-    if (designerRef.current && !koApplied.current) {
+    if (designerRef.current && !designerInstanceRef.current) {
+      console.log("Initializing Report Designer with host:", serverOrigin);
+
       const designerOptions = {
         // Report URL - empty for new report, or existing report name
         reportUrl: ko.observable(reportName || ""),
 
-        // Request options
-        // NOTE: We provide invokeAction fallbacks here to avoid DevExpress building
-        // URLs like `${host}${undefined}` during preview/data-source operations.
-        // The server-side GetDesignerModel still returns the authoritative model.
+        // Request options - DevExpress will call getDesignerModelAction to fetch config
         requestOptions: {
           host: serverOrigin,
           invokeAction: "/DXXRD/Invoke",
           getDesignerModelAction: "/DXXRD/GetDesignerModel",
-        },
-
-        // Fallbacks for preview and query builder
-        reportPreviewOptions: {
-          requestOptions: {
-            host: serverOrigin,
-            invokeAction: "/DXXRDV/Invoke",
-          },
-        },
-        queryBuilderOptions: {
-          requestOptions: {
-            host: serverOrigin,
-            invokeAction: "/DXXQB/Invoke",
+          headers: {
+            Authorization: getAuthToken(),
           },
         },
 
         // Callbacks
         callbacks: {
           BeforeRender: (s, e) => {
-            // Add authorization header to all requests + ensure RequestOptions are valid
+            // Add authorization header to all requests
             if (e?.args?.RequestOptions) {
               const ro = e.args.RequestOptions;
 
-              // Defensive defaults (prevents `${host}${undefined}` URL construction)
+              // Ensure host and invokeAction are set
               if (!ro.host) ro.host = serverOrigin;
               if (!ro.invokeAction) ro.invokeAction = "/DXXRD/Invoke";
 
@@ -90,42 +78,40 @@ const DevExtremeReportDesigner = () => {
             }
           },
           ReportSaved: (s, e) => {
-            // Handle report saved event
             console.log("Report saved:", e.Url);
           },
           ReportOpened: (s, e) => {
-            // Handle report opened event
             console.log("Report opened:", e.Url);
           },
           OnServerError: (s, e) => {
             console.error("Report Designer Error:", e);
-            // Handle unauthorized errors
             if (e.Error?.status === 401) {
               navigate("/login");
             }
-          },
-          CustomizeWizard: (s, e) => {
-            // Customize the report wizard if needed
           },
         },
       };
 
       try {
-        ko.applyBindings(designerOptions, designerRef.current);
-        koApplied.current = true;
+        // Use DxReportDesigner class - this will call GetDesignerModel on the server
+        const designer = new DxReportDesigner(designerRef.current, designerOptions);
+        designer.render();
+        designerInstanceRef.current = designer;
+        console.log("Report Designer initialized successfully");
       } catch (error) {
-        console.error("Error applying Knockout bindings:", error);
+        console.error("Error initializing Report Designer:", error);
       }
     }
 
     // Cleanup function
     return () => {
-      if (designerRef.current && koApplied.current) {
+      if (designerInstanceRef.current) {
         try {
-          ko.cleanNode(designerRef.current);
-          koApplied.current = false;
+          designerInstanceRef.current.dispose();
+          designerInstanceRef.current = null;
+          console.log("Report Designer disposed");
         } catch (error) {
-          console.error("Error cleaning Knockout bindings:", error);
+          console.error("Error disposing Report Designer:", error);
         }
       }
     };
@@ -187,7 +173,6 @@ const DevExtremeReportDesigner = () => {
       <div className="tw-flex-1 tw-overflow-hidden report-designer-container">
         <div
           ref={designerRef}
-          data-bind="dxReportDesigner: $data"
           style={{ width: "100%", height: "100%" }}
         ></div>
       </div>
