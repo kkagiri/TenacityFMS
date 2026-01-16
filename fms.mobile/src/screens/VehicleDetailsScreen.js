@@ -4,6 +4,17 @@
  * Similar functionality to web VehicleDetails.js
  */
 
+/**
+ * File: VehicleDetailsScreen.js
+ * Purpose: Main screen for viewing vehicle details with search, GPS info, consumption, and fueling history
+ * Similar functionality to web VehicleDetails.js
+ * Last Modified: 2026-01-16
+ *
+ * Notes:
+ * - Vehicle editing is admin-only and requires web portal access
+ * - Mobile app provides view-only access to vehicle information
+ */
+
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -16,6 +27,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../services/apiService";
+import { usePermissions } from "../hooks/usePermissions";
 
 // Import vehicle components
 import {
@@ -36,6 +48,9 @@ const TABS = [
 ];
 
 const VehicleDetailsScreen = ({ navigation, route }) => {
+  // Permissions - check _Edit_Vehicle permission from JWT token
+  const { canEditVehicle } = usePermissions();
+
   // State
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [activeTab, setActiveTab] = useState("info");
@@ -175,6 +190,13 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
     }
   }, []);
 
+  const handleVehicleUpdated = useCallback(() => {
+    // Reload vehicle data after update
+    if (selectedVehicle?.vehicleId) {
+      loadVehicleById(selectedVehicle.vehicleId);
+    }
+  }, [selectedVehicle?.vehicleId]);
+
   const handleClearVehicle = useCallback(() => {
     setSelectedVehicle(null);
     setShowSearch(true);
@@ -192,7 +214,13 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
   const renderTabContent = () => {
     switch (activeTab) {
       case "info":
-        return <VehicleInformation vehicle={selectedVehicle} />;
+        return (
+          <VehicleInformation
+            vehicle={selectedVehicle}
+            canEdit={canEditVehicle}
+            onVehicleUpdated={handleVehicleUpdated}
+          />
+        );
       case "gps":
         return <VehicleGPSInfo vehicle={selectedVehicle} />;
       case "consumption":
@@ -200,7 +228,13 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
       case "fueling":
         return <VehicleFuelingHistory vehicle={selectedVehicle} />;
       default:
-        return <VehicleInformation vehicle={selectedVehicle} />;
+        return (
+          <VehicleInformation
+            vehicle={selectedVehicle}
+            canEdit={canEditVehicle}
+            onVehicleUpdated={handleVehicleUpdated}
+          />
+        );
     }
   };
 

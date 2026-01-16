@@ -13,12 +13,13 @@ import fuelingEventReducer from "./slices/fuelingEventSlice";
 import transactionReducer from "./slices/transactionSlice";
 import tankReducer from "./slices/tankSlice";
 import tankVolumeHistoryReducer from "./slices/tankVolumeHistorySlice";
+import stockReducer from "./slices/stockSlice";
 
 const persistConfig = {
   key: "root",
   storage: AsyncStorage,
   whitelist: ["auth", "device", "site"], // Only persist essential data
-  blacklist: ["fueling", "tank", "tankVolumeHistory"], // Don't persist real-time data
+  blacklist: ["fueling", "tank", "tankVolumeHistory", "stock"], // Don't persist real-time data
 };
 
 const rootReducer = combineReducers({
@@ -32,6 +33,7 @@ const rootReducer = combineReducers({
   transaction: transactionReducer,
   tank: tankReducer,
   tankVolumeHistory: tankVolumeHistoryReducer,
+  stock: stockReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

@@ -371,18 +371,20 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             // Perform detailed validations only if both tanks are found
             if (sourceTank != null && destTank != null)
             {
-                // **VALIDATION 1: Source Tank Stock Check**
-                var currentStock = sourceTank.CurrentStock ?? 0;
-                if (currentStock < (decimal)request.Volume)
+                // **VALIDATION 1: Source Tank PHYSICAL Stock Check**
+                // PhysicalStockValue = what we "actually" have (real-time physical measurement)
+                // CurrentStock = what we "should" have (book/ledger value for accounting)
+                var physicalStock = sourceTank.PhysicalStockValue ?? 0;
+                if (physicalStock < (decimal)request.Volume)
                 {
                     validationErrors.Add(
-                        $"⛽ Insufficient stock in source tank '{sourceTank.Name}'. Available: {currentStock:N0} L, Requested: {request.Volume:N0} L");
+                        $"⛽ Insufficient physical stock in source tank '{sourceTank.Name}'. Available: {physicalStock:N0} L, Requested: {request.Volume:N0} L");
                 }
 
-                // **VALIDATION 2: Destination Tank Capacity Check**
-                var destCurrentStock = destTank.CurrentStock ?? 0;
+                // **VALIDATION 2: Destination Tank Capacity Check (using physical stock)**
+                var destPhysicalStock = destTank.PhysicalStockValue ?? 0;
                 var destCapacity = destTank.TankVolume;
-                var destAvailableSpace = destCapacity - destCurrentStock;
+                var destAvailableSpace = destCapacity - destPhysicalStock;
 
                 if (destAvailableSpace < (decimal)request.Volume)
                 {
@@ -391,7 +393,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 }
 
                 // Also warn if transfer would fill tank above 95% (safety threshold)
-                var destAfterTransfer = destCurrentStock + (decimal)request.Volume;
+                var destAfterTransfer = destPhysicalStock + (decimal)request.Volume;
                 var destPercentAfter = (destAfterTransfer / destCapacity) * 100;
                 if (destPercentAfter > 95)
                 {
@@ -420,9 +422,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 if (!validationErrors.Any())
                 {
                     _logger.LogInformation(
-                        "[TankTransferAuth] ✅ Validation passed - Source: '{SourceTank}' ({SourceStock:N0}/{SourceCapacity:N0} L), Dest: '{DestTank}' ({DestStock:N0}/{DestCapacity:N0} L), Transfer: {Volume:N0} L",
-                        sourceTank.Name, currentStock, sourceTank.TankVolume,
-                        destTank.Name, destCurrentStock, destCapacity, request.Volume);
+                        "[TankTransferAuth] ✅ Validation passed - Source: '{SourceTank}' (Physical: {SourceStock:N0}/{SourceCapacity:N0} L), Dest: '{DestTank}' (Physical: {DestStock:N0}/{DestCapacity:N0} L), Transfer: {Volume:N0} L",
+                        sourceTank.Name, physicalStock, sourceTank.TankVolume,
+                        destTank.Name, destPhysicalStock, destCapacity, request.Volume);
                 }
             }
 

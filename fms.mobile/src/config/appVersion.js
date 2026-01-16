@@ -6,13 +6,13 @@
 
 export const APP_VERSION = {
   major: 1,
-  minor: 1,
-  patch: 2,
-  build: 106,
-  versionName: '1.1.2',
-  versionCode: 106,
-  displayName: 'Hyoung FMS v1.1.2',
-  fullVersion: 'v1.1.2 (build 106)',
+  minor: 2,
+  patch: 1,
+  build: 109,
+  versionName: '1.2.1',
+  versionCode: 109,
+  displayName: 'Hyoung FMS v1.2.1',
+  fullVersion: 'v1.2.1 (build 109)',
 };
 
 export default APP_VERSION;

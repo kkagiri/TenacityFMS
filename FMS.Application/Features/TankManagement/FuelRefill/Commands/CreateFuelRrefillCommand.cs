@@ -173,14 +173,16 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 // Check if the tank is using book keeping
                 if (tank.UseBookKeeping == 1)
                 {
-                    // For current date entries, validate against tank's current stock
+                    // For current date entries, validate against tank's PHYSICAL stock (actual measured value)
+                    // PhysicalStockValue = what we "actually" have (real-time physical measurement)
+                    // CurrentStock = what we "should" have (book/ledger value for accounting)
                     if (entryDate.Date == DateTime.UtcNow.Date)
                     {
-                        if (tank.CurrentStock == null || tank.CurrentStock <= 0)
+                        if (tank.PhysicalStockValue == null || tank.PhysicalStockValue <= 0)
                             return new FMSResponseMessage(false, "The tank is empty. Please check if the opening stock has been set correctly.");
 
-                        if (tank.CurrentStock < fuelRefilDto.ManualFuelrefillAmount)
-                            return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Current stock: {tank.CurrentStock}, Requested amount: {fuelRefilDto.ManualFuelrefillAmount}");
+                        if (tank.PhysicalStockValue < fuelRefilDto.ManualFuelrefillAmount)
+                            return new FMSResponseMessage(false, $"Insufficient fuel in the tank. Physical stock: {tank.PhysicalStockValue:F2}L, Requested amount: {fuelRefilDto.ManualFuelrefillAmount}L");
                     }
 
                     // TODO: Implement validation for past-date fuel refills
@@ -273,13 +275,15 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                     if (entryDate.Date == today)
                     {
-                        // Final check to prevent negative stock (defensive programming)
-                        if (tank.CurrentStock == null || tank.CurrentStock - (decimal)fuelRefil.ManualFuelrefillAmount < 0)
+                        // Final check to prevent negative physical stock (defensive programming)
+                        // Use PhysicalStockValue for real-time validation (what we "actually" have)
+                        if (tank.PhysicalStockValue == null || tank.PhysicalStockValue - (decimal)fuelRefil.ManualFuelrefillAmount < 0)
                         {
                             return new FMSResponseMessage(false, "Operation would result in negative tank level. Cannot proceed.");
                         }
 
-                        tank.CurrentStock -= (decimal)fuelRefil.ManualFuelrefillAmount;
+                        // Update both book stock (ledger) and physical stock
+                        tank.CurrentStock = (tank.CurrentStock ?? 0) - (decimal)fuelRefil.ManualFuelrefillAmount;
                         tank.LastStockUpdate = DateTime.UtcNow;
                     }
                 }
@@ -297,14 +301,14 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 if (entryDate.Date == DateTime.UtcNow.Date && tank.PhysicalStockValue.HasValue)
                 {
                     newPhysicalStockValue = tank.PhysicalStockValue.Value - (decimal)fuelRefil.ManualFuelrefillAmount;
-                    
+
                     // CRITICAL VALIDATION: Prevent negative stock
                     if (newPhysicalStockValue < 0)
                     {
                         // Rollback the saved fuel refill since we detected insufficient stock
                         _context.FuelRefills.Remove(fuelRefil);
                         await _context.SaveChangesAsync(cancellationToken);
-                        
+
                         return new FMSResponseMessage(false,
                             $"Fuel refill would result in negative tank stock. " +
                             $"Current physical stock: {tank.PhysicalStockValue.Value:F2}L, Refill amount: {fuelRefil.ManualFuelrefillAmount:F2}L. " +

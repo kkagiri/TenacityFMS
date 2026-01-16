@@ -57,9 +57,10 @@ const TankSelectionStep = ({
 
   const renderTankItem = ({ item }) => {
     const isSelected = selectedTank?.id === item.id;
-    // Support both API property names (CurrentStock/currentStock, TankVolume/tankVolume) and legacy names
+    // Use PhysicalStockValue (actual physical fuel level) for display
+    // PhysicalStockValue = what we actually have, CurrentStock = book/ledger value (deprecated for display)
     const currentVolume =
-      item.CurrentStock ?? item.currentStock ?? item.currentVolume ?? 0;
+      item.PhysicalStockValue ?? item.physicalStockValue ?? item.currentVolume ?? 0;
     const capacity =
       item.TankVolume ?? item.tankVolume ?? item.capacity ?? 50000;
 

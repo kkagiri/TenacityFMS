@@ -150,16 +150,7 @@ Thank you!
           <Text style={styles.metricValue}>{formatDuration(elapsedTime)}</Text>
           <Text style={styles.metricUnit}>Duration</Text>
         </View>
-        {amount > 0 && (
-          <>
-            <View style={styles.metricDivider} />
-            <View style={styles.metricItem}>
-              <Icon name="dollar-sign" size={24} color="#f59e0b" />
-              <Text style={styles.metricValue}>{amount?.toFixed(2)}</Text>
-              <Text style={styles.metricUnit}>Amount</Text>
-            </View>
-          </>
-        )}
+
       </View>
 
       {/* Details Card */}

@@ -2,6 +2,7 @@
 using System;
 using System.Text.Json;
 using System.Threading.Tasks;
+using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
@@ -262,6 +263,48 @@ namespace FMS.Application.Services
                     {
                         _logger.LogInformation("[AutoComplete] **SAVE VERIFIED** - Transaction {Transaction} successfully saved and can be retrieved from database",
                             transaction);
+
+                        // **CRITICAL FIX**: Process TankVolumeHistory for automated dispensing
+                        // This was missing - causing transactions to be saved but NOT recorded in tank ledger
+                        if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                        {
+                            try
+                            {
+                                var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
+                                var historyResult = await integrationService.ProcessPumpTransactionAsync(
+                                    verifyTransaction.TankId.Value,
+                                    verifyTransaction.Transaction ?? 0,
+                                    verifyTransaction.DateTime,
+                                    verifyTransaction.Volume.Value,
+                                    verifyTransaction.UserId?.ToString() ?? "System",
+                                    default);
+
+                                if (historyResult.Success)
+                                {
+                                    _logger.LogInformation("[AutoComplete] **TANK VOLUME HISTORY SAVED** ✅ - Transaction {Transaction} recorded in tank {TankId} ledger with volume {Volume}L",
+                                        transaction, verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
+
+                                    // Mark as processed
+                                    verifyTransaction.HasBeenProcessed = true;
+                                    await context.SaveChangesAsync();
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("[AutoComplete] ⚠️ TANK VOLUME HISTORY FAILED - Transaction {Transaction} saved but ledger entry failed: {Message}",
+                                        transaction, historyResult.Message);
+                                }
+                            }
+                            catch (Exception historyEx)
+                            {
+                                _logger.LogError(historyEx, "[AutoComplete] ❌ ERROR processing TankVolumeHistory for transaction {Transaction}, tank {TankId}",
+                                    transaction, verifyTransaction.TankId.Value);
+                            }
+                        }
+                        else
+                        {
+                            _logger.LogDebug("[AutoComplete] Skipping TankVolumeHistory - TankId: {TankId}, Volume: {Volume}",
+                                verifyTransaction.TankId, verifyTransaction.Volume);
+                        }
                     }
                     else
                     {

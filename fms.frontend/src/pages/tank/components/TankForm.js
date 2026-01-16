@@ -1,3 +1,13 @@
+/**
+ * File: TankForm.js
+ * Purpose: Tank create/edit form with validation and location options.
+ * Dependencies: react, react-redux, devextreme-react, devextreme/ui/notify
+ * Last Modified: 2026-01-16
+ *
+ * Key Functions/Components:
+ * - TankForm: Renders the form for creating or updating a tank
+ * - handleSubmit: Validates and submits tank data
+ */
 import React, { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
@@ -217,6 +227,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                 placeholder: "Select Site",
                 wrapItemText: true,
                 searchEnabled: true,
+                width: "100%",
                 dropDownOptions: {
                   wrapperAttr: { class: "tw-max-w-full" },
                 },
@@ -298,6 +309,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                 valueExpr: "ptsid",
                 placeholder: "Select PTS Device (Optional)",
                 searchEnabled: true,
+                width: "100%",
               }}
             >
               <Label text="PTS Device" />
@@ -338,6 +350,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                 valueExpr: "value",
                 placeholder: "Select Priority",
                 showClearButton: true,
+                width: "100%",
               }}
             >
               <Label text="Priority" />
@@ -365,6 +378,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                   displayExpr: "text",
                   valueExpr: "value",
                   placeholder: "Select Tank Type",
+                  width: "100%",
                 }}
               >
                 <Label text="Tank Type" />
@@ -450,6 +464,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                       "Select Vehicle (GPS location comes from this vehicle)",
                     searchEnabled: true,
                     showClearButton: true,
+                    width: "100%",
                   }}
                 >
                   <Label text="Linked Vehicle" />

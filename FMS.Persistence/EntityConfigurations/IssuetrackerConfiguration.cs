@@ -26,7 +26,6 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.Priority, "Issue_tracker_issuepriorty_idx");
                 builder.HasIndex(e => e.AssignTo, "Issue_user_idx");
                 builder.HasIndex(e => e.Status, "Issuetracker_status_idx");
-                builder.HasIndex(e => e.DeviceType, "Isuse_deviceType_idx");
                 builder.HasIndex(e => e.IssueCategoryId, "issetracker_issueID_idx");
                 builder.HasIndex(e => e.VehicleId, "issue_vehicle_idx");
                 builder.HasIndex(e => e.SiteId, "issuetracker_site_idx");
@@ -45,7 +44,7 @@ namespace FMS.Persistence.EntityConfigurations
                 //builder.Property(e => e.DeviceId)
                 //    .HasColumnType("int(11)")
                 //    .HasColumnName("DeviceID");
-                builder.Property(e => e.DeviceType).HasColumnType("int(11)");
+                builder.Ignore(e => e.DeviceType);
                 builder.Property(e => e.DueDate).HasColumnName("dueDate");
                 builder.Property(e => e.IssueCategoryId)
                     .HasColumnType("int(11)")

@@ -1,6 +1,34 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import ApiService from "../../services/apiService";
 
+// Helper to normalize tank data from API
+// Database schema: TankVolume = capacity, PhysicalStockValue = current physical balance
+// IMPORTANT: Always use physicalStockValue for display - it's the ACTUAL measured fuel level
+// CurrentStock is the BOOK stock (ledger value) - used only for accounting/reconciliation
+const normalizeTank = (t) => ({
+  id: t.TankId || t.tankId || t.Id || t.id,
+  name: t.TankName || t.tankName || t.Name || t.name || "",
+  // TankVolume is the capacity field in the database
+  capacity: t.TankVolume || t.tankVolume || t.Capacity || t.capacity || 0,
+  // PhysicalStockValue = ACTUAL physical fuel level (what we really have)
+  // This should be used for ALL display purposes in the mobile app
+  physicalStockValue: t.PhysicalStockValue || t.physicalStockValue || t.CurrentVolume || t.currentVolume || 0,
+  // currentVolume is an alias for physicalStockValue for backward compatibility
+  currentVolume: t.PhysicalStockValue || t.physicalStockValue || t.CurrentVolume || t.currentVolume || 0,
+  // CurrentStock = BOOK stock (ledger value) - DO NOT use for display, only for accounting
+  // This is deprecated for display purposes
+  bookStock: t.CurrentStock || t.currentStock || 0,
+  productName: t.ProductName || t.productName || t.FuelGradeName || t.fuelGradeName || t.FuelTypeName || t.fuelTypeName || "",
+  productId: t.ProductId || t.productId || t.FuelGradeId || t.fuelGradeId || t.FuelTypeId || t.fuelTypeId,
+  siteId: t.SiteId || t.siteId,
+  siteName: t.SiteName || t.siteName || "",
+  ptsId: t.PTSId || t.ptsId || t.PtsId || t.ptsDeviceId,
+  ptsName: t.PTSName || t.ptsName || t.PtsName || "",
+  tankType: t.TankType || t.tankType || "Stationary",
+  lastStockUpdate: t.LastStockUpdate || t.lastStockUpdate,
+  lastPhysicalStockUpdate: t.LastPhysicalStockUpdate || t.lastPhysicalStockUpdate,
+});
+
 // Async thunks for tank operations
 export const fetchTanks = createAsyncThunk(
   "tank/fetchAll",
@@ -216,7 +244,9 @@ const tankSlice = createSlice({
       })
       .addCase(fetchTanks.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.tanks = action.payload;
+        // Normalize tank data to ensure consistent id field
+        const rawTanks = action.payload?.data || action.payload || [];
+        state.tanks = (Array.isArray(rawTanks) ? rawTanks : []).map(normalizeTank);
       })
       .addCase(fetchTanks.rejected, (state, action) => {
         state.isLoading = false;
@@ -229,7 +259,9 @@ const tankSlice = createSlice({
       })
       .addCase(fetchTanksBySite.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.filteredTanks = action.payload;
+        // Normalize tank data to ensure consistent id field
+        const rawTanks = action.payload?.data || action.payload || [];
+        state.filteredTanks = (Array.isArray(rawTanks) ? rawTanks : []).map(normalizeTank);
       })
       .addCase(fetchTanksBySite.rejected, (state, action) => {
         state.isLoading = false;

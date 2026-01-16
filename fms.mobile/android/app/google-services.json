@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "37325217408",
+    "project_id": "fmsnotification-3f7d0",
+    "storage_bucket": "fmsnotification-3f7d0.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:37325217408:android:e8ed712fd47c4c3ef49065",
+        "android_client_info": {
+          "package_name": "com.Hyoung"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBR85f6E2SfTZB4faEHdfXlluts6zZU3ac"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

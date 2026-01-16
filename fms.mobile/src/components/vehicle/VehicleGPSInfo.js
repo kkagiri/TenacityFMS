@@ -205,6 +205,14 @@ const VehicleGPSInfo = ({ vehicle }) => {
               {formatDate(gpsData?.lastUpdated || gpsData?.receivedAt)}
             </Text>
           </View>
+          {/* Refresh Button */}
+          <TouchableOpacity
+            style={styles.refreshButton}
+            onPress={loadGPSData}
+            activeOpacity={0.7}
+          >
+            <Icon name="sync-alt" size={14} color="#3b82f6" />
+          </TouchableOpacity>
         </View>
 
         <View style={styles.coordinatesRow}>
@@ -745,6 +753,16 @@ const styles = StyleSheet.create({
   locationInfo: {
     flex: 1,
     marginLeft: 12,
+  },
+  refreshButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
   },
   locationTitle: {
     fontSize: 18,

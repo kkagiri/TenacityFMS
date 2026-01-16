@@ -17,6 +17,9 @@ import SettingsScreen from "../screens/SettingsScreen";
 import ManageStocksScreen from "../screens/ManageStocksScreen";
 import OpenStockScreen from "../screens/OpenStockScreen";
 import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
+import ManualRefillScreen from "../screens/ManualRefillScreen";
+import TankDeliveryScreen from "../screens/TankDeliveryScreen";
+import TankTransferScreen from "../screens/TankTransferScreen";
 
 // Import custom drawer
 import DrawerContent from "../components/navigation/DrawerContent";
@@ -184,6 +187,30 @@ const MainStackNavigator = () => {
         options={{
           title: "Vehicle Details",
           headerShown: false, // Screen has its own header
+        }}
+      />
+      <Stack.Screen
+        name="ManualRefill"
+        component={ManualRefillScreen}
+        options={{
+          title: "Manual Refill",
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="TankDelivery"
+        component={TankDeliveryScreen}
+        options={{
+          title: "Tank Delivery",
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
+        name="TankTransfer"
+        component={TankTransferScreen}
+        options={{
+          title: "Tank Transfer",
+          headerBackTitleVisible: false,
         }}
       />
     </Stack.Navigator>

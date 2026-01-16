@@ -42,11 +42,12 @@ const normalizeTank = (tank) => {
       tank.TankVolume ||
       tank.tankVolume ||
       50000,
+    // Use physicalStockValue (actual physical fuel level) - not currentStock (book value)
     currentVolume:
+      tank.PhysicalStockValue ||
+      tank.physicalStockValue ||
       tank.currentVolume ||
       tank.volume ||
-      tank.CurrentStock ||
-      tank.currentStock ||
       0,
     siteName: tank.siteName || tank.SiteName || "Current Site",
     ...tank,

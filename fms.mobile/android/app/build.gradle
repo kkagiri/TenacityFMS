@@ -85,11 +85,11 @@ android {
     }
 
     defaultConfig {
-        applicationId "com.fmsmobile"
+        applicationId "com.Hyoung"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 106
-        versionName "1.1.2"
+        versionCode 109
+        versionName "1.2.1"
 
         // Fix for react-native-camera flavor selection
         missingDimensionStrategy 'react-native-camera', 'general'
@@ -137,3 +137,6 @@ apply from: file("../../node_modules/@react-native-community/cli-platform-androi
 
 // react-native-config
 apply from: "../../node_modules/react-native-config/android/dotenv.gradle"
+
+// Firebase - Google Services plugin (processes google-services.json)
+apply plugin: 'com.google.gms.google-services'

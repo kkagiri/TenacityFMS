@@ -42,13 +42,14 @@ const HomeScreen = ({ navigation }) => {
   const { tanks } = useSelector((state) => state.tank);
 
   // Calculate fuel stats from tanks
+  // Use physicalStockValue (actual physical fuel level) for display
   const fuelStats = useMemo(() => {
     const totalCapacity = tanks.reduce(
       (sum, t) => sum + (t.tankVolume || t.capacity || 0),
       0
     );
     const totalStock = tanks.reduce(
-      (sum, t) => sum + (t.currentStock ?? t.currentVolume ?? 0),
+      (sum, t) => sum + (t.physicalStockValue ?? t.currentVolume ?? 0),
       0
     );
     const percentFull =
@@ -267,12 +268,22 @@ const HomeScreen = ({ navigation }) => {
             <Text style={styles.fuelStatValue}>
               {formatVolume(fuelStats.totalStock)} L
             </Text>
-            <Text style={styles.fuelStatLabel}>Available</Text>
+            <Text style={styles.fuelStatLabel}>Physical Stock</Text>
           </View>
           <View style={styles.fuelStatDivider} />
           <View style={styles.fuelStatItem}>
             <View style={[styles.fuelStatIcon, { backgroundColor: "#e0e7ff" }]}>
-              <Icon name="tachometer-alt" size={18} color="#6366f1" />
+              <Icon name="database" size={18} color="#6366f1" />
+            </View>
+            <Text style={styles.fuelStatValue}>
+              {formatVolume(fuelStats.totalCapacity)} L
+            </Text>
+            <Text style={styles.fuelStatLabel}>Total Capacity</Text>
+          </View>
+          <View style={styles.fuelStatDivider} />
+          <View style={styles.fuelStatItem}>
+            <View style={[styles.fuelStatIcon, { backgroundColor: fuelStats.percentFull < 30 ? "#fee2e2" : fuelStats.percentFull < 60 ? "#fef3c7" : "#dcfce7" }]}>
+              <Icon name="tachometer-alt" size={18} color={fuelStats.percentFull < 30 ? "#ef4444" : fuelStats.percentFull < 60 ? "#f59e0b" : "#22c55e"} />
             </View>
             <Text
               style={[
@@ -289,16 +300,15 @@ const HomeScreen = ({ navigation }) => {
             >
               {fuelStats.percentFull}%
             </Text>
-            <Text style={styles.fuelStatLabel}>Capacity</Text>
+            <Text style={styles.fuelStatLabel}>Fill Level</Text>
           </View>
-          <View style={styles.fuelStatDivider} />
-          <View style={styles.fuelStatItem}>
-            <View style={[styles.fuelStatIcon, { backgroundColor: "#fef3c7" }]}>
-              <Icon name="exchange-alt" size={18} color="#f59e0b" />
-            </View>
-            <Text style={styles.fuelStatValue}>{todayTransactionCount}</Text>
-            <Text style={styles.fuelStatLabel}>Today's Tx</Text>
-          </View>
+        </View>
+        {/* Today's Transactions Row */}
+        <View style={styles.txRow}>
+          <Icon name="exchange-alt" size={14} color="#f59e0b" />
+          <Text style={styles.txText}>
+            {todayTransactionCount} transactions today
+          </Text>
         </View>
       </View>
 
@@ -532,6 +542,21 @@ const styles = StyleSheet.create({
     width: 1,
     height: 60,
     backgroundColor: "#e5e7eb",
+  },
+  txRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 16,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: "#f3f4f6",
+  },
+  txText: {
+    marginLeft: 8,
+    fontSize: 13,
+    color: "#6b7280",
+    fontWeight: "500",
   },
   statsCard: {
     flexDirection: "row",

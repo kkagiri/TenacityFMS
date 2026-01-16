@@ -1,7 +1,15 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.ComponentModel.DataAnnotations.Schema;
+
 
 namespace FMS.Domain.ATGEntities.Nafta;
+
+/// <summary>
+/// Represents a tank entity in the NAFTA ATG system. NOt in FMS.Domain.Entities namespace to avoid conflicts with other Tank entities.
+///
+/// </summary>
+
 
 public partial class Tank
 {

@@ -117,6 +117,69 @@ const ManageStocksScreen = ({ navigation }) => {
     });
   };
 
+  const handleManualRefill = () => {
+    if (!defaultSite) {
+      Alert.alert(
+        "Select Site First",
+        "Please go to Settings and select a default site before recording manual refills.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Go to Settings",
+            onPress: () => navigation.navigate("Settings"),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate("ManualRefill", {
+      siteId: defaultSite.id,
+      siteName: defaultSite.name,
+    });
+  };
+
+  const handleTankDelivery = () => {
+    if (!defaultSite) {
+      Alert.alert(
+        "Select Site First",
+        "Please go to Settings and select a default site before recording deliveries.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Go to Settings",
+            onPress: () => navigation.navigate("Settings"),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate("TankDelivery", {
+      siteId: defaultSite.id,
+      siteName: defaultSite.name,
+    });
+  };
+
+  const handleTankTransfer = () => {
+    if (!defaultSite) {
+      Alert.alert(
+        "Select Site First",
+        "Please go to Settings and select a default site before recording transfers.",
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Go to Settings",
+            onPress: () => navigation.navigate("Settings"),
+          },
+        ]
+      );
+      return;
+    }
+    navigation.navigate("TankTransfer", {
+      siteId: defaultSite.id,
+      siteName: defaultSite.name,
+    });
+  };
+
   const renderActionCard = (title, description, icon, color, onPress) => (
     <TouchableOpacity
       style={[styles.actionCard, { borderLeftColor: color }]}
@@ -205,6 +268,30 @@ const ManageStocksScreen = ({ navigation }) => {
           "door-closed",
           "#6366f1",
           handleClosingStock
+        )}
+
+        {renderActionCard(
+          "Manual Refill",
+          "Record manual fuel refills for vehicles",
+          "gas-pump",
+          "#f59e0b",
+          handleManualRefill
+        )}
+
+        {renderActionCard(
+          "Tank Delivery",
+          "Record fuel deliveries from suppliers",
+          "truck-loading",
+          "#10b981",
+          handleTankDelivery
+        )}
+
+        {renderActionCard(
+          "Tank Transfer",
+          "Transfer fuel between tanks",
+          "exchange-alt",
+          "#8b5cf6",
+          handleTankTransfer
         )}
       </View>
 

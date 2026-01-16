@@ -93,8 +93,9 @@ const SiteOverviewScreen = () => {
         (sum, t) => sum + (t.tankVolume || t.capacity || 0),
         0
       );
+      // Use physicalStockValue (actual physical fuel level) for display
       const totalStock = siteTanks.reduce(
-        (sum, t) => sum + (t.currentStock ?? t.currentVolume ?? 0),
+        (sum, t) => sum + (t.physicalStockValue ?? t.currentVolume ?? 0),
         0
       );
       const percentFull =
@@ -135,8 +136,9 @@ const SiteOverviewScreen = () => {
       (sum, t) => sum + (t.tankVolume || t.capacity || 0),
       0
     );
+    // Use physicalStockValue (actual physical fuel level) for display
     const totalStock = filteredTanks.reduce(
-      (sum, t) => sum + (t.currentStock ?? t.currentVolume ?? 0),
+      (sum, t) => sum + (t.physicalStockValue ?? t.currentVolume ?? 0),
       0
     );
     const percentFull =
@@ -177,10 +179,11 @@ const SiteOverviewScreen = () => {
   };
 
   const renderTankItem = (tank) => {
-    const currentStock = tank.currentStock ?? tank.currentVolume ?? 0;
+    // Use physicalStockValue (actual physical fuel level) for display
+    const physicalStock = tank.physicalStockValue ?? tank.currentVolume ?? 0;
     const capacity = tank.tankVolume || tank.capacity || 0;
     const percent =
-      capacity > 0 ? Math.round((currentStock / capacity) * 100) : 0;
+      capacity > 0 ? Math.round((physicalStock / capacity) * 100) : 0;
     const productName = tank.fuelGradeName || tank.productName || "Unknown";
 
     return (
@@ -197,7 +200,7 @@ const SiteOverviewScreen = () => {
           </View>
           <View style={styles.tankStockRow}>
             <Text style={styles.tankStock}>
-              {formatVolume(currentStock)} / {formatVolume(capacity)}
+              {formatVolume(physicalStock)} / {formatVolume(capacity)}
             </Text>
             <Text
               style={[styles.tankPercent, { color: getFillColor(percent) }]}

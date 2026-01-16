@@ -22,10 +22,25 @@ public partial class Tank
     public decimal? DiscrepancyThreshold { get; set; }
     public decimal? TankLength { get; set; }
 
+    /// <summary>
+    /// BOOK STOCK: Calculated from transactions/ledger - what we "should" have.
+    /// This is the theoretical stock level based on recorded deliveries, refills, transfers, etc.
+    /// Used primarily for accounting, reconciliation, and audit trail purposes.
+    /// For real-time stock validation (e.g., before fueling), use PhysicalStockValue instead.
+    /// </summary>
+    [Obsolete("For real-time stock validation, use PhysicalStockValue instead. CurrentStock is maintained for book-keeping/ledger purposes only.")]
     public decimal? CurrentStock { get; set; }
 
     public DateTime LastStockUpdate { get; set; }
 
+    /// <summary>
+    /// PHYSICAL STOCK: Actual measured value - what we "actually" have.
+    /// This is the real-time physical fuel level in the tank (from ATG sensors, dip measurements, or manual readings).
+    /// Use this property for all real-time validations including:
+    /// - Fuel refill authorization (sufficient stock check)
+    /// - Tank transfer authorization (source tank has enough fuel)
+    /// - Capacity checks (destination tank won't overflow)
+    /// </summary>
     public decimal? PhysicalStockValue { get; set; }
 
     public DateTime? LastPhysicalStockUpdate { get; set; }

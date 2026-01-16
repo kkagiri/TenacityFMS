@@ -176,14 +176,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                     }
                 }
 
-                // Validate source tank has sufficient stock
+                // Validate source tank has sufficient PHYSICAL stock (actual measured value)
+                // PhysicalStockValue = what we "actually" have (real-time physical measurement)
+                // CurrentStock = what we "should" have (book/ledger value for accounting)
                 if (sourceTank.UseBookKeeping == 1)
                 {
-                    // For current day, check current stock
+                    // For current day, check physical stock for real-time validation
                     if (transferDate.Date == DateTime.UtcNow.Date)
                     {
-                        if (sourceTank.CurrentStock == null || sourceTank.CurrentStock < transferAmount)
-                            return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank. Current stock: {sourceTank.CurrentStock}, Requested amount: {transferAmount}", null);
+                        if (sourceTank.PhysicalStockValue == null || sourceTank.PhysicalStockValue < transferAmount)
+                            return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank. Physical stock: {sourceTank.PhysicalStockValue:F2}L, Requested amount: {transferAmount:F2}L", null);
                     }
 
                     // TODO: Implement validation for past-date tank transfers

@@ -1,13 +1,28 @@
 /**
  * VehicleInformation.js
  * Purpose: Display comprehensive vehicle information
+ * Admin users can edit fuel tank capacity
  */
 
-import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import React, { useState, useCallback } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TextInput,
+  TouchableOpacity,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import ApiService from "../../services/apiService";
 
-const VehicleInformation = ({ vehicle }) => {
+const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
+  const [isEditingCapacity, setIsEditingCapacity] = useState(false);
+  const [capacityValue, setCapacityValue] = useState("");
+  const [isSaving, setIsSaving] = useState(false);
+
   if (!vehicle) {
     return (
       <View style={styles.emptyContainer}>
@@ -16,6 +31,44 @@ const VehicleInformation = ({ vehicle }) => {
       </View>
     );
   }
+
+  const handleEditCapacity = () => {
+    const currentCapacity =
+      vehicle.fuelTankCapacity || vehicle.tankCapacity || "";
+    setCapacityValue(String(currentCapacity));
+    setIsEditingCapacity(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditingCapacity(false);
+    setCapacityValue("");
+  };
+
+  const handleSaveCapacity = async () => {
+    const newCapacity = parseFloat(capacityValue);
+    if (isNaN(newCapacity) || newCapacity <= 0) {
+      Alert.alert("Invalid Value", "Please enter a valid tank capacity.");
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await ApiService.updateVehicleFuelCapacity(vehicle.vehicleId, newCapacity);
+      setIsEditingCapacity(false);
+
+      // Notify parent to refresh vehicle data
+      if (onVehicleUpdated) {
+        onVehicleUpdated();
+      }
+
+      Alert.alert("Success", "Fuel tank capacity updated successfully.");
+    } catch (error) {
+      console.error("[VehicleInformation] Error updating capacity:", error);
+      Alert.alert("Error", "Failed to update fuel tank capacity. Please try again.");
+    } finally {
+      setIsSaving(false);
+    }
+  };
 
   const InfoRow = ({ icon, label, value, iconColor = "#6b7280" }) => (
     <View style={styles.infoRow}>
@@ -34,6 +87,84 @@ const VehicleInformation = ({ vehicle }) => {
     </View>
   );
 
+  // Editable info row for tank capacity (admin only)
+  const EditableCapacityRow = () => {
+    const currentValue = vehicle.fuelTankCapacity || vehicle.tankCapacity;
+    const displayValue = currentValue ? `${currentValue} L` : "N/A";
+
+    if (isEditingCapacity) {
+      return (
+        <View style={styles.editableRow}>
+          <View
+            style={[
+              styles.infoIconContainer,
+              { backgroundColor: "#06b6d415" },
+            ]}
+          >
+            <Icon name="tint" size={14} color="#06b6d4" />
+          </View>
+          <View style={styles.editContent}>
+            <Text style={styles.infoLabel}>Tank Capacity (L)</Text>
+            <View style={styles.editInputRow}>
+              <TextInput
+                style={styles.editInput}
+                value={capacityValue}
+                onChangeText={setCapacityValue}
+                keyboardType="numeric"
+                placeholder="Enter capacity"
+                editable={!isSaving}
+                autoFocus
+              />
+              <TouchableOpacity
+                style={styles.saveButton}
+                onPress={handleSaveCapacity}
+                disabled={isSaving}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="white" />
+                ) : (
+                  <Icon name="check" size={12} color="white" />
+                )}
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.cancelButton}
+                onPress={handleCancelEdit}
+                disabled={isSaving}
+              >
+                <Icon name="times" size={12} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
+    return (
+      <View style={styles.infoRow}>
+        <View
+          style={[
+            styles.infoIconContainer,
+            { backgroundColor: "#06b6d415" },
+          ]}
+        >
+          <Icon name="tint" size={14} color="#06b6d4" />
+        </View>
+        <View style={styles.infoContent}>
+          <Text style={styles.infoLabel}>Tank Capacity</Text>
+          <Text style={styles.infoValue}>{displayValue}</Text>
+        </View>
+        {canEdit && (
+          <TouchableOpacity
+            style={styles.editIconButton}
+            onPress={handleEditCapacity}
+          >
+            <Icon name="pencil-alt" size={12} color="#3b82f6" />
+          </TouchableOpacity>
+        )}
+      </View>
+    );
+  };
+
   const SectionHeader = ({ icon, title, iconColor = "#2563eb" }) => (
     <View style={styles.sectionHeader}>
       <Icon name={icon} size={16} color={iconColor} />
@@ -43,6 +174,21 @@ const VehicleInformation = ({ vehicle }) => {
 
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Edit Notice - different message based on permission */}
+      <View style={[styles.adminNotice, canEdit && styles.adminNoticeEditable]}>
+        <Icon
+          name={canEdit ? "edit" : "lock"}
+          size={12}
+          color={canEdit ? "#3b82f6" : "#6b7280"}
+        />
+        <Text style={[styles.adminNoticeText, canEdit && styles.adminNoticeTextEditable]}>
+          {canEdit
+            ? "Edit mode: Tap the pencil icon to edit tank capacity."
+            : "View-only. Editing requires Edit Vehicle permission."
+          }
+        </Text>
+      </View>
+
       {/* Vehicle Header Card */}
       <View style={styles.headerCard}>
         <View style={styles.vehicleIconContainer}>
@@ -163,16 +309,8 @@ const VehicleInformation = ({ vehicle }) => {
             value={vehicle.fuelType || "Diesel"}
             iconColor="#f59e0b"
           />
-          <InfoRow
-            icon="tint"
-            label="Tank Capacity"
-            value={
-              vehicle.fuelTankCapacity || vehicle.tankCapacity
-                ? `${vehicle.fuelTankCapacity || vehicle.tankCapacity} L`
-                : "N/A"
-            }
-            iconColor="#06b6d4"
-          />
+          {/* Editable Tank Capacity for admins */}
+          <EditableCapacityRow />
           <InfoRow
             icon="check-circle"
             label="Full Tank Policy"
@@ -481,6 +619,92 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 24,
+  },
+  adminNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  adminNoticeEditable: {
+    backgroundColor: "#eff6ff",
+    borderColor: "#bfdbfe",
+  },
+  adminNoticeText: {
+    flex: 1,
+    fontSize: 12,
+    color: "#6b7280",
+    marginLeft: 8,
+  },
+  adminNoticeTextEditable: {
+    color: "#3b82f6",
+  },
+  // Editable row styles
+  editableRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+    backgroundColor: "#fffbeb",
+  },
+  editContent: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  editInputRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+  },
+  editInput: {
+    flex: 1,
+    height: 36,
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    fontSize: 14,
+    backgroundColor: "white",
+    color: "#1f2937",
+  },
+  saveButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: "#10b981",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 8,
+  },
+  cancelButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 6,
+    backgroundColor: "#f3f4f6",
+    alignItems: "center",
+    justifyContent: "center",
+    marginLeft: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  editIconButton: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: "#eff6ff",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
   },
 });
 

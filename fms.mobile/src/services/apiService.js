@@ -520,6 +520,43 @@ class ApiService {
     }
   }
 
+  /**
+   * Update vehicle fuel tank capacity
+   * Fetches current vehicle data first, then updates only the tank capacity
+   * to avoid overwriting other fields
+   * @param {number} vehicleId - Vehicle ID
+   * @param {number} fuelTankCapacity - New fuel tank capacity in liters
+   * @returns {Promise<Object>} Updated vehicle details
+   */
+  async updateVehicleFuelCapacity(vehicleId, fuelTankCapacity) {
+    try {
+      // First get the current vehicle data
+      const currentVehicle = await this.getVehicleById(vehicleId);
+      const vehicleData = currentVehicle?.data || currentVehicle;
+
+      // Create update payload with existing data and new capacity
+      const updatePayload = {
+        vehicleId: vehicleId,
+        hyoungNo: vehicleData.hyoungNo || vehicleData.HyoungNo,
+        vehicleTypeId: vehicleData.vehicleTypeId || vehicleData.VehicleTypeId,
+        vehicleModelId: vehicleData.vehicleModelId || vehicleData.VehicleModelId,
+        vehicleManufacturerId: vehicleData.vehicleManufacturerId || vehicleData.VehicleManufacturerId,
+        workingSiteId: vehicleData.workingSiteId || vehicleData.WorkingSiteId,
+        defaultEmployeeId: vehicleData.defaultEmployeeId || vehicleData.DefaultEmployeeId,
+        fuelTankCapacity: fuelTankCapacity, // Updated value
+        isFullTankPolicy: vehicleData.isFullTankPolicy || vehicleData.IsFullTankPolicy,
+        hasGPSInstalled: vehicleData.hasGPSInstalled || vehicleData.HasGPSInstalled,
+        isCompanyVehicle: vehicleData.isCompanyVehicle || vehicleData.IsCompanyVehicle,
+        isActive: vehicleData.isActive !== undefined ? vehicleData.isActive : vehicleData.IsActive,
+      };
+
+      const response = await this.api.put(`/v1/Vehicle/${vehicleId}`, updatePayload);
+      return response.data?.data || response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to update fuel tank capacity");
+    }
+  }
+
   // ==================== Employee/Driver Endpoints ====================
 
   /**
@@ -983,6 +1020,127 @@ class ApiService {
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to create tank transfer");
+    }
+  }
+
+  // ============================================
+  // Manual Refill / Fuel Refill endpoints
+  // ============================================
+
+  /**
+   * Create manual fuel refill record
+   * Matches backend: POST /v1/FuelRefill
+   * @param {Object} refillData - Refill data
+   * @param {number} refillData.vehicleId - Vehicle ID
+   * @param {number} refillData.tankId - Tank ID
+   * @param {number} refillData.volume - Volume in liters
+   * @param {number} refillData.driverId - Driver/Employee ID (optional)
+   * @param {number} refillData.odometer - Odometer reading (optional)
+   * @param {string} refillData.refillDateTime - Refill date/time (ISO string)
+   * @param {string} refillData.notes - Notes (optional)
+   */
+  async createManualRefill(refillData) {
+    try {
+      const response = await this.api.post("/v1/FuelRefill", refillData);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to create manual refill");
+    }
+  }
+
+  /**
+   * Get fuel refill history
+   * @param {Object} filters - Filter parameters
+   */
+  async getFuelRefillHistory(filters = {}) {
+    try {
+      const params = {};
+      if (filters.vehicleId) params.vehicleId = filters.vehicleId;
+      if (filters.tankId) params.tankId = filters.tankId;
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+
+      const response = await this.api.get("/v1/FuelRefill", { params });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch fuel refill history");
+    }
+  }
+
+  // ============================================
+  // Delivery endpoints
+  // ============================================
+
+  /**
+   * Create delivery record
+   * Matches backend: POST /v1/Delivery
+   * @param {Object} deliveryData - Delivery data
+   * @param {number} deliveryData.tankId - Tank ID
+   * @param {number} deliveryData.supplierId - Supplier ID
+   * @param {number} deliveryData.volume - Volume in liters
+   * @param {string} deliveryData.deliveryDateTime - Delivery date/time (ISO string)
+   * @param {number} deliveryData.temperature - Temperature (optional)
+   * @param {number} deliveryData.density - Density (optional)
+   * @param {number} deliveryData.mass - Mass (optional)
+   * @param {string} deliveryData.deliveryNoteNo - Delivery note number (optional)
+   * @param {string} deliveryData.notes - Notes (optional)
+   */
+  async createDelivery(deliveryData) {
+    try {
+      const response = await this.api.post("/v1/Delivery", deliveryData);
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to create delivery");
+    }
+  }
+
+  /**
+   * Get delivery history
+   * @param {Object} filters - Filter parameters
+   */
+  async getDeliveryHistory(filters = {}) {
+    try {
+      const params = {};
+      if (filters.tankId) params.tankId = filters.tankId;
+      if (filters.supplierId) params.supplierId = filters.supplierId;
+      if (filters.startDate) params.startDate = filters.startDate;
+      if (filters.endDate) params.endDate = filters.endDate;
+
+      const response = await this.api.get("/v1/Delivery", { params });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch delivery history");
+    }
+  }
+
+  // ============================================
+  // Supplier endpoints
+  // ============================================
+
+  /**
+   * Get all suppliers
+   * @returns {Promise<Array>} List of suppliers
+   */
+  async getSuppliers() {
+    try {
+      const response = await this.api.get("/v1/Supplier");
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch suppliers");
+    }
+  }
+
+  /**
+   * Get supplier by ID
+   * @param {number} supplierId - Supplier ID
+   * @returns {Promise<Object>} Supplier details
+   */
+  async getSupplierById(supplierId) {
+    try {
+      const response = await this.api.get(`/v1/Supplier/${supplierId}`);
+      return response.data?.data || response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch supplier details");
     }
   }
 

@@ -11,6 +11,8 @@
  * - SendTestPush(): Sends a test push to current user
  */
 
+using System;
+using System.Linq;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -39,12 +41,24 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Extract user ID from JWT claims (GUID format only)
+        /// </summary>
+        private string? GetAuthenticatedUserId()
+        {
+            var userIdClaim = User.Claims.FirstOrDefault(c =>
+                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                Guid.TryParse(c.Value, out _));
+
+            return userIdClaim?.Value;
+        }
+
+        /// <summary>
         /// Register a device for push notifications
         /// </summary>
         [HttpPost("register")]
         public async Task<IActionResult> RegisterDevice([FromBody] RegisterDeviceRequest request, CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = GetAuthenticatedUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
 
@@ -70,7 +84,7 @@ namespace FMS.WebClient.Controllers
         [HttpPost("unregister")]
         public async Task<IActionResult> UnregisterDevice([FromBody] UnregisterDeviceRequest request, CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = GetAuthenticatedUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
 
@@ -86,7 +100,7 @@ namespace FMS.WebClient.Controllers
         [HttpGet("my-devices")]
         public async Task<IActionResult> GetMyDevices(CancellationToken cancellationToken)
         {
-            var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+            var userId = GetAuthenticatedUserId();
             if (string.IsNullOrEmpty(userId))
                 return Unauthorized(FMSResponse.FailedResponse("User not authenticated"));
 

@@ -1,6 +1,16 @@
 import {createSlice, createAsyncThunk} from '@reduxjs/toolkit';
 import ApiService from '../../services/apiService';
 
+// Helper to normalize site data from API
+const normalizeSite = (s) => ({
+  id: s.SiteId || s.siteId || s.Id || s.id,
+  name: s.SiteName || s.siteName || s.Name || s.name || "",
+  code: s.SiteCode || s.siteCode || s.Code || s.code || "",
+  address: s.Address || s.address || "",
+  city: s.City || s.city || "",
+  country: s.Country || s.country || "",
+});
+
 export const fetchSiteList = createAsyncThunk(
   'site/fetchList',
   async (_, {rejectWithValue}) => {
@@ -39,9 +49,11 @@ const siteSlice = createSlice({
       })
       .addCase(fetchSiteList.fulfilled, (state, action) => {
         state.isLoading = false;
-        state.sites = action.payload;
-        if (action.payload.length > 0 && !state.currentSite) {
-          state.currentSite = action.payload[0];
+        // Normalize site data to ensure consistent id field
+        const rawSites = action.payload?.data || action.payload || [];
+        state.sites = (Array.isArray(rawSites) ? rawSites : []).map(normalizeSite);
+        if (state.sites.length > 0 && !state.currentSite) {
+          state.currentSite = state.sites[0];
         }
       })
       .addCase(fetchSiteList.rejected, (state, action) => {
