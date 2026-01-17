@@ -1,0 +1,16 @@
+/**
+ * File: PTSOfflineReport.scss
+ * Purpose: Styles for PTS offline device report page
+ * Dependencies: None
+ * Last Modified: 2026-01-17
+ */
+
+.pts-offline-report {
+  .dx-datagrid {
+    border-radius: 8px;
+  }
+
+  .dx-datagrid-headers {
+    font-weight: 600;
+  }
+}

@@ -15,7 +15,7 @@ namespace FMS.Persistence.EntityConfigurations {
             try {
                 builder.HasKey (e => e.Id).HasName ("PRIMARY");
 
-                builder.ToTable ("ptsdeviceconnections");
+                builder.ToTable ("deviceconnections");
 
                 builder.HasIndex (e => e.PtsdeviceId, "DeviceConnection_PtsdeviceId_idx");
 

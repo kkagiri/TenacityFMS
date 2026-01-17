@@ -1,3 +1,13 @@
+/**
+ * File: ReportsMain.js
+ * Purpose: Define routes for the Reports module
+ * Dependencies: react-router-dom, ReportsLayout, report pages
+ * Last Modified: 2026-01-17
+ *
+ * Key Components:
+ * - ReportsMain: Routes and layout wrapper for reports
+ */
+
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ReportsLayout from "./layout/ReportsLayout";
@@ -9,6 +19,7 @@ import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
 import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
 import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportPage";
 import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
+import PTSOfflineReport from "./pts/PTSOfflineReport";
 
 // Vehicle Consumption Report components
 import VehicleConsumptionReport from "./vehicleConsumption/VehicleConsumptionReport";
@@ -64,6 +75,9 @@ const ReportsMain = () => {
           path="vehicle-consumption/details/:vehicleId"
           element={<VehicleConsumptionDetails />}
         />
+
+        {/* PTS Reports Routes */}
+        <Route path="pts-offline" element={<PTSOfflineReport />} />
 
         {/* Fallback route */}
         <Route

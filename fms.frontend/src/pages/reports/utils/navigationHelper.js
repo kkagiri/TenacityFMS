@@ -1,3 +1,14 @@
+/**
+ * File: navigationHelper.js
+ * Purpose: Navigation helper functions for reports routes
+ * Dependencies: None
+ * Last Modified: 2026-01-17
+ *
+ * Key Functions:
+ * - getReportsRoute(): Builds report paths
+ * - isActiveRoute(): Determines active route state for reports sidebar
+ */
+
 // Navigation helper functions for reports routes
 
 export const reportsRoutes = {
@@ -7,6 +18,7 @@ export const reportsRoutes = {
   fuelImporter: '/reports/fuel-importer',
   consumptionRefills: '/reports/consumption-refills',
   vehicleConsumption: '/reports/vehicle-consumption',
+  ptsOffline: '/reports/pts-offline',
 };
 
 export const getReportsRoute = (subPath = '') => {

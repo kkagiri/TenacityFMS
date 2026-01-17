@@ -1,9 +1,21 @@
+/**
+ * File: PTSDeviceController.cs
+ * Purpose: API endpoints for PTS device management and reporting
+ * Dependencies: MediatR, DeviceConnectionTracker, FMSResponse
+ * Last Modified: 2026-01-17
+ *
+ * Key Endpoints:
+ * - GetOfflineReport(): Returns daily offline summary for PTS devices
+ */
+
+using System;
 using System.Reflection;
 using FMS.Application.Features.PTSDevice.Commands;
 using FMS.Application.Communication;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.Tracker.Common;
+using FMS.Application.Common;
 using FMS.Application.Features.PTSDevice.DTOs;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Domain.Entities;
@@ -143,6 +155,44 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error getting device status for device {DeviceId}", deviceId); // DeviceId in log
                 return StatusCode(500, "Error getting device status");
+            }
+        }
+
+        /// <summary>
+        /// API endpoint to get daily offline report for PTS devices
+        /// </summary>
+        /// <param name="startDate">Start date (inclusive)</param>
+        /// <param name="endDate">End date (inclusive)</param>
+        /// <param name="deviceId">Optional device ID filter</param>
+        [HttpGet("offline-report")]
+        public async Task<ActionResult<FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>>> GetOfflineReport(
+            [FromQuery] DateTime startDate,
+            [FromQuery] DateTime endDate,
+            [FromQuery] string? deviceId = null)
+        {
+            try
+            {
+                if (startDate == default || endDate == default)
+                {
+                    return BadRequest(FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>.Failed(
+                        "StartDate and EndDate are required."));
+                }
+
+                var result = await _mediator.Send(
+                    new GetPtsDeviceOfflineReportQuery(startDate, endDate, deviceId));
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting PTS offline report");
+                return StatusCode(500, FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>.Failed(
+                    "Internal server error while generating offline report"));
             }
         }
 

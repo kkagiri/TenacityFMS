@@ -1,3 +1,13 @@
+/**
+ * File: ReportsLayout.js
+ * Purpose: Layout and navigation for the Reports module
+ * Dependencies: react-router-dom, reports navigation helpers, ReportsLayout.scss
+ * Last Modified: 2026-01-17
+ *
+ * Key Components:
+ * - ReportsLayout: Sidebar + header wrapper for reports pages
+ */
+
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
@@ -41,6 +51,11 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
       return {
         title: 'Vehicle Consumption Report',
         subtitle: 'Analyze consumption by site, vehicle type and model'
+      };
+    } else if (pathname.includes('/pts-offline')) {
+      return {
+        title: 'PTS Offline Report',
+        subtitle: 'Historical offline events with duration tracking'
       };
     } else {
       return {
@@ -97,6 +112,12 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
       title: 'Vehicle Consumption',
       icon: 'fa-light fa-truck-fast',
       path: reportsRoutes.vehicleConsumption,
+    },
+    {
+      id: 'pts-offline',
+      title: 'PTS Offline Devices',
+      icon: 'fa-light fa-plug-circle-xmark',
+      path: reportsRoutes.ptsOffline,
     },
   ], []);
 
