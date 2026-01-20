@@ -733,22 +733,37 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
         if (requireMobileLocation && !userBypassEnabled) {
           console.log(
-            "[useFuelingProcess] Mobile location required for this device, getting location..."
+            "[useFuelingProcess] Mobile location required for this device, getting fresh location..."
           );
 
-          // Get location with configuration from PTS device
-          deviceLocation = await locationService.getLocationForFueling({
-            requireHighAccuracy: false, // Use network location first for reliability
-            silentMode: locationService.permissionVerified, // Silent if already verified
-            allowCachedLocation: bypassOnGPSFailure, // Allow cached if bypass is enabled
+          // Use the new fresh location method that forces GPS refresh if stale
+          const locationResult = await locationService.getFreshLocationForAuthorization({
+            maxAgeSeconds: 60, // Server rejects locations older than 60 seconds
             maxAccuracyMeters: ptsDevice?.mobileAppProximityRadius || 500,
+            silentMode: locationService.permissionVerified, // Silent if already verified
           });
 
-          if (!deviceLocation && !bypassOnGPSFailure) {
+          if (locationResult.wasRefreshed) {
+            console.log("[useFuelingProcess] Fresh GPS location obtained");
+          }
+
+          if (locationResult.error && !bypassOnGPSFailure) {
             // Location is required but couldn't be obtained and bypass is disabled
             console.warn(
-              "[useFuelingProcess] Could not get location and bypass is disabled"
+              "[useFuelingProcess] Could not get fresh location and bypass is disabled:",
+              locationResult.error
             );
+            setIsAuthorizing(false);
+            setAuthError(
+              locationResult.error + "\n\n" +
+              "Please wait for a fresh GPS fix and try again."
+            );
+            return;
+          }
+
+          deviceLocation = locationResult.location;
+
+          if (!deviceLocation && !bypassOnGPSFailure) {
             setIsAuthorizing(false);
             setAuthError(
               "Location is required for fueling at this site but could not be obtained. " +

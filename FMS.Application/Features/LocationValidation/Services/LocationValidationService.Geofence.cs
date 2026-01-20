@@ -171,8 +171,19 @@ public partial class LocationValidationService
                             var tankerLoc = new GeoLocation(request.TankerLocation.Latitude, request.TankerLocation.Longitude);
                             var geofenceCenter = new GeoLocation(gf.CenterLatitude!.Value, gf.CenterLongitude!.Value);
                             var distance = CalculateDistanceMeters(tankerLoc, geofenceCenter);
-                            _logger.LogWarning("[GEOFENCE_VALIDATION] Distance to geofence '{Name}' (ID: {Id}): {Distance:F0}m (radius: {Radius}m, outside by: {OutsideBy:F0}m)",
-                                gf.Name, gf.Id, distance, gf.RadiusMeters ?? 0, distance - (gf.RadiusMeters ?? 0));
+
+                            // Provide more informative message based on geofence type
+                            if (gf.GeofenceType == GpsGeofenceType.Circle)
+                            {
+                                _logger.LogWarning("[GEOFENCE_VALIDATION] Distance to CIRCLE geofence '{Name}' (ID: {Id}): {Distance:F0}m (radius: {Radius}m, outside by: {OutsideBy:F0}m)",
+                                    gf.Name, gf.Id, distance, gf.RadiusMeters ?? 0, distance - (gf.RadiusMeters ?? 0));
+                            }
+                            else
+                            {
+                                // For Polygon/Route, distance to center is less meaningful - the shape matters
+                                _logger.LogWarning("[GEOFENCE_VALIDATION] {Type} geofence '{Name}' (ID: {Id}): point-in-polygon check FAILED (distance to center: {Distance:F0}m - but polygon boundary defines actual area)",
+                                    gf.GeofenceType, gf.Name, gf.Id, distance);
+                            }
                         }
                     }
                 }

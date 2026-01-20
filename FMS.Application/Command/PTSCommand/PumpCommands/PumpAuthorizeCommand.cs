@@ -194,6 +194,32 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         });
                 }
 
+                // **STEP 2.5: STALE MOBILE LOCATION CHECK**
+                // Reject locations older than 60 seconds to prevent fraudulent authorizations with cached locations
+                const int MaxLocationAgeSeconds = 60;
+                if (request.MobileLocation?.Timestamp != null)
+                {
+                    var locationAge = DateTime.UtcNow - request.MobileLocation.Timestamp.Value;
+                    if (locationAge.TotalSeconds > MaxLocationAgeSeconds)
+                    {
+                        _logger.LogWarning("[PumpAuth] ⚠️ STALE MOBILE LOCATION REJECTED - Location is {Age:F1} seconds old (max: {Max}s). Timestamp: {Timestamp}",
+                            locationAge.TotalSeconds, MaxLocationAgeSeconds, request.MobileLocation.Timestamp.Value);
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                "⚠️ Location data is too old",
+                                $"Your location was recorded {locationAge.TotalSeconds:F0} seconds ago (maximum allowed: {MaxLocationAgeSeconds} seconds)",
+                                "Please wait for a fresh GPS fix and try again"
+                            });
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[PumpAuth] Mobile location age: {Age:F1} seconds (within {Max}s limit)",
+                            locationAge.TotalSeconds, MaxLocationAgeSeconds);
+                    }
+                }
+
                 // **STEP 3: LOCATION VALIDATION**
                 // CRITICAL FIX: Always attempt location validation if DeviceId is provided
                 // The LocationValidationService will check if the device requires location validation

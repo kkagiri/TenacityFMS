@@ -184,13 +184,26 @@ export const useFuelingAuthorization = ({
         const typeMapping = { Volume: 0, Amount: 1, Full: 2, FullTank: 2 };
 
         console.log(
-          "[useFuelingAuthorization] Getting device location for authorization..."
+          "[useFuelingAuthorization] Getting fresh device location for authorization..."
         );
-        const deviceLocation = await locationService.getLocationForFueling();
+
+        // Use the new fresh location method that forces GPS refresh if stale
+        const locationResult = await locationService.getFreshLocationForAuthorization({
+          maxAgeSeconds: 60, // Server rejects locations older than 60 seconds
+          maxAccuracyMeters: 500,
+          silentMode: false,
+        });
+
+        const deviceLocation = locationResult.location;
+
+        if (locationResult.wasRefreshed) {
+          console.log("[useFuelingAuthorization] Fresh GPS location obtained");
+        }
 
         if (!deviceLocation) {
           console.warn(
-            "[useFuelingAuthorization] Could not get device location - proceeding without location"
+            "[useFuelingAuthorization] Could not get device location -",
+            locationResult.error || "proceeding without location"
           );
         } else {
           console.log(
