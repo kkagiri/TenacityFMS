@@ -165,9 +165,10 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 return;
             }
 
+            // IMPORTANT: Use transaction.Id (database primary key), NOT transaction.Transaction (PTS transaction number)
             var result = await _integrationService.ProcessPumpTransactionAsync(
                 transaction.TankId.Value,
-                transaction.Transaction ?? 0,
+                transaction.Id,  // Fixed: Use database Id, not PTS Transaction number
                 transaction.DateTime,
                 transaction.Volume.Value,
                 transaction.UserId?.ToString() ?? "System",

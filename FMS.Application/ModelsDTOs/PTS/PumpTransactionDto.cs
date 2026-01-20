@@ -77,6 +77,21 @@ namespace FMS.Application.Features.ATG
         public string? SiteName { get; set; }
 
         /// <summary>
+        /// Site address where the fueling occurred
+        /// </summary>
+        public string? SiteAddress { get; set; }
+
+        /// <summary>
+        /// Site latitude for map display
+        /// </summary>
+        public decimal? SiteLatitude { get; set; }
+
+        /// <summary>
+        /// Site longitude for map display
+        /// </summary>
+        public decimal? SiteLongitude { get; set; }
+
+        /// <summary>
         /// User who performed/authorized the fueling
         /// </summary>
         public string? FueledBy { get; set; }
@@ -87,14 +102,36 @@ namespace FMS.Application.Features.ATG
         public string? FueledByUserName { get; set; }
 
         /// <summary>
-        /// Previous odometer reading from last refuel
+        /// Previous odometer/engine hours reading from last fueling event
         /// </summary>
         public decimal? PreviousOdometer { get; set; }
 
         /// <summary>
-        /// Distance traveled since last refuel (CurrentOdometer - PreviousOdometer)
+        /// Source of the previous odometer reading for audit purposes:
+        /// "FuelRefill" = from manual FuelRefill.CurrentMeterReading
+        /// "PumpTransaction" = from PTS Pumptransaction.Odometer
+        /// "FuelRefill.PreviousMeterReading" = explicit previous reading stored in FuelRefill
+        /// </summary>
+        public string? PreviousOdometerSource { get; set; }
+
+        /// <summary>
+        /// Distance (km) or Engine Hours since last refuel (CurrentOdometer - PreviousOdometer).
+        /// Use IsKmPerLiter to determine unit interpretation.
         /// </summary>
         public decimal? ConsumptionSinceLastRefuel { get; set; }
+
+        /// <summary>
+        /// Fuel efficiency calculated based on vehicle type:
+        /// - For km/L vehicles (IsKmPerLiter=true): Distance / Volume = km/L
+        /// - For L/hr vehicles (IsKmPerLiter=false): Volume / Hours = L/hr
+        /// </summary>
+        public decimal? FuelEfficiency { get; set; }
+
+        /// <summary>
+        /// True = vehicle uses km/L (distance-based), False = vehicle uses L/hr (engine hour-based).
+        /// Determines how to interpret odometer and consumption values.
+        /// </summary>
+        public bool IsKmPerLiter { get; set; } = true;
 
         /// <summary>
         /// Fuel level before fueling (from GPS sensor if available)

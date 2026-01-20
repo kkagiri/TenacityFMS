@@ -1,0 +1,42 @@
+.location-settings-overview {
+  .dx-tabpanel {
+    .dx-tabs {
+      background-color: transparent;
+    }
+
+    .dx-tab {
+      padding: 10px 20px;
+
+      &.dx-tab-selected {
+        font-weight: 600;
+      }
+    }
+
+    .dx-multiview-item {
+      height: 100%;
+    }
+
+    .dx-multiview-wrapper {
+      height: 100%;
+    }
+  }
+
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      font-weight: 600;
+      background-color: #f9fafb;
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row {
+        &.dx-row-alt {
+          background-color: #fafafa;
+        }
+      }
+    }
+
+    .dx-datagrid-search-panel {
+      margin-bottom: 0;
+    }
+  }
+}

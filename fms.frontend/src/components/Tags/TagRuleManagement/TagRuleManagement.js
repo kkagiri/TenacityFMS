@@ -426,22 +426,23 @@ const TagRuleManagement = () => {
             Create and manage rule sets to control fuel dispensing
           </p>
         </div>
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <button
-            className="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 hover:tw-text-blue-600 tw-border tw-border-gray-200 tw-rounded-lg hover:tw-border-blue-300 tw-transition-colors tw-bg-white"
-            onClick={() => setShowHelp(true)}
-            title="Help - Learn about Fueling Rules"
-          >
-            <i className="fa-light fa-circle-question"></i>
-            <span className="tw-hidden sm:tw-inline">Help</span>
-          </button>
+        <div className="ruleset-action-buttons">
           <Button
             text="Add Rule Set"
+            icon="fa-light fa-plus"
             type="default"
-            stylingMode="contained"
-            icon="fas fa-plus"
+            stylingMode="outlined"
             onClick={handleAddRuleSet}
-            height={40}
+            hint="Add new rule set"
+            className="ruleset-action-btn ruleset-action-btn--first ruleset-action-btn--add"
+          />
+          <Button
+            icon="fa-light fa-circle-question"
+            type="default"
+            stylingMode="outlined"
+            onClick={() => setShowHelp(true)}
+            hint="Help - Learn about Fueling Rules"
+            className="ruleset-action-btn ruleset-action-btn--last ruleset-action-btn--help"
           />
         </div>
       </div>

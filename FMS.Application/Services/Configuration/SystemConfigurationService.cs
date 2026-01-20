@@ -203,6 +203,17 @@ namespace FMS.Application.Services.Configuration
         }
         #endregion
 
+        #region PTS Offline Report Configuration
+        public async Task<int> GetPtsOfflineThresholdSecondsAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_PTS_OFFLINE_THRESHOLD_SECONDS_KEY,
+                0, // No settings file override
+                SystemConfigurationConstants.DEFAULT_PTS_OFFLINE_THRESHOLD_SECONDS,
+                cancellationToken);
+        }
+        #endregion
+
         #region Configuration Management
         public async Task<bool> UpdateConfigurationAsync(string key, string value, CancellationToken cancellationToken = default)
         {

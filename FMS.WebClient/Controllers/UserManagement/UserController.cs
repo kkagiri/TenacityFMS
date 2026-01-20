@@ -1,3 +1,13 @@
+/**
+ * File: UserController.cs
+ * Purpose: Handles user management endpoints including authentication and token refresh.
+ * Dependencies: IMediator, GpsdataContext, IJwtTokenGenerator, UserManager<User>
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions:
+ * - RefreshToken(): Rotates refresh tokens and issues a new access token.
+ * - CreateUser(): Creates a new user via CQRS command.
+ */
 using System.Configuration;
 using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
@@ -138,7 +148,8 @@ public class UserController : ControllerBase
             var loginResponse = await _mediator.Send(command);
 
             // Return token, refresh token, and user object for frontend
-            var responseData = new {
+            var responseData = new
+            {
                 Token = loginResponse.Token,
                 RefreshToken = loginResponse.RefreshToken,
                 User = loginResponse.User
@@ -197,7 +208,8 @@ public class UserController : ControllerBase
                 return Unauthorized(FMSResponse<object>.Failed("User not found"));
             }
 
-            var responseData = new {
+            var responseData = new
+            {
                 IsValid = true,
                 User = userDetail
             };
@@ -270,7 +282,7 @@ public class UserController : ControllerBase
             refreshToken.IsRevoked = true;
             refreshToken.RevokedAt = DateTime.UtcNow;
             refreshToken.RevocationReason = "Replaced by new token";
-            refreshToken.ReplacedByTokenId = 0; // Will be updated after new token is saved
+            refreshToken.ReplacedByTokenId = null; // Will be updated after new token is saved
 
             // Create new refresh token entity
             var newRefreshTokenEntity = new FMS.Domain.Entities.Features.UserManagement.RefreshToken

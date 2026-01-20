@@ -6,6 +6,7 @@ import { NumberBox } from "devextreme-react/number-box";
 import { TextArea } from "devextreme-react/text-area";
 import { SelectBox } from "devextreme-react/select-box";
 import { TagBox } from "devextreme-react/tag-box";
+import Popup from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
 import { usePermissions } from "../../../hooks/usePermissions";
 import {
@@ -21,6 +22,8 @@ import {
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchUsers } from "../../../redux/actions/userActions";
 import dashboardSignalRService from "../../../signalR/dashboardSignalRService";
+import LocationBypassHistoryView from "./LocationBypassHistoryView";
+import LocationSettingsOverview from "./LocationSettingsOverview";
 
 const LocationRulesSettings = () => {
   const dispatch = useDispatch();
@@ -72,6 +75,12 @@ const LocationRulesSettings = () => {
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
   const [originalSettings, setOriginalSettings] = useState({});
+
+  // Bypass history popup state
+  const [showBypassHistoryPopup, setShowBypassHistoryPopup] = useState(false);
+
+  // Location settings overview popup state
+  const [showSettingsOverviewPopup, setShowSettingsOverviewPopup] = useState(false);
 
   // Check if user has admin role
   const userRoles = Array.isArray(userInfo?.roles)
@@ -723,12 +732,12 @@ const LocationRulesSettings = () => {
               <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
                 {bypassStatus.vehicleBypasses.map((bypass) => (
                   <div
-                    key={bypass.bypassId}
+                    key={bypass.id}
                     className="tw-bg-blue-50 tw-rounded-lg tw-p-3 tw-border tw-border-blue-200 tw-flex tw-items-center tw-justify-between"
                   >
                     <div>
                       <span className="tw-font-medium tw-text-blue-800">
-                        {bypass.vehicleName || bypass.hyoungNo || `Vehicle #${bypass.vehicleId}`}
+                        {bypass.vehicleName || bypass.vehicleHyoungNo || `Vehicle #${bypass.vehicleId}`}
                       </span>
                       <p className="tw-text-xs tw-text-blue-600">
                         Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}
@@ -738,7 +747,7 @@ const LocationRulesSettings = () => {
                       icon="fa-light fa-times"
                       type="danger"
                       stylingMode="text"
-                      onClick={() => handleCancelSpecificBypass(bypass.bypassId, bypass.vehicleName || bypass.hyoungNo)}
+                      onClick={() => handleCancelSpecificBypass(bypass.id, bypass.vehicleName || bypass.vehicleHyoungNo)}
                       disabled={!hasAdminPermission || bypassLoading}
                     />
                   </div>
@@ -757,7 +766,7 @@ const LocationRulesSettings = () => {
               <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
                 {bypassStatus.userBypasses.map((bypass) => (
                   <div
-                    key={bypass.bypassId}
+                    key={bypass.id}
                     className="tw-bg-purple-50 tw-rounded-lg tw-p-3 tw-border tw-border-purple-200 tw-flex tw-items-center tw-justify-between"
                   >
                     <div>
@@ -772,7 +781,7 @@ const LocationRulesSettings = () => {
                       icon="fa-light fa-times"
                       type="danger"
                       stylingMode="text"
-                      onClick={() => handleCancelSpecificBypass(bypass.bypassId, bypass.fullName || bypass.userName)}
+                      onClick={() => handleCancelSpecificBypass(bypass.id, bypass.fullName || bypass.userName)}
                       disabled={!hasAdminPermission || bypassLoading}
                     />
                   </div>
@@ -901,6 +910,24 @@ const LocationRulesSettings = () => {
                 {" "}Use only for emergency situations or troubleshooting.
               </p>
             </div>
+          </div>
+
+          {/* View Bypass History Button */}
+          <div className="tw-mt-4 tw-flex tw-justify-end tw-gap-2">
+            <Button
+              icon="fa-light fa-sliders"
+              text="View Settings Overview"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowSettingsOverviewPopup(true)}
+            />
+            <Button
+              icon="fa-light fa-clock-rotate-left"
+              text="View Bypass History"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowBypassHistoryPopup(true)}
+            />
           </div>
         </div>
 
@@ -1391,6 +1418,44 @@ const LocationRulesSettings = () => {
         showPane={true}
         message={saving ? "Saving settings..." : "Loading..."}
       />
+
+      {/* Bypass History Popup */}
+      <Popup
+        visible={showBypassHistoryPopup}
+        onHiding={() => setShowBypassHistoryPopup(false)}
+        dragEnabled={true}
+        closeOnOutsideClick={false}
+        showCloseButton={true}
+        showTitle={true}
+        title="Location Bypass History"
+        width="90%"
+        height="80%"
+        maxWidth={1200}
+        maxHeight={800}
+      >
+        <LocationBypassHistoryView
+          onClose={() => setShowBypassHistoryPopup(false)}
+        />
+      </Popup>
+
+      {/* Location Settings Overview Popup */}
+      <Popup
+        visible={showSettingsOverviewPopup}
+        onHiding={() => setShowSettingsOverviewPopup(false)}
+        dragEnabled={true}
+        closeOnOutsideClick={false}
+        showCloseButton={true}
+        showTitle={true}
+        title="Location Settings Overview"
+        width="95%"
+        height="90%"
+        maxWidth={1400}
+        maxHeight={900}
+      >
+        <LocationSettingsOverview
+          onClose={() => setShowSettingsOverviewPopup(false)}
+        />
+      </Popup>
     </div>
   );
 };

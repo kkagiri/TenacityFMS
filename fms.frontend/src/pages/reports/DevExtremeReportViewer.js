@@ -94,15 +94,10 @@ const DevExtremeReportViewer = () => {
         reportUrl: decodedReportName,
         requestOptions,
         callbacks: {
-          BeforeRender: (s, e) => {
-            e.args.RequestOptions.headers = {
-              ...(e.args.RequestOptions.headers || {}),
-              Authorization: getAuthToken(),
-            };
-          },
           OnServerError: (s, e) => {
             console.error("Report Viewer Error:", e);
-            if (e.Error?.status === 401) {
+            // Handle 401 unauthorized - redirect to login
+            if (e.Error?.status === 401 || e.error?.status === 401) {
               navigate("/login");
             }
           },
@@ -152,9 +147,12 @@ const DevExtremeReportViewer = () => {
   }
 
   return (
-    <div className="tw-flex tw-flex-col tw-h-full">
+    <div
+      className="tw-flex tw-flex-col"
+      style={{ height: "100vh", maxHeight: "100vh", overflow: "hidden" }}
+    >
       {/* Header */}
-      <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-white tw-border-b tw-border-gray-200">
+      <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-white tw-border-b tw-border-gray-200 tw-flex-shrink-0">
         <div className="tw-flex tw-items-center">
           <button
             onClick={handleBackClick}
@@ -173,11 +171,27 @@ const DevExtremeReportViewer = () => {
         </div>
       </div>
 
-      {/* Report Viewer Container */}
-      <div className="tw-flex-1 tw-overflow-hidden report-designer-container">
+      {/* Report Viewer Container - Must have explicit height for DevExpress */}
+      <div
+        className="report-designer-container"
+        style={{
+          flex: 1,
+          height: "calc(100vh - 73px)",  /* Subtract header height */
+          overflow: "hidden",
+          position: "relative"
+        }}
+      >
         <div
           ref={viewerRef}
-          style={{ width: "100%", height: "100%" }}
+          style={{
+            width: "100%",
+            height: "100%",
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0
+          }}
         ></div>
       </div>
     </div>

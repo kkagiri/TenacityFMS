@@ -2,10 +2,14 @@
  * File: ReportsMain.js
  * Purpose: Define routes for the Reports module
  * Dependencies: react-router-dom, ReportsLayout, report pages
- * Last Modified: 2026-01-17
+ * Last Modified: 2026-01-19
  *
  * Key Components:
  * - ReportsMain: Routes and layout wrapper for reports
+ *
+ * Report System:
+ * - JsReport: Modern report engine with Handlebars templates
+ * - DevExtreme: Legacy reports (gallery, tank volume history)
  */
 
 import React from "react";
@@ -25,9 +29,11 @@ import PTSOfflineReport from "./pts/PTSOfflineReport";
 import VehicleConsumptionReport from "./vehicleConsumption/VehicleConsumptionReport";
 import VehicleConsumptionDetails from "./vehicleConsumption/VehicleConsumptionDetails";
 
-// DevExtreme Report Viewer and Designer components
-import DevExtremeReportViewer from "./DevExtremeReportViewer";
-import DevExtremeReportDesigner from "./DevExtremeReportDesigner";
+// JsReport components - Modern report engine
+import { JsReportDesigner, JsReportViewer, JsReportTemplateManager } from "./jsreport";
+
+// Legacy Report Designer redirect (deprecated - use JsReport instead)
+import ReportDesignerRedirect from "./ReportDesignerRedirect";
 
 const ReportsMain = () => {
   return (
@@ -37,19 +43,23 @@ const ReportsMain = () => {
         <Route index element={<ReportsDashboard />} />
         <Route path="dashboard" element={<ReportsDashboard />} />
 
-        {/* DevExtreme Reports */}
+        {/* DevExtreme Reports (Legacy) */}
         <Route path="gallery" element={<ReportGallery />} />
         <Route
           path="tank-volume-history"
           element={<TankVolumeHistoryReport />}
         />
 
-        {/* DevExtreme Report Viewer Routes */}
-        <Route path="viewer/:reportName" element={<DevExtremeReportViewer />} />
+        {/* JsReport - Modern Report Engine */}
+        <Route path="templates" element={<JsReportTemplateManager />} />
+        <Route path="viewer" element={<JsReportViewer />} />
+        <Route path="viewer/:reportType" element={<JsReportViewer />} />
+        <Route path="designer" element={<JsReportDesigner />} />
+        <Route path="designer/:templateName" element={<JsReportDesigner />} />
 
-        {/* DevExtreme Report Designer Routes */}
-        <Route path="designer" element={<DevExtremeReportDesigner />} />
-        <Route path="designer/:reportName" element={<DevExtremeReportDesigner />} />
+        {/* Legacy Report Designer Routes - redirects to standalone ASP.NET Core app */}
+        <Route path="legacy-designer" element={<ReportDesignerRedirect />} />
+        <Route path="legacy-designer/:reportName" element={<ReportDesignerRedirect />} />
 
         {/* Data Import Routes */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />

@@ -836,5 +836,47 @@ Recommendation: Consider refactoring or migrating away from deprecated code.
 ```
 
 ---
+#  Styling Guide for Segmented Button Groups
+designing a CSS style for segmented button groups that are close to each other. one button has to have differenct color eaxmplae
+delete for red , edit for blue , refresh for green , add for green .. the rest can remain standard..
 
+Create segmented button groups styled like Transaction Hub. Apply this CSS class to any adjacent buttons: user-details__action-buttons, and use button modifiers user-details__action-btn--first and user-details__action-btn--last. Ensure DevExtreme Button markup uses stylingMode="outlined" and type="default". Include the CSS below in the relevant SCSS file and apply the class wrapper around buttons.
+
+CSS:
+.user-details__action-buttons { display:inline-flex; border:1px solid #d1d5db; border-radius:6px; overflow:hidden; background:#fff; box-shadow:0 1px 2px rgba(0,0,0,0.05); }
+.user-details__action-buttons .dx-button { border-radius:0; border:none; background:#fff; color:#374151; position:relative; min-height:32px; padding:0 12px; font-weight:500; transition:all .2s ease; white-space:nowrap; }
+.user-details__action-buttons .dx-button::after { content:''; position:absolute; right:0; top:50%; transform:translateY(-50%); width:1px; height:16px; background:#e5e7eb; }
+.user-details__action-buttons .dx-button:hover:not(.dx-state-disabled){ background:#f8fafc; color:#2563eb; z-index:1; }
+.user-details__action-buttons .dx-button:active:not(.dx-state-disabled){ background:#f1f5f9; }
+.user-details__action-buttons .dx-button.dx-state-disabled{ opacity:.5; cursor:not-allowed; background:#f9fafb; color:#9ca3af; }
+.user-details__action-buttons .dx-button .dx-button-content{ font-size:13px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.user-details__action-buttons .dx-button .dx-button-content i{ font-size:13px; }
+.user-details__action-btn--first{ border-top-left-radius:5px; border-bottom-left-radius:5px; }
+.user-details__action-btn--last{ border-top-right-radius:5px; border-bottom-right-radius:5px; }
+.user-details__action-btn--last::after{ display:none; }
+@media (max-width:768px){ .user-details__action-buttons .dx-button{ min-height:28px; padding:0 8px; } .user-details__action-buttons .dx-button .dx-button-content{ font-size:11px; } .user-details__action-buttons .dx-button .dx-button-content i{ font-size:11px; } }
+@media (max-width:480px){ .user-details__action-buttons{ flex-direction:column; border-radius:6px; } .user-details__action-buttons .dx-button{ width:100%; } .user-details__action-buttons .dx-button::after{ display:none; } .user-details__action-buttons .dx-button:not(:last-child){ border-bottom:1px solid #e5e7eb; } .user-details__action-btn--first{ border-top-left-radius:5px; border-top-right-radius:5px; border-bottom-left-radius:0; } .user-details__action-btn--last{ border-bottom-left-radius:5px; border-bottom-right-radius:5px; border-top-right-radius:0; } }
+
+
+
+Create DevExtreme Tabs styled like StockManagement. Use a Tabs component with itemRender showing a FontAwesome light icon and label, and apply container styles with Tailwind tw- classes. Include the SCSS below to match the StockManagement look.
+
+JSX:
+
+Use Tabs with dataSource items: { text, icon }
+itemRender returns:
+<div className="tw-flex tw-items-center tw-gap-2"><i className={item.icon}></i><span>{item.text}</span></div>
+Wrap tabs in a white card: tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden
+Place content in tw-p-4
+SCSS:
+.stock-management-tabs {
+.dx-tabs {
+background-color: #ffffff;
+border-radius: 10px;
+box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+}
+.dx-tab {
+padding: 10px 20px;
+}
+}
 **Remember: You are a helpful assistant that follows these rules strictly. When in doubt, ask the user for clarification rather than making assumptions.**

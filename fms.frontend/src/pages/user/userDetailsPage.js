@@ -1,3 +1,12 @@
+/**
+ * File: userDetailsPage.js
+ * Purpose: User details view with activities, site assignments, and edit actions
+ * Dependencies: react, react-redux, react-router-dom, devextreme-react, userActions
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions/Components:
+ * - UserDetailsPage: Displays user details, recent activities, and management actions
+ */
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
@@ -82,6 +91,8 @@ const UserDetailsPage = () => {
         await dispatch(fetchUserById(id));
         // Load user sites after loading user data
         await dispatch(fetchUserSites(id));
+        // Load recent activities for the main grid
+        await dispatch(fetchUserActivities(id));
       } catch (error) {
         notify(error.message, "error", 3000);
       } finally {
@@ -141,7 +152,10 @@ const UserDetailsPage = () => {
         activity.action === "GET" &&
         (activity.controller === "User" ||
           activity.controller === "UserActivities");
-      return !isMonitoringGet;
+      const isSwitchingProtocols =
+        typeof activity.action === "string" &&
+        activity.action.endsWith(" - 101");
+      return !isMonitoringGet && !isSwitchingProtocols;
     });
 
     if (actionFilter !== "all") {
@@ -394,42 +408,34 @@ const UserDetailsPage = () => {
             <h2 className="toolbar-title">User Details</h2>
           </div>
         </ToolbarItem>
-        <ToolbarItem
-          location="after"
-          locateInMenu="auto"
-          widget="dxButton"
-          options={{
-            text: "Edit User",
-            icon: "edit",
-            stylingMode: "contained",
-            type: "default",
-            onClick: handleEditUser,
-          }}
-        />
-        <ToolbarItem
-          location="after"
-          locateInMenu="auto"
-          widget="dxButton"
-          options={{
-            text: "Manage Sites",
-            icon: "map",
-            stylingMode: "contained",
-            type: "default",
-            onClick: handleManageSites,
-          }}
-        />
-        <ToolbarItem
-          location="after"
-          locateInMenu="auto"
-          widget="dxButton"
-          options={{
-            text: "View All Activities",
-            icon: "clock",
-            stylingMode: "contained",
-            type: "default",
-            onClick: handleViewAllActivities,
-          }}
-        />
+        <ToolbarItem location="after" locateInMenu="auto">
+          <div className="user-details__action-buttons">
+            <Button
+              text="Edit User"
+              icon="edit"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleEditUser}
+              className="user-details__action-btn user-details__action-btn--first"
+            />
+            <Button
+              text="Manage Sites"
+              icon="map"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleManageSites}
+              className="user-details__action-btn"
+            />
+            <Button
+              text="View All Activities"
+              icon="clock"
+              type="default"
+              stylingMode="outlined"
+              onClick={handleViewAllActivities}
+              className="user-details__action-btn user-details__action-btn--last"
+            />
+          </div>
+        </ToolbarItem>
       </Toolbar>
 
       <div className="user-details-content">
@@ -490,7 +496,19 @@ const UserDetailsPage = () => {
           </div>
           <div className="activity-content">
             <DataGrid
-              dataSource={activities ? activities.slice(0, 5) : []}
+              dataSource={
+                activities
+                  ? activities
+                      .filter(
+                        (activity) =>
+                          !(
+                            typeof activity.action === "string" &&
+                            activity.action.endsWith(" - 101")
+                          )
+                      )
+                      .slice(0, 5)
+                  : []
+              }
               showBorders={true}
               columnAutoWidth={true}
               wordWrapEnabled={true}

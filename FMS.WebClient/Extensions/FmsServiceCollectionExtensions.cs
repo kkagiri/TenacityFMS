@@ -435,6 +435,9 @@ public static class FmsServiceCollectionExtensions
         services.AddSingleton<IReportDefinitionService, ReportDefinitionService>();
         services.AddScoped<IReportGenerationService, ReportGenerationService>();
 
+        // JsReport PDF/Excel Report Generation Service
+        services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
+
         // GPS Fetch Progress Service (SignalR)
         services.AddScoped<FMS.Application.Communication.SignalR.IGpsFetchProgressService, FMS.Application.Communication.SignalR.GpsFetchProgressService>();
 
@@ -582,6 +585,9 @@ public static class FmsServiceCollectionExtensions
         // Configure DevExpress Reporting services with custom routes
         services.ConfigureReportingServices(configurator =>
         {
+            // Enable development mode for troubleshooting and verbose error messages
+            configurator.UseDevelopmentMode();
+
             // Configure the Report Designer route
             configurator.ConfigureReportDesigner(designerConfigurator =>
             {

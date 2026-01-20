@@ -68,6 +68,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FMS.IoT.Gateway", "FMS.IoT.
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FMS.IoT.ProcessingEngine", "FMS.IoT.ProcessingEngine\FMS.IoT.ProcessingEngine.csproj", "{C7A980FC-3827-4324-8F27-8B3AD62DC33E}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FMS.Reports", "FMS.Reports\FMS.Reports.csproj", "{D6532C1C-BC34-495A-855D-7E2E1E055051}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -234,6 +236,18 @@ Global
 		{C7A980FC-3827-4324-8F27-8B3AD62DC33E}.Release|x64.Build.0 = Release|Any CPU
 		{C7A980FC-3827-4324-8F27-8B3AD62DC33E}.Release|x86.ActiveCfg = Release|Any CPU
 		{C7A980FC-3827-4324-8F27-8B3AD62DC33E}.Release|x86.Build.0 = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|x64.Build.0 = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Debug|x86.Build.0 = Debug|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|x64.ActiveCfg = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|x64.Build.0 = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|x86.ActiveCfg = Release|Any CPU
+		{D6532C1C-BC34-495A-855D-7E2E1E055051}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

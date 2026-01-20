@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import DataGrid, {
   Column,
@@ -11,20 +11,21 @@ import DataGrid, {
   Selection,
 } from "devextreme-react/data-grid";
 import { Button } from "devextreme-react/button";
-import LiveStatusControl from "../LiveStatus/LiveStatusControl";
+import { Popup } from "devextreme-react/popup";
 import "./PTSDeviceList.scss";
 
 const PTSDeviceList = ({
   devices = [],
   isLoading = false,
   onRefresh,
-  onEdit,
-  onDiagnose,
   onPumpService,
   onAddDevice,
+  unknownDevices = [],
+  onFetchUnknownDevices,
 }) => {
   const dataGridRef = useRef(null);
   const navigate = useNavigate();
+  const [unknownDevicesPopupVisible, setUnknownDevicesPopupVisible] = useState(false);
 
   // Memoize devices to prevent unnecessary re-renders
   const stableDevices = React.useMemo(() => {
@@ -37,8 +38,20 @@ const PTSDeviceList = ({
 
   // Handle row click - navigate to device detail page
   const handleRowClick = (e) => {
+    // Don't navigate if clicking on action buttons
+    if (e.event?.target?.closest('.dx-button')) {
+      return;
+    }
     const deviceId = e.data.id || e.data.ptsid;
     navigate(`/admin/ptsdevice/${deviceId}`);
+  };
+
+  // Handle show unknown devices popup
+  const handleShowUnknownDevices = () => {
+    if (onFetchUnknownDevices) {
+      onFetchUnknownDevices();
+    }
+    setUnknownDevicesPopupVisible(true);
   };
 
   // Render the action buttons
@@ -48,29 +61,11 @@ const PTSDeviceList = ({
     return (
       <div className="tw-flex tw-gap-2 tw-justify-center">
         <Button
-          icon="fa-light fa-edit"
-          hint="Edit Device"
-          onClick={(e) => {
-            e.event.stopPropagation();
-            if (onEdit) onEdit(deviceId);
-          }}
-          stylingMode="text"
-        />
-        <Button
           icon="fa-light fa-gas-pump"
           hint="Pump Service"
           onClick={(e) => {
             e.event.stopPropagation();
             if (onPumpService) onPumpService(deviceId);
-          }}
-          stylingMode="text"
-        />
-        <Button
-          icon="fa-light fa-stethoscope"
-          hint="Diagnose"
-          onClick={(e) => {
-            e.event.stopPropagation();
-            if (onDiagnose) onDiagnose(deviceId);
           }}
           stylingMode="text"
         />
@@ -124,15 +119,40 @@ const PTSDeviceList = ({
 
   return (
     <div className="pts-device-list">
-      <div className="device-list-toolbar">
-        <Button
-          icon="refresh"
-          onClick={onRefresh}
-          disabled={isLoading}
-          text="Refresh"
-        />
-        <LiveStatusControl compact={true} />
-        <Button icon="plus" onClick={onAddDevice} text="Add PTS Device" />
+      <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+        <div className="tw-flex tw-items-center tw-gap-2 tw-text-gray-500 tw-text-sm">
+          <i className="fa-light fa-circle-info"></i>
+          <span>Select device to view detail</span>
+        </div>
+        <div className="user-details__action-buttons">
+          <Button
+            icon="fa-light fa-question-circle"
+            text="Unknown Devices"
+            hint="View connected but unregistered devices"
+            onClick={handleShowUnknownDevices}
+            stylingMode="outlined"
+            type="default"
+            className="user-details__action-btn--first"
+          />
+          <Button
+            icon="plus"
+            text="Add PTS Device"
+            hint="Add new PTS device"
+            onClick={onAddDevice}
+            stylingMode="outlined"
+            type="default"
+          />
+          <Button
+            icon="refresh"
+            text="Refresh"
+            hint="Refresh device list"
+            onClick={onRefresh}
+            disabled={isLoading}
+            stylingMode="outlined"
+            type="success"
+            className="user-details__action-btn--last"
+          />
+        </div>
       </div>
 
       <DataGrid
@@ -165,8 +185,14 @@ const PTSDeviceList = ({
         <Column
           dataField="id"
           caption="PTS ID"
-          width={120}
+          width={150}
           cellRender={(data) => data.data.ptsid || data.data.id}
+        />
+        <Column
+          dataField="ptsName"
+          caption="PTS Name"
+          minWidth={150}
+          cellRender={(data) => data.data.ptsName || data.data.ptsid || '-'}
         />
         <Column dataField="siteName" caption="Site Name" minWidth={150} />
         <Column
@@ -180,30 +206,6 @@ const PTSDeviceList = ({
           caption="Last Updated"
           dataType="string"
           minWidth={120}
-        />
-        <Column
-          dataField="tanks"
-          caption="Tanks"
-          calculateCellValue={(rowData) => {
-            return rowData.tanks
-              ? `${rowData.tanks.length} ${
-                  rowData.tanks.length === 1 ? "tank" : "tanks"
-                }`
-              : "0 tanks";
-          }}
-          minWidth={100}
-        />
-        <Column
-          dataField="batteryVoltage"
-          caption="Battery"
-          format="#.# V"
-          minWidth={100}
-        />
-        <Column
-          dataField="cpuTemperature"
-          caption="CPU Temp"
-          format="#°C"
-          minWidth={100}
         />
         <Column
           dataField="isActive"
@@ -225,6 +227,65 @@ const PTSDeviceList = ({
           allowSorting={false}
         />
       </DataGrid>
+
+      {/* Unknown Devices Popup */}
+      <Popup
+        visible={unknownDevicesPopupVisible}
+        onHiding={() => setUnknownDevicesPopupVisible(false)}
+        title="Unknown Connected Devices"
+        showCloseButton={true}
+        width="auto"
+        height="auto"
+        maxWidth={600}
+        maxHeight={500}
+      >
+        <div className="tw-p-4">
+          {unknownDevices && unknownDevices.length > 0 ? (
+            <div>
+              <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
+                <i className="fa-light fa-info-circle tw-mr-2"></i>
+                These devices are connected but not registered in the system.
+              </p>
+              <div className="tw-space-y-2">
+                {unknownDevices.map((deviceId, index) => (
+                  <div
+                    key={deviceId || index}
+                    className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-200"
+                  >
+                    <div className="tw-flex tw-items-center tw-gap-3">
+                      <i className="fa-light fa-microchip tw-text-orange-500"></i>
+                      <span className="tw-font-medium tw-text-gray-800">
+                        {deviceId}
+                      </span>
+                    </div>
+                    <Button
+                      icon="plus"
+                      text="Register"
+                      hint="Register this device"
+                      onClick={() => {
+                        setUnknownDevicesPopupVisible(false);
+                        if (onAddDevice) onAddDevice(deviceId);
+                      }}
+                      stylingMode="outlined"
+                      type="default"
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <div className="tw-text-center tw-py-8">
+              <i className="fa-light fa-check-circle tw-text-4xl tw-text-green-500 tw-mb-4"></i>
+              <p className="tw-text-gray-600">
+                No unknown devices connected.
+              </p>
+              <p className="tw-text-sm tw-text-gray-500 tw-mt-2">
+                All connected devices are registered in the system.
+              </p>
+            </div>
+          )}
+        </div>
+      </Popup>
     </div>
   );
 };

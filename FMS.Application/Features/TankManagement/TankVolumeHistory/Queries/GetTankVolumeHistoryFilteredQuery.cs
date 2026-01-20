@@ -238,12 +238,20 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             CancellationToken cancellationToken)
         {
 
-            // Get all dispensing transaction IDs for bulk vehicle name lookup
+            // Get all dispensing transaction IDs for bulk vehicle name lookup (manual dispensing via FuelRefill)
             var dispensingTransactionIds = new List<int>();
+            // Get all automated dispensing transaction IDs for bulk vehicle name lookup (PumpTransaction)
+            var automatedDispensingTransactionIds = new List<int>();
+
             if (includeVehicleNames == true)
             {
                 dispensingTransactionIds = tankVolumeHistories
                     .Where(h => h.ChangeReason == VolumeChangeReasonEnum.Dispensing && h.ReferenceId.HasValue)
+                    .Select(h => h.ReferenceId.Value)
+                    .ToList();
+
+                automatedDispensingTransactionIds = tankVolumeHistories
+                    .Where(h => h.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing && h.ReferenceId.HasValue)
                     .Select(h => h.ReferenceId.Value)
                     .ToList();
             }
@@ -285,14 +293,129 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     );
             }
 
-            // Bulk load GPS data if requested
-            var gpsDataLookup = new Dictionary<string, decimal>(); // "vehicleId_date" -> RefillVolume
-            if (includeGpsData == true && vehicleIdLookup.Any())
+            // Bulk load vehicle names and types for automated dispensing (PumpTransaction) to avoid N+1 queries
+            // Uses separate lookup dictionaries prefixed with "pt_" to differentiate from FuelRefill
+            var pumpTransactionVehicleNameLookup = new Dictionary<int, string>();
+            var pumpTransactionVehicleTypeLookup = new Dictionary<int, string>();
+            var pumpTransactionVehicleIdLookup = new Dictionary<int, int>(); // PumpTransaction.Id -> Vehicle.Id
+            if (automatedDispensingTransactionIds.Any())
             {
-                var vehicleIds = vehicleIdLookup.Values.Distinct().ToList();
+                // Remove duplicates and log
+                var distinctPumpTransactionIds = automatedDispensingTransactionIds.Distinct().ToList();
+                _logger.LogDebug("Looking up vehicle info for {Count} AutomatedDispensing (PumpTransaction) records (distinct: {DistinctCount}): {Ids}",
+                    automatedDispensingTransactionIds.Count, distinctPumpTransactionIds.Count, string.Join(", ", distinctPumpTransactionIds));
 
+                // First, verify these PumpTransaction IDs exist in the database
+                var existingPumpTransactionIds = await _context.Pumptransactions
+                    .Where(pt => distinctPumpTransactionIds.Contains(pt.Id))
+                    .Select(pt => pt.Id)
+                    .ToListAsync(cancellationToken);
+
+                _logger.LogInformation("PumpTransaction ID check: Looking for {RequestedCount} IDs, found {ExistingCount} in database. Missing: {MissingIds}",
+                    distinctPumpTransactionIds.Count,
+                    existingPumpTransactionIds.Count,
+                    existingPumpTransactionIds.Count < distinctPumpTransactionIds.Count
+                        ? string.Join(", ", distinctPumpTransactionIds.Except(existingPumpTransactionIds))
+                        : "none");
+
+                var pumpTransactionsWithVehicles = await _context.Pumptransactions
+                    .Where(pt => distinctPumpTransactionIds.Contains(pt.Id))
+                    .Include(pt => pt.Vehicle)
+                        .ThenInclude(v => v.VehicleType)
+                    .Select(pt => new
+                    {
+                        pt.Id,
+                        VehicleId = pt.VehicleId,
+                        VehicleName = pt.Vehicle != null ? pt.Vehicle.HyoungNo : null,
+                        VehicleType = pt.Vehicle != null && pt.Vehicle.VehicleType != null ? pt.Vehicle.VehicleType.Name : null
+                    })
+                    .ToListAsync(cancellationToken);
+
+                // Log diagnostic info about PumpTransaction vehicle data
+                var withVehicle = pumpTransactionsWithVehicles.Count(pt => pt.VehicleId.HasValue && pt.VehicleId.Value > 0);
+                var withoutVehicle = pumpTransactionsWithVehicles.Count(pt => !pt.VehicleId.HasValue || pt.VehicleId.Value <= 0);
+                _logger.LogInformation("PumpTransaction vehicle lookup: {Total} total, {WithVehicle} with VehicleId, {WithoutVehicle} without VehicleId",
+                    pumpTransactionsWithVehicles.Count, withVehicle, withoutVehicle);
+
+                pumpTransactionVehicleNameLookup = pumpTransactionsWithVehicles.ToDictionary(
+                    pt => pt.Id,
+                    pt => pt.VehicleName ?? "N/A"
+                );
+
+                pumpTransactionVehicleTypeLookup = pumpTransactionsWithVehicles.ToDictionary(
+                    pt => pt.Id,
+                    pt => pt.VehicleType ?? "N/A"
+                );
+
+                pumpTransactionVehicleIdLookup = pumpTransactionsWithVehicles
+                    .Where(pt => pt.VehicleId.HasValue && pt.VehicleId.Value > 0)
+                    .ToDictionary(
+                        pt => pt.Id,
+                        pt => pt.VehicleId!.Value
+                    );
+
+                // Fallback: For PumpTransactions without VehicleId, try to get vehicle from linked FuelRefill
+                var pumpTransactionIdsWithoutVehicle = pumpTransactionsWithVehicles
+                    .Where(pt => !pt.VehicleId.HasValue || pt.VehicleId.Value <= 0)
+                    .Select(pt => pt.Id)
+                    .ToList();
+
+                _logger.LogInformation("PumpTransaction fallback check: {Total} total, {WithoutVehicle} need fallback lookup, IDs: {Ids}",
+                    pumpTransactionsWithVehicles.Count,
+                    pumpTransactionIdsWithoutVehicle.Count,
+                    pumpTransactionIdsWithoutVehicle.Count <= 30 ? string.Join(", ", pumpTransactionIdsWithoutVehicle) : $"[{pumpTransactionIdsWithoutVehicle.Count} IDs]");
+
+                if (pumpTransactionIdsWithoutVehicle.Any())
+                {
+                    _logger.LogDebug("Attempting fallback vehicle lookup via FuelRefill for {Count} PumpTransactions without VehicleId",
+                        pumpTransactionIdsWithoutVehicle.Count);
+
+                    var fuelRefillsForPumpTransactions = await _context.FuelRefills
+                        .Where(fr => fr.PumpTranscationId.HasValue && pumpTransactionIdsWithoutVehicle.Contains(fr.PumpTranscationId.Value))
+                        .Where(fr => !fr.IsDeleted)
+                        .Include(fr => fr.Vehicle)
+                            .ThenInclude(v => v.VehicleType)
+                        .Select(fr => new
+                        {
+                            PumpTransactionId = fr.PumpTranscationId!.Value,
+                            fr.VehicleId,
+                            VehicleName = fr.Vehicle != null ? fr.Vehicle.HyoungNo : null,
+                            VehicleType = fr.Vehicle != null && fr.Vehicle.VehicleType != null ? fr.Vehicle.VehicleType.Name : null
+                        })
+                        .ToListAsync(cancellationToken);
+
+                    foreach (var fr in fuelRefillsForPumpTransactions)
+                    {
+                        // Only update if we don't already have vehicle info
+                        if (!pumpTransactionVehicleNameLookup.ContainsKey(fr.PumpTransactionId) ||
+                            pumpTransactionVehicleNameLookup[fr.PumpTransactionId] == "N/A")
+                        {
+                            pumpTransactionVehicleNameLookup[fr.PumpTransactionId] = fr.VehicleName ?? "N/A";
+                            pumpTransactionVehicleTypeLookup[fr.PumpTransactionId] = fr.VehicleType ?? "N/A";
+
+                            if (fr.VehicleId > 0 && !pumpTransactionVehicleIdLookup.ContainsKey(fr.PumpTransactionId))
+                            {
+                                pumpTransactionVehicleIdLookup[fr.PumpTransactionId] = fr.VehicleId;
+                            }
+                        }
+                    }
+
+                    _logger.LogInformation("Fallback FuelRefill lookup found vehicle info for {Count} of {Total} PumpTransactions",
+                        fuelRefillsForPumpTransactions.Count, pumpTransactionIdsWithoutVehicle.Count);
+                }
+            }
+
+            // Bulk load GPS data if requested - includes vehicle IDs from both FuelRefills and PumpTransactions
+            var gpsDataLookup = new Dictionary<string, decimal>(); // "vehicleId_date" -> RefillVolume
+            var allVehicleIds = vehicleIdLookup.Values
+                .Concat(pumpTransactionVehicleIdLookup.Values)
+                .Distinct()
+                .ToList();
+
+            if (includeGpsData == true && allVehicleIds.Any())
+            {
                 var gpsEntries = await _context.GpsGateReportEntries
-                    .Where(g => vehicleIds.Contains(g.VehicleId))
+                    .Where(g => allVehicleIds.Contains(g.VehicleId))
                     .Where(g => g.DispenseDate >= startDate && g.DispenseDate <= endDate)
                     .Where(g => !g.IsDeleted)
                     .Select(g => new
@@ -319,7 +442,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 }
 
                 _logger.LogInformation("Loaded {Count} GPS entries for {VehicleCount} vehicles",
-                    gpsEntries.Count, vehicleIds.Count);
+                    gpsEntries.Count, allVehicleIds.Count);
             }
 
             var result = new List<TankVolumeHistoryDTO>();
@@ -335,7 +458,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 // Set recorded by user name
                 dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
 
-                // Handle vehicle names and types for dispensing transactions using lookup
+                // Handle vehicle names and types for MANUAL dispensing transactions (FuelRefill) using lookup
                 if (includeVehicleNames == true &&
                     history.ChangeReason == VolumeChangeReasonEnum.Dispensing &&
                     history.ReferenceId.HasValue)
@@ -364,6 +487,45 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         dto.VehicleId = vehicleId;
 
                         // Get GPS data if available
+                        if (includeGpsData == true)
+                        {
+                            var dateKey = $"{vehicleId}_{history.Timestamp:yyyy-MM-dd}";
+                            if (gpsDataLookup.TryGetValue(dateKey, out decimal gpsVolume))
+                            {
+                                dto.GpsVolume = gpsVolume;
+                            }
+                        }
+                    }
+                }
+                // Handle vehicle names and types for AUTOMATED dispensing transactions (PumpTransaction) using lookup
+                else if (includeVehicleNames == true &&
+                    history.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing &&
+                    history.ReferenceId.HasValue)
+                {
+                    if (pumpTransactionVehicleNameLookup.TryGetValue(history.ReferenceId.Value, out string? vehicleName))
+                    {
+                        dto.VehicleName = vehicleName;
+                    }
+                    else
+                    {
+                        dto.VehicleName = "N/A";
+                    }
+
+                    if (pumpTransactionVehicleTypeLookup.TryGetValue(history.ReferenceId.Value, out string? vehicleType))
+                    {
+                        dto.VehicleType = vehicleType;
+                    }
+                    else
+                    {
+                        dto.VehicleType = "N/A";
+                    }
+
+                    // Get VehicleId from lookup
+                    if (pumpTransactionVehicleIdLookup.TryGetValue(history.ReferenceId.Value, out int vehicleId))
+                    {
+                        dto.VehicleId = vehicleId;
+
+                        // Get GPS data if available (for PumpTransaction as well)
                         if (includeGpsData == true)
                         {
                             var dateKey = $"{vehicleId}_{history.Timestamp:yyyy-MM-dd}";

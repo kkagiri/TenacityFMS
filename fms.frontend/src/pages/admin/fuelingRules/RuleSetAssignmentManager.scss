@@ -133,6 +133,154 @@
   }
 }
 
+// Segmented Button Group for Actions
+.assignment-action-buttons {
+  display: inline-flex;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  overflow: hidden;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+
+  .dx-button {
+    border-radius: 0;
+    border: none;
+    background: #fff;
+    color: #374151;
+    position: relative;
+    min-height: 32px;
+    padding: 0 12px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+
+    &::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 16px;
+      background: #e5e7eb;
+    }
+
+    &:hover:not(.dx-state-disabled) {
+      background: #f8fafc;
+      color: #2563eb;
+      z-index: 1;
+    }
+
+    &:active:not(.dx-state-disabled) {
+      background: #f1f5f9;
+    }
+
+    &.dx-state-disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      background: #f9fafb;
+      color: #9ca3af;
+    }
+
+    .dx-button-content {
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+
+      i {
+        font-size: 13px;
+      }
+    }
+  }
+
+  .assignment-action-btn--first {
+    border-top-left-radius: 5px;
+    border-bottom-left-radius: 5px;
+  }
+
+  .assignment-action-btn--last {
+    border-top-right-radius: 5px;
+    border-bottom-right-radius: 5px;
+
+    &::after {
+      display: none;
+    }
+  }
+
+  // Color variations for specific actions
+  .assignment-action-btn--add {
+    &:hover:not(.dx-state-disabled) {
+      background: #ecfdf5;
+      color: #059669;
+    }
+  }
+
+  .assignment-action-btn--refresh {
+    &:hover:not(.dx-state-disabled) {
+      background: #eff6ff;
+      color: #2563eb;
+    }
+  }
+
+  .assignment-action-btn--help {
+    &:hover:not(.dx-state-disabled) {
+      background: #f5f3ff;
+      color: #7c3aed;
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .assignment-action-buttons {
+    .dx-button {
+      min-height: 28px;
+      padding: 0 8px;
+
+      .dx-button-content {
+        font-size: 11px;
+
+        i {
+          font-size: 11px;
+        }
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .assignment-action-buttons {
+    flex-direction: column;
+    border-radius: 6px;
+
+    .dx-button {
+      width: 100%;
+
+      &::after {
+        display: none;
+      }
+
+      &:not(:last-child) {
+        border-bottom: 1px solid #e5e7eb;
+      }
+    }
+
+    .assignment-action-btn--first {
+      border-top-left-radius: 5px;
+      border-top-right-radius: 5px;
+      border-bottom-left-radius: 0;
+    }
+
+    .assignment-action-btn--last {
+      border-bottom-left-radius: 5px;
+      border-bottom-right-radius: 5px;
+      border-top-right-radius: 0;
+    }
+  }
+}
+
 // Bulk assignment summary
 .bulk-summary {
   @apply tw-bg-gray-100 tw-rounded tw-p-3 tw-mt-4;

@@ -4,6 +4,28 @@
     padding: 0 !important;
   }
 
+  // Scan button round style
+  .scan-button-round {
+    .dx-button-content {
+      padding: 8px;
+    }
+
+    .dx-icon {
+      font-size: 18px;
+      color: #3b82f6;
+    }
+
+    &:hover .dx-icon {
+      color: #2563eb;
+    }
+  }
+
+  // All buttons should be simple without border/shadow
+  .dx-button.dx-button-mode-text {
+    box-shadow: none !important;
+    border: none !important;
+  }
+
   .tag-form-container {
     padding: 16px;
     height: 100%;

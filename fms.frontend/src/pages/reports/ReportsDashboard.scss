@@ -183,5 +183,25 @@
         }
       }
     }
+
+    .jsreport-section {
+      .tw-grid {
+        grid-template-columns: 1fr !important;
+      }
+    }
+  }
+}
+
+// JsReport Section Styles
+.jsreport-section {
+  .jsreport-card {
+    @apply tw-bg-white tw-rounded-lg tw-p-6 tw-border tw-border-gray-200 tw-text-center tw-transition-all;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+
+    &:hover {
+      @apply tw-border-blue-300;
+      box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
+      transform: translateY(-2px);
+    }
   }
 }

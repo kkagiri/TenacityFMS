@@ -12,6 +12,17 @@ using Microsoft.EntityFrameworkCore;
 
 namespace FMS.Application.Features.TankManagement.PumpTransaction
 {
+    /// <summary>
+    /// Represents a meter reading from either FuelRefill or PumpTransaction table
+    /// Used to build a unified chronological history for consumption calculations
+    /// </summary>
+    /// <param name="VehicleId">Vehicle ID</param>
+    /// <param name="Date">Date/time of the reading</param>
+    /// <param name="MeterReading">Odometer or engine hours reading</param>
+    /// <param name="Id">Record ID from source table</param>
+    /// <param name="Source">Source table: "FuelRefill" or "PumpTransaction"</param>
+    public record MeterReadingRecord(int VehicleId, DateTime? Date, decimal? MeterReading, int Id, string Source);
+
     public class GetPumpTransactionQuery : IRequest<FMSResponse<IEnumerable<PumpTransactionDto>>>
     {
         public List<int>? TankIds { get; set; }
@@ -21,6 +32,10 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
         public DateTime? EndDate { get; set; }
         public bool? ProcessedOnly { get; set; }
         public List<int>? SiteIds { get; set; }
+        /// <summary>
+        /// If true, includes tank-to-tank transfer transactions. Defaults to false (excludes transfers).
+        /// </summary>
+        public bool IncludeTransfers { get; set; } = false;
     }
 
     public class GetPumpTransactionQueryHandler : IRequestHandler<GetPumpTransactionQuery, FMSResponse<IEnumerable<PumpTransactionDto>>>
@@ -44,6 +59,12 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                 }
 
                 IQueryable<Pumptransaction> query = _context.Pumptransactions.AsNoTracking();
+
+                // Exclude transfer transactions by default (only include vehicle fueling)
+                if (!request.IncludeTransfers)
+                {
+                    query = query.Where(pt => pt.IsTransferMode != true);
+                }
 
                 // Apply filters with array support
                 if (request.TankIds != null && request.TankIds.Any())
@@ -125,6 +146,43 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     .Where(u => userIds.Contains(u.Id))
                     .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken);
 
+                // Build a unified lookup for previous meter readings from BOTH tables:
+                // 1. FuelRefill.CurrentMeterReading (manual entries)
+                // 2. Pumptransaction.Odometer (PTS fueling)
+                // We need to combine them chronologically and find the previous reading
+                var vehicleIds = pumpTransactions
+                    .Where(pt => pt.VehicleId.HasValue && pt.VehicleId.Value > 0)
+                    .Select(pt => pt.VehicleId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                // Get all fuel refills for these vehicles (manual entries with CurrentMeterReading)
+                var allVehicleFuelRefills = vehicleIds.Any()
+                    ? await _context.FuelRefills
+                        .Where(fr => fr.VehicleId > 0 && vehicleIds.Contains(fr.VehicleId) && !fr.IsDeleted && fr.CurrentMeterReading.HasValue)
+                        .Select(fr => new { fr.VehicleId, Date = fr.Date, MeterReading = fr.CurrentMeterReading, fr.Id, Source = "FuelRefill" })
+                        .ToListAsync(cancellationToken)
+                    : [];
+
+                // Get all pump transactions with Odometer for these vehicles (PTS fueling)
+                var allVehiclePumpTransactions = vehicleIds.Any()
+                    ? await _context.Pumptransactions
+                        .Where(pt => pt.VehicleId.HasValue && pt.VehicleId.Value > 0 && vehicleIds.Contains(pt.VehicleId.Value) && pt.Odometer.HasValue)
+                        .Select(pt => new { VehicleId = pt.VehicleId!.Value, Date = (DateTime?)pt.DateTime, MeterReading = pt.Odometer, pt.Id, Source = "PumpTransaction" })
+                        .ToListAsync(cancellationToken)
+                    : [];
+
+                // Combine both sources into a unified history, ordered chronologically (descending)
+                // Readings should be in ascending order (odometer/hours only go up)
+                var vehicleMeterHistory = allVehicleFuelRefills
+                    .Select(fr => new MeterReadingRecord(fr.VehicleId, fr.Date, fr.MeterReading, fr.Id, fr.Source))
+                    .Concat(allVehiclePumpTransactions.Select(pt => new MeterReadingRecord(pt.VehicleId, pt.Date, pt.MeterReading, pt.Id, pt.Source)))
+                    .GroupBy(r => r.VehicleId)
+                    .ToDictionary(
+                        g => g.Key,
+                        g => g.OrderByDescending(x => x.Date).ThenByDescending(x => x.Id).ToList()
+                    );
+
                 // Map to DTOs
                 var dtos = pumpTransactions.Select(pt =>
                 {
@@ -136,6 +194,39 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     if (!string.IsNullOrEmpty(pt.UserId) && userLookup.TryGetValue(pt.UserId, out var resolvedUserName))
                     {
                         userName = resolvedUserName;
+                    }
+
+                    // Calculate previous odometer and consumption
+                    // Priority: 1) FuelRefill.PreviousMeterReading (if explicitly set)
+                    //           2) Previous reading from combined history (FuelRefill + PumpTransaction)
+                    var currentOdometer = fr?.CurrentMeterReading ?? pt.Odometer;
+                    decimal? previousOdometer = fr?.PreviousMeterReading;
+                    string? previousOdometerSource = null;
+
+                    if (previousOdometer.HasValue)
+                    {
+                        previousOdometerSource = "FuelRefill.PreviousMeterReading";
+                    }
+
+                    // If no PreviousMeterReading in FuelRefill, look up from combined vehicle meter history
+                    if (!previousOdometer.HasValue && pt.VehicleId.HasValue && pt.VehicleId.Value > 0)
+                    {
+                        if (vehicleMeterHistory.TryGetValue(pt.VehicleId.Value, out var vehicleHistory))
+                        {
+                            // Find the most recent reading BEFORE this transaction's date
+                            // Exclude the current transaction itself (by ID if source is PumpTransaction)
+                            var previousReading = vehicleHistory
+                                .Where(r => r.Date < pt.DateTime ||
+                                           (r.Date == pt.DateTime && r.Source == "PumpTransaction" && r.Id != pt.Id))
+                                .Where(r => r.MeterReading.HasValue && r.MeterReading.Value > 0)
+                                .FirstOrDefault();
+
+                            if (previousReading?.MeterReading != null)
+                            {
+                                previousOdometer = previousReading.MeterReading.Value;
+                                previousOdometerSource = previousReading.Source;
+                            }
+                        }
                     }
 
                     return new PumpTransactionDto
@@ -168,16 +259,26 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         DestinationTankId = pt.DestinationTankId, // Destination tank for tank-to-tank transfers
                         DestinationTankName = pt.DestinationTank?.Name, // Destination tank name
                         IsTransferMode = pt.IsTransferMode, // Flag for tank transfer vs vehicle fueling
-                        Odometer = fr?.CurrentMeterReading ?? pt.Odometer,
+                        Odometer = currentOdometer,
                         HasBeenProcessed = pt.HasBeenProcessed,
 
                         // Site info from Tank (primary) or PTS device (fallback)
                         SiteId = pt.Tank?.SiteId ?? pt.Pts?.Site,
                         SiteName = pt.Tank?.Site?.Name ?? pt.Pts?.SiteNavigation?.Name,
+                        // Site coordinates from Tank's GPS location (tank is the primary location for fueling)
+                        SiteLatitude = pt.Tank?.Latitude,
+                        SiteLongitude = pt.Tank?.Longitude,
                         FueledBy = fr?.FuelBy,
                         FueledByUserName = fr?.FuelByNavigation?.UserName,
-                        PreviousOdometer = fr?.PreviousMeterReading,
-                        ConsumptionSinceLastRefuel = CalculateConsumption(fr?.CurrentMeterReading, fr?.PreviousMeterReading),
+                        // Odometer data - from FuelRefill.PreviousMeterReading or historical lookup (FuelRefill/PumpTransaction)
+                        PreviousOdometer = previousOdometer,
+                        PreviousOdometerSource = previousOdometerSource,
+                        ConsumptionSinceLastRefuel = CalculateDistanceOrHours(currentOdometer, previousOdometer),
+                        // Vehicle measurement type: true = km/L (distance), false = L/hr (engine hours)
+                        IsKmPerLiter = pt.Vehicle?.AverageKmL ?? true,
+                        // Fuel efficiency: km/L (distance/volume) or L/hr (volume/hours)
+                        FuelEfficiency = CalculateFuelEfficiency(
+                            currentOdometer, previousOdometer, pt.Volume ?? 0, pt.Vehicle?.AverageKmL ?? true),
                         DriverName = pt.Employee?.FullName ?? fr?.Driver?.FullName, // Prefer Employee from pump transaction
                         EmployeeId = pt.EmployeeId,
                         EmployeeName = pt.Employee?.FullName,
@@ -197,14 +298,48 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
             }
         }
 
-        private static decimal? CalculateConsumption(decimal? currentOdometer, decimal? previousOdometer)
+        /// <summary>
+        /// Calculate distance (km) or engine hours since last refuel
+        /// </summary>
+        private static decimal? CalculateDistanceOrHours(decimal? currentOdometer, decimal? previousOdometer)
         {
             if (!currentOdometer.HasValue || !previousOdometer.HasValue)
             {
                 return null;
             }
-            var consumption = currentOdometer.Value - previousOdometer.Value;
-            return consumption > 0 ? consumption : null;
+            var difference = currentOdometer.Value - previousOdometer.Value;
+            return difference > 0 ? difference : null;
+        }
+
+        /// <summary>
+        /// Calculate fuel efficiency based on vehicle type:
+        /// - For km/L vehicles: Distance / Volume = km/L (fuel efficiency)
+        /// - For L/hr vehicles: Volume / Hours = L/hr (consumption rate)
+        /// </summary>
+        private static decimal? CalculateFuelEfficiency(
+            decimal? currentOdometer, decimal? previousOdometer, decimal volume, bool isKmPerLiter)
+        {
+            if (!currentOdometer.HasValue || !previousOdometer.HasValue || volume <= 0)
+            {
+                return null;
+            }
+
+            var difference = currentOdometer.Value - previousOdometer.Value;
+            if (difference <= 0)
+            {
+                return null;
+            }
+
+            if (isKmPerLiter)
+            {
+                // km/L = Distance / Volume
+                return Math.Round(difference / volume, 2);
+            }
+            else
+            {
+                // L/hr = Volume / Hours
+                return Math.Round(volume / difference, 2);
+            }
         }
 
         private List<string> ValidateRequest(GetPumpTransactionQuery request)

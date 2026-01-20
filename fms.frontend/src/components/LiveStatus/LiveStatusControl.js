@@ -57,8 +57,8 @@ export const LiveStatusControl = ({ compact = false }) => {
       <Button
         icon={realtimeStatus.isLiveDataEnabled ? "pause" : "play"}
         onClick={handleLiveDataToggle}
-        stylingMode="contained"
-        type={realtimeStatus.isLiveDataEnabled ? "danger" : "success"}
+        stylingMode="outlined"
+        type="default"
         width={compact ? 32 : 40}
         height={compact ? 32 : 40}
         hint={

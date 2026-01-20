@@ -271,9 +271,11 @@ namespace FMS.Application.Services
                             try
                             {
                                 var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
+                                // FIX: Use verifyTransaction.Id (database PK) not verifyTransaction.Transaction (PTS number)
+                                // The ReferenceId in TankVolumeHistory must reference the database primary key
                                 var historyResult = await integrationService.ProcessPumpTransactionAsync(
                                     verifyTransaction.TankId.Value,
-                                    verifyTransaction.Transaction ?? 0,
+                                    verifyTransaction.Id,
                                     verifyTransaction.DateTime,
                                     verifyTransaction.Volume.Value,
                                     verifyTransaction.UserId?.ToString() ?? "System",

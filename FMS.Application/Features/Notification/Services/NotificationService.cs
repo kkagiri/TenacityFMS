@@ -1,3 +1,14 @@
+/**
+ * File: NotificationService.cs
+ * Purpose: Handles notification creation, routing, and delivery across channels.
+ * Dependencies: GpsdataContext, ILogger, ISignalRNotificationService, INotificationRecipientResolver
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions:
+ * - CreateNotificationAsync(): Creates a notification and dispatches it to recipients.
+ * - CreateAlarmNotificationAsync(): Creates notifications from alarm handler events.
+ * - CreatePTSAlarmNotificationAsync(): Convenience wrapper for PTS alarms.
+ */
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -339,7 +350,14 @@ namespace FMS.Application.Features.Notification.Services
                     }
                 }
 
-                _logger.LogInformation("Processed {ProcessedCount} scheduled notifications, {ErrorCount} errors", processedCount, errorCount);
+                if (processedCount > 0 || errorCount > 0)
+                {
+                    _logger.LogInformation("Processed {ProcessedCount} scheduled notifications, {ErrorCount} errors", processedCount, errorCount);
+                }
+                else
+                {
+                    _logger.LogDebug("Processed {ProcessedCount} scheduled notifications, {ErrorCount} errors", processedCount, errorCount);
+                }
                 return FMSResponse.SuccessResponse($"Processed {processedCount} scheduled notifications");
             }
             catch (Exception ex)
@@ -484,7 +502,10 @@ namespace FMS.Application.Features.Notification.Services
 
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Created {Count} alarm notifications for {AlarmType}", notificationsCreated, request.AlarmType);
+                if (notificationsCreated > 0)
+                {
+                    _logger.LogInformation("Created {Count} alarm notifications for {AlarmType}", notificationsCreated, request.AlarmType);
+                }
                 return FMSResponse.SuccessResponse($"Created {notificationsCreated} alarm notifications");
             }
             catch (Exception ex)

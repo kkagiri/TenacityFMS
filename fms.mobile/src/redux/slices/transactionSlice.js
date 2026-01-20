@@ -184,6 +184,8 @@ const transactionSlice = createSlice({
       .addCase(fetchTransactionHistory.fulfilled, (state, action) => {
         const {data, totalCount, currentPage, pageSize, hasMore, filters} = action.payload;
 
+        console.log('[transactionSlice] fetchTransactionHistory.fulfilled - data:', data?.length || 0, 'items');
+
         state.isLoading = false;
         state.isLoadingMore = false;
 
@@ -194,6 +196,8 @@ const transactionSlice = createSlice({
           // Loading more pages
           state.transactions = [...state.transactions, ...data];
         }
+
+        console.log('[transactionSlice] state.transactions after update:', state.transactions?.length || 0, 'items');
 
         state.totalCount = totalCount;
         state.currentPage = currentPage;

@@ -344,6 +344,201 @@ class ReportingService {
       };
     }
   }
+
+  // =============================================
+  // JsReport Template Methods
+  // =============================================
+
+  /**
+   * Get all JsReport templates
+   * @returns {Promise}
+   */
+  async getJsReportTemplates() {
+    try {
+      const response = await axiosInstance.get('/ReportGenerator/templates');
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error getting JsReport templates:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Get a specific JsReport template content
+   * @param {string} name - Template name
+   * @returns {Promise}
+   */
+  async getJsReportTemplate(name) {
+    try {
+      const response = await axiosInstance.get(`/ReportGenerator/templates/${name}`);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error getting JsReport template:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Save a JsReport template
+   * @param {string} name - Template name
+   * @param {string} content - HTML/Handlebars template content
+   * @returns {Promise}
+   */
+  async saveJsReportTemplate(name, content) {
+    try {
+      const response = await axiosInstance.post('/ReportGenerator/templates', { name, content });
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data,
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error saving JsReport template:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Delete a JsReport template
+   * @param {string} name - Template name
+   * @returns {Promise}
+   */
+  async deleteJsReportTemplate(name) {
+    try {
+      const response = await axiosInstance.delete(`/ReportGenerator/templates/${name}`);
+      return {
+        success: response.data?.isSuccess ?? true,
+        data: response.data?.data || response.data
+      };
+    } catch (error) {
+      console.error('Error deleting JsReport template:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Preview a JsReport template as HTML
+   * @param {string} templateName - Template name
+   * @param {Object} data - Data to render
+   * @returns {Promise}
+   */
+  async previewJsReport(templateName, data) {
+    try {
+      const response = await axiosInstance.post(`/ReportGenerator/preview/${templateName}`, data, {
+        responseType: 'text'
+      });
+      return {
+        success: true,
+        html: response.data
+      };
+    } catch (error) {
+      console.error('Error previewing JsReport:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Render a JsReport template to PDF
+   * @param {string} templateName - Template name
+   * @param {Object} data - Data to render
+   * @returns {Promise}
+   */
+  async renderJsReportPdf(templateName, data) {
+    try {
+      const response = await axiosInstance.post(`/ReportGenerator/render/pdf/${templateName}`, data, {
+        responseType: 'blob'
+      });
+      return {
+        success: true,
+        blob: response.data,
+        fileName: `${templateName}.pdf`
+      };
+    } catch (error) {
+      console.error('Error rendering JsReport PDF:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Render a JsReport template to Excel
+   * @param {string} templateName - Template name
+   * @param {Object} data - Data to render
+   * @returns {Promise}
+   */
+  async renderJsReportExcel(templateName, data) {
+    try {
+      const response = await axiosInstance.post(`/ReportGenerator/render/excel/${templateName}`, data, {
+        responseType: 'blob'
+      });
+      return {
+        success: true,
+        blob: response.data,
+        fileName: `${templateName}.xlsx`
+      };
+    } catch (error) {
+      console.error('Error rendering JsReport Excel:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Generate Pump Transaction Report
+   * @param {Object} filters - Report filters
+   * @returns {Promise}
+   */
+  async generatePumpTransactionReport(filters) {
+    try {
+      const response = await axiosInstance.post('/ReportGenerator/pump-transactions', filters, {
+        responseType: 'blob'
+      });
+
+      const format = filters.format || 'pdf';
+      const extension = format === 'excel' ? 'xlsx' : format;
+      const contentType = format === 'excel'
+        ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        : format === 'pdf' ? 'application/pdf' : 'text/html';
+
+      return {
+        success: true,
+        blob: response.data,
+        fileName: `PumpTransactions_${new Date().toISOString().split('T')[0]}.${extension}`,
+        contentType
+      };
+    } catch (error) {
+      console.error('Error generating pump transaction report:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
 }
 
 export default new ReportingService();

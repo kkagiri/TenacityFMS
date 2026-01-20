@@ -16,6 +16,17 @@ using MediatR;
 
 namespace FMS.Application.Features.PTSDevice.Queries
 {
-    public record GetPtsDeviceOfflineReportQuery(DateTime StartDate, DateTime EndDate, string? DeviceId = null)
+    /// <summary>
+    /// Query for generating PTS device offline reports
+    /// </summary>
+    /// <param name="StartDate">Start of reporting period</param>
+    /// <param name="EndDate">End of reporting period</param>
+    /// <param name="DeviceId">Optional device ID filter</param>
+    /// <param name="MinOfflineThresholdSeconds">Optional minimum offline duration threshold in seconds (overrides system config)</param>
+    public record GetPtsDeviceOfflineReportQuery(
+        DateTime StartDate,
+        DateTime EndDate,
+        string? DeviceId = null,
+        int? MinOfflineThresholdSeconds = null)
         : IRequest<FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>>;
 }

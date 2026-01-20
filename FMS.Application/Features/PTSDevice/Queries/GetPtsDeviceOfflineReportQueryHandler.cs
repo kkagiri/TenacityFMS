@@ -14,7 +14,9 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Configuration;
 using FMS.Application.Features.PTSDevice.DTOs;
+using FMS.Application.Services.Configuration;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -27,13 +29,16 @@ namespace FMS.Application.Features.PTSDevice.Queries
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<GetPtsDeviceOfflineReportQueryHandler> _logger;
+        private readonly ISystemConfigurationService _configService;
 
         public GetPtsDeviceOfflineReportQueryHandler(
             GpsdataContext context,
-            ILogger<GetPtsDeviceOfflineReportQueryHandler> logger)
+            ILogger<GetPtsDeviceOfflineReportQueryHandler> logger,
+            ISystemConfigurationService configService)
         {
             _context = context;
             _logger = logger;
+            _configService = configService;
         }
 
         public async Task<FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>> Handle(
@@ -56,6 +61,12 @@ namespace FMS.Application.Features.PTSDevice.Queries
             var startDate = request.StartDate.Date;
             var endExclusive = request.EndDate.Date.AddDays(1);
             var nowLocal = DateTime.Now; // Use local time to match database times
+
+            // Get minimum offline threshold - use request value if provided, otherwise get from config
+            var minOfflineThresholdSeconds = request.MinOfflineThresholdSeconds
+                ?? await _configService.GetPtsOfflineThresholdSecondsAsync(cancellationToken);
+
+            _logger.LogDebug("Using offline threshold of {Threshold} seconds", minOfflineThresholdSeconds);
 
             var devicesQuery = _context.Ptsdevices
                 .AsNoTracking()
@@ -147,6 +158,14 @@ namespace FMS.Application.Features.PTSDevice.Queries
 
                     if (offlineEnd <= offlineStart)
                     {
+                        continue;
+                    }
+
+                    // Check if offline duration meets minimum threshold
+                    var totalOfflineDuration = (offlineEnd - offlineStart).TotalSeconds;
+                    if (totalOfflineDuration < minOfflineThresholdSeconds)
+                    {
+                        // Skip short offline periods below threshold
                         continue;
                     }
 

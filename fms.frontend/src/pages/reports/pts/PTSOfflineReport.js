@@ -25,6 +25,7 @@ import DataGrid, {
 import { Button } from "devextreme-react/button";
 import { DateBox } from "devextreme-react/date-box";
 import { SelectBox } from "devextreme-react/select-box";
+import { NumberBox } from "devextreme-react/number-box";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
 import "./PTSOfflineReport.scss";
@@ -52,6 +53,7 @@ const PTSOfflineReport = () => {
   const [viewMode, setViewMode] = useState("daily"); // 'daily' or 'summary'
   const [devices, setDevices] = useState([]);
   const [selectedDeviceId, setSelectedDeviceId] = useState(null);
+  const [minThresholdSeconds, setMinThresholdSeconds] = useState(60); // Default 60 seconds (1 minute)
 
   // Fetch device list for filter dropdown
   const fetchDevices = useCallback(async () => {
@@ -89,6 +91,10 @@ const PTSOfflineReport = () => {
         params.append("deviceId", selectedDeviceId);
       }
 
+      if (minThresholdSeconds && minThresholdSeconds > 0) {
+        params.append("minThresholdSeconds", minThresholdSeconds.toString());
+      }
+
       const response = await axiosInstance.get(`/PTSDevice/offline-report?${params.toString()}`);
 
       const payload = response.data?.data || response.data || [];
@@ -107,7 +113,7 @@ const PTSOfflineReport = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [startDate, endDate, selectedDeviceId]);
+  }, [startDate, endDate, selectedDeviceId, minThresholdSeconds]);
 
   useEffect(() => {
     fetchDevices();
@@ -178,7 +184,14 @@ const PTSOfflineReport = () => {
   }, [offlineData, viewMode]);
 
   const gridData = useMemo(() => {
-    return viewMode === "daily" ? offlineData : summaryData;
+    if (viewMode === "daily") {
+      // Add a unique key combining deviceId and date for DataGrid
+      return offlineData.map((item, index) => ({
+        ...item,
+        _rowKey: `${item.deviceId}_${item.date}_${index}`,
+      }));
+    }
+    return summaryData;
   }, [viewMode, offlineData, summaryData]);
 
   // Device dropdown datasource
@@ -224,8 +237,13 @@ const PTSOfflineReport = () => {
   };
 
   // Master-detail template for daily view periods
-  const renderDetailSection = (e) => {
-    const periods = e.data?.periods || [];
+  const renderDetailSection = ({ data }) => {
+    // DevExtreme passes the row data in 'data' property
+    const rowData = data?.data || data;
+    const periods = rowData?.periods || [];
+
+    console.log("Master-detail row data:", rowData); // Debug log
+
     if (periods.length === 0) {
       return (
         <div className="tw-p-4 tw-text-gray-500 tw-text-sm">
@@ -237,7 +255,7 @@ const PTSOfflineReport = () => {
     return (
       <div className="tw-p-4 tw-bg-gray-50">
         <h4 className="tw-font-semibold tw-text-gray-700 tw-mb-2">
-          Offline Periods on {formatDate(e.data.date)}
+          Offline Periods on {formatDate(rowData.date)}
         </h4>
         <table className="tw-w-full tw-text-sm tw-border-collapse">
           <thead>
@@ -249,16 +267,19 @@ const PTSOfflineReport = () => {
           </thead>
           <tbody>
             {periods.map((period, idx) => (
-              <tr key={idx} className="tw-border-b">
+              <tr key={idx} className="tw-border-b hover:tw-bg-gray-100">
                 <td className="tw-p-2 tw-border">{formatDateTime(period.startAt)}</td>
                 <td className="tw-p-2 tw-border">
-                  {period.endAt ? formatDateTime(period.endAt) : "Still Offline"}
+                  {period.endAt ? formatDateTime(period.endAt) : <span className="tw-text-orange-500">Still Offline</span>}
                 </td>
-                <td className="tw-p-2 tw-border">{formatDuration(period.durationSeconds)}</td>
+                <td className="tw-p-2 tw-border tw-font-medium">{formatDuration(period.durationSeconds)}</td>
               </tr>
             ))}
           </tbody>
         </table>
+        <div className="tw-mt-2 tw-text-xs tw-text-gray-500">
+          Total: {periods.length} offline period(s)
+        </div>
       </div>
     );
   };
@@ -358,6 +379,22 @@ const PTSOfflineReport = () => {
             />
           </div>
 
+          {/* Minimum Offline Threshold */}
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Min Offline (seconds)
+            </label>
+            <NumberBox
+              value={minThresholdSeconds}
+              onValueChanged={(e) => setMinThresholdSeconds(e.value)}
+              min={0}
+              max={86400}
+              showSpinButtons={true}
+              width={140}
+              hint="Minimum offline duration to include in report"
+            />
+          </div>
+
           {/* Fetch Button */}
           <Button
             text="Generate Report"
@@ -382,7 +419,7 @@ const PTSOfflineReport = () => {
         {viewMode === "daily" ? (
           <DataGrid
             dataSource={gridData}
-            keyExpr="deviceId"
+            keyExpr="_rowKey"
             showBorders={true}
             columnAutoWidth={true}
             rowAlternationEnabled={true}

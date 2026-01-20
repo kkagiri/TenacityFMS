@@ -1,0 +1,55 @@
+/**
+ * Styles for LocationBypassHistoryView component
+ */
+
+.location-bypass-history-view {
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+    }
+
+    .dx-row-alt {
+      @apply tw-bg-gray-50;
+    }
+
+    .dx-data-row:hover {
+      @apply tw-bg-blue-50;
+    }
+  }
+
+  .status-badge {
+    @apply tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium;
+
+    &.active {
+      @apply tw-bg-green-100 tw-text-green-800;
+    }
+
+    &.expired {
+      @apply tw-bg-gray-100 tw-text-gray-800;
+    }
+
+    &.cancelled {
+      @apply tw-bg-red-100 tw-text-red-800;
+    }
+
+    &.inactive {
+      @apply tw-bg-yellow-100 tw-text-yellow-800;
+    }
+  }
+
+  .type-badge {
+    @apply tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium;
+
+    &.system {
+      @apply tw-bg-purple-100 tw-text-purple-800;
+    }
+
+    &.vehicle {
+      @apply tw-bg-blue-100 tw-text-blue-800;
+    }
+
+    &.user {
+      @apply tw-bg-teal-100 tw-text-teal-800;
+    }
+  }
+}

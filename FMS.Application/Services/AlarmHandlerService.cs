@@ -1,3 +1,14 @@
+/**
+ * File: AlarmHandlerService.cs
+ * Purpose: Evaluates tank/device alarm conditions and triggers notifications/active alarms.
+ * Dependencies: GpsdataContext, INotificationService, AlarmHandlerActiveAlarmIntegration, ILogger
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions:
+ * - ProcessTankMeasurementAlarmsAsync(): Handles alarms from incoming measurements.
+ * - ProcessScheduledAlarmChecksAsync(): Periodic checks (stale data, capacity, patterns).
+ * - ProcessTankAlarmAsync(): Creates notifications for tank alarms.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -363,8 +374,16 @@ namespace FMS.Application.Services
                     message += $". Errors: {string.Join(", ", errors)}";
                 }
 
-                _logger.LogInformation("Completed scheduled alarm checks: {AlarmsProcessed} alarms, {ErrorCount} errors",
-                    alarmsProcessed, errors.Count);
+                if (alarmsProcessed > 0 || errors.Count > 0)
+                {
+                    _logger.LogInformation("Completed scheduled alarm checks: {AlarmsProcessed} alarms, {ErrorCount} errors",
+                        alarmsProcessed, errors.Count);
+                }
+                else
+                {
+                    _logger.LogDebug("Completed scheduled alarm checks: {AlarmsProcessed} alarms, {ErrorCount} errors",
+                        alarmsProcessed, errors.Count);
+                }
 
                 return errors.Any() ?
                     FMSResponse.FailedResponse(message) :

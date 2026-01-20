@@ -1,5 +1,6 @@
 using DevExpress.AspNetCore.Reporting.ReportDesigner;
 using DevExpress.AspNetCore.Reporting.ReportDesigner.Native.Services;
+using DevExpress.XtraReports.Web.ReportDesigner;
 using Microsoft.AspNetCore.Mvc;
 
 namespace FMS.WebClient.Controllers.Reporting;
@@ -30,74 +31,38 @@ public class ReportDesignerController : DevExpress.AspNetCore.Reporting.ReportDe
 
     /// <summary>
     /// Returns the designer model required by the DevExpress JavaScript client.
-    /// This endpoint provides the initial configuration for the Report Designer.
+    /// Uses DevExpress ReportDesignerClientSideModelGenerator for proper model structure.
+    /// DevelopmentMode is set via UseDevelopmentMode() in service configuration.
     /// </summary>
     [HttpPost("[action]")]
-    public IActionResult GetDesignerModel([FromForm] string? reportUrl)
+    public async Task<IActionResult> GetDesignerModel([FromForm] string? reportUrl, [FromForm] string? dataSources)
     {
         var host = $"{Request.Scheme}://{Request.Host}";
 
         _logger.LogInformation("GetDesignerModel called - ReportUrl: {ReportUrl}, Host: {Host}", reportUrl ?? "(new)", host);
 
-        // Build the client-side model that DevExpress JS expects
-        var model = new
+        try
         {
-            // Report to load (empty for new report)
-            reportUrl = reportUrl ?? "",
+            // Use DevExpress client-side model generator with string-based signature
+            // Parameters: reportUrl, dataSources (JSON dict), designerUri, viewerUri, queryBuilderUri
+            var generator = new ReportDesignerClientSideModelGenerator(HttpContext.RequestServices);
+            var model = await generator.GetModelAsync(
+                reportUrl ?? string.Empty,                                    // Report URL/name
+                new Dictionary<string, object>(),                             // Data sources dictionary
+                "/DXXRD",                                                     // Designer handler URI
+                "/DXXRDV",                                                    // Viewer handler URI
+                "/DXXQB"                                                      // Query builder handler URI
+            );
 
-            // Request options for designer operations
-            requestOptions = new
-            {
-                host = host,
-                invokeAction = "/DXXRD/Invoke"
-            },
+            _logger.LogInformation("GetDesignerModel returning model for report: {ReportUrl}", reportUrl ?? "(new)");
 
-            // Report preview (viewer) options
-            reportPreviewOptions = new
-            {
-                requestOptions = new
-                {
-                    host = host,
-                    invokeAction = "/DXXRDV/Invoke"
-                }
-            },
-
-            // Query builder options (for SQL data sources)
-            queryBuilderOptions = new
-            {
-                requestOptions = new
-                {
-                    host = host,
-                    invokeAction = "/DXXQB/Invoke"
-                }
-            },
-
-            // Data source wizard settings
-            // Disable Object Data Source (requires additional type registration)
-            // Enable SQL Data Source for MySQL database access
-            dataSourceSettings = new
-            {
-                // Disable Object and Entity Framework data sources
-                // Only SQL data sources are available (project MySQL DB)
-                allowAddDataSource = true,
-                sqlDataSourceAvailable = true,
-                jsonDataSourceAvailable = false,
-                objectDataSourceAvailable = false,
-                efDataSourceAvailable = false
-            },
-
-            // Designer settings
-            developmentMode = _env.IsDevelopment(),
-            allowMDI = true,
-            rightToLeft = false
-        };
-
-        _logger.LogInformation(
-            "GetDesignerModel returning - Designer: {DesignerInvoke}, Preview: {PreviewInvoke}, QueryBuilder: {QBInvoke}",
-            model.requestOptions.invokeAction,
-            model.reportPreviewOptions.requestOptions.invokeAction,
-            model.queryBuilderOptions.requestOptions.invokeAction);
-
-        return Ok(model);
+            // Return the model directly - DevelopmentMode is set via UseDevelopmentMode() in service configuration
+            return Ok(model);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error building designer model for report: {ReportUrl}", reportUrl);
+            throw;
+        }
     }
 }

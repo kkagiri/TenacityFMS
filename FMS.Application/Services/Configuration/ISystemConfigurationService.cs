@@ -118,6 +118,14 @@ namespace FMS.Application.Services.Configuration
         Task<int> GetTankStockMaxHistoricalDaysAsync(CancellationToken cancellationToken = default);
         #endregion
 
+        #region PTS Offline Report Configuration
+        /// <summary>
+        /// Gets the minimum offline duration threshold in seconds for reporting
+        /// Offline periods shorter than this value are not counted in reports
+        /// </summary>
+        Task<int> GetPtsOfflineThresholdSecondsAsync(CancellationToken cancellationToken = default);
+        #endregion
+
         #region Configuration Management
         /// <summary>
         /// Updates a system configuration value in the database

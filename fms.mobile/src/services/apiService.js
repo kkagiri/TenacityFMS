@@ -354,13 +354,19 @@ class ApiService {
           delete params[key]
       );
 
+      console.log('[ApiService] getTransactionHistory - params:', JSON.stringify(params));
       const response = await this.api.get("/v1/Consumption/pumptransactions", {
         params,
       });
 
+      console.log('[ApiService] getTransactionHistory - response.data:', JSON.stringify(response.data));
+
       // Transform response to expected format for the slice
+      // FMSResponse structure: { isSuccess, data, message }
       const data = response.data?.data || response.data || [];
       const transactions = Array.isArray(data) ? data : [];
+
+      console.log('[ApiService] getTransactionHistory - parsed transactions count:', transactions.length);
 
       return {
         data: transactions,

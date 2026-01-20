@@ -1,3 +1,14 @@
+/**
+ * File: userActions.js
+ * Purpose: Redux action creators for user management and related entities
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions:
+ * - fetchUsers(): Loads user list
+ * - fetchUserById(userId): Loads a single user
+ * - updateUser(userId, userData): Updates user data
+ */
 import axiosInstance from "./../../api/axiosInstance";
 
 // Action Types
@@ -135,7 +146,11 @@ export const restoreUser = (userId) => async (dispatch) => {
 
 export const updateUser = (userId, userData) => async (dispatch) => {
     try {
-        const response = await axiosInstance.put(`/user/${userId}`, userData);
+        const payload = {
+            ...userData,
+            UserId: userId
+        };
+        const response = await axiosInstance.put(`/user/${userId}`, payload);
         dispatch({ type: UPDATE_USER_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {

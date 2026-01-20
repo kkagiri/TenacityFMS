@@ -1,3 +1,12 @@
+/**
+ * File: Content.js
+ * Purpose: Defines application routing and global layout wrappers
+ * Dependencies: react-router-dom, react-redux, AppDrawerLayout
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions/Components:
+ * - Content(): Root route configuration and layout composition
+ */
 import { Routes, Route, Navigate } from "react-router-dom";
 import React, { useEffect, useMemo } from "react";
 import appInfo from "./app-info";
@@ -31,17 +40,19 @@ export default function Content() {
   }, [user, dispatch]);
 
   const dynamicRoutes = useMemo(() => {
-    return navigationItems.map((item) => {
-      const Component = resolvedComponents(item.page);
-      const ProtectedComponent = withRoleProtection(Component, item.roles);
-      return (
-        <Route
-          key={item.link}
-          path={item.link}
-          element={<ProtectedComponent />}
-        />
-      );
-    });
+    return navigationItems
+      .filter((item) => !item.link?.startsWith("/admin"))
+      .map((item) => {
+        const Component = resolvedComponents(item.page);
+        const ProtectedComponent = withRoleProtection(Component, item.roles);
+        return (
+          <Route
+            key={item.link}
+            path={item.link}
+            element={<ProtectedComponent />}
+          />
+        );
+      });
   }, [navigationItems]);
 
   return (
@@ -60,31 +71,6 @@ export default function Content() {
           }
         />
 
-        {/* User routes - now under admin - ADMIN ONLY */}
-        <Route
-          path="/admin/users/:id"
-          element={React.createElement(
-            withRoleProtection(resolvedComponents("user-details"), ["Admin"])
-          )}
-        />
-        <Route
-          path="/admin/users/:id/edit"
-          element={React.createElement(
-            withRoleProtection(resolvedComponents("user-edit"), ["Admin"])
-          )}
-        />
-        <Route
-          path="/admin/users/:id/activities"
-          element={React.createElement(
-            withRoleProtection(resolvedComponents("user-activities"), ["Admin"])
-          )}
-        />
-        <Route
-          path="/admin/users/:id/sites"
-          element={React.createElement(
-            withRoleProtection(resolvedComponents("user-sites"), ["Admin"])
-          )}
-        />
         <Route
           path="/user-activities"
           element={React.createElement(

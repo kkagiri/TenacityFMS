@@ -249,10 +249,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 // Save changes to get the updated entry
                 await _context.SaveChangesAsync(cancellationToken);
 
+                // FIX: Get the most recent transaction BEFORE the closing stock timestamp (23:55:00)
+                // The closing stock time is entryDate + 23:55:00
+                var closingStockTime = entryDate.AddHours(23).AddMinutes(55);
+
                 // Get the most recent transaction before this closing stock to calculate volume change
                 var previousTransaction = await _context.TankVolumeHistories
                     .Where(tvh => tvh.TankId == request.TankId &&
-                                   tvh.Timestamp < entryDate &&
+                                   tvh.Timestamp < closingStockTime &&  // FIX: Use closing stock time, not entry date
                                    (tvh.IsDeleted != true))
                     .OrderByDescending(tvh => tvh.Timestamp)
                     .ThenByDescending(tvh => tvh.Id)

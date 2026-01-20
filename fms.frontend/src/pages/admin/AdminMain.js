@@ -1,3 +1,12 @@
+/**
+ * File: AdminMain.js
+ * Purpose: Admin module routing with shared admin layout
+ * Dependencies: react-router-dom, AdminLayout
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions/Components:
+ * - AdminMain(): Admin route definitions under /admin
+ */
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -6,6 +15,10 @@ import AdminDashboard from "./AdminDashboard";
 
 // Import the existing component pages to be used in admin routes
 import UserPage from "../user/userPage";
+import UserDetailsPage from "../user/userDetailsPage";
+import UserEditPage from "../user/userEditPage";
+import UserActivitiesPage from "../user/userActivitiesPage";
+import UserSitesPage from "../user/userSitesPage";
 import Rolepage from "../Role/rolepage";
 import PermissionTreeList from "../../components/PermissionTreeList/permissionTreeList";
 import NavigationPage from "../Navigation/NavigationPage";
@@ -39,6 +52,10 @@ const AdminMain = () => {
         {/* Access Control Routes */}
         <Route path="users" element={<UserPage />} />
         <Route path="users/*" element={<UserPage />} />
+        <Route path="users/:id" element={<UserDetailsPage />} />
+        <Route path="users/:id/edit" element={<UserEditPage />} />
+        <Route path="users/:id/activities" element={<UserActivitiesPage />} />
+        <Route path="users/:id/sites" element={<UserSitesPage />} />
         <Route path="roles" element={<Rolepage />} />
         <Route path="roles/*" element={<Rolepage />} />
         <Route path="permissions" element={<PermissionTreeList />} />

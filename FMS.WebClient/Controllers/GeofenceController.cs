@@ -4,6 +4,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Geofence.Commands;
 using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Geofence.Queries;
+using FMS.Application.Features.LocationValidation.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -275,6 +276,60 @@ public class GeofenceController : ControllerBase
         };
 
         var result = await _mediator.Send(command);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Get location bypass history with filtering and pagination
+    /// </summary>
+    /// <param name="bypassType">Filter by type: 'All', 'Vehicle', 'User' (optional)</param>
+    /// <param name="vehicleId">Filter by vehicle ID (optional)</param>
+    /// <param name="userId">Filter by user ID (optional)</param>
+    /// <param name="isActive">Filter by active status (optional)</param>
+    /// <param name="startDate">Filter by start date (optional)</param>
+    /// <param name="endDate">Filter by end date (optional)</param>
+    /// <param name="enabledBy">Filter by who enabled the bypass (optional)</param>
+    /// <param name="pageNumber">Page number (default: 1)</param>
+    /// <param name="pageSize">Page size (default: 50)</param>
+    [HttpGet("validation/bypass-history")]
+    public async Task<IActionResult> GetBypassHistory(
+        [FromQuery] string? bypassType = null,
+        [FromQuery] int? vehicleId = null,
+        [FromQuery] string? userId = null,
+        [FromQuery] bool? isActive = null,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? enabledBy = null,
+        [FromQuery] int pageNumber = 1,
+        [FromQuery] int pageSize = 50)
+    {
+        var query = new GetLocationBypassHistoryQuery
+        {
+            BypassType = bypassType,
+            VehicleId = vehicleId,
+            UserId = userId,
+            IsActive = isActive,
+            StartDate = startDate,
+            EndDate = endDate,
+            EnabledBy = enabledBy,
+            PageNumber = pageNumber,
+            PageSize = pageSize
+        };
+
+        var result = await _mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Get location settings overview showing:
+    /// - Users with mobile bypass settings
+    /// - PTS devices with location validation settings
+    /// - Vehicles with GPS settings
+    /// </summary>
+    [HttpGet("validation/settings-overview")]
+    public async Task<IActionResult> GetLocationSettingsOverview()
+    {
+        var result = await _mediator.Send(new GetLocationSettingsOverviewQuery());
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 

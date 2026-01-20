@@ -371,13 +371,19 @@ export const clearImportResults = () => ({
 export const fetchPumpTransactions =
   (filters = {}) =>
   async (dispatch) => {
+    // Helper to convert Date or string to ISO string
+    const toISOString = (value) => {
+      if (!value) return undefined;
+      if (value instanceof Date) return value.toISOString();
+      if (typeof value === 'string') return value; // Already a string
+      return undefined;
+    };
+
     // Convert Date objects to ISO strings for serializable state
     const serializableFilters = {
       ...filters,
-      startDate: filters.startDate
-        ? filters.startDate.toISOString()
-        : undefined,
-      endDate: filters.endDate ? filters.endDate.toISOString() : undefined,
+      startDate: toISOString(filters.startDate),
+      endDate: toISOString(filters.endDate),
     };
 
     dispatch({
@@ -417,12 +423,24 @@ export const fetchPumpTransactions =
         filters.siteIds.forEach((id) => params.append("siteId", id));
       }
 
-      if (filters.startDate)
-        params.append("startDate", filters.startDate.toISOString());
-      if (filters.endDate)
-        params.append("endDate", filters.endDate.toISOString());
+      if (filters.startDate) {
+        const startDateStr = filters.startDate instanceof Date
+          ? filters.startDate.toISOString()
+          : filters.startDate;
+        params.append("startDate", startDateStr);
+      }
+      if (filters.endDate) {
+        const endDateStr = filters.endDate instanceof Date
+          ? filters.endDate.toISOString()
+          : filters.endDate;
+        params.append("endDate", endDateStr);
+      }
       if (filters.processedOnly !== undefined)
         params.append("processedOnly", filters.processedOnly);
+
+      // Include tank-to-tank transfers (default: false - only vehicle fueling)
+      if (filters.includeTransfers === true)
+        params.append("includeTransfers", "true");
 
       const queryString = params.toString();
       const url = `/consumption/pumptransactions${

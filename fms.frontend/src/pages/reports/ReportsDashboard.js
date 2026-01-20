@@ -64,12 +64,46 @@ const ReportsDashboard = () => {
           </div>
           <div className="stat-content">
             <h3 className="stat-title">Export Reports</h3>
-            <p className="stat-description">Export reports to PDF, Excel, or CSV formats</p>
+            <p className="stat-description">Export reports to PDF, Excel, or HTML formats</p>
             <div className="stat-actions">
-              <button className="btn btn-outline" disabled>
-                Coming Soon
+              <button className="btn btn-primary" onClick={() => navigate('/reports/viewer')}>
+                Generate Report
               </button>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* JsReport Section */}
+      <div className="jsreport-section tw-mt-8">
+        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">
+          <i className="fa-light fa-file-code tw-mr-2 tw-text-blue-500"></i>
+          Report Builder (JsReport)
+        </h3>
+        <div className="tw-grid tw-grid-cols-3 tw-gap-4">
+          <div
+            className="jsreport-card tw-cursor-pointer"
+            onClick={() => navigate('/reports/viewer')}
+          >
+            <i className="fa-light fa-eye tw-text-3xl tw-text-green-500 tw-mb-2"></i>
+            <h4 className="tw-font-semibold tw-text-gray-800">Report Viewer</h4>
+            <p className="tw-text-sm tw-text-gray-500">Generate and preview reports with filters</p>
+          </div>
+          <div
+            className="jsreport-card tw-cursor-pointer"
+            onClick={() => navigate('/reports/designer')}
+          >
+            <i className="fa-light fa-edit tw-text-3xl tw-text-blue-500 tw-mb-2"></i>
+            <h4 className="tw-font-semibold tw-text-gray-800">Template Designer</h4>
+            <p className="tw-text-sm tw-text-gray-500">Create and edit Handlebars templates</p>
+          </div>
+          <div
+            className="jsreport-card tw-cursor-pointer"
+            onClick={() => navigate('/reports/templates')}
+          >
+            <i className="fa-light fa-folder-open tw-text-3xl tw-text-purple-500 tw-mb-2"></i>
+            <h4 className="tw-font-semibold tw-text-gray-800">Template Manager</h4>
+            <p className="tw-text-sm tw-text-gray-500">Manage all report templates</p>
           </div>
         </div>
       </div>

@@ -6,6 +6,7 @@ import { TickerCard } from '../../components/TickerCard/tickerCard';
 import { StockCapacityTicker } from '../../components/TickerCard/tankStockTickers/StockCapacityTicker';
 
 
+// Volume Change Reason Enum - must match backend enum in FMS.Domain/Entities/enums/VolumeChangeReasonEnum.cs
 const VolumeChangeReasonEnum = {
     OpeningStock: 0,
     ClosingStock: 1,
@@ -13,7 +14,10 @@ const VolumeChangeReasonEnum = {
     TransferIn: 3,
     TransferOut: 4,
     Adjustment: 5,
-    Dispensing: 6
+    Dispensing: 6,
+    AutomatedDispensing: 7,
+    Reconciliation: 8,
+    AutomatedReconciliation: 9
   };
 
 

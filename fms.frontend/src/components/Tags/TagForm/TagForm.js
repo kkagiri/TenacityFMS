@@ -1,90 +1,28 @@
-import React, { useState, useEffect, memo, useMemo } from "react";
+import React, { useState, useEffect, memo } from "react";
 import { Popup } from "devextreme-react/popup";
-import { Form, SimpleItem, GroupItem } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
+import { ScrollView } from "devextreme-react/scroll-view";
 import { useDispatch, useSelector } from "react-redux";
 import { createTag, updateTag } from "../../../redux/actions/tagActions";
 import { LoadPanel } from "devextreme-react/load-panel";
-import { RadioGroup } from "devextreme-react/radio-group";
-import { SelectBox } from "devextreme-react/select-box";
 import { List } from "devextreme-react/list";
 import notify from "devextreme/ui/notify";
 import "./TagForm.scss";
-import { Tabs } from "devextreme-react/tabs";
-import SignalRService from "../../../signalR/SignalRService";
+import { fetchPTSDeviceList } from "../../../redux/actions/ptsActions/ptsDeviceActions";
+import VehicleSearchableSelector from "../../selectors/VehicleSearchableSelector";
 
 const TagForm = ({ isVisible, onClose, onSave, tag }) => {
   const dispatch = useDispatch();
-  const vehicles = useSelector((state) => state.vehicle.vehicles || []);
   const ruleSets = useSelector((state) => state.fuelingRule.ruleSets || []);
 
-  // Get realtime reader status for tag scanning
-  const deviceReaderStatus = useSelector(
-    (state) => state.realtimeStatus?.deviceReaderStatus || {}
-  );
+  // Get PTS devices from redux store - uses ptsDeviceList from reducer
+  const ptsDevices = useSelector((state) => state.ptsDevice?.ptsDeviceList || []);
+  const ptsDevicesLoading = useSelector((state) => state.ptsDevice?.loading || false);
 
-  // Get the device connection statuses from both summary and status objects
-  const deviceConnectionStatuses = useSelector(
-    (state) => state.deviceConnections?.connectionStatuses || {}
-  );
-
-  const deviceConnectionSummary = useSelector(
-    (state) => state.deviceConnections?.summary || {}
-  );
-
-  // Get all connected PTS devices - simplified to only show device ID
-  const connectedDevices = useMemo(() => {
-    const devices = [];
-
-    // Try getting from connectionStatuses first
-    if (Object.keys(deviceConnectionStatuses).length > 0) {
-      Object.entries(deviceConnectionStatuses).forEach(([deviceId, status]) => {
-        if (status?.status === "Connected" || status?.status === "Active") {
-          // Simplified - just use the device ID
-          devices.push({
-            id: deviceId,
-            name: `Device ${deviceId}`,
-            status: status.status,
-            lastActivity: status.lastActivity,
-            source: "connectionStatuses",
-          });
-        }
-      });
-    }
-
-    // If no devices found, try from summary
-    if (devices.length === 0 && deviceConnectionSummary?.webSocketConnections) {
-      deviceConnectionSummary.webSocketConnections.forEach((device) => {
-        // Map status numbers to strings
-        let statusText = "Unknown";
-        if (device.status === 0) statusText = "Connected";
-        else if (device.status === 1) statusText = "Active";
-        else if (device.status === 2) statusText = "Idle";
-
-        // Simplified - just use the device ID
-        devices.push({
-          id: device.deviceId,
-          name: `Device ${device.deviceId}`,
-          status: statusText,
-          lastActivity: device.lastMessageAt,
-          source: "summary",
-        });
-      });
-    }
-
-    console.log("Final devices list:", devices);
-
-    // Sort devices by ID for consistent ordering
-    return devices.sort((a, b) => a.id.localeCompare(b.id));
-  }, [deviceConnectionStatuses, deviceConnectionSummary]);
-
-  const [formMode, setFormMode] = useState("manual"); // "manual" or "scan"
+  const [showScanSection, setShowScanSection] = useState(false); // Show/hide scan section
   const [selectedDevice, setSelectedDevice] = useState(null);
   const [detectedTags, setDetectedTags] = useState([]);
   const [scanning, setScanning] = useState(false);
-  const [isLoadingDevices, setIsLoadingDevices] = useState(false);
-  const [isLoadingReaders, setIsLoadingReaders] = useState(false);
-  const [deviceRequestSent, setDeviceRequestSent] = useState({});
 
   const [formData, setFormData] = useState({
     id: null,
@@ -98,123 +36,32 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
   const [loading, setLoading] = useState(false);
   const [validationErrors, setValidationErrors] = useState({});
 
-  // Get list of all PTS devices with online readers
-  const devices = useSelector((state) => {
-    // Get all devices with online readers
-    const devicesWithReaders = [];
-
-    // Process device reader status to find online readers
-    Object.entries(deviceReaderStatus).forEach(([deviceId, readers]) => {
-      if (
-        readers &&
-        Object.values(readers).some((reader) => reader.status === "online")
-      ) {
-        // Find device details if available
-        const device = {
-          id: deviceId,
-          name: `Device ${deviceId}`, // Default name
-          readers: Object.values(readers).filter(
-            (reader) => reader.status === "online"
-          ),
-        };
-
-        devicesWithReaders.push(device);
-      }
-    });
-
-    return devicesWithReaders;
-  });
-
-  // Add processing for raw upload status
-  const [rawDeviceData, setRawDeviceData] = useState({}); //Cursor
-  const deviceUploadStatus = useSelector(
-    (state) => state.realtimeStatus?.uploadStatusByDevice || {}
-  ); //Cursor
-
-  // Process the upload status to extract reader information
+  // Fetch PTS devices when scan section is shown
   useEffect(() => {
-    if (selectedDevice && deviceUploadStatus[selectedDevice]?.status) {
-      const rawStatus = deviceUploadStatus[selectedDevice].status;
-      setRawDeviceData(rawStatus);
-
-      // Process the received data
-      console.log(
-        "Received upload status for device:",
-        selectedDevice,
-        rawStatus
-      );
-
-      // If we received data, stop the loading state
-      setIsLoadingReaders(false);
+    if (showScanSection) {
+      dispatch(fetchPTSDeviceList());
     }
-  }, [selectedDevice, deviceUploadStatus]); //Cursor
+  }, [showScanSection, dispatch]);
 
-  // Refresh all devices when tab is changed to scan mode
-  useEffect(() => {
-    if (formMode === "scan") {
-      refreshDeviceStatus();
-    }
-  }, [formMode]);
-
-  // Add debug logging for connected devices
-  useEffect(() => {
-    if (formMode === "scan") {
-      console.log("Connected devices from Redux:", connectedDevices);
-      console.log("Raw device connection summary:", deviceConnectionSummary);
-    }
-  }, [formMode, connectedDevices, deviceConnectionSummary]); //Cursor
-
-  // Function to refresh all device statuses
-  const refreshDeviceStatus = async () => {
-    setIsLoadingDevices(true);
-    try {
-      // Log before the request
-      console.log("Requesting all devices status...");
-
-      // Send the request
-      await SignalRService.requestAllDevicesStatus();
-
-      // Log Redux state directly
-      console.log(
-        "Current Redux device connection state:",
-        "connectionStatuses:",
-        deviceConnectionStatuses,
-        "summary:",
-        deviceConnectionSummary
-      );
-
-      // Set a timeout to provide feedback regardless of response
-      setTimeout(() => {
-        console.log(
-          "Device refresh timeout elapsed, current devices:",
-          connectedDevices.length
-        );
-        // Log again after timeout
-        console.log(
-          "Redux state after timeout:",
-          "connectionStatuses:",
-          deviceConnectionStatuses,
-          "summary:",
-          deviceConnectionSummary
-        );
-        setIsLoadingDevices(false);
-      }, 1500);
-    } catch (error) {
-      console.error("Error refreshing device status:", error);
-      setIsLoadingDevices(false);
-    }
+  // Handle refresh devices
+  const handleRefreshDevices = () => {
+    dispatch(fetchPTSDeviceList());
   };
 
-  // Function to manually refresh the SignalR connection entirely
-  const refreshSignalRConnection = async () => {
-    //Cursor
-    try {
-      console.log("Attempting to refresh SignalR connection...");
-      await SignalRService.refreshConnection();
-      console.log("SignalR connection refreshed.");
-    } catch (error) {
-      console.error("Error refreshing SignalR connection:", error);
-    }
+  // Handle opening scan section
+  const handleOpenScanSection = () => {
+    setShowScanSection(true);
+    setSelectedDevice(null);
+    setDetectedTags([]);
+    setScanning(false);
+  };
+
+  // Handle closing scan section
+  const handleCloseScanSection = () => {
+    setShowScanSection(false);
+    setSelectedDevice(null);
+    setDetectedTags([]);
+    setScanning(false);
   };
 
   useEffect(() => {
@@ -249,62 +96,8 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     }
   }, [ruleSets, tag]);
 
-  // Monitor for detected tags when in scan mode from raw device data
-  useEffect(() => {
-    if (formMode === "scan" && selectedDevice && scanning && rawDeviceData) {
-      // Check for tags in the pumps section
-      if (rawDeviceData.pumps) {
-        const pumps = rawDeviceData.pumps;
-
-        // Check idle pumps
-        if (pumps.idleStatus && pumps.idleStatus.tags && pumps.idleStatus.ids) {
-          pumps.idleStatus.tags.forEach((tag, index) => {
-            if (tag && tag.trim() !== "") {
-              const pumpId = pumps.idleStatus.ids[index];
-              addDetectedTag(tag, `pump-${pumpId}`, "idle");
-            }
-          });
-        }
-
-        // Check filling pumps
-        if (
-          pumps.fillingStatus &&
-          pumps.fillingStatus.tags &&
-          pumps.fillingStatus.ids
-        ) {
-          pumps.fillingStatus.tags.forEach((tag, index) => {
-            if (tag && tag.trim() !== "") {
-              const pumpId = pumps.fillingStatus.ids[index];
-              addDetectedTag(tag, `pump-${pumpId}`, "filling");
-            }
-          });
-        }
-      }
-
-      // Check for tags in readers
-      if (rawDeviceData.readers) {
-        const readers = rawDeviceData.readers;
-
-        // Check online readers
-        if (
-          readers.onlineStatus &&
-          readers.onlineStatus.tags &&
-          readers.onlineStatus.ids
-        ) {
-          readers.onlineStatus.tags.forEach((tag, index) => {
-            if (tag && tag.trim() !== "") {
-              const readerId = readers.onlineStatus.ids[index];
-              addDetectedTag(tag, `reader-${readerId}`, "online");
-            }
-          });
-        }
-      }
-    }
-  }, [formMode, selectedDevice, scanning, rawDeviceData]); //Cursor
-
   // Helper function to add a detected tag
   const addDetectedTag = (tagId, source, sourceStatus) => {
-    //Cursor
     setDetectedTags((prev) => {
       if (!prev.some((t) => t.tagId === tagId)) {
         return [
@@ -321,41 +114,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     });
   };
 
-  // Original monitor effect for deviceReaderStatus (keep this as a backup)
-  useEffect(() => {
-    if (formMode === "scan" && selectedDevice && scanning) {
-      // Reset detected tags when starting to scan
-      if (detectedTags.length === 0) {
-        setDetectedTags([]);
-      }
-
-      // Start monitoring selected device readers for tags
-      const monitorInterval = setInterval(() => {
-        if (deviceReaderStatus[selectedDevice]) {
-          const readers = deviceReaderStatus[selectedDevice];
-
-          // Look for any readers with tags
-          Object.values(readers).forEach((reader) => {
-            if (reader.status === "online" && reader.tag) {
-              // Add to detected tags if not already in the list
-              addDetectedTag(reader.tag, reader.id, reader.status);
-            }
-          });
-        }
-      }, 1000); // Check every second
-
-      return () => clearInterval(monitorInterval);
-    }
-  }, [formMode, selectedDevice, scanning, deviceReaderStatus]);
-
-  // Monitor for deviceReaderStatus updates for the selected device
-  useEffect(() => {
-    if (selectedDevice && deviceReaderStatus[selectedDevice]) {
-      // When reader status is received, stop loading indicator
-      setIsLoadingReaders(false);
-    }
-  }, [selectedDevice, deviceReaderStatus]);
-
   const handleFieldChange = (fieldName, value) => {
     setFormData({ ...formData, [fieldName]: value });
 
@@ -367,34 +125,11 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     }
   };
 
-  const handleFormModeChange = (e) => {
-    setFormMode(e.value);
-    if (e.value === "scan") {
-      // Reset scanning related state
-      setSelectedDevice(null);
-      setDetectedTags([]);
-    }
-  };
-
   const handleDeviceChange = (e) => {
-    const deviceId = e.value;
+    const deviceId = e.target.value;
     setSelectedDevice(deviceId);
     setDetectedTags([]);
     setScanning(false);
-
-    // Request specific device status when selected
-    if (deviceId) {
-      setIsLoadingReaders(true);
-      setDeviceRequestSent((prev) => ({ ...prev, [deviceId]: true }));
-
-      // Request device status to get current reader status
-      SignalRService.requestDeviceStatus(deviceId);
-
-      // Set a timeout to ensure UI feedback even if no response
-      setTimeout(() => {
-        setIsLoadingReaders(false);
-      }, 3000);
-    }
   };
 
   const toggleScanning = () => {
@@ -407,11 +142,8 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
       name: tagData.tagId,
     }));
 
-    // Switch back to manual mode to complete the form
-    setFormMode("manual");
-    setSelectedDevice(null);
-    setDetectedTags([]);
-    setScanning(false);
+    // Close scan section after selecting a tag
+    handleCloseScanSection();
   };
 
   const validateForm = () => {
@@ -450,7 +182,7 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     }
   };
 
-  // Update the renderTagItem function for better display formatting
+  // Render the tag item
   const renderTagItem = (item) => {
     const timestamp = new Date(item.detectedAt).toLocaleTimeString();
     const sourceLabel = item.sourceStatus
@@ -470,134 +202,14 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     );
   };
 
-  // Render the device item with just the ID and status
-  const renderDeviceItem = (item) => {
-    return (
-      <div className="device-item">
-        <div className="tw-flex tw-flex-col">
-          <span className="device-name">{item.name}</span>
-        </div>
-        <span
-          className={`device-status device-status-${
-            item.status === "Connected" ? "online" : "offline"
-          }`}
-        >
-          {item.status}
-        </span>
-      </div>
-    );
-  };
-
-  // Create a helper function to get processed reader status
-  const getReaderStatus = () => {
-    if (!selectedDevice || !rawDeviceData?.readers) {
-      return [];
-    }
-
-    const readers = [];
-    const readersData = rawDeviceData.readers;
-
-    // Process online readers
-    if (
-      readersData.onlineStatus &&
-      readersData.onlineStatus.ids &&
-      Array.isArray(readersData.onlineStatus.ids)
-    ) {
-      const onlineIds = readersData.onlineStatus.ids;
-      const onlineTags = readersData.onlineStatus.tags || [];
-      const onlineErrors = readersData.onlineStatus.errors || [];
-
-      onlineIds.forEach((id, index) => {
-        readers.push({
-          id: id,
-          status: "online",
-          tag: onlineTags[index] || null,
-          error: onlineErrors[index] || null,
-        });
-      });
-    }
-
-    // Process offline readers
-    if (
-      readersData.offlineStatus &&
-      readersData.offlineStatus.ids &&
-      Array.isArray(readersData.offlineStatus.ids)
-    ) {
-      const offlineIds = readersData.offlineStatus.ids;
-
-      offlineIds.forEach((id) => {
-        readers.push({
-          id: id,
-          status: "offline",
-          tag: null,
-          error: null,
-        });
-      });
-    }
-
-    // If no readers found from data structure, but we know the device exists,
-    // add a default reader as fallback
-    if (readers.length === 0 && selectedDevice) {
-      readers.push({
-        id: 1,
-        status: "unknown",
-        tag: null,
-        error: "No reader information available",
-      });
-    }
-
-    return readers;
-  };
-
-  // Function to refresh specific device status
-  const refreshCurrentDeviceStatus = async () => {
-    //Cursor
-    if (!selectedDevice) return;
-
-    setIsLoadingReaders(true);
-    try {
-      await SignalRService.requestDeviceStatus(selectedDevice);
-      // Set a timeout to ensure UI feedback
-      setTimeout(() => {
-        if (!rawDeviceData?.readers) {
-          setIsLoadingReaders(false);
-        }
-      }, 3000);
-    } catch (error) {
-      console.error("Error refreshing device status:", error);
-      setIsLoadingReaders(false);
-    }
-  };
-
-  // Add function to simulate a tag being detected (for testing)
-  const simulateTagDetection = () => {
-    //Cursor
-    if (selectedDevice && scanning) {
-      const mockTagId = `TAG${Math.floor(Math.random() * 10000)
-        .toString()
-        .padStart(5, "0")}`;
-      addDetectedTag(mockTagId, `simulated-reader-1`, "simulation");
-    }
-  };
-
-  // Update the TagScanForm component's props
+  // Simplified TagScanForm component
   const TagScanForm = memo(
     ({
-      devices,
-      connectedDevices,
-      deviceConnectionStatuses,
-      deviceConnectionSummary,
+      ptsDevices,
+      ptsDevicesLoading,
       selectedDevice,
       detectedTags,
       scanning,
-      isLoadingDevices,
-      isLoadingReaders,
-      deviceReaderStatus,
-      rawDeviceData,
-      getReaderStatus,
-      simulateTagDetection,
-      onRefreshCurrentDevice,
-      onRefreshConnection,
       onDeviceChange,
       onToggleScanning,
       onTagSelect,
@@ -608,80 +220,60 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
           <div className="scan-section">
             <div className="tw-flex tw-items-center tw-mb-4">
               <h4 className="tw-flex-1 tw-mb-0">Select Device</h4>
-              <div className="tw-flex">
-                <Button
-                  icon="fa-light fa-refresh"
-                  hint="Refresh devices"
-                  onClick={onRefreshDevices}
-                  disabled={isLoadingDevices}
-                  className="tw-mr-2"
-                />
-                <Button
-                  icon="fa-light fa-wifi"
-                  hint="Refresh SignalR connection"
-                  onClick={onRefreshConnection}
-                  type="default"
-                />
-              </div>
+              <Button
+                icon="fa-light fa-refresh"
+                hint="Refresh devices"
+                stylingMode="text"
+                onClick={onRefreshDevices}
+                disabled={ptsDevicesLoading}
+              />
             </div>
 
-            {isLoadingDevices ? (
+            {ptsDevicesLoading ? (
               <div className="tw-py-4 tw-text-center">
                 <span>Loading devices...</span>
               </div>
-            ) : connectedDevices.length === 0 ? (
-              <div className="tw-py-4 tw-text-center tw-bg-gray-100 tw-rounded tw-border tw-border-gray-300">
-                <p>No connected devices found</p>
-                <div className="tw-flex tw-justify-center tw-mt-2 tw-space-x-2">
-                  <Button text="Refresh Devices" onClick={onRefreshDevices} />
-                  <Button
-                    text="Reconnect SignalR"
-                    onClick={onRefreshConnection}
-                    type="default"
-                  />
-                </div>
+            ) : ptsDevices.length === 0 ? (
+              <div className="tw-py-4 tw-text-center tw-bg-gray-100 tw-rounded">
+                <p className="tw-text-gray-600">No devices found</p>
+                <Button
+                  text="Refresh Devices"
+                  icon="fa-light fa-refresh"
+                  stylingMode="text"
+                  onClick={onRefreshDevices}
+                />
               </div>
             ) : (
-              <SelectBox
-                dataSource={connectedDevices} // Simplified - no grouping
-                placeholder="Select a device"
-                displayExpr="name"
-                valueExpr="id"
-                value={selectedDevice}
-                onValueChanged={onDeviceChange}
+              <select
+                className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded tw-bg-white"
+                value={selectedDevice || ""}
+                onChange={onDeviceChange}
                 disabled={scanning}
-                itemRender={renderDeviceItem}
-                searchEnabled={true}
-                searchExpr={["name", "id"]}
-              />
+              >
+                <option value="">-- Select a device --</option>
+                {ptsDevices.map((device) => (
+                  <option key={device.deviceId} value={device.deviceId}>
+                    {device.ptsName || device.deviceId}
+                  </option>
+                ))}
+              </select>
             )}
 
             {selectedDevice && (
               <div className="scan-controls tw-mt-5">
                 <Button
                   text={scanning ? "Stop Scanning" : "Start Scanning"}
-                  type={scanning ? "danger" : "success"}
+                  stylingMode="text"
                   onClick={onToggleScanning}
                   disabled={!selectedDevice}
                   icon={scanning ? "fa-light fa-stop" : "fa-light fa-play"}
+                  className={scanning ? "tw-text-red-500" : "tw-text-green-500"}
                 />
-
-                {/* Add simulation button for testing */}
-                {scanning && (
-                  <Button
-                    text="Simulate Tag Scan"
-                    type="default"
-                    stylingMode="outlined"
-                    className="tw-ml-2"
-                    onClick={simulateTagDetection}
-                    disabled={!scanning}
-                  />
-                )}
               </div>
             )}
           </div>
 
-          <div className="detected-tags">
+          <div className="detected-tags tw-mt-4">
             <div className="tw-flex tw-justify-between tw-items-center tw-mb-2">
               <h4 className="tw-mb-0">Detected Tags</h4>
               {detectedTags.length > 0 && (
@@ -696,10 +288,11 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
                 <List
                   dataSource={detectedTags}
                   itemRender={renderTagItem}
-                  height={Math.min(250, detectedTags.length * 75 + 20)} // Increased height for better display
+                  height={Math.min(250, detectedTags.length * 75 + 20)}
                   focusStateEnabled={false}
                   activeStateEnabled={false}
                   hoverStateEnabled={false}
+                  onItemClick={(e) => onTagSelect(e.itemData)}
                 />
               </div>
             ) : scanning ? (
@@ -714,82 +307,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
               </p>
             )}
           </div>
-
-          {
-            // Reader status display
-            selectedDevice && (
-              <div className="reader-status tw-mt-4">
-                <div className="tw-flex tw-justify-between tw-items-center">
-                  <h4 className="tw-mb-0">Reader Status</h4>
-                  <Button
-                    icon="fa-light fa-refresh"
-                    hint="Refresh reader status"
-                    onClick={onRefreshCurrentDevice}
-                    disabled={isLoadingReaders}
-                  />
-                </div>
-
-                {isLoadingReaders ? (
-                  <div className="tw-text-center tw-py-4">
-                    <span>Loading readers...</span>
-                  </div>
-                ) : getReaderStatus().length > 0 ? (
-                  <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-mt-2">
-                    {getReaderStatus().map((reader) => (
-                      <div
-                        key={reader.id}
-                        className={`tw-p-2 tw-rounded tw-border ${
-                          reader.status === "online"
-                            ? "tw-border-green-500 tw-bg-green-50"
-                            : reader.status === "offline"
-                            ? "tw-border-red-300 tw-bg-red-50"
-                            : "tw-border-yellow-300 tw-bg-yellow-50"
-                        }`}
-                      >
-                        <div className="tw-font-medium">Reader {reader.id}</div>
-                        <div className="tw-flex tw-justify-between tw-items-center">
-                          <span
-                            className={`tw-text-sm ${
-                              reader.status === "online"
-                                ? "tw-text-green-600"
-                                : reader.status === "offline"
-                                ? "tw-text-red-600"
-                                : "tw-text-yellow-600"
-                            }`}
-                          >
-                            {reader.status === "online"
-                              ? "Online"
-                              : reader.status === "offline"
-                              ? "Offline"
-                              : "Unknown"}
-                          </span>
-                          {reader.tag && (
-                            <span className="tw-text-sm tw-bg-blue-100 tw-px-2 tw-py-1 tw-rounded">
-                              Tag: {reader.tag}
-                            </span>
-                          )}
-                          {reader.error && (
-                            <span className="tw-text-sm tw-text-red-500">
-                              {reader.error}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="tw-py-4 tw-text-center tw-bg-gray-100 tw-rounded tw-border tw-border-gray-300">
-                    <p>No readers found for this device</p>
-                    <Button
-                      text="Refresh Device Status"
-                      onClick={onRefreshCurrentDevice}
-                      className="tw-mt-2"
-                    />
-                  </div>
-                )}
-              </div>
-            )
-          }
         </div>
       );
     }
@@ -798,106 +315,110 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
   const renderTagScanForm = () => {
     return (
       <TagScanForm
-        devices={devices}
-        connectedDevices={connectedDevices}
-        deviceConnectionStatuses={deviceConnectionStatuses}
-        deviceConnectionSummary={deviceConnectionSummary}
+        ptsDevices={ptsDevices}
+        ptsDevicesLoading={ptsDevicesLoading}
         selectedDevice={selectedDevice}
         detectedTags={detectedTags}
         scanning={scanning}
-        isLoadingDevices={isLoadingDevices}
-        isLoadingReaders={isLoadingReaders}
-        deviceReaderStatus={deviceReaderStatus}
-        rawDeviceData={rawDeviceData}
-        getReaderStatus={getReaderStatus}
-        simulateTagDetection={simulateTagDetection}
-        onRefreshCurrentDevice={refreshCurrentDeviceStatus}
-        onRefreshConnection={refreshSignalRConnection}
         onDeviceChange={handleDeviceChange}
         onToggleScanning={toggleScanning}
         onTagSelect={selectDetectedTag}
-        onRefreshDevices={refreshDeviceStatus}
+        onRefreshDevices={handleRefreshDevices}
       />
     );
   };
 
   // Use React.memo to prevent unnecessary re-renders
   const ManualTagForm = memo(
-    ({ formData, validationErrors, ruleSets, vehicles, handleFieldChange }) => {
+    ({ formData, validationErrors, ruleSets, handleFieldChange, onOpenScan, isNewTag }) => {
       return (
         <div style={{ marginTop: 10 }}>
-          <Form
-            formData={formData}
-            labelLocation="top"
-            showColonAfterLabel={true}
-            validationGroup="tagForm"
-          >
-            <SimpleItem
-              dataField="name"
-              label={{ text: "Tag ID" }}
-              editorOptions={{
-                placeholder: "Enter tag ID (e.g. 123457890123)",
-                onValueChanged: (e) => handleFieldChange("name", e.value),
-              }}
-              isRequired={true}
-              validationError={validationErrors.name}
-            />
+          {/* Tag ID with Scan Button */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Tag ID <span className="tw-text-red-500">*</span>
+            </label>
+            <div className="tw-flex tw-gap-2 tw-items-center">
+              <input
+                type="text"
+                className="tw-flex-1 tw-p-2 tw-border tw-border-gray-300 tw-rounded tw-bg-white"
+                placeholder="Enter tag ID (e.g. 123457890123)"
+                value={formData.name || ""}
+                onChange={(e) => handleFieldChange("name", e.target.value)}
+              />
+              {isNewTag && (
+                <Button
+                  icon="fa-light fa-qrcode"
+                  hint="Scan from Reader"
+                  stylingMode="text"
+                  onClick={onOpenScan}
+                  className="scan-button-round"
+                />
+              )}
+            </div>
+            {validationErrors.name && (
+              <span className="tw-text-red-500 tw-text-sm">{validationErrors.name}</span>
+            )}
+          </div>
 
-            <SimpleItem
-              dataField="isEnabled"
-              label={{ text: "Enabled" }}
-              editorType="dxSwitch"
-              editorOptions={{
-                switchedOnText: "Yes",
-                switchedOffText: "No",
-                onValueChanged: (e) => handleFieldChange("isEnabled", e.value),
-              }}
-            />
+          {/* Enabled Checkbox */}
+          <div className="tw-mb-4">
+            <label className="tw-flex tw-items-center tw-cursor-pointer">
+              <input
+                type="checkbox"
+                className="tw-w-4 tw-h-4 tw-mr-2 tw-accent-blue-500"
+                checked={formData.isEnabled}
+                onChange={(e) => handleFieldChange("isEnabled", e.target.checked)}
+              />
+              <span className="tw-text-sm tw-font-medium tw-text-gray-700">Enabled</span>
+            </label>
+          </div>
 
-            <SimpleItem
-              dataField="vehicleId"
-              label={{ text: "Vehicle" }}
-              editorType="dxSelectBox"
-              editorOptions={{
-                dataSource: vehicles,
-                displayExpr: (item) =>
-                  item
-                    ? `${item.numberPlate || ""} (${item.hyoungNo || ""})`
-                    : "",
-                valueExpr: "vehicleId",
-                searchEnabled: true,
-                showClearButton: true,
-                onValueChanged: (e) => handleFieldChange("vehicleId", e.value),
-              }}
+          {/* Vehicle Select */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Vehicle
+            </label>
+            <VehicleSearchableSelector
+              value={formData.vehicleId}
+              onValueChanged={(e) => handleFieldChange("vehicleId", e.value)}
+              placeholder="Search vehicle by plate or Hyoung No..."
             />
+          </div>
 
-            <SimpleItem
-              dataField="isMaster"
-              label={{ text: "Master Tag" }}
-              editorType="dxSwitch"
-              editorOptions={{
-                switchedOnText: "Yes",
-                switchedOffText: "No",
-                onValueChanged: (e) => handleFieldChange("isMaster", e.value),
-              }}
-            />
+          {/* Master Tag Checkbox */}
+          <div className="tw-mb-4">
+            <label className="tw-flex tw-items-center tw-cursor-pointer">
+              <input
+                type="checkbox"
+                className="tw-w-4 tw-h-4 tw-mr-2 tw-accent-blue-500"
+                checked={formData.isMaster}
+                onChange={(e) => handleFieldChange("isMaster", e.target.checked)}
+              />
+              <span className="tw-text-sm tw-font-medium tw-text-gray-700">Master Tag</span>
+            </label>
+          </div>
 
-            <SimpleItem
-              dataField="fuelRuleSetId"
-              label={{ text: "Fueling Rule Set" }}
-              editorType="dxSelectBox"
-              editorOptions={{
-                dataSource: ruleSets,
-                displayExpr: "name",
-                valueExpr: "id",
-                searchEnabled: true,
-                showClearButton: true,
-                onValueChanged: (e) =>
-                  handleFieldChange("fuelRuleSetId", e.value),
-              }}
-            />
+          {/* Fueling Rule Set Select */}
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Fueling Rule Set
+            </label>
+            <select
+              className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded tw-bg-white"
+              value={formData.fuelRuleSetId || ""}
+              onChange={(e) => handleFieldChange("fuelRuleSetId", e.target.value ? parseInt(e.target.value) : null)}
+            >
+              <option value="">-- Select a rule set --</option>
+              {ruleSets.map((ruleSet) => (
+                <option key={ruleSet.id} value={ruleSet.id}>
+                  {ruleSet.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-            {formData.fuelRuleSetId && (
+          {formData.fuelRuleSetId && (
               <div className="rule-set-info">
                 <h4>Rule Set Details</h4>
                 {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
@@ -941,7 +462,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
                 )}
               </div>
             )}
-          </Form>
         </div>
       );
     }
@@ -953,8 +473,9 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
         formData={formData}
         validationErrors={validationErrors}
         ruleSets={ruleSets}
-        vehicles={vehicles}
         handleFieldChange={handleFieldChange}
+        onOpenScan={handleOpenScanSection}
+        isNewTag={!tag}
       />
     );
   };
@@ -966,74 +487,54 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
       title={tag ? "Edit Tag" : "Add New Tag"}
       showCloseButton={true}
       width={600}
-      height={formMode === "scan" ? "auto" : 550}
+      height={700}
       className="tag-form-popup"
     >
-      <div className="tag-form-container">
-        {!tag && ( // Only show mode selection for new tags
-          <div className="form-mode-selector">
-            <Tabs
-              items={[
-                {
-                  id: "manual",
-                  text: "Enter Tag Manually",
-                  icon: "fa-light fa-keyboard",
-                },
-                {
-                  id: "scan",
-                  text: "Scan Tag from Reader",
-                  icon: "fa-light fa-qrcode",
-                },
-              ]}
-              selectedIndex={formMode === "manual" ? 0 : 1}
-              onItemClick={(e) => {
-                console.log("Tab clicked:", e.itemData.id);
-                // Defer the state update to avoid React reconciliation issues
-                setTimeout(() => {
-                  setFormMode(e.itemData.id);
-                  if (e.itemData.id === "scan") {
-                    setSelectedDevice(null);
-                    setDetectedTags([]);
-                  }
-                }, 0);
-              }}
-              itemRender={(item) => (
-                <span>
-                  <i className={item.icon} style={{ marginRight: 8 }} />
-                  {item.text}
-                </span>
-              )}
-            />
+      <ScrollView height="100%" showScrollbar="onScroll">
+        <div className="tag-form-container">
+          {/* Main Form */}
+          <div className="form-content">
+            {renderManualTagForm()}
+          </div>
+
+        {/* Scan Section - shown when user clicks "Scan from Reader" */}
+        {showScanSection && (
+          <div className="scan-section-container tw-mt-4 tw-p-4 tw-border tw-border-blue-300 tw-rounded tw-bg-blue-50">
+            <div className="tw-flex tw-justify-between tw-items-center tw-mb-3">
+              <h4 className="tw-text-lg tw-font-semibold tw-text-blue-800 tw-mb-0">
+                <i className="fa-light fa-qrcode tw-mr-2"></i>
+                Scan Tag from Reader
+              </h4>
+              <Button
+                icon="fa-light fa-times"
+                hint="Close"
+                stylingMode="text"
+                onClick={handleCloseScanSection}
+              />
+            </div>
+            {renderTagScanForm()}
           </div>
         )}
 
-        <div className="form-content">
-          <div key={`form-mode-${formMode}`}>
-            {formMode === "manual"
-              ? renderManualTagForm()
-              : renderTagScanForm()}
+          <div className="form-bottom">
+            <div className="form-actions tw-flex tw-justify-end tw-mt-6">
+              <Button
+                text="Cancel"
+                stylingMode="text"
+                onClick={onClose}
+                className="tw-mr-3"
+              />
+              <Button
+                text="Save"
+                type="default"
+                stylingMode="text"
+                onClick={handleSubmit}
+                disabled={loading}
+              />
+            </div>
           </div>
         </div>
-
-        <div className="form-bottom">
-          <div className="form-actions tw-flex tw-justify-end tw-mt-10">
-            <Button
-              text="Cancel"
-              stylingMode="outlined"
-              type="normal"
-              onClick={onClose}
-              className="tw-mr-3"
-            />
-            <Button
-              text="Save"
-              type="default"
-              stylingMode="contained"
-              onClick={handleSubmit}
-              disabled={loading || (formMode === "scan" && !formData.name)}
-            />
-          </div>
-        </div>
-      </div>
+      </ScrollView>
 
       <LoadPanel
         visible={loading}

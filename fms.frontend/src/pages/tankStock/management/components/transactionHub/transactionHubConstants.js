@@ -7,16 +7,19 @@
 /**
  * Volume Change Reason Enum mapping
  * Maps numeric IDs to human-readable names for transaction types
+ * IMPORTANT: Must match backend enum in FMS.Domain/Entities/enums/VolumeChangeReasonEnum.cs
  */
 export const VolumeChangeReasonEnum = [
-  { id: 0, name: 'OpeningStock' },
-  { id: 1, name: 'ClosingStock' },
+  { id: 0, name: 'Opening Stock' },
+  { id: 1, name: 'Closing Stock' },
   { id: 2, name: 'Delivery' },
-  { id: 3, name: 'TransferIn' },
-  { id: 4, name: 'TransferOut' },
+  { id: 3, name: 'Transfer In' },
+  { id: 4, name: 'Transfer Out' },
   { id: 5, name: 'Adjustment' },
   { id: 6, name: 'Dispensing' },
-  { id: 7, name: 'ManualRefill' }
+  { id: 7, name: 'Automated Dispensing' },
+  { id: 8, name: 'Reconciliation' },
+  { id: 9, name: 'Automated Reconciliation' }
 ];
 
 /**

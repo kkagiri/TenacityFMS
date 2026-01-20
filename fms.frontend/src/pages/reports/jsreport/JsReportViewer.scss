@@ -1,0 +1,137 @@
+/**
+ * File: JsReportViewer.scss
+ * Purpose: Styles for JsReport Viewer component
+ * Last Modified: 2026-01-19
+ */
+
+.jsreport-viewer {
+  @apply tw-h-full tw-flex tw-flex-col tw-bg-gray-100;
+
+  .viewer-header {
+    @apply tw-flex tw-justify-between tw-items-center tw-p-4 tw-bg-white tw-border-b tw-border-gray-200;
+
+    .header-left {
+      @apply tw-flex tw-items-center;
+
+      h2 {
+        @apply tw-m-0;
+      }
+    }
+  }
+
+  .viewer-content {
+    @apply tw-flex tw-flex-1 tw-gap-4 tw-p-4 tw-overflow-hidden;
+    min-height: 0;
+
+    .filters-panel {
+      @apply tw-w-72 tw-bg-white tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-overflow-hidden;
+      flex-shrink: 0;
+
+      .panel-header {
+        @apply tw-px-4 tw-py-3 tw-bg-gray-700 tw-text-white tw-font-medium tw-flex tw-items-center;
+      }
+
+      .filters-form {
+        @apply tw-flex-1 tw-overflow-y-auto tw-p-4;
+
+        .filter-group {
+          @apply tw-mb-4;
+
+          label {
+            @apply tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1;
+          }
+
+          .dx-selectbox,
+          .dx-datebox {
+            @apply tw-w-full;
+          }
+        }
+
+        .filter-actions {
+          @apply tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200;
+        }
+      }
+    }
+
+    .preview-panel {
+      @apply tw-flex-1 tw-bg-white tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-overflow-hidden;
+      min-width: 0;
+
+      .panel-header {
+        @apply tw-flex tw-justify-between tw-items-center tw-px-4 tw-py-3 tw-bg-gray-700 tw-text-white tw-font-medium;
+
+        .header-left {
+          @apply tw-flex tw-items-center;
+        }
+
+        .header-actions {
+          @apply tw-flex tw-items-center tw-gap-1;
+
+          .dx-button {
+            @apply tw-text-white;
+          }
+        }
+      }
+
+      .preview-content {
+        @apply tw-flex-1 tw-overflow-hidden tw-relative;
+        min-height: 0;
+
+        .preview-iframe {
+          @apply tw-w-full tw-h-full tw-border-0;
+        }
+
+        .preview-placeholder {
+          @apply tw-absolute tw-inset-0 tw-flex tw-flex-col tw-items-center tw-justify-center tw-text-center;
+        }
+      }
+    }
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 1024px) {
+  .jsreport-viewer {
+    .viewer-content {
+      @apply tw-flex-col;
+
+      .filters-panel {
+        @apply tw-w-full;
+        max-height: 300px;
+
+        .filters-form {
+          @apply tw-grid tw-grid-cols-2 tw-gap-4;
+
+          .filter-group {
+            @apply tw-mb-0;
+          }
+
+          .filter-actions {
+            @apply tw-col-span-2;
+          }
+        }
+      }
+
+      .preview-panel {
+        @apply tw-flex-1;
+        min-height: 400px;
+      }
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .jsreport-viewer {
+    .viewer-content {
+      .filters-panel {
+        .filters-form {
+          @apply tw-grid-cols-1;
+
+          .filter-actions {
+            @apply tw-col-span-1;
+          }
+        }
+      }
+    }
+  }
+}

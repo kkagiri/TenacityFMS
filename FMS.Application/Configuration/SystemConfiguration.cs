@@ -248,6 +248,21 @@ namespace FMS.Application.Configuration
         public const string DB_CONFIG_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK_KEY = "PTS.AutomatedFueling.EnableGPSFuelLevelCheck";
         #endregion
 
+        #region PTS Offline Report Configuration Keys
+        /// <summary>
+        /// Configuration key for minimum offline duration threshold in seconds for reporting
+        /// </summary>
+        public const string DB_CONFIG_PTS_OFFLINE_THRESHOLD_SECONDS_KEY = "PTS.OfflineReport.ThresholdSeconds";
+        #endregion
+
+        #region PTS Offline Report Default Values
+        /// <summary>
+        /// Default minimum offline duration threshold in seconds (60 = 1 minute)
+        /// Offline periods shorter than this are not counted in reports
+        /// </summary>
+        public const int DEFAULT_PTS_OFFLINE_THRESHOLD_SECONDS = 60;
+        #endregion
+
         #region PTS Automated Fueling Default Values
         public const bool DEFAULT_PTS_UPDATE_TANK_VOLUME_FROM_BOOKKEEPING = true;
         public const bool DEFAULT_PTS_USE_PTS_PROBE_READINGS = false;

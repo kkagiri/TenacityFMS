@@ -25,7 +25,7 @@ const PumpTransactionGroupingControls = ({
             <CheckBox
               text="Date"
               value={groupBy.date}
-              onValueChanged={() => onGroupByChange("date")}
+              onValueChanged={(e) => onGroupByChange("date", e.value)}
             />
             <i className="fa-light fa-calendar tw-ml-1 tw-text-gray-500"></i>
           </div>
@@ -35,7 +35,7 @@ const PumpTransactionGroupingControls = ({
             <CheckBox
               text="Site"
               value={groupBy.site}
-              onValueChanged={() => onGroupByChange("site")}
+              onValueChanged={(e) => onGroupByChange("site", e.value)}
             />
             <i className="fa-light fa-building tw-ml-1 tw-text-gray-500"></i>
           </div>
@@ -45,7 +45,7 @@ const PumpTransactionGroupingControls = ({
             <CheckBox
               text="Tank"
               value={groupBy.tank}
-              onValueChanged={() => onGroupByChange("tank")}
+              onValueChanged={(e) => onGroupByChange("tank", e.value)}
             />
             <i className="fa-light fa-gas-pump tw-ml-1 tw-text-gray-500"></i>
           </div>
@@ -55,7 +55,7 @@ const PumpTransactionGroupingControls = ({
             <CheckBox
               text="Vehicle"
               value={groupBy.vehicle}
-              onValueChanged={() => onGroupByChange("vehicle")}
+              onValueChanged={(e) => onGroupByChange("vehicle", e.value)}
             />
             <i className="fa-light fa-truck tw-ml-1 tw-text-gray-500"></i>
           </div>
@@ -65,7 +65,7 @@ const PumpTransactionGroupingControls = ({
             <CheckBox
               text="PTS Device"
               value={groupBy.ptsDevice}
-              onValueChanged={() => onGroupByChange("ptsDevice")}
+              onValueChanged={(e) => onGroupByChange("ptsDevice", e.value)}
             />
             <i className="fa-light fa-microchip tw-ml-1 tw-text-gray-500"></i>
           </div>

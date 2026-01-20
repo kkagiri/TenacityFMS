@@ -5,7 +5,8 @@ import Tabs from "devextreme-react/tabs";
 import { Button } from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
-import { getPTSDeviceById } from "../../../redux/actions/ptsActions/ptsDeviceActions";
+import { confirm } from "devextreme/ui/dialog";
+import { getPTSDeviceById, deletePTSDevice } from "../../../redux/actions/ptsActions/ptsDeviceActions";
 import ptsSignalRService from "../../../signalR/ptsSignalRService";
 import PTSDeviceLiveInfo from "./components/PTSDeviceLiveInfo";
 import PTSDeviceTerminal from "./components/PTSDeviceTerminal";
@@ -189,6 +190,29 @@ const PTSDeviceDetailPage = () => {
     notify("Device settings updated successfully", "success", 3000);
   }, [dispatch, deviceid]);
 
+  // Handle device delete
+  const handleDeleteDevice = useCallback(async () => {
+    const result = await confirm(
+      `<div class="tw-text-center">
+        <i class="fa-light fa-triangle-exclamation tw-text-4xl tw-text-red-500 tw-mb-4"></i>
+        <p class="tw-text-lg tw-font-semibold tw-mb-2">Delete Device?</p>
+        <p class="tw-text-gray-600">Are you sure you want to delete <strong>${device?.ptsName || device?.ptsid}</strong>?</p>
+        <p class="tw-text-sm tw-text-red-500 tw-mt-2">This action cannot be undone.</p>
+      </div>`,
+      "Confirm Delete"
+    );
+
+    if (result) {
+      try {
+        await dispatch(deletePTSDevice(deviceid));
+        notify("Device deleted successfully", "success", 3000);
+        navigate("/admin/ptsdevice");
+      } catch (error) {
+        notify(`Failed to delete device: ${error.message}`, "error", 3000);
+      }
+    }
+  }, [dispatch, deviceid, device, navigate]);
+
   // Check if device is connected via WebSocket
   const isWebSocketConnected = useMemo(() => {
     return (
@@ -351,13 +375,21 @@ const PTSDeviceDetailPage = () => {
     <div className="pts-device-detail-page tw-p-2 md:tw-p-6">
       {/* Header Section */}
       <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-4 md:tw-p-6 tw-mb-6">
-        {/* Back Button */}
-        <div className="tw-mb-4">
+        {/* Header Actions */}
+        <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
           <Button
             icon="fa-light fa-arrow-left"
             onClick={handleBackToList}
             stylingMode="text"
             hint="Back to Device List"
+          />
+          <Button
+            icon="fa-light fa-trash"
+            text="Delete"
+            onClick={handleDeleteDevice}
+            stylingMode="outlined"
+            type="danger"
+            hint="Delete this device"
           />
         </div>
 

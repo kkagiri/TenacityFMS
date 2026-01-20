@@ -6,6 +6,7 @@
     "@devexpress/analytics-core": "23.2.8",
     "@headlessui/react": "^2.2.2",
     "@microsoft/signalr": "^8.0.7",
+    "@monaco-editor/react": "^4.7.0",
     "@reduxjs/toolkit": "^2.2.7",
     "@testing-library/jest-dom": "^6.4.2",
     "@testing-library/react": "^14.2.1",

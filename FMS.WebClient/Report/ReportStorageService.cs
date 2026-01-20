@@ -36,18 +36,46 @@ public class ReportStorageService : ReportStorageWebExtension
 
     public override bool IsValidUrl(string url)
     {
-        // Validate URL format - only allow simple names without path separators
-        return !string.IsNullOrEmpty(url) && !url.Contains('/') && !url.Contains('\\');
+        // Empty URL is valid for new reports
+        // Otherwise validate URL format - only allow simple names without path separators
+        return string.IsNullOrEmpty(url) || (!url.Contains('/') && !url.Contains('\\'));
     }
 
     public override byte[] GetData(string url)
     {
+        // Handle empty URL - return a blank report for new report creation
+        if (string.IsNullOrEmpty(url))
+        {
+            using var newReport = new XtraReport
+            {
+                Name = "NewReport",
+                DisplayName = "New Report"
+            };
+            using var ms = new MemoryStream();
+            newReport.SaveLayoutToXml(ms);
+            return ms.ToArray();
+        }
+
         using var context = CreateDbContext();
         var reportItem = context.ReportItems.FirstOrDefault(x => x.Name == url);
 
+        // If report exists but has no layout data, return a blank report layout
+        if (reportItem != null && reportItem.LayoutData == null)
+        {
+            // Create a blank report with the report name
+            using var blankReport = new XtraReport
+            {
+                Name = url,
+                DisplayName = reportItem.DisplayName ?? url
+            };
+            using var ms = new MemoryStream();
+            blankReport.SaveLayoutToXml(ms);
+            return ms.ToArray();
+        }
+
         if (reportItem?.LayoutData == null)
         {
-            throw new InvalidOperationException($"Report '{url}' not found or has no layout data.");
+            throw new InvalidOperationException($"Report '{url}' not found.");
         }
 
         return reportItem.LayoutData;

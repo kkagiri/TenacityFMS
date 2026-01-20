@@ -102,13 +102,7 @@ const FuelingRulesMain = () => {
               <i className="fa-light fa-gas-pump tw-text-blue-600"></i>
               Fueling Rules Management
             </h1>
-            <button
-              className="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-text-sm tw-text-gray-600 hover:tw-text-blue-600 tw-border tw-border-gray-200 tw-rounded-lg hover:tw-border-blue-300 tw-transition-colors"
-              onClick={() => setShowHelp(true)}
-            >
-              <i className="fa-light fa-circle-question"></i>
-              <span>Help Guide</span>
-            </button>
+
           </div>
           <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
             Create rule sets, define fueling limits, and assign rules to sites,
@@ -123,19 +117,21 @@ const FuelingRulesMain = () => {
         />
 
         {/* Tabs Navigation */}
-        <Tabs
-          dataSource={tabData}
-          selectedIndex={activeTab}
-          onItemClick={handleTabChange}
-          className="tw-mb-4"
-          width="100%"
-          repaintChangesOnly={true}
-          itemRender={renderTabItem}
-          noDataText=""
-        />
+        {/* Main Content Area */}
+        <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
+          {/* Tabs Navigation */}
+          <Tabs
+            dataSource={tabData}
+            selectedIndex={activeTab}
+            onItemClick={handleTabChange}
+            width="100%"
+            className="tw-mb-0"
+            itemRender={renderTabItem}
+          />
 
-        {/* Tab Content */}
-        <div className="tab-content">{renderContent()}</div>
+          {/* Tab Content */}
+          <div className="tw-p-4">{renderContent()}</div>
+        </div>
       </div>
     </ScrollView>
   );

@@ -1,3 +1,15 @@
+/**
+ * File: TransactionHistoryScreen.js
+ * Purpose: Displays pump transaction history with filters, summaries, and audit details
+ * Dependencies: react, react-native, react-redux, @react-native-community/datetimepicker, @react-native-picker/picker
+ * Last Modified: 2026-01-19
+ *
+ * Key Functions/Components:
+ * - TransactionHistoryScreen: Main screen component for transaction history
+ * - formatDate(): Formats UTC timestamps to local device time for display
+ * - openLocationInMapsHelper(): Opens site coordinates in a maps app
+ * - getFueledByDisplay(): Resolves a display name for the fueling user
+ */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
@@ -13,10 +25,10 @@ import {
   TextInput,
   Linking,
   ScrollView,
+  Platform,
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import { Picker } from "@react-native-picker/picker";
 
 import {
@@ -84,6 +96,11 @@ const TransactionHistoryScreen = ({ navigation }) => {
   const [searchQuery, setSearchQuery] = useState("");
   const [showAuditModal, setShowAuditModal] = useState(false);
   const [selectedTransaction, setSelectedTransaction] = useState(null);
+
+  // Custom date picker state
+  const [pickerYear, setPickerYear] = useState(new Date().getFullYear());
+  const [pickerMonth, setPickerMonth] = useState(new Date().getMonth() + 1);
+  const [pickerDay, setPickerDay] = useState(new Date().getDate());
 
   // Available pumps for filtering
   const [availablePumps, setAvailablePumps] = useState([]);
@@ -224,9 +241,20 @@ const TransactionHistoryScreen = ({ navigation }) => {
   };
 
   useEffect(() => {
-    // Initial load
-    loadTransactions();
-    loadSummary();
+    const today = new Date();
+    const todayStr = today.toISOString().split("T")[0];
+
+    // Default to today
+    const initialFilters = {
+      ...filters,
+      startDate: filters.startDate || todayStr,
+      endDate: filters.endDate || todayStr,
+    };
+
+    console.log('[TransactionHistory] Initial load with dates:', initialFilters.startDate, 'to', initialFilters.endDate);
+    dispatch(updateFilters(initialFilters));
+    loadTransactions(1, false, initialFilters);
+    loadSummary(initialFilters);
   }, []);
 
   useEffect(() => {
@@ -249,9 +277,10 @@ const TransactionHistoryScreen = ({ navigation }) => {
   }, [ptsDeviceList]);
 
   const loadTransactions = useCallback(
-    (page = 1, refresh = false) => {
+    (page = 1, refresh = false, overrideFilters = null) => {
+      const effectiveFilters = overrideFilters || filters;
       const searchFilters = {
-        ...filters,
+        ...effectiveFilters,
         page,
         pageSize,
       };
@@ -265,12 +294,13 @@ const TransactionHistoryScreen = ({ navigation }) => {
     [dispatch, filters, pageSize, searchQuery]
   );
 
-  const loadSummary = useCallback(() => {
+  const loadSummary = useCallback((overrideFilters = null) => {
+    const effectiveFilters = overrideFilters || filters;
     const summaryFilters = {
-      startDate: filters.startDate,
-      endDate: filters.endDate,
-      pumpId: filters.pumpId,
-      deviceId: filters.deviceId,
+      startDate: effectiveFilters.startDate,
+      endDate: effectiveFilters.endDate,
+      pumpId: effectiveFilters.pumpId,
+      deviceId: effectiveFilters.deviceId,
     };
     dispatch(fetchTransactionSummary(summaryFilters));
   }, [dispatch, filters]);
@@ -290,10 +320,9 @@ const TransactionHistoryScreen = ({ navigation }) => {
   const handleApplyFilters = () => {
     dispatch(updateFilters(tempFilters));
     setShowFilters(false);
-    setTimeout(() => {
-      loadTransactions(1, true);
-      loadSummary();
-    }, 100);
+    // Pass tempFilters directly to ensure we use the new values immediately
+    loadTransactions(1, true, tempFilters);
+    loadSummary(tempFilters);
   };
 
   const handleClearFilters = () => {
@@ -313,21 +342,125 @@ const TransactionHistoryScreen = ({ navigation }) => {
     }, 100);
   };
 
-  const handleDateChange = (event, selectedDate) => {
+  // Open custom date picker modal
+  const openDatePicker = (mode) => {
+    const currentValue =
+      mode === "start" ? tempFilters.startDate : tempFilters.endDate;
+    const initialDate = currentValue ? new Date(currentValue) : new Date();
+    setPickerYear(initialDate.getFullYear());
+    setPickerMonth(initialDate.getMonth() + 1);
+    setPickerDay(initialDate.getDate());
+    setDatePickerMode(mode);
+    setShowDatePicker(true);
+  };
+
+  // Confirm date selection from custom picker
+  const handleDateConfirm = () => {
+    const dateStr = `${pickerYear}-${String(pickerMonth).padStart(2, "0")}-${String(pickerDay).padStart(2, "0")}`;
+    setTempFilters((prev) => ({
+      ...prev,
+      [datePickerMode === "start" ? "startDate" : "endDate"]: dateStr,
+    }));
     setShowDatePicker(false);
-    if (selectedDate) {
-      setTempFilters((prev) => ({
-        ...prev,
-        [datePickerMode === "start" ? "startDate" : "endDate"]: selectedDate
-          .toISOString()
-          .split("T")[0],
-      }));
+  };
+
+  // Get days in month for custom picker
+  const getDaysInMonth = (year, month) => {
+    return new Date(year, month, 0).getDate();
+  };
+
+  // Get the first day of month (0 = Sunday, 1 = Monday, etc.)
+  const getFirstDayOfMonth = (year, month) => {
+    return new Date(year, month - 1, 1).getDay();
+  };
+
+  // Navigate calendar months
+  const navigateMonth = (direction) => {
+    let newMonth = pickerMonth + direction;
+    let newYear = pickerYear;
+
+    if (newMonth > 12) {
+      newMonth = 1;
+      newYear += 1;
+    } else if (newMonth < 1) {
+      newMonth = 12;
+      newYear -= 1;
     }
+
+    // Don't allow future dates
+    const today = new Date();
+    if (newYear > today.getFullYear() ||
+        (newYear === today.getFullYear() && newMonth > today.getMonth() + 1)) {
+      return;
+    }
+
+    setPickerYear(newYear);
+    setPickerMonth(newMonth);
+    // Reset day if it exceeds new month's days
+    const daysInNewMonth = getDaysInMonth(newYear, newMonth);
+    if (pickerDay > daysInNewMonth) {
+      setPickerDay(daysInNewMonth);
+    }
+  };
+
+  // Select a day from calendar
+  const selectDay = (day) => {
+    if (day <= 0) return;
+    // Don't allow future dates
+    const today = new Date();
+    const selectedDate = new Date(pickerYear, pickerMonth - 1, day);
+    if (selectedDate > today) return;
+    setPickerDay(day);
+  };
+
+  // Build calendar grid
+  const buildCalendarGrid = () => {
+    const daysInMonth = getDaysInMonth(pickerYear, pickerMonth);
+    const firstDay = getFirstDayOfMonth(pickerYear, pickerMonth);
+    const today = new Date();
+    const grid = [];
+
+    // Empty cells before first day
+    for (let i = 0; i < firstDay; i++) {
+      grid.push({ day: 0, disabled: true });
+    }
+
+    // Days of month
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateToCheck = new Date(pickerYear, pickerMonth - 1, d);
+      const isFuture = dateToCheck > today;
+      const isToday =
+        d === today.getDate() &&
+        pickerMonth === today.getMonth() + 1 &&
+        pickerYear === today.getFullYear();
+      grid.push({ day: d, disabled: isFuture, isToday });
+    }
+
+    return grid;
+  };
+
+  const parseDateToLocal = (value) => {
+    if (!value) return null;
+    if (value instanceof Date) return value;
+    if (typeof value === "string") {
+      const trimmed = value.trim();
+      const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(trimmed);
+      const hasTime = trimmed.includes("T");
+      if (hasTimezone) {
+        return new Date(trimmed);
+      }
+      if (hasTime) {
+        return new Date(`${trimmed}Z`);
+      }
+      return new Date(trimmed);
+    }
+    return new Date(value);
   };
 
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    const date = parseDateToLocal(dateString);
+    if (!date || Number.isNaN(date.getTime())) return "";
     return (
       date.toLocaleDateString() +
       " " +
@@ -339,9 +472,24 @@ const TransactionHistoryScreen = ({ navigation }) => {
     return `${(volume || 0).toFixed(2)} L`;
   };
 
-  const formatDistance = (distance) => {
-    if (!distance) return "N/A";
-    return `${distance.toLocaleString()} km`;
+  // Format distance (km) or engine hours based on vehicle type
+  const formatDistanceOrHours = (value, isKmPerLiter = true) => {
+    if (!value) return "N/A";
+    if (isKmPerLiter) {
+      return `${value.toLocaleString()} km`;
+    } else {
+      return `${value.toLocaleString()} hr`;
+    }
+  };
+
+  // Format fuel efficiency: km/L for distance-based, L/hr for hour-based vehicles
+  const formatFuelEfficiency = (value, isKmPerLiter = true) => {
+    if (!value) return "N/A";
+    if (isKmPerLiter) {
+      return `${value.toFixed(2)} km/L`;
+    } else {
+      return `${value.toFixed(2)} L/hr`;
+    }
   };
 
   const openLocationInMaps = (item) => {
@@ -365,12 +513,16 @@ const TransactionHistoryScreen = ({ navigation }) => {
       // User who fueled - use helper function
       fueledBy: getFueledByDisplay(item),
 
-      // Odometer data - from API (FuelRefill)
+      // Odometer data - from API (FuelRefill or PumpTransaction history)
       currentOdometer: item.odometer,
       previousOdometer: item.previousOdometer,
+      previousOdometerSource: item.previousOdometerSource, // Source of previous reading for audit
 
-      // Consumption - from API or calculate
+      // Distance/Hours since last refuel
       consumptionSinceLastRefuel: item.consumptionSinceLastRefuel,
+
+      // Fuel efficiency: km/L or L/hr from API
+      fuelEfficiency: item.fuelEfficiency,
 
       // Fuel levels - from API (GPS sensor data if available)
       fuelLevelBefore: item.fuelLevelBefore,
@@ -561,9 +713,11 @@ const TransactionHistoryScreen = ({ navigation }) => {
             <Text style={styles.amountValue}>{formatVolume(item.volume)}</Text>
           </View>
           <View style={styles.amountItem}>
-            <Text style={styles.amountLabel}>Consumption</Text>
+            <Text style={styles.amountLabel}>
+              {item.isKmPerLiter !== false ? "Efficiency" : "Consumption"}
+            </Text>
             <Text style={styles.amountValueConsumption}>
-              {formatDistance(consumption)}
+              {formatFuelEfficiency(item.fuelEfficiency, item.isKmPerLiter !== false)}
             </Text>
           </View>
         </View>
@@ -577,6 +731,80 @@ const TransactionHistoryScreen = ({ navigation }) => {
     );
   };
 
+  // Helper to format date for display
+  const formatDisplayDate = (dateStr) => {
+    if (!dateStr) return 'N/A';
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  // Get today's date string
+  const getTodayStr = () => new Date().toISOString().split("T")[0];
+
+  // Determine which date range button is active
+  const getActiveDateRange = () => {
+    const today = getTodayStr();
+    const todayDate = new Date();
+    const sevenDaysAgo = new Date(todayDate.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    const thirtyDaysAgo = new Date(todayDate.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+
+    if (filters.startDate === today && filters.endDate === today) return 'today';
+    if (filters.startDate === sevenDaysAgo && filters.endDate === today) return '7days';
+    if (filters.startDate === thirtyDaysAgo && filters.endDate === today) return '30days';
+    return 'custom';
+  };
+
+  // Quick date range handlers
+  const handleQuickDateRange = (range) => {
+    const today = getTodayStr();
+    const todayDate = new Date();
+    let startDate = today;
+    let endDate = today;
+
+    if (range === '7days') {
+      startDate = new Date(todayDate.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    } else if (range === '30days') {
+      startDate = new Date(todayDate.getTime() - 30 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+    }
+
+    const newFilters = {
+      ...filters,
+      startDate,
+      endDate,
+    };
+    dispatch(updateFilters(newFilters));
+    setTempFilters(newFilters);
+    loadTransactions(1, true, newFilters);
+    loadSummary(newFilters);
+  };
+
+  const renderDateRangeButtons = () => {
+    const activeRange = getActiveDateRange();
+
+    return (
+      <View style={styles.dateRangeButtonGroup}>
+        <TouchableOpacity
+          style={[styles.dateRangeButton, activeRange === 'today' && styles.dateRangeButtonActive]}
+          onPress={() => handleQuickDateRange('today')}
+        >
+          <Text style={[styles.dateRangeButtonText, activeRange === 'today' && styles.dateRangeButtonTextActive]}>Today</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.dateRangeButton, activeRange === '7days' && styles.dateRangeButtonActive]}
+          onPress={() => handleQuickDateRange('7days')}
+        >
+          <Text style={[styles.dateRangeButtonText, activeRange === '7days' && styles.dateRangeButtonTextActive]}>Last 7 Days</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.dateRangeButton, activeRange === '30days' && styles.dateRangeButtonActive]}
+          onPress={() => handleQuickDateRange('30days')}
+        >
+          <Text style={[styles.dateRangeButtonText, activeRange === '30days' && styles.dateRangeButtonTextActive]}>Last 30 Days</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  };
+
   const renderSummaryCard = () => {
     // Calculate filtered summary (inline, not useMemo since we can't use hooks inside render functions)
     const filtered = filteredTransactions || [];
@@ -586,10 +814,21 @@ const TransactionHistoryScreen = ({ navigation }) => {
       0
     );
 
+    // Get current date range from filters
+    const startDateDisplay = formatDisplayDate(filters.startDate);
+    const endDateDisplay = formatDisplayDate(filters.endDate);
+    const isSameDay = filters.startDate === filters.endDate;
+    const dateRangeText = isSameDay
+      ? startDateDisplay
+      : `${startDateDisplay} - ${endDateDisplay}`;
+
     return (
       <View style={styles.summaryCard}>
         <View style={styles.summaryHeader}>
-          <Text style={styles.summaryTitle}>Summary</Text>
+          <View>
+            <Text style={styles.summaryTitle}>Summary</Text>
+            <Text style={styles.summaryDateRange}>{dateRangeText}</Text>
+          </View>
           {hasActiveClientFilters && (
             <View style={styles.filteredBadge}>
               <Icon name="filter" size={10} color="#2563eb" />
@@ -806,32 +1045,55 @@ const TransactionHistoryScreen = ({ navigation }) => {
             {/* Odometer & Consumption */}
             <View style={styles.auditSection}>
               <Text style={styles.auditSectionTitle}>
-                Odometer & Consumption
+                {selectedTransaction.isKmPerLiter !== false ? "Odometer & Efficiency" : "Engine Hours & Consumption"}
               </Text>
               <View style={styles.auditCard}>
                 <View style={styles.auditRow}>
-                  <Text style={styles.auditLabel}>Current Odometer</Text>
+                  <Text style={styles.auditLabel}>
+                    Current {selectedTransaction.isKmPerLiter !== false ? "Odometer" : "Hours"}
+                  </Text>
                   <Text style={styles.auditValue}>
                     {selectedTransaction.currentOdometer?.toLocaleString() ||
                       "N/A"}{" "}
-                    km
+                    {selectedTransaction.isKmPerLiter !== false ? "km" : "hr"}
                   </Text>
                 </View>
                 <View style={styles.auditRow}>
-                  <Text style={styles.auditLabel}>Previous Odometer</Text>
+                  <Text style={styles.auditLabel}>
+                    Previous {selectedTransaction.isKmPerLiter !== false ? "Odometer" : "Hours"}
+                    {selectedTransaction.previousOdometerSource && (
+                      <Text style={{ fontSize: 10, color: "#9ca3af" }}>
+                        {"\n"}(from {selectedTransaction.previousOdometerSource === "PumpTransaction" ? "PTS" :
+                                   selectedTransaction.previousOdometerSource === "FuelRefill" ? "Manual Entry" :
+                                   "Stored Value"})
+                      </Text>
+                    )}
+                  </Text>
                   <Text style={styles.auditValue}>
                     {selectedTransaction.previousOdometer?.toLocaleString() ||
                       "N/A"}{" "}
-                    km
+                    {selectedTransaction.isKmPerLiter !== false ? "km" : "hr"}
+                  </Text>
+                </View>
+                <View style={styles.auditRow}>
+                  <Text style={styles.auditLabel}>
+                    {selectedTransaction.isKmPerLiter !== false ? "Distance Traveled" : "Hours Operated"}
+                  </Text>
+                  <Text style={styles.auditValue}>
+                    {formatDistanceOrHours(
+                      selectedTransaction.consumptionSinceLastRefuel,
+                      selectedTransaction.isKmPerLiter !== false
+                    )}
                   </Text>
                 </View>
                 <View style={[styles.auditRow, styles.auditRowHighlight]}>
                   <Text style={styles.auditLabelBold}>
-                    Distance Since Last Refuel
+                    {selectedTransaction.isKmPerLiter !== false ? "Fuel Efficiency" : "Consumption Rate"}
                   </Text>
                   <Text style={styles.auditValueHighlight}>
-                    {formatDistance(
-                      selectedTransaction.consumptionSinceLastRefuel
+                    {formatFuelEfficiency(
+                      selectedTransaction.fuelEfficiency,
+                      selectedTransaction.isKmPerLiter !== false
                     )}
                   </Text>
                 </View>
@@ -1073,30 +1335,20 @@ const TransactionHistoryScreen = ({ navigation }) => {
             <View style={styles.dateRow}>
               <TouchableOpacity
                 style={styles.dateButton}
-                onPress={() => {
-                  setDatePickerMode("start");
-                  setShowDatePicker(true);
-                }}
+                onPress={() => openDatePicker("start")}
               >
                 <Icon name="calendar" size={16} color="#6b7280" />
                 <Text style={styles.dateButtonText}>
-                  {tempFilters.startDate
-                    ? formatDate(tempFilters.startDate)
-                    : "Start Date"}
+                  {tempFilters.startDate || "Start Date"}
                 </Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.dateButton}
-                onPress={() => {
-                  setDatePickerMode("end");
-                  setShowDatePicker(true);
-                }}
+                onPress={() => openDatePicker("end")}
               >
                 <Icon name="calendar" size={16} color="#6b7280" />
                 <Text style={styles.dateButtonText}>
-                  {tempFilters.endDate
-                    ? formatDate(tempFilters.endDate)
-                    : "End Date"}
+                  {tempFilters.endDate || "End Date"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -1217,15 +1469,154 @@ const TransactionHistoryScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {showDatePicker && (
-        <DateTimePicker
-          value={new Date()}
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-          maximumDate={new Date()}
-        />
-      )}
+      {/* Custom Calendar Date Picker Modal */}
+      <Modal
+        visible={showDatePicker}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setShowDatePicker(false)}
+      >
+        <View style={styles.datePickerOverlay}>
+          <View style={styles.calendarContainer}>
+            {/* Header with title */}
+            <View style={styles.calendarHeader}>
+              <Text style={styles.calendarTitle}>
+                Select {datePickerMode === "start" ? "Start" : "End"} Date
+              </Text>
+              <TouchableOpacity onPress={() => setShowDatePicker(false)}>
+                <Icon name="times" size={20} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick select buttons */}
+            <View style={styles.quickSelectRow}>
+              <TouchableOpacity
+                style={styles.quickSelectButton}
+                onPress={() => {
+                  const today = new Date();
+                  setPickerYear(today.getFullYear());
+                  setPickerMonth(today.getMonth() + 1);
+                  setPickerDay(today.getDate());
+                }}
+              >
+                <Text style={styles.quickSelectText}>Today</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickSelectButton}
+                onPress={() => {
+                  const yesterday = new Date();
+                  yesterday.setDate(yesterday.getDate() - 1);
+                  setPickerYear(yesterday.getFullYear());
+                  setPickerMonth(yesterday.getMonth() + 1);
+                  setPickerDay(yesterday.getDate());
+                }}
+              >
+                <Text style={styles.quickSelectText}>Yesterday</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.quickSelectButton}
+                onPress={() => {
+                  const weekAgo = new Date();
+                  weekAgo.setDate(weekAgo.getDate() - 7);
+                  setPickerYear(weekAgo.getFullYear());
+                  setPickerMonth(weekAgo.getMonth() + 1);
+                  setPickerDay(weekAgo.getDate());
+                }}
+              >
+                <Text style={styles.quickSelectText}>7 Days Ago</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Month/Year Navigation */}
+            <View style={styles.calendarNavigation}>
+              <TouchableOpacity
+                style={styles.calendarNavButton}
+                onPress={() => navigateMonth(-1)}
+              >
+                <Icon name="chevron-left" size={18} color="#374151" />
+              </TouchableOpacity>
+              <Text style={styles.calendarMonthYear}>
+                {new Date(pickerYear, pickerMonth - 1).toLocaleString("default", {
+                  month: "long",
+                  year: "numeric",
+                })}
+              </Text>
+              <TouchableOpacity
+                style={styles.calendarNavButton}
+                onPress={() => navigateMonth(1)}
+              >
+                <Icon name="chevron-right" size={18} color="#374151" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Weekday Headers */}
+            <View style={styles.calendarWeekRow}>
+              {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <Text key={day} style={styles.calendarWeekDay}>
+                  {day}
+                </Text>
+              ))}
+            </View>
+
+            {/* Calendar Grid */}
+            <View style={styles.calendarGrid}>
+              {buildCalendarGrid().map((item, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.calendarDayCell,
+                    item.day === pickerDay && !item.disabled && styles.calendarDaySelected,
+                    item.isToday && styles.calendarDayToday,
+                    item.disabled && styles.calendarDayDisabled,
+                  ]}
+                  onPress={() => selectDay(item.day)}
+                  disabled={item.disabled || item.day === 0}
+                >
+                  <Text
+                    style={[
+                      styles.calendarDayText,
+                      item.day === pickerDay && !item.disabled && styles.calendarDayTextSelected,
+                      item.isToday && item.day !== pickerDay && styles.calendarDayTextToday,
+                      item.disabled && styles.calendarDayTextDisabled,
+                    ]}
+                  >
+                    {item.day > 0 ? item.day : ""}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+
+            {/* Selected Date Preview */}
+            <View style={styles.datePickerPreview}>
+              <Icon name="calendar-check" size={18} color="#2563eb" />
+              <Text style={styles.datePickerPreviewText}>
+                {new Date(pickerYear, pickerMonth - 1, pickerDay).toLocaleDateString("en-US", {
+                  weekday: "short",
+                  year: "numeric",
+                  month: "short",
+                  day: "numeric",
+                })}
+              </Text>
+            </View>
+
+            {/* Action Buttons */}
+            <View style={styles.datePickerActions}>
+              <TouchableOpacity
+                style={[styles.datePickerButton, styles.datePickerCancelButton]}
+                onPress={() => setShowDatePicker(false)}
+              >
+                <Text style={styles.datePickerCancelText}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.datePickerButton, styles.datePickerConfirmButton]}
+                onPress={handleDateConfirm}
+              >
+                <Text style={styles.datePickerConfirmText}>Confirm</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </Modal>
   );
 
@@ -1256,6 +1647,9 @@ const TransactionHistoryScreen = ({ navigation }) => {
         </TouchableOpacity>
       </View>
 
+      {/* Quick Date Range Buttons */}
+      {renderDateRangeButtons()}
+
       {/* Summary Card */}
       {renderSummaryCard()}
 
@@ -1285,20 +1679,29 @@ const TransactionHistoryScreen = ({ navigation }) => {
             </View>
           ) : null
         }
-        ListEmptyComponent={() =>
-          !isLoading ? (
+        ListEmptyComponent={() => {
+          if (isLoading) {
+            return (
+              <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#2563eb" />
+                <Text style={styles.loadingText}>Loading transactions...</Text>
+              </View>
+            );
+          }
+
+          return (
             <View style={styles.emptyContainer}>
               <Icon name="receipt" size={48} color="#d1d5db" />
               <Text style={styles.emptyTitle}>No Transactions Found</Text>
               <Text style={styles.emptyDescription}>
-                {Object.values(filters).some((v) => v)
+                {hasActiveClientFilters
                   ? "No transactions match your current filters."
-                  : "No transactions have been recorded yet."}
+                  : "No transactions found for this date range."}
               </Text>
-              {Object.values(filters).some((v) => v) && (
+              {hasActiveClientFilters && (
                 <TouchableOpacity
                   style={styles.clearFiltersButton}
-                  onPress={handleClearFilters}
+                  onPress={handleClearClientFilters}
                 >
                   <Text style={styles.clearFiltersButtonText}>
                     Clear Filters
@@ -1306,13 +1709,8 @@ const TransactionHistoryScreen = ({ navigation }) => {
                 </TouchableOpacity>
               )}
             </View>
-          ) : (
-            <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#2563eb" />
-              <Text style={styles.loadingText}>Loading transactions...</Text>
-            </View>
-          )
-        }
+          );
+        }}
       />
 
       {/* Filter Modal */}
@@ -1375,6 +1773,33 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 8,
   },
+  dateRangeButtonGroup: {
+    flexDirection: "row",
+    marginHorizontal: 16,
+    marginTop: 12,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 8,
+    padding: 4,
+  },
+  dateRangeButton: {
+    flex: 1,
+    paddingVertical: 10,
+    paddingHorizontal: 8,
+    borderRadius: 6,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  dateRangeButtonActive: {
+    backgroundColor: "#2563eb",
+  },
+  dateRangeButtonText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#6b7280",
+  },
+  dateRangeButtonTextActive: {
+    color: "#ffffff",
+  },
   summaryCard: {
     backgroundColor: "white",
     margin: 16,
@@ -1391,7 +1816,12 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "600",
     color: "#1f2937",
-    marginBottom: 12,
+    marginBottom: 2,
+  },
+  summaryDateRange: {
+    fontSize: 12,
+    color: "#6b7280",
+    marginBottom: 8,
   },
   summaryGrid: {
     flexDirection: "row",
@@ -1532,7 +1962,7 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   clearFiltersButton: {
-    backgroundColor: "#2563eb",
+    backgroundColor: "#6b7280",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 8,
@@ -1913,6 +2343,168 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#10b981",
+  },
+  // Custom date picker styles
+  datePickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  // Calendar container
+  calendarContainer: {
+    backgroundColor: "white",
+    borderRadius: 16,
+    padding: 16,
+    width: "92%",
+    maxWidth: 380,
+  },
+  calendarHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  calendarTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  // Quick select buttons
+  quickSelectRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 12,
+    gap: 8,
+  },
+  quickSelectButton: {
+    flex: 1,
+    backgroundColor: "#f3f4f6",
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  quickSelectText: {
+    fontSize: 12,
+    fontWeight: "500",
+    color: "#374151",
+  },
+  // Calendar navigation
+  calendarNavigation: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  calendarNavButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: "#f3f4f6",
+  },
+  calendarMonthYear: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#1f2937",
+  },
+  // Weekday headers
+  calendarWeekRow: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginBottom: 8,
+  },
+  calendarWeekDay: {
+    width: 40,
+    textAlign: "center",
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#6b7280",
+  },
+  // Calendar grid
+  calendarGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "flex-start",
+  },
+  calendarDayCell: {
+    width: "14.28%",
+    aspectRatio: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 8,
+  },
+  calendarDayText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1f2937",
+  },
+  calendarDaySelected: {
+    backgroundColor: "#2563eb",
+  },
+  calendarDayTextSelected: {
+    color: "white",
+    fontWeight: "700",
+  },
+  calendarDayToday: {
+    borderWidth: 2,
+    borderColor: "#2563eb",
+  },
+  calendarDayTextToday: {
+    color: "#2563eb",
+    fontWeight: "700",
+  },
+  calendarDayDisabled: {
+    opacity: 0.3,
+  },
+  calendarDayTextDisabled: {
+    color: "#9ca3af",
+  },
+  // Date preview
+  datePickerPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    padding: 10,
+    marginTop: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+  },
+  datePickerPreviewText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1e40af",
+    marginLeft: 8,
+  },
+  // Action buttons
+  datePickerActions: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginTop: 8,
+    gap: 12,
+  },
+  datePickerButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: "center",
+  },
+  datePickerCancelButton: {
+    backgroundColor: "#f3f4f6",
+  },
+  datePickerConfirmButton: {
+    backgroundColor: "#2563eb",
+  },
+  datePickerCancelText: {
+    color: "#374151",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  datePickerConfirmText: {
+    color: "white",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });
 

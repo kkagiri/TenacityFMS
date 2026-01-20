@@ -441,34 +441,42 @@ const RuleSetAssignmentManager = () => {
           <i className="fa-light fa-link tw-mr-2"></i>
           Rule Set Assignments
         </h2>
-        <div className="tw-flex tw-gap-2">
-          <button
-            className="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 hover:tw-text-blue-600 tw-border tw-border-gray-200 tw-rounded-lg hover:tw-border-blue-300 tw-transition-colors tw-bg-white"
-            onClick={() => setShowHelp(true)}
-            title="Help - Learn about Fueling Rules"
-          >
-            <i className="fa-light fa-circle-question"></i>
-            <span className="tw-hidden sm:tw-inline">Help</span>
-          </button>
+        <div className="assignment-action-buttons">
           <Button
             text="Add Assignment"
-            icon="plus"
+            icon="fa-light fa-plus"
             type="default"
-            stylingMode="contained"
+            stylingMode="outlined"
             onClick={handleAddClick}
+            hint="Add new assignment"
+            className="assignment-action-btn assignment-action-btn--first assignment-action-btn--add"
           />
           <Button
             text="Bulk Assign"
-            icon="copy"
-            type="normal"
+            icon="fa-light fa-copy"
+            type="default"
             stylingMode="outlined"
             onClick={handleBulkAddClick}
+            hint="Bulk assign rule sets"
+            className="assignment-action-btn assignment-action-btn--bulk"
           />
           <Button
-            icon="refresh"
-            hint="Refresh"
-            stylingMode="text"
+            text="Refresh"
+            icon="fa-light fa-refresh"
+            type="default"
+            stylingMode="outlined"
             onClick={loadAssignments}
+            hint="Refresh assignments"
+            className="assignment-action-btn assignment-action-btn--refresh"
+          />
+          <Button
+            text="Help"
+            icon="fa-light fa-circle-question"
+            type="default"
+            stylingMode="outlined"
+            onClick={() => setShowHelp(true)}
+            hint="Help - Learn about Fueling Rules"
+            className="assignment-action-btn assignment-action-btn--last assignment-action-btn--help"
           />
         </div>
       </div>

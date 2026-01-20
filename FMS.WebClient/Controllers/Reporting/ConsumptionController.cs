@@ -344,10 +344,20 @@ namespace FMS.WebClient.Controllers
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
             [FromQuery] bool? processedOnly,
-            [FromQuery] List<int>? siteId)
+            [FromQuery] List<int>? siteId,
+            [FromQuery] bool includeTransfers = false)
         {
             try
             {
+                // Adjust endDate to end of day if it's at midnight (00:00:00)
+                // This handles cases where the client sends just a date like "2026-01-19"
+                // which gets parsed as 2026-01-19 00:00:00, but we want to include the whole day
+                DateTime? adjustedEndDate = endDate;
+                if (endDate.HasValue && endDate.Value.TimeOfDay == TimeSpan.Zero)
+                {
+                    adjustedEndDate = endDate.Value.Date.AddDays(1).AddTicks(-1); // End of day: 23:59:59.9999999
+                }
+
                 // Support both single values (mobile) and arrays (web)
                 // ASP.NET Core automatically converts single query params to List with one item
                 var query = new FMS.Application.Features.TankManagement.PumpTransaction.GetPumpTransactionQuery
@@ -356,9 +366,10 @@ namespace FMS.WebClient.Controllers
                     PtsIds = ptsId?.Any() == true ? ptsId : null,
                     TankIds = tankId?.Any() == true ? tankId : null,
                     StartDate = startDate,
-                    EndDate = endDate,
+                    EndDate = adjustedEndDate,
                     ProcessedOnly = processedOnly,
-                    SiteIds = siteId?.Any() == true ? siteId : null
+                    SiteIds = siteId?.Any() == true ? siteId : null,
+                    IncludeTransfers = includeTransfers
                 };
 
                 var result = await _mediator.Send(query);

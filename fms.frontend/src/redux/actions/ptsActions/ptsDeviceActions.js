@@ -137,3 +137,41 @@ export const getPTSDeviceById = (deviceId) => async (dispatch) => {
     dispatch({ type: GET_PTS_DEVICE_BY_ID_FAILURE, payload: error.message });
   }
 };
+
+// Action to fetch unknown (connected but unregistered) devices
+export const fetchUnknownDevices = () => async (dispatch, getState) => {
+  try {
+    // Get list of registered devices from the database
+    const devicesResponse = await axiosInstance.get("/ptsdevice");
+    const registeredDevices = devicesResponse.data || [];
+    const registeredDeviceIds = new Set(
+      registeredDevices.map((d) => d.ptsid?.toString()).filter(Boolean)
+    );
+
+    // Get connected devices summary
+    const summaryResponse = await axiosInstance.get("/PTSDevice/summary");
+    const summary = summaryResponse.data;
+
+    // Extract all connected device IDs
+    const webSocketDevices = summary?.webSocketConnections || [];
+    const httpDevices = summary?.httpConnections || [];
+
+    const allConnectedIds = [
+      ...webSocketDevices.map((d) => d.deviceId),
+      ...httpDevices.map((d) => d.deviceId),
+    ].filter((id) => id && id.trim() !== "");
+
+    // Find unknown devices (connected but not registered)
+    const unknownDeviceIds = allConnectedIds.filter(
+      (id) => !registeredDeviceIds.has(id)
+    );
+
+    // Remove duplicates
+    const uniqueUnknownDevices = [...new Set(unknownDeviceIds)];
+
+    return uniqueUnknownDevices;
+  } catch (error) {
+    console.error("Error fetching unknown devices:", error);
+    return [];
+  }
+};

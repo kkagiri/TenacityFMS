@@ -23,6 +23,7 @@ import LoadIndicator from "devextreme-react/load-indicator";
 import Popup from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
+import LocationSettingsOverview from "../../../components/Tags/TagRuleManagement/LocationSettingsOverview";
 import {
   fetchLocationValidationLogs,
   setFilters,
@@ -51,6 +52,7 @@ const LocationValidationLogPage = () => {
   const [mapApiKey, setMapApiKey] = useState(null);
   const [showMapPopup, setShowMapPopup] = useState(false);
   const [popupLog, setPopupLog] = useState(null); // Local state for popup content
+  const [showSettingsOverviewPopup, setShowSettingsOverviewPopup] = useState(false);
   const mapRef = useRef(null);
   const mapInstanceRef = useRef(null);
 
@@ -343,7 +345,23 @@ const LocationValidationLogPage = () => {
 
   const formatDateTime = (dateStr) => {
     if (!dateStr) return "-";
-    return new Date(dateStr).toLocaleString();
+    // Server returns UTC, convert to local time
+    const utcDate = new Date(dateStr);
+    return utcDate.toLocaleString();
+  };
+
+  // Convert UTC date string to local datetime string for display
+  const formatDateTimeForGrid = (dateStr) => {
+    if (!dateStr) return "-";
+    const utcDate = new Date(dateStr);
+    // Format: yyyy-MM-dd HH:mm:ss in local time
+    const year = utcDate.getFullYear();
+    const month = String(utcDate.getMonth() + 1).padStart(2, '0');
+    const day = String(utcDate.getDate()).padStart(2, '0');
+    const hours = String(utcDate.getHours()).padStart(2, '0');
+    const minutes = String(utcDate.getMinutes()).padStart(2, '0');
+    const seconds = String(utcDate.getSeconds()).padStart(2, '0');
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
   };
 
   return (
@@ -367,6 +385,14 @@ const LocationValidationLogPage = () => {
             type="default"
             onClick={loadData}
             disabled={isLoading}
+          />
+          <Button
+            text="View Settings Overview"
+            icon="fa-light fa-sliders"
+            type="normal"
+            stylingMode="outlined"
+            onClick={() => setShowSettingsOverviewPopup(true)}
+            hint="View all location validation settings across users, PTS devices, and vehicles"
           />
         </div>
       </div>
@@ -473,9 +499,8 @@ const LocationValidationLogPage = () => {
           <Column
             dataField="validationTime"
             caption="Time"
-            dataType="datetime"
-            format="yyyy-MM-dd HH:mm:ss"
             width={160}
+            cellRender={(cellData) => formatDateTimeForGrid(cellData.value)}
           />
           <Column
             dataField="validationResult"
@@ -696,6 +721,23 @@ const LocationValidationLogPage = () => {
           </div>
         </div>
       )}
+
+      {/* Settings Overview Popup */}
+      <Popup
+        visible={showSettingsOverviewPopup}
+        onHiding={() => setShowSettingsOverviewPopup(false)}
+        dragEnabled={true}
+        hideOnOutsideClick={false}
+        showCloseButton={true}
+        showTitle={true}
+        title="Location Settings Overview"
+        width="90%"
+        height="85%"
+        maxWidth={1400}
+        maxHeight={900}
+      >
+        <LocationSettingsOverview onClose={() => setShowSettingsOverviewPopup(false)} />
+      </Popup>
     </div>
   );
 };

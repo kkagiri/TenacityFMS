@@ -164,11 +164,13 @@ namespace FMS.WebClient.Controllers
         /// <param name="startDate">Start date (inclusive)</param>
         /// <param name="endDate">End date (inclusive)</param>
         /// <param name="deviceId">Optional device ID filter</param>
+        /// <param name="minThresholdSeconds">Optional minimum offline duration in seconds (defaults to system config)</param>
         [HttpGet("offline-report")]
         public async Task<ActionResult<FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>>> GetOfflineReport(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
-            [FromQuery] string? deviceId = null)
+            [FromQuery] string? deviceId = null,
+            [FromQuery] int? minThresholdSeconds = null)
         {
             try
             {
@@ -179,7 +181,7 @@ namespace FMS.WebClient.Controllers
                 }
 
                 var result = await _mediator.Send(
-                    new GetPtsDeviceOfflineReportQuery(startDate, endDate, deviceId));
+                    new GetPtsDeviceOfflineReportQuery(startDate, endDate, deviceId, minThresholdSeconds));
 
                 if (!result.IsSuccess)
                 {
