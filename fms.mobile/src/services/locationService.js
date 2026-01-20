@@ -487,6 +487,145 @@ class LocationService {
   }
 
   /**
+   * Check if a location is stale (older than maxAgeSeconds)
+   * @param {Object} location - Location object with timestamp
+   * @param {number} maxAgeSeconds - Maximum age in seconds (default: 60)
+   * @returns {boolean} True if location is stale
+   */
+  isLocationStale(location, maxAgeSeconds = 60) {
+    if (!location?.timestamp) {
+      return true; // No timestamp means we can't verify freshness
+    }
+
+    const locationTime = new Date(location.timestamp).getTime();
+    const now = Date.now();
+    const ageSeconds = (now - locationTime) / 1000;
+
+    const isStale = ageSeconds > maxAgeSeconds;
+    if (isStale) {
+      console.log(
+        `[LocationService] Location is stale: ${ageSeconds.toFixed(1)}s old (max: ${maxAgeSeconds}s)`
+      );
+    }
+
+    return isStale;
+  }
+
+  /**
+   * Get a fresh location for authorization, forcing a new GPS fix if current location is stale.
+   * This prevents using outdated cached locations that could be far from actual position.
+   *
+   * @param {Object} options - Configuration options
+   * @param {number} options.maxAgeSeconds - Maximum acceptable location age in seconds (default: 60)
+   * @param {number} options.maxAccuracyMeters - Maximum acceptable accuracy in meters (default: 500)
+   * @param {boolean} options.silentMode - If true, don't show alerts (default: false)
+   * @returns {Promise<{location: Object|null, wasRefreshed: boolean, error: string|null}>}
+   */
+  async getFreshLocationForAuthorization(options = {}) {
+    const {
+      maxAgeSeconds = 60,
+      maxAccuracyMeters = 500,
+      silentMode = false,
+    } = options;
+
+    console.log(
+      `[LocationService] Getting fresh location for authorization (maxAge: ${maxAgeSeconds}s, maxAccuracy: ${maxAccuracyMeters}m)`
+    );
+
+    // First, check if we have a recent location that's still fresh
+    if (this.lastKnownLocation && !this.isLocationStale(this.lastKnownLocation, maxAgeSeconds)) {
+      console.log("[LocationService] Using existing fresh location");
+      return {
+        location: this.lastKnownLocation,
+        wasRefreshed: false,
+        error: null,
+      };
+    }
+
+    // Location is stale or doesn't exist - force a fresh GPS fix
+    console.log("[LocationService] Location is stale or missing - forcing fresh GPS fix...");
+
+    // Clear the cached location to force a new fetch
+    const oldLocation = this.lastKnownLocation;
+    this.lastKnownLocation = null;
+
+    // Try to get a fresh location with high accuracy
+    let location = await this.getCurrentLocation({
+      enableHighAccuracy: true,
+      timeout: 20000, // Give 20 seconds for GPS lock
+      maximumAge: 0, // Force fresh location, don't accept cached
+      silentMode: silentMode,
+    });
+
+    // If high accuracy failed, try network location
+    if (!location) {
+      console.log("[LocationService] High-accuracy failed, trying network location...");
+      location = await this.getCurrentLocation({
+        enableHighAccuracy: false,
+        timeout: 15000,
+        maximumAge: 0, // Still force fresh
+        silentMode: silentMode,
+      });
+    }
+
+    // If still no location, restore old location but mark it as cached/stale
+    if (!location && oldLocation) {
+      console.warn("[LocationService] Could not get fresh location - restoring stale location for reference");
+      this.lastKnownLocation = oldLocation;
+
+      return {
+        location: null,
+        wasRefreshed: false,
+        error: `Could not get fresh location. Last known location is ${this.getLocationAgeString(oldLocation)} old.`,
+      };
+    }
+
+    if (!location) {
+      return {
+        location: null,
+        wasRefreshed: false,
+        error: "Could not obtain GPS location. Please ensure location services are enabled.",
+      };
+    }
+
+    // Check if fresh location meets accuracy requirements
+    if (location.accuracy > maxAccuracyMeters) {
+      console.warn(
+        `[LocationService] Fresh location accuracy (${location.accuracy}m) exceeds maximum (${maxAccuracyMeters}m)`
+      );
+    }
+
+    console.log(
+      `[LocationService] Fresh location obtained: lat=${location.latitude}, lng=${location.longitude}, accuracy=${location.accuracy}m`
+    );
+
+    return {
+      location: location,
+      wasRefreshed: true,
+      error: null,
+    };
+  }
+
+  /**
+   * Get a human-readable string for location age
+   * @param {Object} location - Location object with timestamp
+   * @returns {string} Age string like "45 seconds" or "2 minutes"
+   */
+  getLocationAgeString(location) {
+    if (!location?.timestamp) return "unknown time";
+
+    const ageSeconds = (Date.now() - new Date(location.timestamp).getTime()) / 1000;
+
+    if (ageSeconds < 60) {
+      return `${Math.round(ageSeconds)} seconds`;
+    } else if (ageSeconds < 3600) {
+      return `${Math.round(ageSeconds / 60)} minutes`;
+    } else {
+      return `${Math.round(ageSeconds / 3600)} hours`;
+    }
+  }
+
+  /**
    * Start watching location changes
    * @param {Function} onLocationChange - Callback when location changes
    * @returns {number} Watch ID to stop watching
