@@ -471,6 +471,41 @@ public record GeofenceValidationRequest
     /// PTS device ID performing the fueling
     /// </summary>
     public string? PtsId { get; init; }
+
+    /// <summary>
+    /// Indicates if the vehicle has GPS installed. If false, vehicle geofence check will be bypassed.
+    /// </summary>
+    public bool? VehicleHasGPS { get; init; }
+}
+
+/// <summary>
+/// Settings for mobile location validation, loaded from system configuration
+/// </summary>
+public record MobileLocationValidationSettings
+{
+    /// <summary>
+    /// Whether mobile location is required for fueling authorization.
+    /// Default: true (when RequireOperatorInGeofence is enabled)
+    /// </summary>
+    public bool RequireMobileLocation { get; init; } = true;
+
+    /// <summary>
+    /// Maximum age of mobile location in seconds before it's considered stale.
+    /// Default: 60 seconds
+    /// </summary>
+    public int MaxLocationAgeSeconds { get; init; } = 60;
+
+    /// <summary>
+    /// Maximum acceptable GPS accuracy in meters.
+    /// Default: 500 meters (for mobile proximity, not exact positioning)
+    /// </summary>
+    public int MaxLocationAccuracyMeters { get; init; } = 500;
+
+    /// <summary>
+    /// Whether to reject cached/stale locations from mobile devices.
+    /// Default: true (always require fresh GPS fix)
+    /// </summary>
+    public bool RejectCachedLocation { get; init; } = true;
 }
 
 /// <summary>

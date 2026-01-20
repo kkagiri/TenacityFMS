@@ -26,7 +26,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         Description = "Integration with GPSGate Vehicle Tracker system for real-time vehicle location and tracking data",
         Version = "2.0.0"
     )]
-    public class  GPSGateProvider : IVehicleTrackingProvider, IDisposable
+    public class GPSGateProvider : IVehicleTrackingProvider, IDisposable
     {
         private readonly GpsdataContext _context;
         private readonly HttpClient _httpClient;
@@ -353,9 +353,19 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     locationDto.Altitude = gpsData.Position.Altitude.HasValue
                         ? (decimal)gpsData.Position.Altitude
                         : null;
-                    locationDto.LastUpdated = DateTime.TryParse(gpsData.UTC, out var lastUpdate)
-                        ? lastUpdate
-                        : DateTime.UtcNow;
+
+                    // Parse the position timestamp
+                    DateTime? positionTimestamp = null;
+                    if (DateTime.TryParse(gpsData.UTC, out var lastUpdate))
+                    {
+                        positionTimestamp = lastUpdate;
+                        locationDto.LastUpdated = lastUpdate;
+                    }
+                    else
+                    {
+                        locationDto.LastUpdated = DateTime.UtcNow;
+                    }
+
                     locationDto.Speed = gpsData.Velocity?.GroundSpeed.HasValue == true
                         ? (decimal)gpsData.Velocity.GroundSpeed
                         : null;
@@ -365,6 +375,42 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
                     _logger.LogInformation("✓ Location parsed: Lat={Lat}, Lng={Lng}, Speed={Speed} km/h",
                         locationDto.Latitude, locationDto.Longitude, locationDto.Speed);
+
+                    // Check if GPS position is stale (older than 24 hours)
+                    // NOTE: Stale GPS is treated as FAULTY DEVICE - fueling is ALLOWED but logged for review
+                    if (positionTimestamp.HasValue)
+                    {
+                        var positionAge = DateTime.UtcNow - positionTimestamp.Value;
+                        var staleThreshold = TimeSpan.FromHours(24);
+
+                        if (positionAge > staleThreshold)
+                        {
+                            var ageDescription = FormatTimeSpan(positionAge);
+                            _logger.LogWarning(
+                                "⚠️ Vehicle {VehicleId} (GPSGate {ExternalDeviceId}): GPS POSITION IS STALE - " +
+                                "Position timestamp: {PositionTime:yyyy-MM-dd HH:mm:ss} UTC ({Age} old). " +
+                                "Treated as faulty GPS device - FUELING ALLOWED but logged for review.",
+                                vehicleId, mapping.ExternalDeviceId, positionTimestamp.Value, ageDescription);
+
+                            locationDto.IsOnline = false;
+                            locationDto.ValidationStatus = Application.Features.Vehicle.DTOs.GPSValidationStatus.StalePositionBypassed;
+                            locationDto.ValidationStatusReason =
+                                $"GPS position is stale ({ageDescription} old, at {positionTimestamp.Value:yyyy-MM-dd HH:mm:ss} UTC). " +
+                                $"Treated as faulty GPS device - fueling allowed but logged for review.";
+                            locationDto.IsGPSValid = false;
+                        }
+                        else
+                        {
+                            // Position is fresh - mark as valid
+                            locationDto.ValidationStatus = Application.Features.Vehicle.DTOs.GPSValidationStatus.Valid;
+                            locationDto.ValidationStatusReason = "GPS position is valid and recent";
+                            locationDto.IsGPSValid = true;
+                        }
+                    }
+                    else
+                    {
+                        _logger.LogWarning("⚠ Vehicle {VehicleId}: No position timestamp available - cannot verify position freshness", vehicleId);
+                    }
                 }
                 else
                 {
@@ -929,6 +975,49 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             {
                 _logger.LogError(ex, "Error retrieving devices from GPSGate");
                 return FMSResponse<List<GPSDeviceDTO>>.Failed($"Error retrieving devices: {ex.Message}");
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Formats a TimeSpan into a human-readable string.
+        /// </summary>
+        private static string FormatTimeSpan(TimeSpan timeSpan)
+        {
+            if (timeSpan.TotalDays >= 365)
+            {
+                var years = (int)(timeSpan.TotalDays / 365);
+                var months = (int)((timeSpan.TotalDays % 365) / 30);
+                return months > 0 ? $"{years} year(s) {months} month(s)" : $"{years} year(s)";
+            }
+            else if (timeSpan.TotalDays >= 30)
+            {
+                var months = (int)(timeSpan.TotalDays / 30);
+                var days = (int)(timeSpan.TotalDays % 30);
+                return days > 0 ? $"{months} month(s) {days} days" : $"{months} month(s)";
+            }
+            else if (timeSpan.TotalDays >= 1)
+            {
+                var days = (int)timeSpan.TotalDays;
+                var hours = timeSpan.Hours;
+                return hours > 0 ? $"{days} days {hours} hours" : $"{days} days";
+            }
+            else if (timeSpan.TotalHours >= 1)
+            {
+                var hours = (int)timeSpan.TotalHours;
+                var minutes = timeSpan.Minutes;
+                return minutes > 0 ? $"{hours} hours {minutes} minutes" : $"{hours} hours";
+            }
+            else if (timeSpan.TotalMinutes >= 1)
+            {
+                return $"{(int)timeSpan.TotalMinutes} minutes";
+            }
+            else
+            {
+                return $"{(int)timeSpan.TotalSeconds} seconds";
             }
         }
 

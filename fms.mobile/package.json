@@ -1,6 +1,6 @@
 {
   "name": "fms-mobile",
-  "version": "1.2.3",
+  "version": "1.2.4",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -17,8 +17,8 @@
     "@react-native-async-storage/async-storage": "^1.19.3",
     "@react-native-community/datetimepicker": "^8.5.1",
     "@react-native-community/geolocation": "^3.4.0",
-    "@react-native-firebase/app": "^23.7.0",
-    "@react-native-firebase/messaging": "^23.7.0",
+    "@react-native-firebase/app": "^23.8.3",
+    "@react-native-firebase/messaging": "^23.8.3",
     "@react-native-picker/picker": "^2.11.4",
     "@react-navigation/bottom-tabs": "^6.5.11",
     "@react-navigation/drawer": "^6.7.2",

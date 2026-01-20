@@ -1,3 +1,12 @@
+/**
+ * File: VehicleAddForm.js
+ * Purpose: Vehicle creation form with dropdowns and validation
+ * Dependencies: React, DevExtreme Form, Redux actions, notify
+ * Last Modified: 2026-01-20
+ *
+ * Key Components:
+ * - VehicleAddForm: Handles vehicle creation and form submission
+ */
 //Cursor - Created Vehicle Add Form component for adding new vehicles
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
@@ -108,7 +117,7 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
         if (onSave) {
           // Pass the created vehicle data including the ID for navigation
           onSave({
-            vehicleId: result.data?.vehicleId || result.data?.id,
+            vehicleId: result.data?.vehicleId || result.data?.VehicleId || result.data?.id,
             ...result.data
           });
         }
@@ -321,56 +330,63 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
                 onValueChanged: (e) => handleFieldChange('currentPhysicalReading', e.value)
               }}
             />
-
-            <SimpleItem
-              dataField="hasGPSInstalled"
-              caption="GPS Installed"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) => handleFieldChange('hasGPSInstalled', e.value)
-              }}
-            />
-
-            <SimpleItem
-              dataField="gpsgategeneratedId"
-              caption="GPS Gate Generated ID"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) => handleFieldChange('gpsgategeneratedId', e.value)
-              }}
-            />
-
-            <SimpleItem
-              dataField="averageKmL"
-              caption="Average Km/L"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) => handleFieldChange('averageKmL', e.value)
-              }}
-            />
           </GroupItem>
 
-          {/* Status Group */}
-          <GroupItem caption="Status" colCount={2}>
-            <SimpleItem
-              dataField="isCompanyVehicle"
-              caption="Company Vehicle"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) => handleFieldChange('isCompanyVehicle', e.value)
-              }}
-            />
-
-            <SimpleItem
-              dataField="isActive"
-              caption="Active"
-              editorType="dxCheckBox"
-              editorOptions={{
-                onValueChanged: (e) => handleFieldChange('isActive', e.value)
-              }}
-            />
-          </GroupItem>
         </Form>
+
+        {/* GPS & Tracking Checkboxes (Standard HTML) */}
+        <div className="tw-mt-6">
+          <h3 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">GPS & Tracking</h3>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-4">
+            <label className="tw-flex tw-items-center tw-gap-2">
+              <input
+                type="checkbox"
+                checked={formData.hasGPSInstalled}
+                onChange={(e) => handleFieldChange('hasGPSInstalled', e.target.checked)}
+              />
+              <span className="tw-text-sm tw-text-gray-700">GPS Installed</span>
+            </label>
+            <label className="tw-flex tw-items-center tw-gap-2">
+              <input
+                type="checkbox"
+                checked={formData.gpsgategeneratedId}
+                onChange={(e) => handleFieldChange('gpsgategeneratedId', e.target.checked)}
+              />
+              <span className="tw-text-sm tw-text-gray-700">GPS Gate Generated ID</span>
+            </label>
+            <label className="tw-flex tw-items-center tw-gap-2">
+              <input
+                type="checkbox"
+                checked={formData.averageKmL}
+                onChange={(e) => handleFieldChange('averageKmL', e.target.checked)}
+              />
+              <span className="tw-text-sm tw-text-gray-700">Average Km/L</span>
+            </label>
+          </div>
+        </div>
+
+        {/* Status Checkboxes (Standard HTML) */}
+        <div className="tw-mt-6">
+          <h3 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">Status</h3>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-4">
+            <label className="tw-flex tw-items-center tw-gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isCompanyVehicle}
+                onChange={(e) => handleFieldChange('isCompanyVehicle', e.target.checked)}
+              />
+              <span className="tw-text-sm tw-text-gray-700">Company Vehicle</span>
+            </label>
+            <label className="tw-flex tw-items-center tw-gap-2">
+              <input
+                type="checkbox"
+                checked={formData.isActive}
+                onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+              />
+              <span className="tw-text-sm tw-text-gray-700">Active</span>
+            </label>
+          </div>
+        </div>
 
         {/* Form Actions */}
         <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">

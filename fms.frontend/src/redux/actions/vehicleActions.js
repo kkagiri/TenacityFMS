@@ -1,3 +1,15 @@
+/**
+ * File: vehicleActions.js
+ * Purpose: Redux actions for vehicle CRUD and related vehicle data operations
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-01-20
+ *
+ * Key Functions:
+ * - fetchVehicleList(): Fetches vehicles
+ * - createVehicle(data): Creates a new vehicle
+ * - updateVehicle(id, data): Updates a vehicle
+ * - deleteVehicle(id): Deletes a vehicle
+ */
 import axiosInstance from "./../../api/axiosInstance";
 // Action types
 export const FETCH_VEHICLES_SUCCESS = "FETCH_VEHICLES_SUCCESS";
@@ -149,19 +161,18 @@ export const updateVehicle = (vehicleId, vehicleData) => async (dispatch) => {
 
 export const createVehicle = (vehicleData) => async (dispatch) => {
   try {
-    const response = await axiosInstance.post('/vehicle/create', vehicleData);
-    // Return the same format as the dataservice
-    const result = {
-      success: true,
-      data: response.data,
-      message: 'Vehicle created successfully'
-    };
-    dispatch({type: CREATE_VEHICLE_SUCCESS, payload: response.data});
+    const response = await axiosInstance.post('/vehicle', vehicleData);
+    const apiResponse = response.data || {};
+    const success = apiResponse.success ?? apiResponse.isSuccess ?? apiResponse.Success ?? true;
+    const data = apiResponse.data ?? apiResponse.Data ?? apiResponse;
+    const message = apiResponse.message ?? apiResponse.Message ?? 'Vehicle created successfully';
+
+    const result = { success, data, message };
+    dispatch({ type: CREATE_VEHICLE_SUCCESS, payload: data });
     return result;
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message || 'Error creating vehicle';
-    dispatch({type: CREATE_VEHICLE_FAILURE, payload: errorMessage});
-    // Return the same format as the dataservice for error
+    dispatch({ type: CREATE_VEHICLE_FAILURE, payload: errorMessage });
     return {
       success: false,
       data: null,

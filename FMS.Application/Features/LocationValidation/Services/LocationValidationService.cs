@@ -40,6 +40,12 @@ public partial class LocationValidationService : ILocationValidationService
     private const string CONFIG_KEY_REQUIRE_OPERATOR_IN_GEOFENCE = "FuelingRules.RequireOperatorInGeofence";
     private const string CONFIG_KEY_REQUIRE_VEHICLE_IN_GEOFENCE = "FuelingRules.RequireVehicleInGeofence";
 
+    // Mobile location validation configuration keys
+    private const string CONFIG_KEY_REQUIRE_MOBILE_LOCATION = "FuelingRules.RequireMobileLocation";
+    private const string CONFIG_KEY_MAX_MOBILE_LOCATION_AGE_SECONDS = "FuelingRules.MaxMobileLocationAgeSeconds";
+    private const string CONFIG_KEY_MAX_MOBILE_LOCATION_ACCURACY_METERS = "FuelingRules.MaxMobileLocationAccuracyMeters";
+    private const string CONFIG_KEY_REJECT_CACHED_MOBILE_LOCATION = "FuelingRules.RejectCachedMobileLocation";
+
     // Temporary bypass configuration keys
     private const string CONFIG_KEY_TEMPORARY_BYPASS_ACTIVE = "FuelingRules.TemporaryBypass.IsActive";
     private const string CONFIG_KEY_TEMPORARY_BYPASS_EXPIRES = "FuelingRules.TemporaryBypass.ExpiresAt";
@@ -772,6 +778,26 @@ public partial class LocationValidationService : ILocationValidationService
                 vehicleId);
         }
 
+        // Log if GPS position is stale but we're allowing as a faulty device bypass
+        // CRITICAL: Skip distance check entirely for stale GPS - the coordinates are unreliable
+        if (locationValidation.ValidationStatus == Features.Vehicle.DTOs.GPSValidationStatus.StalePositionBypassed)
+        {
+            _logger.LogWarning(
+                "[LocationValidation] ⚠️ Vehicle {VehicleId} GPS POSITION IS STALE (faulty GPS device). " +
+                "BYPASSING distance check - stale coordinates are unreliable. Fueling allowed but logged. Reason: {Reason}",
+                vehicleId, locationValidation.ValidationStatusReason);
+
+            return new ProximityCheckResult
+            {
+                WasRequired = true,
+                IsValid = true,  // Allow fueling
+                Location = vehicleLocation,
+                WasBypassedDueToGPSFailure = true,  // Flag that this was bypassed
+                Reason = $"GPS position is stale - distance check bypassed (faulty GPS device). {locationValidation.ValidationStatusReason}",
+                GPSValidationStatus = locationValidation.ValidationStatus
+            };
+        }
+
         // Check GPS accuracy (per user requirement)
         if (vehicleLocation.Accuracy.HasValue && vehicleLocation.Accuracy > minimumGPSAccuracy)
         {
@@ -935,17 +961,97 @@ public partial class LocationValidationService : ILocationValidationService
         });
     }
 
+    /// <inheritdoc />
+    public async Task<bool> CheckVehicleHasGPSAsync(int vehicleId, CancellationToken cancellationToken)
+    {
+        return await VehicleHasGPSAsync(vehicleId, cancellationToken);
+    }
+
     private async Task<bool> VehicleHasGPSAsync(int vehicleId, CancellationToken cancellationToken)
     {
-        // Check if vehicle has GPS mapping in provider_mappings
-        var hasMapping = await _context.Set<VehicleProviderMappingEntity>()
+        // First check the Vehicle entity's HasGPSInstalled field (primary source of truth)
+        var vehicle = await _context.Vehicles
+            .AsNoTracking()
+            .Where(v => v.VehicleId == vehicleId)
+            .Select(v => new { v.VehicleId, v.HasGPSInstalled })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (vehicle == null)
+        {
+            _logger.LogWarning("[VehicleHasGPS] Vehicle {VehicleId} not found", vehicleId);
+            return false;
+        }
+
+        // HasGPSInstalled = 1 means GPS is installed
+        if (vehicle.HasGPSInstalled != 1)
+        {
+            _logger.LogDebug("[VehicleHasGPS] Vehicle {VehicleId} has HasGPSInstalled = {Value} (GPS not installed)",
+                vehicleId, vehicle.HasGPSInstalled);
+            return false;
+        }
+
+        // Additionally verify there's an active provider mapping (for actual GPS tracking)
+        var hasActiveMapping = await _context.Set<VehicleProviderMappingEntity>()
             .AsNoTracking()
             .AnyAsync(m => m.VehicleId == vehicleId && m.IsActive, cancellationToken);
 
-        return hasMapping;
+        if (!hasActiveMapping)
+        {
+            _logger.LogDebug("[VehicleHasGPS] Vehicle {VehicleId} has HasGPSInstalled=1 but no active provider mapping",
+                vehicleId);
+        }
+
+        return true; // HasGPSInstalled=1 is the primary indicator
     }
 
     private static double DegreesToRadians(double degrees) => degrees * (Math.PI / 180);
+
+    #endregion
+
+    #region Mobile Location Validation
+
+    /// <inheritdoc />
+    public async Task<MobileLocationValidationSettings> GetMobileLocationSettingsAsync(
+        CancellationToken cancellationToken = default)
+    {
+        // Load settings from system configuration
+        var requireMobileStr = await _systemConfigService.GetConfigurationValueAsync(
+            CONFIG_KEY_REQUIRE_MOBILE_LOCATION, cancellationToken);
+        var maxAgeStr = await _systemConfigService.GetConfigurationValueAsync(
+            CONFIG_KEY_MAX_MOBILE_LOCATION_AGE_SECONDS, cancellationToken);
+        var maxAccuracyStr = await _systemConfigService.GetConfigurationValueAsync(
+            CONFIG_KEY_MAX_MOBILE_LOCATION_ACCURACY_METERS, cancellationToken);
+        var rejectCachedStr = await _systemConfigService.GetConfigurationValueAsync(
+            CONFIG_KEY_REJECT_CACHED_MOBILE_LOCATION, cancellationToken);
+
+        // Also check if operator geofence is required (implies mobile location is required)
+        var requireOperatorStr = await _systemConfigService.GetConfigurationValueAsync(
+            CONFIG_KEY_REQUIRE_OPERATOR_IN_GEOFENCE, cancellationToken);
+        var requireOperatorInGeofence = bool.TryParse(requireOperatorStr, out var opSetting) && opSetting;
+
+        // Parse settings with defaults
+        var requireMobileLocation = !string.IsNullOrEmpty(requireMobileStr)
+            ? (bool.TryParse(requireMobileStr, out var reqMobile) && reqMobile)
+            : requireOperatorInGeofence; // Default to true if operator geofence is required
+
+        var maxAgeSeconds = int.TryParse(maxAgeStr, out var age) ? age : 60; // Default 60 seconds
+        var maxAccuracyMeters = int.TryParse(maxAccuracyStr, out var acc) ? acc : 500; // Default 500 meters
+        var rejectCached = !bool.TryParse(rejectCachedStr, out var reject) || reject; // Default true
+
+        var settings = new MobileLocationValidationSettings
+        {
+            RequireMobileLocation = requireMobileLocation,
+            MaxLocationAgeSeconds = maxAgeSeconds,
+            MaxLocationAccuracyMeters = maxAccuracyMeters,
+            RejectCachedLocation = rejectCached
+        };
+
+        _logger.LogDebug("[MobileLocation] Settings loaded: RequireMobile={Require}, MaxAge={MaxAge}s, MaxAccuracy={MaxAcc}m, RejectCached={RejectCached}",
+            settings.RequireMobileLocation, settings.MaxLocationAgeSeconds,
+            settings.MaxLocationAccuracyMeters, settings.RejectCachedLocation);
+
+        return settings;
+    }
 
     #endregion
 

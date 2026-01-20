@@ -47,6 +47,11 @@ const LocationRulesSettings = () => {
     proximityGracePeriodMeters: 10,
     allowCachedMobileLocation: true,
     enableLocationAuditLog: true,
+    // Mobile Location Validation Settings
+    requireMobileLocation: true,
+    maxMobileLocationAgeSeconds: 60,
+    maxMobileLocationAccuracyMeters: 500,
+    rejectCachedMobileLocation: true,
   });
 
   // Temporary bypass state
@@ -163,6 +168,23 @@ const LocationRulesSettings = () => {
             newSettings.enableLocationAuditLog =
               config.configurationValue?.toLowerCase() === "true";
             break;
+          // Mobile Location Validation Settings
+          case "FuelingRules.RequireMobileLocation":
+            newSettings.requireMobileLocation =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
+          case "FuelingRules.MaxMobileLocationAgeSeconds":
+            newSettings.maxMobileLocationAgeSeconds =
+              parseInt(config.configurationValue) || 60;
+            break;
+          case "FuelingRules.MaxMobileLocationAccuracyMeters":
+            newSettings.maxMobileLocationAccuracyMeters =
+              parseInt(config.configurationValue) || 500;
+            break;
+          case "FuelingRules.RejectCachedMobileLocation":
+            newSettings.rejectCachedMobileLocation =
+              config.configurationValue?.toLowerCase() === "true";
+            break;
           default:
             break;
         }
@@ -220,6 +242,11 @@ const LocationRulesSettings = () => {
         proximityGracePeriodMeters: "FuelingRules.ProximityGracePeriodMeters",
         allowCachedMobileLocation: "FuelingRules.AllowCachedMobileLocation",
         enableLocationAuditLog: "FuelingRules.EnableLocationAuditLog",
+        // Mobile App Location Settings
+        requireMobileLocation: "FuelingRules.RequireMobileLocation",
+        maxMobileLocationAgeSeconds: "FuelingRules.MaxMobileLocationAgeSeconds",
+        maxMobileLocationAccuracyMeters: "FuelingRules.MaxMobileLocationAccuracyMeters",
+        rejectCachedMobileLocation: "FuelingRules.RejectCachedMobileLocation",
       };
 
       // Prepare updates for each changed setting
@@ -1201,6 +1228,146 @@ const LocationRulesSettings = () => {
                 width="100%"
               />
             </SettingCard>
+          </div>
+        </div>
+
+        {/* Mobile App Location Settings */}
+        <div>
+          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-mobile-screen-button tw-text-purple-600"></i>
+            Mobile App Location Settings
+          </h3>
+          <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
+            Configure how the mobile app obtains and validates GPS location during fueling authorization.
+            These settings are synced to the mobile app automatically.
+          </p>
+
+          {/* Mobile Location Toggle Cards */}
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
+            {/* Require Mobile Location */}
+            <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-shadow-sm">
+              <div className="tw-flex tw-items-center tw-justify-between">
+                <div className="tw-flex tw-items-center tw-gap-3">
+                  <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-purple-100 tw-flex tw-items-center tw-justify-center">
+                    <i className="fa-light fa-location-dot tw-text-lg tw-text-purple-600"></i>
+                  </div>
+                  <div>
+                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-900">
+                      Require Mobile Location
+                    </h4>
+                    <p className="tw-text-xs tw-text-gray-500">
+                      Mobile app must provide GPS location for authorization
+                    </p>
+                  </div>
+                </div>
+                <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.requireMobileLocation}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "requireMobileLocation",
+                        e.target.checked
+                      )
+                    }
+                    disabled={!hasAdminPermission}
+                    className="tw-sr-only tw-peer"
+                  />
+                  <div className="tw-w-11 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-purple-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-purple-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+                </label>
+              </div>
+            </div>
+
+            {/* Reject Cached Mobile Location */}
+            <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-shadow-sm">
+              <div className="tw-flex tw-items-center tw-justify-between">
+                <div className="tw-flex tw-items-center tw-gap-3">
+                  <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-red-100 tw-flex tw-items-center tw-justify-center">
+                    <i className="fa-light fa-location-xmark tw-text-lg tw-text-red-600"></i>
+                  </div>
+                  <div>
+                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-900">
+                      Force Fresh GPS Location
+                    </h4>
+                    <p className="tw-text-xs tw-text-gray-500">
+                      Always get fresh GPS fix, reject cached locations
+                    </p>
+                  </div>
+                </div>
+                <label className="tw-relative tw-inline-flex tw-items-center tw-cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.rejectCachedMobileLocation}
+                    onChange={(e) =>
+                      handleSettingChange(
+                        "rejectCachedMobileLocation",
+                        e.target.checked
+                      )
+                    }
+                    disabled={!hasAdminPermission}
+                    className="tw-sr-only tw-peer"
+                  />
+                  <div className="tw-w-11 tw-h-6 tw-bg-gray-200 peer-focus:tw-outline-none peer-focus:tw-ring-4 peer-focus:tw-ring-red-300 tw-rounded-full tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-red-500 peer-disabled:tw-opacity-50 peer-disabled:tw-cursor-not-allowed"></div>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Location Numeric Settings */}
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-2 tw-gap-4">
+            <SettingCard
+              icon="fa-light fa-stopwatch"
+              iconColor="tw-bg-orange-100 tw-text-orange-600"
+              title="Max Location Age"
+              description="Maximum age of GPS location in seconds. Older locations will be rejected by the server."
+            >
+              <NumberBox
+                value={settings.maxMobileLocationAgeSeconds}
+                onValueChanged={(e) =>
+                  handleSettingChange("maxMobileLocationAgeSeconds", e.value)
+                }
+                min={10}
+                max={300}
+                step={5}
+                showSpinButtons={true}
+                format="#0 seconds"
+                disabled={!hasAdminPermission}
+                width="100%"
+              />
+            </SettingCard>
+
+            <SettingCard
+              icon="fa-light fa-bullseye"
+              iconColor="tw-bg-teal-100 tw-text-teal-600"
+              title="Max Location Accuracy"
+              description="Maximum acceptable GPS accuracy in meters. Less accurate locations may be rejected."
+            >
+              <NumberBox
+                value={settings.maxMobileLocationAccuracyMeters}
+                onValueChanged={(e) =>
+                  handleSettingChange("maxMobileLocationAccuracyMeters", e.value)
+                }
+                min={10}
+                max={1000}
+                step={10}
+                showSpinButtons={true}
+                format="#0 meters"
+                disabled={!hasAdminPermission}
+                width="100%"
+              />
+            </SettingCard>
+          </div>
+
+          {/* Info Box */}
+          <div className="tw-mt-4 tw-p-3 tw-bg-purple-50 tw-rounded-lg tw-border tw-border-purple-200">
+            <div className="tw-flex tw-items-start tw-gap-2">
+              <i className="fa-light fa-circle-info tw-text-purple-600 tw-mt-0.5"></i>
+              <p className="tw-text-xs tw-text-purple-800 tw-m-0">
+                <strong>Note:</strong> These settings control how the mobile app obtains GPS location before requesting
+                fueling authorization. The server will validate that the location meets these requirements. If "Force Fresh GPS"
+                is enabled, the mobile app will always request a new GPS fix instead of using cached location.
+              </p>
+            </div>
           </div>
         </div>
 

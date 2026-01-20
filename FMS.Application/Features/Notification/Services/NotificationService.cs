@@ -622,6 +622,39 @@ namespace FMS.Application.Features.Notification.Services
             }
         }
 
+        public async Task<FMSResponse<int>> MarkAllAsReadAsync(string userId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(userId))
+                    return FMSResponse<int>.Failed("User ID is required");
+
+                var unreadRecipients = await _context.NotificationRecipients
+                    .Where(r => r.UserId == userId && !r.IsRead)
+                    .ToListAsync(cancellationToken);
+
+                if (!unreadRecipients.Any())
+                    return FMSResponse<int>.Success(0, "No unread notifications found");
+
+                var now = DateTime.UtcNow;
+                foreach (var recipient in unreadRecipients)
+                {
+                    recipient.IsRead = true;
+                    recipient.ReadAt = now;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Marked {Count} notifications as read for user {UserId}", unreadRecipients.Count, userId);
+                return FMSResponse<int>.Success(unreadRecipients.Count, $"Marked {unreadRecipients.Count} notifications as read");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking all notifications as read for user {UserId}", userId);
+                return FMSResponse<int>.Failed($"Error marking all notifications as read: {ex.Message}");
+            }
+        }
+
         public async Task<FMSResponse> AcknowledgeNotificationAsync(int notificationId, string userId, CancellationToken cancellationToken = default)
         {
             try
@@ -1111,33 +1144,32 @@ namespace FMS.Application.Features.Notification.Services
                     .Select(g => new { Type = g.Key, Count = g.Count() })
                     .ToListAsync(cancellationToken);
 
-                // Get daily statistics - Fix for the translation error
-                var dailyStats = await userNotificationsQuery
-                    .GroupBy(n => new
+                // Get daily statistics - Simplified query to avoid EF Core translation issues
+                // First, get the raw data with notification IDs and dates
+                var notificationsForStats = await _context.Notifications
+                    .Where(n => n.Recipients.Any(r => r.UserId == request.UserId))
+                    .Where(n => n.CreatedAt >= fromDate && n.CreatedAt <= toDate)
+                    .Select(n => new
                     {
-                        Year = n.CreatedAt.Year,
-                        Month = n.CreatedAt.Month,
-                        Day = n.CreatedAt.Day
+                        n.Id,
+                        n.CreatedAt,
+                        IsRead = n.Recipients.Where(r => r.UserId == request.UserId).Select(r => r.IsRead).FirstOrDefault()
                     })
-                    .Select(g => new DailyNotificationStatDto
-                    {
-                        Date = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day),
-                        Count = g.Count(),
-                        ReadCount = g.Count(n => n.Recipients.Any(r => r.UserId == request.UserId && r.IsRead)),
-                        UnreadCount = g.Count(n => n.Recipients.Any(r => r.UserId == request.UserId && !r.IsRead))
-                    })
-                    .OrderBy(d => d.Date)
                     .ToListAsync(cancellationToken);
 
-                // Format dates for client after retrieval
-                var formattedDailyStats = dailyStats.Select(d => new DailyNotificationStatDto
-                {
-                    Date = d.Date,
-                    DateString = d.Date.ToString("yyyy-MM-dd"),
-                    Count = d.Count,
-                    ReadCount = d.ReadCount,
-                    UnreadCount = d.UnreadCount
-                }).ToList();
+                // Compute daily stats on the client side
+                var dailyStats = notificationsForStats
+                    .GroupBy(n => n.CreatedAt.Date)
+                    .Select(g => new DailyNotificationStatDto
+                    {
+                        Date = g.Key,
+                        DateString = g.Key.ToString("yyyy-MM-dd"),
+                        Count = g.Count(),
+                        ReadCount = g.Count(n => n.IsRead),
+                        UnreadCount = g.Count(n => !n.IsRead)
+                    })
+                    .OrderBy(d => d.Date)
+                    .ToList();
 
                 // Get recent notifications
                 var recentNotifications = await userNotificationsQuery
@@ -1175,7 +1207,7 @@ namespace FMS.Application.Features.Notification.Services
                     PriorityBreakdown = priorityCounts.ToDictionary(p => p.Priority, p => p.Count),
                     CategoryBreakdown = categoryCounts.ToDictionary(c => c.Category, c => c.Count),
                     TypeBreakdown = typeCounts.ToDictionary(t => t.Type, t => t.Count),
-                    DailyStatistics = formattedDailyStats,
+                    DailyStatistics = dailyStats,
                     RecentNotifications = recentNotifications,
                     FromDate = fromDate,
                     ToDate = toDate,

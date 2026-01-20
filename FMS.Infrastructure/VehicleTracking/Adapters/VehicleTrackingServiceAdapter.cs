@@ -6,6 +6,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate;
+using FMS.Infrastructure.VehicleTracking.Factory;
 using FMS.Infrastructure.VehicleTracking.Services;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -21,17 +22,20 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
     public class VehicleTrackingServiceAdapter : IGPSService
     {
         private readonly IVehicleTrackingService _trackingService;
+        private readonly IProviderFactory _providerFactory;
         private readonly GpsdataContext _context;
         private readonly ILogger<VehicleTrackingServiceAdapter> _logger;
         private readonly GPSGateService _gpsGateService;
 
         public VehicleTrackingServiceAdapter(
             IVehicleTrackingService trackingService,
+            IProviderFactory providerFactory,
             GpsdataContext context,
             GPSGateService gpsGateService,
             ILogger<VehicleTrackingServiceAdapter> logger)
         {
             _trackingService = trackingService;
+            _providerFactory = providerFactory ?? throw new ArgumentNullException(nameof(providerFactory));
             _context = context;
             _gpsGateService = gpsGateService;
             _logger = logger;
@@ -39,63 +43,41 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
 
         /// <summary>
         /// Get vehicle location by vehicle ID
+        /// CRITICAL: Uses provider directly to preserve ValidationStatus, IsGPSValid, and other validation fields
+        /// that are needed for stale GPS detection and location validation
         /// </summary>
         public async Task<FMSResponse<VehicleLocationDTO>> GetVehicleLocationAsync(int vehicleId)
         {
             try
             {
-                _logger.LogDebug("Getting location for vehicle {VehicleId} via tracking service", vehicleId);
+                _logger.LogDebug("Getting location for vehicle {VehicleId} via provider factory", vehicleId);
 
-                // Get location from tracking service
-                var location = await _trackingService.GetVehicleLocationAsync(vehicleId);
+                // Get the provider for this vehicle - this gives us the full DTO with validation status
+                var provider = await _providerFactory.GetProviderForVehicleAsync(vehicleId);
 
-                if (location == null)
+                if (provider == null)
                 {
-                    _logger.LogWarning("No location data found for vehicle {VehicleId}", vehicleId);
-                    return FMSResponse<VehicleLocationDTO>.Failed($"No location data available for vehicle {vehicleId}");
+                    _logger.LogWarning("No provider available for vehicle {VehicleId}", vehicleId);
+                    return FMSResponse<VehicleLocationDTO>.Failed($"No GPS provider available for vehicle {vehicleId}");
                 }
 
-                // Get vehicle details from database
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId)
-                    .Select(v => new
-                    {
-                        v.VehicleId,
-                        v.HyoungNo,
-                        v.NumberPlate,
-                        v.HasGPSInstalled,
-                        v.DeviceId
-                    })
-                    .FirstOrDefaultAsync();
+                // Call provider directly to get the full DTO with ValidationStatus
+                var locationResult = await provider.GetVehicleLocationAsync(vehicleId);
 
-                if (vehicle == null)
+                if (!locationResult.IsSuccess || locationResult.Data == null)
                 {
-                    _logger.LogWarning("Vehicle {VehicleId} not found in database", vehicleId);
-                    return FMSResponse<VehicleLocationDTO>.Failed($"Vehicle {vehicleId} not found");
+                    _logger.LogWarning("Provider returned no location for vehicle {VehicleId}: {Message}",
+                        vehicleId, locationResult.Message);
+                    return locationResult;
                 }
 
-                // Map to DTO
-                var dto = new VehicleLocationDTO
-                {
-                    VehicleId = location.VehicleId,
-                    VehicleName = vehicle.HyoungNo ?? "Unknown",
-                    NumberPlate = vehicle.NumberPlate,
-                    Latitude = (decimal)location.Latitude,
-                    Longitude = (decimal)location.Longitude,
-                    LastUpdated = location.Timestamp,
-                    Speed = location.Speed.HasValue ? (decimal)location.Speed.Value : null,
-                    Heading = location.Heading.HasValue ? (decimal)location.Heading.Value : null,
-                    Altitude = location.Altitude.HasValue ? (decimal)location.Altitude.Value : null,
-                    IsOnline = IsLocationRecent(location.Timestamp),
-                    Address = location.Address,
-                    HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                    DeviceId = vehicle.DeviceId
-                };
+                var dto = locationResult.Data;
 
-                _logger.LogDebug("Successfully retrieved location for vehicle {VehicleId} from provider {Provider}",
-                    vehicleId, location.ProviderName ?? "Unknown");
+                _logger.LogDebug("Successfully retrieved location for vehicle {VehicleId} from provider {Provider}. " +
+                    "ValidationStatus: {Status}, IsGPSValid: {IsValid}, CanFuel: {CanFuel}",
+                    vehicleId, provider.ProviderName, dto.ValidationStatus, dto.IsGPSValid, dto.CanFuel);
 
-                return FMSResponse<VehicleLocationDTO>.Success(dto);
+                return locationResult;
             }
             catch (Exception ex)
             {

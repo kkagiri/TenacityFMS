@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
+import LocationStatusIndicator from "./LocationStatusIndicator";
 
 const FuelingVolumeStep = ({
   selectedVehicle,
@@ -41,6 +42,10 @@ const FuelingVolumeStep = ({
   siteName,
   // Fueling rules from validation step (contains maxFuelAllowed, limits, etc.)
   fuelingRules = null,
+  // Location props for GPS status indicator
+  onLocationUpdate,
+  showLocationStatus = true,
+  maxLocationAgeSeconds = 60,
   // Legacy props - kept for backward compatibility but deprecated
   enableFuelCapacityValidation = true,
   enableGPSFuelLevelCheck = true,
@@ -406,6 +411,16 @@ const FuelingVolumeStep = ({
             </Text>
           </View>
         </View>
+
+        {/* GPS Location Status - Manual refresh available */}
+        {showLocationStatus && (
+          <LocationStatusIndicator
+            onLocationUpdate={onLocationUpdate}
+            maxAgeSeconds={maxLocationAgeSeconds}
+            autoRefreshOnMount={true}
+            showDetails={false}
+          />
+        )}
 
         {/* Nozzle Status Card */}
         <View

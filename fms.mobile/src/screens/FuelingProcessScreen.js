@@ -144,6 +144,11 @@ const FuelingProcessScreen = () => {
     // Validation settings
     validationSettings,
 
+    // Location state for authorization
+    currentLocation,
+    locationSettings,
+    handleLocationUpdate,
+
     // Site info
     sites,
     siteName,
@@ -318,6 +323,10 @@ const FuelingProcessScreen = () => {
             siteId={siteId}
             sites={sites}
             siteName={siteName}
+            // Location props for GPS status indicator
+            onLocationUpdate={handleLocationUpdate}
+            showLocationStatus={true}
+            maxLocationAgeSeconds={locationSettings.maxLocationAgeSeconds}
           />
         );
 

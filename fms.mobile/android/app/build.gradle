@@ -88,8 +88,8 @@ android {
         applicationId "com.Hyoung"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 111
-        versionName "1.2.3"
+        versionCode 112
+        versionName "1.2.4"
 
         // Fix for react-native-camera flavor selection
         missingDimensionStrategy 'react-native-camera', 'general'

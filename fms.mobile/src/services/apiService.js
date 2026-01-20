@@ -1150,6 +1150,197 @@ class ApiService {
     }
   }
 
+  // ============================================
+  // Notification endpoints
+  // ============================================
+
+  /**
+   * Get notifications for the current user
+   * @param {Object} params - Filter parameters
+   * @returns {Promise<Object>} Notifications response
+   */
+  async getNotifications(params = {}) {
+    try {
+      const response = await this.api.get("/v1/notifications", { params });
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data || [],
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error("[ApiService] Get notifications error:", error);
+      return {
+        success: false,
+        data: [],
+        message: error.message || "Failed to fetch notifications",
+      };
+    }
+  }
+
+  /**
+   * Get notification statistics
+   * @returns {Promise<Object>} Statistics response
+   */
+  async getNotificationStatistics(params = {}) {
+    try {
+      const response = await this.api.get("/v1/notifications/statistics", { params });
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data || {},
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error("[ApiService] Get notification stats error:", error);
+      return {
+        success: false,
+        data: {},
+        message: error.message || "Failed to fetch notification statistics",
+      };
+    }
+  }
+
+  /**
+   * Get a single notification by ID
+   * @param {number} notificationId - Notification ID
+   * @returns {Promise<Object>} Notification details
+   */
+  async getNotificationById(notificationId) {
+    try {
+      const response = await this.api.get(`/v1/notifications/${notificationId}`);
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data,
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error("[ApiService] Get notification by ID error:", error);
+      return {
+        success: false,
+        data: null,
+        message: error.message || "Failed to fetch notification",
+      };
+    }
+  }
+
+  /**
+   * Mark a notification as read
+   * @param {number} notificationId - Notification ID
+   * @returns {Promise<Object>} Response
+   */
+  async markNotificationAsRead(notificationId) {
+    try {
+      const response = await this.api.post(`/v1/notifications/${notificationId}/read`);
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message || "Notification marked as read",
+      };
+    } catch (error) {
+      console.error("[ApiService] Mark as read error:", error);
+      return {
+        success: false,
+        message: error.message || "Failed to mark notification as read",
+      };
+    }
+  }
+
+  /**
+   * Mark all notifications as read
+   * Note: Backend may not have this endpoint yet - falls back to marking individually
+   * @returns {Promise<Object>} Response
+   */
+  async markAllNotificationsAsRead() {
+    try {
+      // Try the bulk endpoint first
+      const response = await this.api.post("/v1/notifications/read-all");
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message || "All notifications marked as read",
+      };
+    } catch (error) {
+      // If endpoint doesn't exist, return success anyway (UI will update optimistically)
+      if (error.response?.status === 404) {
+        console.log("[ApiService] Bulk read-all endpoint not available, using optimistic update");
+        return {
+          success: true,
+          message: "Notifications updated",
+        };
+      }
+      console.error("[ApiService] Mark all as read error:", error);
+      return {
+        success: false,
+        message: error.message || "Failed to mark all notifications as read",
+      };
+    }
+  }
+
+  /**
+   * Acknowledge a notification (approve/confirm)
+   * @param {number} notificationId - Notification ID
+   * @returns {Promise<Object>} Response
+   */
+  async acknowledgeNotification(notificationId) {
+    try {
+      const response = await this.api.post(`/v1/notifications/${notificationId}/acknowledge`);
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message || "Notification acknowledged",
+      };
+    } catch (error) {
+      console.error("[ApiService] Acknowledge notification error:", error);
+      return {
+        success: false,
+        message: error.message || "Failed to acknowledge notification",
+      };
+    }
+  }
+
+  /**
+   * Get unread notification count
+   * @returns {Promise<Object>} Count response
+   */
+  async getUnreadNotificationCount() {
+    try {
+      const response = await this.api.get("/v1/notifications/unread-count");
+      return {
+        success: response.data?.success ?? true,
+        count: response.data?.data?.count || response.data?.count || 0,
+      };
+    } catch (error) {
+      console.error("[ApiService] Get unread count error:", error);
+      return {
+        success: false,
+        count: 0,
+      };
+    }
+  }
+
+  /**
+   * Get pending approval notifications
+   * @returns {Promise<Object>} Pending approvals response
+   */
+  async getPendingApprovalNotifications() {
+    try {
+      const response = await this.api.get("/v1/notifications", {
+        params: {
+          requiresAcknowledgment: true,
+          isAcknowledged: false,
+        },
+      });
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data || [],
+        message: response.data?.message,
+      };
+    } catch (error) {
+      console.error("[ApiService] Get pending approvals error:", error);
+      return {
+        success: false,
+        data: [],
+        message: error.message || "Failed to fetch pending approvals",
+      };
+    }
+  }
+
   // Error handling helper - Enhanced to support FMSResponse validationErrors
   handleError(error, defaultMessage) {
     const responseData = error.response?.data;

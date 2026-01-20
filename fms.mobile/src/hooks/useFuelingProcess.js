@@ -170,6 +170,15 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     gpsFuelLevelCheckEnabled: true,
   });
 
+  // GPS Location state for authorization
+  // This stores the location obtained from the LocationStatusIndicator for use during authorization
+  const [currentLocation, setCurrentLocation] = useState(null);
+  const [locationSettings, setLocationSettings] = useState({
+    maxLocationAgeSeconds: 60,
+    maxLocationAccuracyMeters: 500,
+    rejectCachedLocation: true,
+  });
+
   // Computed values
   const isDataLoading =
     deviceConnectionStatus === "connecting" && availableTanks.length === 0;
@@ -245,6 +254,26 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
       } catch (error) {
         console.warn(
           "[useFuelingProcess] Failed to load validation settings:",
+          error
+        );
+      }
+
+      // Load mobile location settings from server (separate from validation settings)
+      try {
+        await fuelingValidationSettings.loadLocationSettings();
+        const locSettings = fuelingValidationSettings.getLocationSettings();
+        setLocationSettings({
+          maxLocationAgeSeconds: locSettings.maxLocationAgeSeconds ?? 60,
+          maxLocationAccuracyMeters: locSettings.maxLocationAccuracyMeters ?? 500,
+          rejectCachedLocation: locSettings.rejectCachedLocation ?? true,
+        });
+        console.log(
+          "[useFuelingProcess] Loaded mobile location settings from server:",
+          locSettings
+        );
+      } catch (error) {
+        console.warn(
+          "[useFuelingProcess] Failed to load location settings:",
           error
         );
       }
@@ -733,41 +762,52 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
         if (requireMobileLocation && !userBypassEnabled) {
           console.log(
-            "[useFuelingProcess] Mobile location required for this device, getting fresh location..."
+            "[useFuelingProcess] Mobile location required for this device..."
           );
 
-          // Use the new fresh location method that forces GPS refresh if stale
-          const locationResult = await locationService.getFreshLocationForAuthorization({
-            maxAgeSeconds: 60, // Server rejects locations older than 60 seconds
-            maxAccuracyMeters: ptsDevice?.mobileAppProximityRadius || 500,
-            silentMode: locationService.permissionVerified, // Silent if already verified
-          });
-
-          if (locationResult.wasRefreshed) {
-            console.log("[useFuelingProcess] Fresh GPS location obtained");
-          }
-
-          if (locationResult.error && !bypassOnGPSFailure) {
-            // Location is required but couldn't be obtained and bypass is disabled
-            console.warn(
-              "[useFuelingProcess] Could not get fresh location and bypass is disabled:",
-              locationResult.error
+          // PRIORITY 1: Use pre-fetched location from LocationStatusIndicator if available and fresh
+          if (currentLocation && !locationService.isLocationStale(currentLocation, locationSettings.maxLocationAgeSeconds)) {
+            console.log("[useFuelingProcess] Using pre-fetched location from LocationStatusIndicator");
+            deviceLocation = currentLocation;
+          } else {
+            // PRIORITY 2: Fetch fresh location if not available or stale
+            console.log(
+              "[useFuelingProcess] Pre-fetched location unavailable or stale, getting fresh location..."
             );
-            setIsAuthorizing(false);
-            setAuthError(
-              locationResult.error + "\n\n" +
-              "Please wait for a fresh GPS fix and try again."
-            );
-            return;
-          }
 
-          deviceLocation = locationResult.location;
+            // Use the new fresh location method that forces GPS refresh if stale
+            const locationResult = await locationService.getFreshLocationForAuthorization({
+              maxAgeSeconds: locationSettings.maxLocationAgeSeconds,
+              maxAccuracyMeters: ptsDevice?.mobileAppProximityRadius || locationSettings.maxLocationAccuracyMeters,
+              silentMode: locationService.permissionVerified, // Silent if already verified
+            });
+
+            if (locationResult.wasRefreshed) {
+              console.log("[useFuelingProcess] Fresh GPS location obtained");
+            }
+
+            if (locationResult.error && !bypassOnGPSFailure) {
+              // Location is required but couldn't be obtained and bypass is disabled
+              console.warn(
+                "[useFuelingProcess] Could not get fresh location and bypass is disabled:",
+                locationResult.error
+              );
+              setIsAuthorizing(false);
+              setAuthError(
+                locationResult.error + "\n\n" +
+                "Please use the GPS Refresh button to get a fresh location fix before authorizing."
+              );
+              return;
+            }
+
+            deviceLocation = locationResult.location;
+          }
 
           if (!deviceLocation && !bypassOnGPSFailure) {
             setIsAuthorizing(false);
             setAuthError(
               "Location is required for fueling at this site but could not be obtained. " +
-                "Please enable location services and try again."
+                "Please use the GPS Refresh button above and try again."
             );
             return;
           }
@@ -1168,6 +1208,25 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     setViewingPumpData(null);
   }, []);
 
+  // ===========================================
+  // LOCATION UPDATE HANDLER
+  // ===========================================
+  /**
+   * Handle location update from LocationStatusIndicator
+   * This stores the fresh location for use during authorization
+   */
+  const handleLocationUpdate = useCallback((location) => {
+    setCurrentLocation(location);
+    if (location) {
+      console.log(
+        "[useFuelingProcess] Location updated from indicator:",
+        `lat=${location.latitude}, lng=${location.longitude}, accuracy=${location.accuracy}m`
+      );
+    } else {
+      console.log("[useFuelingProcess] Location cleared or unavailable");
+    }
+  }, []);
+
   // Return all state and handlers
   return {
     // Navigation
@@ -1299,6 +1358,12 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
     // Validation settings
     validationSettings,
+
+    // Location state for authorization
+    currentLocation,
+    setCurrentLocation,
+    locationSettings,
+    handleLocationUpdate,
 
     // Site info
     sites,

@@ -45,6 +45,16 @@ public interface ILocationValidationService
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Checks if a vehicle has GPS tracking installed.
+    /// </summary>
+    /// <param name="vehicleId">The vehicle ID</param>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>True if the vehicle has GPS installed, false otherwise</returns>
+    Task<bool> CheckVehicleHasGPSAsync(
+        int vehicleId,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
     /// Calculates the distance between two geographic points using the Haversine formula.
     /// </summary>
     /// <param name="point1">First location</param>
@@ -140,6 +150,18 @@ public interface ILocationValidationService
         decimal latitude,
         decimal longitude,
         List<int> geofenceIds,
+        CancellationToken cancellationToken = default);
+
+    #endregion
+
+    #region Mobile Location Validation
+
+    /// <summary>
+    /// Gets the mobile location validation settings from system configuration.
+    /// </summary>
+    /// <param name="cancellationToken">Cancellation token</param>
+    /// <returns>Mobile location validation settings</returns>
+    Task<MobileLocationValidationSettings> GetMobileLocationSettingsAsync(
         CancellationToken cancellationToken = default);
 
     #endregion

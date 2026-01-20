@@ -36,6 +36,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         // Configuration thresholds
         private static readonly TimeSpan InvalidGpsActivityThreshold = TimeSpan.FromHours(2);
         private static readonly TimeSpan StaleDeviceThreshold = TimeSpan.FromDays(30); // 1 month
+        private static readonly TimeSpan StalePositionThreshold = TimeSpan.FromHours(24); // Position older than 24 hours is stale
 
         public GPSGateLocationService(
             GpsdataContext context,
@@ -176,10 +177,18 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleLocationDTO>.Success(CreateOfflineLocationDto(vehicle, providerMapping, GPSValidationStatus.NoData, "No GPS position available"));
                 }
 
-                // Step 8: Determine GPS validation status based on valid flag and deviceActivity
+                // Parse the position timestamp
+                DateTime? positionTimestamp = null;
+                if (!string.IsNullOrEmpty(utcString) && DateTime.TryParse(utcString, out var parsedUtc))
+                {
+                    positionTimestamp = parsedUtc;
+                }
+
+                // Step 8: Determine GPS validation status based on valid flag, deviceActivity, AND position age
                 var (validationStatus, validationReason) = DetermineValidationStatus(
                     isGpsValid,
                     deviceActivity,
+                    positionTimestamp,
                     vehicleId,
                     gpsGateUserId);
 
@@ -192,10 +201,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     Latitude = (decimal)position.Latitude,
                     Longitude = (decimal)position.Longitude,
                     Altitude = position.Altitude.HasValue ? (decimal)position.Altitude : null,
-                    LastUpdated = DateTime.TryParse(utcString, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
+                    LastUpdated = positionTimestamp ?? DateTime.UtcNow,
                     Speed = velocity?.GroundSpeed.HasValue == true ? (decimal)velocity.GroundSpeed : null,
                     Heading = velocity?.Heading.HasValue == true ? (decimal)velocity.Heading : null,
-                    IsOnline = true,
+                    IsOnline = validationStatus != GPSValidationStatus.InvalidAndStale &&
+                              validationStatus != GPSValidationStatus.StalePositionBypassed, // Mark as offline if position is stale
                     HasGPSInstalled = true,
                     DeviceId = vehicle.DeviceId, // Keep legacy field for backward compatibility
                     ExternalDeviceId = providerMapping.ExternalDeviceId,
@@ -233,9 +243,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         }
 
         /// <summary>
-        /// Determines the GPS validation status based on the valid flag and device activity time.
+        /// Determines the GPS validation status based on the valid flag, device activity time, and position age.
         ///
         /// Rules:
+        /// - If GPS position is older than 24 hours → InvalidAndStale (block fueling, position is stale)
         /// - Valid=true AND DeviceActivity within 1 month → Valid (allow fueling)
         /// - Valid=false AND DeviceActivity within 2 hours → InvalidButRecentActivity (allow fueling)
         /// - Valid=true AND DeviceActivity older than 1 month → ValidButStaleDevice (block + notify)
@@ -244,10 +255,36 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private (GPSValidationStatus Status, string Reason) DetermineValidationStatus(
             bool isGpsValid,
             DateTime? deviceActivity,
+            DateTime? positionTimestamp,
             int vehicleId,
             int gpsGateUserId)
         {
             var now = DateTime.UtcNow;
+
+            // FIRST: Check if the GPS position itself is stale (too old)
+            // This catches cases like the GPS sending 2024 data in 2026
+            // NOTE: Stale GPS position is treated as a FAULTY DEVICE - fueling is ALLOWED but logged
+            if (positionTimestamp.HasValue)
+            {
+                var positionAge = now - positionTimestamp.Value;
+                if (positionAge > StalePositionThreshold)
+                {
+                    _logger.LogWarning(
+                        "⚠️ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS POSITION IS STALE - Position timestamp: {PositionTime} ({Age} old). " +
+                        "GPS device may be offline or malfunctioning. FUELING ALLOWED (treated as faulty GPS) but logged for review.",
+                        vehicleId, gpsGateUserId, positionTimestamp.Value, FormatTimeSpan(positionAge));
+
+                    return (GPSValidationStatus.StalePositionBypassed,
+                        $"GPS position is stale ({FormatTimeSpan(positionAge)} old, at {positionTimestamp.Value:yyyy-MM-dd HH:mm:ss} UTC). " +
+                        $"Treated as faulty GPS device - fueling allowed but logged for review.");
+                }
+            }
+            else
+            {
+                // No position timestamp available - this is suspicious
+                _logger.LogWarning("Vehicle {VehicleId} (GPSGate {GpsUserId}): No position timestamp available - cannot verify position freshness",
+                    vehicleId, gpsGateUserId);
+            }
 
             // If no device activity timestamp, we can't make a determination
             if (!deviceActivity.HasValue)
@@ -416,6 +453,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         var velocity = userStatus.EffectiveVelocity;
                         var isGpsValid = userStatus.IsGPSValid;
                         var deviceActivity = userStatus.DeviceActivity;
+                        var utcString = userStatus.EffectiveUtc;
 
                         if (position == null)
                         {
@@ -424,10 +462,18 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             continue;
                         }
 
+                        // Parse position timestamp for staleness check
+                        DateTime? positionTimestamp = null;
+                        if (!string.IsNullOrEmpty(utcString) && DateTime.TryParse(utcString, out var parsedUtc))
+                        {
+                            positionTimestamp = parsedUtc;
+                        }
+
                         // Determine validation status
                         var (validationStatus, validationReason) = DetermineValidationStatus(
                             isGpsValid,
                             deviceActivity,
+                            positionTimestamp,
                             vehicle.VehicleId,
                             int.TryParse(mapping?.ExternalDeviceId, out int gpsId) ? gpsId : 0);
 
@@ -848,6 +894,37 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             {
                 _logger.LogWarning(ex, "Error retrieving cached location for vehicle {VehicleId}", vehicleId);
                 return null;
+            }
+        }
+
+        #endregion
+
+        #region Helper Methods
+
+        /// <summary>
+        /// Formats a TimeSpan into a human-readable string.
+        /// </summary>
+        private static string FormatTimeSpan(TimeSpan timeSpan)
+        {
+            if (timeSpan.TotalDays >= 1)
+            {
+                var days = (int)timeSpan.TotalDays;
+                var hours = timeSpan.Hours;
+                return hours > 0 ? $"{days} days {hours} hours" : $"{days} days";
+            }
+            else if (timeSpan.TotalHours >= 1)
+            {
+                var hours = (int)timeSpan.TotalHours;
+                var minutes = timeSpan.Minutes;
+                return minutes > 0 ? $"{hours} hours {minutes} minutes" : $"{hours} hours";
+            }
+            else if (timeSpan.TotalMinutes >= 1)
+            {
+                return $"{(int)timeSpan.TotalMinutes} minutes";
+            }
+            else
+            {
+                return $"{(int)timeSpan.TotalSeconds} seconds";
             }
         }
 

@@ -13,8 +13,10 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { fetchDevicesBySite } from "../redux/slices/deviceSlice";
 import { fetchTanks } from "../redux/slices/tankSlice";
+import { fetchNotificationStats } from "../redux/slices/notificationSlice";
 import apiService from "../services/apiService";
 import signalRService from "../services/signalRService";
+import { NotificationBell } from "../components/notifications";
 
 const { width } = Dimensions.get("window");
 const isSmallScreen = width < 380;
@@ -138,6 +140,7 @@ const HomeScreen = ({ navigation }) => {
   useEffect(() => {
     loadSavedSite();
     dispatch(fetchTanks());
+    dispatch(fetchNotificationStats());
     fetchTodayTransactions();
   }, []);
 
@@ -235,7 +238,12 @@ const HomeScreen = ({ navigation }) => {
           <Text style={styles.userName}>{displayName}</Text>
         </View>
 
-        {/* Site Badge */}
+        {/* Notification Bell */}
+        <NotificationBell color="#2563eb" style={styles.notificationBell} />
+      </View>
+
+      {/* Site Badge Row */}
+      <View style={styles.siteBadgeRow}>
         {defaultSite ? (
           <View style={styles.siteBadge}>
             <Icon name="map-marker-alt" size={12} color="#2563eb" />
@@ -440,10 +448,13 @@ const styles = StyleSheet.create({
     paddingBottom: 32,
   },
   header: {
-    marginBottom: 20,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    marginBottom: 8,
   },
   welcomeSection: {
-    marginBottom: 12,
+    flex: 1,
   },
   welcomeText: {
     fontSize: 14,
@@ -453,6 +464,14 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "bold",
     color: "#1f2937",
+  },
+  notificationBell: {
+    marginLeft: 12,
+    backgroundColor: "#f3f4f6",
+    borderRadius: 20,
+  },
+  siteBadgeRow: {
+    marginBottom: 16,
   },
   siteBadge: {
     flexDirection: "row",

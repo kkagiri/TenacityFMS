@@ -16,7 +16,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import CustomDateTimePicker from "../components/common/CustomDateTimePicker";
 import { fetchTanksBySite } from "../redux/slices/tankSlice";
 import {
   createDelivery,
@@ -240,10 +240,7 @@ const TankDeliveryScreen = ({ navigation, route }) => {
           <Text style={styles.sectionLabel}>Delivery Date & Time *</Text>
           <TouchableOpacity
             style={styles.selectButton}
-            onPress={() => {
-              setDatePickerMode("date");
-              setShowDatePicker(true);
-            }}
+            onPress={() => setShowDatePicker(true)}
           >
             <View style={styles.selectedInfo}>
               <Icon name="calendar-alt" size={20} color={themeColor} />
@@ -501,51 +498,18 @@ const TankDeliveryScreen = ({ navigation, route }) => {
         </View>
       </Modal>
 
-      {/* Date Time Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={deliveryDate}
-          mode={datePickerMode}
-          display={Platform.OS === "ios" ? "spinner" : "default"}
-          onChange={(event, selectedDate) => {
-            if (Platform.OS === "android") {
-              setShowDatePicker(false);
-            }
-            if (event.type === "dismissed") {
-              setShowDatePicker(false);
-              return;
-            }
-            if (selectedDate) {
-              if (datePickerMode === "date") {
-                // After selecting date, show time picker
-                const newDate = new Date(deliveryDate);
-                newDate.setFullYear(selectedDate.getFullYear());
-                newDate.setMonth(selectedDate.getMonth());
-                newDate.setDate(selectedDate.getDate());
-                setDeliveryDate(newDate);
-                if (Platform.OS === "android") {
-                  // On Android, show time picker after date
-                  setTimeout(() => {
-                    setDatePickerMode("time");
-                    setShowDatePicker(true);
-                  }, 100);
-                } else {
-                  setDatePickerMode("time");
-                }
-              } else {
-                // Time selected
-                const newDate = new Date(deliveryDate);
-                newDate.setHours(selectedDate.getHours());
-                newDate.setMinutes(selectedDate.getMinutes());
-                setDeliveryDate(newDate);
-                setShowDatePicker(false);
-                setDatePickerMode("date");
-              }
-            }
-          }}
-          maximumDate={new Date()}
-        />
-      )}
+      {/* Custom Date Time Picker */}
+      <CustomDateTimePicker
+        visible={showDatePicker}
+        value={deliveryDate}
+        onConfirm={(date) => {
+          setDeliveryDate(date);
+          setShowDatePicker(false);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+        themeColor={themeColor}
+        maximumDate={new Date()}
+      />
     </KeyboardAvoidingView>
   );
 };

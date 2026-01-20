@@ -8,6 +8,8 @@ import { API_CONFIG } from "../config/environment";
 const STORAGE_KEYS = {
   CACHED_SETTINGS: "fms_fueling_validation_settings_cache",
   CACHE_TIMESTAMP: "fms_fueling_validation_settings_timestamp",
+  CACHED_LOCATION_SETTINGS: "fms_mobile_location_settings_cache",
+  LOCATION_SETTINGS_TIMESTAMP: "fms_mobile_location_settings_timestamp",
 };
 
 // Cache settings for 5 minutes
@@ -21,6 +23,17 @@ class FuelingValidationSettings {
     this.gpsFuelLevelCheckEnabled = true;
     this.isLoaded = false;
     this.lastFetchTime = null;
+
+    // Mobile Location Settings (server-managed)
+    this.locationSettings = {
+      requireMobileLocation: true,
+      maxLocationAgeSeconds: 60,
+      maxLocationAccuracyMeters: 500,
+      rejectCachedLocation: true,
+      requireOperatorInGeofence: false,
+      bypassOnGPSFailure: true,
+    };
+    this.locationSettingsLoaded = false;
   }
 
   /**
@@ -284,10 +297,187 @@ class FuelingValidationSettings {
     try {
       await AsyncStorage.removeItem(STORAGE_KEYS.CACHED_SETTINGS);
       await AsyncStorage.removeItem(STORAGE_KEYS.CACHE_TIMESTAMP);
+      await AsyncStorage.removeItem(STORAGE_KEYS.CACHED_LOCATION_SETTINGS);
+      await AsyncStorage.removeItem(STORAGE_KEYS.LOCATION_SETTINGS_TIMESTAMP);
       console.log("[FuelingValidationSettings] Cache cleared");
     } catch (error) {
       console.error("[FuelingValidationSettings] Error clearing cache:", error);
     }
+  }
+
+  // ==========================================
+  // Mobile Location Settings Methods
+  // ==========================================
+
+  /**
+   * Fetch mobile location settings from API
+   * @returns {Promise<Object|null>} Location settings or null on error
+   */
+  async fetchLocationSettingsFromApi() {
+    try {
+      const token = await this.getAuthToken();
+      if (!token) {
+        console.warn("[FuelingValidationSettings] No auth token, using cached/default location settings");
+        return null;
+      }
+
+      const baseUrl = this.getApiBaseUrl();
+      const url = `${baseUrl}/api/v1/SystemConfiguration/mobile-location-settings`;
+
+      console.log("[FuelingValidationSettings] Fetching location settings from:", url);
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (!response.ok) {
+        console.error("[FuelingValidationSettings] Location settings API request failed:", response.status);
+        return null;
+      }
+
+      const result = await response.json();
+      if (result.success && result.data) {
+        console.log("[FuelingValidationSettings] Location settings received:", result.data);
+        return result.data;
+      }
+
+      console.warn("[FuelingValidationSettings] API returned unsuccessful response:", result.message);
+      return null;
+    } catch (error) {
+      console.error("[FuelingValidationSettings] Error fetching location settings:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Load cached location settings
+   * @returns {Promise<Object|null>} Cached settings or null
+   */
+  async loadCachedLocationSettings() {
+    try {
+      const cachedData = await AsyncStorage.getItem(STORAGE_KEYS.CACHED_LOCATION_SETTINGS);
+      const cacheTimestamp = await AsyncStorage.getItem(STORAGE_KEYS.LOCATION_SETTINGS_TIMESTAMP);
+
+      if (cachedData && cacheTimestamp) {
+        const timestamp = parseInt(cacheTimestamp, 10);
+        const now = Date.now();
+
+        if (now - timestamp < CACHE_DURATION_MS) {
+          const settings = JSON.parse(cachedData);
+          console.log("[FuelingValidationSettings] Using cached location settings:", settings);
+          return settings;
+        }
+      }
+
+      return null;
+    } catch (error) {
+      console.error("[FuelingValidationSettings] Error loading cached location settings:", error);
+      return null;
+    }
+  }
+
+  /**
+   * Save location settings to cache
+   * @param {Object} settings - Location settings to cache
+   */
+  async saveLocationSettingsToCache(settings) {
+    try {
+      await AsyncStorage.setItem(STORAGE_KEYS.CACHED_LOCATION_SETTINGS, JSON.stringify(settings));
+      await AsyncStorage.setItem(STORAGE_KEYS.LOCATION_SETTINGS_TIMESTAMP, Date.now().toString());
+    } catch (error) {
+      console.error("[FuelingValidationSettings] Error saving location settings to cache:", error);
+    }
+  }
+
+  /**
+   * Load mobile location settings from API with cache fallback
+   * @returns {Promise<Object>} Location settings
+   */
+  async loadLocationSettings() {
+    try {
+      // Try cached settings first
+      const cachedSettings = await this.loadCachedLocationSettings();
+      if (cachedSettings) {
+        this.locationSettings = { ...this.locationSettings, ...cachedSettings };
+        this.locationSettingsLoaded = true;
+      }
+
+      // Fetch fresh from API
+      const apiSettings = await this.fetchLocationSettingsFromApi();
+      if (apiSettings) {
+        this.locationSettings = {
+          requireMobileLocation: apiSettings.requireMobileLocation ?? true,
+          maxLocationAgeSeconds: apiSettings.maxLocationAgeSeconds ?? 60,
+          maxLocationAccuracyMeters: apiSettings.maxLocationAccuracyMeters ?? 500,
+          rejectCachedLocation: apiSettings.rejectCachedLocation ?? true,
+          requireOperatorInGeofence: apiSettings.requireOperatorInGeofence ?? false,
+          bypassOnGPSFailure: apiSettings.bypassOnGPSFailure ?? true,
+        };
+        this.locationSettingsLoaded = true;
+
+        // Cache the settings
+        await this.saveLocationSettingsToCache(this.locationSettings);
+
+        console.log("[FuelingValidationSettings] Location settings loaded:", this.locationSettings);
+      }
+
+      return this.locationSettings;
+    } catch (error) {
+      console.error("[FuelingValidationSettings] Error loading location settings:", error);
+      return this.locationSettings;
+    }
+  }
+
+  /**
+   * Get current location settings
+   * @returns {Object} Current location settings
+   */
+  getLocationSettings() {
+    return { ...this.locationSettings };
+  }
+
+  /**
+   * Get max location age in seconds
+   * @returns {number} Max age in seconds
+   */
+  getMaxLocationAgeSeconds() {
+    return this.locationSettings.maxLocationAgeSeconds;
+  }
+
+  /**
+   * Get max location accuracy in meters
+   * @returns {number} Max accuracy in meters
+   */
+  getMaxLocationAccuracyMeters() {
+    return this.locationSettings.maxLocationAccuracyMeters;
+  }
+
+  /**
+   * Check if cached locations should be rejected
+   * @returns {boolean} True if cached locations should be rejected
+   */
+  shouldRejectCachedLocation() {
+    return this.locationSettings.rejectCachedLocation;
+  }
+
+  /**
+   * Check if mobile location is required
+   * @returns {boolean} True if mobile location is required
+   */
+  isMobileLocationRequired() {
+    return this.locationSettings.requireMobileLocation;
+  }
+
+  /**
+   * Check if GPS failure can be bypassed
+   * @returns {boolean} True if bypass is allowed
+   */
+  canBypassOnGPSFailure() {
+    return this.locationSettings.bypassOnGPSFailure;
   }
 }
 

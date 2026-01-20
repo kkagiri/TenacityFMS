@@ -30,6 +30,7 @@ import signalRService from "./services/signalRService";
 import pushNotificationService, {
   setupBackgroundMessageHandler,
 } from "./services/pushNotificationService";
+import { navigationRef } from "./services/navigationService";
 
 // Setup background message handler at app startup (must be outside component)
 setupBackgroundMessageHandler();
@@ -139,11 +140,22 @@ const AppContent = () => {
   const backgroundTimestamp = useRef(null);
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
   const authToken = useSelector((state) => state.auth.token);
-  const userId = useSelector((state) => state.auth.user?.Id);
+  const user = useSelector((state) => state.auth.user);
+  // Handle both PascalCase (Id) and camelCase (id) for user ID
+  const userId = user?.Id || user?.id;
+
+  // Handle navigation ready - setup notification open handlers
+  // This must be defined before any conditional returns (React hooks rule)
+  const handleNavigationReady = useCallback(() => {
+    console.log("🧭 [App] Navigation ready, setting up notification handlers...");
+    pushNotificationService.setupNotificationOpenHandlers();
+  }, []);
 
   // Initialize push notifications when user authenticates
   useEffect(() => {
     const initializePushNotifications = async () => {
+      console.log("📲 [App] Push init check:", { isAuthenticated, hasToken: !!authToken, userId, userKeys: user ? Object.keys(user) : null });
+
       if (isAuthenticated && authToken && userId) {
         console.log("📲 [App] User authenticated, initializing push notifications...");
         try {
@@ -163,7 +175,7 @@ const AppContent = () => {
     };
 
     initializePushNotifications();
-  }, [isAuthenticated, authToken, userId]);
+  }, [isAuthenticated, authToken, userId, user]);
 
   // Handle app state changes for SignalR connection management
   const handleAppStateChange = useCallback(
@@ -329,7 +341,7 @@ const AppContent = () => {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer ref={navigationRef} onReady={handleNavigationReady}>
       <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
       <AppNavigator />
       <Toast />

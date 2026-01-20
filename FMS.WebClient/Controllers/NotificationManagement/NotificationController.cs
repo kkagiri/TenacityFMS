@@ -221,6 +221,40 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Mark all notifications as read for the current user
+        /// </summary>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result</returns>
+        [HttpPost("read-all")]
+        public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var userIdClaim = User.Claims.FirstOrDefault(c =>
+                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
+                    Guid.TryParse(c.Value, out _));
+
+                if (userIdClaim == null) return BadRequest(new { success = false, message = "Invalid User ID" });
+
+                var userId = userIdClaim.Value;
+
+                var result = await _notificationService.MarkAllAsReadAsync(userId, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, count = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error marking all notifications as read");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// Acknowledge a notification
         /// </summary>
         /// <param name="notificationId">Notification ID</param>

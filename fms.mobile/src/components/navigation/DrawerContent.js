@@ -10,9 +10,12 @@ import {
 import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
+import { NotificationBadge } from "../notifications";
 
 const DrawerContent = ({ navigation, state }) => {
   const user = useSelector((state) => state.auth.user);
+  const unreadCount = useSelector((state) => state.notifications?.unreadCount || 0);
+  const pendingApprovalCount = useSelector((state) => state.notifications?.pendingApprovalCount || 0);
   const currentRoute = state?.routes[state?.index]?.name;
 
   const menuItems = [
@@ -23,6 +26,15 @@ const DrawerContent = ({ navigation, state }) => {
       screen: "MainTabs",
       tabName: "Home",
       description: "Dashboard & Quick Actions",
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: "bell",
+      screen: "NotificationCenter",
+      description: "View alerts & approvals",
+      showBadge: true,
+      badgeCount: unreadCount,
     },
     {
       id: "fueling",
@@ -152,6 +164,14 @@ const DrawerContent = ({ navigation, state }) => {
                   size={18}
                   color={active ? "#ffffff" : "#6b7280"}
                 />
+                {/* Notification Badge */}
+                {item.showBadge && item.badgeCount > 0 && (
+                  <NotificationBadge
+                    count={item.badgeCount}
+                    size="small"
+                    style={{ top: -4, right: -4 }}
+                  />
+                )}
               </View>
               <View style={styles.menuTextContainer}>
                 <Text

@@ -14,6 +14,7 @@ import transactionReducer from "./slices/transactionSlice";
 import tankReducer from "./slices/tankSlice";
 import tankVolumeHistoryReducer from "./slices/tankVolumeHistorySlice";
 import stockReducer from "./slices/stockSlice";
+import notificationReducer from "./slices/notificationSlice";
 
 const persistConfig = {
   key: "root",
@@ -34,6 +35,7 @@ const rootReducer = combineReducers({
   tank: tankReducer,
   tankVolumeHistory: tankVolumeHistoryReducer,
   stock: stockReducer,
+  notifications: notificationReducer,
 });
 
 const persistedReducer = persistReducer(persistConfig, rootReducer);

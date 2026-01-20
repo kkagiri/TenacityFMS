@@ -12,3 +12,4 @@ export { default as ScanStep } from "./ScanStep";
 export { default as TransactionMonitoringModal } from "./TransactionMonitoringModal";
 export { default as TransactionSummaryStep } from "./TransactionSummaryStep";
 export { default as FuelingHeader } from "./FuelingHeader";
+export { default as LocationStatusIndicator } from "./LocationStatusIndicator";

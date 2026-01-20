@@ -251,7 +251,19 @@ public partial class LocationValidationService
             {
                 _logger.LogInformation("[GEOFENCE_VALIDATION] 🚗 VEHICLE GEOFENCE CHECK REQUIRED");
 
-                if (request.VehicleLocation != null)
+                // Check if vehicle has GPS installed - bypass if no GPS
+                if (request.VehicleHasGPS == false)
+                {
+                    _logger.LogInformation("[GEOFENCE_VALIDATION] ⏭️ VEHICLE GEOFENCE CHECK BYPASSED - Vehicle {VehicleId} does not have GPS installed",
+                        request.VehicleId);
+                    vehiclePassed = true; // Bypass - treat as passed
+                    result = result with
+                    {
+                        VehicleInGeofence = true,
+                        VehicleGeofenceName = "Bypassed (No GPS)"
+                    };
+                }
+                else if (request.VehicleLocation != null)
                 {
                     _logger.LogInformation("[GEOFENCE_VALIDATION] Checking vehicle at ({Lat}, {Lng}) against {Count} geofences",
                         request.VehicleLocation.Latitude, request.VehicleLocation.Longitude, geofenceIds.Count);
@@ -283,7 +295,8 @@ public partial class LocationValidationService
                 }
                 else
                 {
-                    _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ VEHICLE LOCATION NOT PROVIDED but RequireVehicleInGeofence=true");
+                    _logger.LogWarning("[GEOFENCE_VALIDATION] ❌ VEHICLE LOCATION NOT PROVIDED but RequireVehicleInGeofence=true (VehicleHasGPS={HasGPS})",
+                        request.VehicleHasGPS);
                     vehiclePassed = false;
                     result = result with { VehicleInGeofence = false };
                 }

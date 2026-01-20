@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import DateTimePicker from "@react-native-community/datetimepicker";
+import CustomDateTimePicker from "../components/common/CustomDateTimePicker";
 import { Picker } from "@react-native-picker/picker";
 
 import {
@@ -181,7 +181,7 @@ const TankTransactionHubScreen = ({ navigation }) => {
   }, [dispatch, selectedSite]);
 
   const handleDateChange = useCallback(
-    (event, selectedDate) => {
+    (selectedDate) => {
       setShowDatePicker(false);
       if (selectedDate) {
         setTempFilters((prev) => ({
@@ -745,23 +745,24 @@ const TankTransactionHubScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Date Picker */}
-      {showDatePicker && (
-        <DateTimePicker
-          value={
-            datePickerMode === "start"
-              ? tempFilters.startDate instanceof Date
-                ? tempFilters.startDate
-                : new Date()
-              : tempFilters.endDate instanceof Date
-              ? tempFilters.endDate
+      {/* Custom Date Picker */}
+      <CustomDateTimePicker
+        visible={showDatePicker}
+        value={
+          datePickerMode === "start"
+            ? tempFilters.startDate instanceof Date
+              ? tempFilters.startDate
               : new Date()
-          }
-          mode="date"
-          display="default"
-          onChange={handleDateChange}
-        />
-      )}
+            : tempFilters.endDate instanceof Date
+            ? tempFilters.endDate
+            : new Date()
+        }
+        onConfirm={handleDateChange}
+        onCancel={() => setShowDatePicker(false)}
+        themeColor="#3B82F6"
+        showTimePicker={false}
+        maximumDate={new Date()}
+      />
     </Modal>
   );
 

@@ -12,17 +12,20 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.WebClient.Controllers {
+namespace FMS.WebClient.Controllers
+{
     [ApiController]
-    [Route ("api/v1/[controller]")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class SystemConfigurationController : ControllerBase {
+    [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public class SystemConfigurationController : ControllerBase
+    {
         private readonly IMediator _mediator;
         private readonly ILogger<SystemConfigurationController> _logger;
 
-        public SystemConfigurationController (
+        public SystemConfigurationController(
             IMediator mediator,
-            ILogger<SystemConfigurationController> logger) {
+            ILogger<SystemConfigurationController> logger)
+        {
             _mediator = mediator;
             _logger = logger;
         }
@@ -39,42 +42,52 @@ namespace FMS.WebClient.Controllers {
         /// <param name="searchTerm">Search term</param>
         /// <returns>List of system configurations</returns>
         [HttpGet]
-        public async Task<ActionResult<FMSResponseMessage<IEnumerable<SystemConfigurationDto>>>> GetConfigurations (
-            [FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? category = null, [FromQuery] string? dataType = null, [FromQuery] string? isEditable = null, [FromQuery] string? isActive = null, [FromQuery] string? searchTerm = null) {
-            try {
+        public async Task<ActionResult<FMSResponseMessage<IEnumerable<SystemConfigurationDto>>>> GetConfigurations(
+            [FromQuery] int page = 1, [FromQuery] int pageSize = 50, [FromQuery] string? category = null, [FromQuery] string? dataType = null, [FromQuery] string? isEditable = null, [FromQuery] string? isActive = null, [FromQuery] string? searchTerm = null)
+        {
+            try
+            {
                 // Parse boolean parameters safely
                 bool? isEditableParsed = null;
                 bool? isActiveParsed = null;
 
-                if (!string.IsNullOrEmpty (isEditable) && !isEditable.Equals ("null", StringComparison.OrdinalIgnoreCase)) {
-                    if (bool.TryParse (isEditable, out bool editableValue)) {
+                if (!string.IsNullOrEmpty(isEditable) && !isEditable.Equals("null", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (bool.TryParse(isEditable, out bool editableValue))
+                    {
                         isEditableParsed = editableValue;
                     }
                 }
 
-                if (!string.IsNullOrEmpty (isActive) && !isActive.Equals ("null", StringComparison.OrdinalIgnoreCase)) {
-                    if (bool.TryParse (isActive, out bool activeValue)) {
+                if (!string.IsNullOrEmpty(isActive) && !isActive.Equals("null", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (bool.TryParse(isActive, out bool activeValue))
+                    {
                         isActiveParsed = activeValue;
                     }
                 }
 
-                var query = new GetSystemConfigurationsListQuery (page, pageSize) {
+                var query = new GetSystemConfigurationsListQuery(page, pageSize)
+                {
                     Category = category,
                     DataType = dataType,
                     IsEditable = isEditableParsed,
                     IsActive = isActiveParsed,
                     SearchTerm = searchTerm
                 };
-                var result = await _mediator.Send (query);
+                var result = await _mediator.Send(query);
 
-                if (!result.Success) {
-                    return BadRequest (result);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error retrieving system configurations");
-                return StatusCode (500, new FMSResponseMessage<IEnumerable<SystemConfigurationDto>> (
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving system configurations");
+                return StatusCode(500, new FMSResponseMessage<IEnumerable<SystemConfigurationDto>>(
                     false, "Internal server error", null));
             }
         }
@@ -84,20 +97,25 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         /// <param name="id">Configuration ID</param>
         /// <returns>Configuration details</returns>
-        [HttpGet ("{id}")]
-        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetConfiguration (int id) {
-            try {
-                var query = new GetSystemConfigurationQuery (id);
-                var result = await _mediator.Send (query);
+        [HttpGet("{id}")]
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetConfiguration(int id)
+        {
+            try
+            {
+                var query = new GetSystemConfigurationQuery(id);
+                var result = await _mediator.Send(query);
 
-                if (!result.Success) {
-                    return NotFound (result);
+                if (!result.Success)
+                {
+                    return NotFound(result);
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error retrieving system configuration {ConfigId}", id);
-                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving system configuration {ConfigId}", id);
+                return StatusCode(500, new FMSResponseMessage<SystemConfigurationDto>(
                     false, "Internal server error", null));
             }
         }
@@ -108,28 +126,34 @@ namespace FMS.WebClient.Controllers {
         /// <param name="createDto">Configuration data</param>
         /// <returns>Created configuration</returns>
         [HttpPost]
-        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> CreateConfiguration (
-            [FromBody] CreateSystemConfigurationDto createDto) {
-            try {
-                if (!ModelState.IsValid) {
-                    return BadRequest (ModelState);
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> CreateConfiguration(
+            [FromBody] CreateSystemConfigurationDto createDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
                 }
 
                 var currentUser = User?.Identity?.Name ?? "System"; // ToDO: Use a more robust user retrieval method
-                var command = new CreateSystemConfigurationCommand (createDto, currentUser);
-                var result = await _mediator.Send (command);
+                var command = new CreateSystemConfigurationCommand(createDto, currentUser);
+                var result = await _mediator.Send(command);
 
-                if (!result.Success) {
-                    return BadRequest (result);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
                 }
 
-                return CreatedAtAction (
-                    nameof (GetConfiguration),
+                return CreatedAtAction(
+                    nameof(GetConfiguration),
                     new { id = result.Data.Id },
                     result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error creating system configuration");
-                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating system configuration");
+                return StatusCode(500, new FMSResponseMessage<SystemConfigurationDto>(
                     false, "Internal server error", null));
             }
         }
@@ -140,31 +164,38 @@ namespace FMS.WebClient.Controllers {
         /// <param name="id">Configuration ID</param>
         /// <param name="updateDto">Updated configuration data</param>
         /// <returns>Updated configuration</returns>
-        [HttpPut ("{id}")]
-        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> UpdateConfiguration (
-            int id, [FromBody] UpdateSystemConfigurationDto updateDto) {
-            try {
-                if (!ModelState.IsValid) {
-                    return BadRequest (ModelState);
+        [HttpPut("{id}")]
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> UpdateConfiguration(
+            int id, [FromBody] UpdateSystemConfigurationDto updateDto)
+        {
+            try
+            {
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(ModelState);
                 }
 
-                if (id != updateDto.Id) {
-                    return BadRequest (new FMSResponseMessage<SystemConfigurationDto> (
+                if (id != updateDto.Id)
+                {
+                    return BadRequest(new FMSResponseMessage<SystemConfigurationDto>(
                         false, "ID mismatch", null));
                 }
 
                 var currentUser = User?.Identity?.Name ?? "System"; // ToDO: Use a more robust user retrieval method
-                var command = new UpdateSystemConfigurationCommand (updateDto, currentUser);
-                var result = await _mediator.Send (command);
+                var command = new UpdateSystemConfigurationCommand(updateDto, currentUser);
+                var result = await _mediator.Send(command);
 
-                if (!result.Success) {
-                    return BadRequest (result);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error updating system configuration {ConfigId}", id);
-                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating system configuration {ConfigId}", id);
+                return StatusCode(500, new FMSResponseMessage<SystemConfigurationDto>(
                     false, "Internal server error", null));
             }
         }
@@ -174,20 +205,25 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         /// <param name="id">Configuration ID</param>
         /// <returns>Success/failure result</returns>
-        [HttpDelete ("{id}")]
-        public async Task<ActionResult<FMSResponseMessage>> DeleteConfiguration (int id) {
-            try {
-                var command = new DeleteSystemConfigurationCommand (id);
-                var result = await _mediator.Send (command);
+        [HttpDelete("{id}")]
+        public async Task<ActionResult<FMSResponseMessage>> DeleteConfiguration(int id)
+        {
+            try
+            {
+                var command = new DeleteSystemConfigurationCommand(id);
+                var result = await _mediator.Send(command);
 
-                if (!result.Success) {
-                    return BadRequest (result);
+                if (!result.Success)
+                {
+                    return BadRequest(result);
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error deleting system configuration {ConfigId}", id);
-                return StatusCode (500, new FMSResponseMessage (false, "Internal server error"));
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting system configuration {ConfigId}", id);
+                return StatusCode(500, new FMSResponseMessage(false, "Internal server error"));
             }
         }
 
@@ -195,21 +231,26 @@ namespace FMS.WebClient.Controllers {
         /// Get current system configuration (active configuration)
         /// </summary>
         /// <returns>Active system configuration</returns>
-        [HttpGet ("current")]
-        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetCurrentConfiguration () {
-            try {
-                var query = new GetCurrentSystemConfigurationQuery ();
-                var result = await _mediator.Send (query);
+        [HttpGet("current")]
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetCurrentConfiguration()
+        {
+            try
+            {
+                var query = new GetCurrentSystemConfigurationQuery();
+                var result = await _mediator.Send(query);
 
-                if (!result.Success) {
-                    return NotFound (new FMSResponseMessage<SystemConfigurationDto> (
+                if (!result.Success)
+                {
+                    return NotFound(new FMSResponseMessage<SystemConfigurationDto>(
                         false, "No active system configuration found", null));
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error retrieving current system configuration");
-                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving current system configuration");
+                return StatusCode(500, new FMSResponseMessage<SystemConfigurationDto>(
                     false, "Internal server error", null));
             }
         }
@@ -219,23 +260,141 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         /// <param name="key">Configuration key (e.g., "GoogleMaps.ApiKey")</param>
         /// <returns>Configuration details</returns>
-        [HttpGet ("by-key/{key}")]
+        [HttpGet("by-key/{key}")]
         [AllowAnonymous] // Allow anonymous access for public configurations like API keys
-        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetConfigurationByKey (string key) {
-            try {
-                var query = new GetSystemConfigurationByKeyQuery (key);
-                var result = await _mediator.Send (query);
+        public async Task<ActionResult<FMSResponseMessage<SystemConfigurationDto>>> GetConfigurationByKey(string key)
+        {
+            try
+            {
+                var query = new GetSystemConfigurationByKeyQuery(key);
+                var result = await _mediator.Send(query);
 
-                if (!result.Success) {
-                    return NotFound (result);
+                if (!result.Success)
+                {
+                    return NotFound(result);
                 }
 
-                return Ok (result);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error retrieving system configuration by key {ConfigKey}", key);
-                return StatusCode (500, new FMSResponseMessage<SystemConfigurationDto> (
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving system configuration by key {ConfigKey}", key);
+                return StatusCode(500, new FMSResponseMessage<SystemConfigurationDto>(
                     false, "Internal server error", null));
             }
         }
+
+        /// <summary>
+        /// Get mobile location validation settings for the mobile app
+        /// Returns all settings needed for GPS location validation during fueling authorization
+        /// </summary>
+        /// <returns>Mobile location validation settings</returns>
+        [HttpGet("mobile-location-settings")]
+        public async Task<ActionResult<FMSResponseMessage<MobileLocationSettingsDto>>> GetMobileLocationSettings()
+        {
+            try
+            {
+                var settings = new MobileLocationSettingsDto();
+
+                // Fetch all relevant configuration keys
+                var keys = new[]
+                {
+                    "FuelingRules.RequireMobileLocation",
+                    "FuelingRules.MaxMobileLocationAgeSeconds",
+                    "FuelingRules.MaxMobileLocationAccuracyMeters",
+                    "FuelingRules.RejectCachedMobileLocation",
+                    "FuelingRules.RequireOperatorInGeofence",
+                    "FuelingRules.BypassOnGPSFailure"
+                };
+
+                foreach (var key in keys)
+                {
+                    try
+                    {
+                        var query = new GetSystemConfigurationByKeyQuery(key);
+                        var result = await _mediator.Send(query);
+
+                        if (result.Success && result.Data != null)
+                        {
+                            var value = result.Data.ConfigurationValue;
+
+                            switch (key)
+                            {
+                                case "FuelingRules.RequireMobileLocation":
+                                    settings.RequireMobileLocation = bool.TryParse(value, out var reqMobile) && reqMobile;
+                                    break;
+                                case "FuelingRules.MaxMobileLocationAgeSeconds":
+                                    settings.MaxLocationAgeSeconds = int.TryParse(value, out var age) ? age : 60;
+                                    break;
+                                case "FuelingRules.MaxMobileLocationAccuracyMeters":
+                                    settings.MaxLocationAccuracyMeters = int.TryParse(value, out var acc) ? acc : 500;
+                                    break;
+                                case "FuelingRules.RejectCachedMobileLocation":
+                                    settings.RejectCachedLocation = !bool.TryParse(value, out var reject) || reject;
+                                    break;
+                                case "FuelingRules.RequireOperatorInGeofence":
+                                    settings.RequireOperatorInGeofence = bool.TryParse(value, out var opGeo) && opGeo;
+                                    break;
+                                case "FuelingRules.BypassOnGPSFailure":
+                                    settings.BypassOnGPSFailure = bool.TryParse(value, out var bypass) && bypass;
+                                    break;
+                            }
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error fetching config key {Key}, using default", key);
+                    }
+                }
+
+                _logger.LogDebug("Mobile location settings retrieved: RequireMobile={Require}, MaxAge={MaxAge}s, MaxAccuracy={MaxAcc}m, RejectCached={RejectCached}",
+                    settings.RequireMobileLocation, settings.MaxLocationAgeSeconds,
+                    settings.MaxLocationAccuracyMeters, settings.RejectCachedLocation);
+
+                return Ok(new FMSResponseMessage<MobileLocationSettingsDto>(true, "Settings retrieved successfully", settings));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving mobile location settings");
+                return StatusCode(500, new FMSResponseMessage<MobileLocationSettingsDto>(
+                    false, "Internal server error", null));
+            }
+        }
+    }
+
+    /// <summary>
+    /// DTO for mobile location validation settings
+    /// </summary>
+    public class MobileLocationSettingsDto
+    {
+        /// <summary>
+        /// Whether mobile location is required for fueling authorization
+        /// </summary>
+        public bool RequireMobileLocation { get; set; } = true;
+
+        /// <summary>
+        /// Maximum age of mobile location in seconds before rejection
+        /// </summary>
+        public int MaxLocationAgeSeconds { get; set; } = 60;
+
+        /// <summary>
+        /// Maximum acceptable GPS accuracy in meters
+        /// </summary>
+        public int MaxLocationAccuracyMeters { get; set; } = 500;
+
+        /// <summary>
+        /// Whether to reject cached/stale locations
+        /// </summary>
+        public bool RejectCachedLocation { get; set; } = true;
+
+        /// <summary>
+        /// Whether operator must be within a geofence
+        /// </summary>
+        public bool RequireOperatorInGeofence { get; set; } = false;
+
+        /// <summary>
+        /// Whether to bypass location validation on GPS failure
+        /// </summary>
+        public bool BypassOnGPSFailure { get; set; } = true;
     }
 }

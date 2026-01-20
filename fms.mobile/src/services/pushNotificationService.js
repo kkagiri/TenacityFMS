@@ -2,12 +2,15 @@
  * Push Notification Service
  * Manages Firebase Cloud Messaging (FCM) for push notifications
  * Handles token registration with backend and message handling
+ *
+ * Compatible with React Native Firebase v22+
  */
 
 import { Platform, AppState, Alert, Linking } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import DeviceInfo from "react-native-device-info";
 import { API_CONFIG } from "../config/environment";
+import { navigateToNotificationCenter } from "./navigationService";
 
 // Storage keys
 const STORAGE_KEYS = {
@@ -16,14 +19,23 @@ const STORAGE_KEYS = {
   PUSH_ENABLED: "fms_push_enabled",
 };
 
-// Firebase messaging will be loaded lazily
+// Firebase messaging - will be loaded lazily
 let messaging = null;
 let notifee = null;
 let AndroidImportance = { HIGH: 4 };
 
+// Authorization status constants
+const AuthorizationStatus = {
+  NOT_DETERMINED: -1,
+  DENIED: 0,
+  AUTHORIZED: 1,
+  PROVISIONAL: 2,
+};
+
 class PushNotificationService {
   constructor() {
     this.isInitialized = false;
+    this.isInitializing = false; // Lock to prevent concurrent initialization
     this.currentToken = null;
     this.authToken = null;
     this.userId = null;
@@ -43,6 +55,13 @@ class PushNotificationService {
       return true;
     }
 
+    // Prevent concurrent initialization
+    if (this.isInitializing) {
+      console.log("[PushNotification] Initialization already in progress, skipping...");
+      return false;
+    }
+
+    this.isInitializing = true;
     console.log("[PushNotification] Initializing...");
     this.authToken = authToken;
     this.userId = userId;
@@ -51,6 +70,7 @@ class PushNotificationService {
     const pushEnabled = await this.isPushEnabled();
     if (!pushEnabled) {
       console.log("[PushNotification] Push notifications disabled by user");
+      this.isInitializing = false;
       return false;
     }
 
@@ -58,8 +78,18 @@ class PushNotificationService {
     if (!messaging) {
       try {
         const firebaseMessaging = require("@react-native-firebase/messaging");
-        messaging = firebaseMessaging.default;
-        console.log("[PushNotification] Firebase messaging loaded");
+
+        // React Native Firebase v22+ uses getMessaging() for modular API
+        // but also provides default() for backward compatibility
+        if (typeof firebaseMessaging.getMessaging === 'function') {
+          messaging = firebaseMessaging.getMessaging();
+          console.log("[PushNotification] Firebase messaging loaded (modular API)");
+        } else if (firebaseMessaging.default) {
+          messaging = firebaseMessaging.default();
+          console.log("[PushNotification] Firebase messaging loaded (legacy API)");
+        } else {
+          throw new Error("Could not get messaging instance");
+        }
       } catch (e) {
         console.warn(
           "[PushNotification] @react-native-firebase/messaging not available:",
@@ -71,6 +101,7 @@ class PushNotificationService {
         console.warn(
           "  npm install @react-native-firebase/app @react-native-firebase/messaging"
         );
+        this.isInitializing = false;
         return false;
       }
     }
@@ -94,10 +125,11 @@ class PushNotificationService {
       const hasPermission = await this.requestPermission();
       if (!hasPermission) {
         console.log("[PushNotification] Permission not granted");
+        this.isInitializing = false;
         return false;
       }
 
-      // Get FCM token
+      // Get FCM token with timeout
       const token = await this.getToken();
       if (token) {
         // Register token with backend
@@ -110,13 +142,17 @@ class PushNotificationService {
         this.subscribeToForegroundMessages();
 
         this.isInitialized = true;
+        this.isInitializing = false;
         console.log("[PushNotification] ✅ Initialization complete");
         return true;
       }
 
+      console.log("[PushNotification] Failed to get FCM token");
+      this.isInitializing = false;
       return false;
     } catch (error) {
       console.error("[PushNotification] Initialization failed:", error);
+      this.isInitializing = false;
       return false;
     }
   }
@@ -129,10 +165,11 @@ class PushNotificationService {
     if (!messaging) return false;
 
     try {
-      const authStatus = await messaging().requestPermission();
+      const authStatus = await messaging.requestPermission();
+
       const enabled =
-        authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-        authStatus === messaging.AuthorizationStatus.PROVISIONAL;
+        authStatus === AuthorizationStatus.AUTHORIZED ||
+        authStatus === AuthorizationStatus.PROVISIONAL;
 
       console.log(
         `[PushNotification] Permission status: ${authStatus}, enabled: ${enabled}`
@@ -163,26 +200,61 @@ class PushNotificationService {
   }
 
   /**
-   * Get the FCM token
+   * Get the FCM token with timeout
    * @returns {Promise<string|null>} FCM token or null
    */
   async getToken() {
     if (!messaging) return null;
 
+    // Helper function to add timeout to a promise
+    const withTimeout = (promise, ms) => {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
+      );
+      return Promise.race([promise, timeout]);
+    };
+
     try {
       // Check if registration is allowed
-      await messaging().registerDeviceForRemoteMessages();
+      console.log("[PushNotification] Registering device for remote messages...");
 
-      const token = await messaging().getToken();
+      // registerDeviceForRemoteMessages is primarily for iOS
+      if (Platform.OS === 'ios' && messaging.registerDeviceForRemoteMessages) {
+        await withTimeout(messaging.registerDeviceForRemoteMessages(), 10000);
+      }
+
+      console.log("[PushNotification] Getting FCM token...");
+
+      // Get token with 15 second timeout
+      const token = await withTimeout(messaging.getToken(), 15000);
+
+      if (!token) {
+        console.warn("[PushNotification] No token returned from Firebase");
+        return null;
+      }
+
       this.currentToken = token;
 
       // Store token locally
       await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, token);
 
-      console.log("[PushNotification] Got FCM token:", token.substring(0, 20) + "...");
+      console.log("[PushNotification] Got FCM token:", token.substring(0, 30) + "...");
       return token;
     } catch (error) {
-      console.error("[PushNotification] Failed to get token:", error);
+      console.error("[PushNotification] Failed to get token:", error.message || error);
+
+      // Try to get cached token if available
+      try {
+        const cachedToken = await AsyncStorage.getItem(STORAGE_KEYS.FCM_TOKEN);
+        if (cachedToken) {
+          console.log("[PushNotification] Using cached FCM token");
+          this.currentToken = cachedToken;
+          return cachedToken;
+        }
+      } catch (cacheError) {
+        console.warn("[PushNotification] Failed to get cached token:", cacheError.message);
+      }
+
       return null;
     }
   }
@@ -193,7 +265,7 @@ class PushNotificationService {
   subscribeToTokenRefresh() {
     if (!messaging) return;
 
-    this.unsubscribeTokenRefresh = messaging().onTokenRefresh(async (newToken) => {
+    this.unsubscribeTokenRefresh = messaging.onTokenRefresh(async (newToken) => {
       console.log("[PushNotification] Token refreshed");
       this.currentToken = newToken;
       await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, newToken);
@@ -209,7 +281,7 @@ class PushNotificationService {
   subscribeToForegroundMessages() {
     if (!messaging) return;
 
-    this.unsubscribeMessage = messaging().onMessage(async (remoteMessage) => {
+    this.unsubscribeMessage = messaging.onMessage(async (remoteMessage) => {
       console.log("[PushNotification] Foreground message received:", remoteMessage);
 
       // Display notification using notifee if available
@@ -217,6 +289,73 @@ class PushNotificationService {
         await this.displayNotification(remoteMessage);
       }
     });
+  }
+
+  /**
+   * Setup notification open handlers (for tapping on notifications)
+   * Call this after NavigationContainer is ready
+   */
+  async setupNotificationOpenHandlers() {
+    if (!messaging) {
+      console.warn("[PushNotification] Messaging not available for open handlers");
+      return;
+    }
+
+    try {
+      // Handle notification opened from background state
+      messaging.onNotificationOpenedApp((remoteMessage) => {
+        console.log("[PushNotification] Notification opened from background:", remoteMessage);
+        this.handleNotificationOpen(remoteMessage);
+      });
+
+      // Handle notification opened from quit state
+      const initialNotification = await messaging.getInitialNotification();
+      if (initialNotification) {
+        console.log("[PushNotification] App opened from quit state by notification:", initialNotification);
+        // Small delay to ensure navigation is ready
+        setTimeout(() => {
+          this.handleNotificationOpen(initialNotification);
+        }, 1000);
+      }
+
+      // Setup notifee foreground event handler for notification taps
+      if (notifee) {
+        notifee.onForegroundEvent(({ type, detail }) => {
+          // EventType.PRESS = 1
+          if (type === 1 && detail.notification) {
+            console.log("[PushNotification] Notifee notification pressed:", detail.notification);
+            this.handleNotificationOpen({
+              data: detail.notification.data,
+              notification: {
+                title: detail.notification.title,
+                body: detail.notification.body,
+              },
+            });
+          }
+        });
+      }
+
+      console.log("[PushNotification] Notification open handlers setup complete");
+    } catch (error) {
+      console.error("[PushNotification] Failed to setup open handlers:", error);
+    }
+  }
+
+  /**
+   * Handle notification open - navigate to notification center
+   * @param {Object} remoteMessage - The notification message
+   */
+  handleNotificationOpen(remoteMessage) {
+    console.log("[PushNotification] Handling notification open:", remoteMessage);
+
+    const notificationData = {
+      title: remoteMessage.notification?.title || "Notification",
+      body: remoteMessage.notification?.body || "",
+      data: remoteMessage.data || {},
+    };
+
+    // Navigate to notification center with the notification data
+    navigateToNotificationCenter(notificationData);
   }
 
   /**
@@ -238,19 +377,16 @@ class PushNotificationService {
         });
       }
 
+      // Display the notification
       await notifee.displayNotification({
         title: notification?.title || "FMS Notification",
         body: notification?.body || "",
-        data: data || {},
+        data: data,
         android: {
           channelId: "push-notifications",
-          smallIcon: "ic_notification",
           pressAction: {
             id: "default",
           },
-        },
-        ios: {
-          sound: "default",
         },
       });
     } catch (error) {
@@ -260,24 +396,29 @@ class PushNotificationService {
 
   /**
    * Register FCM token with backend
-   * @param {string} token - FCM token to register
+   * @param {string} token - FCM token
    */
   async registerTokenWithBackend(token) {
-    if (!this.authToken) {
-      console.warn("[PushNotification] No auth token, cannot register device");
+    if (!this.authToken || !this.userId) {
+      console.warn("[PushNotification] Cannot register: missing auth token or user ID");
       return false;
     }
 
     try {
       const deviceInfo = {
         deviceToken: token,
-        platform: Platform.OS,
+        deviceType: Platform.OS === "ios" ? "iOS" : "Android",
         deviceName: await DeviceInfo.getDeviceName(),
-        deviceId: DeviceInfo.getModel(),
+        deviceModel: DeviceInfo.getModel(),
+        osVersion: DeviceInfo.getSystemVersion(),
         appVersion: DeviceInfo.getVersion(),
+        userId: this.userId,
       };
 
-      console.log("[PushNotification] Registering device with backend...");
+      console.log("[PushNotification] Registering device with backend:", {
+        ...deviceInfo,
+        deviceToken: deviceInfo.deviceToken.substring(0, 20) + "...",
+      });
 
       const response = await fetch(
         `${API_CONFIG.BASE_URL}/v1/push-devices/register`,
@@ -293,7 +434,7 @@ class PushNotificationService {
 
       if (response.ok) {
         await AsyncStorage.setItem(STORAGE_KEYS.DEVICE_REGISTERED, "true");
-        console.log("[PushNotification] ✅ Device registered successfully");
+        console.log("[PushNotification] ✅ Device registered with backend");
         return true;
       } else {
         const error = await response.text();
@@ -419,15 +560,22 @@ export default pushNotificationService;
 export function setupBackgroundMessageHandler() {
   try {
     const firebaseMessaging = require("@react-native-firebase/messaging");
-    const messaging = firebaseMessaging.default;
 
-    messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-      console.log("[PushNotification] Background message:", remoteMessage);
-      // Background messages are automatically displayed as notifications by FCM
-      // Add any custom handling here if needed
-    });
+    // Get messaging instance for background handler
+    let messaging;
+    if (typeof firebaseMessaging.getMessaging === 'function') {
+      messaging = firebaseMessaging.getMessaging();
+    } else if (firebaseMessaging.default) {
+      messaging = firebaseMessaging.default();
+    }
 
-    console.log("[PushNotification] Background message handler registered");
+    if (messaging && messaging.setBackgroundMessageHandler) {
+      messaging.setBackgroundMessageHandler(async (remoteMessage) => {
+        console.log("[PushNotification] Background message:", remoteMessage);
+        // Background messages are automatically displayed as notifications by FCM
+      });
+      console.log("[PushNotification] Background message handler registered");
+    }
   } catch (e) {
     console.warn("[PushNotification] Could not setup background handler:", e.message);
   }
