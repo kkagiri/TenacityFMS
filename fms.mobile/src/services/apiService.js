@@ -513,6 +513,24 @@ class ApiService {
   }
 
   /**
+   * Search users by username or email (for admin functions)
+   * @param {string} searchTerm - Search term (min 2 characters)
+   * @param {number} limit - Maximum results to return (default 10)
+   * @returns {Promise<Array>} List of matching users
+   */
+  async searchUsers(searchTerm, limit = 10) {
+    try {
+      const response = await this.api.get("/v1/User/quick-search", {
+        params: { searchTerm, limit },
+      });
+      // Handle FMSResponse wrapper - data is in response.data.data
+      return response.data?.data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to search users");
+    }
+  }
+
+  /**
    * Get vehicle by ID
    * @param {number} vehicleId - Vehicle ID
    * @returns {Promise<Object>} Vehicle details
@@ -1338,6 +1356,116 @@ class ApiService {
         data: [],
         message: error.message || "Failed to fetch pending approvals",
       };
+    }
+  }
+
+  // ============================================================
+  // Location Settings (Admin Only)
+  // ============================================================
+
+  /**
+   * Get location settings overview (admin only)
+   * Returns:
+   * - Users with mobile bypass settings
+   * - PTS devices with location validation settings
+   * - Vehicles with GPS settings
+   * @returns {Promise<Object>} Location settings overview
+   */
+  async getLocationSettingsOverview() {
+    try {
+      const response = await this.api.get(
+        "/v1/geofence/validation/settings-overview"
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[ApiService] Get location settings overview error:", error);
+      throw this.handleError(
+        error,
+        "Failed to fetch location settings overview"
+      );
+    }
+  }
+
+  /**
+   * Enable temporary location bypass (Admin only)
+   * @param {number} durationMinutes - Duration in minutes (5, 10, 15, 30, 60)
+   * @param {string} reason - Reason for bypass (optional)
+   * @param {string} bypassType - Type: "All", "Vehicle", or "User"
+   * @param {Array<number>} vehicleIds - Vehicle IDs (for Vehicle type)
+   * @param {Array<number>} userIds - User IDs (for User type)
+   * @returns {Promise<Object>} Response with bypass status
+   */
+  async enableTemporaryBypass(
+    durationMinutes,
+    reason = "",
+    bypassType = "All",
+    vehicleIds = [],
+    userIds = []
+  ) {
+    try {
+      const response = await this.api.post(
+        "/v1/geofence/validation/temporary-bypass",
+        {
+          durationMinutes,
+          reason,
+          bypassType,
+          vehicleIds,
+          userIds,
+        }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[ApiService] Enable temporary bypass error:", error);
+      throw this.handleError(error, "Failed to enable temporary bypass");
+    }
+  }
+
+  /**
+   * Get current temporary bypass status
+   * @returns {Promise<Object>} Current bypass status
+   */
+  async getTemporaryBypassStatus() {
+    try {
+      const response = await this.api.get(
+        "/v1/geofence/validation/temporary-bypass"
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[ApiService] Get temporary bypass status error:", error);
+      throw this.handleError(error, "Failed to get bypass status");
+    }
+  }
+
+  /**
+   * Cancel system-wide temporary bypass
+   * @returns {Promise<Object>} Response
+   */
+  async cancelTemporaryBypass() {
+    try {
+      const response = await this.api.delete(
+        "/v1/geofence/validation/temporary-bypass"
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[ApiService] Cancel temporary bypass error:", error);
+      throw this.handleError(error, "Failed to cancel bypass");
+    }
+  }
+
+  /**
+   * Cancel a specific bypass by ID (vehicle or user bypass)
+   * @param {string|number} bypassId - The bypass ID to cancel
+   * @returns {Promise<Object>} Response
+   */
+  async cancelBypassById(bypassId) {
+    try {
+      const response = await this.api.delete(
+        `/v1/geofence/validation/temporary-bypass/${bypassId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("[ApiService] Cancel bypass by ID error:", error);
+      throw this.handleError(error, "Failed to cancel bypass");
     }
   }
 

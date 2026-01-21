@@ -101,6 +101,28 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
   }, [filteredTanks, probeTanks]);
 
   // ===========================================
+  // LOCATION BYPASS CHECK
+  // ===========================================
+  // Check if location validation can be bypassed
+  // User-level bypass takes precedence, then device-level bypass
+  const isLocationBypassEnabled = useMemo(() => {
+    const userBypass = loggedInUser?.bypassLocationValidation === true;
+    const deviceBypass = ptsDevice?.bypassOnGPSFailure === 1;
+    return userBypass || deviceBypass;
+  }, [loggedInUser, ptsDevice]);
+
+  // Get the bypass reason for display
+  const locationBypassReason = useMemo(() => {
+    if (loggedInUser?.bypassLocationValidation === true) {
+      return "User bypass enabled";
+    }
+    if (ptsDevice?.bypassOnGPSFailure === 1) {
+      return "Device bypass enabled";
+    }
+    return null;
+  }, [loggedInUser, ptsDevice]);
+
+  // ===========================================
   // LOCAL STATE
   // ===========================================
 
@@ -1364,6 +1386,10 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
     setCurrentLocation,
     locationSettings,
     handleLocationUpdate,
+
+    // Location bypass status
+    isLocationBypassEnabled,
+    locationBypassReason,
 
     // Site info
     sites,

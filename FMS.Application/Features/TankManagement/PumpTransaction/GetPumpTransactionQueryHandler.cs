@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.ATG;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.LocationValidation;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -146,6 +147,26 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     .Where(u => userIds.Contains(u.Id))
                     .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken);
 
+                // Fetch fueling location logs (mobile app location) by PTS transaction ID
+                var transactionNumbers = pumpTransactions
+                    .Where(pt => pt.Transaction.HasValue && pt.Transaction.Value > 0)
+                    .Select(pt => pt.Transaction!.Value)
+                    .Distinct()
+                    .ToList();
+
+                Dictionary<int, LocationValidationLog> locationLogLookup = new();
+                if (transactionNumbers.Any())
+                {
+                    var locationLogs = await _context.LocationValidationLogs
+                        .Where(log => log.TransactionId.HasValue && transactionNumbers.Contains(log.TransactionId.Value))
+                        .OrderByDescending(log => log.ValidationTime)
+                        .ToListAsync(cancellationToken);
+
+                    locationLogLookup = locationLogs
+                        .GroupBy(log => log.TransactionId!.Value)
+                        .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.ValidationTime).First());
+                }
+
                 // Build a unified lookup for previous meter readings from BOTH tables:
                 // 1. FuelRefill.CurrentMeterReading (manual entries)
                 // 2. Pumptransaction.Odometer (PTS fueling)
@@ -195,6 +216,20 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     {
                         userName = resolvedUserName;
                     }
+
+                    // Resolve fueling location (mobile app) from LocationValidationLog if available
+                    LocationValidationLog? locationLog = null;
+                    if (pt.Transaction.HasValue && pt.Transaction.Value > 0)
+                    {
+                        locationLogLookup.TryGetValue(pt.Transaction.Value, out locationLog);
+                    }
+
+                    var fuelingLatitude = locationLog?.MobileLatitude;
+                    var fuelingLongitude = locationLog?.MobileLongitude;
+                    var fuelingAccuracy = locationLog?.MobileAccuracy;
+                    var fuelingLocationSource = fuelingLatitude.HasValue && fuelingLongitude.HasValue
+                        ? "MobileApp"
+                        : null;
 
                     // Calculate previous odometer and consumption
                     // Priority: 1) FuelRefill.PreviousMeterReading (if explicitly set)
@@ -268,6 +303,10 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         // Site coordinates from Tank's GPS location (tank is the primary location for fueling)
                         SiteLatitude = pt.Tank?.Latitude,
                         SiteLongitude = pt.Tank?.Longitude,
+                        FuelingLatitude = fuelingLatitude,
+                        FuelingLongitude = fuelingLongitude,
+                        FuelingLocationAccuracy = fuelingAccuracy,
+                        FuelingLocationSource = fuelingLocationSource,
                         FueledBy = fr?.FuelBy,
                         FueledByUserName = fr?.FuelByNavigation?.UserName,
                         // Odometer data - from FuelRefill.PreviousMeterReading or historical lookup (FuelRefill/PumpTransaction)

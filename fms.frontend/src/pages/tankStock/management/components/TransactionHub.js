@@ -36,6 +36,7 @@ import { LoadPanel } from "devextreme-react/load-panel";
 import Button from "devextreme-react/button";
 import Popup from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
+import reportingService from "../../../../services/reportingService";
 
 // Utilities and exports
 import { exportTransactionsToExcel } from "../utils/transactionExportUtils";
@@ -61,6 +62,11 @@ import {
   useDataGridGrouping,
 } from "./transactionHub/useTransactionHub";
 import { EditTransactionDialog } from "./transactionHub/EditTransactionDialog";
+import ScheduleReportEmailDialog from "./transactionHub/ScheduleReportEmailDialog";
+import {
+  buildTransactionVolumeHistoryFileName,
+  buildTransactionVolumeHistoryReportData
+} from "./transactionHub/transactionHistoryReportUtils";
 
 // Hooks
 import { usePermissions } from "../../../../hooks/usePermissions";
@@ -134,6 +140,12 @@ const TransactionHub = () => {
 
   // Local state for manual refill form
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
+  const [showScheduleReportDialog, setShowScheduleReportDialog] = useState(false);
+  const [scheduleRecipients, setScheduleRecipients] = useState([]);
+  const [scheduleDateTime, setScheduleDateTime] = useState(null);
+  const [isSchedulingReport, setIsSchedulingReport] = useState(false);
+
+  const reportTemplateName = "transaction-volume-history-report";
 
   // Refresh data after successful manual refill
   const handleManualRefillSuccess = useCallback(() => {
@@ -146,6 +158,177 @@ const TransactionHub = () => {
       position: "top center",
     });
   }, [handleRefresh]);
+
+  const handleGenerateHistoryReport = useCallback(async () => {
+    if (!tankVolumeHistory || tankVolumeHistory.length === 0) {
+      notify({
+        message: "No transactions available for the selected range.",
+        type: "warning",
+        displayTime: 3000,
+        position: "top center"
+      });
+      return;
+    }
+
+    try {
+      const reportData = buildTransactionVolumeHistoryReportData({
+        tankVolumeHistory,
+        tanks,
+        sites,
+        headerStartDate,
+        headerEndDate,
+        selectedSiteIds,
+        selectedTankIds,
+        user
+      });
+
+      const result = await reportingService.renderJsReportPdf(reportTemplateName, reportData);
+      if (result.success) {
+        const fileName = buildTransactionVolumeHistoryFileName(headerStartDate, headerEndDate);
+        reportingService.downloadReportFile(result.blob, fileName);
+        notify({
+          message: "Transaction volume history report generated successfully",
+          type: "success",
+          displayTime: 3000,
+          position: "top center"
+        });
+      } else {
+        notify({
+          message: result.error || "Failed to generate report.",
+          type: "error",
+          displayTime: 3000,
+          position: "top center"
+        });
+      }
+    } catch (error) {
+      console.error("History report generation failed:", error);
+      notify({
+        message: "Failed to generate report. Please try again.",
+        type: "error",
+        displayTime: 3000,
+        position: "top center"
+      });
+    }
+  }, [
+    tankVolumeHistory,
+    tanks,
+    sites,
+    headerStartDate,
+    headerEndDate,
+    selectedSiteIds,
+    selectedTankIds,
+    user
+  ]);
+
+  const handleOpenScheduleDialog = useCallback(() => {
+    if (!scheduleDateTime) {
+      setScheduleDateTime(new Date(Date.now() + 60 * 60 * 1000));
+    }
+    setShowScheduleReportDialog(true);
+  }, [scheduleDateTime]);
+
+  const handleScheduleReportEmail = useCallback(async () => {
+    if (!scheduleRecipients || scheduleRecipients.length === 0) {
+      notify({
+        message: "Please select at least one recipient.",
+        type: "warning",
+        displayTime: 3000,
+        position: "top center"
+      });
+      return;
+    }
+
+    if (!scheduleDateTime) {
+      notify({
+        message: "Please choose a schedule time.",
+        type: "warning",
+        displayTime: 3000,
+        position: "top center"
+      });
+      return;
+    }
+
+    setIsSchedulingReport(true);
+    try {
+      const reportData = buildTransactionVolumeHistoryReportData({
+        tankVolumeHistory,
+        tanks,
+        sites,
+        headerStartDate,
+        headerEndDate,
+        selectedSiteIds,
+        selectedTankIds,
+        user
+      });
+
+      const htmlResult = await reportingService.previewJsReport(reportTemplateName, reportData);
+      if (!htmlResult.success) {
+        notify({
+          message: htmlResult.error || "Failed to render report for email.",
+          type: "error",
+          displayTime: 3000,
+          position: "top center"
+        });
+        return;
+      }
+
+      const notificationRequest = {
+        type: 2,
+        categoryId: 20,
+        priority: 1,
+        title: reportData.reportTitle,
+        message: htmlResult.html,
+        triggerSource: "TransactionVolumeHistoryReport",
+        scheduledAt: scheduleDateTime.toISOString(),
+        siteId: selectedSiteIds?.length === 1 ? selectedSiteIds[0] : null,
+        recipients: scheduleRecipients.map((userId) => ({
+          userId,
+          deliveryMethods: ["Email"],
+          resolvedFrom: "Manual"
+        })),
+        disableFallbackAllUsers: true
+      };
+
+      const scheduleResult = await reportingService.scheduleReportEmail(notificationRequest);
+      if (scheduleResult.success) {
+        notify({
+          message: "Report email scheduled successfully",
+          type: "success",
+          displayTime: 3000,
+          position: "top center"
+        });
+        setShowScheduleReportDialog(false);
+      } else {
+        notify({
+          message: scheduleResult.error || "Failed to schedule report email.",
+          type: "error",
+          displayTime: 3000,
+          position: "top center"
+        });
+      }
+    } catch (error) {
+      console.error("Schedule report email failed:", error);
+      notify({
+        message: "Failed to schedule report email. Please try again.",
+        type: "error",
+        displayTime: 3000,
+        position: "top center"
+      });
+    } finally {
+      setIsSchedulingReport(false);
+    }
+  }, [
+    scheduleRecipients,
+    scheduleDateTime,
+    tankVolumeHistory,
+    tanks,
+    sites,
+    headerStartDate,
+    headerEndDate,
+    selectedSiteIds,
+    selectedTankIds,
+    user
+  ]);
 
   // Handle row click to prevent errors with group rows
   const onRowClick = useCallback((e) => {
@@ -322,6 +505,26 @@ const TransactionHub = () => {
                   onClick={onExporting}
                   hint="Export to Excel"
                   className="transaction-hub__action-btn transaction-hub__action-btn--excel"
+                />
+
+                <Button
+                  text="History Report"
+                  icon="fa-light fa-file-pdf"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={handleGenerateHistoryReport}
+                  hint="Generate transaction volume history report"
+                  className="transaction-hub__action-btn"
+                />
+
+                <Button
+                  text="Schedule Email"
+                  icon="fa-light fa-envelope"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={handleOpenScheduleDialog}
+                  hint="Schedule report email delivery"
+                  className="transaction-hub__action-btn"
                 />
 
                 <Button
@@ -673,6 +876,19 @@ const TransactionHub = () => {
         sites={sites}
         onSuccess={handleEditSuccess}
         onCancel={handleCancelEdit}
+      />
+
+      {/* Schedule Report Email Dialog */}
+      <ScheduleReportEmailDialog
+        visible={showScheduleReportDialog}
+        onHiding={() => setShowScheduleReportDialog(false)}
+        usersForFilter={usersForFilter}
+        recipientIds={scheduleRecipients}
+        onRecipientIdsChange={setScheduleRecipients}
+        scheduledAt={scheduleDateTime}
+        onScheduledAtChange={setScheduleDateTime}
+        onSchedule={handleScheduleReportEmail}
+        isScheduling={isSchedulingReport}
       />
 
       {/* Page-level LoadPanel */}

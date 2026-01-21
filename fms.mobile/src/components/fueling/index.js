@@ -13,3 +13,4 @@ export { default as TransactionMonitoringModal } from "./TransactionMonitoringMo
 export { default as TransactionSummaryStep } from "./TransactionSummaryStep";
 export { default as FuelingHeader } from "./FuelingHeader";
 export { default as LocationStatusIndicator } from "./LocationStatusIndicator";
+export { default as LocationBypassIndicator } from "./LocationBypassIndicator";

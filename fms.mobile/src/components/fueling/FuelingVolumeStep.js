@@ -17,6 +17,7 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
 import LocationStatusIndicator from "./LocationStatusIndicator";
+import LocationBypassIndicator from "./LocationBypassIndicator";
 
 const FuelingVolumeStep = ({
   selectedVehicle,
@@ -46,6 +47,9 @@ const FuelingVolumeStep = ({
   onLocationUpdate,
   showLocationStatus = true,
   maxLocationAgeSeconds = 60,
+  // Location bypass props
+  isLocationBypassEnabled = false,
+  locationBypassReason = null,
   // Legacy props - kept for backward compatibility but deprecated
   enableFuelCapacityValidation = true,
   enableGPSFuelLevelCheck = true,
@@ -412,15 +416,19 @@ const FuelingVolumeStep = ({
           </View>
         </View>
 
-        {/* GPS Location Status - Manual refresh available */}
-        {showLocationStatus && (
+        {/* GPS Location Status or Bypass Indicator */}
+        {isLocationBypassEnabled ? (
+          <LocationBypassIndicator
+            bypassReason={locationBypassReason || "Bypass enabled"}
+          />
+        ) : showLocationStatus ? (
           <LocationStatusIndicator
             onLocationUpdate={onLocationUpdate}
             maxAgeSeconds={maxLocationAgeSeconds}
             autoRefreshOnMount={true}
             showDetails={false}
           />
-        )}
+        ) : null}
 
         {/* Nozzle Status Card */}
         <View

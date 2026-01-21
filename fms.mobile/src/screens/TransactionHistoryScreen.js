@@ -55,6 +55,44 @@ const openLocationInMapsHelper = (latitude, longitude, siteName) => {
   });
 };
 
+const normalizeCoordinate = (value) => {
+  if (value === null || value === undefined) return null;
+  const parsed = typeof value === "string" ? parseFloat(value) : value;
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getFuelingLocation = (item) => {
+  if (!item) {
+    return { latitude: null, longitude: null, label: "Location", source: null };
+  }
+
+  const fuelingLatitude = normalizeCoordinate(item.fuelingLatitude);
+  const fuelingLongitude = normalizeCoordinate(item.fuelingLongitude);
+
+  if (fuelingLatitude !== null && fuelingLongitude !== null) {
+    return {
+      latitude: fuelingLatitude,
+      longitude: fuelingLongitude,
+      label: "Fueling Location",
+      source: item.fuelingLocationSource || "Mobile App",
+    };
+  }
+
+  const siteLatitude = normalizeCoordinate(item.siteLatitude || item.latitude);
+  const siteLongitude = normalizeCoordinate(item.siteLongitude || item.longitude);
+
+  if (siteLatitude !== null && siteLongitude !== null) {
+    return {
+      latitude: siteLatitude,
+      longitude: siteLongitude,
+      label: "Site Location",
+      source: "Site",
+    };
+  }
+
+  return { latitude: null, longitude: null, label: "Location", source: null };
+};
+
 // Helper to get display name for the person who fueled
 const getFueledByDisplay = (item) => {
   // Check various possible field names from API
@@ -482,21 +520,19 @@ const TransactionHistoryScreen = ({ navigation }) => {
     }
   };
 
-  // Format fuel efficiency: km/L for distance-based, L/hr for hour-based vehicles
-  const formatFuelEfficiency = (value, isKmPerLiter = true) => {
-    if (!value) return "N/A";
-    if (isKmPerLiter) {
-      return `${value.toFixed(2)} km/L`;
-    } else {
-      return `${value.toFixed(2)} L/hr`;
-    }
+  // Legacy function for backward compatibility
+  const formatDistance = (distance) => {
+    if (!distance) return "N/A";
+    return `${distance.toLocaleString()} km`;
   };
 
   const openLocationInMaps = (item) => {
-    // Use real coordinates from API - latitude first, then longitude
-    const lat = item.siteLatitude || item.latitude;
-    const lng = item.siteLongitude || item.longitude;
-    openLocationInMapsHelper(lat, lng, item.siteName);
+    const location = getFuelingLocation(item);
+    openLocationInMapsHelper(
+      location.latitude,
+      location.longitude,
+      item?.siteName
+    );
   };
 
   const handleTransactionPress = (item) => {
@@ -510,19 +546,21 @@ const TransactionHistoryScreen = ({ navigation }) => {
       siteLatitude: item.siteLatitude || item.latitude,
       siteLongitude: item.siteLongitude || item.longitude,
 
+      // Fueling location - captured from mobile app (if available)
+      fuelingLatitude: item.fuelingLatitude,
+      fuelingLongitude: item.fuelingLongitude,
+      fuelingLocationAccuracy: item.fuelingLocationAccuracy,
+      fuelingLocationSource: item.fuelingLocationSource,
+
       // User who fueled - use helper function
       fueledBy: getFueledByDisplay(item),
 
-      // Odometer data - from API (FuelRefill or PumpTransaction history)
+      // Odometer data - from API (FuelRefill)
       currentOdometer: item.odometer,
       previousOdometer: item.previousOdometer,
-      previousOdometerSource: item.previousOdometerSource, // Source of previous reading for audit
 
-      // Distance/Hours since last refuel
+      // Consumption - from API or calculate
       consumptionSinceLastRefuel: item.consumptionSinceLastRefuel,
-
-      // Fuel efficiency: km/L or L/hr from API
-      fuelEfficiency: item.fuelEfficiency,
 
       // Fuel levels - from API (GPS sensor data if available)
       fuelLevelBefore: item.fuelLevelBefore,
@@ -573,6 +611,11 @@ const TransactionHistoryScreen = ({ navigation }) => {
   const renderTransactionItem = ({ item, index }) => {
     // Use real API data directly - no mock locations
     const consumption = item.consumptionSinceLastRefuel;
+    const location = getFuelingLocation(item);
+    const hasLocation = location.latitude !== null && location.longitude !== null;
+    const locationText = hasLocation
+      ? `${location.label}: ${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`
+      : item.siteName || "Location unavailable";
 
     return (
       <TouchableOpacity
@@ -629,18 +672,21 @@ const TransactionHistoryScreen = ({ navigation }) => {
           {/* Site/Location - Clickable */}
           <TouchableOpacity
             style={styles.detailRow}
-            onPress={() => openLocationInMaps(item.siteId, item.siteName)}
+            onPress={() => openLocationInMaps(item)}
+            disabled={!hasLocation}
           >
             <Icon name="map-marker-alt" size={14} color="#2563eb" />
             <Text style={styles.locationText}>
-              {item.siteName || siteLocation.name}
+              {locationText}
             </Text>
-            <Icon
-              name="external-link-alt"
-              size={10}
-              color="#2563eb"
-              style={styles.linkIcon}
-            />
+            {hasLocation && (
+              <Icon
+                name="external-link-alt"
+                size={10}
+                color="#2563eb"
+                style={styles.linkIcon}
+              />
+            )}
           </TouchableOpacity>
 
           {/* User who fueled */}
@@ -714,10 +760,10 @@ const TransactionHistoryScreen = ({ navigation }) => {
           </View>
           <View style={styles.amountItem}>
             <Text style={styles.amountLabel}>
-              {item.isKmPerLiter !== false ? "Efficiency" : "Consumption"}
+              {item.isKmPerLiter !== false ? "Distance" : "Engine Hours"}
             </Text>
             <Text style={styles.amountValueConsumption}>
-              {formatFuelEfficiency(item.fuelEfficiency, item.isKmPerLiter !== false)}
+              {formatDistanceOrHours(consumption, item.isKmPerLiter !== false)}
             </Text>
           </View>
         </View>
@@ -929,26 +975,33 @@ const TransactionHistoryScreen = ({ navigation }) => {
               <TouchableOpacity
                 style={styles.auditLocationCard}
                 onPress={() => openLocationInMaps(selectedTransaction)}
-                disabled={!selectedTransaction.siteLatitude || !selectedTransaction.siteLongitude}
+                disabled={
+                  !getFuelingLocation(selectedTransaction).latitude ||
+                  !getFuelingLocation(selectedTransaction).longitude
+                }
               >
                 <View style={styles.locationIconContainer}>
                   <Icon name="map-marker-alt" size={24} color="#2563eb" />
                 </View>
                 <View style={styles.locationDetails}>
                   <Text style={styles.locationName}>
-                    {selectedTransaction.siteName}
+                    {getFuelingLocation(selectedTransaction).label}
                   </Text>
                   {selectedTransaction.siteAddress ? (
                     <Text style={styles.locationAddress}>
                       {selectedTransaction.siteAddress}
                     </Text>
-                  ) : selectedTransaction.siteLatitude && selectedTransaction.siteLongitude ? (
+                  ) : getFuelingLocation(selectedTransaction).latitude &&
+                    getFuelingLocation(selectedTransaction).longitude ? (
                     <Text style={styles.locationAddress}>
-                      {selectedTransaction.siteLatitude.toFixed(4)}, {selectedTransaction.siteLongitude.toFixed(4)}
+                      {getFuelingLocation(selectedTransaction).latitude.toFixed(4)},
+                      {" "}
+                      {getFuelingLocation(selectedTransaction).longitude.toFixed(4)}
                     </Text>
                   ) : null}
                 </View>
-                {(selectedTransaction.siteLatitude && selectedTransaction.siteLongitude) && (
+                {getFuelingLocation(selectedTransaction).latitude &&
+                  getFuelingLocation(selectedTransaction).longitude && (
                   <Icon name="external-link-alt" size={16} color="#2563eb" />
                 )}
               </TouchableOpacity>
@@ -1045,7 +1098,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
             {/* Odometer & Consumption */}
             <View style={styles.auditSection}>
               <Text style={styles.auditSectionTitle}>
-                {selectedTransaction.isKmPerLiter !== false ? "Odometer & Efficiency" : "Engine Hours & Consumption"}
+                {selectedTransaction.isKmPerLiter !== false ? "Odometer & Distance" : "Engine Hours"}
               </Text>
               <View style={styles.auditCard}>
                 <View style={styles.auditRow}>
@@ -1061,13 +1114,6 @@ const TransactionHistoryScreen = ({ navigation }) => {
                 <View style={styles.auditRow}>
                   <Text style={styles.auditLabel}>
                     Previous {selectedTransaction.isKmPerLiter !== false ? "Odometer" : "Hours"}
-                    {selectedTransaction.previousOdometerSource && (
-                      <Text style={{ fontSize: 10, color: "#9ca3af" }}>
-                        {"\n"}(from {selectedTransaction.previousOdometerSource === "PumpTransaction" ? "PTS" :
-                                   selectedTransaction.previousOdometerSource === "FuelRefill" ? "Manual Entry" :
-                                   "Stored Value"})
-                      </Text>
-                    )}
                   </Text>
                   <Text style={styles.auditValue}>
                     {selectedTransaction.previousOdometer?.toLocaleString() ||
@@ -1075,24 +1121,13 @@ const TransactionHistoryScreen = ({ navigation }) => {
                     {selectedTransaction.isKmPerLiter !== false ? "km" : "hr"}
                   </Text>
                 </View>
-                <View style={styles.auditRow}>
-                  <Text style={styles.auditLabel}>
-                    {selectedTransaction.isKmPerLiter !== false ? "Distance Traveled" : "Hours Operated"}
-                  </Text>
-                  <Text style={styles.auditValue}>
-                    {formatDistanceOrHours(
-                      selectedTransaction.consumptionSinceLastRefuel,
-                      selectedTransaction.isKmPerLiter !== false
-                    )}
-                  </Text>
-                </View>
                 <View style={[styles.auditRow, styles.auditRowHighlight]}>
                   <Text style={styles.auditLabelBold}>
-                    {selectedTransaction.isKmPerLiter !== false ? "Fuel Efficiency" : "Consumption Rate"}
+                    {selectedTransaction.isKmPerLiter !== false ? "Distance Since Last Refuel" : "Hours Since Last Refuel"}
                   </Text>
                   <Text style={styles.auditValueHighlight}>
-                    {formatFuelEfficiency(
-                      selectedTransaction.fuelEfficiency,
+                    {formatDistanceOrHours(
+                      selectedTransaction.consumptionSinceLastRefuel,
                       selectedTransaction.isKmPerLiter !== false
                     )}
                   </Text>

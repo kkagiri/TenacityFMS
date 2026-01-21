@@ -28,6 +28,16 @@ public partial class LocationValidationService
     {
         try
         {
+            // Global toggle for geofence validation
+            var enableGeofenceValidation = await _systemConfigService.GetConfigurationValueAsync(
+                "FuelingRules.EnableGeofenceValidation", cancellationToken);
+
+            if (string.Equals(enableGeofenceValidation, "false", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("[GEOFENCE_VALIDATION] Global geofence validation is disabled - skipping");
+                return GeofenceValidationResult.Skipped("Geofence validation is globally disabled");
+            }
+
             _logger.LogInformation(
                 "[GEOFENCE_VALIDATION] ========== STARTING GEOFENCE VALIDATION ==========\n" +
                 "  RuleSetId: {RuleSetId}\n" +

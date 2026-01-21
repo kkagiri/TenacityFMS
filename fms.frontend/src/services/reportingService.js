@@ -1,3 +1,16 @@
+/**
+ * File: reportingService.js
+ * Purpose: Central reporting API client for DevExtreme and JsReport operations
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-01-21
+ *
+ * Key Functions:
+ * - generateReport(): Generate DevExtreme reports
+ * - previewJsReport(): Render JsReport HTML previews
+ * - renderJsReportPdf(): Render JsReport to PDF
+ * - renderJsReportExcel(): Render JsReport to Excel
+ * - scheduleReportEmail(): Schedule report delivery via notifications
+ */
 import axiosInstance from '../api/axiosInstance';
 
 /**
@@ -501,6 +514,28 @@ class ReportingService {
       };
     } catch (error) {
       console.error('Error rendering JsReport Excel:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Schedule a report email via notification system
+   * @param {Object} request - Notification creation request
+   * @returns {Promise}
+   */
+  async scheduleReportEmail(request) {
+    try {
+      const response = await axiosInstance.post('/notifications', request);
+      return {
+        success: response.data?.success ?? true,
+        data: response.data,
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error scheduling report email:', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message

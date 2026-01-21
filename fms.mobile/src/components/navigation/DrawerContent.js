@@ -11,13 +11,16 @@ import { DrawerContentScrollView } from "@react-navigation/drawer";
 import { useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { NotificationBadge } from "../notifications";
+import { usePermissions } from "../../hooks/usePermissions";
 
 const DrawerContent = ({ navigation, state }) => {
   const user = useSelector((state) => state.auth.user);
   const unreadCount = useSelector((state) => state.notifications?.unreadCount || 0);
   const pendingApprovalCount = useSelector((state) => state.notifications?.pendingApprovalCount || 0);
   const currentRoute = state?.routes[state?.index]?.name;
+  const { isAdmin } = usePermissions();
 
+  // Build menu items dynamically based on user role
   const menuItems = [
     {
       id: "home",
@@ -81,6 +84,23 @@ const DrawerContent = ({ navigation, state }) => {
       id: "divider2",
       type: "divider",
     },
+    // Admin-only menu items
+    ...(isAdmin
+      ? [
+          {
+            id: "locationSettings",
+            label: "Location Settings",
+            icon: "map-marker-alt",
+            screen: "LocationSettings",
+            description: "GPS & location validation",
+            adminOnly: true,
+          },
+          {
+            id: "divider3",
+            type: "divider",
+          },
+        ]
+      : []),
     {
       id: "settings",
       label: "Settings",
@@ -174,11 +194,18 @@ const DrawerContent = ({ navigation, state }) => {
                 )}
               </View>
               <View style={styles.menuTextContainer}>
-                <Text
-                  style={[styles.menuLabel, active && styles.menuLabelActive]}
-                >
-                  {item.label}
-                </Text>
+                <View style={styles.menuLabelRow}>
+                  <Text
+                    style={[styles.menuLabel, active && styles.menuLabelActive]}
+                  >
+                    {item.label}
+                  </Text>
+                  {item.adminOnly && (
+                    <View style={styles.adminBadge}>
+                      <Text style={styles.adminBadgeText}>Admin</Text>
+                    </View>
+                  )}
+                </View>
                 <Text style={styles.menuDescription}>{item.description}</Text>
               </View>
               <Icon
@@ -293,6 +320,11 @@ const styles = StyleSheet.create({
     flex: 1,
     marginLeft: 14,
   },
+  menuLabelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
   menuLabel: {
     fontSize: 15,
     fontWeight: "600",
@@ -300,6 +332,17 @@ const styles = StyleSheet.create({
   },
   menuLabelActive: {
     color: "#2563eb",
+  },
+  adminBadge: {
+    backgroundColor: "#fef3c7",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  adminBadgeText: {
+    fontSize: 9,
+    fontWeight: "600",
+    color: "#92400e",
   },
   menuDescription: {
     fontSize: 12,

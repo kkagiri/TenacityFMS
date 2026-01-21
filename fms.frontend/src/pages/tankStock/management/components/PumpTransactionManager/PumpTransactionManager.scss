@@ -169,6 +169,14 @@
       @apply tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg tw-text-center;
     }
   }
+
+  .pump-transaction-map-popup {
+    @apply tw-h-full tw-flex tw-flex-col;
+  }
+
+  .pump-transaction-map-frame {
+    @apply tw-flex-1 tw-w-full tw-border tw-border-gray-200 tw-rounded-md;
+  }
 }
 
 // Responsive adjustments

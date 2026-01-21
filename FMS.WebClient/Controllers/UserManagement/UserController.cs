@@ -14,6 +14,7 @@ using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Common; // FMSResponse
 using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
+using FMS.Application.Features.UserManagement.User.Queries;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -91,6 +92,31 @@ public class UserController : ControllerBase
         var command = new GetUserListQuery();
         var result = await _mediator.Send(command);
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Quick search for users by username or email
+    /// </summary>
+    /// <param name="searchTerm">Search term (min 2 characters)</param>
+    /// <param name="limit">Maximum results to return (default 10, max 100)</param>
+    /// <returns>List of matching users</returns>
+    [HttpGet("quick-search")]
+    public async Task<IActionResult> QuickSearchUsers(
+        [FromQuery] string searchTerm, [FromQuery] int limit = 10)
+    {
+        var query = new SearchUserQuery
+        {
+            SearchTerm = searchTerm,
+            Limit = limit
+        };
+        var result = await _mediator.Send(query);
+
+        if (result.IsSuccess)
+        {
+            return Ok(result);
+        }
+
+        return BadRequest(result);
     }
 
     //Delete:api/User/{id}

@@ -92,6 +92,26 @@ namespace FMS.Application.Features.ATG
         public decimal? SiteLongitude { get; set; }
 
         /// <summary>
+        /// Fueling latitude captured from mobile app during authorization (if available)
+        /// </summary>
+        public decimal? FuelingLatitude { get; set; }
+
+        /// <summary>
+        /// Fueling longitude captured from mobile app during authorization (if available)
+        /// </summary>
+        public decimal? FuelingLongitude { get; set; }
+
+        /// <summary>
+        /// Accuracy of the fueling location (meters) from mobile app GPS
+        /// </summary>
+        public decimal? FuelingLocationAccuracy { get; set; }
+
+        /// <summary>
+        /// Source label for fueling location (e.g., MobileApp)
+        /// </summary>
+        public string? FuelingLocationSource { get; set; }
+
+        /// <summary>
         /// User who performed/authorized the fueling
         /// </summary>
         public string? FueledBy { get; set; }

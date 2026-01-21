@@ -149,6 +149,10 @@ const FuelingProcessScreen = () => {
     locationSettings,
     handleLocationUpdate,
 
+    // Location bypass status
+    isLocationBypassEnabled,
+    locationBypassReason,
+
     // Site info
     sites,
     siteName,
@@ -325,8 +329,11 @@ const FuelingProcessScreen = () => {
             siteName={siteName}
             // Location props for GPS status indicator
             onLocationUpdate={handleLocationUpdate}
-            showLocationStatus={true}
+            showLocationStatus={!isLocationBypassEnabled}
             maxLocationAgeSeconds={locationSettings.maxLocationAgeSeconds}
+            // Location bypass props
+            isLocationBypassEnabled={isLocationBypassEnabled}
+            locationBypassReason={locationBypassReason}
           />
         );
 

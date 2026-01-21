@@ -194,78 +194,86 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         });
                 }
 
-                // **STEP 2.5: MOBILE LOCATION VALIDATION**
-                // Validate mobile location based on configurable settings
-                var mobileLocationSettings = await _locationValidationService.GetMobileLocationSettingsAsync(cancellationToken);
+                // **STEP 2.25: GLOBAL LOCATION VALIDATION TOGGLE**
+                var globalLocationValidationEnabled = await _systemConfigService.GetConfigurationValueAsync(
+                    "FuelingRules.EnableLocationValidation", cancellationToken);
 
-                if (request.MobileLocation != null)
+                var isLocationValidationEnabled = !string.Equals(
+                    globalLocationValidationEnabled, "false", StringComparison.OrdinalIgnoreCase);
+
+                if (isLocationValidationEnabled)
                 {
-                    // Check 1: Reject cached locations if configured
-                    if (mobileLocationSettings.RejectCachedLocation && request.MobileLocation.IsCached == true)
-                    {
-                        _logger.LogWarning("[PumpAuth] ⚠️ CACHED MOBILE LOCATION REJECTED - IsCached=true, RejectCachedLocation=true");
+                    // **STEP 2.5: MOBILE LOCATION VALIDATION**
+                    // Validate mobile location based on configurable settings
+                    var mobileLocationSettings = await _locationValidationService.GetMobileLocationSettingsAsync(cancellationToken);
 
-                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
-                            new List<string>
-                            {
-                                "⚠️ Cached location not allowed",
-                                "Please wait for a fresh GPS fix and try again",
-                                "Ensure location services are enabled on your device"
-                            });
-                    }
-
-                    // Check 2: Validate location age (staleness)
-                    if (request.MobileLocation.Timestamp != null)
+                    if (request.MobileLocation != null)
                     {
-                        var locationAge = DateTime.UtcNow - request.MobileLocation.Timestamp.Value;
-                        if (locationAge.TotalSeconds > mobileLocationSettings.MaxLocationAgeSeconds)
+                        // Check 1: Reject cached locations if configured
+                        if (mobileLocationSettings.RejectCachedLocation && request.MobileLocation.IsCached == true)
                         {
-                            _logger.LogWarning("[PumpAuth] ⚠️ STALE MOBILE LOCATION REJECTED - Location is {Age:F1} seconds old (max: {Max}s). Timestamp: {Timestamp}",
-                                locationAge.TotalSeconds, mobileLocationSettings.MaxLocationAgeSeconds, request.MobileLocation.Timestamp.Value);
+                            _logger.LogWarning("[PumpAuth] ⚠️ CACHED MOBILE LOCATION REJECTED - IsCached=true, RejectCachedLocation=true");
 
                             return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
                                 new List<string>
                                 {
-                                    "⚠️ Location data is too old",
-                                    $"Your location was recorded {locationAge.TotalSeconds:F0} seconds ago (maximum allowed: {mobileLocationSettings.MaxLocationAgeSeconds} seconds)",
-                                    "Please wait for a fresh GPS fix and try again"
+                                    "⚠️ Cached location not allowed",
+                                    "Please wait for a fresh GPS fix and try again",
+                                    "Ensure location services are enabled on your device"
                                 });
+                        }
+
+                        // Check 2: Validate location age (staleness)
+                        if (request.MobileLocation.Timestamp != null)
+                        {
+                            var locationAge = DateTime.UtcNow - request.MobileLocation.Timestamp.Value;
+                            if (locationAge.TotalSeconds > mobileLocationSettings.MaxLocationAgeSeconds)
+                            {
+                                _logger.LogWarning("[PumpAuth] ⚠️ STALE MOBILE LOCATION REJECTED - Location is {Age:F1} seconds old (max: {Max}s). Timestamp: {Timestamp}",
+                                    locationAge.TotalSeconds, mobileLocationSettings.MaxLocationAgeSeconds, request.MobileLocation.Timestamp.Value);
+
+                                return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                    new List<string>
+                                    {
+                                        "⚠️ Location data is too old",
+                                        $"Your location was recorded {locationAge.TotalSeconds:F0} seconds ago (maximum allowed: {mobileLocationSettings.MaxLocationAgeSeconds} seconds)",
+                                        "Please wait for a fresh GPS fix and try again"
+                                    });
+                            }
+                            else
+                            {
+                                _logger.LogDebug("[PumpAuth] Mobile location age: {Age:F1} seconds (within {Max}s limit)",
+                                    locationAge.TotalSeconds, mobileLocationSettings.MaxLocationAgeSeconds);
+                            }
                         }
                         else
                         {
-                            _logger.LogDebug("[PumpAuth] Mobile location age: {Age:F1} seconds (within {Max}s limit)",
-                                locationAge.TotalSeconds, mobileLocationSettings.MaxLocationAgeSeconds);
+                            // No timestamp - this is a problem for validation
+                            _logger.LogWarning("[PumpAuth] ⚠️ MOBILE LOCATION HAS NO TIMESTAMP - Cannot validate freshness");
+                        }
+
+                        // Check 3: Validate location accuracy
+                        if (request.MobileLocation.Accuracy.HasValue &&
+                            request.MobileLocation.Accuracy.Value > mobileLocationSettings.MaxLocationAccuracyMeters)
+                        {
+                            _logger.LogWarning("[PumpAuth] ⚠️ POOR MOBILE LOCATION ACCURACY - Accuracy is {Accuracy:F1}m (max: {Max}m)",
+                                request.MobileLocation.Accuracy.Value, mobileLocationSettings.MaxLocationAccuracyMeters);
+
+                            // This is a warning, not a rejection - accuracy can vary based on conditions
+                            // Log but continue with the authorization
                         }
                     }
-                    else
+                    else if (mobileLocationSettings.RequireMobileLocation)
                     {
-                        // No timestamp - this is a problem for validation
-                        _logger.LogWarning("[PumpAuth] ⚠️ MOBILE LOCATION HAS NO TIMESTAMP - Cannot validate freshness");
+                        // Mobile location is required but not provided
+                        _logger.LogWarning("[PumpAuth] ⚠️ MOBILE LOCATION REQUIRED BUT NOT PROVIDED");
+                        // Note: We don't reject here because the geofence validation will handle this check
+                        // This allows the system to be more flexible with bypass settings
                     }
 
-                    // Check 3: Validate location accuracy
-                    if (request.MobileLocation.Accuracy.HasValue &&
-                        request.MobileLocation.Accuracy.Value > mobileLocationSettings.MaxLocationAccuracyMeters)
-                    {
-                        _logger.LogWarning("[PumpAuth] ⚠️ POOR MOBILE LOCATION ACCURACY - Accuracy is {Accuracy:F1}m (max: {Max}m)",
-                            request.MobileLocation.Accuracy.Value, mobileLocationSettings.MaxLocationAccuracyMeters);
-
-                        // This is a warning, not a rejection - accuracy can vary based on conditions
-                        // Log but continue with the authorization
-                    }
-                }
-                else if (mobileLocationSettings.RequireMobileLocation)
-                {
-                    // Mobile location is required but not provided
-                    _logger.LogWarning("[PumpAuth] ⚠️ MOBILE LOCATION REQUIRED BUT NOT PROVIDED");
-                    // Note: We don't reject here because the geofence validation will handle this check
-                    // This allows the system to be more flexible with bypass settings
-                }
-
-                // **STEP 3: LOCATION VALIDATION**
-                // CRITICAL FIX: Always attempt location validation if DeviceId is provided
-                // The LocationValidationService will check if the device requires location validation
-                {
+                    // **STEP 3: LOCATION VALIDATION**
+                    // CRITICAL FIX: Always attempt location validation if DeviceId is provided
+                    // The LocationValidationService will check if the device requires location validation
                     // Get TankId from the nozzle/pump if not provided directly
                     int? effectiveTankId = request.TankId;
 
@@ -400,6 +408,10 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                             }
                         }
                     }
+                }
+                else
+                {
+                    _logger.LogInformation("[PumpAuth] Global location validation is disabled - skipping mobile/location/geofence checks");
                 }
 
                 // **STEP 4: DETERMINE NOZZLE/FUEL SELECTOR**

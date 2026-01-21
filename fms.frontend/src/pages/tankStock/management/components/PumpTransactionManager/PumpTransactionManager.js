@@ -15,6 +15,7 @@ import DataGrid, {
 import { Button } from "devextreme-react/button";
 import { ScrollView } from "devextreme-react/scroll-view";
 import { SelectBox, TagBox } from "devextreme-react";
+import Popup from "devextreme-react/popup";
 import usePumpTransactionManager from "./usePumpTransactionManager";
 import PumpTransactionGroupingControls from "./PumpTransactionGroupingControls";
 import "./PumpTransactionManager.scss";
@@ -55,6 +56,61 @@ const PumpTransactionManager = () => {
     groupCellRenderDate,
   } = usePumpTransactionManager();
 
+  const [mapPopupVisible, setMapPopupVisible] = React.useState(false);
+  const [mapTransaction, setMapTransaction] = React.useState(null);
+
+  const normalizeCoordinate = React.useCallback((value) => {
+    if (value === null || value === undefined) return null;
+    const parsed = typeof value === "string" ? parseFloat(value) : value;
+    return Number.isFinite(parsed) ? parsed : null;
+  }, []);
+
+  const resolveFuelingLocation = React.useCallback(
+    (transaction) => {
+      if (!transaction) return null;
+
+      const fuelingLatitude = normalizeCoordinate(transaction.fuelingLatitude);
+      const fuelingLongitude = normalizeCoordinate(transaction.fuelingLongitude);
+
+      if (fuelingLatitude !== null && fuelingLongitude !== null) {
+        return {
+          lat: fuelingLatitude,
+          lng: fuelingLongitude,
+          label: "Fueling (Mobile)",
+        };
+      }
+
+      const siteLatitude = normalizeCoordinate(transaction.siteLatitude);
+      const siteLongitude = normalizeCoordinate(transaction.siteLongitude);
+
+      if (siteLatitude !== null && siteLongitude !== null) {
+        return {
+          lat: siteLatitude,
+          lng: siteLongitude,
+          label: "Site (Fallback)",
+        };
+      }
+
+      return null;
+    },
+    [normalizeCoordinate]
+  );
+
+  const handleOpenMapPopup = React.useCallback((transaction) => {
+    setMapTransaction(transaction);
+    setMapPopupVisible(true);
+  }, []);
+
+  const handleCloseMapPopup = React.useCallback(() => {
+    setMapPopupVisible(false);
+    setMapTransaction(null);
+  }, []);
+
+  const mapLocation = resolveFuelingLocation(mapTransaction);
+  const mapUrl = mapLocation
+    ? `https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}&z=16&output=embed`
+    : null;
+
   return (
     <div className="pump-transaction-manager">
       {/* Header with summary information */}
@@ -90,6 +146,8 @@ const PumpTransactionManager = () => {
         isGroupsExpanded={isGroupsExpanded}
         onToolbarPreparing={onToolbarPreparing}
         groupCellRenderDate={groupCellRenderDate}
+        onOpenMapPopup={handleOpenMapPopup}
+        resolveFuelingLocation={resolveFuelingLocation}
       />
 
       {/* Grouping Controls Panel */}
@@ -101,6 +159,36 @@ const PumpTransactionManager = () => {
         onClearGrouping={handleClearGrouping}
         onToggleExpandGroups={handleToggleExpandGroups}
       />
+
+      <Popup
+        visible={mapPopupVisible}
+        onHiding={handleCloseMapPopup}
+        title="Fueling Location"
+        showCloseButton={true}
+        width={720}
+        height={520}
+      >
+        <div className="pump-transaction-map-popup">
+          {mapLocation ? (
+            <>
+              <div className="tw-mb-2 tw-text-sm tw-text-gray-700">
+                {mapLocation.label} • {mapLocation.lat.toFixed(6)}, {mapLocation.lng.toFixed(6)}
+              </div>
+              <iframe
+                title="Fueling Location Map"
+                className="pump-transaction-map-frame"
+                src={mapUrl}
+                loading="lazy"
+                allowFullScreen
+              />
+            </>
+          ) : (
+            <div className="tw-text-sm tw-text-gray-500">
+              No fueling location available for this transaction.
+            </div>
+          )}
+        </div>
+      </Popup>
     </div>
   );
 };
@@ -413,6 +501,8 @@ const TransactionDataGrid = ({
   isGroupsExpanded,
   onToolbarPreparing,
   groupCellRenderDate,
+  onOpenMapPopup,
+  resolveFuelingLocation,
 }) => (
   <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
     <DataGrid
@@ -500,6 +590,26 @@ const TransactionDataGrid = ({
         caption="Site"
         width={150}
         allowGrouping={true}
+      />
+      <Column
+        caption="Map"
+        width={90}
+        allowSorting={false}
+        allowFiltering={false}
+        cellRender={(data) => {
+          const location = resolveFuelingLocation(data.data);
+          if (!location) {
+            return <span className="tw-text-xs tw-text-gray-400">N/A</span>;
+          }
+          return (
+            <Button
+              text="Map"
+              icon="fa-light fa-map-location-dot"
+              stylingMode="text"
+              onClick={() => onOpenMapPopup(data.data)}
+            />
+          );
+        }}
       />
       <Column
         dataField="vehicleName"
