@@ -259,10 +259,31 @@ namespace FMS.PTS.WindowsService.Services.Pump
                     _logger.LogInformation("Successfully authorized pump {Pump} on device {DeviceId}. PTS assigned transaction ID: {Transaction}",
                         pump, pTSDeviceId, transaction);
 
+                    // Extract optional nozzle and fuel grade from response
+                    int? nozzle = null;
+                    int? fuelGradeId = null;
+
+                    if (responseData.TryGetValue("Nozzle", out var nozzleToken) && nozzleToken.Type == JTokenType.Integer)
+                    {
+                        nozzle = nozzleToken.Value<int>();
+                        if (nozzle == 0) nozzle = null; // Treat 0 as not set
+                    }
+
+                    if (responseData.TryGetValue("FuelGradeId", out var fuelGradeToken) && fuelGradeToken.Type == JTokenType.Integer)
+                    {
+                        fuelGradeId = fuelGradeToken.Value<int>();
+                        if (fuelGradeId == 0) fuelGradeId = null; // Treat 0 as not set
+                    }
+
+                    _logger.LogDebug("Pump authorization response details - Pump: {Pump}, Transaction: {Transaction}, Nozzle: {Nozzle}, FuelGradeId: {FuelGradeId}",
+                        pump, transaction, nozzle, fuelGradeId);
+
                     return new PumpAuthorizeConfirmation
                     {
                         Pump = pump,
-                        Transaction = transaction
+                        Transaction = transaction,
+                        Nozzle = nozzle,
+                        FuelGradeId = fuelGradeId
                     };
 
                 }

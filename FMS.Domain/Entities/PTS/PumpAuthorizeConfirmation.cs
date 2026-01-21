@@ -11,5 +11,15 @@ namespace FMS.Domain.Entities.PTS
         public int Pump { get; set; }
         public int Transaction { get; set; }
 
+        /// <summary>
+        /// The nozzle that was selected by the PTS device.
+        /// This may be set by the device when authorizing by FuelGradeId instead of explicit Nozzle.
+        /// </summary>
+        public int? Nozzle { get; set; }
+
+        /// <summary>
+        /// The fuel grade ID selected for this authorization.
+        /// </summary>
+        public int? FuelGradeId { get; set; }
     }
 }

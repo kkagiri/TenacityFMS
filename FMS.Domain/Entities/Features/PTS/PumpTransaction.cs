@@ -86,6 +86,23 @@ public partial class Pumptransaction
     public decimal? Odometer { get; set; }
 
     /// <summary>
+    /// Mobile app GPS latitude at time of fueling authorization.
+    /// Captured from mobile device during pump authorization.
+    /// </summary>
+    public decimal? MobileLatitude { get; set; }
+
+    /// <summary>
+    /// Mobile app GPS longitude at time of fueling authorization.
+    /// Captured from mobile device during pump authorization.
+    /// </summary>
+    public decimal? MobileLongitude { get; set; }
+
+    /// <summary>
+    /// Mobile app GPS accuracy in meters at time of fueling.
+    /// </summary>
+    public decimal? MobileAccuracy { get; set; }
+
+    /// <summary>
     /// Indicates whether this transaction has been processed by business logic
     /// </summary>
     public bool HasBeenProcessed { get; set; } = false; //Cursor

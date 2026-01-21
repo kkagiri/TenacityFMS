@@ -49,15 +49,18 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
         {
             try
             {
+                _logger.LogInformation("[PumpTxIntegration] 🔄 Processing pump transaction - TankId: {TankId}, TransactionId: {TransactionId}, Volume: {Volume}L, Timestamp: {Timestamp}",
+                    tankId, pumpTransactionId, volume, timestamp);
+
                 if (tankId <= 0)
                 {
-                    _logger.LogWarning("Cannot create tank volume history for pump transaction - invalid tank ID: {TankId}", tankId);
+                    _logger.LogWarning("[PumpTxIntegration] ❌ Invalid tank ID: {TankId} - Cannot create TankVolumeHistory", tankId);
                     return new FMSResponseMessage(false, "Invalid tank ID specified");
                 }
 
                 if (volume <= 0)
                 {
-                    _logger.LogWarning("Cannot create tank volume history for pump transaction - volume must be positive: {Volume}", volume);
+                    _logger.LogWarning("[PumpTxIntegration] ❌ Invalid volume: {Volume} - Cannot create TankVolumeHistory (volume must be positive)", volume);
                     return new FMSResponseMessage(false, "Transaction volume must be positive");
                 }
 
@@ -65,17 +68,24 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 var tank = await _context.Tanks.FindAsync(new object[] { tankId }, cancellationToken);
                 if (tank == null)
                 {
+                    _logger.LogError("[PumpTxIntegration] ❌ Tank not found: {TankId} - Cannot create TankVolumeHistory", tankId);
                     return new FMSResponseMessage(false, $"Tank with ID {tankId} not found");
                 }
+
+                _logger.LogInformation("[PumpTxIntegration] ✅ Tank found: {TankName} (ID: {TankId}), CurrentStock: {CurrentStock}L, UseBookKeeping: {UseBookKeeping}",
+                    tank.Name, tankId, tank.CurrentStock, tank.UseBookKeeping);
 
                 // Check if we should create ledger entries based on configuration
                 var shouldCreateLedger = await _systemConfigService.GetPtsAutoCreateLedgerEntriesAsync(cancellationToken);
                 if (!shouldCreateLedger)
                 {
-                    _logger.LogInformation("Skipping ledger entry creation for pump transaction {TransactionId} based on configuration",
+                    _logger.LogInformation("[PumpTxIntegration] ⏭️ Skipping ledger entry creation for pump transaction {TransactionId} based on PTS.AutoCreateLedgerEntries=false configuration",
                         pumpTransactionId);
                     return new FMSResponseMessage(true, "Ledger entry creation skipped based on configuration");
                 }
+
+                _logger.LogInformation("[PumpTxIntegration] 📤 Calling TankVolumeHistoryService.ProcessChangeAsync - TankId: {TankId}, VolumeChange: -{Volume}L, Reason: AutomatedDispensing, ReferenceId: {ReferenceId}",
+                    tankId, volume, pumpTransactionId);
 
                 // Record in tank volume history with a negative volume change (fuel being dispensed)
                 var result = await _tankVolumeHistoryService.ProcessChangeAsync(
@@ -91,8 +101,8 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
 
                 if (result.Success)
                 {
-                    _logger.LogInformation("Successfully recorded pump transaction {TransactionId} in tank {TankId} volume history",
-                        pumpTransactionId, tankId);
+                    _logger.LogInformation("[PumpTxIntegration] ✅ SUCCESS - Pump transaction {TransactionId} recorded in tank {TankId} volume history with volume -{Volume}L",
+                        pumpTransactionId, tankId, volume);
 
                     // Update tank current volume if configured to do so from book keeping
                     if (await _systemConfigService.GetPtsUpdateTankVolumeFromBookKeepingAsync(cancellationToken))
@@ -104,7 +114,8 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to record pump transaction {TransactionId} in tank {TankId} volume history: {Message}",
+                    _logger.LogError("[PumpTxIntegration] ❌ FAILED - Could not record pump transaction {TransactionId} in tank {TankId} volume history. Reason: {Message}. " +
+                        "This transaction will NOT appear in the tank ledger! Check if the tank has sufficient stock or opening stock.",
                         pumpTransactionId, tankId, result.Message);
                 }
 
@@ -112,7 +123,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing pump transaction {TransactionId} for tank volume history", pumpTransactionId);
+                _logger.LogError(ex, "[PumpTxIntegration] ❌ EXCEPTION processing pump transaction {TransactionId} for tank volume history", pumpTransactionId);
                 return new FMSResponseMessage(false, $"Error processing transaction: {ex.Message}");
             }
         }

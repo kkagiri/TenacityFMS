@@ -72,6 +72,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         // For opening/closing stock, use the physical stock value directly as the new volume
                         // For other operations, calculate new volume from previous volume + change
                         decimal newVolume;
+                        decimal previousVolume = 0m;
                         if ((request.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
                              request.ChangeReason == VolumeChangeReasonEnum.ClosingStock) &&
                             request.NewPhysicalStockValue.HasValue)
@@ -82,20 +83,29 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         else
                         {
                             // Calculate the new volume based on previous volume + volume change
-                            decimal previousVolume = await GetPreviousVolumeAsync(request.TankId, request.Timestamp, cancellationToken);
+                            previousVolume = await GetPreviousVolumeAsync(request.TankId, request.Timestamp, cancellationToken);
                             newVolume = previousVolume + request.VolumeChange;
+
+                            // **DIAGNOSTIC LOGGING** for automated dispensing
+                            if (request.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing)
+                            {
+                                _logger.LogInformation("[TankStockChange] 📊 DISPENSING CALCULATION - Tank {TankId}: PreviousVolume={PreviousVolume:F2}L + VolumeChange={VolumeChange:F2}L = NewVolume={NewVolume:F2}L, ReferenceId={ReferenceId}, ReferenceType={ReferenceType}",
+                                    request.TankId, previousVolume, request.VolumeChange, newVolume, request.ReferenceId, request.ReferenceType);
+                            }
                         }
 
                         // CRITICAL VALIDATION: Prevent negative stock
                         // Tank volume can never go below zero - this would indicate data corruption or invalid operation
                         if (newVolume < 0)
                         {
-                            _logger.LogWarning(
-                                "NEGATIVE STOCK PREVENTED: Tank {TankId}, Operation: {ChangeReason}, " +
+                            _logger.LogError(
+                                "[TankStockChange] ❌ NEGATIVE STOCK PREVENTED: Tank {TankId}, Operation: {ChangeReason}, " +
                                 "Previous Volume: {PreviousVolume:F2}L, Volume Change: {VolumeChange:F2}L, " +
-                                "Would Result In: {NewVolume:F2}L",
+                                "Would Result In: {NewVolume:F2}L. ReferenceId: {ReferenceId}, ReferenceType: {ReferenceType}. " +
+                                "This usually means the tank has no opening stock for today or stock levels are not synchronized!",
                                 request.TankId, request.ChangeReason,
-                                newVolume - request.VolumeChange, request.VolumeChange, newVolume);
+                                previousVolume, request.VolumeChange, newVolume,
+                                request.ReferenceId, request.ReferenceType);
 
                             return new FMSResponseMessage(false,
                                 $"Operation would result in negative tank stock ({newVolume:F2}L). " +
@@ -122,7 +132,10 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         // Update tank properties for all operations when physical stock value is provided
                         if (request.NewPhysicalStockValue.HasValue)
                         {
-                            var isCurrentDay = request.Timestamp.Date == DateTime.Now.Date;
+                            // FIX: Use both UTC and local date comparison to handle timezone differences
+                            var isCurrentDayUtc = request.Timestamp.Date == DateTime.UtcNow.Date;
+                            var isCurrentDayLocal = request.Timestamp.Date == DateTime.Now.Date;
+                            var isCurrentDay = isCurrentDayUtc || isCurrentDayLocal;
 
                             // Update physical stock value for any operation type
                             tank.PhysicalStockValue = request.NewPhysicalStockValue.Value;
@@ -143,17 +156,17 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                                     // For other operations (delivery, fuel refill, transfer), apply the change to current stock
                                     tank.CurrentStock = (tank.CurrentStock ?? 0) + request.VolumeChange;
                                 }
-                                tank.LastStockUpdate = DateTime.Now;
+                                tank.LastStockUpdate = DateTime.UtcNow;
                             }
 
                             _context.Tanks.Update(tank);
                         }
                         // Handle cases where no physical stock is provided but we still need to update book balance
-                        else if (request.Timestamp.Date == DateTime.Now.Date && tank.UseBookKeeping == 1)
+                        else if ((request.Timestamp.Date == DateTime.UtcNow.Date || request.Timestamp.Date == DateTime.Now.Date) && tank.UseBookKeeping == 1)
                         {
                             // Only update book balance for current day operations when no physical stock is specified
                             tank.CurrentStock = (tank.CurrentStock ?? 0) + request.VolumeChange;
-                            tank.LastStockUpdate = DateTime.Now;
+                            tank.LastStockUpdate = DateTime.UtcNow;
                             _context.Tanks.Update(tank);
                         }
 
@@ -261,14 +274,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 {
                     var tank = await _context.Tanks
                         .Where(t => t.Id == tankId)
-                        .Select(t => t.CurrentStock)
+                        .Select(t => new { t.CurrentStock, t.Name })
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    return tank ?? 0m;
+                    var currentStock = tank?.CurrentStock ?? 0m;
+
+                    // **DIAGNOSTIC WARNING** - No volume history means no opening stock
+                    _logger.LogWarning("[GetPreviousVolume] ⚠️ NO VOLUME HISTORY - Tank {TankId} ({TankName}) has no TankVolumeHistory records before {BeforeTimestamp}. " +
+                        "Falling back to Tank.CurrentStock: {CurrentStock}L. If this is 0, automated dispensing will fail!",
+                        tankId, tank?.Name ?? "Unknown", beforeTimestamp, currentStock);
+
+                    return currentStock;
                 }
 
                 // Get the LAST transaction (most recent before this timestamp)
                 var lastTransaction = allPreviousTransactions.Last();
+
+                _logger.LogDebug("[GetPreviousVolume] Tank {TankId}: Found {Count} history records, last volume: {LastVolume}L from {LastTimestamp}",
+                    tankId, allPreviousTransactions.Count, lastTransaction.NewVolume, lastTransaction.Timestamp);
 
                 // Validate the transaction sequence to detect any corruption
                 if (!ValidateTransactionSequence(allPreviousTransactions))

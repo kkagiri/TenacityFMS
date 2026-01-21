@@ -163,16 +163,32 @@ const PumpTransactionManager = () => {
       <Popup
         visible={mapPopupVisible}
         onHiding={handleCloseMapPopup}
-        title="Fueling Location"
+        title={`Fueling Location${mapTransaction?.vehicleName ? ` - ${mapTransaction.vehicleName}` : ''}`}
         showCloseButton={true}
-        width={720}
-        height={520}
+        width="80vw"
+        height="80vh"
+        maxWidth={1200}
+        maxHeight={800}
+        dragEnabled={true}
+        resizeEnabled={true}
       >
         <div className="pump-transaction-map-popup">
           {mapLocation ? (
             <>
-              <div className="tw-mb-2 tw-text-sm tw-text-gray-700">
-                {mapLocation.label} • {mapLocation.lat.toFixed(6)}, {mapLocation.lng.toFixed(6)}
+              <div className="tw-mb-3 tw-text-sm tw-text-gray-700 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
+                <span>
+                  <i className={`fa-light ${mapLocation.label.includes('Mobile') ? 'fa-mobile' : 'fa-location-dot'} tw-mr-2`}></i>
+                  {mapLocation.label} • {mapLocation.lat.toFixed(6)}, {mapLocation.lng.toFixed(6)}
+                </span>
+                <a
+                  href={`https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-xs"
+                >
+                  <i className="fa-light fa-external-link tw-mr-1"></i>
+                  Open in Google Maps
+                </a>
               </div>
               <iframe
                 title="Fueling Location Map"
@@ -180,11 +196,14 @@ const PumpTransactionManager = () => {
                 src={mapUrl}
                 loading="lazy"
                 allowFullScreen
+                style={{ minHeight: '400px' }}
               />
             </>
           ) : (
-            <div className="tw-text-sm tw-text-gray-500">
-              No fueling location available for this transaction.
+            <div className="tw-text-sm tw-text-gray-500 tw-p-4 tw-text-center">
+              <i className="fa-light fa-map-location-slash tw-text-4xl tw-mb-3 tw-text-gray-400"></i>
+              <p>No fueling location available for this transaction.</p>
+              <p className="tw-text-xs tw-mt-2">Location data is captured when fueling is authorized from the mobile app.</p>
             </div>
           )}
         </div>

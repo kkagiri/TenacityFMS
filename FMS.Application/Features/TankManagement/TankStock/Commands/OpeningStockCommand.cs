@@ -60,7 +60,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         "and enter a small minimum value or contact system administrator.");
                 }
 
-                var entryDate = request.EntryDate?.Date ?? DateTime.Now.Date;
+                // FIX: Use UTC consistently (ClosingStockCommand uses UtcNow, so OpeningStock should too)
+                var entryDate = request.EntryDate?.Date ?? DateTime.UtcNow.Date;
 
                 // Validate historical entry against future records policy
                 if (entryDate.Date < DateTime.Now.Date)

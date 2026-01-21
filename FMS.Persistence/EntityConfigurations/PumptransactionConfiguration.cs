@@ -72,6 +72,22 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue(false)
                     .HasComment("Indicates whether this transaction has been processed by business logic");
 
+                // Mobile location fields for fueling location tracking
+                builder.Property(e => e.MobileLatitude)
+                    .HasPrecision(10, 7)
+                    .HasComment("Mobile app GPS latitude at time of fueling authorization");
+                builder.Property(e => e.MobileLongitude)
+                    .HasPrecision(10, 7)
+                    .HasComment("Mobile app GPS longitude at time of fueling authorization");
+                builder.Property(e => e.MobileAccuracy)
+                    .HasPrecision(10, 2)
+                    .HasComment("Mobile app GPS accuracy in meters at time of fueling");
+
+                // Odometer field
+                builder.Property(e => e.Odometer)
+                    .HasPrecision(12, 2)
+                    .HasComment("Vehicle odometer reading at time of fueling");
+
                 // Relationships
                 builder.HasOne(d => d.Pts).WithMany(p => p.Pumptransactions)
                     .HasForeignKey(d => d.PtsId)

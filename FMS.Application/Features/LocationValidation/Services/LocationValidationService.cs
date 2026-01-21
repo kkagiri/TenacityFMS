@@ -181,6 +181,15 @@ public partial class LocationValidationService : ILocationValidationService
             {
                 _logger.LogDebug("Location validation not enabled for PTS {PtsId}", ptsDevice.Ptsid);
                 result = LocationValidationResult.Skipped("Location validation not enabled for this device");
+
+                // ENHANCEMENT: Even when validation is skipped, log the mobile location for tracking purposes
+                // This ensures we capture fueling location even for devices without strict validation
+                if (request.MobileAppLocation != null)
+                {
+                    _logger.LogDebug("[LocationValidation] Logging mobile location for tracking (validation skipped) - PTS {PtsId}", ptsDevice.Ptsid);
+                    await LogValidationAuditAsync(request, result, ptsDevice.Ptsid, cancellationToken);
+                }
+
                 return result;
             }
 
@@ -1144,8 +1153,10 @@ public partial class LocationValidationService : ILocationValidationService
         {
             // Find the most recent LocationValidationLog for this context within the last 5 minutes
             // that doesn't already have a TransactionId
+            // ENHANCED: More flexible matching - if vehicleId is null, match any log for this PTS/Tank
             var cutoffTime = DateTime.UtcNow.AddMinutes(-5);
 
+            // First try exact match including VehicleId
             var logEntry = await _context.LocationValidationLogs
                 .Where(l => l.PtsId == ptsId &&
                             l.TankId == tankId &&
@@ -1154,6 +1165,25 @@ public partial class LocationValidationService : ILocationValidationService
                             l.TransactionId == null)
                 .OrderByDescending(l => l.ValidationTime)
                 .FirstOrDefaultAsync(cancellationToken);
+
+            // If no exact match and vehicleId was specified, try without vehicleId constraint
+            // This handles cases where location was validated before vehicle was selected
+            if (logEntry == null)
+            {
+                logEntry = await _context.LocationValidationLogs
+                    .Where(l => l.PtsId == ptsId &&
+                                l.TankId == tankId &&
+                                l.ValidationTime >= cutoffTime &&
+                                l.TransactionId == null)
+                    .OrderByDescending(l => l.ValidationTime)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (logEntry != null)
+                {
+                    _logger.LogDebug("Found LocationValidationLog by relaxed match (no vehicle constraint) for PTS {PtsId}, Tank {TankId}",
+                        ptsId, tankId);
+                }
+            }
 
             if (logEntry == null)
             {

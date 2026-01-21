@@ -147,23 +147,32 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     .Where(u => userIds.Contains(u.Id))
                     .ToDictionaryAsync(u => u.Id, u => u.UserName, cancellationToken);
 
-                // Fetch fueling location logs (mobile app location) by PTS transaction ID
-                var transactionNumbers = pumpTransactions
-                    .Where(pt => pt.Transaction.HasValue && pt.Transaction.Value > 0)
-                    .Select(pt => pt.Transaction!.Value)
+                // Fetch fueling location logs (mobile app location) by PTS ID and transaction ID
+                // CRITICAL FIX: TransactionId is only unique per device, so we need composite key (PtsId, TransactionId)
+                var transactionKeys = pumpTransactions
+                    .Where(pt => pt.Transaction.HasValue && pt.Transaction.Value > 0 && !string.IsNullOrEmpty(pt.PtsId))
+                    .Select(pt => new { pt.PtsId, TransactionId = pt.Transaction!.Value })
                     .Distinct()
                     .ToList();
 
-                Dictionary<int, LocationValidationLog> locationLogLookup = new();
-                if (transactionNumbers.Any())
+                var transactionNumbers = transactionKeys.Select(tk => tk.TransactionId).Distinct().ToList();
+                var ptsIds = transactionKeys.Select(tk => tk.PtsId).Distinct().ToList();
+
+                // Use composite key (PtsId, TransactionId) for lookup
+                Dictionary<(string PtsId, int TransactionId), LocationValidationLog> locationLogLookup = new();
+                if (transactionNumbers.Any() && ptsIds.Any())
                 {
                     var locationLogs = await _context.LocationValidationLogs
-                        .Where(log => log.TransactionId.HasValue && transactionNumbers.Contains(log.TransactionId.Value))
+                        .Where(log => log.TransactionId.HasValue &&
+                                      transactionNumbers.Contains(log.TransactionId.Value) &&
+                                      log.PtsId != null &&
+                                      ptsIds.Contains(log.PtsId))
                         .OrderByDescending(log => log.ValidationTime)
                         .ToListAsync(cancellationToken);
 
                     locationLogLookup = locationLogs
-                        .GroupBy(log => log.TransactionId!.Value)
+                        .Where(log => log.PtsId != null)
+                        .GroupBy(log => (log.PtsId!, log.TransactionId!.Value))
                         .ToDictionary(g => g.Key, g => g.OrderByDescending(x => x.ValidationTime).First());
                 }
 
@@ -218,18 +227,24 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                     }
 
                     // Resolve fueling location (mobile app) from LocationValidationLog if available
+                    // Use composite key (PtsId, TransactionId) for accurate lookup
                     LocationValidationLog? locationLog = null;
-                    if (pt.Transaction.HasValue && pt.Transaction.Value > 0)
+                    if (pt.Transaction.HasValue && pt.Transaction.Value > 0 && !string.IsNullOrEmpty(pt.PtsId))
                     {
-                        locationLogLookup.TryGetValue(pt.Transaction.Value, out locationLog);
+                        locationLogLookup.TryGetValue((pt.PtsId, pt.Transaction.Value), out locationLog);
                     }
 
-                    var fuelingLatitude = locationLog?.MobileLatitude;
-                    var fuelingLongitude = locationLog?.MobileLongitude;
-                    var fuelingAccuracy = locationLog?.MobileAccuracy;
-                    var fuelingLocationSource = fuelingLatitude.HasValue && fuelingLongitude.HasValue
-                        ? "MobileApp"
-                        : null;
+                    // Fueling location priority:
+                    // 1. LocationValidationLog (most reliable - from location validation)
+                    // 2. Pumptransaction.MobileLatitude/Longitude (fallback - stored directly from authorization context)
+                    var fuelingLatitude = locationLog?.MobileLatitude ?? pt.MobileLatitude;
+                    var fuelingLongitude = locationLog?.MobileLongitude ?? pt.MobileLongitude;
+                    var fuelingAccuracy = locationLog?.MobileAccuracy ?? pt.MobileAccuracy;
+                    string? fuelingLocationSource = null;
+                    if (fuelingLatitude.HasValue && fuelingLongitude.HasValue)
+                    {
+                        fuelingLocationSource = locationLog != null ? "LocationValidationLog" : "PumpTransaction";
+                    }
 
                     // Calculate previous odometer and consumption
                     // Priority: 1) FuelRefill.PreviousMeterReading (if explicitly set)

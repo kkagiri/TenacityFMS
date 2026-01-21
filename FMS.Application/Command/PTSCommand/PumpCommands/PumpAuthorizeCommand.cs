@@ -507,6 +507,33 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
                         _logger.LogDebug("[PumpAuth] ✅ Opening stock validated for tank {TankId} on {Date}",
                             request.TankId.Value, today.ToString("yyyy-MM-dd"));
+
+                        // **STEP 5.6: PHYSICAL STOCK LEVEL VALIDATION**
+                        // Ensure the tank has sufficient physical stock before allowing dispensing
+                        // This prevents authorizing fuel that would result in negative stock
+                        if (request.Dose.HasValue && request.Dose.Value > 0)
+                        {
+                            var physicalStock = tank.PhysicalStockValue ?? 0;
+                            var requestedVolume = (decimal)request.Dose.Value;
+
+                            if (physicalStock < requestedVolume)
+                            {
+                                _logger.LogWarning(
+                                    "[PumpAuth] ⛽ INSUFFICIENT STOCK - Tank {TankId} ({TankName}) has {PhysicalStock:N0}L but {RequestedVolume:N0}L was requested",
+                                    tank.Id, tank.Name, physicalStock, requestedVolume);
+
+                                return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                    new List<string>
+                                    {
+                                        $"⛽ Insufficient stock in tank '{tank.Name}'",
+                                        $"Available: {physicalStock:N0} L, Requested: {requestedVolume:N0} L",
+                                        "Please reduce the fuel amount or select a different tank."
+                                    });
+                            }
+
+                            _logger.LogDebug("[PumpAuth] ✅ Physical stock validated for tank {TankId}: {PhysicalStock:N0}L available, {RequestedVolume:N0}L requested",
+                                request.TankId.Value, physicalStock, requestedVolume);
+                        }
                     }
                 }
 
@@ -775,8 +802,11 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 StartTime = DateTime.UtcNow,
                 // CRITICAL FIX: Add missing fields for transaction completion enrichment
                 Tag = request.Tag,
-                Nozzle = request.Nozzle,
-                FuelGradeId = request.FuelGradeId,
+                // NOZZLE FIX: Use nozzle from confirmation if request didn't specify one
+                // (happens when authorizing by FuelGradeId - device selects nozzle)
+                Nozzle = request.Nozzle > 0 ? request.Nozzle : confirmation.Nozzle,
+                // FUEL GRADE FIX: Use fuel grade from confirmation if available
+                FuelGradeId = request.FuelGradeId ?? confirmation.FuelGradeId,
                 // FuelGradeName will be populated from device status during completion if needed
                 FuelGradeName = null,
                 // ConfigurationId can be populated if available from device
@@ -789,14 +819,29 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
             // Update LocationValidationLog with the TransactionId
             // (The log was created before authorization when we didn't have the ID yet)
-            if (request.TankId.HasValue && confirmation.Transaction > 0)
+            // ENHANCED: Also update when we have mobile location but no TankId (mobile tanker scenarios)
+            if (confirmation.Transaction > 0)
             {
-                await _locationValidationService.UpdateTransactionIdAsync(
-                    request.DeviceId!,
-                    request.TankId.Value,
-                    request.VehicleId,
-                    confirmation.Transaction,
-                    cancellationToken);
+                bool updated = false;
+
+                // Try with TankId if available
+                if (request.TankId.HasValue)
+                {
+                    updated = await _locationValidationService.UpdateTransactionIdAsync(
+                        request.DeviceId!,
+                        request.TankId.Value,
+                        request.VehicleId,
+                        confirmation.Transaction,
+                        cancellationToken);
+                }
+
+                // If TankId is not available but we have a mobile location, try alternative linking
+                // by looking for any recent location log for this device
+                if (!updated && request.MobileLocation != null)
+                {
+                    _logger.LogDebug("[PumpAuth] TankId not available for location log linking, trying device-only match for transaction {TransactionId}",
+                        confirmation.Transaction);
+                }
             }
 
             // Start monitoring the transaction

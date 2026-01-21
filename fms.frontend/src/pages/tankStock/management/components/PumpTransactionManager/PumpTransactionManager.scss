@@ -171,11 +171,13 @@
   }
 
   .pump-transaction-map-popup {
-    @apply tw-h-full tw-flex tw-flex-col;
+    @apply tw-h-full tw-flex tw-flex-col tw-p-2;
+    min-height: 400px;
   }
 
   .pump-transaction-map-frame {
     @apply tw-flex-1 tw-w-full tw-border tw-border-gray-200 tw-rounded-md;
+    min-height: 350px;
   }
 }
 

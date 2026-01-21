@@ -7,6 +7,8 @@
 - Look in the feature/pages/service folders for similar functionality
 - If functionality exists, reference or extend it - DO NOT rewrite it
 - Search the codebase before creating new files, functions, or features
+
+-Dates notes- backend dates are saved in UTC. Frontend displays in local timezone in all cases.
 - **Rule**: If the code exists, USE IT - don't duplicate it
 
 ### 2. **Documentation Protocol - STRICTLY ENFORCED**
