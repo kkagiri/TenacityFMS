@@ -88,7 +88,7 @@ android {
         applicationId "com.Hyoung"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 115
+        versionCode 116
         versionName "1.2.7"
 
         // Fix for react-native-camera flavor selection
