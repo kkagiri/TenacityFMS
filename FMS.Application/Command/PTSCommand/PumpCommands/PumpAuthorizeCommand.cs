@@ -201,7 +201,47 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 var isLocationValidationEnabled = !string.Equals(
                     globalLocationValidationEnabled, "false", StringComparison.OrdinalIgnoreCase);
 
-                if (isLocationValidationEnabled)
+                // **STEP 2.3: CHECK USER BYPASS BEFORE LOCATION VALIDATION**
+                // If user has BypassLocationValidation enabled, skip all location-related checks
+                bool userHasLocationBypass = false;
+                if (!string.IsNullOrEmpty(request.UserId))
+                {
+                    var user = await _context.Users
+                        .AsNoTracking()
+                        .Where(u => u.Id == request.UserId)
+                        .Select(u => new { u.BypassLocationValidation })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    userHasLocationBypass = user?.BypassLocationValidation == true;
+
+                    if (userHasLocationBypass)
+                    {
+                        _logger.LogInformation("[PumpAuth] User {UserId} has BypassLocationValidation enabled - skipping all location checks", request.UserId);
+                    }
+                }
+
+                // Also check device-level bypass
+                bool deviceHasLocationBypass = false;
+                if (!string.IsNullOrEmpty(request.DeviceId))
+                {
+                    var ptsDeviceBypass = await _context.Ptsdevices
+                        .AsNoTracking()
+                        .Where(d => d.Ptsid == request.DeviceId)
+                        .Select(d => new { d.BypassOnGpsFailure })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    deviceHasLocationBypass = ptsDeviceBypass?.BypassOnGpsFailure == 1;
+
+                    if (deviceHasLocationBypass)
+                    {
+                        _logger.LogInformation("[PumpAuth] Device {DeviceId} has BypassOnGPSFailure enabled - location validation will be relaxed", request.DeviceId);
+                    }
+                }
+
+                // Skip location validation if user has bypass OR if location validation is globally disabled
+                bool skipLocationValidation = userHasLocationBypass || !isLocationValidationEnabled;
+
+                if (isLocationValidationEnabled && !skipLocationValidation)
                 {
                     // **STEP 2.5: MOBILE LOCATION VALIDATION**
                     // Validate mobile location based on configurable settings
@@ -409,7 +449,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         }
                     }
                 }
-                else
+
+                if (userHasLocationBypass)
+                {
+                    _logger.LogInformation("[PumpAuth] User has BypassLocationValidation enabled - all location checks were skipped");
+                }
+                else if (!isLocationValidationEnabled)
                 {
                     _logger.LogInformation("[PumpAuth] Global location validation is disabled - skipping mobile/location/geofence checks");
                 }
