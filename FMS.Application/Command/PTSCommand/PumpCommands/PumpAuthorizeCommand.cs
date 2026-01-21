@@ -227,10 +227,10 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     var ptsDeviceBypass = await _context.Ptsdevices
                         .AsNoTracking()
                         .Where(d => d.Ptsid == request.DeviceId)
-                        .Select(d => new { d.BypassOnGpsFailure })
+                        .Select(d => new { d.BypassOnGPSFailure })
                         .FirstOrDefaultAsync(cancellationToken);
 
-                    deviceHasLocationBypass = ptsDeviceBypass?.BypassOnGpsFailure == 1;
+                    deviceHasLocationBypass = ptsDeviceBypass?.BypassOnGPSFailure == 1;
 
                     if (deviceHasLocationBypass)
                     {
