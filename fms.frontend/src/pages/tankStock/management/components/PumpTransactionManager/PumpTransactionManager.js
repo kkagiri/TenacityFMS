@@ -2,7 +2,13 @@
  * File: PumpTransactionManager.js
  * Purpose: UI component for pump transaction management
  * Dependencies: react, devextreme-react, usePumpTransactionManager hook
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-01-22
+ * 
+ * Fix: DOM removeChild error when clicking map buttons
+ * - Added transition state to prevent rapid popup opening/closing
+ * - Delayed iframe unmounting to allow popup animation to complete
+ * - Added unique key to iframe for proper React reconciliation
+ * - Disabled map buttons during transitions
  */
 import React from "react";
 import DataGrid, {
