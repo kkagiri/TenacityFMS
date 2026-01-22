@@ -2,7 +2,13 @@
  * File: PumpTransactionManager.js
  * Purpose: UI component for pump transaction management
  * Dependencies: react, devextreme-react, usePumpTransactionManager hook
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-01-22
+ * 
+ * Fix: DOM removeChild error when clicking map buttons
+ * - Added transition state to prevent rapid popup opening/closing
+ * - Delayed iframe unmounting to allow popup animation to complete
+ * - Added unique key to iframe for proper React reconciliation
+ * - Disabled map buttons during transitions
  */
 import React from "react";
 import DataGrid, {
@@ -58,6 +64,8 @@ const PumpTransactionManager = () => {
 
   const [mapPopupVisible, setMapPopupVisible] = React.useState(false);
   const [mapTransaction, setMapTransaction] = React.useState(null);
+  const [mapPopupTransitioning, setMapPopupTransitioning] = React.useState(false);
+  const mapCleanupTimeoutRef = React.useRef(null);
 
   const normalizeCoordinate = React.useCallback((value) => {
     if (value === null || value === undefined) return null;
@@ -97,13 +105,52 @@ const PumpTransactionManager = () => {
   );
 
   const handleOpenMapPopup = React.useCallback((transaction) => {
+    // Prevent opening if already transitioning
+    if (mapPopupTransitioning) {
+      return;
+    }
+    
+    // Clear any pending cleanup timeout
+    if (mapCleanupTimeoutRef.current) {
+      clearTimeout(mapCleanupTimeoutRef.current);
+      mapCleanupTimeoutRef.current = null;
+    }
+    
+    setMapPopupTransitioning(true);
     setMapTransaction(transaction);
     setMapPopupVisible(true);
-  }, []);
+    
+    // Reset transitioning flag after popup is shown
+    setTimeout(() => {
+      setMapPopupTransitioning(false);
+    }, 300);
+  }, [mapPopupTransitioning]);
 
   const handleCloseMapPopup = React.useCallback(() => {
+    // Prevent closing if already transitioning
+    if (mapPopupTransitioning) {
+      return;
+    }
+    
+    setMapPopupTransitioning(true);
     setMapPopupVisible(false);
-    setMapTransaction(null);
+    
+    // Delay clearing mapTransaction to allow popup animation to complete
+    // This prevents React from trying to unmount iframe during animation
+    mapCleanupTimeoutRef.current = setTimeout(() => {
+      setMapTransaction(null);
+      mapCleanupTimeoutRef.current = null;
+      setMapPopupTransitioning(false);
+    }, 300); // Match DevExtreme popup animation duration
+  }, [mapPopupTransitioning]);
+
+  // Cleanup effect for component unmount
+  React.useEffect(() => {
+    return () => {
+      if (mapCleanupTimeoutRef.current) {
+        clearTimeout(mapCleanupTimeoutRef.current);
+      }
+    };
   }, []);
 
   const mapLocation = resolveFuelingLocation(mapTransaction);
@@ -148,6 +195,7 @@ const PumpTransactionManager = () => {
         groupCellRenderDate={groupCellRenderDate}
         onOpenMapPopup={handleOpenMapPopup}
         resolveFuelingLocation={resolveFuelingLocation}
+        mapPopupTransitioning={mapPopupTransitioning}
       />
 
       {/* Grouping Controls Panel */}
@@ -173,7 +221,7 @@ const PumpTransactionManager = () => {
         resizeEnabled={true}
       >
         <div className="pump-transaction-map-popup">
-          {mapLocation ? (
+          {mapLocation && mapPopupVisible ? (
             <>
               <div className="tw-mb-3 tw-text-sm tw-text-gray-700 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
                 <span>
@@ -191,6 +239,7 @@ const PumpTransactionManager = () => {
                 </a>
               </div>
               <iframe
+                key={`map-${mapTransaction?.id || 'default'}`}
                 title="Fueling Location Map"
                 className="pump-transaction-map-frame"
                 src={mapUrl}
@@ -522,6 +571,7 @@ const TransactionDataGrid = ({
   groupCellRenderDate,
   onOpenMapPopup,
   resolveFuelingLocation,
+  mapPopupTransitioning,
 }) => (
   <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
     <DataGrid
@@ -626,6 +676,7 @@ const TransactionDataGrid = ({
               icon="fa-light fa-map-location-dot"
               stylingMode="text"
               onClick={() => onOpenMapPopup(data.data)}
+              disabled={mapPopupTransitioning}
             />
           );
         }}
