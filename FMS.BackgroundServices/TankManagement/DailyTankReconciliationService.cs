@@ -135,6 +135,35 @@ namespace FMS.BackgroundServices.TankManagement
                         "Daily reconciliation completed: Processed {TanksCount} tanks, Found {DiscrepancyCount} discrepancies, Fixed {FixedCount} records",
                         tanksProcessed, totalDiscrepancies, totalFixed);
 
+                    // ========== NEW: Fix critically negative tanks ==========
+                    // This ensures Tank.CurrentStock is synced with latest volume history
+                    // Threshold: -1000L means any tank with CurrentStock below -1000L will be flagged and fixed
+                    try
+                    {
+                        _logger.LogInformation("Starting critically negative tank detection and fix...");
+
+                        var batchFixResult = await reconciliationService.FixCriticallyNegativeTanksAsync(
+                            threshold: -1000,  // Tanks below -1000L are considered critically negative
+                            fixedBy: "DAILY_RECONCILIATION_SERVICE",
+                            cancellationToken: default);
+
+                        if (batchFixResult.TotalCriticalTanks > 0)
+                        {
+                            _logger.LogWarning(
+                                "[DailyReconciliation] 🚨 CRITICAL: Found {Count} tanks with critically negative stock (below {Threshold}L). Fixed: {Fixed}",
+                                batchFixResult.TotalCriticalTanks, -1000, batchFixResult.TanksFixed);
+                        }
+                        else
+                        {
+                            _logger.LogInformation("[DailyReconciliation] ✅ No critically negative tanks detected");
+                        }
+                    }
+                    catch (Exception criticalEx)
+                    {
+                        _logger.LogError(criticalEx, "Error fixing critically negative tanks during daily reconciliation");
+                    }
+                    // ========== END NEW ==========
+
                     // Update DailyTankReconciliation table
                     await UpdateDailyReconciliationTableAsync(context, yesterday);
                 }

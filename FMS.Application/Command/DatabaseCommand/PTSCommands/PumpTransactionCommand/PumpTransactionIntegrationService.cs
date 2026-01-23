@@ -111,6 +111,30 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                         // when UpdateTankCurrentStock is true (which it is by default)
                         _logger.LogDebug("Tank current volume will be updated from book keeping for tank {TankId}", tankId);
                     }
+
+                    // ========== EARLY WARNING: Check if tank is becoming critically negative ==========
+                    // Re-fetch tank to get updated CurrentStock after the transaction was recorded
+                    await _context.Entry(tank).ReloadAsync(cancellationToken);
+                    var newCurrentStock = tank.CurrentStock ?? 0;
+
+                    const decimal WARNING_THRESHOLD = 0;      // Warn when stock goes below 0
+                    const decimal CRITICAL_THRESHOLD = -1000; // Critical when stock goes below -1000L
+
+                    if (newCurrentStock < CRITICAL_THRESHOLD)
+                    {
+                        _logger.LogError(
+                            "[PumpTxIntegration] 🚨 CRITICAL NEGATIVE STOCK ALERT: Tank {TankId} ({TankName}) CurrentStock is now {CurrentStock:N0}L " +
+                            "after transaction {TransactionId}. This indicates a data integrity issue requiring immediate reconciliation!",
+                            tankId, tank.Name, newCurrentStock, pumpTransactionId);
+                    }
+                    else if (newCurrentStock < WARNING_THRESHOLD)
+                    {
+                        _logger.LogWarning(
+                            "[PumpTxIntegration] ⚠️ NEGATIVE STOCK WARNING: Tank {TankId} ({TankName}) CurrentStock is now {CurrentStock:N0}L " +
+                            "after transaction {TransactionId}. Stock is below zero - check if opening stock was recorded.",
+                            tankId, tank.Name, newCurrentStock, pumpTransactionId);
+                    }
+                    // ========== END EARLY WARNING ==========
                 }
                 else
                 {

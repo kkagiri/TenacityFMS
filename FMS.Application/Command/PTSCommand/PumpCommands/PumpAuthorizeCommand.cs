@@ -511,9 +511,49 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         // **STEP 5.6: PHYSICAL STOCK LEVEL VALIDATION**
                         // Ensure the tank has sufficient physical stock before allowing dispensing
                         // This prevents authorizing fuel that would result in negative stock
+                        var physicalStock = tank.PhysicalStockValue ?? 0;
+                        var currentBookStock = tank.CurrentStock ?? 0;
+
+                        // **CRITICAL: Always check for negative or zero physical stock**
+                        // This prevents any dispensing when tank has no fuel, regardless of dose
+                        if (physicalStock <= 0)
+                        {
+                            _logger.LogError(
+                                "[PumpAuth] 🚫 NEGATIVE/ZERO PHYSICAL STOCK - Tank {TankId} ({TankName}) has PhysicalStock={PhysicalStock:N0}L, CurrentStock={CurrentStock:N0}L. Fueling blocked!",
+                                tank.Id, tank.Name, physicalStock, currentBookStock);
+
+                            return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                new List<string>
+                                {
+                                    $"🚫 Tank '{tank.Name}' has no fuel available",
+                                    $"Physical Stock: {physicalStock:N0} L, Book Stock: {currentBookStock:N0} L",
+                                    "Please record a delivery or stock adjustment before fueling can proceed.",
+                                    "Contact your supervisor if you believe this is an error."
+                                });
+                        }
+
+                        // **ALSO CHECK: Book stock should not be excessively negative**
+                        // This indicates data integrity issues that need manual resolution
+                        const decimal NEGATIVE_STOCK_THRESHOLD = -1000; // Flag if book stock is more than 1000L negative
+                        if (currentBookStock < NEGATIVE_STOCK_THRESHOLD)
+                        {
+                            _logger.LogError(
+                                "[PumpAuth] 🚫 BOOK STOCK CRITICALLY NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L (threshold: {Threshold:N0}L). Data reconciliation required!",
+                                tank.Id, tank.Name, currentBookStock, NEGATIVE_STOCK_THRESHOLD);
+
+                            return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                                new List<string>
+                                {
+                                    $"🚫 Tank '{tank.Name}' requires stock reconciliation",
+                                    $"Book Stock ({currentBookStock:N0} L) is critically out of sync",
+                                    "This usually means opening stocks were not properly recorded.",
+                                    "Please contact your supervisor to perform a stock adjustment."
+                                });
+                        }
+
+                        // If specific dose requested, validate against physical stock
                         if (request.Dose.HasValue && request.Dose.Value > 0)
                         {
-                            var physicalStock = tank.PhysicalStockValue ?? 0;
                             var requestedVolume = (decimal)request.Dose.Value;
 
                             if (physicalStock < requestedVolume)
@@ -533,6 +573,12 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
                             _logger.LogDebug("[PumpAuth] ✅ Physical stock validated for tank {TankId}: {PhysicalStock:N0}L available, {RequestedVolume:N0}L requested",
                                 request.TankId.Value, physicalStock, requestedVolume);
+                        }
+                        else
+                        {
+                            // Unlimited fueling - just log that physical stock is positive
+                            _logger.LogDebug("[PumpAuth] ✅ Physical stock available for unlimited fueling on tank {TankId}: {PhysicalStock:N0}L",
+                                request.TankId.Value, physicalStock);
                         }
                     }
                 }

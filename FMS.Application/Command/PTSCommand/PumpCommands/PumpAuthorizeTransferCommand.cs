@@ -188,6 +188,47 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
                 _logger.LogInformation("[TankTransferAuth] ✅ Opening stock validated for both tanks on {Date}", today.ToString("yyyy-MM-dd"));
 
+                // **STEP 2.6: VALIDATE PHYSICAL AND BOOK STOCK LEVELS**
+                // Prevent transfers when source tank has negative/zero physical stock or critically negative book stock
+                if (sourceTank != null)
+                {
+                    var sourcePhysicalStock = sourceTank.PhysicalStockValue ?? 0;
+                    var sourceCurrentStock = sourceTank.CurrentStock ?? 0;
+
+                    // Check for zero/negative physical stock
+                    if (sourcePhysicalStock <= 0)
+                    {
+                        _logger.LogError(
+                            "[TankTransferAuth] 🚫 SOURCE TANK EMPTY - Tank {TankId} ({TankName}) has PhysicalStock={PhysicalStock:N0}L, CurrentStock={CurrentStock:N0}L",
+                            sourceTank.Id, sourceTank.Name, sourcePhysicalStock, sourceCurrentStock);
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                $"🚫 Source tank '{sourceTank.Name}' has no fuel available",
+                                $"Physical Stock: {sourcePhysicalStock:N0} L, Book Stock: {sourceCurrentStock:N0} L",
+                                "Please record a delivery before transfer can proceed."
+                            });
+                    }
+
+                    // Check for critically negative book stock
+                    const decimal NEGATIVE_STOCK_THRESHOLD = -1000;
+                    if (sourceCurrentStock < NEGATIVE_STOCK_THRESHOLD)
+                    {
+                        _logger.LogError(
+                            "[TankTransferAuth] 🚫 SOURCE BOOK STOCK CRITICALLY NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L",
+                            sourceTank.Id, sourceTank.Name, sourceCurrentStock);
+
+                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
+                            new List<string>
+                            {
+                                $"🚫 Source tank '{sourceTank.Name}' requires stock reconciliation",
+                                $"Book Stock ({sourceCurrentStock:N0} L) is critically out of sync",
+                                "Please contact your supervisor to perform a stock adjustment."
+                            });
+                    }
+                }
+
                 // **STEP 3: CHECK FOR STUCK TRANSACTIONS**
                 _logger.LogInformation("[TankTransferAuth] **STEP 3** - Checking for stuck transactions");
 

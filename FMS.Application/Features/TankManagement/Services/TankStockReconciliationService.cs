@@ -384,6 +384,235 @@ namespace FMS.Application.Features.TankManagement.Services
 
             return results;
         }
+
+        /// <summary>
+        /// Detect tanks with critically negative CurrentStock values
+        /// These indicate data integrity issues that need immediate attention
+        /// </summary>
+        /// <param name="threshold">The negative threshold (e.g., -1000 means flag tanks with stock below -1000L)</param>
+        public async Task<List<CriticallyNegativeTankResult>> DetectCriticallyNegativeTanksAsync(
+            decimal threshold = -1000,
+            CancellationToken cancellationToken = default)
+        {
+            var results = new List<CriticallyNegativeTankResult>();
+
+            try
+            {
+                var criticalTanks = await _context.Tanks
+                    .Where(t => t.CurrentStock < threshold)
+                    .Include(t => t.Site)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var tank in criticalTanks)
+                {
+                    // Get the latest volume history to understand the discrepancy
+                    var latestHistory = await _context.TankVolumeHistories
+                        .Where(h => h.TankId == tank.Id && (h.IsDeleted == null || h.IsDeleted == false))
+                        .OrderByDescending(h => h.Timestamp)
+                        .ThenByDescending(h => h.Id)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    var result = new CriticallyNegativeTankResult
+                    {
+                        TankId = tank.Id,
+                        TankName = tank.Name ?? $"Tank {tank.Id}",
+                        SiteId = tank.SiteId,
+                        SiteName = tank.Site?.Name ?? "Unknown",
+                        CurrentStock = tank.CurrentStock ?? 0,
+                        PhysicalStockValue = tank.PhysicalStockValue ?? 0,
+                        LastStockUpdate = tank.LastStockUpdate,
+                        LatestVolumeHistoryValue = latestHistory?.NewVolume ?? 0,
+                        LatestVolumeHistoryTimestamp = latestHistory?.Timestamp,
+                        Discrepancy = (latestHistory?.NewVolume ?? 0) - (tank.CurrentStock ?? 0),
+                        Severity = GetSeverity(tank.CurrentStock ?? 0, threshold)
+                    };
+
+                    results.Add(result);
+
+                    _logger.LogWarning(
+                        "[StockReconciliation] 🚨 CRITICALLY NEGATIVE TANK DETECTED: Tank {TankId} ({TankName}) at Site {SiteName}, " +
+                        "CurrentStock={CurrentStock:N0}L, PhysicalStock={PhysicalStock:N0}L, LatestHistoryValue={HistoryValue:N0}L, Severity={Severity}",
+                        tank.Id, tank.Name, tank.Site?.Name,
+                        tank.CurrentStock, tank.PhysicalStockValue, latestHistory?.NewVolume, result.Severity);
+                }
+
+                _logger.LogInformation(
+                    "[StockReconciliation] Detected {Count} critically negative tanks (threshold: {Threshold:N0}L)",
+                    results.Count, threshold);
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StockReconciliation] Error detecting critically negative tanks");
+                throw;
+            }
+        }
+
+        private string GetSeverity(decimal currentStock, decimal threshold)
+        {
+            if (currentStock < threshold * 10) return "CRITICAL"; // 10x threshold
+            if (currentStock < threshold * 5) return "HIGH";      // 5x threshold
+            if (currentStock < threshold * 2) return "MEDIUM";    // 2x threshold
+            return "LOW";
+        }
+
+        /// <summary>
+        /// Sync Tank.CurrentStock with the latest TankVolumeHistory record
+        /// This fixes cases where CurrentStock has drifted from the ledger
+        /// </summary>
+        public async Task<TankStockSyncResult> SyncTankCurrentStockWithHistoryAsync(
+            int tankId,
+            string syncedBy = "SYSTEM",
+            CancellationToken cancellationToken = default)
+        {
+            var result = new TankStockSyncResult
+            {
+                TankId = tankId,
+                SyncedBy = syncedBy,
+                SyncedAt = DateTime.UtcNow
+            };
+
+            try
+            {
+                var tank = await _context.Tanks
+                    .FirstOrDefaultAsync(t => t.Id == tankId, cancellationToken);
+
+                if (tank == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Tank {tankId} not found";
+                    return result;
+                }
+
+                // Get the latest volume history for this tank
+                var latestHistory = await _context.TankVolumeHistories
+                    .Where(h => h.TankId == tankId && (h.IsDeleted == null || h.IsDeleted == false))
+                    .OrderByDescending(h => h.Timestamp)
+                    .ThenByDescending(h => h.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                result.OldCurrentStock = tank.CurrentStock ?? 0;
+                result.OldPhysicalStock = tank.PhysicalStockValue ?? 0;
+                result.LatestHistoryValue = latestHistory?.NewVolume ?? 0;
+                result.LatestHistoryTimestamp = latestHistory?.Timestamp;
+
+                if (latestHistory == null || !latestHistory.NewVolume.HasValue)
+                {
+                    result.Success = false;
+                    result.Message = $"No volume history found for Tank {tankId}";
+                    return result;
+                }
+
+                var oldStock = tank.CurrentStock ?? 0;
+                var newStock = latestHistory.NewVolume.Value;
+                var difference = newStock - oldStock;
+
+                // Only update if there's a significant difference (more than 0.01L)
+                if (Math.Abs(difference) > 0.01m)
+                {
+                    tank.CurrentStock = newStock;
+                    tank.LastStockUpdate = DateTime.UtcNow;
+
+                    // Create a reconciliation entry in volume history
+                    var reconciliationRecord = new global::FMS.Domain.Entities.Features.TankStockManagement.TankVolumeHistory
+                    {
+                        TankId = tankId,
+                        Timestamp = DateTime.UtcNow,
+                        VolumeChange = difference,
+                        NewVolume = newStock,
+                        ChangeReason = VolumeChangeReasonEnum.Reconciliation,
+                        RecordedBy = syncedBy,
+                        ReferenceType = "STOCK_SYNC",
+                        CreatedOn = DateTime.UtcNow
+                    };
+
+                    _context.TankVolumeHistories.Add(reconciliationRecord);
+                    _context.Tanks.Update(tank);
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    result.Success = true;
+                    result.NewCurrentStock = newStock;
+                    result.Adjustment = difference;
+                    result.ReconciliationRecordId = reconciliationRecord.Id;
+                    result.Message = $"Tank {tankId} CurrentStock synced: {oldStock:N2}L → {newStock:N2}L (adjustment: {difference:N2}L)";
+
+                    _logger.LogInformation(
+                        "[StockReconciliation] ✅ Tank {TankId} CurrentStock synced with history: {OldStock:N2}L → {NewStock:N2}L (adjustment: {Diff:N2}L)",
+                        tankId, oldStock, newStock, difference);
+                }
+                else
+                {
+                    result.Success = true;
+                    result.NewCurrentStock = oldStock;
+                    result.Adjustment = 0;
+                    result.Message = $"Tank {tankId} CurrentStock already in sync with history";
+                }
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StockReconciliation] Error syncing Tank {TankId} CurrentStock", tankId);
+                result.Success = false;
+                result.Message = $"Error syncing tank: {ex.Message}";
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Fix all critically negative tanks by syncing with their latest volume history
+        /// </summary>
+        public async Task<BatchTankSyncResult> FixCriticallyNegativeTanksAsync(
+            decimal threshold = -1000,
+            string fixedBy = "DAILY_RECONCILIATION",
+            CancellationToken cancellationToken = default)
+        {
+            var batchResult = new BatchTankSyncResult
+            {
+                StartTime = DateTime.UtcNow,
+                Threshold = threshold,
+                FixedBy = fixedBy
+            };
+
+            try
+            {
+                // First detect all critically negative tanks
+                var criticalTanks = await DetectCriticallyNegativeTanksAsync(threshold, cancellationToken);
+                batchResult.TotalCriticalTanks = criticalTanks.Count;
+
+                foreach (var criticalTank in criticalTanks)
+                {
+                    var syncResult = await SyncTankCurrentStockWithHistoryAsync(
+                        criticalTank.TankId, fixedBy, cancellationToken);
+
+                    batchResult.SyncResults.Add(syncResult);
+
+                    if (syncResult.Success && syncResult.Adjustment != 0)
+                    {
+                        batchResult.TanksFixed++;
+                    }
+                }
+
+                batchResult.EndTime = DateTime.UtcNow;
+                batchResult.Success = true;
+                batchResult.Message = $"Processed {batchResult.TotalCriticalTanks} critical tanks, fixed {batchResult.TanksFixed}";
+
+                _logger.LogInformation(
+                    "[StockReconciliation] Batch fix completed: {Total} critical tanks found, {Fixed} fixed",
+                    batchResult.TotalCriticalTanks, batchResult.TanksFixed);
+
+                return batchResult;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StockReconciliation] Error in batch fix of critically negative tanks");
+                batchResult.Success = false;
+                batchResult.Message = $"Error: {ex.Message}";
+                batchResult.EndTime = DateTime.UtcNow;
+                return batchResult;
+            }
+        }
     }
 
     #region Result Classes
@@ -440,6 +669,59 @@ namespace FMS.Application.Features.TankManagement.Services
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
         public TimeSpan? Duration { get; set; }
+    }
+
+    /// <summary>
+    /// Result for detecting critically negative tanks
+    /// </summary>
+    public class CriticallyNegativeTankResult
+    {
+        public int TankId { get; set; }
+        public string TankName { get; set; } = string.Empty;
+        public int? SiteId { get; set; }
+        public string SiteName { get; set; } = string.Empty;
+        public decimal CurrentStock { get; set; }
+        public decimal PhysicalStockValue { get; set; }
+        public DateTime? LastStockUpdate { get; set; }
+        public decimal LatestVolumeHistoryValue { get; set; }
+        public DateTime? LatestVolumeHistoryTimestamp { get; set; }
+        public decimal Discrepancy { get; set; }
+        public string Severity { get; set; } = "LOW";
+    }
+
+    /// <summary>
+    /// Result for syncing tank CurrentStock with volume history
+    /// </summary>
+    public class TankStockSyncResult
+    {
+        public int TankId { get; set; }
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public decimal OldCurrentStock { get; set; }
+        public decimal OldPhysicalStock { get; set; }
+        public decimal NewCurrentStock { get; set; }
+        public decimal Adjustment { get; set; }
+        public decimal LatestHistoryValue { get; set; }
+        public DateTime? LatestHistoryTimestamp { get; set; }
+        public int? ReconciliationRecordId { get; set; }
+        public string SyncedBy { get; set; } = string.Empty;
+        public DateTime SyncedAt { get; set; }
+    }
+
+    /// <summary>
+    /// Result for batch fixing critically negative tanks
+    /// </summary>
+    public class BatchTankSyncResult
+    {
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public decimal Threshold { get; set; }
+        public string FixedBy { get; set; } = string.Empty;
+        public int TotalCriticalTanks { get; set; }
+        public int TanksFixed { get; set; }
+        public List<TankStockSyncResult> SyncResults { get; set; } = new();
+        public DateTime StartTime { get; set; }
+        public DateTime? EndTime { get; set; }
     }
 
     #endregion

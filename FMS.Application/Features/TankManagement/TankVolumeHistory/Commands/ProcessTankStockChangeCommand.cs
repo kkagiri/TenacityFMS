@@ -137,10 +137,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                             var isCurrentDayLocal = request.Timestamp.Date == DateTime.Now.Date;
                             var isCurrentDay = isCurrentDayUtc || isCurrentDayLocal;
 
-                            // Update physical stock value for any operation type
-                            tank.PhysicalStockValue = request.NewPhysicalStockValue.Value;
-                            tank.LastPhysicalStockUpdate = request.Timestamp;
-                            tank.PhysicalStockSource = request.PhysicalStockSource ?? GetDefaultPhysicalStockSource(request.ChangeReason);
+                            // FIX: Only update physical stock value for TODAY's entries
+                            // Historical entries should NOT update the tank's current physical stock
+                            if (isCurrentDay)
+                            {
+                                tank.PhysicalStockValue = request.NewPhysicalStockValue.Value;
+                                tank.LastPhysicalStockUpdate = request.Timestamp;
+                                tank.PhysicalStockSource = request.PhysicalStockSource ?? GetDefaultPhysicalStockSource(request.ChangeReason);
+
+                                _logger.LogInformation(
+                                    "[TankStockChange] 📊 PHYSICAL STOCK UPDATED - Tank {TankId}: PhysicalStockValue={PhysicalStock:F2}L, Source={Source}, Reason={Reason}",
+                                    request.TankId, request.NewPhysicalStockValue.Value, request.PhysicalStockSource, request.ChangeReason);
+                            }
+                            else
+                            {
+                                _logger.LogInformation(
+                                    "[TankStockChange] 📋 HISTORICAL ENTRY - Tank {TankId}: Physical stock NOT updated for historical date {EntryDate:yyyy-MM-dd}. Value={Value:F2}L",
+                                    request.TankId, request.Timestamp.Date, request.NewPhysicalStockValue.Value);
+                            }
 
                             // Update book balance only for current day and if bookkeeping is enabled
                             if (isCurrentDay && tank.UseBookKeeping == 1)
