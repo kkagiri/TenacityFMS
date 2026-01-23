@@ -613,6 +613,195 @@ namespace FMS.Application.Features.TankManagement.Services
                 return batchResult;
             }
         }
+
+        /// <summary>
+        /// Clean up corrupted TankVolumeHistory records for a tank and optionally create a fresh starting point.
+        /// This method soft-deletes all existing TankVolumeHistory records and creates a new opening stock entry
+        /// based on the current Tank.CurrentStock or Tank.PhysicalStockValue.
+        /// </summary>
+        /// <param name="tankId">The ID of the tank to clean up</param>
+        /// <param name="usePhysicalStock">If true, uses PhysicalStockValue as the new baseline; otherwise uses CurrentStock</param>
+        /// <param name="createNewOpeningStock">If true, creates a new opening stock entry as the starting point</param>
+        /// <param name="cleanedBy">The user/system performing the cleanup</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Result of the cleanup operation</returns>
+        public async Task<VolumeHistoryCleanupResult> CleanupCorruptedVolumeHistoryAsync(
+            int tankId,
+            bool usePhysicalStock = false,
+            bool createNewOpeningStock = true,
+            string cleanedBy = "SYSTEM_CLEANUP",
+            CancellationToken cancellationToken = default)
+        {
+            var result = new VolumeHistoryCleanupResult
+            {
+                TankId = tankId,
+                CleanupTime = DateTime.UtcNow,
+                CleanedBy = cleanedBy
+            };
+
+            try
+            {
+                // Get the tank
+                var tank = await _context.Tanks
+                    .FirstOrDefaultAsync(t => t.Id == tankId, cancellationToken);
+
+                if (tank == null)
+                {
+                    result.Success = false;
+                    result.Message = $"Tank with ID {tankId} not found";
+                    return result;
+                }
+
+                result.TankName = tank.Name ?? $"Tank {tankId}";
+
+                // Determine the new baseline value
+                var newBaselineValue = usePhysicalStock
+                    ? (tank.PhysicalStockValue ?? tank.CurrentStock ?? 0)
+                    : (tank.CurrentStock ?? tank.PhysicalStockValue ?? 0);
+
+                if (newBaselineValue <= 0)
+                {
+                    result.Success = false;
+                    result.Message = $"Cannot cleanup tank {tankId}: Both CurrentStock ({tank.CurrentStock}) and PhysicalStockValue ({tank.PhysicalStockValue}) are zero or negative. Please set a valid stock value first.";
+                    return result;
+                }
+
+                _logger.LogWarning(
+                    "[StockReconciliation] 🧹 Starting cleanup for Tank {TankId} ({TankName}). " +
+                    "CurrentStock: {CurrentStock:N2}L, PhysicalStock: {PhysicalStock:N2}L, " +
+                    "New Baseline: {NewBaseline:N2}L (using {Source})",
+                    tankId, result.TankName, tank.CurrentStock, tank.PhysicalStockValue,
+                    newBaselineValue, usePhysicalStock ? "PhysicalStockValue" : "CurrentStock");
+
+                // Get all TankVolumeHistory records for this tank
+                var allHistoryRecords = await _context.TankVolumeHistories
+                    .Where(h => h.TankId == tankId && (h.IsDeleted == null || h.IsDeleted == false))
+                    .ToListAsync(cancellationToken);
+
+                if (allHistoryRecords.Any())
+                {
+                    // Soft-delete all records
+                    foreach (var record in allHistoryRecords)
+                    {
+                        record.IsDeleted = true;
+                    }
+                    result.RecordsSoftDeleted = allHistoryRecords.Count;
+
+                    _logger.LogInformation(
+                        "[StockReconciliation] Soft-deleted {Count} TankVolumeHistory records for Tank {TankId}",
+                        allHistoryRecords.Count, tankId);
+                }
+
+                // Create a new opening stock entry as the fresh starting point
+                if (createNewOpeningStock)
+                {
+                    var now = DateTime.UtcNow;
+                    var newOpeningRecord = new global::FMS.Domain.Entities.Features.TankStockManagement.TankVolumeHistory
+                    {
+                        TankId = tankId,
+                        Timestamp = now,
+                        VolumeChange = newBaselineValue, // Full amount as the opening
+                        NewVolume = newBaselineValue,
+                        ChangeReason = VolumeChangeReasonEnum.OpeningStock,
+                        RecordedBy = cleanedBy,
+                        ReferenceType = "CLEANUP_RESET",
+                        CreatedOn = now
+                    };
+
+                    _context.TankVolumeHistories.Add(newOpeningRecord);
+                    result.NewOpeningStockCreated = true;
+                    result.NewOpeningStockValue = newBaselineValue;
+
+                    // Update tank's CurrentStock to match
+                    tank.CurrentStock = newBaselineValue;
+                    tank.LastStockUpdate = now;
+                    _context.Tanks.Update(tank);
+
+                    _logger.LogInformation(
+                        "[StockReconciliation] Created new opening stock entry for Tank {TankId}: {Volume:N2}L",
+                        tankId, newBaselineValue);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                result.Success = true;
+                result.Message = $"Successfully cleaned up Tank {tankId} ({result.TankName}). " +
+                    $"Soft-deleted {result.RecordsSoftDeleted} records. " +
+                    (createNewOpeningStock ? $"Created new opening stock: {newBaselineValue:N2}L" : "No new opening stock created.");
+
+                _logger.LogWarning(
+                    "[StockReconciliation] ✅ CLEANUP COMPLETE for Tank {TankId}: " +
+                    "Deleted {DeletedCount} records, New Opening Stock: {NewOpening:N2}L",
+                    tankId, result.RecordsSoftDeleted, result.NewOpeningStockValue);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StockReconciliation] Error cleaning up Tank {TankId}", tankId);
+                result.Success = false;
+                result.Message = $"Error during cleanup: {ex.Message}";
+                return result;
+            }
+        }
+
+        /// <summary>
+        /// Clean up corrupted TankVolumeHistory for multiple tanks based on a threshold
+        /// </summary>
+        public async Task<List<VolumeHistoryCleanupResult>> CleanupCorruptedTanksAsync(
+            decimal corruptionThreshold = -10000,
+            bool usePhysicalStock = false,
+            string cleanedBy = "BATCH_CLEANUP",
+            CancellationToken cancellationToken = default)
+        {
+            var results = new List<VolumeHistoryCleanupResult>();
+
+            try
+            {
+                // Find tanks where the latest TankVolumeHistory.NewVolume is severely negative
+                // but Tank.CurrentStock or PhysicalStockValue is positive
+                var corruptedTankIds = await _context.TankVolumeHistories
+                    .Where(h => h.IsDeleted != true)
+                    .GroupBy(h => h.TankId)
+                    .Select(g => new
+                    {
+                        TankId = g.Key,
+                        LatestVolume = g.OrderByDescending(h => h.Timestamp).ThenByDescending(h => h.Id).FirstOrDefault()!.NewVolume
+                    })
+                    .Where(x => x.LatestVolume < corruptionThreshold)
+                    .Select(x => x.TankId)
+                    .ToListAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "[StockReconciliation] Found {Count} tanks with severely corrupted history (threshold: {Threshold:N0}L)",
+                    corruptedTankIds.Count, corruptionThreshold);
+
+                // Now filter to only tanks where CurrentStock is positive
+                var tanksToCleanup = await _context.Tanks
+                    .Where(t => corruptedTankIds.Contains(t.Id) &&
+                        ((t.CurrentStock ?? 0) > 0 || (t.PhysicalStockValue ?? 0) > 0))
+                    .Select(t => t.Id)
+                    .ToListAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "[StockReconciliation] {Count} tanks have positive stock values and will be cleaned up",
+                    tanksToCleanup.Count);
+
+                foreach (var tankId in tanksToCleanup)
+                {
+                    var cleanupResult = await CleanupCorruptedVolumeHistoryAsync(
+                        tankId, usePhysicalStock, true, cleanedBy, cancellationToken);
+                    results.Add(cleanupResult);
+                }
+
+                return results;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[StockReconciliation] Error in batch cleanup of corrupted tanks");
+                throw;
+            }
+        }
     }
 
     #region Result Classes
@@ -722,6 +911,23 @@ namespace FMS.Application.Features.TankManagement.Services
         public List<TankStockSyncResult> SyncResults { get; set; } = new();
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
+    }
+
+    /// <summary>
+    /// Result for cleaning up corrupted TankVolumeHistory records
+    /// </summary>
+    public class VolumeHistoryCleanupResult
+    {
+        public int TankId { get; set; }
+        public string TankName { get; set; } = string.Empty;
+        public bool Success { get; set; }
+        public string Message { get; set; } = string.Empty;
+        public int RecordsDeleted { get; set; }
+        public int RecordsSoftDeleted { get; set; }
+        public bool NewOpeningStockCreated { get; set; }
+        public decimal? NewOpeningStockValue { get; set; }
+        public DateTime CleanupTime { get; set; }
+        public string CleanedBy { get; set; } = string.Empty;
     }
 
     #endregion
