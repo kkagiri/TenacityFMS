@@ -337,11 +337,23 @@ const TransactionHub = () => {
     }
   }, []);
 
-  // Format timestamp for display
+  // Format timestamp for display - uses local timezone (East Africa Time for Kenya)
   const formatTime = useCallback((cellInfo) => {
     if (!cellInfo.value) return "";
     const date = new Date(cellInfo.value);
-    return isNaN(date.getTime()) ? cellInfo.value : date.toLocaleString();
+    if (isNaN(date.getTime())) return cellInfo.value;
+
+    // Format with explicit locale and timezone display
+    // This will show local time based on user's browser timezone
+    return date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
   }, []);
 
   // Calculate group value for date grouping - extracts date only (no time)
