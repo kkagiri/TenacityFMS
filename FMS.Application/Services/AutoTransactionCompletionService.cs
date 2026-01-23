@@ -1,6 +1,5 @@
 //Cursor: Service for automatic transaction completion detection and saving
 using System;
-using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
@@ -271,76 +270,6 @@ namespace FMS.Application.Services
                         {
                             try
                             {
-                                // **DIAGNOSTIC LOGGING** - Check tank state before processing
-                                var tankId = verifyTransaction.TankId.Value;
-                                var tank = await context.Tanks.FindAsync(tankId);
-                                if (tank != null)
-                                {
-                                    _logger.LogInformation("[AutoComplete] 🔍 TANK STATE CHECK - Tank {TankId} ({TankName}): CurrentStock={CurrentStock}, UseBookKeeping={UseBookKeeping}",
-                                        tankId, tank.Name, tank.CurrentStock, tank.UseBookKeeping);
-
-                                    // Check for today's opening stock - check BOTH UTC and local dates to catch timezone issues
-                                    var todayUtc = DateTime.UtcNow.Date;
-                                    var todayLocal = DateTime.Now.Date;
-
-                                    var openingStockToday = await context.TankVolumeHistories
-                                        .Where(h => h.TankId == tankId &&
-                                            (h.Timestamp.Date == todayUtc || h.Timestamp.Date == todayLocal) &&
-                                            h.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.OpeningStock &&
-                                            h.IsDeleted != true)
-                                        .FirstOrDefaultAsync();
-
-                                    if (openingStockToday == null)
-                                    {
-                                        // Check when the last opening stock was
-                                        var lastOpeningStock = await context.TankVolumeHistories
-                                            .Where(h => h.TankId == tankId &&
-                                                h.ChangeReason == Domain.Entities.enums.VolumeChangeReasonEnum.OpeningStock &&
-                                                h.IsDeleted != true)
-                                            .OrderByDescending(h => h.Timestamp)
-                                            .FirstOrDefaultAsync();
-
-                                        if (lastOpeningStock != null)
-                                        {
-                                            _logger.LogError("[AutoComplete] ❌ NO OPENING STOCK FOR TODAY - Tank {TankId} ({TankName}) has no opening stock for today (UTC: {TodayUtc}, Local: {TodayLocal}). " +
-                                                "Last opening stock was on {LastOpeningDate} with value {LastOpeningValue}L. " +
-                                                "Automated dispensing may FAIL due to negative stock prevention! Please record opening stock.",
-                                                tankId, tank.Name, todayUtc.ToString("yyyy-MM-dd"), todayLocal.ToString("yyyy-MM-dd"),
-                                                lastOpeningStock.Timestamp.ToString("yyyy-MM-dd HH:mm:ss"), lastOpeningStock.NewVolume);
-                                        }
-                                        else
-                                        {
-                                            _logger.LogError("[AutoComplete] ❌ NO OPENING STOCK EVER - Tank {TankId} ({TankName}) has NEVER had an opening stock recorded! " +
-                                                "Automated dispensing WILL FAIL. Please record opening stock first.",
-                                                tankId, tank.Name);
-                                        }
-                                    }
-                                    else
-                                    {
-                                        _logger.LogInformation("[AutoComplete] ✅ OPENING STOCK EXISTS - Tank {TankId}: OpeningStock={OpeningValue}L recorded at {OpeningTime}",
-                                            tankId, openingStockToday.NewVolume, openingStockToday.Timestamp);
-                                    }
-
-                                    // Check latest volume history (regardless of date)
-                                    var latestHistory = await context.TankVolumeHistories
-                                        .Where(h => h.TankId == tankId && h.IsDeleted != true)
-                                        .OrderByDescending(h => h.Timestamp)
-                                        .ThenByDescending(h => h.Id)
-                                        .FirstOrDefaultAsync();
-
-                                    if (latestHistory != null)
-                                    {
-                                        _logger.LogInformation("[AutoComplete] 📊 LATEST HISTORY - Tank {TankId}: NewVolume={NewVolume}L, VolumeChange={VolumeChange}L, Reason={Reason}, Timestamp={Timestamp}",
-                                            tankId, latestHistory.NewVolume, latestHistory.VolumeChange, latestHistory.ChangeReason, latestHistory.Timestamp);
-                                    }
-                                    else
-                                    {
-                                        _logger.LogError("[AutoComplete] ❌ NO VOLUME HISTORY AT ALL - Tank {TankId} ({TankName}) has no volume history records! " +
-                                            "Current tank stock ({CurrentStock}L) will be used as baseline.",
-                                            tankId, tank.Name, tank.CurrentStock ?? 0);
-                                    }
-                                }
-
                                 var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
                                 // FIX: Use verifyTransaction.Id (database PK) not verifyTransaction.Transaction (PTS number)
                                 // The ReferenceId in TankVolumeHistory must reference the database primary key
@@ -363,29 +292,20 @@ namespace FMS.Application.Services
                                 }
                                 else
                                 {
-                                    // **ESCALATED LOGGING** - This is a critical issue that needs attention
-                                    _logger.LogError("[AutoComplete] ❌ TANK VOLUME HISTORY FAILED - Transaction {Transaction} saved to pumptransaction but NOT recorded in tank {TankId} ledger! Reason: {Message}. Volume: {Volume}L",
-                                        transaction, verifyTransaction.TankId.Value, historyResult.Message, verifyTransaction.Volume.Value);
-
-                                    // Mark transaction as NOT processed so it can be retried or manually fixed
-                                    verifyTransaction.HasBeenProcessed = false;
-                                    await context.SaveChangesAsync();
+                                    _logger.LogWarning("[AutoComplete] ⚠️ TANK VOLUME HISTORY FAILED - Transaction {Transaction} saved but ledger entry failed: {Message}",
+                                        transaction, historyResult.Message);
                                 }
                             }
                             catch (Exception historyEx)
                             {
-                                _logger.LogError(historyEx, "[AutoComplete] ❌ EXCEPTION processing TankVolumeHistory for transaction {Transaction}, tank {TankId}. Error: {ErrorMessage}",
-                                    transaction, verifyTransaction.TankId.Value, historyEx.Message);
-
-                                // Mark transaction as NOT processed so it can be retried
-                                verifyTransaction.HasBeenProcessed = false;
-                                await context.SaveChangesAsync();
+                                _logger.LogError(historyEx, "[AutoComplete] ❌ ERROR processing TankVolumeHistory for transaction {Transaction}, tank {TankId}",
+                                    transaction, verifyTransaction.TankId.Value);
                             }
                         }
                         else
                         {
-                            _logger.LogWarning("[AutoComplete] ⚠️ SKIPPING TankVolumeHistory - Transaction {Transaction} missing required data: TankId={TankId}, Volume={Volume}. This transaction will NOT appear in the tank ledger!",
-                                transaction, verifyTransaction.TankId, verifyTransaction.Volume);
+                            _logger.LogDebug("[AutoComplete] Skipping TankVolumeHistory - TankId: {TankId}, Volume: {Volume}",
+                                verifyTransaction.TankId, verifyTransaction.Volume);
                         }
                     }
                     else

@@ -455,7 +455,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             }
         }
 
-        // Renamed, only internal logic, NO hub broadcast
+        // **CRITICAL FIX**: Do NOT clear authorization if there's an active transaction in Redis!
+        // Previously, this was clearing auth context (TankId, VehicleId, etc.) when pump reported offline,
+        // which caused transaction completion to lose context and save with NULL values for all business fields.
         private async Task ProcessOfflineStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.PumpStatus.PumpOfflineStatus offlineStatus)
         {
             if (offlineStatus.Ids == null || !offlineStatus.Ids.Any()) return;
@@ -467,15 +469,78 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 try
                 {
+                    // **CRITICAL FIX**: Check if there's an active transaction before clearing authorization
+                    // The pump might report as "offline" briefly during a transaction, but we should NOT
+                    // clear the authorization context until the transaction is actually completed or timed out
+                    var hasActiveTransaction = await CheckForActiveTransactionOnPump(deviceId, pumpId);
+
+                    if (hasActiveTransaction)
+                    {
+                        _logger.LogWarning("[UploadStatus] **PRESERVING AUTH** - Pump {PumpId} on Device {DeviceId} reported OFFLINE but has ACTIVE TRANSACTION. " +
+                            "NOT clearing authorization context to preserve TankId/VehicleId for transaction completion.",
+                            pumpId, deviceId);
+                        continue; // Don't clear authorization - preserve context for transaction completion
+                    }
+
                     await _authTracker.ClearAuthorization(deviceId, pumpId);
-                    _logger.LogInformation("[Internal] Cleared auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                    _logger.LogInformation("[Internal] Cleared auth for offline Pump {PumpId} on Device {DeviceId} (no active transaction)", pumpId, deviceId);
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "[Internal] Error clearing auth for offline Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
+                    _logger.LogError(ex, "[Internal] Error processing offline status for Pump {PumpId} on Device {DeviceId}", pumpId, deviceId);
                 }
             }
             // NO _hubContext call here
+        }
+
+        // **NEW METHOD**: Check if there's an active transaction on a specific pump
+        private async Task<bool> CheckForActiveTransactionOnPump(string deviceId, int pumpId)
+        {
+            try
+            {
+                // Check Redis for authorization state
+                var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                if (authState != null && !string.IsNullOrEmpty(authState.Status) &&
+                    (authState.Status == "Authorized" || authState.Status == "InProgress" || authState.Status == "Monitoring"))
+                {
+                    _logger.LogDebug("[UploadStatus] Found active auth state for {DeviceId}:{PumpId}: Status={Status}, TransactionId={TransactionId}",
+                        deviceId, pumpId, authState.Status, authState.TransactionId);
+                    return true;
+                }
+
+                // Also check for transaction context pattern (device:xxx:transaction:yyy)
+                // This handles cases where auth state might have been cleared but transaction context exists
+                var pattern = $"device:{deviceId}:transaction:*";
+                var server = _redisDb.Multiplexer.GetServer(_redisDb.Multiplexer.GetEndPoints()[0]);
+                var keys = server.Keys(pattern: pattern, pageSize: 10);
+
+                foreach (var key in keys)
+                {
+                    var contextJson = await _redisDb.StringGetAsync(key);
+                    if (!contextJson.IsNullOrEmpty)
+                    {
+                        try
+                        {
+                            var context = System.Text.Json.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(contextJson);
+                            if (context.TryGetProperty("Pump", out var pumpProp) && pumpProp.GetInt32() == pumpId)
+                            {
+                                _logger.LogDebug("[UploadStatus] Found active transaction context for {DeviceId}:{PumpId} in Redis key {Key}",
+                                    deviceId, pumpId, key);
+                                return true;
+                            }
+                        }
+                        catch { /* Ignore parsing errors */ }
+                    }
+                }
+
+                return false;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[UploadStatus] Error checking for active transaction on {DeviceId}:{PumpId}, assuming active to be safe",
+                    deviceId, pumpId);
+                return true; // Assume active on error to prevent data loss
+            }
         }
 
         // Enhanced IdleStatus processing to detect completed transactions //Cursor

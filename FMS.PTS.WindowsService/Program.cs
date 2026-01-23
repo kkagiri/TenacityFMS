@@ -39,6 +39,7 @@ using Serilog;
 using Serilog.Events;
 using Serilog.Formatting.Compact;
 using Serilog.Sinks.SystemConsole.Themes;
+using FMS.PTS.WindowsService.Infrastructure.Logging;
 using StackExchange.Redis;
 using Role = FMS.Domain.Entities.Role;
 using FMS.Application.Communication.Redis;
@@ -316,8 +317,9 @@ namespace FMS.PTS.WindowsService
             var effectiveLogDirectory = string.IsNullOrEmpty(logDirectory) ? "C:\\Logs\\FMS.PTS" : logDirectory; //Cursor
             var logFilePath = Path.Combine(effectiveLogDirectory, $"pts-service-{timestamp}.log"); //Cursor
 
+            // Use LocalTimeJsonFormatter for East Africa Time (UTC+3) instead of UTC
             loggerConfig.WriteTo.File(
-                formatter: new CompactJsonFormatter(),
+                formatter: new LocalTimeJsonFormatter(),
                 path: logFilePath,
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: ptsConfig.Logging.RetainedFileCount,
