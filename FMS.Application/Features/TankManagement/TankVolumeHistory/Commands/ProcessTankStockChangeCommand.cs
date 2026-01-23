@@ -303,19 +303,44 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
 
                 // Get the LAST transaction (most recent before this timestamp)
                 var lastTransaction = allPreviousTransactions.Last();
+                var historyVolume = lastTransaction.NewVolume ?? 0m;
 
                 _logger.LogDebug("[GetPreviousVolume] Tank {TankId}: Found {Count} history records, last volume: {LastVolume}L from {LastTimestamp}",
-                    tankId, allPreviousTransactions.Count, lastTransaction.NewVolume, lastTransaction.Timestamp);
+                    tankId, allPreviousTransactions.Count, historyVolume, lastTransaction.Timestamp);
 
                 // Validate the transaction sequence to detect any corruption
                 if (!ValidateTransactionSequence(allPreviousTransactions))
                 {
                     _logger.LogWarning("Transaction sequence corruption detected for Tank {TankId}. " +
                         "Volume calculations may be inaccurate. Attempting recovery...", tankId);
-                    // Still return the last known value, but flag for admin review
                 }
 
-                return lastTransaction.NewVolume ?? 0m;
+                // CRITICAL FIX: Detect severe data corruption
+                // If history shows extremely negative volume but Tank.CurrentStock is positive,
+                // fall back to Tank.CurrentStock to allow operations to proceed
+                if (historyVolume < -1000) // Severely negative (corruption indicator)
+                {
+                    var tank = await _context.Tanks
+                        .Where(t => t.Id == tankId)
+                        .Select(t => new { t.CurrentStock, t.Name })
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    var tankCurrentStock = tank?.CurrentStock ?? 0m;
+
+                    // If Tank.CurrentStock is positive but history is severely negative, use Tank.CurrentStock
+                    if (tankCurrentStock > 0)
+                    {
+                        _logger.LogWarning(
+                            "[GetPreviousVolume] 🔧 DATA CORRUPTION RECOVERY - Tank {TankId} ({TankName}): " +
+                            "History shows {HistoryVolume:N0}L but Tank.CurrentStock is {TankCurrentStock:N0}L. " +
+                            "Using Tank.CurrentStock as the baseline. The TankVolumeHistory needs reconciliation!",
+                            tankId, tank?.Name ?? "Unknown", historyVolume, tankCurrentStock);
+
+                        return tankCurrentStock;
+                    }
+                }
+
+                return historyVolume;
             }
             catch (Exception ex)
             {
