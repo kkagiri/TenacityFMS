@@ -82,7 +82,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 // Recalculate all subsequent volumes
                 foreach (var record in affectedRecords)
                 {
-                    // The new volume is the previous record's volume plus the current volume change
+                    // CRITICAL FIX: OpeningStock is a BASELINE RESET, not a cumulative change
+                    // OpeningStock entries should preserve their NewVolume as the user-entered value
+                    // and reset the baseVolume for subsequent calculations
+                    if (record.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                    {
+                        // OpeningStock: Use its existing NewVolume as the new baseline
+                        // Don't recalculate - preserve the user-entered opening stock value
+                        baseVolume = record.NewVolume ?? 0;
+
+                        _logger.LogDebug("OpeningStock record ID {RecordId} - using as new baseline: {BaseVolume}",
+                            record.Id, baseVolume);
+                        continue;
+                    }
+
+                    // For all other entries: calculate NewVolume from previous volume + change
                     baseVolume += record.VolumeChange ?? 0;
 
                     _logger.LogDebug("Updating record ID {RecordId} with new volume {NewVolume} (change: {VolumeChange})",

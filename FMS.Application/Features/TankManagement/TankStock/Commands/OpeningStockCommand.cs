@@ -147,18 +147,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 // Save only the Tankstock entry first to get the ID
                 await _context.SaveChangesAsync(cancellationToken);
 
-                //Cursor - Calculate volume change: if no previous closing stock, use 0 as baseline (will show large negative or positive)
-                decimal volumeChange;
-                if (previousClosingStock != null && previousClosingStock.NewVolume.HasValue)
-                {
-                    // Calculate from previous closing stock
-                    volumeChange = request.OpeningStock - previousClosingStock.NewVolume.Value;
-                }
-                else
-                {
-                    // No previous closing stock - use 0 as baseline (first opening stock scenario)
-                    volumeChange = request.OpeningStock - 0; // This will be the full opening stock amount
-                }
+                // Opening stock is a BASELINE RESET - VolumeChange must ALWAYS be 0
+                // This is because opening stock represents the starting point for the day,
+                // not a change from the previous value. Any discrepancy between yesterday's
+                // closing stock and today's opening stock should be tracked separately
+                // (e.g., as a reconciliation entry or overnight variance report)
+                decimal volumeChange = 0;
 
                 // Determine physical stock source based on entry date
                 var physicalStockSource = entryDate.Date == DateTime.UtcNow.Date

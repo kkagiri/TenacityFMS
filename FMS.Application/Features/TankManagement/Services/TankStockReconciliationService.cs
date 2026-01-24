@@ -241,8 +241,13 @@ namespace FMS.Application.Features.TankManagement.Services
                             volumeHistory.NewVolume = discrepancy.TankStockValue;
 
                             // Recalculate VolumeChange if it was a stock entry
-                            if (volumeHistory.ChangeReason == VolumeChangeReasonEnum.OpeningStock ||
-                                volumeHistory.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                            if (volumeHistory.ChangeReason == VolumeChangeReasonEnum.OpeningStock)
+                            {
+                                // OpeningStock VolumeChange should always be 0
+                                // It represents a baseline, not a change from previous
+                                volumeHistory.VolumeChange = 0;
+                            }
+                            else if (volumeHistory.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
                             {
                                 var previousRecord = await _context.TankVolumeHistories
                                     .Where(vh => vh.TankId == volumeHistory.TankId &&
@@ -700,7 +705,7 @@ namespace FMS.Application.Features.TankManagement.Services
                     {
                         TankId = tankId,
                         Timestamp = now,
-                        VolumeChange = newBaselineValue, // Full amount as the opening
+                        VolumeChange = 0, // OpeningStock VolumeChange should always be 0 (it's a baseline, not a change)
                         NewVolume = newBaselineValue,
                         ChangeReason = VolumeChangeReasonEnum.OpeningStock,
                         RecordedBy = cleanedBy,

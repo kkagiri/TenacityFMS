@@ -20,12 +20,12 @@ using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
-using FMS.BackgroundServices.TankStock;
+using FMS.BackgroundServices.TankReconciliation; // Unified Tank Reconciliation Service
+using FMS.BackgroundServices.Notification; // Unified Notification Processing Service
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using FMS.BackgroundServices.TankManagement;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface; // For IPermissionAuthorizationService
 using FMS.Application.Features.GPSGate.DTOs;
@@ -43,8 +43,6 @@ using FMS.Application.Services;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
-using FMS.Application.Features.Reporting.Services;
-using FMS.BackgroundServices.ActiveAlarmProcessing;
 using FMS.BackgroundServices.FMS;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
@@ -482,15 +480,24 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
         services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
         services.AddScoped<TankStockReconciliationService>(); // Tank Stock reconciliation service
-        services.AddHostedService<FMS.BackgroundServices.TankManagement.DailyTankReconciliationService>(); // Daily automatic reconciliation
+
+        // ========== UNIFIED BACKGROUND SERVICES (consolidated from multiple services) ==========
+        // Unified Tank Reconciliation Service - combines:
+        // - TankMonitoringService (tank level monitoring every 5 min)
+        // - AutomatedReconciliationBackgroundService (policy-based reconciliation every 15 min)
+        // - DailyTankReconciliationService (daily aggregation at 12:00 AM and reconciliation at 2:00 AM)
+        services.AddHostedService<FMS.BackgroundServices.TankReconciliation.UnifiedTankReconciliationService>();
+
+        // Unified Notification Processing Service - combines:
+        // - NotificationBackgroundService (scheduled notifications every 1 min, alarm checks every 5 min)
+        // - ActiveAlarmProcessingService (auto-resolution and escalation every 5 min)
+        services.AddHostedService<FMS.BackgroundServices.Notification.UnifiedNotificationProcessingService>();
+
+        // Other Background Services
         services.AddHostedService<SystemUserInitializationService>();
-        services.AddHostedService<NotificationBackgroundService>();
         services.AddHostedService<VehicleDocumentExpiryNotifierService>();
         services.AddHostedService<VehicleMaintenanceNotifierService>();
         services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
-        services.AddHostedService<TankMonitoringService>();
-        services.AddHostedService<AutomatedReconciliationBackgroundService>();
-        services.AddHostedService<ActiveAlarmProcessingService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
 
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
@@ -524,7 +531,6 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<TankStockFutureRecordsService>();
         services.AddScoped<OpeningStockValidationService>();
         services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
-        services.AddScoped<DispensingAggregationService>(); // Dispensing aggregation service for single-row-per-day
         // Data validation and correction services for tank volume history
         services.AddScoped<ITankVolumeHistoryValidationService, TankVolumeHistoryValidationService>();
         services.AddScoped<ITankVolumeCorrectionService, TankVolumeCorrectionService>();
