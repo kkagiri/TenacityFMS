@@ -84,8 +84,23 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     return new FMSResponseMessage(true, "Ledger entry creation skipped based on configuration");
                 }
 
-                _logger.LogInformation("[PumpTxIntegration] 📤 Calling TankVolumeHistoryService.ProcessChangeAsync - TankId: {TankId}, VolumeChange: -{Volume}L, Reason: AutomatedDispensing, ReferenceId: {ReferenceId}",
-                    tankId, volume, pumpTransactionId);
+                // Calculate new physical stock value for the tank after dispensing
+                // This ensures both CurrentStock AND PhysicalStockValue are updated together
+                decimal? newPhysicalStockValue = null;
+                var currentPhysicalStock = tank.PhysicalStockValue;
+                if (currentPhysicalStock.HasValue && currentPhysicalStock > 0)
+                {
+                    // Deduct the dispensed volume from physical stock
+                    newPhysicalStockValue = currentPhysicalStock.Value - volume;
+                    // Ensure we don't go below zero for physical stock
+                    if (newPhysicalStockValue < 0)
+                    {
+                        newPhysicalStockValue = 0;
+                    }
+                }
+
+                _logger.LogInformation("[PumpTxIntegration] 📤 Calling TankVolumeHistoryService.ProcessChangeAsync - TankId: {TankId}, VolumeChange: -{Volume}L, Reason: AutomatedDispensing, ReferenceId: {ReferenceId}, CurrentPhysicalStock: {CurrentPhysical:N2}L -> NewPhysicalStock: {NewPhysical:N2}L",
+                    tankId, volume, pumpTransactionId, currentPhysicalStock, newPhysicalStockValue);
 
                 // Record in tank volume history with a negative volume change (fuel being dispensed)
                 var result = await _tankVolumeHistoryService.ProcessChangeAsync(
@@ -96,7 +111,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     pumpTransactionId,
                     "PumpTransaction",
                     ActionType.Create,
-                    null, null,
+                    newPhysicalStockValue, "PumpTransaction",
                     cancellationToken);
 
                 if (result.Success)
