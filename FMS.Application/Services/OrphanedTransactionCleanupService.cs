@@ -191,11 +191,14 @@ namespace FMS.Application.Services
                 }
 
                 // Save orphaned transactions to database as incomplete
+                // Track which transactions were actually saved (have volume/amount)
+                var savedTransactionIds = new HashSet<int>();
+
                 if (orphanedTransactions.Count > 0)
                 {
                     using var scope = _scopeFactory.CreateScope();
-                    await SaveIncompleteTransactionsAsync(scope, deviceId, orphanedTransactions);
-                    processedTransactionIds.AddRange(orphanedTransactions.Select(t => t.TransactionId));
+                    savedTransactionIds = await SaveIncompleteTransactionsAsync(scope, deviceId, orphanedTransactions);
+                    processedTransactionIds.AddRange(savedTransactionIds);
 
                     // Notify connected clients about device disconnect with transaction details
                     await NotifyClientsAsync(scope, deviceId, orphanedTransactions);
@@ -210,14 +213,37 @@ namespace FMS.Application.Services
                 }
 
                 // Clean up transaction context keys if requested
+                // IMPORTANT: Only delete contexts for transactions that were actually saved to database
+                // Transactions without volume/amount should keep their context for when device reconnects
                 if (cleanupRedisKeys)
                 {
                     await foreach (var key in server.KeysAsync(pattern: transactionContextPattern))
                     {
                         try
                         {
-                            await redisDb.KeyDeleteAsync(key);
-                            _logger.LogDebug("[{DeviceId}] Cleaned up transaction context: {Key}", deviceId, key.ToString());
+                            // Extract transaction ID from key (format: device:{deviceId}:transaction:{transactionId})
+                            var keyString = key.ToString();
+                            var parts = keyString.Split(':');
+                            if (parts.Length >= 4 && int.TryParse(parts[3], out var transactionId))
+                            {
+                                // Only delete if this transaction was actually saved
+                                if (savedTransactionIds.Contains(transactionId))
+                                {
+                                    await redisDb.KeyDeleteAsync(key);
+                                    _logger.LogDebug("[{DeviceId}] Cleaned up transaction context: {Key}", deviceId, keyString);
+                                }
+                                else
+                                {
+                                    _logger.LogInformation("[{DeviceId}] Preserving transaction context for unsaved transaction {TransactionId} (no volume/amount yet)",
+                                        deviceId, transactionId);
+                                }
+                            }
+                            else
+                            {
+                                // Can't parse transaction ID, delete the key to avoid orphaned data
+                                await redisDb.KeyDeleteAsync(key);
+                                _logger.LogDebug("[{DeviceId}] Cleaned up unparseable transaction context: {Key}", deviceId, keyString);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -225,14 +251,28 @@ namespace FMS.Application.Services
                         }
                     }
 
-                    // Clean up authorization states for this device
+                    // Clean up authorization states only for saved transactions
                     var authPattern = $"auth:{deviceId}:*";
                     await foreach (var key in server.KeysAsync(pattern: authPattern))
                     {
                         try
                         {
-                            await redisDb.KeyDeleteAsync(key);
-                            _logger.LogDebug("[{DeviceId}] Cleaned up orphaned authorization state: {Key}", deviceId, key.ToString());
+                            // Only delete auth states if there are no unsaved transactions pending
+                            // This prevents clearing auth state for transactions that haven't started fueling yet
+                            var unsavedTransactions = orphanedTransactions
+                                .Where(t => !savedTransactionIds.Contains(t.TransactionId))
+                                .ToList();
+
+                            if (unsavedTransactions.Count == 0)
+                            {
+                                await redisDb.KeyDeleteAsync(key);
+                                _logger.LogDebug("[{DeviceId}] Cleaned up orphaned authorization state: {Key}", deviceId, key.ToString());
+                            }
+                            else
+                            {
+                                _logger.LogInformation("[{DeviceId}] Preserving authorization state - {Count} unsaved transaction(s) pending",
+                                    deviceId, unsavedTransactions.Count);
+                            }
                         }
                         catch (Exception ex)
                         {
@@ -294,8 +334,10 @@ namespace FMS.Application.Services
             }
         }
 
-        private async Task SaveIncompleteTransactionsAsync(IServiceScope scope, string deviceId, List<OrphanedTransactionInfo> orphanedTransactions)
+        private async Task<HashSet<int>> SaveIncompleteTransactionsAsync(IServiceScope scope, string deviceId, List<OrphanedTransactionInfo> orphanedTransactions)
         {
+            var savedTransactionIds = new HashSet<int>();
+
             try
             {
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
@@ -305,7 +347,7 @@ namespace FMS.Application.Services
                     // Only save if there was actual fueling activity (volume or amount > 0)
                     if ((orphaned.Volume ?? 0) <= 0 && (orphaned.Amount ?? 0) <= 0)
                     {
-                        _logger.LogInformation("[{DeviceId}] Skipping save for transaction {TransactionId} - no volume/amount dispensed",
+                        _logger.LogInformation("[{DeviceId}] Skipping save for transaction {TransactionId} - no volume/amount dispensed (will preserve Redis context)",
                             deviceId, orphaned.TransactionId);
                         continue;
                     }
@@ -324,6 +366,8 @@ namespace FMS.Application.Services
 
                         _logger.LogInformation("[{DeviceId}] Updated existing incomplete transaction {TransactionId} with Volume: {Volume}, Amount: {Amount}",
                             deviceId, orphaned.TransactionId, orphaned.Volume, orphaned.Amount);
+
+                        savedTransactionIds.Add(orphaned.TransactionId);
                     }
                     else
                     {
@@ -352,17 +396,21 @@ namespace FMS.Application.Services
 
                         _logger.LogInformation("[{DeviceId}] Saved incomplete transaction {TransactionId} - Vehicle: {VehicleId}, Tank: {TankId}, DestinationTank: {DestinationTankId}, IsTransfer: {IsTransfer}, Volume: {Volume}, Amount: {Amount}",
                             deviceId, orphaned.TransactionId, orphaned.VehicleId, orphaned.TankId, orphaned.DestinationTankId, orphaned.IsTransferMode, orphaned.Volume, orphaned.Amount);
+
+                        savedTransactionIds.Add(orphaned.TransactionId);
                     }
                 }
 
                 await context.SaveChangesAsync();
                 _logger.LogInformation("[{DeviceId}] Successfully saved {Count} incomplete transaction(s) to database",
-                    deviceId, orphanedTransactions.Count(t => (t.Volume ?? 0) > 0 || (t.Amount ?? 0) > 0));
+                    deviceId, savedTransactionIds.Count);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[{DeviceId}] Error saving incomplete transactions to database", deviceId);
             }
+
+            return savedTransactionIds;
         }
 
         /// <summary>
