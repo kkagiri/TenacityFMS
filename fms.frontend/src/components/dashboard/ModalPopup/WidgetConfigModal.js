@@ -218,28 +218,68 @@ export default function WidgetConfigModal({
     if (editingWidget) {
       const templateId = editingWidget.templateId || editingWidget.template?.id;
       const category = editingWidget.category || editingWidget.template?.category || '';
-      const settings = editingWidget.settings || editingWidget.configuration || {};
 
-      // Extract metric/data source from various locations
-      const metric = editingWidget.metric ||
+      // Parse configurationJson if it's a string
+      let parsedConfig = {};
+      if (editingWidget.configurationJson) {
+        try {
+          parsedConfig = typeof editingWidget.configurationJson === 'string'
+            ? JSON.parse(editingWidget.configurationJson)
+            : editingWidget.configurationJson;
+        } catch (e) {
+          console.warn('Failed to parse configurationJson:', e);
+        }
+      }
+
+      // Merge all possible settings sources
+      const settings = {
+        ...parsedConfig,
+        ...(editingWidget.settings || {}),
+        ...(editingWidget.configuration || {})
+      };
+
+      // Extract metric/data source from various locations (backend uses 'dataSource')
+      const metric = editingWidget.dataSource ||
+                    editingWidget.metric ||
                     settings.dataSource ||
+                    settings.metric ||
                     editingWidget.template?.dataSource ||
                     '';
+
+      // Extract visualization type
+      const visualizationType = editingWidget.widgetType ||
+                               editingWidget.visualizationType ||
+                               editingWidget.template?.widgetType ||
+                               settings.visualizationType ||
+                               '';
+
+      console.log('[WidgetConfigModal] Populating edit form:', {
+        editingWidget,
+        parsedConfig,
+        metric,
+        visualizationType,
+        category
+      });
 
       setNewWidget({
         customName: editingWidget.customName || editingWidget.template?.displayName || '',
         templateId: templateId,
         category: category,
         settings: settings,
-        visualizationType: editingWidget.visualizationType || editingWidget.template?.widgetType || '',
+        visualizationType: visualizationType,
         metric: metric,
         mode: settings.mode || 'cumulative',
         datePreset: settings.datePreset || 'yesterday',
-        sitesMode: settings.sitesMode || (editingWidget.siteIds?.length ? 'custom' : 'all'),
-        siteIds: editingWidget.siteIds || settings.siteIds || [],
+        sitesMode: settings.sitesMode || (settings.siteIds?.length ? 'custom' : 'all'),
+        siteIds: settings.siteIds || editingWidget.siteIds || [],
         // Add smart filter properties
         aggregation: settings.aggregation || 'SUM',
-        vehicleTypeIds: settings.vehicleTypeIds || settings.vehicleType ? [settings.vehicleType] : []
+        vehicleTypeIds: settings.vehicleTypeIds || (settings.vehicleType ? [settings.vehicleType] : []),
+        // Add other fields that might be in settings
+        unit: settings.unit || 'count',
+        defaultValue: settings.defaultValue || settings.value || '0',
+        groupBy: settings.groupBy || 'none',
+        granularity: settings.granularity || 'daily'
       });
     }
   }, [editingWidget]);
@@ -569,6 +609,8 @@ export default function WidgetConfigModal({
               previewLoading={previewLoading}
               previewError={previewError}
               onPreviewData={handlePreviewData}
+              isEditMode={formMode === 'edit'}
+              editingWidget={editingWidget}
             />
           </div>
 

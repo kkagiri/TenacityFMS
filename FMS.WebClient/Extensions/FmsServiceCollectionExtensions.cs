@@ -487,6 +487,7 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<NotificationBackgroundService>();
         services.AddHostedService<VehicleDocumentExpiryNotifierService>();
         services.AddHostedService<VehicleMaintenanceNotifierService>();
+        services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
         services.AddHostedService<TankMonitoringService>();
         services.AddHostedService<AutomatedReconciliationBackgroundService>();
         services.AddHostedService<ActiveAlarmProcessingService>();

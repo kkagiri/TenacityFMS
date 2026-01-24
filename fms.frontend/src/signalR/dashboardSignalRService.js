@@ -1244,15 +1244,14 @@ class DashboardSignalRService {
 
     try {
       let ok = false;
-      if (resolvedWidgetId) {
-        ok = await this.invokeSafe("RequestDashboardMetrics", {
-          widgetInstanceId: resolvedWidgetId,
-        });
-        if (ok) {
-          this.dashboardOverviewWidgetId = resolvedWidgetId;
-        }
-      } else {
-        ok = await this.invokeSafe("RequestDashboardMetrics");
+      // Always pass a request object - backend expects 1 argument (even if empty object for default behavior)
+      const requestPayload = resolvedWidgetId
+        ? { widgetInstanceId: resolvedWidgetId }
+        : {}; // Empty object triggers default behavior on server
+
+      ok = await this.invokeSafe("RequestDashboardMetrics", requestPayload);
+      if (ok && resolvedWidgetId) {
+        this.dashboardOverviewWidgetId = resolvedWidgetId;
       }
       if (!ok) return;
       const suffix = resolvedWidgetId ? ` for widget ${resolvedWidgetId}` : "";

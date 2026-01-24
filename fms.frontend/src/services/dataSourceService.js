@@ -47,8 +47,8 @@ class DataSourceService {
 
       console.log(`[DataSource] Using ${timeoutMs}ms timeout for ${isComplexQuery ? 'complex' : 'simple'} query`);
 
-      // Make API request using the new unified endpoint
-      const response = await axiosInstance.get(`/dashboard/data-sources/initial-data`, {
+      // Make API request using the v1 endpoint
+      const response = await axiosInstance.get(`v1/dashboard/data-sources/${dataSource}/initial`, {
         params,
         timeout: timeoutMs,
         signal: AbortSignal.timeout(timeoutMs + 1000) // AbortController fallback
@@ -90,7 +90,7 @@ class DataSourceService {
       // Live data should be faster, so use shorter timeout
       const timeoutMs = 8000; // 8 seconds for live data
 
-      const response = await axiosInstance.get(`/dashboard/data-sources/initial-data`, {
+      const response = await axiosInstance.get(`v1/dashboard/data-sources/${dataSource}/initial`, {
         params,
         timeout: timeoutMs,
         signal: AbortSignal.timeout(timeoutMs + 1000)
@@ -121,7 +121,7 @@ class DataSourceService {
       params.aggregationInterval = aggregationInterval;
       params.mode = 'aggregated'; // Set mode for aggregated data
 
-      const response = await axiosInstance.get(`/dashboard/data-sources/initial-data`, {
+      const response = await axiosInstance.get(`v1/dashboard/data-sources/${dataSource}/aggregated`, {
         params,
         timeout: 15000 // Longer timeout for aggregated data
       });
@@ -397,7 +397,10 @@ class DataSourceService {
     const categoryIndex = new Map();
     const widgetIndex = new Map();
 
-    items.forEach(item => {
+    // Ensure items is an array
+    const itemsArray = Array.isArray(items) ? items : [];
+
+    itemsArray.forEach(item => {
       if (!item) return;
       const metadata = item.metadata || {};
       const category = metadata.category || item.category || 'general';
@@ -450,7 +453,9 @@ class DataSourceService {
     }
 
     try {
-      const items = await dashboardApi.getDataSources({ forceRefresh });
+      const result = await dashboardApi.getDataSources({ forceRefresh });
+      // Ensure items is always an array
+      const items = Array.isArray(result) ? result : [];
       this.catalogCache = { items, timestamp: Date.now() };
 
       items.forEach(item => {

@@ -265,7 +265,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<UserDashboardPreferenceDto>
    */
   async getPreferences() {
-    const response = await axiosInstance.get('/dashboard/preferences');
+    const response = await axiosInstance.get('v1/dashboard/preferences');
     return response.data;
   }
 
@@ -275,7 +275,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<UserDashboardPreferenceDto>
    */
   async savePreferences(payload) {
-    const response = await axiosInstance.post('/dashboard/preferences', payload);
+    const response = await axiosInstance.post('v1/dashboard/preferences', payload);
     return response.data;
   }
 
@@ -288,7 +288,7 @@ class DashboardService {
   async getWidgetTemplates(category = null, onlyEnabled = true) {
     const params = { onlyEnabled };
     if (category) params.category = category;
-    const response = await axiosInstance.get('/dashboard/widgets/templates', { params });
+    const response = await axiosInstance.get('v1/dashboard/widgets/templates', { params });
     return response.data;
   }
 
@@ -300,7 +300,7 @@ class DashboardService {
   async getWidgetInstances(category = null) {
     const params = {};
     if (category) params.category = category;
-    const response = await axiosInstance.get('/dashboard/widgets/instances', { params });
+    const response = await axiosInstance.get('v1/dashboard/widgets/instances', { params });
     return response.data;
   }
 
@@ -310,7 +310,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardWidgetInstanceDto>
    */
   async getWidgetInstance(widgetInstanceId) {
-    const response = await axiosInstance.get(`/dashboard/widgets/instances/${widgetInstanceId}`);
+    const response = await axiosInstance.get(`v1/dashboard/widgets/instances/${widgetInstanceId}`);
     return response.data;
   }
 
@@ -320,7 +320,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardWidgetInstanceDto>
    */
   async createWidgetInstance(configuration) {
-    const response = await axiosInstance.post('/dashboard/widgets/instances', configuration);
+    const response = await axiosInstance.post('v1/dashboard/widgets/instances', configuration);
     return response.data;
   }
 
@@ -331,7 +331,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardWidgetInstanceDto>
    */
   async updateWidgetInstance(widgetInstanceId, configuration) {
-    const response = await axiosInstance.put(`/dashboard/widgets/instances/${widgetInstanceId}`, configuration);
+    const response = await axiosInstance.put(`v1/dashboard/widgets/instances/${widgetInstanceId}`, configuration);
     return response.data;
   }
 
@@ -341,7 +341,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<bool>
    */
   async deleteWidgetInstance(widgetInstanceId) {
-    const response = await axiosInstance.delete(`/dashboard/widgets/instances/${widgetInstanceId}`);
+    const response = await axiosInstance.delete(`v1/dashboard/widgets/instances/${widgetInstanceId}`);
     return response.data;
   }
 
@@ -351,7 +351,7 @@ class DashboardService {
    * @returns {Promise<object>} WidgetDataResponseDto
    */
   async getWidgetData(widgetInstanceId) {
-    const response = await axiosInstance.get(`/dashboard/widgets/${widgetInstanceId}/data`);
+    const response = await axiosInstance.get(`v1/dashboard/widgets/${widgetInstanceId}/data`);
     return response.data;
   }
 
@@ -360,7 +360,7 @@ class DashboardService {
    * @returns {Promise<object[]>} WidgetDataResponseDto[]
    */
   async getAllWidgetData() {
-    const response = await axiosInstance.get('/dashboard/widgets/data');
+    const response = await axiosInstance.get('v1/dashboard/widgets/data');
     return response.data;
   }
 
@@ -370,7 +370,7 @@ class DashboardService {
    * @returns {Promise<object>} WidgetDataResponseDto
    */
   async refreshWidgetData(widgetInstanceId) {
-    const response = await axiosInstance.post(`/dashboard/widgets/${widgetInstanceId}/refresh`);
+    const response = await axiosInstance.post(`v1/dashboard/widgets/${widgetInstanceId}/refresh`);
     return response.data;
   }
 
@@ -385,7 +385,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<ShareWidgetResponseDto>
    */
   async shareWidget(widgetInstanceId, targetUserIds) {
-    const response = await axiosInstance.post(`/dashboard/widgets/${widgetInstanceId}/share`, targetUserIds);
+    const response = await axiosInstance.post(`v1/dashboard/widgets/${widgetInstanceId}/share`, targetUserIds);
     return response.data;
   }
 
@@ -395,7 +395,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<SharedWithUserDto[]>
    */
   async getWidgetShares(widgetInstanceId) {
-    const response = await axiosInstance.get(`/dashboard/widgets/${widgetInstanceId}/shares`);
+    const response = await axiosInstance.get(`v1/dashboard/widgets/${widgetInstanceId}/shares`);
     return response.data;
   }
 
@@ -407,7 +407,7 @@ class DashboardService {
   async getSharedWidgets(category = null) {
     const params = {};
     if (category) params.category = category;
-    const response = await axiosInstance.get('/dashboard/widgets/shared-with-me', { params });
+    const response = await axiosInstance.get('v1/dashboard/widgets/shared-with-me', { params });
     return response.data;
   }
 
@@ -417,7 +417,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<bool>
    */
   async unshareWidget(sharedWidgetInstanceId) {
-    const response = await axiosInstance.delete(`/dashboard/widgets/${sharedWidgetInstanceId}/unshare`);
+    const response = await axiosInstance.delete(`v1/dashboard/widgets/${sharedWidgetInstanceId}/unshare`);
     return response.data;
   }
 
@@ -426,7 +426,7 @@ class DashboardService {
    * @returns {Promise<object[]>} List of users
    */
   async getUsersForSharing() {
-    const response = await axiosInstance.get('/dashboard/users');
+    const response = await axiosInstance.get('v1/dashboard/users');
     return response.data;
   }
 
@@ -440,8 +440,8 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardLayoutDto>
    */
   async saveDashboardLayout(layout) {
-    console.log('DashboardService: Saving layout to /dashboard/layout:', layout);
-    const response = await axiosInstance.post('/dashboard/layout', layout);
+    console.log('DashboardService: Saving layout to v1/dashboard/layout:', layout);
+    const response = await axiosInstance.post('v1/dashboard/layout', layout);
     console.log('DashboardService: Save layout response:', response.data);
     return response.data;
   }
@@ -451,8 +451,8 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardLayoutDto>
    */
   async getDashboardLayout() {
-    console.log('DashboardService: Loading layout from /dashboard/layout');
-    const response = await axiosInstance.get('/dashboard/layout');
+    console.log('DashboardService: Loading layout from v1/dashboard/layout');
+    const response = await axiosInstance.get('v1/dashboard/layout');
     console.log('DashboardService: Load layout response:', response.data);
     return response.data;
   }
@@ -464,7 +464,7 @@ class DashboardService {
    * @returns {Promise<object>} FMSResponseMessage<DashboardWidgetInstanceDto>
    */
   async updateWidgetLayout(widgetInstanceId, sizeAndPosition) {
-    const response = await axiosInstance.put(`/dashboard/widgets/${widgetInstanceId}/layout`, sizeAndPosition);
+    const response = await axiosInstance.put(`v1/dashboard/widgets/${widgetInstanceId}/layout`, sizeAndPosition);
     return response.data;
   }
 
@@ -475,7 +475,7 @@ class DashboardService {
    * @returns {Promise<object>}
    */
   async updateWidgetSize(widgetInstanceId, newSize) {
-    const response = await axiosInstance.put(`/dashboard/layout/widget-size/${widgetInstanceId}`, newSize);
+    const response = await axiosInstance.put(`v1/dashboard/layout/widget-size/${widgetInstanceId}`, newSize);
     return response.data;
   }
 
@@ -486,7 +486,7 @@ class DashboardService {
    * @returns {Promise<object>}
    */
   async updateWidgetOrder(category, widgetOrder) {
-    const response = await axiosInstance.put(`/dashboard/layout/widget-order/${category}`, widgetOrder);
+    const response = await axiosInstance.put(`v1/dashboard/layout/widget-order/${category}`, widgetOrder);
     return response.data;
   }
 
@@ -496,7 +496,7 @@ class DashboardService {
    * @returns {Promise<object>}
    */
   async updateCategoryOrder(categoryOrder) {
-    const response = await axiosInstance.put('/dashboard/layout/category-order', categoryOrder);
+    const response = await axiosInstance.put('v1/dashboard/layout/category-order', categoryOrder);
     return response.data;
   }
 

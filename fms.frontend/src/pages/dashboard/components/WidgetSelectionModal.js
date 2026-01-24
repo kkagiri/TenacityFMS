@@ -146,7 +146,21 @@ const WidgetSelectionModal = ({
         const response = await widgetService.getWidgetTemplates();
 
         if (response.success && response.data) {
-          setServerTemplates(response.data);
+          // Map server templates to frontend format
+          const mappedTemplates = (Array.isArray(response.data) ? response.data : []).map(template => ({
+            id: template.id || template.Id,
+            name: template.displayName || template.DisplayName || template.name || template.Name,
+            description: template.description || template.Description || '',
+            icon: getCategoryIcon(template.category || template.Category),
+            category: mapCategoryToUICategory(template.category || template.Category),
+            dataSource: template.dataSource || template.DataSource,
+            widgetType: template.widgetType || template.WidgetType,
+            defaultSize: { w: 4, h: 3 },
+            configurable: true,
+            configurationJson: template.configurationJson || template.ConfigurationJson,
+            isServerTemplate: true
+          }));
+          setServerTemplates(mappedTemplates);
         }
       } catch (error) {
         console.error('Error loading widget templates:', error);
@@ -157,6 +171,36 @@ const WidgetSelectionModal = ({
       loadTemplates();
     }
   }, [visible]);
+
+  // Helper to map backend category to UI category
+  const mapCategoryToUICategory = (category) => {
+    const categoryMap = {
+      'fuel_management': 'Operations',
+      'vehicle_performance': 'Analytics',
+      'alerts_monitoring': 'Monitoring',
+      'key_statistics': 'Analytics',
+      'performance_metrics': 'Analytics',
+      'system_status': 'Monitoring',
+      'reporting': 'Analytics',
+      'configuration': 'Navigation'
+    };
+    return categoryMap[category] || category || 'Operations';
+  };
+
+  // Helper to get icon based on category
+  const getCategoryIcon = (category) => {
+    const iconMap = {
+      'fuel_management': 'fa-gas-pump',
+      'vehicle_performance': 'fa-car',
+      'alerts_monitoring': 'fa-exclamation-triangle',
+      'key_statistics': 'fa-chart-line',
+      'performance_metrics': 'fa-tachometer-alt',
+      'system_status': 'fa-server',
+      'reporting': 'fa-file-alt',
+      'configuration': 'fa-cog'
+    };
+    return iconMap[category] || 'fa-cube';
+  };
 
   // Combine local and server templates
   const allTemplates = useMemo(() => {

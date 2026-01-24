@@ -16,7 +16,15 @@ import { CheckBox } from 'devextreme-react/check-box';
 import { Popup } from 'devextreme-react/popup';
 import { ProgressBar } from 'devextreme-react/progress-bar';
 import notify from 'devextreme/ui/notify';
-import axiosInstance from '../../../api/axiosInstance';
+import odometerSyncApi, {
+  getAllVehicleOdometerStatus,
+  syncOdometerFromGPS,
+  syncOdometerToGPS,
+  batchSyncFromGPS,
+  getOdometerSourceLabel,
+  getOdometerSourceIcon,
+  OdometerSource,
+} from '../../../api/odometerSyncApi';
 
 /**
  * Odometer Reconciliation Component
@@ -28,7 +36,6 @@ const OdometerReconciliation = () => {
   const [loading, setLoading] = useState(false);
   const [selectedVehicles, setSelectedVehicles] = useState([]);
   const [onlyDiscrepancies, setOnlyDiscrepancies] = useState(true);
-  const [discrepancyThreshold, setDiscrepancyThreshold] = useState(100);
 
   // Bulk update state
   const [updatePopupVisible, setUpdatePopupVisible] = useState(false);
@@ -43,22 +50,44 @@ const OdometerReconciliation = () => {
   const fetchComparisons = useCallback(async () => {
     try {
       setLoading(true);
-      const response = await axiosInstance.get('/vehiclemaintenance/odometer-comparison', {
-        params: {
-          onlyWithDiscrepancies: onlyDiscrepancies,
-          discrepancyThreshold: discrepancyThreshold,
-        },
-      });
+      const response = await getAllVehicleOdometerStatus(onlyDiscrepancies);
 
-      if (response.data.isSuccess) {
-        setComparisons(response.data.data || []);
+      if (response.isSuccess) {
+        // Transform data to match the grid's expected format
+        const transformedData = (response.data || []).map((item) => ({
+          vehicleId: item.vehicleId,
+          hyoungNo: item.hyoungNo,
+          numberPlate: item.numberPlate,
+          averageKmL: item.averageKmL,
+          unit: item.unit,
+          hasGpsMapping: item.hasGPSMapping,
+          gpsUserId: item.gpsUserId,
+          gpsAccumulatorId: item.gpsAccumulatorId,
+          gpsOdometer: item.gpsReading ? item.gpsReading / (item.averageKmL ? 1000 : 1) : null, // Convert meters to km
+          gpsTimestamp: item.gpsReadingTimestamp,
+          databaseOdometer: item.storedPhysicalReading ? parseFloat(item.storedPhysicalReading) : null,
+          fuelingOdometer: item.fuelingReading,
+          fuelingSource: item.fuelingSource,
+          fuelingTimestamp: item.fuelingTimestamp,
+          recommendedReading: item.recommendedReading,
+          recommendedSource: item.recommendedSource,
+          recommendedTimestamp: item.recommendedTimestamp,
+          syncNeeded: item.syncNeeded,
+          discrepancy: item.readingDifference,
+          hasSignificantDiscrepancy: item.syncNeeded,
+          discrepancyPercentage: item.fuelingReading && item.readingDifference
+            ? (item.readingDifference / item.fuelingReading) * 100
+            : null,
+        }));
+
+        setComparisons(transformedData);
         notify(
-          `Loaded ${response.data.data?.length || 0} vehicles`,
+          `Loaded ${transformedData.length} vehicles`,
           'success',
           2000
         );
       } else {
-        notify(response.data.message || 'Failed to load comparisons', 'error', 3000);
+        notify(response.message || 'Failed to load comparisons', 'error', 3000);
       }
     } catch (error) {
       console.error('Error fetching odometer comparisons:', error);
@@ -66,7 +95,7 @@ const OdometerReconciliation = () => {
     } finally {
       setLoading(false);
     }
-  }, [onlyDiscrepancies, discrepancyThreshold]);
+  }, [onlyDiscrepancies]);
 
   useEffect(() => {
     fetchComparisons();
@@ -78,22 +107,16 @@ const OdometerReconciliation = () => {
       return;
     }
 
-    // Prepare updates only for vehicles with GPS data
-    const validUpdates = selectedVehicles
-      .filter(v => v.gpsOdometer != null)
-      .map(v => ({
-        vehicleId: v.vehicleId,
-        gpsOdometer: v.gpsOdometer,
-        updateSource: 'GPS',
-      }));
+    // Filter vehicles that need sync and have GPS data
+    const validVehicles = selectedVehicles.filter(v => v.hasGpsMapping && v.gpsOdometer != null);
 
-    if (validUpdates.length === 0) {
+    if (validVehicles.length === 0) {
       notify('Selected vehicles have no GPS odometer data', 'warning', 3000);
       return;
     }
 
     setUpdateProgress({
-      total: validUpdates.length,
+      total: validVehicles.length,
       processed: 0,
       success: 0,
       failed: 0,
@@ -101,24 +124,27 @@ const OdometerReconciliation = () => {
     setUpdatePopupVisible(true);
     setUpdating(true);
 
-    try {
-      const response = await axiosInstance.post(
-        '/vehiclemaintenance/odometer-bulk-update',
-        { updates: validUpdates }
-      );
+    let successCount = 0;
+    let failCount = 0;
 
-      if (response.data.isSuccess) {
-        const result = response.data.data;
+    try {
+      // Use batch sync API
+      const response = await batchSyncFromGPS(true);
+
+      if (response.isSuccess && response.data) {
+        const result = response.data;
+        successCount = result.successCount || 0;
+        failCount = result.failedCount || 0;
 
         setUpdateProgress({
-          total: result.totalRequested,
-          processed: result.totalRequested,
-          success: result.successCount,
-          failed: result.failCount,
+          total: result.totalVehicles || validVehicles.length,
+          processed: successCount + failCount,
+          success: successCount,
+          failed: failCount,
         });
 
         notify(
-          `Updated ${result.successCount} vehicles successfully`,
+          `Updated ${successCount} vehicles successfully`,
           'success',
           3000
         );
@@ -127,13 +153,35 @@ const OdometerReconciliation = () => {
         await fetchComparisons();
         setSelectedVehicles([]);
       } else {
-        notify(response.data.message || 'Bulk update failed', 'error', 3000);
+        notify(response.message || 'Bulk update failed', 'error', 3000);
       }
     } catch (error) {
       console.error('Error during bulk update:', error);
       notify('Error updating vehicle odometers', 'error', 3000);
     } finally {
       setUpdating(false);
+    }
+  };
+
+  // Handle single vehicle sync
+  const handleSingleSync = async (vehicleId, direction = 'from-gps') => {
+    try {
+      let response;
+      if (direction === 'from-gps') {
+        response = await syncOdometerFromGPS(vehicleId);
+      } else {
+        response = await syncOdometerToGPS(vehicleId);
+      }
+
+      if (response.isSuccess && response.data?.success) {
+        notify(response.data.message || 'Sync completed', 'success', 2000);
+        await fetchComparisons();
+      } else {
+        notify(response.message || response.data?.message || 'Sync failed', 'error', 3000);
+      }
+    } catch (error) {
+      console.error('Error syncing vehicle:', error);
+      notify('Error syncing vehicle odometer', 'error', 3000);
     }
   };
 
@@ -304,12 +352,13 @@ const OdometerReconciliation = () => {
           {/* Filters */}
           <div className="tw-flex tw-gap-4 tw-mt-4 tw-items-center">
             <CheckBox
-              text="Only show vehicles with discrepancies"
+              text="Only show vehicles needing sync"
               value={onlyDiscrepancies}
               onValueChanged={(e) => setOnlyDiscrepancies(e.value)}
             />
-            <span className="tw-text-sm tw-text-gray-600">
-              Threshold: {discrepancyThreshold} km
+            <span className="tw-text-sm tw-text-gray-500">
+              <i className="fa-light fa-info-circle tw-mr-1"></i>
+              Data synced from GPS and fueling records
             </span>
           </div>
         </div>
@@ -364,6 +413,26 @@ const OdometerReconciliation = () => {
             />
 
             <Column
+              dataField="fuelingOdometer"
+              caption="Fueling Reading"
+              width={150}
+              cellRender={(data) => {
+                const value = data.value;
+                const source = data.data.fuelingSource;
+                if (value == null) {
+                  return <span className="tw-text-gray-400">No data</span>;
+                }
+                return (
+                  <div className="tw-flex tw-items-center tw-gap-1">
+                    <i className="fa-light fa-gas-pump tw-text-amber-600"></i>
+                    <span className="tw-font-mono">{value.toLocaleString()} {data.data.gpsUnit || 'km'}</span>
+                    {source && <span className="tw-text-xs tw-text-gray-500">({source})</span>}
+                  </div>
+                );
+              }}
+            />
+
+            <Column
               dataField="discrepancy"
               caption="Discrepancy"
               cellRender={renderDiscrepancyCell}
@@ -372,13 +441,54 @@ const OdometerReconciliation = () => {
             />
 
             <Column
-              dataField="discrepancyPercentage"
-              caption="Difference %"
+              dataField="recommendedSource"
+              caption="Recommended"
+              width={130}
+              cellRender={(data) => {
+                const source = data.value;
+                if (!source) return <span className="tw-text-gray-400">-</span>;
+
+                const sourceColors = {
+                  'GPS': 'tw-text-blue-600 tw-bg-blue-50',
+                  'Fueling': 'tw-text-amber-600 tw-bg-amber-50',
+                  'Database': 'tw-text-green-600 tw-bg-green-50'
+                };
+                const colorClass = sourceColors[source] || 'tw-text-gray-600 tw-bg-gray-50';
+
+                return (
+                  <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${colorClass}`}>
+                    {source}
+                  </span>
+                );
+              }}
+            />
+
+            <Column
+              caption="Actions"
               width={120}
-              customizeText={(cellInfo) => {
-                return cellInfo.value != null
-                  ? `${cellInfo.value.toFixed(1)}%`
-                  : '-';
+              cellRender={(data) => {
+                const row = data.data;
+                if (!row.hasGpsMapping) {
+                  return <span className="tw-text-gray-400 tw-text-xs">No GPS</span>;
+                }
+                return (
+                  <div className="tw-flex tw-gap-1">
+                    <button
+                      className="tw-px-2 tw-py-1 tw-text-xs tw-bg-blue-100 tw-text-blue-700 tw-rounded hover:tw-bg-blue-200"
+                      onClick={() => handleSingleSync(row.vehicleId, 'from-gps')}
+                      title="Sync from GPS to Database"
+                    >
+                      <i className="fa-light fa-cloud-arrow-down"></i>
+                    </button>
+                    <button
+                      className="tw-px-2 tw-py-1 tw-text-xs tw-bg-green-100 tw-text-green-700 tw-rounded hover:tw-bg-green-200"
+                      onClick={() => handleSingleSync(row.vehicleId, 'to-gps')}
+                      title="Sync from Database to GPS"
+                    >
+                      <i className="fa-light fa-cloud-arrow-up"></i>
+                    </button>
+                  </div>
+                );
               }}
             />
           </DataGrid>

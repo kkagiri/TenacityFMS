@@ -116,34 +116,100 @@ namespace FMS.Application.Services.Dashboard
                 vc = vc.Where(v => v.IsKmperLiter == 1);
             }
 
-            Func<dynamic, decimal?> selector = metric
-            switch
-            {
-                TimeSeriesMetric.FuelUsed => x => (decimal?)x.TotalFuel,
-                TimeSeriesMetric.EngineHours => x => (decimal?)x.EngHours,
-                TimeSeriesMetric.Distance => x => (decimal?)x.TotalDistance,
-                _ => _ => null
-            };
-
+            // Use separate query paths for each metric to ensure EF Core can translate to SQL
             if (string.Equals(granularity, "hour", StringComparison.OrdinalIgnoreCase))
             {
-                var grouped = await vc
-                    .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day, v.Date.Hour })
-                    .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, g.Key.Hour, Sum = g.Sum(x => selector(x) ?? 0) })
-                    .ToListAsync();
-
-                return grouped
-                    .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, g.Hour, 0, 0, DateTimeKind.Local), value = (decimal)g.Sum })
-                    .OrderBy(p => p.timestamp)
-                    .ToList();
+                return metric switch
+                {
+                    TimeSeriesMetric.FuelUsed => await GetHourlyFuelUsedAsync(vc),
+                    TimeSeriesMetric.EngineHours => await GetHourlyEngineHoursAsync(vc),
+                    TimeSeriesMetric.Distance => await GetHourlyDistanceAsync(vc),
+                    _ => new List<object>()
+                };
             }
 
-            var groupedDaily = await vc
-                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day })
-                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, Sum = g.Sum(x => selector(x) ?? 0) })
+            return metric switch
+            {
+                TimeSeriesMetric.FuelUsed => await GetDailyFuelUsedAsync(vc),
+                TimeSeriesMetric.EngineHours => await GetDailyEngineHoursAsync(vc),
+                TimeSeriesMetric.Distance => await GetDailyDistanceAsync(vc),
+                _ => new List<object>()
+            };
+        }
+
+        private async Task<object> GetHourlyFuelUsedAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day, v.Date.Hour })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, g.Key.Hour, Sum = g.Sum(x => x.TotalFuel ?? 0m) })
                 .ToListAsync();
 
-            return groupedDaily
+            return grouped
+                .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, g.Hour, 0, 0, DateTimeKind.Local), value = g.Sum })
+                .OrderBy(p => p.timestamp)
+                .ToList();
+        }
+
+        private async Task<object> GetHourlyEngineHoursAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day, v.Date.Hour })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, g.Key.Hour, Sum = g.Sum(x => x.EngHours ?? 0m) })
+                .ToListAsync();
+
+            return grouped
+                .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, g.Hour, 0, 0, DateTimeKind.Local), value = (decimal)g.Sum })
+                .OrderBy(p => p.timestamp)
+                .ToList();
+        }
+
+        private async Task<object> GetHourlyDistanceAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day, v.Date.Hour })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, g.Key.Hour, Sum = g.Sum(x => x.TotalDistance ?? 0m) })
+                .ToListAsync();
+
+            return grouped
+                .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, g.Hour, 0, 0, DateTimeKind.Local), value = (decimal)g.Sum })
+                .OrderBy(p => p.timestamp)
+                .ToList();
+        }
+
+        private async Task<object> GetDailyFuelUsedAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, Sum = g.Sum(x => x.TotalFuel ?? 0m) })
+                .ToListAsync();
+
+            return grouped
+                .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, 0, 0, 0, DateTimeKind.Local), value = g.Sum })
+                .OrderBy(p => p.timestamp)
+                .ToList();
+        }
+
+        private async Task<object> GetDailyEngineHoursAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, Sum = g.Sum(x => x.EngHours ?? 0m) })
+                .ToListAsync();
+
+            return grouped
+                .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, 0, 0, 0, DateTimeKind.Local), value = (decimal)g.Sum })
+                .OrderBy(p => p.timestamp)
+                .ToList();
+        }
+
+        private async Task<object> GetDailyDistanceAsync(IQueryable<FMS.Domain.Entities.Vehicleconsumption> vc)
+        {
+            var grouped = await vc
+                .GroupBy(v => new { v.Date.Year, v.Date.Month, v.Date.Day })
+                .Select(g => new { g.Key.Year, g.Key.Month, g.Key.Day, Sum = g.Sum(x => x.TotalDistance ?? 0m) })
+                .ToListAsync();
+
+            return grouped
                 .Select(g => new { timestamp = new DateTime(g.Year, g.Month, g.Day, 0, 0, 0, DateTimeKind.Local), value = (decimal)g.Sum })
                 .OrderBy(p => p.timestamp)
                 .ToList();

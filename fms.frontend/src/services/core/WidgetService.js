@@ -9,11 +9,8 @@ import BaseService from '../core/BaseService';
 
 export class WidgetService extends BaseService {
   constructor(config = {}) {
-    super({
-      ...config,
-      baseUrl: '/api/v1/dashboard/widgets',
-      serviceName: 'WidgetService'
-    });
+    // BaseService expects (serviceName, baseEndpoint, options)
+    super('WidgetService', 'v1/dashboard/widgets', config);
 
     // Widget data cache with TTL
     this.widgetDataCache = new Map();

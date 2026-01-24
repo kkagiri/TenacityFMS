@@ -86,6 +86,9 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
 
+            // Register Odometer Sync service for bidirectional sync between GPS and fueling data
+            services.TryAddScoped<IOdometerSyncService, OdometerSyncService>();
+
             // Register Fuel Audit GPS Service for fetching GPS-based fuel data
             services.AddHttpClient<IFuelAuditGPSService, FuelAuditGPSService>();
             services.TryAddScoped<IFuelAuditGPSService, FuelAuditGPSService>();

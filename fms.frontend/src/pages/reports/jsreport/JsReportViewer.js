@@ -1,12 +1,13 @@
 /**
  * File: JsReportViewer.js
  * Purpose: Report viewer with filter form and preview/download capabilities
- * Dependencies: React, DevExtreme, reportingService
- * Last Modified: 2026-01-19
+ * Dependencies: React, DevExtreme, Redux, reportingService
+ * Last Modified: 2026-01-23
  */
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useDispatch, useSelector } from 'react-redux';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import { DateBox } from 'devextreme-react/date-box';
@@ -14,12 +15,21 @@ import { LoadPanel } from 'devextreme-react/load-panel';
 import { TabPanel, Item } from 'devextreme-react/tab-panel';
 import notify from 'devextreme/ui/notify';
 import reportingService from '../../../services/reportingService';
+import { fetchSiteList } from '../../../redux/actions/siteActions';
+import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
+import { fetchTanks } from '../../../redux/actions/tankActions';
 import './JsReportViewer.scss';
 
 const JsReportViewer = () => {
   const { reportType } = useParams();
   const [searchParams] = useSearchParams();
+  const dispatch = useDispatch();
   const iframeRef = useRef(null);
+
+  // Redux state
+  const { sites: reduxSites, loading: sitesLoading } = useSelector((state) => state.site || {});
+  const { vehicles: reduxVehicles, loading: vehiclesLoading } = useSelector((state) => state.vehicle || {});
+  const { tanks: reduxTanks, loading: tanksLoading } = useSelector((state) => state.tank || {});
 
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
@@ -39,11 +49,56 @@ const JsReportViewer = () => {
     fuelGradeId: null
   });
 
-  // Lookup data
-  const [sites, setSites] = useState([]);
-  const [vehicles, setVehicles] = useState([]);
-  const [tanks, setTanks] = useState([]);
-  const [fuelGrades, setFuelGrades] = useState([]);
+  // Process lookup data from Redux
+  const sites = useMemo(() => {
+    const siteArray = Array.isArray(reduxSites) ? reduxSites : [];
+    return siteArray.map(s => ({
+      id: s.siteId || s.id,
+      name: s.siteName || s.name || `Site ${s.siteId || s.id}`
+    }));
+  }, [reduxSites]);
+
+  const vehicles = useMemo(() => {
+    const vehicleArray = Array.isArray(reduxVehicles) ? reduxVehicles : [];
+    return vehicleArray.map(v => ({
+      id: v.vehicleId || v.id,
+      name: v.hyoungNo || v.name || v.vehicleName || `Vehicle ${v.vehicleId || v.id}`
+    }));
+  }, [reduxVehicles]);
+
+  const tanks = useMemo(() => {
+    const tankArray = Array.isArray(reduxTanks) ? reduxTanks : [];
+    return tankArray.map(t => ({
+      id: t.id || t.tankId,
+      name: t.name || t.tankName || `Tank ${t.id || t.tankId}`,
+      fuelGradeId: t.fuelGradeId,
+      fuelGradeName: t.fuelGradeName,
+      siteId: t.siteId
+    }));
+  }, [reduxTanks]);
+
+  // Extract unique fuel grades from tanks
+  const fuelGrades = useMemo(() => {
+    const tankArray = Array.isArray(reduxTanks) ? reduxTanks : [];
+    const gradeMap = new Map();
+
+    tankArray.forEach(t => {
+      if (t.fuelGradeId && t.fuelGradeName) {
+        gradeMap.set(t.fuelGradeId, {
+          id: t.fuelGradeId,
+          name: t.fuelGradeName
+        });
+      }
+    });
+
+    return Array.from(gradeMap.values()).sort((a, b) => a.name.localeCompare(b.name));
+  }, [reduxTanks]);
+
+  // Filter tanks by selected site
+  const filteredTanks = useMemo(() => {
+    if (!filters.siteId) return tanks;
+    return tanks.filter(t => t.siteId === filters.siteId);
+  }, [tanks, filters.siteId]);
 
   const outputFormats = [
     { value: 'html', text: 'HTML Preview' },
@@ -80,35 +135,33 @@ const JsReportViewer = () => {
   };
 
   const loadLookupData = async () => {
-    // TODO: Load actual lookup data from API
-    // For now, using placeholder data
-    setSites([
-      { id: 1, name: 'Main Depot' },
-      { id: 2, name: 'North Station' },
-      { id: 3, name: 'South Terminal' }
-    ]);
-
-    setVehicles([
-      { id: 1, name: 'Toyota Hilux - Fleet 01' },
-      { id: 2, name: 'Ford Ranger - Fleet 02' },
-      { id: 3, name: 'Isuzu D-Max - Fleet 03' }
-    ]);
-
-    setTanks([
-      { id: 1, name: 'Tank A - Diesel' },
-      { id: 2, name: 'Tank B - Petrol 95' },
-      { id: 3, name: 'Tank C - Petrol 91' }
-    ]);
-
-    setFuelGrades([
-      { id: 1, name: 'Diesel' },
-      { id: 2, name: 'Petrol 95' },
-      { id: 3, name: 'Petrol 91' }
-    ]);
+    // Load data from Redux actions
+    try {
+      await Promise.all([
+        dispatch(fetchSiteList()),
+        dispatch(fetchVehicleList()),
+        dispatch(fetchTanks())
+      ]);
+    } catch (error) {
+      console.error('Error loading lookup data:', error);
+      notify({ message: 'Error loading filter data', type: 'warning' });
+    }
   };
 
   const handleFilterChange = (field, value) => {
-    setFilters(prev => ({ ...prev, [field]: value }));
+    setFilters(prev => {
+      const newFilters = { ...prev, [field]: value };
+
+      // Clear tank selection when site changes
+      if (field === 'siteId' && prev.tankId) {
+        const tank = tanks.find(t => t.id === prev.tankId);
+        if (tank && tank.siteId !== value) {
+          newFilters.tankId = null;
+        }
+      }
+
+      return newFilters;
+    });
   };
 
   const generateReport = useCallback(async () => {
@@ -229,9 +282,11 @@ const JsReportViewer = () => {
     }
   };
 
+  const isDataLoading = sitesLoading || vehiclesLoading || tanksLoading;
+
   return (
     <div className="jsreport-viewer">
-      <LoadPanel visible={loading || generating} />
+      <LoadPanel visible={loading || generating || isDataLoading} />
 
       {/* Header */}
       <div className="viewer-header">
@@ -317,6 +372,7 @@ const JsReportViewer = () => {
                 onValueChanged={(e) => handleFilterChange('siteId', e.value)}
                 placeholder="All Sites"
                 showClearButton={true}
+                searchEnabled={true}
               />
             </div>
 
@@ -337,15 +393,16 @@ const JsReportViewer = () => {
 
             {/* Tank Filter */}
             <div className="filter-group">
-              <label>Tank</label>
+              <label>Tank {filters.siteId && <span className="tw-text-xs tw-text-gray-400">(filtered by site)</span>}</label>
               <SelectBox
                 value={filters.tankId}
-                dataSource={tanks}
+                dataSource={filteredTanks}
                 valueExpr="id"
                 displayExpr="name"
                 onValueChanged={(e) => handleFilterChange('tankId', e.value)}
                 placeholder="All Tanks"
                 showClearButton={true}
+                searchEnabled={true}
               />
             </div>
 
@@ -360,6 +417,7 @@ const JsReportViewer = () => {
                 onValueChanged={(e) => handleFilterChange('fuelGradeId', e.value)}
                 placeholder="All Fuel Grades"
                 showClearButton={true}
+                searchEnabled={true}
               />
             </div>
 

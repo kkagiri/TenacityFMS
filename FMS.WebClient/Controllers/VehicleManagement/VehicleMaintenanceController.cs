@@ -275,4 +275,19 @@ public class VehicleMaintenanceController : ControllerBase
         await _cache.RemoveAsync("Maintenance:Schedules:False");
         await _cache.RemoveAsync("Maintenance:Schedules:");
     }
+
+    /// <summary>
+    /// Get odometer comparison data for vehicles - compares GPS readings with stored values
+    /// </summary>
+    /// <param name="onlyWithDiscrepancies">If true, only return vehicles with significant discrepancies</param>
+    /// <param name="discrepancyThreshold">Threshold in km/hours to consider as discrepancy (default: 100)</param>
+    [HttpGet("odometer-comparison")]
+    public async Task<IActionResult> GetOdometerComparison(
+        [FromQuery] bool onlyWithDiscrepancies = false,
+        [FromQuery] decimal discrepancyThreshold = 100)
+    {
+        var query = new GetAllVehicleOdometerStatusQuery(onlyWithDiscrepancies, discrepancyThreshold);
+        var result = await _mediator.Send(query);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
 }

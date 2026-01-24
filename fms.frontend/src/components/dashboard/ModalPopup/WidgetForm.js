@@ -88,7 +88,9 @@ export default function WidgetForm({
   previewData,
   previewLoading,
   previewError,
-  onPreviewData
+  onPreviewData,
+  isEditMode = false,
+  editingWidget = null
 }) {
   const [isCustomWidget, setIsCustomWidget] = useState(false);
   const [dataSources, setDataSources] = useState([]);
@@ -179,8 +181,21 @@ export default function WidgetForm({
       });
     });
 
-    if (widgetTypeSet.size === 0 && ['key_statistics', 'performance_metrics'].includes(newWidget.category)) {
-      ['BIG_STAT_CARD', 'ticker'].forEach(type => widgetTypeSet.add(type));
+    // Comprehensive fallback widget types per category when catalog doesn't have metadata
+    if (widgetTypeSet.size === 0) {
+      const fallbackWidgetTypes = {
+        key_statistics: ['BIG_STAT_CARD', 'ticker'],
+        performance_metrics: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED'],
+        fuel_management: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'CHART_PIE_DISTRIBUTION', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
+        vehicle_performance: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
+        alerts_monitoring: ['ALERT_NOTIFICATION', 'DATA_TABLE_DETAILED', 'BIG_STAT_CARD'],
+        system_status: ['BIG_STAT_CARD', 'ALERT_NOTIFICATION', 'PROGRESS_LIST'],
+        reporting: ['DATA_TABLE_DETAILED', 'CHART_BAR_COMPARISON', 'BIG_STAT_CARD'],
+        configuration: ['DATA_TABLE_DETAILED', 'BIG_STAT_CARD']
+      };
+
+      const categoryFallbacks = fallbackWidgetTypes[newWidget.category] || ['BIG_STAT_CARD'];
+      categoryFallbacks.forEach(type => widgetTypeSet.add(type));
     }
 
     return Array.from(widgetTypeSet).map(type => {
@@ -222,10 +237,19 @@ export default function WidgetForm({
   }, [vehicleTypes]);
 
   const availableDataSources = useMemo(() => {
-    if (!Array.isArray(dataSources) || dataSources.length === 0) return [];
+    if (!Array.isArray(dataSources) || dataSources.length === 0) {
+      console.log('[WidgetForm] No data sources available');
+      return [];
+    }
 
-    return dataSources.filter(item => {
+    const filtered = dataSources.filter(item => {
       const metadata = item.metadata || {};
+
+      // In edit mode, be more lenient with filtering - include the current metric
+      if (isEditMode && newWidget.metric && item.id === newWidget.metric) {
+        return true;
+      }
+
       const categoryMatch = !newWidget.category || metadata.category === newWidget.category || ['key_statistics', 'performance_metrics'].includes(newWidget.category);
       if (!categoryMatch) return false;
 
@@ -243,7 +267,10 @@ export default function WidgetForm({
       category: item.metadata?.category,
       metadata: item.metadata
     }));
-  }, [dataSources, newWidget.category, newWidget.visualizationType]);
+
+    console.log('[WidgetForm] Available data sources:', filtered.length, 'for category:', newWidget.category, 'metric:', newWidget.metric);
+    return filtered;
+  }, [dataSources, newWidget.category, newWidget.visualizationType, isEditMode, newWidget.metric]);
 
   // Smart unit options based on metric type
   const getUnitOptionsForMetric = useMemo(() => {
@@ -279,14 +306,16 @@ export default function WidgetForm({
 
   // Smart filter configuration based on data source/metric
   const getAvailableFilters = useMemo(() => {
-    if (!newWidget.metric) return {};
+    // Always show aggregation and granularity - they are fundamental configuration options
+    // The SelectBox will use defaults if metadata isn't available
     return {
-      aggregation: (dataSourceMeta?.supportedAggregations || []).length > 0,
+      aggregation: true, // Always show - use defaults if no metadata
+      granularity: true, // Always show granularity option
       sites: dataSourceMeta?.requiresSiteFilter ?? true,
       dateRange: true,
       vehicleTypes: dataSourceMeta?.requiresVehicleFilter ?? false
     };
-  }, [newWidget.metric, dataSourceMeta]);
+  }, [dataSourceMeta]);
 
   // Widget types available for each category - moved to CustomWidgetDialog  // Widget types available for each category - moved to CustomWidgetDialog
   // const widgetTypesByCategory = useMemo(() => ({
@@ -459,6 +488,15 @@ export default function WidgetForm({
     return () => { mounted = false; };
   }, []);
 
+  // Initialize isCustomWidget state when entering edit mode
+  useEffect(() => {
+    if (isEditMode && editingWidget) {
+      // Custom widgets have no templateId
+      const isCustom = !editingWidget.templateId && editingWidget.category && editingWidget.visualizationType;
+      setIsCustomWidget(isCustom);
+    }
+  }, [isEditMode, editingWidget]);
+
   // Fetch metadata and apply defaults when metric changes
   useEffect(() => {
     let mounted = true;
@@ -568,10 +606,44 @@ export default function WidgetForm({
   //   }));
   // };
 
+  // In edit mode, determine if it's a custom widget based on whether it has a templateId
+  const isEditingCustomWidget = isEditMode && !newWidget.templateId && newWidget.category && newWidget.visualizationType;
+
+  // Skip template/custom selection when editing - go straight to the configuration
+  const showTemplateSelection = !isEditMode && !newWidget.templateId && !(isCustomWidget && newWidget.category && newWidget.visualizationType);
+
   return (
     <div className="tw-space-y-6">
-      {/* Template vs Custom Selection - Simple and Clean */}
-      {!newWidget.templateId && !(isCustomWidget && newWidget.category && newWidget.visualizationType) && (
+      {/* Edit Mode Header */}
+      {isEditMode && (
+        <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-space-y-4">
+          <div className="tw-flex tw-items-center">
+            <i className="fa-light fa-pen-to-square tw-text-blue-600 tw-text-xl tw-mr-3"></i>
+            <div>
+              <h4 className="tw-font-semibold tw-text-blue-900">Editing Widget</h4>
+              <p className="tw-text-sm tw-text-blue-700">
+                {newWidget.templateId ? 'Template-based widget' : 'Custom widget'}
+              </p>
+            </div>
+          </div>
+
+          {/* Widget Name Input */}
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+              Widget Name <span className="tw-text-red-500">*</span>
+            </label>
+            <TextBox
+              value={newWidget.customName}
+              placeholder="Enter a descriptive name..."
+              width="100%"
+              onValueChanged={(e) => setNewWidget(prev => ({ ...prev, customName: e.value }))}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* Template vs Custom Selection - Simple and Clean (only for Add mode) */}
+      {showTemplateSelection && (
         <div className="tw-space-y-3">
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3">
             {/* Use Template Option */}
@@ -615,8 +687,8 @@ export default function WidgetForm({
         </div>
       )}
 
-      {/* Template Selection */}
-      {!isCustomWidget && (
+      {/* Template Selection - Show in Add mode when using templates */}
+      {!isEditMode && !isCustomWidget && (
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
           <div className="tw-mb-3">
             <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-800 tw-mb-1">
@@ -655,8 +727,8 @@ export default function WidgetForm({
         </div>
       )}
 
-      {/* Custom Widget Configuration */}
-      {isCustomWidget && (
+      {/* Custom Widget Configuration - Show in Add mode for custom widgets OR Edit mode for custom widgets */}
+      {((!isEditMode && isCustomWidget) || isEditingCustomWidget) && (
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
           <div className="tw-mb-2">
             <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
@@ -743,12 +815,7 @@ export default function WidgetForm({
       )}
 
       {/* Data Source & Configuration */}
-      {(newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) &&
-       (newWidget.category === 'key_statistics' ||
-        newWidget.category === 'performance_metrics' ||
-        newWidget.category === 'fuel_management' ||
-        newWidget.category === 'vehicle_performance' ||
-        newWidget.category === 'alerts_monitoring') && (
+      {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
           <div className="tw-mb-2">
             <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
@@ -834,7 +901,7 @@ export default function WidgetForm({
       )}
 
       {/* Data Filters - Simplified */}
-      {(newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && newWidget.metric && (
+      {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
           <div className="tw-mb-2">
             <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
@@ -885,14 +952,14 @@ export default function WidgetForm({
             </div>
           )}
 
-          {/* Granularity */}
-          {newWidget.visualizationType && ['CHART_LINE_TREND','BIG_STAT_CARD'].includes(newWidget.visualizationType) && (
+          {/* Granularity - Always show as a fundamental configuration option */}
+          {getAvailableFilters.granularity && (
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
                 Granularity
               </label>
               <SelectBox
-                items={(dataSourceMeta?.supportedGranularities || dataSourceMeta?.supportedGranularity || ['minute','hour','day','week']).map(g => ({ value: g, text: g }))}
+                items={(dataSourceMeta?.supportedGranularities || dataSourceMeta?.supportedGranularity || ['minute','hour','day','week']).map(g => ({ value: g, text: g.charAt(0).toUpperCase() + g.slice(1) }))}
                 value={newWidget.granularity || (newWidget.mode === 'live' ? 'minute' : 'day')}
                 displayExpr="text"
                 valueExpr="value"
@@ -929,7 +996,7 @@ export default function WidgetForm({
       )}
 
       {/* Configuration - Mode & Sites */}
-      {(newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
+      {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
         <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
           <div className="tw-mb-2">
             <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">

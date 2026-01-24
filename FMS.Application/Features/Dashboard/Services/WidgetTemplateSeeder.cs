@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Persistence.DataAccess;
@@ -7,42 +8,59 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
-namespace FMS.Application.Services.Dashboard {
-    public interface IWidgetTemplateSeeder {
-        Task SeedWidgetTemplatesAsync ();
+namespace FMS.Application.Services.Dashboard
+{
+    public interface IWidgetTemplateSeeder
+    {
+        Task SeedWidgetTemplatesAsync();
     }
 
-    public class WidgetTemplateSeeder : IWidgetTemplateSeeder {
+    public class WidgetTemplateSeeder : IWidgetTemplateSeeder
+    {
         private readonly GpsdataContext _context;
         private readonly ILogger<WidgetTemplateSeeder> _logger;
 
-        public WidgetTemplateSeeder (
+        public WidgetTemplateSeeder(
             GpsdataContext context,
-            ILogger<WidgetTemplateSeeder> logger) {
+            ILogger<WidgetTemplateSeeder> logger)
+        {
             _context = context;
             _logger = logger;
         }
 
-        public async Task SeedWidgetTemplatesAsync () {
-            try {
-                // Check if templates already exist
-                if (await _context.DashboardWidgetTemplates.AnyAsync ()) {
-                    _logger.LogInformation ("Widget templates already exist, skipping seeding");
+        public async Task SeedWidgetTemplatesAsync()
+        {
+            try
+            {
+                var existingTemplateNames = await _context.DashboardWidgetTemplates
+                    .Select(t => t.Name)
+                    .ToListAsync();
+                var existingSet = new HashSet<string>(existingTemplateNames, StringComparer.OrdinalIgnoreCase);
+
+                var allTemplates = GetDefaultTemplates();
+                var newTemplates = allTemplates.Where(t => !existingSet.Contains(t.Name)).ToList();
+
+                if (!newTemplates.Any())
+                {
+                    _logger.LogInformation("All widget templates already exist, nothing to seed");
                     return;
                 }
 
-                var templates = GetDefaultTemplates ();
-                await _context.DashboardWidgetTemplates.AddRangeAsync (templates);
-                await _context.SaveChangesAsync ();
+                await _context.DashboardWidgetTemplates.AddRangeAsync(newTemplates);
+                await _context.SaveChangesAsync();
 
-                _logger.LogInformation ("Successfully seeded {Count} widget templates", templates.Count);
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error seeding widget templates");
+                _logger.LogInformation("Successfully seeded {Count} new widget templates (skipped {SkippedCount} existing)",
+                    newTemplates.Count, allTemplates.Count - newTemplates.Count);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error seeding widget templates");
                 throw;
             }
         }
 
-        private List<DashboardWidgetTemplate> GetDefaultTemplates () {
+        private List<DashboardWidgetTemplate> GetDefaultTemplates()
+        {
             return new List<DashboardWidgetTemplate> {
                 // Key Statistics Widgets
                 new DashboardWidgetTemplate {
@@ -165,6 +183,91 @@ namespace FMS.Application.Services.Dashboard {
                             },
 
                             // Fuel Management Widgets
+                            new DashboardWidgetTemplate {
+                            WidgetType = "BIG_STAT_CARD",
+                            Name = "fuel_dispense_today",
+                            DisplayName = "Fuel Dispense Today",
+                            Description = "Shows total fuel dispensed today from pumps or manual refill",
+                            Category = "fuel_management",
+                            DataSource = "fuel_dispensed",
+                            ConfigurationJson = JsonConvert.SerializeObject (new {
+                            defaultMode = "daily_aggregated",
+                            defaultDatePreset = "today",
+                            aggregation = "sum",
+                            unit = "liters",
+                            showTrend = true,
+                            showComparison = true,
+                            defaultSettings = new {
+                            mode = "daily_aggregated",
+                            datePreset = "today",
+                            aggregation = "sum",
+                            granularity = "hour",
+                            unit = "liters",
+                            dataSource = "fuel_dispensed"
+                            }
+                            }),
+                            RequiredRole = "User,Manager,Admin",
+                            RequiredPermissions = "dashboard.view,fuel.view",
+                            IsEnabled = true
+                            },
+
+                            new DashboardWidgetTemplate {
+                            WidgetType = "CHART_LINE_TREND",
+                            Name = "fuel_dispense_trend_chart",
+                            DisplayName = "Fuel Dispense Trend",
+                            Description = "Line chart showing fuel dispensed trend over time",
+                            Category = "fuel_management",
+                            DataSource = "fuel_dispensed",
+                            ConfigurationJson = JsonConvert.SerializeObject (new {
+                            chartType = "line",
+                            defaultMode = "daily_aggregated",
+                            defaultDatePreset = "last_7_days",
+                            aggregation = "sum",
+                            granularity = "day",
+                            unit = "liters",
+                            showDataPoints = true,
+                            defaultSettings = new {
+                            mode = "daily_aggregated",
+                            datePreset = "last_7_days",
+                            aggregation = "sum",
+                            granularity = "day",
+                            unit = "liters",
+                            dataSource = "fuel_dispensed"
+                            }
+                            }),
+                            RequiredRole = "User,Manager,Admin",
+                            RequiredPermissions = "dashboard.view,fuel.view",
+                            IsEnabled = true
+                            },
+
+                            new DashboardWidgetTemplate {
+                            WidgetType = "CHART_BAR_COMPARISON",
+                            Name = "fuel_dispense_by_site",
+                            DisplayName = "Fuel Dispense by Site",
+                            Description = "Bar chart comparing fuel dispensed across sites",
+                            Category = "fuel_management",
+                            DataSource = "fuel_dispensed",
+                            ConfigurationJson = JsonConvert.SerializeObject (new {
+                            chartType = "bar",
+                            defaultMode = "daily_aggregated",
+                            defaultDatePreset = "last_7_days",
+                            aggregation = "sum",
+                            groupBy = "site",
+                            unit = "liters",
+                            defaultSettings = new {
+                            mode = "daily_aggregated",
+                            datePreset = "last_7_days",
+                            aggregation = "sum",
+                            groupBy = "site",
+                            unit = "liters",
+                            dataSource = "fuel_dispensed"
+                            }
+                            }),
+                            RequiredRole = "User,Manager,Admin",
+                            RequiredPermissions = "dashboard.view,fuel.view",
+                            IsEnabled = true
+                            },
+
                             new DashboardWidgetTemplate {
                             WidgetType = "table",
                             Name = "tank_levels_table",
