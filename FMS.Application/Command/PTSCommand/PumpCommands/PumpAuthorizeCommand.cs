@@ -532,23 +532,16 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                                 });
                         }
 
-                        // **ALSO CHECK: Book stock should not be excessively negative**
-                        // This indicates data integrity issues that need manual resolution
-                        const decimal NEGATIVE_STOCK_THRESHOLD = -1000; // Flag if book stock is more than 1000L negative
-                        if (currentBookStock < NEGATIVE_STOCK_THRESHOLD)
+                        // **NOTE: Book stock (CurrentStock) check removed - we only validate physical stock**
+                        // Book stock may be out of sync due to missing opening stock entries
+                        // Physical stock is the actual fuel level in the tank
+                        if (currentBookStock < -1000)
                         {
-                            _logger.LogError(
-                                "[PumpAuth] 🚫 BOOK STOCK CRITICALLY NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L (threshold: {Threshold:N0}L). Data reconciliation required!",
-                                tank.Id, tank.Name, currentBookStock, NEGATIVE_STOCK_THRESHOLD);
-
-                            return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
-                                new List<string>
-                                {
-                                    $"🚫 Tank '{tank.Name}' requires stock reconciliation",
-                                    $"Book Stock ({currentBookStock:N0} L) is critically out of sync",
-                                    "This usually means opening stocks were not properly recorded.",
-                                    "Please contact your supervisor to perform a stock adjustment."
-                                });
+                            // Log warning but don't block - physical stock is the source of truth for fueling
+                            _logger.LogWarning(
+                                "[PumpAuth] ⚠️ BOOK STOCK NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L. " +
+                                "Fueling will proceed based on physical stock ({PhysicalStock:N0}L). Data reconciliation recommended.",
+                                tank.Id, tank.Name, currentBookStock, physicalStock);
                         }
 
                         // If specific dose requested, validate against physical stock

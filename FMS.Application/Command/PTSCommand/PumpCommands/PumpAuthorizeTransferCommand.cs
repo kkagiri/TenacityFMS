@@ -211,21 +211,17 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                             });
                     }
 
-                    // Check for critically negative book stock
+                    // **NOTE: Book stock (CurrentStock) check removed - we only validate physical stock**
+                    // Book stock may be out of sync due to missing opening stock entries
+                    // Physical stock is the actual fuel level in the tank
                     const decimal NEGATIVE_STOCK_THRESHOLD = -1000;
                     if (sourceCurrentStock < NEGATIVE_STOCK_THRESHOLD)
                     {
-                        _logger.LogError(
-                            "[TankTransferAuth] 🚫 SOURCE BOOK STOCK CRITICALLY NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L",
-                            sourceTank.Id, sourceTank.Name, sourceCurrentStock);
-
-                        return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
-                            new List<string>
-                            {
-                                $"🚫 Source tank '{sourceTank.Name}' requires stock reconciliation",
-                                $"Book Stock ({sourceCurrentStock:N0} L) is critically out of sync",
-                                "Please contact your supervisor to perform a stock adjustment."
-                            });
+                        // Log warning but don't block - physical stock is the source of truth
+                        _logger.LogWarning(
+                            "[TankTransferAuth] ⚠️ SOURCE BOOK STOCK NEGATIVE - Tank {TankId} ({TankName}) has CurrentStock={CurrentStock:N0}L. " +
+                            "Transfer will proceed based on physical stock ({PhysicalStock:N0}L). Data reconciliation recommended.",
+                            sourceTank.Id, sourceTank.Name, sourceCurrentStock, sourcePhysicalStock);
                     }
                 }
 
