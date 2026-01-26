@@ -106,6 +106,8 @@ public class MaintenanceIssue
 
     // Navigation properties
     public virtual VehicleMaintenance? Maintenance { get; set; }
-    public virtual User? CreatedByNavigation { get; set; }
-    public virtual User? ModifiedByNavigation { get; set; }
+
+    // Note: CreatedBy and ModifiedBy are stored as strings (usernames/Ids),
+    // not as navigation properties. This avoids shadow property issues with EF Core
+    // when using string columns for audit tracking.
 }

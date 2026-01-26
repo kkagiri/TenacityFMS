@@ -105,17 +105,9 @@ public class MaintenanceIssueConfiguration : EntityTypeConfiguration<Maintenance
                 .OnDelete(DeleteBehavior.Cascade)
                 .HasConstraintName("fk_issue_maintenance");
 
-            builder.HasOne(d => d.CreatedByNavigation)
-                .WithMany()
-                .HasForeignKey(d => d.CreatedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_issue_created_by");
-
-            builder.HasOne(d => d.ModifiedByNavigation)
-                .WithMany()
-                .HasForeignKey(d => d.ModifiedBy)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_issue_modified_by");
+            // Note: CreatedBy and ModifiedBy are stored as strings (usernames),
+            // not as foreign keys. Navigation properties removed to avoid shadow property issues.
+            // If you need User references, create separate CreatedById and ModifiedById FK columns.
         }
         catch (Exception ex)
         {

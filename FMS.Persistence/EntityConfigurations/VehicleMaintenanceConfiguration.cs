@@ -135,21 +135,8 @@ public class VehicleMaintenanceConfiguration : EntityTypeConfiguration<VehicleMa
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_maintenance_schedule");
 
-            builder.HasOne(d => d.CreatedByNavigation)
-                .WithMany()
-                .HasForeignKey(d => d.CreatedBy)
-                .HasPrincipalKey(u => u.Id)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_maintenance_created_by");
-
-            builder.HasOne(d => d.ModifiedByNavigation)
-                .WithMany()
-                .HasForeignKey(d => d.ModifiedBy)
-                .HasPrincipalKey(u => u.Id)
-                .IsRequired(false)
-                .OnDelete(DeleteBehavior.Restrict)
-                .HasConstraintName("fk_maintenance_modified_by");
+            // Note: CreatedBy and ModifiedBy are stored as strings (usernames/Ids),
+            // not as navigation properties. This avoids shadow property issues with EF Core.
 
             builder.HasMany(d => d.Issues)
                 .WithOne(p => p.Maintenance)
