@@ -28,7 +28,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     /// </summary>
     public class GPSGateLocationService : IGPSGateLocationService
     {
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateLocationService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
@@ -39,12 +39,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private static readonly TimeSpan StalePositionThreshold = TimeSpan.FromHours(24); // Position older than 24 hours is stale
 
         public GPSGateLocationService(
-            GpsdataContext context,
+            IDbContextFactory<GpsdataContext> contextFactory,
             HttpClient httpClient,
             IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateLocationService> logger)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _httpClient = httpClient;
             _configurationProvider = configurationProvider;
             _logger = logger;
@@ -54,8 +54,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Step 1: Get vehicle info
-                var vehicle = await _context.Vehicles
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -80,7 +82,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 }
 
                 // Step 3: Get the ExternalDeviceId from VehicleProviderMapping (NOT Vehicle.DeviceId)
-                var providerMapping = await _context.Set<VehicleProviderMappingEntity>()
+                var providerMapping = await context.Set<VehicleProviderMappingEntity>()
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .FirstOrDefaultAsync();
 
@@ -377,8 +379,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Step 1: Get vehicles with GPS installed
-                var vehiclesQuery = _context.Vehicles.AsQueryable();
+                var vehiclesQuery = context.Vehicles.AsQueryable();
 
                 if (gpsEnabledOnly)
                     vehiclesQuery = vehiclesQuery.Where(v => v.HasGPSInstalled == 1);
@@ -390,7 +394,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 // Step 2: Get all active provider mappings for these vehicles
                 var vehicleIds = vehicles.Select(v => v.VehicleId).ToList();
-                var providerMappings = await _context.Set<VehicleProviderMappingEntity>()
+                var providerMappings = await context.Set<VehicleProviderMappingEntity>()
                     .Where(m => vehicleIds.Contains(m.VehicleId) && m.IsActive && !string.IsNullOrEmpty(m.ExternalDeviceId))
                     .ToDictionaryAsync(m => m.VehicleId, m => m);
 
@@ -516,7 +520,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -565,7 +570,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -800,7 +806,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var cached = await _context.VehicleLastKnownLocations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var cached = await context.VehicleLastKnownLocations
                     .FirstOrDefaultAsync(c => c.VehicleId == locationDto.VehicleId);
 
                 if (cached == null)
@@ -809,7 +816,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     {
                         VehicleId = locationDto.VehicleId
                     };
-                    _context.VehicleLastKnownLocations.Add(cached);
+                    context.VehicleLastKnownLocations.Add(cached);
                 }
 
                 // Update cached location
@@ -824,7 +831,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 cached.CachedAt = DateTime.UtcNow;
                 cached.Source = "GPSGate";
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 _logger.LogDebug("Cached location for vehicle {VehicleId}: ({Lat}, {Lng}) at {CachedAt}",
                     locationDto.VehicleId, locationDto.Latitude, locationDto.Longitude, cached.CachedAt);
@@ -846,7 +853,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var cached = await _context.VehicleLastKnownLocations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var cached = await context.VehicleLastKnownLocations
                     .Include(c => c.Vehicle)
                     .FirstOrDefaultAsync(c => c.VehicleId == vehicleId);
 

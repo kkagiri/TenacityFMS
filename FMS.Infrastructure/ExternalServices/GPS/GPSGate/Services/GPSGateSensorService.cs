@@ -15,20 +15,20 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 {
     public class GPSGateSensorService : IGPSGateSensorService
     {
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateSensorService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
-         private readonly IGPSGateGeocodingService _geocodingService;
+        private readonly IGPSGateGeocodingService _geocodingService;
 
         public GPSGateSensorService(
-            GpsdataContext context,
+            IDbContextFactory<GpsdataContext> contextFactory,
             HttpClient httpClient,
             IGPSGateConfigurationProvider configurationProvider,
             IGPSGateGeocodingService geocodingService,
             ILogger<GPSGateSensorService> logger)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _httpClient = httpClient;
             _configurationProvider = configurationProvider;
             _geocodingService = geocodingService;
@@ -38,7 +38,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -46,7 +47,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle not found");
 
                 // Try to get device ID from vehicle_provider_mappings first (new way)
-                var providerMapping = await _context.VehicleProviderMappings
+                var providerMapping = await context.VehicleProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive
@@ -191,7 +192,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -199,7 +201,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle not found");
 
                 // Try to get device ID from vehicle_provider_mappings first (new way)
-                var providerMapping = await _context.VehicleProviderMappings
+                var providerMapping = await context.VehicleProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.VehicleId == vehicleId
                         && m.IsActive

@@ -24,18 +24,18 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
         private readonly HttpClient _httpClient;
         private readonly IGPSGateConfigurationProvider _configProvider;
         private readonly ILogger<GPSGateAccumulatorService> _logger;
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
 
         public GPSGateAccumulatorService(
             HttpClient httpClient,
             IGPSGateConfigurationProvider configProvider,
             ILogger<GPSGateAccumulatorService> logger,
-            GpsdataContext context)
+            IDbContextFactory<GpsdataContext> contextFactory)
         {
             _httpClient = httpClient;
             _configProvider = configProvider;
             _logger = logger;
-            _context = context;
+            _contextFactory = contextFactory;
         }
 
         /// <summary>
@@ -45,8 +45,9 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
                 // Get vehicle's external device ID and provider configuration
-                var mapping = await _context.VehicleProviderMappings
+                var mapping = await context.VehicleProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive, cancellationToken);
 

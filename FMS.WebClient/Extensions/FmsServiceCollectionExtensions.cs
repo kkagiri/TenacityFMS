@@ -248,6 +248,18 @@ public static class FmsServiceCollectionExtensions
             .EnableDetailedErrors();
         });
 
+        // Register IDbContextFactory for services that need to create independent DbContext instances
+        // for parallel operations (prevents "A second operation was started" threading errors)
+        services.AddDbContextFactory<GpsdataContext>(opt =>
+        {
+            opt.UseMySql(fmsConnectionString, new MySqlServerVersion(new Version(5, 5, 61)), mySql =>
+            {
+                mySql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(30), null);
+                mySql.CommandTimeout(60);
+            })
+            .EnableDetailedErrors();
+        }, ServiceLifetime.Scoped);
+
         return services;
     }
 

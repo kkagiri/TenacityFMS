@@ -12,18 +12,20 @@ using Microsoft.Extensions.Logging;
 namespace FMS.Infrastructure.VehicleTracking.Services
 {
     /// <summary>
-    /// Service implementation for managing provider configurations
+    /// Service implementation for managing provider configurations.
+    /// Uses IDbContextFactory to create separate DbContext instances for each operation,
+    /// preventing concurrency issues when multiple vehicles are queried in parallel.
     /// </summary>
     public class ProviderConfigurationService : IProviderConfigurationService
     {
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly ILogger<ProviderConfigurationService> _logger;
 
         public ProviderConfigurationService(
-            GpsdataContext context,
+            IDbContextFactory<GpsdataContext> contextFactory,
             ILogger<ProviderConfigurationService> logger)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
 
@@ -31,7 +33,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var query = _context.ProviderConfigurations.AsQueryable();
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var query = context.ProviderConfigurations.AsQueryable();
 
                 if (!includeDisabled)
                 {
@@ -56,7 +59,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == providerName);
 
                 return entity != null ? MapToModel(entity) : null;
@@ -72,7 +76,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 return entity != null ? MapToModel(entity) : null;
@@ -88,7 +93,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.IsDefault && p.IsEnabled);
 
                 return entity != null ? MapToModel(entity) : null;
@@ -104,8 +110,9 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
                 // Check if vehicle has a specific provider mapping
-                var mapping = await _context.VehicleProviderMappings
+                var mapping = await context.VehicleProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync(m => m.VehicleId == vehicleId && m.IsActive);
 
@@ -131,14 +138,15 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
+                await using var context = await _contextFactory.CreateDbContextAsync();
                 var entity = MapToEntity(configuration);
                 entity.CreatedAt = DateTime.UtcNow;
                 entity.CreatedBy = currentUser;
                 entity.UpdatedAt = DateTime.UtcNow;
                 entity.UpdatedBy = currentUser;
 
-                _context.ProviderConfigurations.Add(entity);
-                await _context.SaveChangesAsync();
+                context.ProviderConfigurations.Add(entity);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("Created provider configuration: {ProviderName} (ID: {Id})",
                     entity.Name, entity.Id);
@@ -156,7 +164,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var existing = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var existing = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Id == configuration.Id);
 
                 if (existing == null)
@@ -175,7 +184,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 existing.UpdatedAt = DateTime.UtcNow;
                 existing.UpdatedBy = currentUser;
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("Updated provider configuration: {ProviderName} (ID: {Id})",
                     existing.Name, existing.Id);
@@ -193,7 +202,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Id == id);
 
                 if (entity == null)
@@ -208,7 +218,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 entity.DeletedBy = currentUser;
                 entity.IsEnabled = false;
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("Deleted provider configuration: {ProviderName} (ID: {Id})",
                     entity.Name, entity.Id);
@@ -224,11 +234,12 @@ namespace FMS.Infrastructure.VehicleTracking.Services
 
         public async Task<bool> SetDefaultAsync(string providerName, string? currentUser = null)
         {
-            using var transaction = await _context.Database.BeginTransactionAsync();
+            await using var context = await _contextFactory.CreateDbContextAsync();
+            using var transaction = await context.Database.BeginTransactionAsync();
             try
             {
                 // Clear existing default
-                var existingDefaults = await _context.ProviderConfigurations
+                var existingDefaults = await context.ProviderConfigurations
                     .Where(p => p.IsDefault)
                     .ToListAsync();
 
@@ -240,7 +251,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 }
 
                 // Set new default
-                var newDefault = await _context.ProviderConfigurations
+                var newDefault = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == providerName);
 
                 if (newDefault == null)
@@ -254,7 +265,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 newDefault.UpdatedAt = DateTime.UtcNow;
                 newDefault.UpdatedBy = currentUser;
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
                 await transaction.CommitAsync();
 
                 _logger.LogInformation("Set default provider: {ProviderName}", providerName);
@@ -272,7 +283,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == providerName);
 
                 if (entity == null)
@@ -292,7 +304,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     _logger.LogWarning("Disabled provider was default, clearing default flag: {ProviderName}", providerName);
                 }
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("{Action} provider: {ProviderName}",
                     enabled ? "Enabled" : "Disabled", providerName);
@@ -318,7 +330,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var provider = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var provider = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == providerName);
 
                 if (provider == null)
@@ -328,7 +341,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                 }
 
                 // Deactivate existing mappings
-                var existingMappings = await _context.VehicleProviderMappings
+                var existingMappings = await context.VehicleProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .ToListAsync();
 
@@ -356,8 +369,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     UpdatedBy = currentUser
                 };
 
-                _context.VehicleProviderMappings.Add(newMapping);
-                await _context.SaveChangesAsync();
+                context.VehicleProviderMappings.Add(newMapping);
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("Mapped vehicle {VehicleId} to provider {ProviderName} with device {DeviceId}",
                     vehicleId, providerName, externalDeviceId);
@@ -376,7 +389,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var mappings = await _context.VehicleProviderMappings
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var mappings = await context.VehicleProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .ToListAsync();
 
@@ -387,7 +401,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     mapping.UpdatedBy = currentUser;
                 }
 
-                await _context.SaveChangesAsync();
+                await context.SaveChangesAsync();
 
                 _logger.LogInformation("Unmapped vehicle {VehicleId} from provider", vehicleId);
                 return true;
@@ -403,7 +417,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var provider = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var provider = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == providerName);
 
                 if (provider == null)
@@ -411,7 +426,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     return new List<int>();
                 }
 
-                return await _context.VehicleProviderMappings
+                return await context.VehicleProviderMappings
                     .Where(m => m.ProviderConfigId == provider.Id && m.IsActive)
                     .Select(m => m.VehicleId)
                     .ToListAsync();
@@ -427,7 +442,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var provider = await _context.ProviderConfigurations
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var provider = await context.ProviderConfigurations
                     .FirstOrDefaultAsync(p => p.Name == status.ProviderName);
 
                 if (provider == null)
@@ -452,8 +468,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
                     CheckedAt = status.CheckedAt
                 };
 
-                _context.ProviderHealthHistories.Add(entity);
-                await _context.SaveChangesAsync();
+                context.ProviderHealthHistories.Add(entity);
+                await context.SaveChangesAsync();
 
                 return true;
             }
@@ -473,7 +489,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entities = await _context.ProviderHealthHistories
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entities = await context.ProviderHealthHistories
                     .Where(h => h.ProviderName == providerName
                              && h.CheckedAt >= from
                              && h.CheckedAt <= to)
@@ -494,7 +511,8 @@ namespace FMS.Infrastructure.VehicleTracking.Services
         {
             try
             {
-                var entity = await _context.ProviderHealthHistories
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var entity = await context.ProviderHealthHistories
                     .Where(h => h.ProviderName == providerName)
                     .OrderByDescending(h => h.CheckedAt)
                     .FirstOrDefaultAsync();

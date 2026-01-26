@@ -20,9 +20,7 @@ public class VehicleMaintenanceMappingProfile : Profile
             .ReverseMap()
             .ForMember(dest => dest.Vehicle, opt => opt.Ignore())
             .ForMember(dest => dest.MaintenanceSchedule, opt => opt.Ignore())
-            .ForMember(dest => dest.Issues, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedByNavigation, opt => opt.Ignore())
-            .ForMember(dest => dest.ModifiedByNavigation, opt => opt.Ignore());
+            .ForMember(dest => dest.Issues, opt => opt.Ignore());
 
         // MaintenanceSchedule mappings
         CreateMap<MaintenanceSchedule, MaintenanceScheduleDTO>()
@@ -38,8 +36,6 @@ public class VehicleMaintenanceMappingProfile : Profile
         // MaintenanceIssue mappings
         CreateMap<MaintenanceIssue, MaintenanceIssueDTO>()
             .ReverseMap()
-            .ForMember(dest => dest.Maintenance, opt => opt.Ignore())
-            .ForMember(dest => dest.CreatedByNavigation, opt => opt.Ignore())
-            .ForMember(dest => dest.ModifiedByNavigation, opt => opt.Ignore());
+            .ForMember(dest => dest.Maintenance, opt => opt.Ignore());
     }
 }

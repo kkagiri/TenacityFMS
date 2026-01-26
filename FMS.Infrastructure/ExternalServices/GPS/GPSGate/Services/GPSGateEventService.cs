@@ -15,18 +15,18 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 {
     public class GPSGateEventService : IGPSGateEventService
     {
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateEventService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
 
         public GPSGateEventService(
-            GpsdataContext context,
+            IDbContextFactory<GpsdataContext> contextFactory,
             HttpClient httpClient,
             IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateEventService> logger)
         {
-            _context = context;
+            _contextFactory = contextFactory;
             _httpClient = httpClient;
             _configurationProvider = configurationProvider;
             _logger = logger;
@@ -36,7 +36,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         {
             try
             {
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId)
                     .FirstOrDefaultAsync();
 
@@ -102,7 +103,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 });
 
                 // Get vehicle mappings
-                var vehicles = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+                var vehicles = await context.Vehicles
                     .Where(v => v.DeviceId.HasValue)
                     .ToDictionaryAsync(v => v.DeviceId!.Value, v => v.HyoungNo ?? string.Empty);
 

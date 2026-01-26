@@ -1,3 +1,14 @@
+/**
+ * File: MaintenanceList.js
+ * Purpose: Displays and manages vehicle maintenance records with CRUD and import support
+ * Dependencies: react, react-redux, devextreme-react, xlsx, maintenanceActions
+ * Last Modified: 2026-01-26
+ *
+ * Key Functions/Components:
+ * - MaintenanceList: Main maintenance records list and editor
+ * - handleSave(): Creates/updates maintenance records
+ * - handleConfirmImport(): Imports maintenance records from file
+ */
 import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { DataGrid, Button, Popup, ScrollView, FileUploader } from "devextreme-react";
@@ -359,6 +370,13 @@ const MaintenanceList = () => {
           </div>
           <div className="tw-flex tw-gap-2">
             <Button
+              text="Refresh"
+              icon="refresh"
+              stylingMode="outlined"
+              onClick={() => dispatch(fetchMaintenanceRecords())}
+              hint="Refresh maintenance records"
+            />
+            <Button
               text="Import"
               icon="upload"
               stylingMode="outlined"
@@ -375,7 +393,7 @@ const MaintenanceList = () => {
         </div>
 
         {/* Data Grid - Full Height */}
-        <div className="tw-flex-1 tw-min-h-0 tw-p-4">
+        <div className="tw-flex-1 tw-min-h-0 tw-w-full tw-p-0">
           <DataGrid
             dataSource={maintenanceRecords}
             keyExpr="maintenanceId"
@@ -384,6 +402,7 @@ const MaintenanceList = () => {
             rowAlternationEnabled={true}
             allowColumnResizing={true}
             height="100%"
+            width="100%"
           >
             <Scrolling mode="virtual" />
             <SearchPanel visible={true} width={300} placeholder="Search..." />
