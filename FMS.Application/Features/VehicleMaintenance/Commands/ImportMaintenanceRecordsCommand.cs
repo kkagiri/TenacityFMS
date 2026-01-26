@@ -1,6 +1,18 @@
+/**
+ * File: ImportMaintenanceRecordsCommand.cs
+ * Purpose: Imports maintenance records and persists them with vehicle matching.
+ * Dependencies: GpsdataContext, MediatR, EF Core, FMSResponse
+ * Last Modified: 2026-01-26
+ *
+ * Key Classes:
+ * - ImportMaintenanceRecordsCommand: Command payload for bulk import
+ * - ImportMaintenanceRecordsCommandHandler: Handles validation and persistence
+ */
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleMaintenance.DTOs;
+using DomainVehicle = FMS.Domain.Entities.Vehicle;
+using DomainVehicleMaintenance = FMS.Domain.Entities.Features.VehicleManagement.VehicleMaintenance;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -66,7 +78,7 @@ public class ImportMaintenanceRecordsCommandHandler
                     v => v,
                     cancellationToken);
 
-            var maintenanceRecords = new List<Domain.Entities.Features.VehicleManagement.VehicleMaintenance>();
+            var maintenanceRecords = new List<DomainVehicleMaintenance>();
 
             foreach (var importRecord in request.ImportRecords)
             {
@@ -74,7 +86,7 @@ public class ImportMaintenanceRecordsCommandHandler
                 {
                     // Find vehicle by HyoungNo or NumberPlate
                     var vehicleKey = importRecord.VehicleNumber.Trim().ToLower();
-                    Domain.Entities.Features.VehicleManagement.Vehicle? vehicle = null;
+                    DomainVehicle? vehicle = null;
 
                     if (vehicles.TryGetValue(vehicleKey, out var v1))
                     {
@@ -110,7 +122,7 @@ public class ImportMaintenanceRecordsCommandHandler
                     }
 
                     // Create maintenance record
-                    var maintenance = new Domain.Entities.Features.VehicleManagement.VehicleMaintenance
+                    var maintenance = new DomainVehicleMaintenance
                     {
                         VehicleId = vehicle.VehicleId,
                         MaintenanceType = string.IsNullOrWhiteSpace(importRecord.MaintenanceType)
@@ -145,7 +157,7 @@ public class ImportMaintenanceRecordsCommandHandler
             // Bulk insert valid records
             if (maintenanceRecords.Count > 0)
             {
-                await _context.Set<Domain.Entities.Features.VehicleManagement.VehicleMaintenance>()
+                await _context.Set<DomainVehicleMaintenance>()
                     .AddRangeAsync(maintenanceRecords, cancellationToken);
                 await _context.SaveChangesAsync(cancellationToken);
 
@@ -161,7 +173,7 @@ public class ImportMaintenanceRecordsCommandHandler
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error importing maintenance records");
-            return FMSResponse<MaintenanceImportResultDTO>.Failure($"Error importing maintenance records: {ex.Message}");
+            return FMSResponse<MaintenanceImportResultDTO>.Failed($"Error importing maintenance records: {ex.Message}");
         }
     }
 }

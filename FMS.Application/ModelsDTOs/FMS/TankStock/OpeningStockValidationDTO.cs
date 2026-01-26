@@ -1,10 +1,22 @@
+/**
+ * File: OpeningStockValidationDTO.cs
+ * Purpose: DTOs that describe opening stock validation outcomes for tank stock.
+ * Dependencies: System
+ * Last Modified: 2026-01-26
+ *
+ * Key Classes:
+ * - OpeningStockValidationResult: High-level validation result
+ * - ValidationDetails: Detailed conflict information
+ */
 using System;
 
-namespace FMS.Application.Features.FMS.TankStock {
+namespace FMS.Application.Features.FMS.TankStock
+{
     /// <summary>
     /// Result of opening stock validation with detailed information for better user guidance
     /// </summary>
-    public class OpeningStockValidationResult {
+    public class OpeningStockValidationResult
+    {
         public bool Success { get; set; }
         public string Message { get; set; }
         public ValidationDetails Details { get; set; }
@@ -13,7 +25,8 @@ namespace FMS.Application.Features.FMS.TankStock {
     /// <summary>
     /// Detailed validation information for opening stock conflicts
     /// </summary>
-    public class ValidationDetails {
+    public class ValidationDetails
+    {
         /// <summary>
         /// Date of the last opening stock that needs to be closed
         /// </summary>
@@ -42,6 +55,6 @@ namespace FMS.Application.Features.FMS.TankStock {
         /// <summary>
         /// Type of validation error
         /// </summary>
-        public string ErrorType { get; set; }
+        public string? ErrorType { get; set; }
     }
 }

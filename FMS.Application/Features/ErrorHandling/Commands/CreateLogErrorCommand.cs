@@ -1,3 +1,13 @@
+/**
+ * File: CreateLogErrorCommand.cs
+ * Purpose: Defines the command and handler for logging client-side errors.
+ * Dependencies: MediatR, GpsdataContext, ErrorLog
+ * Last Modified: 2026-01-26
+ *
+ * Key Classes:
+ * - CreateLogErrorCommand: Request model for error logging
+ * - CreateLogErrorCommandHandler: Persists error logs
+ */
 using FMS.Application.CommonInterface;
 using FMS.Domain.Entities.Features.ErrorManagement;
 using FMS.Persistence.DataAccess;
@@ -17,7 +27,7 @@ namespace FMS.Application.Features.ErrorHandling.Commands
         public string ComponentStack { get; set; }
         public string UserAgent { get; set; }
         public string Url { get; set; }
-        public string UserId { get; set; }
+        public string? UserId { get; set; }
     }
 
     public class CreateLogErrorCommandHandler : IRequestHandler<CreateLogErrorCommand, bool>

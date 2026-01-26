@@ -1,3 +1,13 @@
+/**
+ * File: GenerateGPSReportCommand.cs
+ * Purpose: Validates GPSGate report requests and triggers report generation.
+ * Dependencies: MediatR, IGPSGateReportingService, IGPSGateDirectoryService, FMSResponse
+ * Last Modified: 2026-01-26
+ *
+ * Key Classes:
+ * - GenerateGPSReportCommand: Request payload for report generation
+ * - GenerateGPSReportCommandHandler: Validates input and invokes reporting services
+ */
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -68,8 +78,11 @@ namespace FMS.Application.Features.GPSGate.Commands
 
                 if (!result.Success)
                 {
-                    _logger.LogWarning($"Report generation failed: {result.Message}");
-                    return FMSResponse<GenerateReportResponseDto>.Failed(result.Message);
+                    var errorMessage = string.IsNullOrWhiteSpace(result.Message)
+                        ? "Report generation failed"
+                        : result.Message;
+                    _logger.LogWarning($"Report generation failed: {errorMessage}");
+                    return FMSResponse<GenerateReportResponseDto>.Failed(errorMessage);
                 }
 
                 _logger.LogInformation($"Report generation initiated with handle ID: {result.HandleId}");

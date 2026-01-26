@@ -32,6 +32,7 @@ using FMS.Domain.Entities;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
@@ -63,6 +64,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly ITransactionCompletionService _transactionCompletionService; //Cursor: Add for transaction completion
         private readonly IAutoTransactionCompletionService _autoCompletionService; //Cursor: Add auto-completion service
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
+        private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -77,7 +79,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             ITransactionMonitoringService transactionMonitoringService, //Cursor: Add for enhanced monitoring
             ITransactionCompletionService transactionCompletionService, //Cursor: Add for transaction completion
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
-            IPumpTankTransferService pumpTankTransferService) //Cursor: Add tank transfer service
+            IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
+            IServiceScopeFactory serviceScopeFactory) // For background task scoping
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -92,6 +95,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _transactionCompletionService = transactionCompletionService; //Cursor: Add for transaction completion
             _autoCompletionService = autoCompletionService; //Cursor: Add auto-completion service
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
+            _serviceScopeFactory = serviceScopeFactory; // For background task scoping
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -679,16 +683,20 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                     "[UploadStatus] **PROCESSING PUMP TRANSFER** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
                                     sourceTankId, destinationTankId, volume, transactionId);
 
-                                // **PROCESS TRANSFER ASYNCHRONOUSLY**
+                                // **PROCESS TRANSFER IN NEW SCOPE** - Use IServiceScopeFactory to avoid disposed context issue
+                                // The original request scope may be disposed before the async task completes, so we need a fresh scope
                                 _ = Task.Run(async () =>
                                 {
                                     try
                                     {
-                                        var result = await _pumpTankTransferService.ProcessPumpTransferAsync(transferData);
+                                        using var scope = _serviceScopeFactory.CreateScope();
+                                        var scopedTransferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
+
+                                        var result = await scopedTransferService.ProcessPumpTransferAsync(transferData);
 
                                         if (result.IsSuccess)
                                         {
-                                            _logger.LogWarning(
+                                            _logger.LogInformation(
                                                 "[UploadStatus] **TRANSFER COMPLETE** ✅ - {Message}",
                                                 result.Message);
                                         }
