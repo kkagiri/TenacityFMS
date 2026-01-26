@@ -300,7 +300,7 @@ public class VehicleMaintenanceController : ControllerBase
     {
         if (importRecords == null || importRecords.Count == 0)
         {
-            return BadRequest(FMSResponse<object>.Failure("No records provided for import"));
+            return BadRequest(FMSResponse<object>.Failed("No records provided for import"));
         }
 
         var command = new ImportMaintenanceRecordsCommand(importRecords);
