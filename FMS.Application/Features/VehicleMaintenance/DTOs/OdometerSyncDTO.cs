@@ -51,6 +51,18 @@ public class OdometerSyncDTO
     /// <summary>True = uses km/l (Odometer), False = uses hr/l (Engine Hours)</summary>
     public bool AverageKmL { get; set; }
 
+    /// <summary>Site ID where vehicle is allocated</summary>
+    public int? SiteId { get; set; }
+
+    /// <summary>Site name where vehicle is allocated</summary>
+    public string? SiteName { get; set; }
+
+    /// <summary>Vehicle type ID</summary>
+    public int? VehicleTypeId { get; set; }
+
+    /// <summary>Vehicle type name</summary>
+    public string? VehicleTypeName { get; set; }
+
     /// <summary>Accumulator type: 1 = Odometer, 2 = Engine Hours</summary>
     public int AccumulatorTypeId => AverageKmL ? AccumulatorTypeConstants.Odometer : AccumulatorTypeConstants.EngineHours;
 
@@ -103,13 +115,15 @@ public class OdometerSyncDTO
     public DateTime? LastSyncTimestamp { get; set; }
 
     /// <summary>
-    /// Convert GPS odometer reading (meters) to display units (km)
+    /// Convert GPS reading to display units
+    /// - Odometer (AverageKmL=true): meters → km (÷1000)
+    /// - Engine Hours (AverageKmL=false): seconds → hours (÷3600)
     /// </summary>
     public double GetGPSReadingInDisplayUnits()
     {
         if (!GPSReading.HasValue) return 0;
-        // GPS odometer is typically in meters, convert to km
-        return AverageKmL ? GPSReading.Value / 1000.0 : GPSReading.Value;
+        // GPS odometer is in meters (convert to km), engine hours in seconds (convert to hours)
+        return AverageKmL ? GPSReading.Value / 1000.0 : GPSReading.Value / 3600.0;
     }
 
     /// <summary>

@@ -148,6 +148,21 @@ const maintenanceService = {
       throw error;
     }
   },
+
+  /**
+   * Import maintenance records from bulk data
+   * @param {Array} records - Array of maintenance records to import
+   * @returns {Promise<Object>} Import result with success count and errors
+   */
+  importMaintenanceRecords: async (records) => {
+    try {
+      const response = await axiosInstance.post('/VehicleMaintenance/import', records);
+      return response.data;
+    } catch (error) {
+      console.error('Error importing maintenance records:', error);
+      throw error;
+    }
+  },
 };
 
 export default maintenanceService;

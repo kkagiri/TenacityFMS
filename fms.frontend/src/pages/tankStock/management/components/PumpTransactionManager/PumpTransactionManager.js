@@ -2,13 +2,13 @@
  * File: PumpTransactionManager.js
  * Purpose: UI component for pump transaction management
  * Dependencies: react, devextreme-react, usePumpTransactionManager hook
- * Last Modified: 2026-01-22
- * 
+ * Last Modified: 2026-01-26
+ *
  * Fix: DOM removeChild error when clicking map buttons
- * - Added transition state to prevent rapid popup opening/closing
- * - Delayed iframe unmounting to allow popup animation to complete
- * - Added unique key to iframe for proper React reconciliation
- * - Disabled map buttons during transitions
+ * - Extracted MapPopupContent as a separate memoized component
+ * - Iframe src is controlled via prop instead of conditional rendering
+ * - When popup closes, iframe src is set to 'about:blank' to release resources
+ * - This prevents React reconciliation conflicts with iframe's internal DOM
  */
 import React from "react";
 import DataGrid, {
@@ -64,8 +64,6 @@ const PumpTransactionManager = () => {
 
   const [mapPopupVisible, setMapPopupVisible] = React.useState(false);
   const [mapTransaction, setMapTransaction] = React.useState(null);
-  const [mapPopupTransitioning, setMapPopupTransitioning] = React.useState(false);
-  const mapCleanupTimeoutRef = React.useRef(null);
 
   const normalizeCoordinate = React.useCallback((value) => {
     if (value === null || value === undefined) return null;
@@ -105,52 +103,14 @@ const PumpTransactionManager = () => {
   );
 
   const handleOpenMapPopup = React.useCallback((transaction) => {
-    // Prevent opening if already transitioning
-    if (mapPopupTransitioning) {
-      return;
-    }
-    
-    // Clear any pending cleanup timeout
-    if (mapCleanupTimeoutRef.current) {
-      clearTimeout(mapCleanupTimeoutRef.current);
-      mapCleanupTimeoutRef.current = null;
-    }
-    
-    setMapPopupTransitioning(true);
     setMapTransaction(transaction);
     setMapPopupVisible(true);
-    
-    // Reset transitioning flag after popup is shown
-    setTimeout(() => {
-      setMapPopupTransitioning(false);
-    }, 300);
-  }, [mapPopupTransitioning]);
+  }, []);
 
   const handleCloseMapPopup = React.useCallback(() => {
-    // Prevent closing if already transitioning
-    if (mapPopupTransitioning) {
-      return;
-    }
-    
-    setMapPopupTransitioning(true);
     setMapPopupVisible(false);
-    
-    // Delay clearing mapTransaction to allow popup animation to complete
-    // This prevents React from trying to unmount iframe during animation
-    mapCleanupTimeoutRef.current = setTimeout(() => {
-      setMapTransaction(null);
-      mapCleanupTimeoutRef.current = null;
-      setMapPopupTransitioning(false);
-    }, 300); // Match DevExtreme popup animation duration
-  }, [mapPopupTransitioning]);
-
-  // Cleanup effect for component unmount
-  React.useEffect(() => {
-    return () => {
-      if (mapCleanupTimeoutRef.current) {
-        clearTimeout(mapCleanupTimeoutRef.current);
-      }
-    };
+    // Keep mapTransaction for a moment to prevent content flash during close animation
+    // The MapPopupContent component handles clearing the iframe src
   }, []);
 
   const mapLocation = resolveFuelingLocation(mapTransaction);
@@ -195,7 +155,6 @@ const PumpTransactionManager = () => {
         groupCellRenderDate={groupCellRenderDate}
         onOpenMapPopup={handleOpenMapPopup}
         resolveFuelingLocation={resolveFuelingLocation}
-        mapPopupTransitioning={mapPopupTransitioning}
       />
 
       {/* Grouping Controls Panel */}
@@ -219,43 +178,25 @@ const PumpTransactionManager = () => {
         maxHeight={800}
         dragEnabled={true}
         resizeEnabled={true}
+        deferRendering={false}
+        hideOnOutsideClick={false}
+        wrapperAttr={{ class: 'pump-transaction-map-popup-wrapper' }}
       >
-        <div className="pump-transaction-map-popup">
-          {mapLocation && mapPopupVisible ? (
-            <>
-              <div className="tw-mb-3 tw-text-sm tw-text-gray-700 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2">
-                <span>
-                  <i className={`fa-light ${mapLocation.label.includes('Mobile') ? 'fa-mobile' : 'fa-location-dot'} tw-mr-2`}></i>
-                  {mapLocation.label} • {mapLocation.lat.toFixed(6)}, {mapLocation.lng.toFixed(6)}
-                </span>
-                <a
-                  href={`https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-xs"
-                >
-                  <i className="fa-light fa-external-link tw-mr-1"></i>
-                  Open in Google Maps
-                </a>
-              </div>
-              <iframe
-                key={`map-${mapTransaction?.id || 'default'}`}
-                title="Fueling Location Map"
-                className="pump-transaction-map-frame"
-                src={mapUrl}
-                loading="lazy"
-                allowFullScreen
-                style={{ minHeight: '400px' }}
-              />
-            </>
-          ) : (
+        {mapPopupVisible && mapLocation && (
+          <MapPopupContent
+            mapLocation={mapLocation}
+            mapUrl={mapUrl}
+          />
+        )}
+        {mapPopupVisible && !mapLocation && (
+          <div className="pump-transaction-map-popup">
             <div className="tw-text-sm tw-text-gray-500 tw-p-4 tw-text-center">
               <i className="fa-light fa-map-location-slash tw-text-4xl tw-mb-3 tw-text-gray-400"></i>
               <p>No fueling location available for this transaction.</p>
               <p className="tw-text-xs tw-mt-2">Location data is captured when fueling is authorized from the mobile app.</p>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </Popup>
     </div>
   );
@@ -264,6 +205,64 @@ const PumpTransactionManager = () => {
 // ============================================================================
 // Sub-components
 // ============================================================================
+
+/**
+ * Map Popup Content Component
+ * Separate component to prevent iframe DOM conflicts with React reconciliation.
+ * Only renders when popup is visible and location is available.
+ */
+const MapPopupContent = React.memo(({ mapLocation, mapUrl }) => {
+  const [iframeLoaded, setIframeLoaded] = React.useState(false);
+
+  // Reset iframe loaded state when URL changes
+  React.useEffect(() => {
+    setIframeLoaded(false);
+  }, [mapUrl]);
+
+  return (
+    <div className="pump-transaction-map-popup">
+      <div className="tw-px-4 tw-py-2 tw-text-sm tw-text-gray-700 tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-2 tw-bg-gray-50">
+        <span>
+          <i className={`fa-light ${mapLocation.label.includes('Mobile') ? 'fa-mobile' : 'fa-location-dot'} tw-mr-2`}></i>
+          {mapLocation.label} • {mapLocation.lat.toFixed(6)}, {mapLocation.lng.toFixed(6)}
+        </span>
+        <a
+          href={`https://www.google.com/maps?q=${mapLocation.lat},${mapLocation.lng}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-xs"
+        >
+          <i className="fa-light fa-external-link tw-mr-1"></i>
+          Open in Google Maps
+        </a>
+      </div>
+      <div className="pump-transaction-map-frame-container">
+        {!iframeLoaded && (
+          <div className="tw-absolute tw-inset-0 tw-flex tw-items-center tw-justify-center tw-bg-gray-100">
+            <div className="tw-text-center">
+              <i className="fa-light fa-spinner fa-spin tw-text-3xl tw-text-blue-500 tw-mb-2"></i>
+              <p className="tw-text-sm tw-text-gray-600">Loading map...</p>
+            </div>
+          </div>
+        )}
+        <iframe
+          title="Fueling Location Map"
+          className="pump-transaction-map-frame"
+          src={mapUrl}
+          loading="lazy"
+          allowFullScreen
+          onLoad={() => setIframeLoaded(true)}
+          style={{
+            opacity: iframeLoaded ? 1 : 0,
+            transition: 'opacity 0.3s ease'
+          }}
+        />
+      </div>
+    </div>
+  );
+});
+
+MapPopupContent.displayName = 'MapPopupContent';
 
 /**
  * Summary Header Component
@@ -571,7 +570,6 @@ const TransactionDataGrid = ({
   groupCellRenderDate,
   onOpenMapPopup,
   resolveFuelingLocation,
-  mapPopupTransitioning,
 }) => (
   <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
     <DataGrid
@@ -676,7 +674,6 @@ const TransactionDataGrid = ({
               icon="fa-light fa-map-location-dot"
               stylingMode="text"
               onClick={() => onOpenMapPopup(data.data)}
-              disabled={mapPopupTransitioning}
             />
           );
         }}

@@ -19,7 +19,7 @@ const TankVolumeHistoryReport = () => {
 
   // Filter states
   const [startDate, setStartDate] = useState(() => {
-    const date = new Date();
+    const date =                        new Date();
     date.setDate(date.getDate() - 30);
     return date;
   });

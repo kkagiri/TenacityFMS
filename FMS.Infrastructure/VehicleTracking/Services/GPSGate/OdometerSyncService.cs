@@ -129,7 +129,7 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
         {
             try
             {
-                // Get all active vehicles with GPS mappings
+                // Get all active vehicles with GPS mappings including Site and VehicleType
                 var vehiclesWithMappings = await _context.VehicleProviderMappings
                     .AsNoTracking()
                     .Where(m => m.IsActive && m.ExternalDeviceId != null)
@@ -140,7 +140,11 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                         m.Vehicle!.HyoungNo,
                         m.Vehicle.NumberPlate,
                         m.Vehicle.AverageKmL,
-                        m.Vehicle.CurrentPhysicalReading
+                        m.Vehicle.CurrentPhysicalReading,
+                        SiteId = m.Vehicle.WorkingSiteId,
+                        SiteName = m.Vehicle.WorkingSite != null ? m.Vehicle.WorkingSite.Name : null,
+                        m.Vehicle.VehicleTypeId,
+                        VehicleTypeName = m.Vehicle.VehicleType != null ? m.Vehicle.VehicleType.Name : null
                     })
                     .ToListAsync(cancellationToken);
 
@@ -171,6 +175,10 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                         HyoungNo = vehicle.HyoungNo,
                         NumberPlate = vehicle.NumberPlate,
                         AverageKmL = vehicle.AverageKmL,
+                        SiteId = vehicle.SiteId,
+                        SiteName = vehicle.SiteName,
+                        VehicleTypeId = vehicle.VehicleTypeId,
+                        VehicleTypeName = vehicle.VehicleTypeName,
                         StoredPhysicalReading = vehicle.CurrentPhysicalReading,
                         HasGPSMapping = true
                     };
@@ -320,10 +328,12 @@ namespace FMS.Infrastructure.VehicleTracking.Services.GPSGate
                     return FMSResponse<OdometerSyncResultDTO>.Success(result, result.Message);
                 }
 
-                // Convert fueling reading to GPS units (meters for odometer)
+                // Convert fueling reading to GPS units (International System of Units)
+                // - Odometer: meters (km * 1000)
+                // - Engine Hours: seconds (hours * 3600)
                 var gpsValue = dto.AverageKmL
-                    ? (double)dto.FuelingReading.Value * 1000.0  // km to meters
-                    : (double)dto.FuelingReading.Value;         // hours stay as-is
+                    ? (double)dto.FuelingReading.Value * 1000.0   // km to meters
+                    : (double)dto.FuelingReading.Value * 3600.0;  // hours to seconds
 
                 result.OldValue = dto.GPSReading.HasValue ? dto.GetGPSReadingInDisplayUnits() : null;
                 result.NewValue = (double)dto.FuelingReading.Value;

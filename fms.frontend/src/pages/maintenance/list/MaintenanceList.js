@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { DataGrid, Button, Popup, ScrollView } from "devextreme-react";
+import { DataGrid, Button, Popup, ScrollView, FileUploader } from "devextreme-react";
 import {
   Column,
   Paging,
@@ -9,6 +9,7 @@ import {
   HeaderFilter,
   Export,
   Selection,
+  Scrolling,
 } from "devextreme-react/data-grid";
 import {
   Form,
@@ -19,25 +20,29 @@ import {
 } from "devextreme-react/form";
 import notify from "devextreme/ui/notify";
 import { confirm } from "devextreme/ui/dialog";
-import axiosInstance from "../../../api/axiosInstance";
 import {
   fetchMaintenanceRecords,
   createMaintenanceRecord,
   updateMaintenanceRecord,
   deleteMaintenanceRecord,
+  importMaintenanceRecords,
 } from "../../../redux/actions/maintenanceActions";
-import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
+import VehicleSearchableSelector from "../../../components/selectors/VehicleSearchableSelector";
+import * as XLSX from "xlsx";
 
 const MaintenanceList = () => {
   const dispatch = useDispatch();
   const { maintenanceRecords } = useSelector(
     (state) => state.maintenance || { maintenanceRecords: [] }
   );
-  const vehicles = useSelector((state) => state.vehicle.vehicles || []);
   const [showPopup, setShowPopup] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [formData, setFormData] = useState({});
-  const [loadingGpsData, setLoadingGpsData] = useState(false);
+  const [showImportPopup, setShowImportPopup] = useState(false);
+  const [importData, setImportData] = useState([]);
+  const [importErrors, setImportErrors] = useState([]);
+  const [isImporting, setIsImporting] = useState(false);
+  const fileUploaderRef = useRef(null);
 
   // Maintenance types - can be fetched from backend or defined here
   const maintenanceTypes = [
@@ -57,7 +62,6 @@ const MaintenanceList = () => {
 
   useEffect(() => {
     dispatch(fetchMaintenanceRecords());
-    dispatch(fetchVehicleList());
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -116,111 +120,171 @@ const MaintenanceList = () => {
     }
   };
 
-  // Fetch odometer reading from GPS accumulators
-  const handleFetchOdometerFromGPS = async () => {
-    if (!formData.vehicleId) {
-      notify("Please select a vehicle first", "warning", 3000);
+  // Handle vehicle selection from searchable selector
+  const handleVehicleChange = useCallback((e) => {
+    setFormData(prev => ({
+      ...prev,
+      vehicleId: e.value
+    }));
+  }, []);
+
+  // ============= IMPORT FUNCTIONS =============
+
+  const handleImportClick = () => {
+    setImportData([]);
+    setImportErrors([]);
+    setShowImportPopup(true);
+  };
+
+  const parseExcelFile = useCallback((file) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const data = new Uint8Array(e.target.result);
+          const workbook = XLSX.read(data, { type: 'array' });
+          const firstSheetName = workbook.SheetNames[0];
+          const worksheet = workbook.Sheets[firstSheetName];
+          const jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1 });
+          resolve(jsonData);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      reader.onerror = reject;
+      reader.readAsArrayBuffer(file);
+    });
+  }, []);
+
+  const validateImportData = useCallback((rows) => {
+    const errors = [];
+    const validRecords = [];
+
+    // Expected headers: Vehicle Number, Maintenance Type, Scheduled Date, Priority, Status, Description, Notes
+    const headers = rows[0]?.map(h => h?.toString().toLowerCase().trim()) || [];
+
+    const vehicleColIndex = headers.findIndex(h => h?.includes('vehicle') || h?.includes('hyoung'));
+    const typeColIndex = headers.findIndex(h => h?.includes('type') || h?.includes('maintenance'));
+    const dateColIndex = headers.findIndex(h => h?.includes('date') || h?.includes('scheduled'));
+    const priorityColIndex = headers.findIndex(h => h?.includes('priority'));
+    const statusColIndex = headers.findIndex(h => h?.includes('status'));
+    const descColIndex = headers.findIndex(h => h?.includes('desc'));
+    const notesColIndex = headers.findIndex(h => h?.includes('note'));
+
+    if (vehicleColIndex === -1) {
+      errors.push({ row: 1, message: 'Missing required column: Vehicle Number/Hyoung No' });
+      return { validRecords, errors };
+    }
+
+    // Process data rows (skip header)
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row || row.length === 0 || !row[vehicleColIndex]) continue;
+
+      const record = {
+        vehicleNumber: row[vehicleColIndex]?.toString().trim(),
+        maintenanceType: typeColIndex >= 0 ? row[typeColIndex]?.toString().trim() : 'General Repair',
+        scheduledDate: dateColIndex >= 0 ? row[dateColIndex] : new Date(),
+        priority: priorityColIndex >= 0 ? parseInt(row[priorityColIndex]) || 2 : 2,
+        status: statusColIndex >= 0 ? row[statusColIndex]?.toString().trim() : 'Scheduled',
+        description: descColIndex >= 0 ? row[descColIndex]?.toString().trim() : '',
+        notes: notesColIndex >= 0 ? row[notesColIndex]?.toString().trim() : '',
+        rowNumber: i + 1
+      };
+
+      // Validate required fields
+      if (!record.vehicleNumber) {
+        errors.push({ row: i + 1, message: 'Vehicle number is required' });
+        continue;
+      }
+
+      // Parse date if it's an Excel serial number
+      if (typeof record.scheduledDate === 'number') {
+        record.scheduledDate = new Date((record.scheduledDate - 25569) * 86400 * 1000);
+      } else if (typeof record.scheduledDate === 'string') {
+        record.scheduledDate = new Date(record.scheduledDate);
+      }
+
+      if (isNaN(record.scheduledDate?.getTime())) {
+        record.scheduledDate = new Date();
+      }
+
+      // Validate priority (1-5)
+      if (record.priority < 1 || record.priority > 5) {
+        record.priority = 2;
+      }
+
+      // Validate status
+      const validStatuses = ['Scheduled', 'In Progress', 'Completed', 'Cancelled'];
+      if (!validStatuses.includes(record.status)) {
+        record.status = 'Scheduled';
+      }
+
+      validRecords.push(record);
+    }
+
+    return { validRecords, errors };
+  }, []);
+
+  const handleFileUploaded = useCallback(async (e) => {
+    const file = e.value?.[0];
+    if (!file) return;
+
+    try {
+      const rows = await parseExcelFile(file);
+      const { validRecords, errors } = validateImportData(rows);
+
+      setImportData(validRecords);
+      setImportErrors(errors);
+
+      if (validRecords.length === 0 && errors.length === 0) {
+        notify('No data found in the file', 'warning', 3000);
+      } else if (validRecords.length > 0) {
+        notify(`Found ${validRecords.length} valid records`, 'success', 3000);
+      }
+    } catch (error) {
+      console.error('Error parsing file:', error);
+      notify('Error parsing file. Please ensure it is a valid Excel/CSV file.', 'error', 3000);
+    }
+  }, [parseExcelFile, validateImportData]);
+
+  const handleConfirmImport = async () => {
+    if (importData.length === 0) {
+      notify('No valid records to import', 'warning', 3000);
       return;
     }
 
+    setIsImporting(true);
     try {
-      setLoadingGpsData(true);
+      // Import records one by one or batch
+      const results = await dispatch(importMaintenanceRecords(importData));
 
-      // Call the accumulator API to get vehicle odometer and engine hours
-      const response = await axiosInstance.get(
-        `/vehiclemaintenance/${formData.vehicleId}/accumulators`
-      );
-
-      if (response.status === 200) {
-        const result = response.data;
-
-        if (result.isSuccess && result.data && result.data.length > 0) {
-          const accumulators = result.data;
-
-          // Find odometer accumulator (typically System Odometer)
-          const odometerAcc = accumulators.find((a) =>
-            a.accumulatorTypeName?.toLowerCase().includes("odometer")
-          );
-
-          // Find engine hours accumulator
-          const engineHoursAcc = accumulators.find(
-            (a) =>
-              a.accumulatorTypeName?.toLowerCase().includes("engine") &&
-              a.accumulatorTypeName?.toLowerCase().includes("hour")
-          );
-
-          if (accumulators.length === 1) {
-            // Single accumulator - auto-populate
-            const acc = accumulators[0];
-            const value = Math.round(acc.value * 100) / 100;
-
-            setFormData({
-              ...formData,
-              odometerAtSchedule: value,
-            });
-
-            notify(
-              `${acc.accumulatorTypeName}: ${value.toLocaleString()} ${
-                acc.unit
-              } (from GPS)`,
-              "success",
-              4000
-            );
-          } else {
-            // Multiple accumulators - show selection dialog
-            const message = accumulators
-              .map((a, idx) => {
-                const value = Math.round(a.value * 100) / 100;
-                return `${idx + 1}. ${
-                  a.accumulatorTypeName
-                }: ${value.toLocaleString()} ${a.unit}`;
-              })
-              .join("\n");
-
-            // Use DevExtreme popup or alert for selection
-            if (odometerAcc) {
-              const odometerValue = Math.round(odometerAcc.value * 100) / 100;
-              setFormData({
-                ...formData,
-                odometerAtSchedule: odometerValue,
-              });
-
-              notify(
-                `Multiple accumulators found. Using ${
-                  odometerAcc.accumulatorTypeName
-                }: ${odometerValue.toLocaleString()} ${odometerAcc.unit}`,
-                "success",
-                5000
-              );
-            } else {
-              notify(
-                `Multiple accumulators available:\n${message}`,
-                "info",
-                6000
-              );
-            }
-          }
-        } else {
-          notify(
-            result.message || "No GPS accumulators found for this vehicle",
-            "warning",
-            3000
-          );
-        }
+      if (results?.success) {
+        notify(`Successfully imported ${results.imported || importData.length} maintenance records`, 'success', 4000);
+        setShowImportPopup(false);
+        dispatch(fetchMaintenanceRecords());
       } else {
-        const errorData = await response.json();
-        notify(
-          errorData.message || "Failed to fetch GPS accumulators",
-          "error",
-          3000
-        );
+        notify(results?.message || 'Import completed with some errors', 'warning', 4000);
       }
     } catch (error) {
-      console.error("Error fetching GPS accumulators:", error);
-      notify("Error fetching odometer from GPS", "error", 3000);
+      console.error('Error importing records:', error);
+      notify('Error importing maintenance records', 'error', 3000);
     } finally {
-      setLoadingGpsData(false);
+      setIsImporting(false);
     }
+  };
+
+  const downloadTemplate = () => {
+    const template = [
+      ['Vehicle Number', 'Maintenance Type', 'Scheduled Date', 'Priority', 'Status', 'Description', 'Notes'],
+      ['HYO-001', 'Oil Change', '2025-01-30', '2', 'Scheduled', 'Regular oil change', 'Use synthetic oil'],
+      ['HYO-002', 'Tire Rotation', '2025-02-01', '3', 'Scheduled', 'Quarterly tire rotation', ''],
+    ];
+
+    const ws = XLSX.utils.aoa_to_sheet(template);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Maintenance Import');
+    XLSX.writeFile(wb, 'maintenance_import_template.xlsx');
   };
 
   const renderActionButtons = (cellData) => {
@@ -281,77 +345,90 @@ const MaintenanceList = () => {
   };
 
   return (
-    <div className="tw-p-6">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-p-6">
+    <div className="tw-h-full tw-flex tw-flex-col tw-p-4">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-flex tw-flex-col tw-flex-1 tw-min-h-0">
         {/* Header */}
-        <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
+        <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-border-b tw-border-gray-200 tw-flex-shrink-0">
           <div>
-            <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
+            <h2 className="tw-text-xl tw-font-bold tw-text-gray-800">
               Maintenance Records
             </h2>
-            <p className="tw-text-gray-600 tw-mt-1">
+            <p className="tw-text-gray-600 tw-text-sm">
               Manage all vehicle maintenance activities
             </p>
           </div>
-          <Button
-            text="Add Maintenance"
-            icon="add"
-            type="success"
-            onClick={handleAdd}
-          />
+          <div className="tw-flex tw-gap-2">
+            <Button
+              text="Import"
+              icon="upload"
+              stylingMode="outlined"
+              onClick={handleImportClick}
+              hint="Import from Excel/CSV"
+            />
+            <Button
+              text="Add Maintenance"
+              icon="add"
+              type="success"
+              onClick={handleAdd}
+            />
+          </div>
         </div>
 
-        {/* Data Grid */}
-        <DataGrid
-          dataSource={maintenanceRecords}
-          keyExpr="maintenanceId"
-          showBorders={true}
-          columnAutoWidth={true}
-          rowAlternationEnabled={true}
-          allowColumnResizing={true}
-        >
-          <SearchPanel visible={true} width={300} placeholder="Search..." />
-          <FilterRow visible={true} />
-          <HeaderFilter visible={true} />
-          <Export enabled={true} fileName="maintenance_records" />
-          <Selection mode="multiple" />
-          <Paging defaultPageSize={20} />
+        {/* Data Grid - Full Height */}
+        <div className="tw-flex-1 tw-min-h-0 tw-p-4">
+          <DataGrid
+            dataSource={maintenanceRecords}
+            keyExpr="maintenanceId"
+            showBorders={true}
+            columnAutoWidth={true}
+            rowAlternationEnabled={true}
+            allowColumnResizing={true}
+            height="100%"
+          >
+            <Scrolling mode="virtual" />
+            <SearchPanel visible={true} width={300} placeholder="Search..." />
+            <FilterRow visible={true} />
+            <HeaderFilter visible={true} />
+            <Export enabled={true} fileName="maintenance_records" />
+            <Selection mode="multiple" />
+            <Paging defaultPageSize={50} />
 
-          <Column dataField="vehicleName" caption="Vehicle" width={150} />
-          <Column dataField="numberPlate" caption="Number Plate" width={120} />
-          <Column dataField="maintenanceType" caption="Type" width={150} />
-          <Column
-            dataField="status"
-            caption="Status"
-            width={120}
-            cellRender={renderStatusCell}
-          />
-          <Column
-            dataField="priority"
-            caption="Priority"
-            width={100}
-            cellRender={renderPriorityCell}
-          />
-          <Column
-            dataField="scheduledDate"
-            caption="Scheduled Date"
-            width={120}
-            dataType="date"
-          />
-          <Column
-            dataField="completedDate"
-            caption="Completed Date"
-            width={120}
-            dataType="date"
-          />
-          <Column
-            caption="Actions"
-            width={120}
-            cellRender={renderActionButtons}
-            allowSorting={false}
-            allowFiltering={false}
-          />
-        </DataGrid>
+            <Column dataField="vehicleName" caption="Vehicle" width={150} />
+            <Column dataField="numberPlate" caption="Number Plate" width={120} />
+            <Column dataField="maintenanceType" caption="Type" width={150} />
+            <Column
+              dataField="status"
+              caption="Status"
+              width={120}
+              cellRender={renderStatusCell}
+            />
+            <Column
+              dataField="priority"
+              caption="Priority"
+              width={100}
+              cellRender={renderPriorityCell}
+            />
+            <Column
+              dataField="scheduledDate"
+              caption="Scheduled Date"
+              width={120}
+              dataType="date"
+            />
+            <Column
+              dataField="completedDate"
+              caption="Completed Date"
+              width={120}
+              dataType="date"
+            />
+            <Column
+              caption="Actions"
+              width={120}
+              cellRender={renderActionButtons}
+              allowSorting={false}
+              allowFiltering={false}
+            />
+          </DataGrid>
+        </div>
 
         {/* Add/Edit Popup - Full Screen & Mobile Friendly */}
         <Popup
@@ -379,17 +456,18 @@ const MaintenanceList = () => {
                 <GroupItem caption="Vehicle Information" colSpan={1}>
                   <SimpleItem
                     dataField="vehicleId"
-                    editorType="dxSelectBox"
-                    editorOptions={{
-                      dataSource: vehicles,
-                      valueExpr: "vehicleId",
-                      displayExpr: "hyoungNo",
-                      searchEnabled: true,
-                      placeholder: "Select vehicle",
-                      showClearButton: true,
-                    }}
+                    render={() => (
+                      <div>
+                        <Label text="Vehicle" />
+                        <VehicleSearchableSelector
+                          value={formData.vehicleId}
+                          onValueChanged={handleVehicleChange}
+                          placeholder="Search vehicle by number or name..."
+                          width="100%"
+                        />
+                      </div>
+                    )}
                   >
-                    <Label text="Vehicle" />
                     <RequiredRule message="Vehicle is required" />
                   </SimpleItem>
 
@@ -447,34 +525,6 @@ const MaintenanceList = () => {
                   </SimpleItem>
                 </GroupItem>
 
-                <GroupItem caption="Odometer Reading" colSpan={1}>
-                  <div className="tw-mb-2">
-                    <Button
-                      text="Pull Odometer from GPS"
-                      icon="download"
-                      type="default"
-                      onClick={handleFetchOdometerFromGPS}
-                      disabled={!formData.vehicleId || loadingGpsData}
-                      hint="Fetch current odometer reading from GPS tracking"
-                    />
-                    {loadingGpsData && (
-                      <span className="tw-ml-2 tw-text-sm tw-text-gray-600">
-                        Loading...
-                      </span>
-                    )}
-                  </div>
-
-                  <SimpleItem
-                    dataField="odometerAtSchedule"
-                    editorType="dxNumberBox"
-                    editorOptions={{
-                      placeholder: "Enter or pull from GPS",
-                    }}
-                  >
-                    <Label text="Odometer at Schedule (km)" />
-                  </SimpleItem>
-                </GroupItem>
-
                 <GroupItem caption="Details" colSpan={1}>
                   <SimpleItem
                     dataField="description"
@@ -518,6 +568,114 @@ const MaintenanceList = () => {
                   stylingMode="outlined"
                 />
                 <Button text="Save" type="success" onClick={handleSave} />
+              </div>
+            </div>
+          </ScrollView>
+        </Popup>
+
+        {/* Import Popup */}
+        <Popup
+          visible={showImportPopup}
+          onHiding={() => setShowImportPopup(false)}
+          title="Import Maintenance Records"
+          width={800}
+          height={600}
+          showCloseButton={true}
+          closeOnOutsideClick={false}
+        >
+          <ScrollView width="100%" height="100%">
+            <div className="tw-p-4">
+              {/* Instructions */}
+              <div className="tw-mb-6 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4">
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3 tw-text-lg"></i>
+                  <div>
+                    <h4 className="tw-font-semibold tw-text-blue-800 tw-mb-2">Import Instructions</h4>
+                    <ul className="tw-text-blue-700 tw-text-sm tw-space-y-1">
+                      <li>• Upload an Excel (.xlsx, .xls) or CSV file</li>
+                      <li>• Required column: <strong>Vehicle Number</strong> (Hyoung No)</li>
+                      <li>• Optional columns: Maintenance Type, Scheduled Date, Priority (1-5), Status, Description, Notes</li>
+                      <li>• First row should contain column headers</li>
+                    </ul>
+                    <Button
+                      text="Download Template"
+                      icon="download"
+                      stylingMode="text"
+                      onClick={downloadTemplate}
+                      className="tw-mt-2"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* File Uploader */}
+              <div className="tw-mb-4">
+                <FileUploader
+                  ref={fileUploaderRef}
+                  selectButtonText="Select Excel/CSV File"
+                  labelText="or Drop file here"
+                  accept=".xlsx,.xls,.csv"
+                  uploadMode="useForm"
+                  onValueChanged={handleFileUploaded}
+                  maxFileSize={10485760}
+                />
+              </div>
+
+              {/* Validation Errors */}
+              {importErrors.length > 0 && (
+                <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+                  <h4 className="tw-font-semibold tw-text-red-800 tw-mb-2">
+                    <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
+                    Validation Errors ({importErrors.length})
+                  </h4>
+                  <ul className="tw-text-red-700 tw-text-sm tw-space-y-1 tw-max-h-32 tw-overflow-y-auto">
+                    {importErrors.map((err, idx) => (
+                      <li key={idx}>Row {err.row}: {err.message}</li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {/* Preview Data */}
+              {importData.length > 0 && (
+                <div className="tw-mb-4">
+                  <h4 className="tw-font-semibold tw-text-gray-800 tw-mb-2">
+                    <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-2"></i>
+                    Valid Records Preview ({importData.length})
+                  </h4>
+                  <DataGrid
+                    dataSource={importData.slice(0, 10)}
+                    showBorders={true}
+                    columnAutoWidth={true}
+                    height={200}
+                  >
+                    <Column dataField="vehicleNumber" caption="Vehicle" />
+                    <Column dataField="maintenanceType" caption="Type" />
+                    <Column dataField="scheduledDate" caption="Date" dataType="date" />
+                    <Column dataField="status" caption="Status" />
+                    <Column dataField="priority" caption="Priority" />
+                  </DataGrid>
+                  {importData.length > 10 && (
+                    <p className="tw-text-sm tw-text-gray-600 tw-mt-2">
+                      Showing first 10 of {importData.length} records
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Action Buttons */}
+              <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6">
+                <Button
+                  text="Cancel"
+                  onClick={() => setShowImportPopup(false)}
+                  stylingMode="outlined"
+                />
+                <Button
+                  text={isImporting ? "Importing..." : `Import ${importData.length} Records`}
+                  type="success"
+                  onClick={handleConfirmImport}
+                  disabled={importData.length === 0 || isImporting}
+                />
               </div>
             </div>
           </ScrollView>

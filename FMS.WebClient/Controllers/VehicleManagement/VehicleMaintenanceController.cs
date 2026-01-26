@@ -44,21 +44,22 @@ public class VehicleMaintenanceController : ControllerBase
 
         if (!string.IsNullOrEmpty(cachedData))
         {
-            var cachedRecords = JsonSerializer.Deserialize<List<VehicleMaintenanceDTO>>(cachedData);
-            return Ok(cachedRecords);
+            // Cache stores FMSResponse<List<VehicleMaintenanceDTO>> to avoid deserialization issues
+            var cachedResponse = JsonSerializer.Deserialize<FMSResponse<List<VehicleMaintenanceDTO>>>(cachedData);
+            return Ok(cachedResponse);
         }
 
         var query = new GetAllMaintenanceQuery(vehicleId, status, siteId, vehicleTypeId, vehicleModelId);
-        var maintenanceRecords = await _mediator.Send(query);
+        var result = await _mediator.Send(query);
 
-        // Cache for 5 minutes
+        // Cache for 5 minutes - store the full FMSResponse
         var cacheOptions = new DistributedCacheEntryOptions
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5)
         };
-        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(maintenanceRecords), cacheOptions);
+        await _cache.SetStringAsync(cacheKey, JsonSerializer.Serialize(result), cacheOptions);
 
-        return Ok(maintenanceRecords);
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -289,5 +290,29 @@ public class VehicleMaintenanceController : ControllerBase
         var query = new GetAllVehicleOdometerStatusQuery(onlyWithDiscrepancies, discrepancyThreshold);
         var result = await _mediator.Send(query);
         return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Import maintenance records from bulk data (Excel/CSV)
+    /// </summary>
+    [HttpPost("import")]
+    public async Task<IActionResult> ImportMaintenanceRecords([FromBody] List<MaintenanceImportDTO> importRecords)
+    {
+        if (importRecords == null || importRecords.Count == 0)
+        {
+            return BadRequest(FMSResponse<object>.Failure("No records provided for import"));
+        }
+
+        var command = new ImportMaintenanceRecordsCommand(importRecords);
+        var result = await _mediator.Send(command);
+
+        if (result.IsSuccess)
+        {
+            // Invalidate cache
+            await InvalidateMaintenanceCache();
+            return Ok(result);
+        }
+
+        return BadRequest(result);
     }
 }

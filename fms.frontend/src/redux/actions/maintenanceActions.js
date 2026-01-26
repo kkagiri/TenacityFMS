@@ -25,6 +25,10 @@ export const DELETE_MAINTENANCE_REQUEST = 'DELETE_MAINTENANCE_REQUEST';
 export const DELETE_MAINTENANCE_SUCCESS = 'DELETE_MAINTENANCE_SUCCESS';
 export const DELETE_MAINTENANCE_FAILURE = 'DELETE_MAINTENANCE_FAILURE';
 
+export const IMPORT_MAINTENANCE_REQUEST = 'IMPORT_MAINTENANCE_REQUEST';
+export const IMPORT_MAINTENANCE_SUCCESS = 'IMPORT_MAINTENANCE_SUCCESS';
+export const IMPORT_MAINTENANCE_FAILURE = 'IMPORT_MAINTENANCE_FAILURE';
+
 // Action Creators
 
 /**
@@ -161,6 +165,30 @@ export const deleteMaintenanceRecord = (maintenanceId) => {
         payload: error.message || 'Failed to delete maintenance record',
       });
       throw error;
+    }
+  };
+};
+
+/**
+ * Import maintenance records from Excel/CSV
+ * @param {Array} records - Array of records to import
+ */
+export const importMaintenanceRecords = (records) => {
+  return async (dispatch) => {
+    dispatch({ type: IMPORT_MAINTENANCE_REQUEST });
+    try {
+      const response = await maintenanceService.importMaintenanceRecords(records);
+      dispatch({
+        type: IMPORT_MAINTENANCE_SUCCESS,
+        payload: response,
+      });
+      return { success: true, imported: response?.imported || records.length, ...response };
+    } catch (error) {
+      dispatch({
+        type: IMPORT_MAINTENANCE_FAILURE,
+        payload: error.message || 'Failed to import maintenance records',
+      });
+      return { success: false, message: error.message || 'Failed to import maintenance records' };
     }
   };
 };

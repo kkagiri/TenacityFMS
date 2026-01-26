@@ -171,13 +171,50 @@
   }
 
   .pump-transaction-map-popup {
-    @apply tw-h-full tw-flex tw-flex-col tw-p-2;
-    min-height: 400px;
+    @apply tw-h-full tw-flex tw-flex-col;
+    height: 100%;
+  }
+
+  .pump-transaction-map-frame-container {
+    @apply tw-flex-1 tw-w-full tw-relative;
+    height: 100%;
   }
 
   .pump-transaction-map-frame {
-    @apply tw-flex-1 tw-w-full tw-border tw-border-gray-200 tw-rounded-md;
-    min-height: 350px;
+    @apply tw-w-full tw-h-full;
+    border: none;
+    display: block;
+  }
+}
+
+// Map popup wrapper - ensure content fills the popup
+.pump-transaction-map-popup-wrapper {
+  .dx-popup-content {
+    padding: 0 !important;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  .pump-transaction-map-popup {
+    @apply tw-flex tw-flex-col;
+    height: 100%;
+    flex: 1;
+  }
+
+  .pump-transaction-map-frame-container {
+    flex: 1;
+    position: relative;
+    min-height: 0;
+  }
+
+  .pump-transaction-map-frame {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
   }
 }
 
