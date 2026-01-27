@@ -23,6 +23,7 @@ import VehicleFuelingHistory from "./component/VehicleFuelingHistory";
 import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
 import VehicleGPSInformation from "./component/VehicleGPSInformation";
 import VehicleFuelingRuleAssignment from "./component/vehicledetails/VehicleFuelingRuleAssignment";
+import { VehicleTransferHistory } from "./component/vehicletransfer";
 
 // Import popup components
 import TagAssignmentForm from "../../components/Tags/TagAssignmentForm/TagAssignmentForm";
@@ -348,6 +349,16 @@ const VehicleDetails = () => {
     );
   }, [vehicle, tabLoadingStates, isAdmin]);
 
+  const transferHistoryComponent = useMemo(() => {
+    if (!vehicle || tabLoadingStates[7]) return null;
+    return (
+      <VehicleTransferHistory
+        key={`transfer-${vehicle?.vehicleId}`}
+        vehicleId={id}
+      />
+    );
+  }, [vehicle, id, tabLoadingStates]);
+
   // Memoize tab items with stable dependencies
   const tabItems = useMemo(() => {
     if (!vehicle) return [];
@@ -412,6 +423,13 @@ const VehicleDetails = () => {
           ? loadingSpinner("fueling rules")
           : fuelingRulesComponent,
       },
+      {
+        title: "Transfers",
+        icon: "fa-solid fa-truck-moving",
+        component: tabLoadingStates[7]
+          ? loadingSpinner("transfer history")
+          : transferHistoryComponent,
+      },
     ];
   }, [
     vehicle,
@@ -422,6 +440,7 @@ const VehicleDetails = () => {
     fuelingHistoryComponent,
     documentsComponent,
     fuelingRulesComponent,
+    transferHistoryComponent,
     tabLoadingStates,
   ]);
 

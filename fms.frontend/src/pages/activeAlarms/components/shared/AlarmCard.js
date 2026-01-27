@@ -49,6 +49,8 @@ const AlarmCard = ({
         return 'fa-light fa-shield-exclamation';
       case 'SystemFailure':
         return 'fa-light fa-server';
+      case 'VehicleGpsOfflineDuringFueling':
+        return 'fa-light fa-location-slash';
       default:
         return 'fa-light fa-bell';
     }

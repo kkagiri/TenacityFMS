@@ -660,13 +660,14 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                             if (isTransferMode)
                             {
-
-
                                 // Extract transfer-specific data
                                 var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp) ? sourceProp.GetInt32() : 0;
                                 var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp) ? destProp.GetInt32() : 0;
                                 var transferReason = context.TryGetProperty("Reason", out var reasonProp) ? reasonProp.GetString() : "Pump transfer";
                                 var userId = context.TryGetProperty("UserId", out var userProp) ? userProp.GetString() : "System";
+                                var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp) ? nozzleProp.GetInt32() : (int?)null;
+                                var fuelGradeId = context.TryGetProperty("FuelGradeId", out var fgIdProp) ? fgIdProp.GetInt32() : (int?)null;
+                                var fuelGradeName = context.TryGetProperty("FuelGradeName", out var fgNameProp) ? fgNameProp.GetString() : null;
 
                                 var transferData = new JObject
                                 {
@@ -680,7 +681,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 };
 
                                 _logger.LogInformation(
-                                    "[UploadStatus] **PROCESSING PUMP TRANSFER** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
+                                    "[UploadStatus] **PROCESSING PUMP TRANSFER via IdleStatus** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
                                     sourceTankId, destinationTankId, volume, transactionId);
 
                                 // **PROCESS TRANSFER IN NEW SCOPE** - Use IServiceScopeFactory to avoid disposed context issue
@@ -697,13 +698,13 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                         if (result.IsSuccess)
                                         {
                                             _logger.LogInformation(
-                                                "[UploadStatus] **TRANSFER COMPLETE** ✅ - {Message}",
+                                                "[UploadStatus] **TRANSFER COMPLETE via IdleStatus** ✅ - {Message}",
                                                 result.Message);
                                         }
                                         else
                                         {
                                             _logger.LogError(
-                                                "[UploadStatus] **TRANSFER FAILED** ❌ - {Message}",
+                                                "[UploadStatus] **TRANSFER FAILED via IdleStatus** ❌ - {Message}",
                                                 result.Message);
                                         }
 
@@ -713,7 +714,45 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                     catch (Exception ex)
                                     {
                                         _logger.LogError(ex,
-                                            "[UploadStatus] **TRANSFER ERROR** - Failed to process pump transfer for {DeviceId}:{TransactionId}",
+                                            "[UploadStatus] **TRANSFER ERROR via IdleStatus** - Failed to process pump transfer for {DeviceId}:{TransactionId}",
+                                            deviceId, transactionId);
+                                    }
+                                });
+
+                                // **ALSO CREATE PUMP TRANSACTION FOR TRANSFER** - Ensure audit trail is complete
+                                var transferStatusData = new JObject
+                                {
+                                    ["Pump"] = pumpId,
+                                    ["Transaction"] = transactionId,
+                                    ["Volume"] = volume,
+                                    ["Amount"] = amount,
+                                    ["DateTime"] = DateTime.UtcNow,
+                                    ["TankId"] = sourceTankId,  // Source tank for transfers
+                                    ["DestinationTankId"] = destinationTankId,
+                                    ["IsTransferMode"] = true,
+                                    ["VehicleId"] = (int?)null, // Explicitly null for transfers
+                                    ["Tag"] = (string?)null,    // Explicitly null for transfers
+                                    ["UserId"] = userId,
+                                    ["Nozzle"] = nozzleId,
+                                    ["FuelGradeId"] = fuelGradeId,
+                                    ["FuelGradeName"] = fuelGradeName,
+                                    ["DetectedVia"] = "IdleStatus",
+                                    ["CompletionSource"] = "LastTransactionData"
+                                };
+
+                                // Create pump transaction for audit trail
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                            deviceId, pumpId, transactionId, transferStatusData);
+                                        _logger.LogInformation("[UploadStatus] **TRANSFER PUMP TRANSACTION CREATED via IdleStatus** ✅ - {DeviceId}:{Transaction}",
+                                            deviceId, transactionId);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "[UploadStatus] **TRANSFER PUMP TRANSACTION FAILED via IdleStatus** - {DeviceId}:{Transaction}",
                                             deviceId, transactionId);
                                     }
                                 });
@@ -732,13 +771,13 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                             // Get tag information from authorization state
                             var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
                             var tagId = authState?.TagId;
-                            var nozzleId = authState?.NozzleId; //Cursor: Add nozzle from authorization state
+                            var vehicleNozzleId = authState?.NozzleId; //Cursor: Add nozzle from authorization state
 
                             // **ADD CONTEXT TO STATUS DATA** //Cursor
                             statusData["TankId"] = tankId;
                             statusData["VehicleId"] = vehicleId;
                             statusData["Tag"] = tagId;
-                            statusData["Nozzle"] = nozzleId; //Cursor: Add nozzle to completion data
+                            statusData["Nozzle"] = vehicleNozzleId; //Cursor: Add nozzle to completion data
                             statusData["ConnectionType"] = connectionType;
                             statusData["AutoCloseTransaction"] = autoCloseTransaction;
 
@@ -1000,6 +1039,104 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                             // Parse the stored context to get authorization details
                             var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+
+                            // **CHECK FOR TRANSFER MODE** - Detect if this is a tank transfer (NOT vehicle fueling)
+                            var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) && transferProp.GetBoolean();
+
+                            if (isTransferMode)
+                            {
+                                // **TANK TRANSFER PATH** - Process via PumpTankTransferService, NOT AutoCompletion
+                                var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp) ? sourceProp.GetInt32() : 0;
+                                var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp) ? destProp.GetInt32() : 0;
+                                var transferReason = context.TryGetProperty("Reason", out var reasonProp) ? reasonProp.GetString() : "Pump transfer";
+                                var userId = context.TryGetProperty("UserId", out var userProp) ? userProp.GetString() : "System";
+                                var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp) ? nozzleProp.GetInt32() : (int?)null;
+
+                                _logger.LogInformation(
+                                    "[UploadStatus] **TRANSFER MODE DETECTED in EOT** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
+                                    sourceTankId, destinationTankId, volume, detectedTransactionId.Value);
+
+                                var transferData = new JObject
+                                {
+                                    ["SourceTankId"] = sourceTankId,
+                                    ["DestinationTankId"] = destinationTankId,
+                                    ["Volume"] = volume,
+                                    ["TransferDate"] = DateTime.UtcNow,
+                                    ["Reason"] = transferReason,
+                                    ["UserId"] = userId,
+                                    ["PumpTransactionId"] = detectedTransactionId.Value
+                                };
+
+                                // Process transfer in new scope
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        using var scope = _serviceScopeFactory.CreateScope();
+                                        var scopedTransferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
+
+                                        var result = await scopedTransferService.ProcessPumpTransferAsync(transferData);
+
+                                        if (result.IsSuccess)
+                                        {
+                                            _logger.LogInformation("[UploadStatus] **TRANSFER COMPLETE via EOT** ✅ - {Message}", result.Message);
+                                        }
+                                        else
+                                        {
+                                            _logger.LogError("[UploadStatus] **TRANSFER FAILED via EOT** ❌ - {Message}", result.Message);
+                                        }
+
+                                        // Clean up Redis context
+                                        await _redisDb.KeyDeleteAsync(transactionKey);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "[UploadStatus] **TRANSFER ERROR via EOT** - Failed for {DeviceId}:{TransactionId}",
+                                            deviceId, detectedTransactionId);
+                                    }
+                                });
+
+                                // **ALSO CREATE PUMP TRANSACTION FOR TRANSFER** - Ensure audit trail is complete
+                                var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                                var transferStatusData = new JObject
+                                {
+                                    ["Pump"] = pumpId,
+                                    ["Transaction"] = detectedTransactionId.Value,
+                                    ["Volume"] = volume,
+                                    ["Amount"] = amount,
+                                    ["DateTime"] = DateTime.UtcNow,
+                                    ["TankId"] = sourceTankId,  // Source tank for transfers
+                                    ["DestinationTankId"] = destinationTankId,
+                                    ["IsTransferMode"] = true,
+                                    ["VehicleId"] = (int?)null, // Explicitly null for transfers
+                                    ["Tag"] = (string?)null,    // Explicitly null for transfers
+                                    ["UserId"] = userId,
+                                    ["Nozzle"] = nozzleId ?? (eotStatus.Nozzles?.Count > i ? eotStatus.Nozzles[i] : null),
+                                    ["FuelGradeId"] = eotStatus.FuelGradeIds?.Count > i ? eotStatus.FuelGradeIds[i] : null,
+                                    ["FuelGradeName"] = eotStatus.FuelGradeNames?.Count > i ? eotStatus.FuelGradeNames[i] : null
+                                };
+
+                                // Create pump transaction for audit trail
+                                _ = Task.Run(async () =>
+                                {
+                                    try
+                                    {
+                                        await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                            deviceId, pumpId, detectedTransactionId.Value, transferStatusData);
+                                        _logger.LogInformation("[UploadStatus] **TRANSFER PUMP TRANSACTION CREATED** ✅ - {DeviceId}:{Transaction}",
+                                            deviceId, detectedTransactionId.Value);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        _logger.LogError(ex, "[UploadStatus] **TRANSFER PUMP TRANSACTION FAILED** - {DeviceId}:{Transaction}",
+                                            deviceId, detectedTransactionId);
+                                    }
+                                });
+
+                                continue; // Skip normal vehicle fueling path
+                            }
+
+                            // **VEHICLE FUELING PATH** - Normal processing for non-transfer transactions
                             var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
                             var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
                             var contextPumpId = context.TryGetProperty("PumpId", out var pumpIdProp) ? pumpIdProp.GetInt32() : (int?)null;
@@ -1011,8 +1148,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 detectedTransactionId.Value, contextPumpId, pumpId, tankId, vehicleId, autoCloseTransaction);
 
                             // Get tag information from authorization state
-                            var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
-                            var tagId = authState?.TagId;
+                            var authStateVehicle = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                            var tagId = authStateVehicle?.TagId;
 
                             // Create enhanced status data object for auto-completion processing
                             var statusData = new JObject

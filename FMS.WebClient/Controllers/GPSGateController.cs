@@ -1,10 +1,12 @@
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.GPSGate.Commands;
 using FMS.Application.Features.GPSGate.DTOs;
 using FMS.Application.Features.GPSGate.Queries;
 using FMS.Application.Features.GPSGate.Services;
+using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -25,6 +27,36 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
             _logger = logger;
         }
+
+        #region Tags
+
+        /// <summary>
+        /// Get all tags from GPSGate
+        /// GET /api/v1/GPSGate/tags
+        /// </summary>
+        [HttpGet("tags")]
+        public async Task<IActionResult> GetTags([FromServices] IGPSGateViewsService viewsService)
+        {
+            try
+            {
+                _logger.LogInformation("Fetching GPSGate tags...");
+                var result = await viewsService.GetTagsAsync();
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result);
+                }
+
+                return BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching GPSGate tags");
+                return StatusCode(500, FMSResponse<List<GPSGateTagDTO>>.Failed($"Error: {ex.Message}"));
+            }
+        }
+
+        #endregion
 
         /// <summary>
         /// TEST: Login to GPSGate using credentials from provider_configurations
@@ -83,8 +115,8 @@ namespace FMS.WebClient.Controllers
                 return StatusCode(500, FMSResponse<object>.Failed($"Error: {ex.Message}"));
             }
         }        /// <summary>
-        /// Login to GPSGate and obtain a session
-        /// </summary>
+                 /// Login to GPSGate and obtain a session
+                 /// </summary>
         [HttpPost("login")]
         public async Task<IActionResult> Login([FromBody] LoginRequestDto loginRequest)
         {
@@ -141,8 +173,8 @@ namespace FMS.WebClient.Controllers
                 return StatusCode(500, FMSResponse<GenerateReportResponseDto>.Failed("An error occurred while generating the report"));
             }
         }        /// <summary>
-        /// Get report status
-        /// </summary>
+                 /// Get report status
+                 /// </summary>
         [HttpGet("reports/status/{handleId}")]
         public async Task<IActionResult> GetReportStatus([FromQuery] string sessionId, int handleId)
         {
@@ -199,8 +231,8 @@ namespace FMS.WebClient.Controllers
                 return StatusCode(500, FMSResponse<string>.Failed($"Error: {ex.Message}"));
             }
         }        /// <summary>
-        /// Fetch completed report data
-        /// </summary>
+                 /// Fetch completed report data
+                 /// </summary>
         [HttpGet("reports/fetch/{handleId}")]
         public async Task<IActionResult> FetchReport([FromQuery] string sessionId, int handleId)
         {

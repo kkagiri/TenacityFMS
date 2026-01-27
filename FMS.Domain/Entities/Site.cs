@@ -23,6 +23,21 @@ public partial class Site
     /// </summary>
     public string? SiteAdministratorId { get; set; }
 
+    /// <summary>
+    /// GPSGate Tag ID for this site - used for vehicle tracking assignments
+    /// </summary>
+    public int? GpsGateTagId { get; set; }
+
+    /// <summary>
+    /// GPSGate Tag Name (e.g., "HE_Meru", "HE_Fujita") for display purposes
+    /// </summary>
+    public string? GpsGateTagName { get; set; }
+
+    /// <summary>
+    /// Whether to automatically update GPSGate tag when vehicles are transferred to this site
+    /// </summary>
+    public bool AutoUpdateGpsGateTag { get; set; } = true;
+
     public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport>();
 
     public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule>();

@@ -144,6 +144,11 @@ public static class FmsApplicationBuilderExtensions
             endpoints.MapHub<FrontEndHub>("/frontendHub")
                 .RequireAuthorization()
                 .RequireCors(corsPolicy);
+
+            // Vehicle Tracking Hub - Real-time GPS updates from GPSGate RabbitMQ
+            endpoints.MapHub<VehicleTrackingHub>("/vehicleTrackingHub")
+                .RequireAuthorization()
+                .RequireCors(corsPolicy);
         });
 
         return app;

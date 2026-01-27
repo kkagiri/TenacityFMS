@@ -1,0 +1,24 @@
+.vehicle-transfer-form {
+  .dx-textbox,
+  .dx-numberbox,
+  .dx-selectbox,
+  .dx-datebox {
+    @apply tw-w-full;
+  }
+
+  .dx-datagrid {
+    @apply tw-rounded;
+  }
+
+  .dx-fileuploader-wrapper {
+    @apply tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4;
+
+    &:hover {
+      @apply tw-border-blue-400;
+    }
+  }
+
+  .dx-fileuploader-input-wrapper {
+    @apply tw-text-center;
+  }
+}

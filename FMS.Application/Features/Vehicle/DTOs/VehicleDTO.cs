@@ -115,5 +115,29 @@ namespace FMS.Application.Features.Vehicle.DTOs
 
         #endregion
 
+        #region Recent Fueling Properties
+
+        /// <summary>
+        /// The date of the most recent fueling (within the last 5 days)
+        /// </summary>
+        public DateTime? LastFueledDate { get; set; }
+
+        /// <summary>
+        /// Indicates if the vehicle was fueled within the last 5 days
+        /// </summary>
+        public bool IsRecentlyFueled { get; set; }
+
+        /// <summary>
+        /// Site name where the vehicle was last fueled
+        /// </summary>
+        public string? LastFuelingSiteName { get; set; }
+
+        /// <summary>
+        /// Number of days since last fueling (null if no recent fueling)
+        /// </summary>
+        public int? DaysSinceLastFueling { get; set; }
+
+        #endregion
+
     }
 }

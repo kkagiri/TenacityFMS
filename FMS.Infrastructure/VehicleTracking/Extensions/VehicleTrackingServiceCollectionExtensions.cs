@@ -83,6 +83,13 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.AddHttpClient<IGPSGateViewsService, GPSGateViewsService>();
             services.TryAddScoped<IGPSGateViewsService, GPSGateViewsService>();
 
+            // Register GPSGate Tag Management Service for vehicle transfer tag updates
+            services.AddHttpClient<IGpsGateTagManagementService, GpsGateTagManagementService>();
+            services.TryAddScoped<IGpsGateTagManagementService, GpsGateTagManagementService>();
+
+            // Register GPSGate Tag Transfer Service adapter for Application layer integration
+            services.TryAddScoped<FMS.Application.Features.VehicleTransfer.Commands.IGpsGateTagTransferService, GpsGateTagTransferServiceAdapter>();
+
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
 

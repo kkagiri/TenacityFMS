@@ -6,7 +6,7 @@ import {
 } from "../../redux/actions/notificationActions";
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
-import signalRService from "../../signalR/SignalRService";
+import dashboardSignalRService from "../../signalR/dashboardSignalRService";
 import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
 
 // Maximum notifications to show initially
@@ -138,9 +138,10 @@ const NotificationCenter = () => {
     document.addEventListener("keydown", handleKeyDown);
 
     // Ensure SignalR connection for live notifications
+    // Using dashboardSignalRService.start() - the connection is managed globally by SignalRConnectionManager
     (async () => {
       try {
-        await signalRService.ensureConnected();
+        await dashboardSignalRService.start();
       } catch (e) {
         console.error("Failed to initialize SignalR for NotificationCenter", e);
       }
@@ -431,7 +432,13 @@ const NotificationCenter = () => {
     // Check for specific notification types based on ID prefix
     // Convert id to string to handle both string and number IDs
     const idString = String(id);
-    if (idString.startsWith("pump-")) {
+    const alarmType = item.alarmType || data?.alarmType || '';
+
+    // Check for GPS offline alarm
+    if (alarmType === 'VehicleGpsOfflineDuringFueling') {
+      icon = "fa-regular fa-location-slash";
+      iconColor = "tw-text-orange-500";
+    } else if (idString.startsWith("pump-")) {
       icon = "fa-regular fa-gas-pump";
       iconColor = type === "error" ? "tw-text-red-500" : "tw-text-blue-500";
     } else if (idString.startsWith("tag-")) {

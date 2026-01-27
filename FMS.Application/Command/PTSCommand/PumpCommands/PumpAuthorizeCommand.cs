@@ -474,13 +474,14 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // **STEP 5.5: OPENING STOCK VALIDATION**
                 // Ensure the tank has opening stock recorded for today before allowing fueling
                 // This prevents automated transactions from creating ledger entries when opening stock hasn't been established
+                // CRITICAL: This validation applies to ALL tanks, not just UseBookKeeping tanks
                 if (request.TankId.HasValue)
                 {
                     var tank = await _context.Tanks.FindAsync(new object[] { request.TankId.Value }, cancellationToken);
 
-                    // Only validate if tank uses book keeping (ledger system)
-                    if (tank?.UseBookKeeping == 1)
+                    if (tank != null)
                     {
+                        // Check for opening stock - applies to ALL tanks regardless of UseBookKeeping
                         var today = DateTime.UtcNow.Date;
                         var hasOpeningStock = await _context.TankVolumeHistories
                             .AnyAsync(tvh =>
@@ -493,8 +494,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                         if (!hasOpeningStock)
                         {
                             _logger.LogWarning(
-                                "[PumpAuth] ⚠️ OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date} before fueling can proceed",
-                                tank.Id, tank.Name, today.ToString("yyyy-MM-dd"));
+                                "[PumpAuth] ⚠️ OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date} before fueling can proceed. UseBookKeeping={UseBookKeeping}",
+                                tank.Id, tank.Name, today.ToString("yyyy-MM-dd"), tank.UseBookKeeping);
 
                             return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
                                 new List<string>

@@ -41,6 +41,9 @@ export const ALARM_TYPES = {
   SENSOR_MALFUNCTION: 'SensorMalfunction',
   HARDWARE_FAILURE: 'HardwareFailure',
 
+  // Vehicle GPS alarms
+  VEHICLE_GPS_OFFLINE_DURING_FUELING: 'VehicleGpsOfflineDuringFueling',
+
   // System alarms
   DISCREPANCY_DETECTED: 'DiscrepancyDetected',
   STOCK_DISCREPANCY: 'StockDiscrepancy',

@@ -512,6 +512,13 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
 
+        // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
+        services.AddHostedService<GPSGateVehicleLocationTagMonitoringService>();
+
+        // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
+        // Consumes GPS position updates from GPSGate and broadcasts to connected clients
+        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
+
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
         services.AddIssueTrackerBackgroundServices();
 
@@ -571,6 +578,12 @@ public static class FmsServiceCollectionExtensions
 
         // Location Bypass Monitor Background Service (auto-expires bypasses and notifies clients via SignalR)
         services.AddHostedService<LocationBypassMonitorService>();
+
+        // Vehicle Site Auto-Assignment Service (auto-assigns vehicles to sites based on refueling patterns)
+        services.AddScoped<FMS.Application.Features.Vehicle.Services.IVehicleSiteAutoAssignmentService, FMS.Application.Features.Vehicle.Services.VehicleSiteAutoAssignmentService>();
+
+        // Vehicle GPS Offline Alert Service (alerts when vehicles with GPS are fueled while offline)
+        services.AddScoped<FMS.Application.Features.Vehicle.Services.IVehicleGpsOfflineAlertService, FMS.Application.Features.Vehicle.Services.VehicleGpsOfflineAlertService>();
 
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();

@@ -1,15 +1,49 @@
-import React from 'react';
+import React, { useState } from 'react';
+import GpsGateTagManagement from './component/GpsGateTagManagement';
 
 const VehicleSettingsPage = () => {
+  const [activeTab, setActiveTab] = useState('general');
+
+  const tabs = [
+    { id: 'general', label: 'General Settings', icon: 'fa-light fa-cog' },
+    { id: 'gpsgate', label: 'GPSGate Tags', icon: 'fa-light fa-tags' },
+  ];
+
   return (
     <div className="tw-p-6">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-4">Vehicle Settings</h2>
-        <p className="tw-text-gray-600 tw-mb-6">
-          Configure vehicle management preferences and system settings
-        </p>
+      {/* Tab Navigation */}
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-mb-6">
+        <div className="tw-border-b tw-border-gray-200">
+          <nav className="tw-flex tw-space-x-4 tw-px-6" aria-label="Tabs">
+            {tabs.map((tab) => (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`tw-py-4 tw-px-3 tw-border-b-2 tw-font-medium tw-text-sm tw-transition-colors ${
+                  activeTab === tab.id
+                    ? 'tw-border-blue-600 tw-text-blue-600'
+                    : 'tw-border-transparent tw-text-gray-500 hover:tw-text-gray-700 hover:tw-border-gray-300'
+                }`}
+              >
+                <i className={`${tab.icon} tw-mr-2`}></i>
+                {tab.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </div>
 
-        <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
+      {/* Tab Content */}
+      {activeTab === 'gpsgate' && <GpsGateTagManagement />}
+
+      {activeTab === 'general' && (
+        <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
+          <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-4">Vehicle Settings</h2>
+          <p className="tw-text-gray-600 tw-mb-6">
+            Configure vehicle management preferences and system settings
+          </p>
+
+          <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
           {/* General Settings */}
           <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-6">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">General Settings</h3>
@@ -230,6 +264,7 @@ const VehicleSettingsPage = () => {
           </button>
         </div>
       </div>
+      )}
     </div>
   );
 };

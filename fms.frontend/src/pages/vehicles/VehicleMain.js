@@ -15,6 +15,7 @@ import VehicleConsumptionComparisonPage from "./VehicleConsumptionComparisonPage
 import MaintenanceAlertsPage from "./MaintenanceAlertsPage";
 import VehicleReportsPage from "./VehicleReportsPage";
 import VehicleSettingsPage from "./VehicleSettingsPage";
+import VehicleTransferListPage from "./VehicleTransferListPage";
 // Correct import path for vehicle documents list (was pointing to non-existent maintenance/documents folder)
 import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
 
@@ -37,6 +38,7 @@ const VehicleMain = () => {
           path="maintenance/documents"
           element={<VehicleDocumentsList />}
         />
+        <Route path="transfers" element={<VehicleTransferListPage />} />
         <Route path="reports" element={<VehicleReportsPage />} />
         <Route path="settings" element={<VehicleSettingsPage />} />
 

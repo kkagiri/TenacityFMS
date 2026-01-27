@@ -1,0 +1,18 @@
+.vehicle-transfer-list-page {
+  @apply tw-p-4;
+
+  .dx-datagrid {
+    .dx-datagrid-headers {
+      @apply tw-bg-slate-50;
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row {
+        &:hover {
+          @apply tw-bg-blue-50;
+          cursor: pointer;
+        }
+      }
+    }
+  }
+}

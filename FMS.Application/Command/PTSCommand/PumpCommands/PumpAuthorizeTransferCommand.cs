@@ -126,14 +126,15 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // **STEP 2.5: OPENING STOCK VALIDATION FOR BOTH TANKS**
                 // Ensure both source and destination tanks have opening stock recorded for today
                 // This prevents automated transfer transactions from creating ledger entries when opening stock hasn't been established
+                // CRITICAL: This validation applies to ALL tanks, not just UseBookKeeping tanks
                 _logger.LogInformation("[TankTransferAuth] **STEP 2.5** - Validating opening stock for both tanks");
 
                 var sourceTank = await _context.Tanks.FindAsync(new object[] { request.SourceTankId }, CancellationToken.None);
                 var destinationTank = await _context.Tanks.FindAsync(new object[] { request.DestinationTankId }, CancellationToken.None);
                 var today = DateTime.UtcNow.Date;
 
-                // Check source tank opening stock (if using book keeping)
-                if (sourceTank?.UseBookKeeping == 1)
+                // Check source tank opening stock - applies to ALL tanks
+                if (sourceTank != null)
                 {
                     var hasSourceOpeningStock = await _context.TankVolumeHistories
                         .AnyAsync(tvh =>
@@ -146,8 +147,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     if (!hasSourceOpeningStock)
                     {
                         _logger.LogWarning(
-                            "[TankTransferAuth] ⚠️ SOURCE TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}",
-                            sourceTank.Id, sourceTank.Name, today.ToString("yyyy-MM-dd"));
+                            "[TankTransferAuth] ⚠️ SOURCE TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}. UseBookKeeping={UseBookKeeping}",
+                            sourceTank.Id, sourceTank.Name, today.ToString("yyyy-MM-dd"), sourceTank.UseBookKeeping);
 
                         return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
                             new List<string>
@@ -159,8 +160,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     }
                 }
 
-                // Check destination tank opening stock (if using book keeping)
-                if (destinationTank?.UseBookKeeping == 1)
+                // Check destination tank opening stock - applies to ALL tanks
+                if (destinationTank != null)
                 {
                     var hasDestOpeningStock = await _context.TankVolumeHistories
                         .AnyAsync(tvh =>
@@ -173,8 +174,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     if (!hasDestOpeningStock)
                     {
                         _logger.LogWarning(
-                            "[TankTransferAuth] ⚠️ DESTINATION TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}",
-                            destinationTank.Id, destinationTank.Name, today.ToString("yyyy-MM-dd"));
+                            "[TankTransferAuth] ⚠️ DESTINATION TANK OPENING STOCK NOT FOUND - Tank {TankId} ({TankName}) requires opening stock for {Date}. UseBookKeeping={UseBookKeeping}",
+                            destinationTank.Id, destinationTank.Name, today.ToString("yyyy-MM-dd"), destinationTank.UseBookKeeping);
 
                         return FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(
                             new List<string>
@@ -267,16 +268,38 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // **STEP 5: STORE TRANSFER CONTEXT IN REDIS**
                 _logger.LogInformation("[TankTransferAuth] **STEP 5** - Storing transfer context in Redis");
 
+                // Get fuel grade info from the source tank
+                int? fuelGradeId = null;
+                string? fuelGradeName = null;
+                try
+                {
+                    // Get fuel grade from source tank
+                    var sourceTankForFuelGrade = await _context.Tanks
+                        .FirstOrDefaultAsync(t => t.Id == request.SourceTankId);
+                    if (sourceTankForFuelGrade != null)
+                    {
+                        fuelGradeId = sourceTankForFuelGrade.FuelGradeId;
+                        fuelGradeName = sourceTankForFuelGrade.FuelGradeName;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug("[TankTransferAuth] Could not get fuel grade info: {Error}", ex.Message);
+                }
+
                 var transferContext = new
                 {
                     DeviceId = request.DeviceId,
                     TransactionId = confirmation.Transaction,
                     PumpId = request.PumpId,
+                    Nozzle = request.Nozzle, // **ADDED** - Nozzle for pump transaction record
                     SourceTankId = request.SourceTankId,
                     DestinationTankId = request.DestinationTankId,
                     Volume = request.Volume,
                     Reason = request.Reason,
                     UserId = request.UserId,
+                    FuelGradeId = fuelGradeId,     // **ADDED** - Fuel grade for pump transaction record
+                    FuelGradeName = fuelGradeName, // **ADDED** - Fuel grade name for pump transaction record
                     IsTransferMode = true, // **CRITICAL FLAG** - Tells EOT processing this is a transfer
                     AuthorizedAt = DateTime.UtcNow,
                     StartTime = DateTime.UtcNow,
@@ -291,8 +314,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromHours(2));
 
                 _logger.LogInformation(
-                    "[TankTransferAuth] **CONTEXT STORED** ✅ - Redis key: {RedisKey}, IsTransferMode: true",
-                    redisKey);
+                    "[TankTransferAuth] **CONTEXT STORED** ✅ - Redis key: {RedisKey}, IsTransferMode: true, Nozzle: {Nozzle}, FuelGrade: {FuelGrade}",
+                    redisKey, request.Nozzle, fuelGradeName);
 
                 // **STEP 6: UPDATE AUTHORIZATION STATE TRACKER**
                 var authState = new AuthState

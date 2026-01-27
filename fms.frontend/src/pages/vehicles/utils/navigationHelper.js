@@ -9,6 +9,7 @@ export const vehicleRoutes = {
   tracking: '/vehicles/tracking',
   reports: '/vehicles/reports',
   documents: '/vehicles/documents',
+  transfers: '/vehicles/transfers',
   settings: '/vehicles/settings',
   addVehicle: '/vehicles/fleet#vehicleaction'
 };
@@ -79,12 +80,17 @@ export const navigationGroups = {
       badge: null,
     },
     {
-        id: 'documents',
-        title: 'Documents',
-        icon: 'fa-light fa-file-lines',
-        path: vehicleRoutes.documents,
+      id: 'documents',
+      title: 'Documents',
+      icon: 'fa-light fa-file-lines',
+      path: vehicleRoutes.documents,
     },
-
+    {
+      id: 'transfers',
+      title: 'Vehicle Transfers',
+      icon: 'fa-light fa-truck-arrow-right',
+      path: vehicleRoutes.transfers,
+    },
     {
       id: 'reports',
       title: 'Reports',

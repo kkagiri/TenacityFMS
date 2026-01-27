@@ -7,4 +7,10 @@ public class SiteDTO
     public bool IsActive { get; set; } = true;
     public string? SiteAdministratorId { get; set; }
     public string? SiteAdministratorName { get; set; }
+
+    // GPSGate Tag Configuration
+    public int? GpsGateTagId { get; set; }
+    public string? GpsGateTagName { get; set; }
+    public string? GpsGateTagColor { get; set; }
+    public bool AutoUpdateGpsGateTag { get; set; } = true;
 }

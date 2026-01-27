@@ -36,6 +36,7 @@ namespace FMS.Application.Services
         private readonly IMediator _mediator;
         private readonly GpsdataContext _context;
         private readonly ILogger<TransactionCompletionService> _logger;
+        private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
         public TransactionCompletionService(
             DeviceConnectionTracker deviceConnectionTracker,
@@ -45,7 +46,8 @@ namespace FMS.Application.Services
             IConnectionMultiplexer redisConnection,
             IMediator mediator,
             GpsdataContext context,
-            ILogger<TransactionCompletionService> logger)
+            ILogger<TransactionCompletionService> logger,
+            Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
             _deviceConnectionTracker = deviceConnectionTracker;
             _transactionMonitoringService = transactionMonitoringService;
@@ -55,6 +57,7 @@ namespace FMS.Application.Services
             _mediator = mediator;
             _context = context;
             _logger = logger;
+            _gpsOfflineAlertService = gpsOfflineAlertService;
         }
 
         public async Task<bool> CompleteTransactionAsync(string deviceId, int pumpId, int transactionId, bool isManualCompletion = false)
@@ -607,6 +610,9 @@ namespace FMS.Application.Services
 
                     _logger.LogInformation("[Completion] Transaction {TransactionId} saved to database for Device {DeviceId}",
                         transactionData.Transaction, transactionData.PtsId);
+
+                    // Check if vehicle GPS is offline and create alert if needed
+                    await CheckVehicleGpsOfflineAsync(transactionData);
                 }
                 else
                 {
@@ -618,6 +624,39 @@ namespace FMS.Application.Services
             {
                 _logger.LogError(ex, "[Completion] Error saving transaction to database: {TransactionId}",
                     transactionData.Transaction);
+            }
+        }
+
+        /// <summary>
+        /// Checks if the vehicle GPS is offline and creates an alert if needed.
+        /// This is called after an automated pump transaction is completed and saved.
+        /// </summary>
+        private async Task CheckVehicleGpsOfflineAsync(Pumptransaction transactionData)
+        {
+            if (_gpsOfflineAlertService == null || transactionData.VehicleId == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = await _gpsOfflineAlertService.CheckAndAlertIfGpsOfflineAsync(
+                    transactionData.VehicleId.Value,
+                    siteId: null, // PTS doesn't directly track site, will be determined from tank
+                    transactionData.Volume,
+                    triggeredBy: "PTS System");
+
+                if (result.AlertCreated)
+                {
+                    _logger.LogWarning("[Completion] GPS offline alert created for vehicle {VehicleId} during pump transaction {TransactionId}: {Message}",
+                        transactionData.VehicleId, transactionData.Transaction, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the transaction save
+                _logger.LogWarning(ex, "[Completion] Failed to check vehicle GPS offline status for vehicle {VehicleId} during pump transaction {TransactionId}",
+                    transactionData.VehicleId, transactionData.Transaction);
             }
         }
 

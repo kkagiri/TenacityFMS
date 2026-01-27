@@ -6,6 +6,7 @@ using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Features.FMS.FuelRefil;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -26,19 +27,25 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
         private readonly ILogger<CreateFuelRrefillCommandCommandHandler> _logger;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
+        private readonly IVehicleSiteAutoAssignmentService? _siteAutoAssignmentService;
+        private readonly IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
         public CreateFuelRrefillCommandCommandHandler(
             GpsdataContext context,
             ILogger<CreateFuelRrefillCommandCommandHandler> logger,
             IMapper mapper,
             TankVolumeHistoryIntegrationService tankVolumeHistoryService,
-            TankStockFutureRecordsService futureRecordsService)
+            TankStockFutureRecordsService futureRecordsService,
+            IVehicleSiteAutoAssignmentService? siteAutoAssignmentService = null,
+            IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
+            _siteAutoAssignmentService = siteAutoAssignmentService;
+            _gpsOfflineAlertService = gpsOfflineAlertService;
         }
 
         public async Task<FMSResponseMessage> Handle(CreateFuelRrefillCommand request, CancellationToken cancellationToken)
@@ -334,6 +341,13 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     // We continue even if volume history update fails, but log the error
                 }
 
+                // Check if vehicle should be auto-assigned to a different site based on refueling pattern
+                await CheckVehicleSiteAutoAssignmentAsync(fuelRefilDto.VehicleId, cancellationToken);
+
+                // Check if vehicle GPS is offline and create alert if needed
+                await CheckVehicleGpsOfflineAsync(fuelRefilDto.VehicleId, fuelRefilDto.SiteId,
+                    (decimal?)fuelRefilDto.ManualFuelrefillAmount, fuelByUser?.UserName, cancellationToken);
+
                 // Map to DTO to avoid serializing navigation properties (which causes massive response size)
                 var resultDto = _mapper.Map<FuelRefilDTO>(fuelRefil);
                 return new FMSResponseMessage<FuelRefilDTO>(true, "Fuel refill created successfully.", resultDto);
@@ -342,6 +356,66 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             {
                 _logger.LogError(ex, "Error creating fuel refill");
                 return new FMSResponseMessage(false, ex.Message);
+            }
+        }
+
+        /// <summary>
+        /// Checks if the vehicle should be auto-assigned to a different site based on refueling patterns.
+        /// If vehicle has refueled 3 consecutive times at a site different from its assigned site,
+        /// it will be automatically reassigned and its GPSGate tag updated.
+        /// </summary>
+        private async Task CheckVehicleSiteAutoAssignmentAsync(int vehicleId, CancellationToken cancellationToken)
+        {
+            if (_siteAutoAssignmentService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = await _siteAutoAssignmentService.CheckAndUpdateVehicleSiteAsync(vehicleId, cancellationToken);
+
+                if (result.SiteChanged)
+                {
+                    _logger.LogInformation(
+                        "Vehicle {VehicleId} auto-assigned from site {FromSite} to site {ToSite} based on refueling pattern. GPSGate tag updated: {TagUpdated}",
+                        vehicleId, result.PreviousSiteName, result.NewSiteName, result.GpsGateTagUpdated);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the refill operation
+                _logger.LogWarning(ex, "Failed to check vehicle site auto-assignment for vehicle {VehicleId}", vehicleId);
+            }
+        }
+
+        /// <summary>
+        /// Checks if the vehicle has GPS tracking and if the GPS is offline or stale.
+        /// If so, creates an alert/notification to inform operators.
+        /// </summary>
+        private async Task CheckVehicleGpsOfflineAsync(int vehicleId, int? siteId, decimal? fuelAmount, string? triggeredBy, CancellationToken cancellationToken)
+        {
+            if (_gpsOfflineAlertService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = await _gpsOfflineAlertService.CheckAndAlertIfGpsOfflineAsync(
+                    vehicleId, siteId, fuelAmount, triggeredBy, cancellationToken);
+
+                if (result.AlertCreated)
+                {
+                    _logger.LogWarning(
+                        "GPS offline alert created for vehicle {VehicleId}: {Message}",
+                        vehicleId, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the refill operation
+                _logger.LogWarning(ex, "Failed to check vehicle GPS offline status for vehicle {VehicleId}", vehicleId);
             }
         }
     }

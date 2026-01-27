@@ -17,5 +17,20 @@ namespace FMS.Application.Features.Site.DTOs
         /// Site Administrator User ID for notification routing
         /// </summary>
         public string? SiteAdministratorId { get; set; }
+
+        /// <summary>
+        /// GPSGate Tag ID for this site
+        /// </summary>
+        public int? GpsGateTagId { get; set; }
+
+        /// <summary>
+        /// GPSGate Tag Name for display purposes
+        /// </summary>
+        public string? GpsGateTagName { get; set; }
+
+        /// <summary>
+        /// Whether to automatically update GPSGate tag when vehicles are transferred to this site
+        /// </summary>
+        public bool AutoUpdateGpsGateTag { get; set; } = true;
     }
 }

@@ -49,6 +49,23 @@ namespace FMS.Persistence.EntityConfigurations
                 // Index for Site Administrator
                 builder.HasIndex(e => e.SiteAdministratorId, "IX_Site_SiteAdministrator");
 
+                // GPSGate Tag Configuration
+                builder.Property(e => e.GpsGateTagId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("gps_gate_tag_id")
+                    .HasComment("The GPSGate tag ID for monitoring vehicles at this site");
+
+                builder.Property(e => e.GpsGateTagName)
+                    .HasMaxLength(100)
+                    .HasColumnName("gps_gate_tag_name")
+                    .HasComment("The GPSGate tag name for display purposes");
+
+                builder.Property(e => e.AutoUpdateGpsGateTag)
+                    .HasColumnType("TINYINT(1)")
+                    .HasDefaultValue(true)
+                    .HasColumnName("auto_update_gps_gate_tag")
+                    .HasComment("Whether to automatically update GPSGate tags when vehicles are transferred");
+
                 // Many-to-many relationship with User
                 // builder.HasMany(d => d.Users).WithMany(p => p.Sites)
                 //     .UsingEntity<Dictionary<string, object>>(

@@ -16,7 +16,6 @@ import DataGrid, {
 import { Button } from "devextreme-react/button";
 import { TextBox } from "devextreme-react/text-box";
 import { SelectBox } from "devextreme-react/select-box";
-import { Switch } from "devextreme-react/switch";
 import { LoadPanel } from "devextreme-react/load-panel";
 import notify from "devextreme/ui/notify";
 import {
@@ -26,6 +25,7 @@ import {
   deleteSite,
 } from "../../redux/actions/siteActions";
 import { fetchUsers } from "../../redux/actions/userActions";
+import { getGpsGateTags, updateSiteTagConfiguration } from "../../api/siteTagApi";
 import "./sitePage.scss";
 
 // Move these OUTSIDE the component to prevent React reconciliation issues
@@ -78,6 +78,22 @@ const StatusBadge = ({ isActive }) => (
   </span>
 );
 
+// Cell render function for GPSGate tag column
+const GpsGateTagCellRender = (data) => {
+  if (!data.data.gpsGateTagName) {
+    return <span className="tw-text-slate-400 tw-text-xs">-</span>;
+  }
+  return (
+    <span className="tw-flex tw-items-center tw-gap-1">
+      <span
+        className="tw-w-2.5 tw-h-2.5 tw-rounded-full tw-inline-block tw-flex-shrink-0"
+        style={{ backgroundColor: data.data.gpsGateTagColor || "#6366f1" }}
+      ></span>
+      <span className="tw-text-xs tw-truncate">{data.data.gpsGateTagName}</span>
+    </span>
+  );
+};
+
 const SitePage = () => {
   const dispatch = useDispatch();
   const { sites, loading, creating, updating, deleting } = useSelector(
@@ -97,10 +113,15 @@ const SitePage = () => {
   const [selectedSite, setSelectedSite] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
+  const [gpsGateTags, setGpsGateTags] = useState([]);
+  const [loadingTags, setLoadingTags] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
     isActive: true,
     siteAdministratorId: "",
+    gpsGateTagId: null,
+    gpsGateTagName: "",
+    autoUpdateGpsGateTag: true,
   });
   const dataGridRef = useRef(null);
 
@@ -113,7 +134,30 @@ const SitePage = () => {
   useEffect(() => {
     dispatch(fetchSiteList());
     dispatch(fetchUsers());
+    loadGpsGateTags();
   }, [dispatch]);
+
+  // Load GPSGate tags
+  const loadGpsGateTags = async () => {
+    setLoadingTags(true);
+    try {
+      const response = await getGpsGateTags();
+      // Response is already the FMSResponse object {data: [...], isSuccess: true}
+      if (response?.isSuccess && response.data) {
+        setGpsGateTags(response.data);
+      } else if (Array.isArray(response?.data)) {
+        // Fallback: direct array in data property
+        setGpsGateTags(response.data);
+      } else if (Array.isArray(response)) {
+        // Fallback: response is directly an array
+        setGpsGateTags(response);
+      }
+    } catch (error) {
+      console.error("Failed to load GPSGate tags:", error);
+    } finally {
+      setLoadingTags(false);
+    }
+  };
 
   // Update form when site is selected
   useEffect(() => {
@@ -122,6 +166,9 @@ const SitePage = () => {
         name: selectedSite.name || "",
         isActive: selectedSite.isActive ?? true,
         siteAdministratorId: selectedSite.siteAdministratorId || "",
+        gpsGateTagId: selectedSite.gpsGateTagId || null,
+        gpsGateTagName: selectedSite.gpsGateTagName || "",
+        autoUpdateGpsGateTag: selectedSite.autoUpdateGpsGateTag ?? true,
       });
     }
   }, [selectedSite, isCreating]);
@@ -146,6 +193,9 @@ const SitePage = () => {
       name: "",
       isActive: true,
       siteAdministratorId: "",
+      gpsGateTagId: null,
+      gpsGateTagName: "",
+      autoUpdateGpsGateTag: true,
     });
   };
 
@@ -163,12 +213,18 @@ const SitePage = () => {
         name: "",
         isActive: true,
         siteAdministratorId: "",
+        gpsGateTagId: null,
+        gpsGateTagName: "",
+        autoUpdateGpsGateTag: true,
       });
     } else if (selectedSite) {
       setFormData({
         name: selectedSite.name || "",
         isActive: selectedSite.isActive ?? true,
         siteAdministratorId: selectedSite.siteAdministratorId || "",
+        gpsGateTagId: selectedSite.gpsGateTagId || null,
+        gpsGateTagName: selectedSite.gpsGateTagName || "",
+        autoUpdateGpsGateTag: selectedSite.autoUpdateGpsGateTag ?? true,
       });
       setIsEditing(false);
     }
@@ -331,6 +387,42 @@ const SitePage = () => {
           />
         </SectionCard>
 
+        {/* GPSGate Tag Configuration */}
+        <SectionCard title="GPSGate Tag Configuration" icon="fa-light fa-tags">
+          <InfoRow
+            label="GPSGate Tag"
+            value={
+              selectedSite.gpsGateTagName ? (
+                <span className="tw-flex tw-items-center tw-gap-2">
+                  <span
+                    className="tw-w-3 tw-h-3 tw-rounded-full tw-inline-block"
+                    style={{ backgroundColor: selectedSite.gpsGateTagColor || "#6366f1" }}
+                  ></span>
+                  {selectedSite.gpsGateTagName}
+                </span>
+              ) : (
+                <span className="tw-text-slate-400">Not Configured</span>
+              )
+            }
+            icon="fa-light fa-tag"
+          />
+          <InfoRow
+            label="Auto-Update Vehicle Tags"
+            value={
+              <span
+                className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium ${
+                  selectedSite.autoUpdateGpsGateTag
+                    ? "tw-bg-emerald-100 tw-text-emerald-700"
+                    : "tw-bg-slate-100 tw-text-slate-700"
+                }`}
+              >
+                {selectedSite.autoUpdateGpsGateTag ? "Enabled" : "Disabled"}
+              </span>
+            }
+            icon="fa-light fa-sync"
+          />
+        </SectionCard>
+
         {/* Quick Stats Section */}
         <SectionCard title="Quick Stats" icon="fa-light fa-chart-bar">
           <div className="tw-grid tw-grid-cols-2 tw-gap-4">
@@ -437,11 +529,76 @@ const SitePage = () => {
                 Inactive sites are hidden from fuel reporting
               </p>
             </div>
-            <Switch
-              value={formData.isActive}
-              onValueChanged={(e) =>
-                setFormData({ ...formData, isActive: e.value })
+            <input
+              type="checkbox"
+              checked={formData.isActive}
+              onChange={(e) =>
+                setFormData({ ...formData, isActive: e.target.checked })
               }
+              className="tw-w-5 tw-h-5 tw-text-blue-600 tw-border-gray-300 tw-rounded focus:tw-ring-blue-500"
+            />
+          </div>
+        </div>
+      </SectionCard>
+
+      {/* GPSGate Tag Configuration */}
+      <SectionCard title="GPSGate Tag Configuration" icon="fa-light fa-tags">
+        <div className="tw-space-y-4">
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-slate-700 tw-mb-1">
+              GPSGate Tag
+            </label>
+            <SelectBox
+              dataSource={gpsGateTags || []}
+              value={formData.gpsGateTagId}
+              valueExpr="id"
+              displayExpr="name"
+              onValueChanged={(e) => {
+                const selectedTag = gpsGateTags.find((t) => t.id === e.value);
+                setFormData({
+                  ...formData,
+                  gpsGateTagId: e.value,
+                  gpsGateTagName: selectedTag?.name || "",
+                });
+              }}
+              placeholder={loadingTags ? "Loading tags..." : "Select GPSGate tag"}
+              searchEnabled={true}
+              showClearButton={true}
+              disabled={loadingTags}
+              className="tw-w-full"
+              itemRender={(item) => (
+                <div className="tw-flex tw-items-center tw-gap-2">
+                  {item.color && (
+                    <span
+                      className="tw-w-3 tw-h-3 tw-rounded-full tw-inline-block"
+                      style={{ backgroundColor: item.color }}
+                    ></span>
+                  )}
+                  <span>{item.name}</span>
+                </div>
+              )}
+            />
+            <p className="tw-text-xs tw-text-slate-500 tw-mt-1">
+              Vehicles transferred to this site will be assigned this GPSGate tag
+            </p>
+          </div>
+
+          <div className="tw-flex tw-items-center tw-justify-between tw-py-2">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-slate-700">
+                Auto-Update Vehicle Tags
+              </label>
+              <p className="tw-text-xs tw-text-slate-500">
+                Automatically update vehicle's GPSGate tag when transferred to this site
+              </p>
+            </div>
+            <input
+              type="checkbox"
+              checked={formData.autoUpdateGpsGateTag}
+              onChange={(e) =>
+                setFormData({ ...formData, autoUpdateGpsGateTag: e.target.checked })
+              }
+              className="tw-w-5 tw-h-5 tw-text-blue-600 tw-border-gray-300 tw-rounded focus:tw-ring-blue-500"
             />
           </div>
         </div>
@@ -576,6 +733,12 @@ const SitePage = () => {
 
               <Column dataField="id" caption="ID" width={60} />
               <Column dataField="name" caption="Site Name" />
+              <Column
+                dataField="gpsGateTagName"
+                caption="GPSGate Tag"
+                width={130}
+                cellRender={GpsGateTagCellRender}
+              />
               <Column
                 dataField="isActive"
                 caption="Status"

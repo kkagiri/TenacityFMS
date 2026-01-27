@@ -67,6 +67,11 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'GPS Tracking',
         subtitle: 'Real-time vehicle location and monitoring'
       };
+    } else if (pathname.includes('/transfers')) {
+      return {
+        title: 'Vehicle Transfers',
+        subtitle: 'Manage vehicle transfer checkup reports'
+      };
     } else if (pathname.includes('/reports')) {
       return {
         title: 'Vehicle Reports',
