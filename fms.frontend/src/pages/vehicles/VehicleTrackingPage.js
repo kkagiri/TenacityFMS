@@ -5,6 +5,7 @@ import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
 import axiosInstance from '../../api/axiosInstance';
 import notify from 'devextreme/ui/notify';
+import vehicleTrackingSignalRService from '../../signalR/vehicleTrackingSignalRService';
 
 const mapContainerStyle = {
   width: '100%',
@@ -270,6 +271,75 @@ const VehicleTrackingPage = () => {
 
     return () => clearInterval(interval);
   }, [selectedTagId, fetchVehiclesByTag]);
+
+  // Setup SignalR subscription for real-time vehicle tracking
+  // This should only be active when user is on the tracking page
+  useEffect(() => {
+    // Subscribe to tag when tag is selected
+    const setupSignalRSubscription = async () => {
+      if (!selectedTagId || !vehicleTrackingSignalRService.isConnected) {
+        return;
+      }
+
+      try {
+        // Subscribe to the specific tag for real-time updates
+        await vehicleTrackingSignalRService.subscribeToTag(selectedTagId);
+        console.log(`[VehicleTracking] Subscribed to tag ${selectedTagId}`);
+      } catch (err) {
+        console.error('[VehicleTracking] Failed to subscribe to tag:', err);
+      }
+    };
+
+    // Listen for real-time location updates
+    const unsubscribeLocationUpdate = vehicleTrackingSignalRService.on('locationUpdate', (location) => {
+      if (!location) return;
+
+      setVehicles(prevVehicles => {
+        const updated = prevVehicles.map(v =>
+          v.id === location.vehicleId
+            ? {
+                ...v,
+                latitude: location.latitude,
+                longitude: location.longitude,
+                speed: location.speed ?? v.speed,
+                heading: location.heading ?? v.heading,
+                address: location.address ?? v.address,
+                lastUpdated: new Date(),
+              }
+            : v
+        );
+        return updated;
+      });
+    });
+
+    // Listen for connection status changes
+    const unsubscribeConnectionStatus = vehicleTrackingSignalRService.on('connectionStatus', (status) => {
+      if (!status) return;
+
+      setVehicles(prevVehicles => {
+        const updated = prevVehicles.map(v =>
+          v.id === status.vehicleId
+            ? { ...v, isOnline: status.isOnline }
+            : v
+        );
+        return updated;
+      });
+    });
+
+    // Setup subscription if connected
+    setupSignalRSubscription();
+
+    // Cleanup subscriptions when tag changes or component unmounts
+    return () => {
+      if (selectedTagId && vehicleTrackingSignalRService.isConnected) {
+        vehicleTrackingSignalRService.unsubscribeFromTag(selectedTagId).catch(err => {
+          console.warn('[VehicleTracking] Failed to unsubscribe from tag:', err);
+        });
+      }
+      unsubscribeLocationUpdate();
+      unsubscribeConnectionStatus();
+    };
+  }, [selectedTagId]);
 
   // Filter vehicles by search text (with debounce)
   useEffect(() => {

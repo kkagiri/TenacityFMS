@@ -4,6 +4,7 @@
 import ptsSignalRService from "./ptsSignalRService";
 import dashboardSignalRService from "./dashboardSignalRService";
 import businessSignalRService from "./businessSignalRService";
+import vehicleTrackingSignalRService from "./vehicleTrackingSignalRService";
 
 /**
  * Route patterns for different modules
@@ -45,9 +46,15 @@ const ROUTE_PATTERNS = {
     /^\/reports\/fuel-importer/, // Fuel importer needs SignalR for async import progress
     /\/fuel-importer$/,
   ],
+  // Vehicle tracking routes - special SignalR for live GPS tracking
+  VEHICLE_TRACKING: [
+    /^\/vehicles\/tracking/,
+    /^\/vehicle-tracking/,
+    /\/vehicles\/tracking$/,
+  ],
   // Routes that DON'T need any SignalR connection
   NO_SIGNALR: [
-    /^\/vehicles/,
+    /^\/vehicles(?!\/tracking)/,  // Exclude vehicles/tracking route
     /^\/site/,
     /^\/user/,
     /^\/roles/,
@@ -237,6 +244,12 @@ class SignalRConnectionManager {
       console.log(`[SignalRManager] ✓ Matched BUSINESS pattern`);
     }
 
+    // Check if path matches vehicle tracking patterns
+    if (this.matchesPattern(path, ROUTE_PATTERNS.VEHICLE_TRACKING)) {
+      services.add("vehicleTracking");
+      console.log(`[SignalRManager] ✓ Matched VEHICLE_TRACKING pattern`);
+    }
+
     // Admin and Reports might need multiple services
     if (this.matchesPattern(path, ROUTE_PATTERNS.ADMIN)) {
       services.add("business");
@@ -316,6 +329,9 @@ class SignalRConnectionManager {
         case "business":
           promise = businessSignalRService.start();
           break;
+        case "vehicleTracking":
+          promise = vehicleTrackingSignalRService.start();
+          break;
         default:
           console.warn(`[SignalRManager] ❌ Unknown service: ${serviceName}`);
           return;
@@ -368,6 +384,9 @@ class SignalRConnectionManager {
         case "business":
           await businessSignalRService.stop();
           break;
+        case "vehicleTracking":
+          await vehicleTrackingSignalRService.stop();
+          break;
         default:
           console.warn(`[SignalRManager] ❌ Unknown service: ${serviceName}`);
           return;
@@ -409,6 +428,12 @@ class SignalRConnectionManager {
             // await businessSignalRService.requestAlarmStatistics();
           }
           break;
+        case "vehicleTracking":
+          // Vehicle tracking handles its own subscriptions when connected
+          if (vehicleTrackingSignalRService.isConnected) {
+            console.log("[SignalRManager] vehicleTracking service connected and ready");
+          }
+          break;
         default:
           console.warn(
             `[SignalRManager] Unknown service for initial data request: ${serviceName}`
@@ -446,6 +471,7 @@ class SignalRConnectionManager {
       dashboardConnected: dashboardSignalRService.getConnectionStatus(),
       ptsConnected: ptsSignalRService.getConnectionStatus(),
       businessConnected: businessSignalRService.getConnectionStatus(),
+      vehicleTrackingConnected: vehicleTrackingSignalRService.isConnected,
     };
   }
 

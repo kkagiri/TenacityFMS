@@ -84,6 +84,19 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                     return new FMSResponseMessage(true, "Ledger entry creation skipped based on configuration");
                 }
 
+                // ======= DUPLICATE CHECK: Prevent duplicate TankVolumeHistory for same pumpTransactionId/tankId =======
+                var duplicateExists = await _context.TankVolumeHistories.AnyAsync(
+                    h => h.ReferenceId == pumpTransactionId
+                        && h.TankId == tankId
+                        && h.ReferenceType == "PumpTransaction",
+                    cancellationToken);
+                if (duplicateExists)
+                {
+                    _logger.LogWarning("[PumpTxIntegration] 🚫 Duplicate detected: TankVolumeHistory already exists for TankId {TankId}, TransactionId {TransactionId}. Skipping entry.", tankId, pumpTransactionId);
+                    return new FMSResponseMessage(true, "Duplicate TankVolumeHistory entry detected. Skipped creation.");
+                }
+                // ======= END DUPLICATE CHECK =======
+
                 // Calculate new physical stock value for the tank after dispensing
                 // This ensures both CurrentStock AND PhysicalStockValue are updated together
                 decimal? newPhysicalStockValue = null;
