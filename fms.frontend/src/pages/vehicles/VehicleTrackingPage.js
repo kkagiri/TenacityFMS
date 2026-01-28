@@ -5,7 +5,9 @@ import { TextBox } from 'devextreme-react/text-box';
 import { Button } from 'devextreme-react/button';
 import axiosInstance from '../../api/axiosInstance';
 import notify from 'devextreme/ui/notify';
-import vehicleTrackingSignalRService from '../../signalR/vehicleTrackingSignalRService';
+// DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
+// Uncomment the line below to re-enable real-time vehicle tracking via SignalR
+// import vehicleTrackingSignalRService from '../../signalR/vehicleTrackingSignalRService';
 
 const mapContainerStyle = {
   width: '100%',
@@ -272,6 +274,11 @@ const VehicleTrackingPage = () => {
     return () => clearInterval(interval);
   }, [selectedTagId, fetchVehiclesByTag]);
 
+  // DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
+  // The SignalR subscription for real-time vehicle tracking is commented out.
+  // The page will continue to work with REST API polling (auto-refresh every 30 seconds).
+  // Uncomment the block below to re-enable real-time vehicle tracking via SignalR/RabbitMQ.
+  /*
   // Setup SignalR subscription for real-time vehicle tracking
   // This should only be active when user is on the tracking page
   useEffect(() => {
@@ -340,6 +347,7 @@ const VehicleTrackingPage = () => {
       unsubscribeConnectionStatus();
     };
   }, [selectedTagId]);
+  */
 
   // Filter vehicles by search text (with debounce)
   useEffect(() => {

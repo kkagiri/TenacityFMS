@@ -509,7 +509,8 @@ public static class FmsServiceCollectionExtensions
         services.AddHostedService<SystemUserInitializationService>();
         services.AddHostedService<VehicleDocumentExpiryNotifierService>();
         services.AddHostedService<VehicleMaintenanceNotifierService>();
-        services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
+        // DEAD CODE: OdometerSyncBackgroundService temporarily disabled (2026-01-28)
+        // services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
 
         // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
@@ -517,7 +518,9 @@ public static class FmsServiceCollectionExtensions
 
         // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
         // Consumes GPS position updates from GPSGate and broadcasts to connected clients
-        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
+        // DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
+        // Uncomment the line below to re-enable real-time vehicle tracking via RabbitMQ
+        // services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
 
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
         services.AddIssueTrackerBackgroundServices();

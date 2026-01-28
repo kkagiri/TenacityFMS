@@ -146,9 +146,11 @@ public static class FmsApplicationBuilderExtensions
                 .RequireCors(corsPolicy);
 
             // Vehicle Tracking Hub - Real-time GPS updates from GPSGate RabbitMQ
-            endpoints.MapHub<VehicleTrackingHub>("/vehicleTrackingHub")
-                .RequireAuthorization()
-                .RequireCors(corsPolicy);
+            // DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
+            // Uncomment the lines below to re-enable real-time vehicle tracking via SignalR
+            // endpoints.MapHub<VehicleTrackingHub>("/vehicleTrackingHub")
+            //     .RequireAuthorization()
+            //     .RequireCors(corsPolicy);
         });
 
         return app;
