@@ -356,13 +356,17 @@ const TransactionHub = () => {
     });
   }, []);
 
-  // Calculate group value for date grouping - extracts date only (no time)
+  // Calculate group value for date grouping - extracts date only (no time) in LOCAL timezone
   const calculateDateGroupValue = useCallback((rowData) => {
     if (!rowData.timestamp) return null;
     const date = new Date(rowData.timestamp);
     if (isNaN(date.getTime())) return null;
-    // Return date string in YYYY-MM-DD format for consistent grouping
-    return date.toISOString().split("T")[0];
+    // Return date string in YYYY-MM-DD format using LOCAL timezone (not UTC)
+    // This ensures dates match the displayed time in the user's timezone
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }, []);
 
   // Render group cell for date grouping - displays formatted date

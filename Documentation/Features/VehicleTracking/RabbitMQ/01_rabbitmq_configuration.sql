@@ -26,17 +26,7 @@ WHERE name = 'GPSGate';
 -- ===================================================================
 -- STEP 2: Check if GPSGate provider exists, if not create it
 -- ===================================================================
-INSERT INTO provider_configurations (name, display_name, description, is_enabled, is_default, version, settings, priority, created_at, updated_at)
-SELECT 'GPSGate', 'GPSGate Integration', 'GPSGate vehicle tracking integration with RabbitMQ', 1, 0, '1.0.0', '{}', 100, NOW(), NOW()
-FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM provider_configurations WHERE name = 'GPSGate');
-
-SELECT '✅ Step 2: GPSGate provider exists or created' AS Progress;
-
--- ===================================================================
--- STEP 3: Update GPSGate configuration with RabbitMQ settings
--- ===================================================================
--- Since JSON functions are not available, we set the complete settings JSON
+INSERT INTO provider_configurations (name, display_name, description, is_enabled, is_default, raset the complete settings JSON
 -- If you have existing settings you need to preserve, first run STEP 1 to see them,
 -- then manually merge them into the JSON below before running this UPDATE
 

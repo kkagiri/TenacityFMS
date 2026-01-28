@@ -141,15 +141,22 @@ namespace FMS.Application.Services.TankStock
                     tankTransfer.Id, volume, sourceTank.Name, destinationTank.Name);
 
                 // **STEP 5: UPDATE SOURCE TANK VOLUME HISTORY (TRANSFER OUT)**
+                // The source tank loses fuel - recorded as TransferOut (negative volume change)
                 decimal? sourcePhysicalStockValue = null;
                 if (sourceTank.PhysicalStockValue.HasValue)
                 {
                     sourcePhysicalStockValue = sourceTank.PhysicalStockValue.Value - volume;
+                    if (sourcePhysicalStockValue < 0)
+                    {
+                        _logger.LogWarning(
+                            "[PumpTransfer] **WARNING** - Source tank '{TankName}' physical stock will go negative after transfer. Current: {Current} L, Transfer: {Volume} L, Resulting: {Result} L",
+                            sourceTank.Name, sourceTank.PhysicalStockValue.Value, volume, sourcePhysicalStockValue);
+                    }
                 }
 
                 _logger.LogInformation(
-                    "[PumpTransfer] Updating source tank '{TankName}' volume history (TransferOut: -{Volume} L)",
-                    sourceTank.Name, volume);
+                    "[PumpTransfer] **UPDATING SOURCE TANK VOLUME HISTORY** - Tank '{TankName}' (ID: {TankId}), TransferOut: -{Volume} L, NewPhysicalStock: {PhysicalStock} L",
+                    sourceTank.Name, sourceTank.Id, volume, sourcePhysicalStockValue ?? 0);
 
                 var sourceVolumeResult = await _tankVolumeHistoryService.ProcessTankTransferOutChangeAsync(
                     sourceTankId: sourceTank.Id,
@@ -163,23 +170,26 @@ namespace FMS.Application.Services.TankStock
 
                 if (!sourceVolumeResult.Success)
                 {
-                    _logger.LogWarning("[PumpTransfer] Failed to update source tank volume history: {Message}",
-                        sourceVolumeResult.Message);
-                }
-                else
-                {
-                    // Update source tank current stock
-                    var newSourceStock = (sourceTank.CurrentStock ?? 0) - volume;
-                    sourceTank.CurrentStock = newSourceStock;
-                    sourceTank.PhysicalStockValue = sourcePhysicalStockValue;
-                    sourceTank.LastStockUpdate = DateTime.Now;
+                    _logger.LogError(
+                        "[PumpTransfer] **CRITICAL ERROR** - Failed to update source tank volume history. Tank {TankId} ({TankName}): {Message}",
+                        sourceTank.Id, sourceTank.Name, sourceVolumeResult.Message);
 
-                    _logger.LogInformation(
-                        "[PumpTransfer] Source tank '{TankName}' updated: Old stock {OldStock} L -> New stock {NewStock} L",
-                        sourceTank.Name, sourceTank.CurrentStock + volume, newSourceStock);
+                    return FMSResponse<TankTransferDTO>.Failed(
+                        $"Failed to record transfer OUT for source tank '{sourceTank.Name}': {sourceVolumeResult.Message}");
                 }
+
+                // Update source tank current stock after successful volume history update
+                var newSourceStock = (sourceTank.CurrentStock ?? 0) - volume;
+                sourceTank.CurrentStock = newSourceStock;
+                sourceTank.PhysicalStockValue = sourcePhysicalStockValue;
+                sourceTank.LastStockUpdate = DateTime.Now;
+
+                _logger.LogInformation(
+                    "[PumpTransfer] ✅ **SOURCE TANK UPDATED** - Tank '{TankName}' (ID: {TankId}): BookStock {OldStock} L -> {NewStock} L, PhysicalStock: {PhysicalStock} L",
+                    sourceTank.Name, sourceTank.Id, (sourceTank.CurrentStock ?? 0) + volume, newSourceStock, sourcePhysicalStockValue ?? 0);
 
                 // **STEP 6: UPDATE DESTINATION TANK VOLUME HISTORY (TRANSFER IN)**
+                // The destination tank gains fuel - recorded as TransferIn (positive volume change)
                 decimal? destinationPhysicalStockValue = null;
                 if (destinationTank.PhysicalStockValue.HasValue)
                 {
@@ -187,8 +197,8 @@ namespace FMS.Application.Services.TankStock
                 }
 
                 _logger.LogInformation(
-                    "[PumpTransfer] Updating destination tank '{TankName}' volume history (TransferIn: +{Volume} L)",
-                    destinationTank.Name, volume);
+                    "[PumpTransfer] **UPDATING DESTINATION TANK VOLUME HISTORY** - Tank '{TankName}' (ID: {TankId}), TransferIn: +{Volume} L, NewPhysicalStock: {PhysicalStock} L",
+                    destinationTank.Name, destinationTank.Id, volume, destinationPhysicalStockValue ?? 0);
 
                 var destinationVolumeResult = await _tankVolumeHistoryService.ProcessTankTransferInChangeAsync(
                     destinationTankId: destinationTank.Id,
@@ -202,21 +212,23 @@ namespace FMS.Application.Services.TankStock
 
                 if (!destinationVolumeResult.Success)
                 {
-                    _logger.LogWarning("[PumpTransfer] Failed to update destination tank volume history: {Message}",
-                        destinationVolumeResult.Message);
-                }
-                else
-                {
-                    // Update destination tank current stock
-                    var newDestStock = (destinationTank.CurrentStock ?? 0) + volume;
-                    destinationTank.CurrentStock = newDestStock;
-                    destinationTank.PhysicalStockValue = destinationPhysicalStockValue;
-                    destinationTank.LastStockUpdate = DateTime.Now;
+                    _logger.LogError(
+                        "[PumpTransfer] **CRITICAL ERROR** - Failed to update destination tank volume history. Tank {TankId} ({TankName}): {Message}",
+                        destinationTank.Id, destinationTank.Name, destinationVolumeResult.Message);
 
-                    _logger.LogInformation(
-                        "[PumpTransfer] Destination tank '{TankName}' updated: Old stock {OldStock} L -> New stock {NewStock} L",
-                        destinationTank.Name, destinationTank.CurrentStock - volume, newDestStock);
+                    return FMSResponse<TankTransferDTO>.Failed(
+                        $"Failed to record transfer IN for destination tank '{destinationTank.Name}': {destinationVolumeResult.Message}");
                 }
+
+                // Update destination tank current stock after successful volume history update
+                var newDestStock = (destinationTank.CurrentStock ?? 0) + volume;
+                destinationTank.CurrentStock = newDestStock;
+                destinationTank.PhysicalStockValue = destinationPhysicalStockValue;
+                destinationTank.LastStockUpdate = DateTime.Now;
+
+                _logger.LogInformation(
+                    "[PumpTransfer] ✅ **DESTINATION TANK UPDATED** - Tank '{TankName}' (ID: {TankId}): BookStock {OldStock} L -> {NewStock} L, PhysicalStock: {PhysicalStock} L",
+                    destinationTank.Name, destinationTank.Id, (destinationTank.CurrentStock ?? 0) - volume, newDestStock, destinationPhysicalStockValue ?? 0);
 
                 // **STEP 7: SAVE ALL CHANGES**
                 await _context.SaveChangesAsync();

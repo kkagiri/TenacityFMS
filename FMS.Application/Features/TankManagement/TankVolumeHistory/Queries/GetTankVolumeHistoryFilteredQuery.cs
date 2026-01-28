@@ -94,7 +94,8 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 .Include(tvh => tvh.Tank)
                 .ThenInclude(t => t.Site)
                 .Include(tvh => tvh.RecordedByNavigation)
-                .Where(tvh => tvh.Timestamp >= startDate && tvh.Timestamp <= endDate);
+                .Where(tvh => tvh.Timestamp >= startDate && tvh.Timestamp <= endDate)
+                .Where(tvh => tvh.IsDeleted != true); // Exclude soft-deleted records
 
             // Apply site filter
             if (siteId.HasValue && siteId.Value > 0)
@@ -138,6 +139,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 .ThenInclude(t => t.Site)
                 .Include(tvh => tvh.RecordedByNavigation)
                 .Where(tvh => tvh.Timestamp >= startDate && tvh.Timestamp <= endDate)
+                .Where(tvh => tvh.IsDeleted != true) // Exclude soft-deleted records
                 .Where(tvh => tvh.ChangeReason != VolumeChangeReasonEnum.Dispensing
                             && tvh.ChangeReason != VolumeChangeReasonEnum.AutomatedDispensing);
 
