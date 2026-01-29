@@ -54,8 +54,8 @@ namespace FMS.Application.Communication.Redis
             _logger = logger;
             _pendingCommands = new ConcurrentDictionary<string, TaskCompletionSource<RedisPTSCommandResponse>>();
             _processedCorrelationIds = new ConcurrentDictionary<string, DateTime>();
-            _pumpCloseTimeout = TimeSpan.FromSeconds(
-          configuration.GetValue<int>("Redis:PumpCloseTimeoutSeconds", 120));
+            // Default pump close timeout (120 seconds)
+            _pumpCloseTimeout = TimeSpan.FromSeconds(120);
             //start subscriber
             StartResponseSubscription();
 

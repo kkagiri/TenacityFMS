@@ -1,5 +1,6 @@
 //Cursor: Service for automatic transaction completion detection and saving
 using System;
+using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
@@ -267,7 +268,7 @@ namespace FMS.Application.Services
                         // **CRITICAL FIX**: Process TankVolumeHistory for automated dispensing
                         // This was missing - causing transactions to be saved but NOT recorded in tank ledger
 
-                        var isTransferMode = verifyTransaction.IsTransferMode ?? false;
+                        var isTransferMode = verifyTransaction.IsTransferMode;
                         if (!isTransferMode && verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                         {
                             try
@@ -745,7 +746,7 @@ namespace FMS.Application.Services
                     if (pumps.TryGetProperty("EndOfTransactionStatus", out var eotStatus) &&
                         eotStatus.TryGetProperty("Ids", out var eotIds))
                     {
-                        var eotPumps = eotIds.EnumerateArray()
+                        var eotPumps = eotIds.EnumerateArray().ToList()
                             .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
                             .Where(p => p.HasValue)
                             .Select(p => p.Value)
@@ -762,7 +763,7 @@ namespace FMS.Application.Services
                     if (pumps.TryGetProperty("IdleStatus", out var idleStatus) &&
                         idleStatus.TryGetProperty("Ids", out var idleIds))
                     {
-                        var idlePumps = idleIds.EnumerateArray()
+                        var idlePumps = idleIds.EnumerateArray().ToList()
                             .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
                             .Where(p => p.HasValue)
                             .Select(p => p.Value)
@@ -779,7 +780,7 @@ namespace FMS.Application.Services
                     if (pumps.TryGetProperty("FillingStatus", out var fillingStatus) &&
                         fillingStatus.TryGetProperty("Ids", out var fillingIds))
                     {
-                        var fillingPumps = fillingIds.EnumerateArray()
+                        var fillingPumps = fillingIds.EnumerateArray().ToList()
                             .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
                             .Where(p => p.HasValue)
                             .Select(p => p.Value)

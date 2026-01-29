@@ -1065,14 +1065,14 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 {
                                     ["DeviceId"] = deviceId,
                                     ["PumpId"] = pumpId,
-                                    ["TransactionId"] = transactionId,
+                                    ["TransactionId"] = detectedTransactionId.Value,
                                     ["SourceTankId"] = sourceTankId,
                                     ["DestinationTankId"] = destinationTankId,
                                     ["Volume"] = volume,
                                     ["TransferDate"] = DateTime.UtcNow,
                                     ["Reason"] = transferReason,
                                     ["UserId"] = userId,
-                                    ["PumpTransactionId"] = transactionId
+                                    ["PumpTransactionId"] = detectedTransactionId.Value
                                 };
 
                                 // Process transfer in new scope
