@@ -1,4 +1,5 @@
 using System;
+using FMS.Application.Common.Constants;
 
 namespace FMS.Application.Common.PTSResponse
 {
@@ -20,8 +21,9 @@ namespace FMS.Application.Common.PTSResponse
 
         /// <summary>
         /// Fueling mode: "Vehicle" or "Transfer" (to tank)
+        /// Use PumpOperationMode constants for strong typing
         /// </summary>
-        public string Mode { get; set; } = "Unknown";
+        public string Mode { get; set; } = PumpOperationMode.Unknown;
 
         /// <summary>
         /// Vehicle ID if fueling a vehicle

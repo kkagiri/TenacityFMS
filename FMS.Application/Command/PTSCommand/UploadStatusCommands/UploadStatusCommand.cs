@@ -1,5 +1,6 @@
 ﻿using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
+using FMS.Application.Common.Constants;
 using FMS.Application.Common.PTSResponse;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.SignalR;
@@ -333,14 +334,15 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     ? odProp.GetDecimal() : (decimal?)null;
 
                 // Determine mode based on VehicleId and TankId
-                string mode = "Unknown";
+                // Using strong-typed constants to avoid magic strings
+                string mode = PumpOperationMode.Unknown;
                 if (vehicleId.HasValue && vehicleId > 0)
                 {
-                    mode = "Vehicle";
+                    mode = PumpOperationMode.Vehicle;
                 }
                 else if (tankId.HasValue && tankId > 0)
                 {
-                    mode = "Transfer";
+                    mode = PumpOperationMode.Transfer;
                 }
 
                 // Lookup vehicle name if applicable
