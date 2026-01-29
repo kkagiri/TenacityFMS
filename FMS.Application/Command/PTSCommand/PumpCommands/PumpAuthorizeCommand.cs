@@ -30,6 +30,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.PTS.Services;
 using FMS.Application.Helpers;
@@ -117,6 +118,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IPumpAuthorizationLoggingService _loggingService;
         private readonly IDeviceConnectionTypeService _connectionTypeService;
         private readonly Features.LocationValidation.Services.ILocationValidationService _locationValidationService;
+        private readonly IGPSGateDriverNameService? _driverNameService;
 
         public PumpAuthorizeCommandHandler(
             IAuthorizationStateTracker authstatetracker,
@@ -132,7 +134,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             IPumpAuthorizationLoggingService loggingService,
             IDeviceConnectionTypeService connectionTypeService,
             Features.LocationValidation.Services.ILocationValidationService locationValidationService,
-            ILogger<PumpAuthorizeCommandHandler> logger)
+            ILogger<PumpAuthorizeCommandHandler> logger,
+            IGPSGateDriverNameService? driverNameService = null)
         {
             _authTracker = authstatetracker;
             _context = context;
@@ -148,6 +151,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _connectionTypeService = connectionTypeService;
             _locationValidationService = locationValidationService;
             _logger = logger;
+            _driverNameService = driverNameService;
         }
 
         public async Task<FMSResponse<PumpAuthorizeConfirmation>> Handle(PumpAuthorizeCommand request, CancellationToken cancellationToken)
@@ -887,6 +891,59 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             // Start monitoring the transaction
             await _transactionMonitoringService.StartMonitoringTransaction(
                 request.DeviceId!, request.PumpId, request.Nozzle, confirmation.Transaction);
+
+            // Update GPSGate DriverName custom field if employee/driver is specified
+            await UpdateGpsGateDriverNameAsync(request.VehicleId, request.EmployeeId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Updates the GPSGate DriverName custom field when pump authorization succeeds.
+        /// This allows operators to see who was the last driver to fuel a vehicle in GPSGate.
+        /// </summary>
+        private async Task UpdateGpsGateDriverNameAsync(int? vehicleId, int? employeeId, CancellationToken cancellationToken)
+        {
+            if (_driverNameService == null)
+            {
+                return;
+            }
+
+            // Only update if both vehicle and employee are specified
+            if (!vehicleId.HasValue)
+            {
+                _logger.LogDebug("[PumpAuth] No vehicle specified, skipping GPSGate DriverName update");
+                return;
+            }
+
+            if (!employeeId.HasValue)
+            {
+                _logger.LogDebug("[PumpAuth] No employee/driver specified for vehicle {VehicleId}, skipping GPSGate DriverName update", vehicleId);
+                return;
+            }
+
+            try
+            {
+                var result = await _driverNameService.UpdateDriverNameAsync(vehicleId.Value, employeeId.Value, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation(
+                        "[PumpAuth] Updated GPSGate DriverName for vehicle {VehicleId} with employee {EmployeeId}: {Message}",
+                        vehicleId.Value, employeeId.Value, result.Message);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "[PumpAuth] Failed to update GPSGate DriverName for vehicle {VehicleId} with employee {EmployeeId}: {Message}",
+                        vehicleId.Value, employeeId.Value, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the authorization - this is a non-critical enhancement
+                _logger.LogWarning(ex,
+                    "[PumpAuth] Error updating GPSGate DriverName for vehicle {VehicleId} with employee {EmployeeId}",
+                    vehicleId.Value, employeeId.Value);
+            }
         }
     }
 }

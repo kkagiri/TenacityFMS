@@ -27,6 +27,7 @@ namespace FMS.Application.Communication.Redis
         private readonly string _commandChannel = "pts-commands"; //TODO: move to config
         private readonly TimeSpan _commandTimeout = TimeSpan.FromSeconds(10);
 
+        private readonly TimeSpan _pumpCloseTimeout = TimeSpan.FromSeconds(600); // 5 minutes
         // Extended timeout for pump authorization commands (device needs time to process and confirm)
         private readonly TimeSpan _pumpAuthorizeTimeout = TimeSpan.FromSeconds(15);
 
@@ -38,6 +39,7 @@ namespace FMS.Application.Communication.Redis
         {
             "PumpAuthorize",
             "SetRemoteServerConfiguration",
+            "PumpCloseTransaction",
             "GetRemoteServerConfiguration"
         };
 
@@ -52,7 +54,8 @@ namespace FMS.Application.Communication.Redis
             _logger = logger;
             _pendingCommands = new ConcurrentDictionary<string, TaskCompletionSource<RedisPTSCommandResponse>>();
             _processedCorrelationIds = new ConcurrentDictionary<string, DateTime>();
-
+            _pumpCloseTimeout = TimeSpan.FromSeconds(
+          configuration.GetValue<int>("Redis:PumpCloseTimeoutSeconds", 120));
             //start subscriber
             StartResponseSubscription();
 
@@ -186,9 +189,14 @@ namespace FMS.Application.Communication.Redis
             TimeSpan retryDelay = TimeSpan.FromSeconds(1);
 
             // Use extended timeout for pump authorization and configuration commands
-            var effectiveTimeout = _extendedTimeoutCommands.Contains(command.CommandType)
-                ? (command.CommandType == "PumpAuthorize" ? _pumpAuthorizeTimeout : _configurationCommandTimeout)
-                : _commandTimeout;
+            var effectiveTimeout = command.CommandType switch
+            {
+                "PumpAuthorize" => _pumpAuthorizeTimeout,
+                "PumpCloseTransaction" => _pumpCloseTimeout, // ADD THIS
+                var cmd when cmd.StartsWith("SetRemoteServerConfiguration") ||
+                       cmd.StartsWith("GetRemoteServerConfiguration") => _configurationCommandTimeout,
+                _ => _commandTimeout
+            };
 
             _logger.LogDebug("Sending {CommandType} command with {Timeout}s timeout (correlation: {CorrelationId})",
                 command.CommandType, effectiveTimeout.TotalSeconds, command.CorrelationId);

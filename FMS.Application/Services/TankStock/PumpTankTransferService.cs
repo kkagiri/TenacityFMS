@@ -45,17 +45,20 @@ namespace FMS.Application.Services.TankStock
         private readonly ILogger<PumpTankTransferService> _logger;
         private readonly IMapper _mapper;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly IPumpService _pumpService;
 
         public PumpTankTransferService(
             GpsdataContext context,
             ILogger<PumpTankTransferService> logger,
             IMapper mapper,
-            TankVolumeHistoryIntegrationService tankVolumeHistoryService)
+            TankVolumeHistoryIntegrationService tankVolumeHistoryService,
+            IPumpService pumpService)
         {
             _context = context;
             _logger = logger;
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _pumpService = pumpService;
         }
 
         public async Task<FMSResponse<TankTransferDTO>> ProcessPumpTransferAsync(JObject transferData)
@@ -236,6 +239,52 @@ namespace FMS.Application.Services.TankStock
                 _logger.LogInformation(
                     "[PumpTransfer] **TRANSFER COMPLETE** - {Volume} L transferred from {SourceTank} to {DestTank}",
                     volume, sourceTank.Name, destinationTank.Name);
+
+
+
+                // **STEP 8: CLOSE THE PUMP TRANSACTION ON DEVICE** ⚠️ NEW
+                var deviceId = transferData.Value<string>("DeviceId");
+                var pumpId = transferData.Value<int>("PumpId");
+                var nozzleId = transferData.Value<int?>("NozzleId");
+                var transactionId = transferData.Value<int>("TransactionId");
+
+                if (!string.IsNullOrEmpty(deviceId) && pumpId > 0 && transactionId > 0 && nozzleId.HasValue)
+                {
+                    try
+                    {
+                        _logger.LogInformation(
+                            "[PumpTransfer] **CLOSING TRANSACTION** - Sending PumpCloseTransaction to device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
+                            deviceId, pumpId, transactionId);
+
+                        var closeResult = await _pumpService.ClosePumpTransactionAsync(deviceId, pumpId, transactionId);
+
+                        if (closeResult.Success)
+                        {
+                            _logger.LogInformation(
+                                "[PumpTransfer] **TRANSACTION CLOSED** ✅ - Device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
+                                deviceId, pumpId, transactionId);
+                        }
+                        else
+                        {
+                            _logger.LogWarning(
+                                "[PumpTransfer] **CLOSE FAILED** ⚠️ - Device {DeviceId}, pump {PumpId}, transaction {TransactionId}: {Message}. Transfer was saved but pump may need manual intervention.",
+                                deviceId, pumpId, transactionId, closeResult.Message);
+                        }
+                    }
+                    catch (Exception closeEx)
+                    {
+                        _logger.LogError(closeEx,
+                            "[PumpTransfer] **CLOSE ERROR** - Failed to close transaction {TransactionId} on device {DeviceId}. Transfer was saved successfully but pump may need manual intervention.",
+                            transactionId, deviceId);
+                        // Don't fail the transfer - it's already saved
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "[PumpTransfer] **CANNOT CLOSE** - Missing device/pump/transaction info. DeviceId={DeviceId}, PumpId={PumpId}, TransactionId={TransactionId}",
+                        deviceId, pumpId, transactionId);
+                }
 
                 // Map to DTO for response
                 var transferDTO = _mapper.Map<TankTransferDTO>(tankTransfer);

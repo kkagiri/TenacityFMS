@@ -93,6 +93,10 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             services.AddHttpClient<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
             services.TryAddScoped<IGPSGateAccumulatorService, GPSGateAccumulatorService>();
 
+            // Register GPSGate DriverName Service for updating driver name custom field during fueling
+            services.AddHttpClient<IGPSGateDriverNameService, GPSGateDriverNameService>();
+            services.TryAddScoped<IGPSGateDriverNameService, GPSGateDriverNameService>();
+
             // Register Odometer Sync service for bidirectional sync between GPS and fueling data
             services.TryAddScoped<IOdometerSyncService, OdometerSyncService>();
 

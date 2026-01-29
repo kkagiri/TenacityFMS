@@ -295,13 +295,33 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm
                 activeAlarm.EscalationLevel++;
                 activeAlarm.LastEscalatedAt = DateTime.UtcNow;
 
+                // Solution 1: Store escalation note in ResolutionNotes (now LONGTEXT)
+                var escalationNote = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm}] Escalated by System-AutoEscalation from {oldPriority} to {newPriority} (Level {activeAlarm.EscalationLevel})";
                 var existingNotes = string.IsNullOrEmpty(activeAlarm.ResolutionNotes) ? "" : activeAlarm.ResolutionNotes + "\n";
-                activeAlarm.ResolutionNotes = existingNotes + $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm}] Escalated by {escalatedBy} from {oldPriority} to {newPriority} (Level {activeAlarm.EscalationLevel})";
+                activeAlarm.ResolutionNotes = existingNotes + escalationNote;
+
+                // Solution 2: Also store in escalation history table for detailed audit trail
+                var escalationHistory = new ActiveAlarmEscalationHistory
+                {
+                    ActiveAlarmId = activeAlarm.Id,
+                    EscalationLevel = activeAlarm.EscalationLevel,
+                    FromPriority = oldPriority,
+                    ToPriority = newPriority,
+                    EscalatedBy = escalatedBy,
+                    EscalationReason = "AutoEscalation",
+                    EscalatedAt = DateTime.UtcNow,
+                    Notes = $"Automatic escalation from {oldPriority} to {newPriority}"
+                };
+
+                _context.ActiveAlarmEscalationHistories.Add(escalationHistory);
+
+                // Solution 3: Truncate old escalation notes if ResolutionNotes exceeds threshold
+                TruncateOldEscalationHistory(activeAlarm);
 
                 await _context.SaveChangesAsync(cancellationToken);
 
-                _logger.LogInformation("Escalated active alarm {AlarmId} from {OldPriority} to {NewPriority} by {User}",
-                    alarmId, oldPriority, newPriority, escalatedBy);
+                _logger.LogInformation("Escalated active alarm {AlarmId} from {OldPriority} to {NewPriority} by {User} (Level {Level})",
+                    alarmId, oldPriority, newPriority, escalatedBy, activeAlarm.EscalationLevel);
 
                 // Create escalation notification
                 if (!activeAlarm.SuppressNotifications)
@@ -683,6 +703,38 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm
         }
 
         #region Helper Methods
+
+        /// <summary>
+        /// Truncates old escalation entries from ResolutionNotes when it exceeds threshold
+        /// Keeps only recent 10 escalation entries to prevent column overflow
+        /// </summary>
+        private void TruncateOldEscalationHistory(Domain.Entities.ActiveAlarm alarm)
+        {
+            const int maxEntriesInNotes = 10;
+            const int maxCharacters = 50000; // 50KB threshold
+
+            if (string.IsNullOrEmpty(alarm.ResolutionNotes))
+                return;
+
+            // Check if we need to truncate
+            if (alarm.ResolutionNotes.Length > maxCharacters)
+            {
+                var lines = alarm.ResolutionNotes.Split('\n', StringSplitOptions.None);
+
+                // Keep only the most recent entries
+                var recentLines = lines.TakeLast(maxEntriesInNotes).ToList();
+
+                var truncatedNotes = string.Join("\n", recentLines);
+
+                // Add a marker showing truncation occurred
+                var truncationMarker = $"[{DateTime.UtcNow:yyyy-MM-dd HH:mm}] ... History truncated. Kept last {maxEntriesInNotes} entries. Full history available in ActiveAlarmEscalationHistory table ...";
+
+                alarm.ResolutionNotes = truncationMarker + "\n" + truncatedNotes;
+
+                _logger.LogWarning("Truncated escalation history for alarm {AlarmId} - original size: {OriginalSize} bytes, truncated size: {TruncatedSize} bytes",
+                    alarm.Id, alarm.ResolutionNotes.Length, truncatedNotes.Length);
+            }
+        }
 
         private static string EscalatePriority(string currentPriority)
         {

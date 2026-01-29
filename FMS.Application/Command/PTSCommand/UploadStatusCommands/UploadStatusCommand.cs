@@ -671,6 +671,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                                 var transferData = new JObject
                                 {
+                                    ["DeviceId"] = deviceId,
+                                    ["PumpId"] = pumpId,
+                                    ["TransactionId"] = transactionId,
                                     ["SourceTankId"] = sourceTankId,
                                     ["DestinationTankId"] = destinationTankId,
                                     ["Volume"] = volume,
@@ -1058,13 +1061,16 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                                 var transferData = new JObject
                                 {
+                                    ["DeviceId"] = deviceId,
+                                    ["PumpId"] = pumpId,
+                                    ["TransactionId"] = transactionId,
                                     ["SourceTankId"] = sourceTankId,
                                     ["DestinationTankId"] = destinationTankId,
                                     ["Volume"] = volume,
                                     ["TransferDate"] = DateTime.UtcNow,
                                     ["Reason"] = transferReason,
                                     ["UserId"] = userId,
-                                    ["PumpTransactionId"] = detectedTransactionId.Value
+                                    ["PumpTransactionId"] = transactionId
                                 };
 
                                 // Process transfer in new scope
@@ -1457,26 +1463,31 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 }
 
                 var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
+
+                var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) && transferProp.GetBoolean();
+                var timeoutMinutes = isTransferMode ? 10.0 : 2.0; // 5 minutes for transfers, 2 for vehicles
+
                 var startTimeStr = context.TryGetProperty("StartTime", out var startProp) ? startProp.GetString() : null;
+
+
 
                 if (DateTime.TryParse(startTimeStr, out var startTime))
                 {
                     var elapsed = DateTime.UtcNow - startTime;
 
-                    // **AGGRESSIVE TIMEOUT** - Reduced from 5 minutes to 2 minutes for faster cleanup
-                    // Most legitimate fueling operations complete within 1-2 minutes
-                    if (elapsed.TotalMinutes > 2) // REDUCED threshold for faster cleanup
-                    {
-                        _logger.LogWarning("[UploadStatus] **TIMEOUT DETECTED** - Transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes without EndOfTransaction - FORCING COMPLETION",
-                            transactionId, deviceId, elapsed.TotalMinutes);
 
-                        // **FORCE COMPLETION** - Trigger completion based on last known status
-                        await ForceTransactionCompletion(deviceId, pumpId, transactionId, $"Timeout-{elapsed.TotalMinutes:F1}min");
+
+                    if (elapsed.TotalMinutes > timeoutMinutes)
+                    {
+                        _logger.LogWarning("[UploadStatus] **TIMEOUT DETECTED** - {TransactionType} transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes (threshold: {Threshold}min) - FORCING COMPLETION",
+                            isTransferMode ? "TRANSFER" : "VEHICLE", transactionId, deviceId, elapsed.TotalMinutes, timeoutMinutes);
+
+                        await ForceTransactionCompletion(deviceId, pumpId, transactionId, $"Timeout-{elapsed.TotalMinutes:F1}min-{(isTransferMode ? "Transfer" : "Vehicle")}");
                     }
                     else
                     {
-                        _logger.LogDebug("[UploadStatus] **PENDING** - Transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes (threshold: 2min)",
-                            transactionId, deviceId, elapsed.TotalMinutes);
+                        _logger.LogDebug("[UploadStatus] **PENDING** - {TransactionType} transaction {TransactionId} on device {DeviceId} running for {Minutes:F1} minutes (threshold: {Threshold}min)",
+                            isTransferMode ? "TRANSFER" : "VEHICLE", transactionId, deviceId, elapsed.TotalMinutes, timeoutMinutes);
                     }
                 }
                 else

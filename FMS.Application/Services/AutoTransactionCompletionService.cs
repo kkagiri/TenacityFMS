@@ -266,7 +266,9 @@ namespace FMS.Application.Services
 
                         // **CRITICAL FIX**: Process TankVolumeHistory for automated dispensing
                         // This was missing - causing transactions to be saved but NOT recorded in tank ledger
-                        if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+
+                        var isTransferMode = verifyTransaction.IsTransferMode ?? false;
+                        if (!isTransferMode && verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                         {
                             try
                             {
@@ -301,6 +303,11 @@ namespace FMS.Application.Services
                                 _logger.LogError(historyEx, "[AutoComplete] ❌ ERROR processing TankVolumeHistory for transaction {Transaction}, tank {TankId}",
                                     transaction, verifyTransaction.TankId.Value);
                             }
+                        }
+                        else if (isTransferMode)
+                        {
+                            _logger.LogDebug("[AutoComplete] Skipping TankVolumeHistory for transfer mode transaction {Transaction}. already processed by PumpTankTransferService",
+                                verifyTransaction.Transaction);
                         }
                         else
                         {
@@ -657,26 +664,38 @@ namespace FMS.Application.Services
         {
             try
             {
+                // CRITICAL FIX: Verify pump is actually in EOT state before attempting close
+                // Tank transfers may still be processing on hardware even after our timeout
+                var pumpReady = await VerifyPumpReadyForClose(deviceId, pump, transaction);
+                if (!pumpReady)
+                {
+                    _logger.LogWarning("[AutoComplete] Pump {PumpId} on device {DeviceId} not yet ready for close (transaction {Transaction}). " +
+                        "This is normal for tank transfers. Close command will be deferred.",
+                        pump, deviceId, transaction);
+
+                    // Schedule a retry after a delay
+                    _ = Task.Run(async () =>
+                    {
+                        await Task.Delay(TimeSpan.FromSeconds(30));
+                        await SendCloseCommandToDevice(deviceId, pump, transaction);
+                    });
+                    return;
+                }
+
                 // Determine connection type and send appropriate close command
                 var wsConnection = await _connectionTracker.GetWebSocketConnection(deviceId);
                 var httpConnection = await _connectionTracker.GetHttpConnection(deviceId);
 
                 if (wsConnection != null)
                 {
-                    // Send via Redis pub/sub for WebSocket devices
                     _logger.LogDebug("[AutoComplete] Sending PumpCloseTransaction via Redis for WebSocket device {DeviceId}",
                         deviceId);
-
                     // This would integrate with existing Redis command system
-                    // Implementation depends on your Redis command structure
-
                 }
                 else if (httpConnection != null)
                 {
-                    // Send via direct HTTP for HTTP devices
                     _logger.LogDebug("[AutoComplete] Sending PumpCloseTransaction via HTTP for device {DeviceId}",
                         deviceId);
-
                     var closeResult = await _directHttpService.CloseTransactionDirectAsync(deviceId, pump, transaction);
                     if (!closeResult)
                     {
@@ -689,20 +708,105 @@ namespace FMS.Application.Services
                     _logger.LogInformation("[AutoComplete] No active connection found for device {DeviceId} - transaction saved but close command skipped",
                         deviceId);
                 }
-
             }
             catch (ObjectDisposedException ex)
             {
                 _logger.LogWarning("[AutoComplete] Service disposed during close command for device {DeviceId} - transaction was saved successfully. Error: {Error}",
                     deviceId, ex.Message);
-                // Don't fail the overall completion process if close command fails due to disposal
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[AutoComplete] Error sending close command to device {DeviceId} - transaction was saved successfully",
                     deviceId);
-                // Don't fail the overall completion process if close command fails
             }
         }
+
+
+        private async Task<bool> VerifyPumpReadyForClose(string deviceId, int pump, int transaction)
+        {
+            try
+            {
+                // Get latest pump status from Redis
+                var statusKey = $"device:{deviceId}:status";
+                var statusJson = await _redisDb.StringGetAsync(statusKey);
+
+                if (statusJson.IsNullOrEmpty)
+                {
+                    _logger.LogDebug("[AutoComplete] No status available for {DeviceId}, assuming ready", deviceId);
+                    return true; // Assume ready if no status
+                }
+
+                var status = JsonSerializer.Deserialize<JsonElement>(statusJson);
+
+                // Check if pump is in EndOfTransaction or Idle state
+                if (status.TryGetProperty("Pumps", out var pumps))
+                {
+                    // Check EndOfTransaction status
+                    if (pumps.TryGetProperty("EndOfTransactionStatus", out var eotStatus) &&
+                        eotStatus.TryGetProperty("Ids", out var eotIds))
+                    {
+                        var eotPumps = eotIds.EnumerateArray()
+                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
+                            .Where(p => p.HasValue)
+                            .Select(p => p.Value)
+                            .ToList();
+
+                        if (eotPumps.Contains(pump))
+                        {
+                            _logger.LogDebug("[AutoComplete] Pump {PumpId} is in EOT state - ready for close", pump);
+                            return true;
+                        }
+                    }
+
+                    // Check Idle status
+                    if (pumps.TryGetProperty("IdleStatus", out var idleStatus) &&
+                        idleStatus.TryGetProperty("Ids", out var idleIds))
+                    {
+                        var idlePumps = idleIds.EnumerateArray()
+                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
+                            .Where(p => p.HasValue)
+                            .Select(p => p.Value)
+                            .ToList();
+
+                        if (idlePumps.Contains(pump))
+                        {
+                            _logger.LogDebug("[AutoComplete] Pump {PumpId} is in Idle state - ready for close", pump);
+                            return true;
+                        }
+                    }
+
+                    // Check if pump is in Filling state (NOT ready for close)
+                    if (pumps.TryGetProperty("FillingStatus", out var fillingStatus) &&
+                        fillingStatus.TryGetProperty("Ids", out var fillingIds))
+                    {
+                        var fillingPumps = fillingIds.EnumerateArray()
+                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
+                            .Where(p => p.HasValue)
+                            .Select(p => p.Value)
+                            .ToList();
+
+                        if (fillingPumps.Contains(pump))
+                        {
+                            _logger.LogWarning("[AutoComplete] Pump {PumpId} is STILL FILLING - NOT ready for close command", pump);
+                            return false; // Pump is still actively filling
+                        }
+                    }
+                }
+
+                // Default to ready if we can't determine state
+                return true;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[AutoComplete] Error verifying pump readiness for {DeviceId}:{PumpId}, assuming ready",
+                    deviceId, pump);
+                return true; // Assume ready on error to avoid blocking
+            }
+        }
+
     }
+
+
+
 }
+

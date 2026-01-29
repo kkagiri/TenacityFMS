@@ -134,10 +134,17 @@ namespace FMS.Persistence.EntityConfigurations
                 .IsRequired(false);
 
             builder.Property(e => e.ResolutionNotes)
-                .HasMaxLength(1000)
+                .HasColumnType("LONGTEXT")
                 .IsRequired(false)
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
+
+            // Navigation to escalation history
+            builder.HasMany(e => e.EscalationHistory)
+                .WithOne(h => h.ActiveAlarm)
+                .HasForeignKey(h => h.ActiveAlarmId)
+                .OnDelete(DeleteBehavior.Cascade)
+                .HasConstraintName("FK_ActiveAlarmEscalationHistory_ActiveAlarms");
 
             // Boolean properties with default values
             builder.Property(e => e.SuppressNotifications)

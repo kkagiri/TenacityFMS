@@ -4,11 +4,13 @@ using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.Notifications;
 
-namespace FMS.Domain.Entities {
+namespace FMS.Domain.Entities
+{
     /// <summary>
     /// Represents an active alarm condition that requires attention or resolution
     /// </summary>
-    public class ActiveAlarm {
+    public class ActiveAlarm
+    {
         [Key]
         public int Id { get; set; }
 
@@ -16,21 +18,21 @@ namespace FMS.Domain.Entities {
         /// Type of alarm (LowTankVolume, DiscrepancyDetected, DeviceDisconnection, etc.)
         /// </summary>
         [Required]
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string AlarmType { get; set; } = null!;
 
         /// <summary>
         /// Current state of the alarm
         /// </summary>
         [Required]
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string State { get; set; } = "Active"; // Active, Acknowledged, Resolved, Suppressed
 
         /// <summary>
         /// How this alarm was triggered
         /// </summary>
         [Required]
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string TriggerSource { get; set; } = null!; // Manual, Policy, Hardware, System
 
         /// <summary>
@@ -51,13 +53,13 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Who acknowledged this alarm
         /// </summary>
-        [MaxLength (100)]
+        [MaxLength(100)]
         public string? AcknowledgedBy { get; set; }
 
         /// <summary>
         /// Who resolved this alarm
         /// </summary>
-        [MaxLength (100)]
+        [MaxLength(100)]
         public string? ResolvedBy { get; set; }
 
         /// <summary>
@@ -69,20 +71,20 @@ namespace FMS.Domain.Entities {
         /// Priority level for handling
         /// </summary>
         [Required]
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string Priority { get; set; } = "Medium"; // Low, Medium, High, Critical
 
         /// <summary>
         /// Human-readable alarm message
         /// </summary>
         [Required]
-        [MaxLength (500)]
+        [MaxLength(500)]
         public string Message { get; set; } = null!;
 
         /// <summary>
         /// Detailed description or context
         /// </summary>
-        [MaxLength (1000)]
+        [MaxLength(1000)]
         public string? Description { get; set; }
 
         /// <summary>
@@ -103,7 +105,7 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// PTS Device ID if alarm is PTS device-specific
         /// </summary>
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string? PtsDeviceId { get; set; }
 
         /// <summary>
@@ -119,7 +121,7 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Unit of measurement for threshold/actual values
         /// </summary>
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string? Unit { get; set; }
 
         /// <summary>
@@ -140,19 +142,24 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Additional data in JSON format
         /// </summary>
-        [Column (TypeName = "json")]
+        [Column(TypeName = "json")]
         public string? AdditionalData { get; set; }
 
         /// <summary>
-        /// Resolution notes or actions taken
+        /// Resolution notes or actions taken (stored as LONGTEXT in database)
+        /// Contains audit trail of all actions on this alarm
         /// </summary>
-        [MaxLength (1000)]
         public string? ResolutionNotes { get; set; }
 
         /// <summary>
         /// Whether this alarm should create notifications
         /// </summary>
         public bool SuppressNotifications { get; set; } = false;
+
+        /// <summary>
+        /// Navigation property for escalation history records
+        /// </summary>
+        public virtual ICollection<ActiveAlarmEscalationHistory> EscalationHistory { get; set; } = new List<ActiveAlarmEscalationHistory>();
 
         /// <summary>
         /// Auto-resolve this alarm after specified minutes (0 = manual resolve only)
@@ -178,7 +185,7 @@ namespace FMS.Domain.Entities {
         public virtual ReconciliationDiscrepancy? ReconciliationDiscrepancy { get; set; }
 
         // Related notifications and issue tracker entries
-        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification> ();
-        public virtual ICollection<Issuetracker> IssueTrackers { get; set; } = new List<Issuetracker> ();
+        public virtual ICollection<Notification> Notifications { get; set; } = new List<Notification>();
+        public virtual ICollection<Issuetracker> IssueTrackers { get; set; } = new List<Issuetracker>();
     }
 }

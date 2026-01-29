@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Services.TankStock;
@@ -29,6 +30,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly IVehicleSiteAutoAssignmentService? _siteAutoAssignmentService;
         private readonly IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
+        private readonly IGPSGateDriverNameService? _driverNameService;
 
         public CreateFuelRrefillCommandCommandHandler(
             GpsdataContext context,
@@ -37,7 +39,8 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             TankVolumeHistoryIntegrationService tankVolumeHistoryService,
             TankStockFutureRecordsService futureRecordsService,
             IVehicleSiteAutoAssignmentService? siteAutoAssignmentService = null,
-            IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
+            IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null,
+            IGPSGateDriverNameService? driverNameService = null)
         {
             _context = context;
             _logger = logger;
@@ -46,6 +49,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             _futureRecordsService = futureRecordsService;
             _siteAutoAssignmentService = siteAutoAssignmentService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
+            _driverNameService = driverNameService;
         }
 
         public async Task<FMSResponseMessage> Handle(CreateFuelRrefillCommand request, CancellationToken cancellationToken)
@@ -348,6 +352,9 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                 await CheckVehicleGpsOfflineAsync(fuelRefilDto.VehicleId, fuelRefilDto.SiteId,
                     (decimal?)fuelRefilDto.ManualFuelrefillAmount, fuelByUser?.UserName, cancellationToken);
 
+                // Update GPSGate DriverName custom field if driver is specified and entry is within 5 days
+                await UpdateGpsGateDriverNameAsync(fuelRefilDto.VehicleId, fuelRefilDto.DriverId, entryDate, cancellationToken);
+
                 // Map to DTO to avoid serializing navigation properties (which causes massive response size)
                 var resultDto = _mapper.Map<FuelRefilDTO>(fuelRefil);
                 return new FMSResponseMessage<FuelRefilDTO>(true, "Fuel refill created successfully.", resultDto);
@@ -416,6 +423,62 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             {
                 // Log but don't fail the refill operation
                 _logger.LogWarning(ex, "Failed to check vehicle GPS offline status for vehicle {VehicleId}", vehicleId);
+            }
+        }
+
+        /// <summary>
+        /// Updates the GPSGate DriverName custom field if:
+        /// - A driver is specified (DriverId has value)
+        /// - The entry date is today or within the last 5 days
+        /// This allows operators to see who was the last driver to fuel a vehicle in GPSGate.
+        /// </summary>
+        private async Task UpdateGpsGateDriverNameAsync(int vehicleId, int? driverId, DateTime entryDate, CancellationToken cancellationToken)
+        {
+            if (_driverNameService == null)
+            {
+                return;
+            }
+
+            // Only update if driver is specified
+            if (!driverId.HasValue)
+            {
+                _logger.LogDebug("No driver specified for fuel refill, skipping GPSGate DriverName update for vehicle {VehicleId}", vehicleId);
+                return;
+            }
+
+            // Only update for entries within the last 5 days (including today)
+            var daysDifference = (DateTime.UtcNow.Date - entryDate.Date).TotalDays;
+            if (daysDifference < 0 || daysDifference > 5)
+            {
+                _logger.LogDebug(
+                    "Fuel refill entry date {EntryDate} is outside 5-day window, skipping GPSGate DriverName update for vehicle {VehicleId}",
+                    entryDate.Date, vehicleId);
+                return;
+            }
+
+            try
+            {
+                var result = await _driverNameService.UpdateDriverNameAsync(vehicleId, driverId.Value, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    _logger.LogInformation(
+                        "Updated GPSGate DriverName for vehicle {VehicleId} with driver {DriverId}: {Message}",
+                        vehicleId, driverId.Value, result.Message);
+                }
+                else
+                {
+                    _logger.LogWarning(
+                        "Failed to update GPSGate DriverName for vehicle {VehicleId} with driver {DriverId}: {Message}",
+                        vehicleId, driverId.Value, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the refill operation - this is a non-critical enhancement
+                _logger.LogWarning(ex,
+                    "Error updating GPSGate DriverName for vehicle {VehicleId} with driver {DriverId}",
+                    vehicleId, driverId.Value);
             }
         }
     }
