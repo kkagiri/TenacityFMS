@@ -8,6 +8,7 @@ using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Persistence;
@@ -269,13 +270,74 @@ namespace FMS.Application.Services
                         // This was missing - causing transactions to be saved but NOT recorded in tank ledger
 
                         var isTransferMode = verifyTransaction.IsTransferMode;
-                        if (!isTransferMode && verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                        if (isTransferMode)
+                        {
+                            // ✅ CRITICAL FIX: Process TankVolumeHistory for BOTH source and destination tanks
+                            try
+                            {
+                                var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
+                                
+                                // Source tank (dispensing OUT)
+                                if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                {
+                                    var sourceResult = await integrationService.ProcessPumpTransactionAsync(
+                                        verifyTransaction.TankId.Value,
+                                        verifyTransaction.Id,
+                                        verifyTransaction.DateTime,
+                                        verifyTransaction.Volume.Value,
+                                        verifyTransaction.UserId?.ToString() ?? "System",
+                                        default);
+                                    
+                                    if (sourceResult.Success)
+                                    {
+                                        _logger.LogInformation(
+                                            "✅ SOURCE TANK LEDGER SAVED - Tank {TankId}, Volume -{Volume}L",
+                                            verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
+                                    }
+                                }
+                                
+                                // Destination tank (receiving IN) - CALL PumpTankTransferService
+                                if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                {
+                                    var transferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
+                                    
+                                    var transferData = new JObject
+                                    {
+                                        ["DeviceId"] = deviceId,
+                                        ["PumpId"] = pump,
+                                        ["TransactionId"] = transaction,
+                                        ["SourceTankId"] = verifyTransaction.TankId.Value,
+                                        ["DestinationTankId"] = verifyTransaction.DestinationTankId.Value,
+                                        ["Volume"] = verifyTransaction.Volume.Value,
+                                        ["TransferDate"] = verifyTransaction.DateTime,
+                                        ["Reason"] = "Pump Transfer",
+                                        ["UserId"] = verifyTransaction.UserId?.ToString() ?? "System",
+                                        ["PumpTransactionId"] = verifyTransaction.Id
+                                    };
+                                    
+                                    var transferResult = await transferService.ProcessPumpTransferAsync(transferData);
+                                    
+                                    if (transferResult.IsSuccess)
+                                    {
+                                        _logger.LogInformation(
+                                            "✅ TANK TRANSFER SAVED - {SourceTank} → {DestTank}, {Volume}L",
+                                            verifyTransaction.TankId.Value,
+                                            verifyTransaction.DestinationTankId.Value,
+                                            verifyTransaction.Volume.Value);
+                                    }
+                                }
+                            }
+                            catch (Exception historyEx)
+                            {
+                                _logger.LogError(historyEx, "[AutoComplete] ❌ ERROR processing transfer ledger for transaction {Transaction}",
+                                    transaction);
+                            }
+                        }
+                        else if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                         {
                             try
                             {
                                 var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
-                                // FIX: Use verifyTransaction.Id (database PK) not verifyTransaction.Transaction (PTS number)
-                                // The ReferenceId in TankVolumeHistory must reference the database primary key
                                 var historyResult = await integrationService.ProcessPumpTransactionAsync(
                                     verifyTransaction.TankId.Value,
                                     verifyTransaction.Id,
@@ -304,11 +366,6 @@ namespace FMS.Application.Services
                                 _logger.LogError(historyEx, "[AutoComplete] ❌ ERROR processing TankVolumeHistory for transaction {Transaction}, tank {TankId}",
                                     transaction, verifyTransaction.TankId.Value);
                             }
-                        }
-                        else if (isTransferMode)
-                        {
-                            _logger.LogDebug("[AutoComplete] Skipping TankVolumeHistory for transfer mode transaction {Transaction}. already processed by PumpTankTransferService",
-                                verifyTransaction.Transaction);
                         }
                         else
                         {
@@ -454,9 +511,30 @@ namespace FMS.Application.Services
 
                 var context = JsonSerializer.Deserialize<JsonElement>(contextJson);
 
+                // **CRITICAL FIX**: For transfer mode, map SourceTankId to TankId
+                var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) 
+                    && transferProp.ValueKind != JsonValueKind.Null
+                    && transferProp.GetBoolean();
+
+                if (isTransferMode)
+                {
+                    // For transfers, TankId = SourceTankId (the tank being pumped FROM)
+                    if (context.TryGetProperty("SourceTankId", out var sourceTankProp) &&
+                        sourceTankProp.ValueKind != JsonValueKind.Null)
+                    {
+                        data["TankId"] = sourceTankProp.GetInt32();
+                        _logger.LogInformation("[AutoComplete] ✅ TRANSFER MODE: Mapped SourceTankId {SourceTankId} → TankId",
+                            sourceTankProp.GetInt32());
+                    }
+                }
+                else
+                {
+                    // For normal fueling, use TankId directly
+                    EnrichPropertyIfMissing(data, context, "TankId");
+                }
+
                 // Merge context values into data (only if not already present or null in data)
                 EnrichPropertyIfMissing(data, context, "Odometer");
-                EnrichPropertyIfMissing(data, context, "TankId");
                 EnrichPropertyIfMissing(data, context, "VehicleId");
                 EnrichPropertyIfMissing(data, context, "DestinationTankId"); //Cursor: Destination tank for transfers
                 EnrichPropertyIfMissing(data, context, "IsTransferMode"); //Cursor: Flag for tank transfer vs vehicle fueling
@@ -733,29 +811,46 @@ namespace FMS.Application.Services
 
                 if (statusJson.IsNullOrEmpty)
                 {
-                    _logger.LogDebug("[AutoComplete] No status available for {DeviceId}, assuming ready", deviceId);
-                    return true; // Assume ready if no status
+                    // ⚠️ No status - wait before assuming ready
+                    _logger.LogWarning(
+                        "[AutoComplete] No status available for {DeviceId} pump {PumpId}, waiting 5s before retry",
+                        deviceId, pump);
+                    await Task.Delay(5000);
+                    return false; // Retry later
                 }
 
                 var status = JsonSerializer.Deserialize<JsonElement>(statusJson);
 
-                // Check if pump is in EndOfTransaction or Idle state
                 if (status.TryGetProperty("Pumps", out var pumps))
                 {
-                    // Check EndOfTransaction status
+                    // ✅ Check EndOfTransaction status first
                     if (pumps.TryGetProperty("EndOfTransactionStatus", out var eotStatus) &&
                         eotStatus.TryGetProperty("Ids", out var eotIds))
                     {
-                        var eotPumps = eotIds.EnumerateArray().ToList()
-                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
-                            .Where(p => p.HasValue)
-                            .Select(p => p.Value)
+                        var eotPumps = eotIds.EnumerateArray()
+                            .Where(p => p.TryGetInt32(out var id) && id == pump)
                             .ToList();
 
-                        if (eotPumps.Contains(pump))
+                        if (eotPumps.Any())
                         {
-                            _logger.LogDebug("[AutoComplete] Pump {PumpId} is in EOT state - ready for close", pump);
+                            _logger.LogInformation(
+                                "[AutoComplete] ✅ Pump {PumpId} is in EOT state - ready for close", pump);
                             return true;
+                        }
+                    }
+
+                    // ⚠️ Check if STILL FILLING (definitely not ready)
+                    if (pumps.TryGetProperty("FillingStatus", out var fillingStatus) &&
+                        fillingStatus.TryGetProperty("Ids", out var fillingIds))
+                    {
+                        var stillFilling = fillingIds.EnumerateArray()
+                            .Any(p => p.TryGetInt32(out var id) && id == pump);
+
+                        if (stillFilling)
+                        {
+                            _logger.LogWarning(
+                                "[AutoComplete] ⚠️ Pump {PumpId} is STILL FILLING - NOT ready for close", pump);
+                            return false;
                         }
                     }
 
@@ -763,45 +858,28 @@ namespace FMS.Application.Services
                     if (pumps.TryGetProperty("IdleStatus", out var idleStatus) &&
                         idleStatus.TryGetProperty("Ids", out var idleIds))
                     {
-                        var idlePumps = idleIds.EnumerateArray().ToList()
-                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
-                            .Where(p => p.HasValue)
-                            .Select(p => p.Value)
-                            .ToList();
+                        var isIdle = idleIds.EnumerateArray()
+                            .Any(p => p.TryGetInt32(out var id) && id == pump);
 
-                        if (idlePumps.Contains(pump))
+                        if (isIdle)
                         {
-                            _logger.LogDebug("[AutoComplete] Pump {PumpId} is in Idle state - ready for close", pump);
-                            return true;
-                        }
-                    }
-
-                    // Check if pump is in Filling state (NOT ready for close)
-                    if (pumps.TryGetProperty("FillingStatus", out var fillingStatus) &&
-                        fillingStatus.TryGetProperty("Ids", out var fillingIds))
-                    {
-                        var fillingPumps = fillingIds.EnumerateArray().ToList()
-                            .Select(p => p.TryGetInt32(out var id) ? id : (int?)null)
-                            .Where(p => p.HasValue)
-                            .Select(p => p.Value)
-                            .ToList();
-
-                        if (fillingPumps.Contains(pump))
-                        {
-                            _logger.LogWarning("[AutoComplete] Pump {PumpId} is STILL FILLING - NOT ready for close command", pump);
-                            return false; // Pump is still actively filling
+                            // ⚠️ Pump is in Idle but not EOT - needs more time
+                            _logger.LogWarning(
+                                "[AutoComplete] ⚠️ Pump {PumpId} is Idle but not EOT - waiting 5s before retry", pump);
+                            await Task.Delay(5000);
+                            return false; // Retry after delay
                         }
                     }
                 }
 
-                // Default to ready if we can't determine state
-                return true;
+                // Can't determine status - wait
+                return false;
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "[AutoComplete] Error verifying pump readiness for {DeviceId}:{PumpId}, assuming ready",
+                _logger.LogError(ex, "[AutoComplete] Error verifying pump readiness for {DeviceId}:{PumpId}",
                     deviceId, pump);
-                return true; // Assume ready on error to avoid blocking
+                return false; // Err on safe side
             }
         }
 
