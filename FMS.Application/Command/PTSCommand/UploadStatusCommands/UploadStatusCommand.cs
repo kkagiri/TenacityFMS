@@ -658,40 +658,40 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                             var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
 
                             // **CHECK FOR TRANSFER MODE** - Detect if this is a tank transfer (NOT vehicle fueling) //Cursor
-                            var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) 
+                            var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp)
                                 && transferProp.ValueKind != JsonValueKind.Null
                                 && transferProp.GetBoolean();
 
                             if (isTransferMode)
                             {
                                 // **FIX: Handle nullable properties safely - check ValueKind before calling GetInt32/GetString
-                                var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp) 
+                                var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp)
                                     && sourceProp.ValueKind != JsonValueKind.Null
-                                    ? sourceProp.GetInt32() 
+                                    ? sourceProp.GetInt32()
                                     : (int?)null;
-                                var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp) 
+                                var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp)
                                     && destProp.ValueKind != JsonValueKind.Null
-                                    ? destProp.GetInt32() 
+                                    ? destProp.GetInt32()
                                     : (int?)null;
-                                var transferReason = context.TryGetProperty("Reason", out var reasonProp) 
+                                var transferReason = context.TryGetProperty("Reason", out var reasonProp)
                                     && reasonProp.ValueKind != JsonValueKind.Null
-                                    ? reasonProp.GetString() 
+                                    ? reasonProp.GetString()
                                     : "Pump transfer";
-                                var userId = context.TryGetProperty("UserId", out var userProp) 
+                                var userId = context.TryGetProperty("UserId", out var userProp)
                                     && userProp.ValueKind != JsonValueKind.Null
-                                    ? userProp.GetString() 
+                                    ? userProp.GetString()
                                     : "System";
-                                var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp) 
+                                var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp)
                                     && nozzleProp.ValueKind != JsonValueKind.Null
-                                    ? nozzleProp.GetInt32() 
+                                    ? nozzleProp.GetInt32()
                                     : (int?)null;
-                                var fuelGradeId = context.TryGetProperty("FuelGradeId", out var fgIdProp) 
+                                var fuelGradeId = context.TryGetProperty("FuelGradeId", out var fgIdProp)
                                     && fgIdProp.ValueKind != JsonValueKind.Null
-                                    ? fgIdProp.GetInt32() 
+                                    ? fgIdProp.GetInt32()
                                     : (int?)null;
-                                var fuelGradeName = context.TryGetProperty("FuelGradeName", out var fgNameProp) 
+                                var fuelGradeName = context.TryGetProperty("FuelGradeName", out var fgNameProp)
                                     && fgNameProp.ValueKind != JsonValueKind.Null
-                                    ? fgNameProp.GetString() 
+                                    ? fgNameProp.GetString()
                                     : null;
 
                                 var transferData = new JObject

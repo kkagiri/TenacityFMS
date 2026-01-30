@@ -276,7 +276,7 @@ namespace FMS.Application.Services
                             try
                             {
                                 var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
-                                
+
                                 // Source tank (dispensing OUT)
                                 if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                                 {
@@ -287,7 +287,7 @@ namespace FMS.Application.Services
                                         verifyTransaction.Volume.Value,
                                         verifyTransaction.UserId?.ToString() ?? "System",
                                         default);
-                                    
+
                                     if (sourceResult.Success)
                                     {
                                         _logger.LogInformation(
@@ -295,12 +295,12 @@ namespace FMS.Application.Services
                                             verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
                                     }
                                 }
-                                
+
                                 // Destination tank (receiving IN) - CALL PumpTankTransferService
                                 if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                                 {
                                     var transferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
-                                    
+
                                     var transferData = new JObject
                                     {
                                         ["DeviceId"] = deviceId,
@@ -314,9 +314,9 @@ namespace FMS.Application.Services
                                         ["UserId"] = verifyTransaction.UserId?.ToString() ?? "System",
                                         ["PumpTransactionId"] = verifyTransaction.Id
                                     };
-                                    
+
                                     var transferResult = await transferService.ProcessPumpTransferAsync(transferData);
-                                    
+
                                     if (transferResult.IsSuccess)
                                     {
                                         _logger.LogInformation(
@@ -512,7 +512,7 @@ namespace FMS.Application.Services
                 var context = JsonSerializer.Deserialize<JsonElement>(contextJson);
 
                 // **CRITICAL FIX**: For transfer mode, map SourceTankId to TankId
-                var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp) 
+                var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp)
                     && transferProp.ValueKind != JsonValueKind.Null
                     && transferProp.GetBoolean();
 
