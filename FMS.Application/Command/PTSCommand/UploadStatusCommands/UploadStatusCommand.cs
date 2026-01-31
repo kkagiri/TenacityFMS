@@ -1097,35 +1097,30 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                     ["UserId"] = userId,
                                     ["PumpTransactionId"] = detectedTransactionId.Value
                                 };
-
-                                // Process transfer in new scope
-                                _ = Task.Run(async () =>
+                                try
                                 {
-                                    try
+                                    using var scope = _serviceScopeFactory.CreateScope();
+                                    var scopedTransferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
+
+                                    var result = await scopedTransferService.ProcessPumpTransferAsync(transferData);
+
+                                    if (result.IsSuccess)
                                     {
-                                        using var scope = _serviceScopeFactory.CreateScope();
-                                        var scopedTransferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
-
-                                        var result = await scopedTransferService.ProcessPumpTransferAsync(transferData);
-
-                                        if (result.IsSuccess)
-                                        {
-                                            _logger.LogInformation("[UploadStatus] **TRANSFER COMPLETE via EOT** ✅ - {Message}", result.Message);
-                                        }
-                                        else
-                                        {
-                                            _logger.LogError("[UploadStatus] **TRANSFER FAILED via EOT** ❌ - {Message}", result.Message);
-                                        }
-
-                                        // Clean up Redis context
-                                        await _redisDb.KeyDeleteAsync(transactionKey);
+                                        _logger.LogInformation("[UploadStatus] **TRANSFER COMPLETE via EOT** ✅ - {Message}", result.Message);
                                     }
-                                    catch (Exception ex)
+                                    else
                                     {
-                                        _logger.LogError(ex, "[UploadStatus] **TRANSFER ERROR via EOT** - Failed for {DeviceId}:{TransactionId}",
-                                            deviceId, detectedTransactionId);
+                                        _logger.LogError("[UploadStatus] **TRANSFER FAILED via EOT** ❌ - {Message}", result.Message);
                                     }
-                                });
+
+                                    // Clean up Redis context
+                                    await _redisDb.KeyDeleteAsync(transactionKey);
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "[UploadStatus] **TRANSFER ERROR via EOT** - Failed for {DeviceId}:{TransactionId}",
+                                        deviceId, detectedTransactionId);
+                                }
 
                                 // **ALSO CREATE PUMP TRANSACTION FOR TRANSFER** - Ensure audit trail is complete
                                 var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
@@ -1289,7 +1284,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                     };
 
                                     _logger.LogInformation("[UploadStatus] **ENRICHMENT SUCCESS** - Transaction {TransactionId} enriched with device data and auth state (TankId={TankId}, VehicleId={VehicleId}, Tag={Tag})",
-                                        detectedTransactionId.Value, authState?.TankId, authState?.VehicleId, enrichedStatusData.Value<string>("Tag"));
+                                                                        detectedTransactionId.Value, authState?.TankId, authState?.VehicleId, enrichedStatusData.Value<string>("Tag"));
                                 }
                                 else
                                 {

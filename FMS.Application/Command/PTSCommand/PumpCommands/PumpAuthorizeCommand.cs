@@ -119,6 +119,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IDeviceConnectionTypeService _connectionTypeService;
         private readonly Features.LocationValidation.Services.ILocationValidationService _locationValidationService;
         private readonly IGPSGateDriverNameService? _driverNameService;
+        private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
         public PumpAuthorizeCommandHandler(
             IAuthorizationStateTracker authstatetracker,
@@ -135,7 +136,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             IDeviceConnectionTypeService connectionTypeService,
             Features.LocationValidation.Services.ILocationValidationService locationValidationService,
             ILogger<PumpAuthorizeCommandHandler> logger,
-            IGPSGateDriverNameService? driverNameService = null)
+            IGPSGateDriverNameService? driverNameService = null,
+            Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
             _authTracker = authstatetracker;
             _context = context;
@@ -152,6 +154,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _locationValidationService = locationValidationService;
             _logger = logger;
             _driverNameService = driverNameService;
+            _gpsOfflineAlertService = gpsOfflineAlertService;
         }
 
         public async Task<FMSResponse<PumpAuthorizeConfirmation>> Handle(PumpAuthorizeCommand request, CancellationToken cancellationToken)
@@ -894,6 +897,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
             // Update GPSGate DriverName custom field if employee/driver is specified
             await UpdateGpsGateDriverNameAsync(request.VehicleId, request.EmployeeId, cancellationToken);
+
+            // Check if vehicle GPS is offline and create alert if needed
+            await CheckVehicleGpsOfflineAsync(request.VehicleId, request.TankId, (decimal?)request.Dose, request.UserId, cancellationToken);
         }
 
         /// <summary>
@@ -943,6 +949,36 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 _logger.LogWarning(ex,
                     "[PumpAuth] Error updating GPSGate DriverName for vehicle {VehicleId} with employee {EmployeeId}",
                     vehicleId.Value, employeeId.Value);
+            }
+        }
+
+        /// <summary>
+        /// Checks if the vehicle has GPS tracking and if the GPS is offline or stale.
+        /// If so, creates an alert/notification to inform operators.
+        /// </summary>
+        private async Task CheckVehicleGpsOfflineAsync(int? vehicleId, int? siteId, decimal? fuelAmount, string? triggeredBy, CancellationToken cancellationToken)
+        {
+            if (_gpsOfflineAlertService == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var result = await _gpsOfflineAlertService.CheckAndAlertIfGpsOfflineAsync(
+                    vehicleId, siteId, fuelAmount, triggeredBy, cancellationToken);
+
+                if (result.AlertCreated)
+                {
+                    _logger.LogWarning(
+                        "GPS offline alert created for vehicle {VehicleId}: {Message}",
+                        vehicleId, result.Message);
+                }
+            }
+            catch (Exception ex)
+            {
+                // Log but don't fail the authorization - this is a non-critical enhancement
+                _logger.LogWarning(ex, "Failed to check vehicle GPS offline status for vehicle {VehicleId}", vehicleId);
             }
         }
     }
