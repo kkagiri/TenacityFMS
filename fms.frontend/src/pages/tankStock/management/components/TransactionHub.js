@@ -658,11 +658,55 @@ const TransactionHub = () => {
               minWidth={120}
               visible={true}
             />
+
             <Column
               dataField="vehicleType"
               caption="Vehicle Type"
               minWidth={120}
               visible={true}
+            />
+            <Column
+              dataField="transferTankName"
+              caption="Transfer Tank"
+              minWidth={120}
+              visible={true}
+              customizeText={(cellInfo) => {
+                // 1. Use cellInfo.data for direct access to the row object
+                const rowData = cellInfo.data;
+                const tankName = cellInfo.value;
+
+                // 2. If no data (e.g. Filter Row), just show the value if it exists
+                if (!rowData) return tankName || "";
+
+                // 3. Ensure changeReason is evaluated as a number
+                const reason = Number(rowData.changeReason);
+
+                // Only show for TransferIn (3) or TransferOut (4)
+                if (reason === 3) return `From: ${tankName || "Unknown"}`;
+                if (reason === 4) return `To: ${tankName || "Unknown"}`;
+
+                return ""; // Hide for other types
+              }}
+            />
+
+            <Column
+              dataField="transferTankSite"
+              caption="Transfer Site"
+              minWidth={120}
+              visible={true}
+              customizeText={(cellInfo) => {
+                const rowData = cellInfo.data;
+                const siteName = cellInfo.value;
+
+                if (!rowData) return siteName || "";
+
+                const reason = Number(rowData.changeReason);
+
+                if (reason === 3) return `From: ${siteName || "Unknown"}`;
+                if (reason === 4) return `To: ${siteName || "Unknown"}`;
+
+                return "";
+              }}
             />
             <Column
               dataField="volumeChange"
@@ -788,12 +832,11 @@ const TransactionHub = () => {
                   name="GroupDispensing"
                   summaryType="custom"
                   customizeText={(data) => {
-                    return `Dispensing: ${
-                      data.value?.toLocaleString("en-US", {
-                        minimumFractionDigits: 0,
-                        maximumFractionDigits: 0,
-                      }) || "0"
-                    } L`;
+                    return `Dispensing: ${data.value?.toLocaleString("en-US", {
+                      minimumFractionDigits: 0,
+                      maximumFractionDigits: 0,
+                    }) || "0"
+                      } L`;
                   }}
                   alignByColumn={true}
                   showInGroupFooter={false}
@@ -817,12 +860,11 @@ const TransactionHub = () => {
                   name="TotalDispensing"
                   summaryType="custom"
                   customizeText={(data) => {
-                    return `Total Dispensing: ${
-                      data.value?.toLocaleString("en-US", {
-                        minimumFractionDigits: 2,
-                        maximumFractionDigits: 2,
-                      }) || "0.00"
-                    }L`;
+                    return `Total Dispensing: ${data.value?.toLocaleString("en-US", {
+                      minimumFractionDigits: 2,
+                      maximumFractionDigits: 2,
+                    }) || "0.00"
+                      }L`;
                   }}
                 />
               )}

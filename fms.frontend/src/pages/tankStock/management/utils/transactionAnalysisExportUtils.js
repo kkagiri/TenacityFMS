@@ -347,6 +347,8 @@ const createTransactionLog = (worksheet, siteTransactions, tanks, volumeChangeRe
     'Transaction Type',
     'Vehicle',
     'Vehicle Type',
+    'Transfer Tank',      // NEW
+    'Transfer Site',      // NEW
     'Volume Change (L)',
     'New Volume (L)'
   ];
@@ -398,15 +400,18 @@ const createTransactionLog = (worksheet, siteTransactions, tanks, volumeChangeRe
       dataRow.getCell(4).value = transactionType;
       dataRow.getCell(5).value = tx.vehicleName || '';
       dataRow.getCell(6).value = tx.vehicleType || '';
-      dataRow.getCell(7).value = tx.volumeChange || 0;
-      dataRow.getCell(8).value = tx.newVolume || 0;
+      dataRow.getCell(7).value = tx.transferTankName || '';  // NEW
+      dataRow.getCell(8).value = tx.transferTankSite || '';  // NEW
+      dataRow.getCell(9).value = tx.volumeChange || 0;
+      dataRow.getCell(10).value = tx.newVolume || 0;
+
 
       // Format numbers
-      dataRow.getCell(7).numFmt = '#,##0.00';
-      dataRow.getCell(8).numFmt = '#,##0.00';
+      dataRow.getCell(9).numFmt = '#,##0.00';
+      dataRow.getCell(10).numFmt = '#,##0.00';
 
       // Apply borders
-      for (let i = 1; i <= 8; i++) {
+      for (let i = 1; i <= 10; i++) {
         dataRow.getCell(i).border = {
           top: { style: 'thin' },
           left: { style: 'thin' },

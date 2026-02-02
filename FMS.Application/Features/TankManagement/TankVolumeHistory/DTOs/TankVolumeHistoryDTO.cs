@@ -37,5 +37,23 @@ namespace FMS.Application.Features.FMS.TankVolumeHistory
         /// </summary>
         public int? VehicleId { get; set; }
 
+        // <summary>
+        /// For TransferIn: The source tank ID where fuel came from
+        /// For TransferOut: The destination tank ID where fuel went to
+        /// </summary>
+        public int? TransferTankId { get; set; }
+
+        /// <summary>
+        /// For TransferIn: The source tank name where fuel came from
+        /// For TransferOut: The destination tank name where fuel went to
+        /// </summary>
+        public string? TransferTankName { get; set; }
+
+        /// <summary>
+        /// For TransferIn: The source tank site name
+        /// For TransferOut: The destination tank site name
+        /// </summary>
+        public string? TransferTankSite { get; set; }
+
     }
 }

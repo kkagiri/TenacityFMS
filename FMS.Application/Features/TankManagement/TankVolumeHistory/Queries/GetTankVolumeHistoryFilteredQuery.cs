@@ -232,14 +232,13 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
         /// Helper method to map TankVolumeHistory entities to DTOs with vehicle name lookup
         /// </summary>
         private async Task<List<TankVolumeHistoryDTO>> MapTankVolumeHistoryToDTO(
-            List<Domain.Entities.Features.TankStockManagement.TankVolumeHistory> tankVolumeHistories,
-            bool? includeVehicleNames,
-            bool? includeGpsData,
-            DateTime startDate,
-            DateTime endDate,
-            CancellationToken cancellationToken)
+    List<Domain.Entities.Features.TankStockManagement.TankVolumeHistory> tankVolumeHistories,
+    bool? includeVehicleNames,
+    bool? includeGpsData,
+    DateTime startDate,
+    DateTime endDate,
+    CancellationToken cancellationToken)
         {
-
             // Get all dispensing transaction IDs for bulk vehicle name lookup (manual dispensing via FuelRefill)
             var dispensingTransactionIds = new List<int>();
             // Get all automated dispensing transaction IDs for bulk vehicle name lookup (PumpTransaction)
@@ -296,18 +295,15 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             }
 
             // Bulk load vehicle names and types for automated dispensing (PumpTransaction) to avoid N+1 queries
-            // Uses separate lookup dictionaries prefixed with "pt_" to differentiate from FuelRefill
             var pumpTransactionVehicleNameLookup = new Dictionary<int, string>();
             var pumpTransactionVehicleTypeLookup = new Dictionary<int, string>();
             var pumpTransactionVehicleIdLookup = new Dictionary<int, int>(); // PumpTransaction.Id -> Vehicle.Id
             if (automatedDispensingTransactionIds.Any())
             {
-                // Remove duplicates and log
                 var distinctPumpTransactionIds = automatedDispensingTransactionIds.Distinct().ToList();
                 _logger.LogDebug("Looking up vehicle info for {Count} AutomatedDispensing (PumpTransaction) records (distinct: {DistinctCount}): {Ids}",
                     automatedDispensingTransactionIds.Count, distinctPumpTransactionIds.Count, string.Join(", ", distinctPumpTransactionIds));
 
-                // First, verify these PumpTransaction IDs exist in the database
                 var existingPumpTransactionIds = await _context.Pumptransactions
                     .Where(pt => distinctPumpTransactionIds.Contains(pt.Id))
                     .Select(pt => pt.Id)
@@ -333,7 +329,6 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     })
                     .ToListAsync(cancellationToken);
 
-                // Log diagnostic info about PumpTransaction vehicle data
                 var withVehicle = pumpTransactionsWithVehicles.Count(pt => pt.VehicleId.HasValue && pt.VehicleId.Value > 0);
                 var withoutVehicle = pumpTransactionsWithVehicles.Count(pt => !pt.VehicleId.HasValue || pt.VehicleId.Value <= 0);
                 _logger.LogInformation("PumpTransaction vehicle lookup: {Total} total, {WithVehicle} with VehicleId, {WithoutVehicle} without VehicleId",
@@ -356,7 +351,6 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         pt => pt.VehicleId!.Value
                     );
 
-                // Fallback: For PumpTransactions without VehicleId, try to get vehicle from linked FuelRefill
                 var pumpTransactionIdsWithoutVehicle = pumpTransactionsWithVehicles
                     .Where(pt => !pt.VehicleId.HasValue || pt.VehicleId.Value <= 0)
                     .Select(pt => pt.Id)
@@ -388,7 +382,6 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
 
                     foreach (var fr in fuelRefillsForPumpTransactions)
                     {
-                        // Only update if we don't already have vehicle info
                         if (!pumpTransactionVehicleNameLookup.ContainsKey(fr.PumpTransactionId) ||
                             pumpTransactionVehicleNameLookup[fr.PumpTransactionId] == "N/A")
                         {
@@ -407,7 +400,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 }
             }
 
-            // Bulk load GPS data if requested - includes vehicle IDs from both FuelRefills and PumpTransactions
+            // Bulk load GPS data if requested
             var gpsDataLookup = new Dictionary<string, decimal>(); // "vehicleId_date" -> RefillVolume
             var allVehicleIds = vehicleIdLookup.Values
                 .Concat(pumpTransactionVehicleIdLookup.Values)
@@ -428,11 +421,9 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     })
                     .ToListAsync(cancellationToken);
 
-                // Build lookup: "vehicleId_yyyy-MM-dd" -> RefillVolume
                 foreach (var entry in gpsEntries)
                 {
                     var key = $"{entry.VehicleId}_{entry.DispenseDate:yyyy-MM-dd}";
-                    // If multiple GPS entries for same vehicle/date, sum them
                     if (gpsDataLookup.ContainsKey(key))
                     {
                         gpsDataLookup[key] += entry.RefillVolume;
@@ -447,6 +438,69 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     gpsEntries.Count, allVehicleIds.Count);
             }
 
+            // FIXED: Bulk load tank transfer information for TransferIn/TransferOut transactions
+            // Always load transfer info for transfer transactions, not conditional on includeVehicleNames
+            var transferTransactionIds = tankVolumeHistories
+                .Where(h => (h.ChangeReason == VolumeChangeReasonEnum.TransferIn ||
+                             h.ChangeReason == VolumeChangeReasonEnum.TransferOut) &&
+                             h.ReferenceId.HasValue &&
+                             h.ReferenceType == "TankTransfer")
+                .Select(h => h.ReferenceId.Value)
+                .Distinct()
+                .ToList();
+
+            var transferSourceTankLookup = new Dictionary<int, (int TankId, string TankName, string SiteName)>();
+            var transferDestTankLookup = new Dictionary<int, (int TankId, string TankName, string SiteName)>();
+
+            if (transferTransactionIds.Any())
+            {
+                var tankTransfersWithTanks = await _context.TankTransfers
+                    .Where(tt => transferTransactionIds.Contains(tt.Id))
+                    //  .Where(tt => !tt.IsDeleted) // Exclude soft-deleted transfers
+                    .Include(tt => tt.SourceTank)
+                        .ThenInclude(t => t.Site)
+                    .Include(tt => tt.DestinationTank)
+                        .ThenInclude(t => t.Site)
+                    .Select(tt => new
+                    {
+                        tt.Id,
+                        SourceTankId = tt.SourceTankId,
+                        SourceTankName = tt.SourceTank != null ? tt.SourceTank.Name : null,
+                        SourceSiteName = tt.SourceTank != null && tt.SourceTank.Site != null ? tt.SourceTank.Site.Name : null,
+                        DestinationTankId = tt.DestinationTankId,
+                        DestinationTankName = tt.DestinationTank != null ? tt.DestinationTank.Name : null,
+                        DestinationSiteName = tt.DestinationTank != null && tt.DestinationTank.Site != null ? tt.DestinationTank.Site.Name : null
+                    })
+                    .ToListAsync(cancellationToken);
+
+                foreach (var tt in tankTransfersWithTanks)
+                {
+                    if (tt.SourceTankId.HasValue)
+                    {
+                        transferSourceTankLookup[tt.Id] = (
+                            tt.SourceTankId.Value,
+                            tt.SourceTankName ?? "Unknown Tank",
+                            tt.SourceSiteName ?? "Unknown Site"
+                        );
+                    }
+
+                    if (tt.DestinationTankId.HasValue)
+                    {
+                        transferDestTankLookup[tt.Id] = (
+                            tt.DestinationTankId.Value,
+                            tt.DestinationTankName ?? "Unknown Tank",
+                            tt.DestinationSiteName ?? "Unknown Site"
+                        );
+                    }
+                }
+
+                _logger.LogInformation("Loaded transfer info for {Count} tank transfers (Source: {SourceCount}, Dest: {DestCount})",
+                    tankTransfersWithTanks.Count,
+                    transferSourceTankLookup.Count,
+                    transferDestTankLookup.Count);
+            }
+
+            // Build result list
             var result = new List<TankVolumeHistoryDTO>();
 
             foreach (var history in tankVolumeHistories)
@@ -460,7 +514,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 // Set recorded by user name
                 dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";
 
-                // Handle vehicle names and types for MANUAL dispensing transactions (FuelRefill) using lookup
+                // Handle vehicle names and types for MANUAL dispensing transactions (FuelRefill)
                 if (includeVehicleNames == true &&
                     history.ChangeReason == VolumeChangeReasonEnum.Dispensing &&
                     history.ReferenceId.HasValue)
@@ -483,12 +537,10 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         dto.VehicleType = "N/A";
                     }
 
-                    // Get VehicleId from lookup
                     if (vehicleIdLookup.TryGetValue(history.ReferenceId.Value, out int vehicleId))
                     {
                         dto.VehicleId = vehicleId;
 
-                        // Get GPS data if available
                         if (includeGpsData == true)
                         {
                             var dateKey = $"{vehicleId}_{history.Timestamp:yyyy-MM-dd}";
@@ -499,7 +551,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         }
                     }
                 }
-                // Handle vehicle names and types for AUTOMATED dispensing transactions (PumpTransaction) using lookup
+                // Handle vehicle names and types for AUTOMATED dispensing transactions (PumpTransaction)
                 else if (includeVehicleNames == true &&
                     history.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing &&
                     history.ReferenceId.HasValue)
@@ -522,12 +574,10 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                         dto.VehicleType = "N/A";
                     }
 
-                    // Get VehicleId from lookup
                     if (pumpTransactionVehicleIdLookup.TryGetValue(history.ReferenceId.Value, out int vehicleId))
                     {
                         dto.VehicleId = vehicleId;
 
-                        // Get GPS data if available (for PumpTransaction as well)
                         if (includeGpsData == true)
                         {
                             var dateKey = $"{vehicleId}_{history.Timestamp:yyyy-MM-dd}";
@@ -544,10 +594,56 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     dto.VehicleType = "N/A";
                 }
 
+                // Handle tank transfer information for TransferIn transactions
+                if (history.ChangeReason == VolumeChangeReasonEnum.TransferIn &&
+                    history.ReferenceId.HasValue
+
+                    )
+                {
+                    // For TransferIn, show SOURCE tank (where fuel came FROM)
+                    if (transferSourceTankLookup.TryGetValue(history.ReferenceId.Value, out var sourceTankInfo))
+                    {
+                        dto.TransferTankId = sourceTankInfo.TankId;
+                        dto.TransferTankName = sourceTankInfo.TankName;
+                        dto.TransferTankSite = sourceTankInfo.SiteName;
+                    }
+                    else
+                    {
+                        // Log warning when transfer data is missing
+                        _logger.LogWarning("TransferIn record {HistoryId} references TankTransfer {TransferId} but no source tank found",
+                            history.Id, history.ReferenceId.Value);
+                        dto.TransferTankName = "Unknown Transfer";
+                        dto.TransferTankSite = "Unknown Site";
+                    }
+                }
+                // Handle tank transfer information for TransferOut transactions
+                else if (history.ChangeReason == VolumeChangeReasonEnum.TransferOut &&
+                         history.ReferenceId.HasValue &&
+                         history.ReferenceType == "TankTransfer")
+                {
+                    // For TransferOut, show DESTINATION tank (where fuel went TO)
+                    if (transferDestTankLookup.TryGetValue(history.ReferenceId.Value, out var destTankInfo))
+                    {
+                        dto.TransferTankId = destTankInfo.TankId;
+                        dto.TransferTankName = destTankInfo.TankName;
+                        dto.TransferTankSite = destTankInfo.SiteName;
+                    }
+                    else
+                    {
+                        // Log warning when transfer data is missing
+                        _logger.LogWarning("TransferOut record {HistoryId} references TankTransfer {TransferId} but no destination tank found",
+                            history.Id, history.ReferenceId.Value);
+                        dto.TransferTankName = "Unknown Transfer";
+                        dto.TransferTankSite = "Unknown Site";
+                    }
+                }
+
                 result.Add(dto);
             }
 
             return result;
         }
+
     }
+
 }
