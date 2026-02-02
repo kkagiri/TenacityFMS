@@ -127,7 +127,7 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
                         // Check if offline (no recent location data) or if device is explicitly offline
                         isOffline = !location.IsOnline || daysSinceLastSeen >= thresholdDays;
 
-                        _logger.LogDebug("Vehicle {VehicleId} last seen {DaysSinceLastSeen:F1} days ago (threshold: {ThresholdDays} days), IsOnline: {IsOnline}",
+                        _logger.LogWarning("Vehicle {VehicleId} last seen {DaysSinceLastSeen:F1} days ago (threshold: {ThresholdDays} days), IsOnline: {IsOnline}",
                             vehicleId, daysSinceLastSeen, thresholdDays, location.IsOnline);
                     }
                     else
@@ -148,7 +148,7 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
             else
             {
                 // No GPS service available - can't check offline status
-                _logger.LogWarning("GPS service not available, cannot check GPS status for vehicle {VehicleId}", vehicleId);
+                _logger.LogWarning("[VehicleGPSofflineAlert]GPS service not available, cannot check GPS status for vehicle {VehicleId}", vehicleId);
                 result.Message = "GPS service not available";
                 return result;
             }

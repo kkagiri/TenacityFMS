@@ -272,59 +272,76 @@ namespace FMS.Application.Services
                         var isTransferMode = verifyTransaction.IsTransferMode;
                         if (isTransferMode)
                         {
-                            // ✅ CRITICAL FIX: Process TankVolumeHistory for BOTH source and destination tanks
                             try
                             {
                                 var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
+                                var transferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
+                                var transferDate = verifyTransaction.DateTime.Date;
+                                var volume = verifyTransaction.Volume ?? 0;
+                                var sourceTankId = verifyTransaction.TankId;
+                                var destTankId = verifyTransaction.DestinationTankId;
+                                var userId = verifyTransaction.UserId?.ToString() ?? "System";
 
-                                // Source tank (dispensing OUT)
-                                if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                // Redis idempotency key for tank transfer
+                                var idempotencyKey = $"tanktransfer:{sourceTankId}:{destTankId}:{volume}:{transferDate:yyyyMMdd}:{userId}";
+                                var alreadyProcessed = await _redisDb.StringGetAsync(idempotencyKey);
+                                if (!alreadyProcessed.IsNullOrEmpty)
                                 {
-                                    var sourceResult = await integrationService.ProcessPumpTransactionAsync(
-                                        verifyTransaction.TankId.Value,
-                                        verifyTransaction.Id,
-                                        verifyTransaction.DateTime,
-                                        verifyTransaction.Volume.Value,
-                                        verifyTransaction.UserId?.ToString() ?? "System",
-                                        default);
-
-                                    if (sourceResult.Success)
-                                    {
-                                        _logger.LogInformation(
-                                            "✅ SOURCE TANK LEDGER SAVED - Tank {TankId}, Volume -{Volume}L",
-                                            verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
-                                    }
+                                    _logger.LogWarning("[AutoComplete] Redis idempotency key found, skipping duplicate TankTransfer for SourceTankId={SourceTankId}, DestinationTankId={DestinationTankId}, Volume={Volume}, Date={Date}, User={UserId}",
+                                        sourceTankId, destTankId, volume, transferDate, userId);
                                 }
-
-                                // Destination tank (receiving IN) - CALL PumpTankTransferService
-                                if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                else
                                 {
-                                    var transferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
-
-                                    var transferData = new JObject
+                                    // Source tank (dispensing OUT)
+                                    if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                                     {
-                                        ["DeviceId"] = deviceId,
-                                        ["PumpId"] = pump,
-                                        ["TransactionId"] = transaction,
-                                        ["SourceTankId"] = verifyTransaction.TankId.Value,
-                                        ["DestinationTankId"] = verifyTransaction.DestinationTankId.Value,
-                                        ["Volume"] = verifyTransaction.Volume.Value,
-                                        ["TransferDate"] = verifyTransaction.DateTime,
-                                        ["Reason"] = "Pump Transfer",
-                                        ["UserId"] = verifyTransaction.UserId?.ToString() ?? "System",
-                                        ["PumpTransactionId"] = verifyTransaction.Id
-                                    };
-
-                                    var transferResult = await transferService.ProcessPumpTransferAsync(transferData);
-
-                                    if (transferResult.IsSuccess)
-                                    {
-                                        _logger.LogInformation(
-                                            "✅ TANK TRANSFER SAVED - {SourceTank} → {DestTank}, {Volume}L",
+                                        var sourceResult = await integrationService.ProcessPumpTransactionAsync(
                                             verifyTransaction.TankId.Value,
-                                            verifyTransaction.DestinationTankId.Value,
-                                            verifyTransaction.Volume.Value);
+                                            verifyTransaction.Id,
+                                            verifyTransaction.DateTime,
+                                            verifyTransaction.Volume.Value,
+                                            userId,
+                                            default);
+
+                                        if (sourceResult.Success)
+                                        {
+                                            _logger.LogInformation(
+                                                "✅ SOURCE TANK LEDGER SAVED - Tank {TankId}, Volume -{Volume}L",
+                                                verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
+                                        }
                                     }
+
+                                    // Destination tank (receiving IN) - CALL PumpTankTransferService
+                                    if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                    {
+                                        var transferData = new JObject
+                                        {
+                                            ["DeviceId"] = deviceId,
+                                            ["PumpId"] = pump,
+                                            ["TransactionId"] = transaction,
+                                            ["SourceTankId"] = verifyTransaction.TankId.Value,
+                                            ["DestinationTankId"] = verifyTransaction.DestinationTankId.Value,
+                                            ["Volume"] = verifyTransaction.Volume.Value,
+                                            ["TransferDate"] = verifyTransaction.DateTime,
+                                            ["Reason"] = "Pump Transfer",
+                                            ["UserId"] = userId,
+                                            ["PumpTransactionId"] = verifyTransaction.Id
+                                        };
+
+                                        var transferResult = await transferService.ProcessPumpTransferAsync(transferData);
+
+                                        if (transferResult.IsSuccess)
+                                        {
+                                            _logger.LogInformation(
+                                                "✅ TANK TRANSFER SAVED - {SourceTank} → {DestTank}, {Volume}L",
+                                                verifyTransaction.TankId.Value,
+                                                verifyTransaction.DestinationTankId.Value,
+                                                verifyTransaction.Volume.Value);
+                                        }
+                                    }
+
+                                    // Set Redis idempotency key after successful processing (1 day expiry)
+                                    await _redisDb.StringSetAsync(idempotencyKey, "1", TimeSpan.FromDays(1));
                                 }
                             }
                             catch (Exception historyEx)
@@ -825,7 +842,8 @@ namespace FMS.Application.Services
                 {
                     // ✅ Check EndOfTransaction status first
                     if (pumps.TryGetProperty("EndOfTransactionStatus", out var eotStatus) &&
-                        eotStatus.TryGetProperty("Ids", out var eotIds))
+                        eotStatus.TryGetProperty("Ids", out var eotIds) &&
+                        eotIds.ValueKind == JsonValueKind.Array)
                     {
                         var eotPumps = eotIds.EnumerateArray()
                             .Where(p => p.TryGetInt32(out var id) && id == pump)
@@ -841,7 +859,8 @@ namespace FMS.Application.Services
 
                     // ⚠️ Check if STILL FILLING (definitely not ready)
                     if (pumps.TryGetProperty("FillingStatus", out var fillingStatus) &&
-                        fillingStatus.TryGetProperty("Ids", out var fillingIds))
+                        fillingStatus.TryGetProperty("Ids", out var fillingIds) &&
+                        fillingIds.ValueKind == JsonValueKind.Array)
                     {
                         var stillFilling = fillingIds.EnumerateArray()
                             .Any(p => p.TryGetInt32(out var id) && id == pump);
@@ -856,7 +875,8 @@ namespace FMS.Application.Services
 
                     // Check Idle status
                     if (pumps.TryGetProperty("IdleStatus", out var idleStatus) &&
-                        idleStatus.TryGetProperty("Ids", out var idleIds))
+                        idleStatus.TryGetProperty("Ids", out var idleIds) &&
+                        idleIds.ValueKind == JsonValueKind.Array)
                     {
                         var isIdle = idleIds.EnumerateArray()
                             .Any(p => p.TryGetInt32(out var id) && id == pump);
