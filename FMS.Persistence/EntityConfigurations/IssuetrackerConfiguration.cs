@@ -33,7 +33,7 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasIndex(e => e.ActiveAlarmId, "activealarm_idx");
 
                 builder.Property(e => e.Id)
-                    .ValueGeneratedNever()
+                    .ValueGeneratedOnAdd()
                     .HasColumnType("int(11)")
                     .HasColumnName("ID");
                 builder.Property(e => e.AssignTo)

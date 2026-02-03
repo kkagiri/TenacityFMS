@@ -101,6 +101,35 @@ class IssueTrackerService {
   }
 
   /**
+   * Respond to issue assignment (confirm working / schedule date)
+   * @param {number} issueId - Issue ID
+   * @param {Object} responseData - Assignment response payload
+   * @returns {Promise} Response result
+   */
+  async respondToIssueAssignment(issueId, responseData) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/assignment-response`, responseData);
+
+      notify({
+        message: response.data?.message || 'Issue assignment response submitted successfully',
+        type: 'success',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error responding to issue assignment ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to submit assignment response');
+    }
+  }
+
+  /**
    * Delete issue
    * @param {number} id - Issue ID
    * @returns {Promise} Deletion result

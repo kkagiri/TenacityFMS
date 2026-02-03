@@ -1,3 +1,13 @@
+/**
+ * File: DeviceTypeDropdown.js
+ * Purpose: Reusable device type selector for Issue Tracker forms and filters
+ * Dependencies: React, DevExtreme SelectBox, issueTrackerV2Service
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - DeviceTypeDropdown: Renders and manages device type selection
+ * - normalizeDeviceTypesResponse: Normalizes device type API response shape
+ */
 import React, { useEffect, useState } from 'react';
 import { SelectBox } from 'devextreme-react/select-box';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
@@ -29,20 +39,14 @@ const DeviceTypeDropdown = ({
     try {
       setLoading(true);
       const response = await issueTrackerV2Service.getDeviceTypes();
+      let types = normalizeDeviceTypesResponse(response);
 
-      if (response.isSuccess && response.data) {
-        let types = response.data;
-
-        // Filter to only monitored types if requested
-        if (onlyMonitored) {
-          types = types.filter(t => t.isMonitored);
-        }
-
-        setDeviceTypes(types);
-      } else {
-        console.error('Failed to load device types:', response.message);
-        setDeviceTypes([]);
+      // Filter to only monitored types if requested
+      if (onlyMonitored) {
+        types = types.filter(t => t.isMonitored);
       }
+
+      setDeviceTypes(types);
     } catch (error) {
       console.error('Error loading device types:', error);
       setDeviceTypes([]);
@@ -122,6 +126,25 @@ const getDeviceTypeIcon = (typeName) => {
   };
 
   return iconMap[typeName] || 'fa-microchip';
+};
+
+/**
+ * Handles both raw array responses and wrapped FMSResponse payloads
+ */
+const normalizeDeviceTypesResponse = (response) => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  if (response !== null && response !== undefined) {
+    console.error('Unexpected device type response format:', response);
+  }
+
+  return [];
 };
 
 export default DeviceTypeDropdown;

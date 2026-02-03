@@ -1,3 +1,9 @@
+/*
+ * File: IssueTemplateConfiguration.cs
+ * Purpose: EF Core mapping configuration for Issue Template entity
+ * Dependencies: Entity Framework Core, Issuetemplate domain entity
+ * Last Modified: 2026-02-03
+ */
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;

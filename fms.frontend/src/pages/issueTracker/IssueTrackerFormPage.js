@@ -1,4 +1,13 @@
-
+/**
+ * File: IssueTrackerFormPage.js
+ * Purpose: Create/edit issue form with workflow-specific fields for Issue Tracker
+ * Dependencies: React, Redux, DevExtreme Form, issue tracker selectors/services
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - IssueTrackerFormPage: Main issue form for create/edit workflows
+ * - handleTemplateSelected: Applies selected template defaults into form values
+ */
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
@@ -24,6 +33,82 @@ import { fetchVehicleList } from '../../redux/actions/vehicleActions';
 import { fetchSiteList } from '../../redux/actions/siteActions';
 import { fetchUsers } from '../../redux/actions/userActions';
 import './IssueTrackerFormPage.scss';
+
+const resolveIssueId = (payload) => {
+  if (payload === null || payload === undefined) {
+    return null;
+  }
+
+  if (typeof payload === 'number' && Number.isFinite(payload)) {
+    return payload;
+  }
+
+  if (typeof payload === 'string' && payload.trim() !== '' && !Number.isNaN(Number(payload))) {
+    return Number(payload);
+  }
+
+  if (typeof payload === 'object') {
+    const directCandidates = [
+      payload.id,
+      payload.Id,
+      payload.issueId,
+      payload.IssueId
+    ];
+
+    for (const candidate of directCandidates) {
+      const resolved = resolveIssueId(candidate);
+      if (resolved !== null) {
+        return resolved;
+      }
+    }
+
+    if (payload.data !== undefined) {
+      const dataResolved = resolveIssueId(payload.data);
+      if (dataResolved !== null) {
+        return dataResolved;
+      }
+    }
+
+    if (payload.Data !== undefined) {
+      const dataResolved = resolveIssueId(payload.Data);
+      if (dataResolved !== null) {
+        return dataResolved;
+      }
+    }
+  }
+
+  return null;
+};
+
+const extractBackendMessage = (response, fallbackMessage) => (
+  response?.message ||
+  response?.Message ||
+  response?.data?.message ||
+  response?.data?.Message ||
+  response?.Data?.message ||
+  response?.Data?.Message ||
+  fallbackMessage
+);
+
+const isBackendSuccessful = (response) => {
+  const flags = [
+    response?.success,
+    response?.Success,
+    response?.isSuccess,
+    response?.IsSuccess,
+    response?.data?.success,
+    response?.data?.Success,
+    response?.data?.isSuccess,
+    response?.data?.IsSuccess,
+    response?.Data?.success,
+    response?.Data?.Success,
+    response?.Data?.isSuccess,
+    response?.Data?.IsSuccess
+  ];
+
+  const explicitFlag = flags.find((flag) => typeof flag === 'boolean');
+  return explicitFlag !== false;
+};
 
 const IssueTrackerFormPage = ({
   isPopup = false,
@@ -332,13 +417,21 @@ const IssueTrackerFormPage = ({
         savedIssue = await dispatch(createIssue(issueData));
       }
 
+      if (!isBackendSuccessful(savedIssue)) {
+        throw new Error(extractBackendMessage(savedIssue, 'Backend did not confirm save.'));
+      }
+
+      const resolvedIssueId = isEditMode
+        ? (Number(id) || resolveIssueId(savedIssue))
+        : resolveIssueId(savedIssue);
+
       // Handle attachments if any
-      if (attachments.length > 0) {
-        await handleAttachmentUpload(savedIssue.id);
+      if (attachments.length > 0 && resolvedIssueId) {
+        await handleAttachmentUpload(resolvedIssueId);
       }
 
       notify({
-        message: `Issue ${isEditMode ? 'updated' : 'created'} successfully!`,
+        message: extractBackendMessage(savedIssue, `Issue ${isEditMode ? 'updated' : 'created'} successfully!`),
         type: 'success',
         displayTime: 3000
       });
@@ -351,7 +444,14 @@ const IssueTrackerFormPage = ({
       // Navigation or popup close
       if (isPopup && onClose) {
         onClose();
+      } else if (resolvedIssueId) {
+        navigate(`/issue-tracker/details/${resolvedIssueId}`);
       } else {
+        notify({
+          message: 'Issue saved, but we could not determine its ID. Redirecting to tickets.',
+          type: 'warning',
+          displayTime: 3000
+        });
         navigate('/issue-tracker/tickets');
       }
 
@@ -396,6 +496,8 @@ const IssueTrackerFormPage = ({
   const handleTemplateSelected = (template) => {
     if (!template) return;
 
+    const templateAutoCloseEnabled = Boolean(template.autoCloseEnabled);
+
     setFormData(prev => ({
       ...prev,
       issueTemplateId: template.id,
@@ -403,11 +505,9 @@ const IssueTrackerFormPage = ({
       problemTitle: prev.problemTitle || template.titleTemplate || '',
       problemDescription: prev.problemDescription || template.descriptionTemplate || '',
       priority: prev.priority || template.defaultPriorityId,
-      canAutoClose: template.canAutoClose || false,
-      // Calculate due date if template has default days
-      dueDate: prev.dueDate || (template.defaultDueDays
-        ? new Date(Date.now() + template.defaultDueDays * 24 * 60 * 60 * 1000)
-        : null),
+      status: prev.status || template.defaultStatusId || null,
+      canAutoClose: templateAutoCloseEnabled,
+      dueDate: prev.dueDate,
     }));
 
     // Show notification about pre-filled fields
@@ -605,6 +705,8 @@ const IssueTrackerFormPage = ({
                   <IssueTemplateDropdown
                     value={formData.issueTemplateId}
                     deviceTypeId={formData.deviceTypeId}
+                    priorities={priorities}
+                    statuses={statuses}
                     onValueChanged={(e) => setFormData(prev => ({ ...prev, issueTemplateId: e.value }))}
                     onTemplateSelected={handleTemplateSelected}
                     isRequired={false}

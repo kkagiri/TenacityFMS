@@ -1,3 +1,12 @@
+/**
+ * File: IssueTrackerLayout.js
+ * Purpose: Shared layout shell (sidebar + header) for Issue Tracker routes
+ * Dependencies: React, react-router-dom, navigation helpers
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - IssueTrackerLayout: Wraps issue tracker pages with navigation and contextual title
+ */
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { isActiveRoute } from '../utils/navigationHelper';
@@ -16,6 +25,11 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
       return {
         title: 'Issue Tickets',
         subtitle: 'Manage and track all issue tickets'
+      };
+    } else if (pathname.includes('/details/')) {
+      return {
+        title: 'Issue Details',
+        subtitle: 'Review issue context, history, and actions'
       };
     } else if (pathname.includes('/create')) {
       return {

@@ -1,3 +1,9 @@
+/*
+ * File: IssueTemplateCommandHandlers.cs
+ * Purpose: Command handlers for Issue Template create/update/delete/toggle operations (Issue Tracker V2)
+ * Dependencies: MediatR, Entity Framework Core, GpsdataContext, FMSResponse
+ * Last Modified: 2026-02-03
+ */
 using System;
 using System.Linq;
 using System.Threading;
@@ -72,21 +78,46 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 statusName = status.Status;
             }
 
-            var entity = new Issuetemplate
-            {
-                DeviceTypeId = request.Template.DeviceTypeId,
-                Name = request.Template.Name,
-                TitleTemplate = request.Template.TitleTemplate,
-                DescriptionTemplate = request.Template.DescriptionTemplate,
-                DefaultPriorityId = request.Template.DefaultPriorityId,
-                DefaultStatusId = request.Template.DefaultStatusId,
-                IsActive = request.Template.IsActive,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
-            };
+            var now = DateTime.UtcNow;
+            Issuetemplate? entity = null;
 
-            _context.Issuetemplates.Add(entity);
-            await _context.SaveChangesAsync(cancellationToken);
+            // ID is assigned manually for compatibility with environments where issuetemplate.ID
+            // is not configured as AUTO_INCREMENT.
+            for (var attempt = 0; attempt < 2; attempt++)
+            {
+                var nextId = await GetNextIssueTemplateIdAsync(cancellationToken);
+
+                entity = new Issuetemplate
+                {
+                    Id = nextId,
+                    DeviceTypeId = request.Template.DeviceTypeId,
+                    Name = request.Template.Name,
+                    TitleTemplate = request.Template.TitleTemplate,
+                    DescriptionTemplate = request.Template.DescriptionTemplate,
+                    DefaultPriorityId = request.Template.DefaultPriorityId,
+                    DefaultStatusId = request.Template.DefaultStatusId,
+                    IsActive = request.Template.IsActive,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                _context.Issuetemplates.Add(entity);
+
+                try
+                {
+                    await _context.SaveChangesAsync(cancellationToken);
+                    break;
+                }
+                catch (DbUpdateException ex) when (attempt == 0 && IsDuplicateKeyException(ex))
+                {
+                    _context.Entry(entity).State = EntityState.Detached;
+                }
+            }
+
+            if (entity == null || entity.Id <= 0)
+            {
+                return FMSResponse<IssueTemplateDTO>.Failed("Error creating Issue Template: failed to generate a valid template ID.");
+            }
 
             var dto = new IssueTemplateDTO
             {
@@ -111,11 +142,31 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 entity.Id, entity.Name, entity.DeviceTypeId);
             return FMSResponse<IssueTemplateDTO>.Success(dto, "Issue Template created successfully.");
         }
+        catch (DbUpdateConcurrencyException ex)
+        {
+            _logger.LogError(ex, "Concurrency error creating Issue Template for DeviceTypeId {DeviceTypeId}", request.Template.DeviceTypeId);
+            return FMSResponse<IssueTemplateDTO>.Failed("Error creating Issue Template: failed to persist template due to database concurrency/state mismatch. Verify issuetemplate.ID key generation.");
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error creating Issue Template");
             return FMSResponse<IssueTemplateDTO>.Failed($"Error creating Issue Template: {ex.Message}");
         }
+    }
+
+    private async Task<int> GetNextIssueTemplateIdAsync(CancellationToken cancellationToken)
+    {
+        var maxId = await _context.Issuetemplates
+            .AsNoTracking()
+            .MaxAsync(t => (int?)t.Id, cancellationToken);
+
+        return (maxId ?? 0) + 1;
+    }
+
+    private static bool IsDuplicateKeyException(DbUpdateException ex)
+    {
+        var message = ex.InnerException?.Message ?? ex.Message;
+        return message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase);
     }
 }
 

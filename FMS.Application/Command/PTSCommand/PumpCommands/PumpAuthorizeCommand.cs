@@ -963,10 +963,16 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 return;
             }
 
+            if (!vehicleId.HasValue)
+            {
+                _logger.LogDebug("[PumpAuth] No vehicle specified, skipping GPS offline check");
+                return;
+            }
+
             try
             {
                 var result = await _gpsOfflineAlertService.CheckAndAlertIfGpsOfflineAsync(
-                    vehicleId, siteId, fuelAmount, triggeredBy, cancellationToken);
+                    vehicleId.Value, siteId, fuelAmount, triggeredBy, cancellationToken);
 
                 if (result.AlertCreated)
                 {

@@ -1000,13 +1000,56 @@ namespace FMS.Application.Features.Notification.Services
         private string GetDefaultEmailTemplate()
         {
             return @"
-                <html>
-                <body>
-                    <h2>{Title}</h2>
-                    <p>{Message}</p>
-                    <p><strong>Priority:</strong> {Priority}</p>
-                    <p><strong>Category:</strong> {Category}</p>
-                    <p><strong>Time:</strong> {CreatedAt}</p>
+                <!DOCTYPE html>
+                <html lang=""en"">
+                <head>
+                    <meta charset=""UTF-8"" />
+                    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"" />
+                    <title>{Title}</title>
+                </head>
+                <body style=""margin:0;padding:0;background:#f1f5f9;font-family:Segoe UI,Arial,sans-serif;color:#111827;"">
+                    <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background:#f1f5f9;"">
+                        <tr>
+                            <td align=""center"" style=""padding:24px 12px;"">
+                                <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:680px;background:#ffffff;border-radius:12px;overflow:hidden;border:1px solid #e2e8f0;"">
+                                    <tr>
+                                        <td style=""padding:16px 22px;background:#0f172a;color:#ffffff;"">
+                                            <div style=""font-size:18px;font-weight:700;line-height:1.2;"">Hyoung FMS</div>
+                                            <div style=""font-size:12px;opacity:0.85;margin-top:2px;"">Fleet Management Notification</div>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""padding:22px;"">
+                                            <h2 style=""margin:0 0 14px;font-size:22px;line-height:1.35;color:#111827;"">{Title}</h2>
+                                            <div style=""padding:14px;border:1px solid #e2e8f0;border-radius:8px;background:#f8fafc;color:#334155;font-size:14px;line-height:1.6;"">
+                                                {Message}
+                                            </div>
+
+                                            <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""margin-top:16px;font-size:13px;color:#334155;"">
+                                                <tr>
+                                                    <td style=""padding:6px 0;width:110px;color:#64748b;"">Priority</td>
+                                                    <td style=""padding:6px 0;font-weight:600;"">{Priority}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style=""padding:6px 0;width:110px;color:#64748b;"">Category</td>
+                                                    <td style=""padding:6px 0;font-weight:600;"">{Category}</td>
+                                                </tr>
+                                                <tr>
+                                                    <td style=""padding:6px 0;width:110px;color:#64748b;"">Time</td>
+                                                    <td style=""padding:6px 0;font-weight:600;"">{CreatedAt}</td>
+                                                </tr>
+                                            </table>
+                                        </td>
+                                    </tr>
+                                    <tr>
+                                        <td style=""padding:14px 22px;background:#f8fafc;border-top:1px solid #e2e8f0;color:#64748b;font-size:12px;"">
+                                            This is an automated message from Hyoung FMS. Please do not reply directly to this email.
+                                        </td>
+                                    </tr>
+                                </table>
+                            </td>
+                        </tr>
+                    </table>
                 </body>
                 </html>";
         }

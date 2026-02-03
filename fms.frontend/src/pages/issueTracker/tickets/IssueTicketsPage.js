@@ -1,3 +1,12 @@
+/**
+ * File: IssueTicketsPage.js
+ * Purpose: Issue ticket list page with filtering, export, and row-level actions
+ * Dependencies: React, react-router-dom, DevExtreme DataGrid, issueTrackerService
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - IssueTicketsPage: Displays issue tickets and navigates to detail/edit screens
+ */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DataGrid, {
@@ -82,7 +91,7 @@ const IssueTicketsPage = () => {
 
   const handleRowClick = (e) => {
     const issueId = e.data.id;
-    navigate(`/issue-tracker/edit/${issueId}`);
+    navigate(`/issue-tracker/details/${issueId}`);
   };
 
   const handleCreateNew = () => {
@@ -183,7 +192,7 @@ const IssueTicketsPage = () => {
         stylingMode="text"
         onClick={(e) => {
           e.event.stopPropagation();
-          navigate(`/issue-tracker/edit/${cellData.data.id}`);
+          navigate(`/issue-tracker/details/${cellData.data.id}`);
         }}
       />
       <Button

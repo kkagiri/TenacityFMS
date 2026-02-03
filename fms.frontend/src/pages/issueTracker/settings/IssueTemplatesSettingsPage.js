@@ -1,3 +1,14 @@
+/**
+ * File: IssueTemplatesSettingsPage.js
+ * Purpose: Manage issue templates and auto-close configuration for Issue Tracker V2
+ * Dependencies: React, Redux, DevExtreme DataGrid, issueTrackerV2Service
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - IssueTemplatesSettingsPage: CRUD screen for issue templates
+ * - renderBooleanCell: Read-only boolean renderer using native checkbox
+ * - renderBooleanEditCell: Editable boolean renderer using native checkbox
+ */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, {
@@ -16,7 +27,6 @@ import DataGrid, {
   MasterDetail
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { Switch } from 'devextreme-react/switch';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
@@ -144,10 +154,11 @@ const IssueTemplatesSettingsPage = () => {
   const renderBooleanCell = (cellInfo) => {
     return (
       <div className="tw-flex tw-justify-center">
-        <Switch
-          value={cellInfo.value}
-          disabled={true}
-          width={50}
+        <input
+          type="checkbox"
+          checked={Boolean(cellInfo.value)}
+          readOnly={true}
+          className="tw-h-4 tw-w-4 tw-cursor-default"
         />
       </div>
     );
@@ -156,11 +167,14 @@ const IssueTemplatesSettingsPage = () => {
   // Custom edit cell for boolean fields
   const renderBooleanEditCell = (cellInfo) => {
     return (
-      <Switch
-        value={cellInfo.value}
-        onValueChanged={(e) => cellInfo.setValue(e.value)}
-        width={50}
-      />
+      <div className="tw-flex tw-justify-center">
+        <input
+          type="checkbox"
+          checked={Boolean(cellInfo.value)}
+          onChange={(event) => cellInfo.setValue(event.target.checked)}
+          className="tw-h-4 tw-w-4 tw-cursor-pointer"
+        />
+      </div>
     );
   };
 
@@ -275,7 +289,7 @@ const IssueTemplatesSettingsPage = () => {
           <Lookup
             dataSource={statuses}
             valueExpr="id"
-            displayExpr="name"
+            displayExpr={(item) => item ? (item.status || item.name || '') : ''}
           />
         </Column>
         <Column

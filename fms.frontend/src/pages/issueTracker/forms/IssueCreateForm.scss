@@ -1,0 +1,335 @@
+/**
+ * File: IssueCreateForm.scss
+ * Purpose: Clean and simple styling for IssueCreateForm aligned with app baseline
+ * Dependencies: IssueCreateForm.js
+ * Last Modified: 2026-02-03
+ *
+ * Key Selectors:
+ * - .issue-create-form: Main wrapper
+ * - .issue-create-form__card: Form container
+ * - .issue-create-form__fields: Form sections container
+ */
+.issue-create-form {
+  --issue-surface: #ffffff;
+  --issue-border: #e5e7eb;
+  --issue-text: #343a40;
+  --issue-muted: #6c757d;
+  --issue-brand: #2563eb;
+  --issue-brand-strong: #1d4ed8;
+  --issue-danger: #dc2626;
+  --issue-success: #15803d;
+
+  border-radius: 0;
+  padding: 0.5rem 0;
+  background: transparent;
+  font-family: inherit;
+  color: var(--issue-text);
+
+  &__card {
+    width: min(50%, 960px);
+    margin: 0 auto;
+    border: 1px solid var(--issue-border);
+    border-radius: 6px;
+    padding: 1.25rem;
+    background: var(--issue-surface);
+    box-shadow: none;
+  }
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 1rem;
+    margin-bottom: 1.4rem;
+
+    h2 {
+      margin: 0.35rem 0 0.5rem;
+      font-size: 1.35rem;
+      line-height: 1.2;
+      color: #343a40;
+    }
+  }
+
+  &__eyebrow {
+    margin: 0;
+    font-size: 0.76rem;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: #6c757d;
+    font-weight: 700;
+  }
+
+  &__subtitle {
+    margin: 0;
+    max-width: 56ch;
+    font-size: 0.94rem;
+    color: var(--issue-muted);
+    line-height: 1.55;
+  }
+
+  &__status-chip {
+    flex-shrink: 0;
+    margin-top: 0.2rem;
+    border-radius: 999px;
+    padding: 0.5rem 0.85rem;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    border: 1px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+
+    &.is-ready {
+      background: #ecfdf3;
+      border-color: #bbf7d0;
+      color: var(--issue-brand-strong);
+      box-shadow: none;
+    }
+
+    &.is-pending {
+      background: #f3f4f6;
+      border-color: #d1d5db;
+      color: #374151;
+    }
+  }
+
+  &__layout {
+    display: block;
+  }
+
+  &__fields {
+    border: 1px solid var(--issue-border);
+    border-radius: 6px;
+    padding: 1rem;
+    background: var(--issue-surface);
+  }
+
+  &__field {
+    margin-bottom: 1rem;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #495057;
+    }
+
+    input,
+    textarea,
+    select {
+      width: 100%;
+      border: 1px solid var(--issue-border);
+      border-radius: 4px;
+      padding: 0.66rem 0.82rem;
+      font-size: 0.92rem;
+      color: var(--issue-text);
+      background: #ffffff;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+
+      &:focus {
+        outline: none;
+        border-color: #93c5fd;
+        box-shadow: 0 0 0 2px rgba(147, 197, 253, 0.25);
+      }
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 120px;
+    }
+
+    input[type='file'] {
+      border-style: solid;
+      background: #ffffff;
+      cursor: pointer;
+    }
+
+    .device-type-dropdown {
+      .dx-texteditor {
+        border-radius: 12px;
+        border-color: var(--issue-border);
+      }
+    }
+
+    .issue-template-dropdown {
+      .dx-texteditor {
+        border-radius: 12px;
+        border-color: var(--issue-border);
+      }
+    }
+  }
+
+  &__section-title {
+    margin: 0 0 0.75rem;
+    font-size: 0.85rem;
+    text-transform: none;
+    letter-spacing: 0;
+    color: #343a40;
+  }
+
+  &__split-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 0.7rem;
+  }
+
+  &__readonly {
+    background: #f9fafb !important;
+    color: #374151;
+    cursor: not-allowed;
+  }
+
+  &__meta-row {
+    margin-top: 0.4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    color: var(--issue-muted);
+    font-size: 0.77rem;
+  }
+
+  &__helper {
+    color: var(--issue-danger);
+
+    &.is-valid {
+      color: var(--issue-success);
+    }
+
+    &--muted {
+      color: var(--issue-muted);
+      display: inline-block;
+      margin-bottom: 0.55rem;
+    }
+  }
+
+  &__actions {
+    margin-top: 1rem;
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.6rem;
+  }
+
+  &__btn {
+    border-radius: 10px;
+    border: 1px solid transparent;
+    padding: 0.6rem 1rem;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+  }
+
+  &__btn--ghost {
+    border-color: #c9d6e5;
+    color: #3a526c;
+    background: #ffffff;
+
+    &:hover:not(:disabled) {
+      border-color: #90a4ba;
+    }
+  }
+
+  &__btn--primary {
+    color: #ffffff;
+    background: var(--issue-brand);
+    box-shadow: none;
+
+    &:hover:not(:disabled) {
+      background: var(--issue-brand-strong);
+    }
+  }
+
+  &__attachments {
+    margin-top: 0.6rem;
+    border: 1px solid var(--issue-border);
+    border-radius: 4px;
+    background: #ffffff;
+    padding: 0.65rem;
+    display: grid;
+    gap: 0.45rem;
+  }
+
+  &__attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.82rem;
+    color: #243a52;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    button {
+      border: none;
+      background: rgba(220, 38, 38, 0.1);
+      color: #b91c1c;
+      border-radius: 4px;
+      padding: 0.3rem 0.55rem;
+      font-size: 0.74rem;
+      cursor: pointer;
+    }
+  }
+}
+
+@media (max-width: 1024px) {
+  .issue-create-form {
+    &__card {
+      width: 100%;
+    }
+
+    &__split-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+@media (max-width: 640px) {
+  .issue-create-form {
+    padding: 0.75rem;
+    border-radius: 14px;
+
+    &__card {
+      padding: 1rem;
+      border-radius: 6px;
+    }
+
+    &__header {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    &__status-chip {
+      margin-top: 0;
+    }
+
+    &__actions {
+      flex-direction: column-reverse;
+    }
+
+    &__btn {
+      width: 100%;
+    }
+
+    &__fields {
+      padding: 0.75rem;
+    }
+  }
+}

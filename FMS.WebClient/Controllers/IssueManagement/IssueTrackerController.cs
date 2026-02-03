@@ -10,7 +10,9 @@ using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Priority;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Status;
 using FMS.Domain.Entities;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using ControllerBase = Microsoft.AspNetCore.Mvc.ControllerBase;
 
 namespace FMS.WebClient.Controllers
@@ -80,6 +82,33 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = $"Error updating issue {id}: {ex.Message}" });
+            }
+        }
+
+        // Api: Assigned worker confirms or schedules issue assignment
+        [HttpPost("{id}/assignment-response")]
+        [Authorize]
+        public async Task<IActionResult> RespondToIssueAssignment(int id, [FromBody] IssueAssignmentResponseRequestDTO request)
+        {
+            try
+            {
+                if (request is null)
+                {
+                    return BadRequest(new { message = "Assignment response payload is required" });
+                }
+
+                request.RespondedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                    ?? User.FindFirstValue("sub")
+                    ?? User.Identity?.Name;
+
+                RespondToIssueAssignmentCommand command = new(request, id);
+                var result = await _mediator.Send(command);
+
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error processing assignment response for issue {id}: {ex.Message}" });
             }
         }
 
