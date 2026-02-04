@@ -11,28 +11,28 @@
  */
 .issue-create-form {
   --issue-surface: #ffffff;
-  --issue-border: #e5e7eb;
-  --issue-text: #343a40;
-  --issue-muted: #6c757d;
+  --issue-border: #e2e8f0;
+  --issue-text: #1f2937;
+  --issue-muted: #64748b;
   --issue-brand: #2563eb;
   --issue-brand-strong: #1d4ed8;
   --issue-danger: #dc2626;
   --issue-success: #15803d;
 
   border-radius: 0;
-  padding: 0.5rem 0;
+  padding: 0;
   background: transparent;
   font-family: inherit;
   color: var(--issue-text);
 
   &__card {
-    width: min(50%, 960px);
+    width: min(100%, 1200px);
     margin: 0 auto;
-    border: 1px solid var(--issue-border);
-    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
     padding: 1.25rem;
     background: var(--issue-surface);
-    box-shadow: none;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
   }
 
   &__header {
@@ -44,27 +44,28 @@
 
     h2 {
       margin: 0.35rem 0 0.5rem;
-      font-size: 1.35rem;
+      font-size: 1.5rem;
+      font-weight: 600;
       line-height: 1.2;
-      color: #343a40;
+      color: var(--issue-text);
     }
   }
 
   &__eyebrow {
     margin: 0;
-    font-size: 0.76rem;
+    font-size: 0.75rem;
     text-transform: uppercase;
-    letter-spacing: 0.15em;
-    color: #6c757d;
+    letter-spacing: 0.1em;
+    color: var(--issue-muted);
     font-weight: 700;
   }
 
   &__subtitle {
     margin: 0;
     max-width: 56ch;
-    font-size: 0.94rem;
+    font-size: 0.875rem;
     color: var(--issue-muted);
-    line-height: 1.55;
+    line-height: 1.5;
   }
 
   &__status-chip {
@@ -89,8 +90,70 @@
     &.is-pending {
       background: #f3f4f6;
       border-color: #d1d5db;
-      color: #374151;
+      color: var(--issue-text);
     }
+  }
+
+  &__process-tracker {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+    margin-bottom: 1rem;
+  }
+
+  &__process-step {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 0.55rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    color: var(--issue-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+
+    &.is-active {
+      border-color: #bfdbfe;
+      background: #eff6ff;
+      color: #1d4ed8;
+    }
+
+    &.is-complete {
+      border-color: #bbf7d0;
+      background: #ecfdf3;
+      color: #15803d;
+    }
+  }
+
+  &__process-step-index {
+    width: 1.15rem;
+    height: 1.15rem;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #e2e8f0;
+    color: #1f2937;
+    font-size: 0.68rem;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  .issue-create-form__process-step.is-active .issue-create-form__process-step-index {
+    background: #bfdbfe;
+    color: #1d4ed8;
+  }
+
+  .issue-create-form__process-step.is-complete .issue-create-form__process-step-index {
+    background: #bbf7d0;
+    color: #166534;
+  }
+
+  &__process-step-label {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   &__layout {
@@ -114,9 +177,9 @@
     label {
       display: block;
       margin-bottom: 0.5rem;
-      font-size: 0.85rem;
-      font-weight: 700;
-      color: #495057;
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #334155;
     }
 
     input,
@@ -126,7 +189,7 @@
       border: 1px solid var(--issue-border);
       border-radius: 4px;
       padding: 0.66rem 0.82rem;
-      font-size: 0.92rem;
+      font-size: 0.875rem;
       color: var(--issue-text);
       background: #ffffff;
       transition: border-color 0.2s ease, box-shadow 0.2s ease;
@@ -166,10 +229,11 @@
 
   &__section-title {
     margin: 0 0 0.75rem;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    font-weight: 600;
     text-transform: none;
     letter-spacing: 0;
-    color: #343a40;
+    color: var(--issue-text);
   }
 
   &__split-grid {
@@ -192,7 +256,7 @@
     justify-content: space-between;
     gap: 0.75rem;
     color: var(--issue-muted);
-    font-size: 0.77rem;
+    font-size: 0.75rem;
   }
 
   &__helper {
@@ -220,8 +284,8 @@
     border-radius: 10px;
     border: 1px solid transparent;
     padding: 0.6rem 1rem;
-    font-size: 0.85rem;
-    font-weight: 700;
+    font-size: 0.875rem;
+    font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
 
@@ -291,20 +355,19 @@
 
 @media (max-width: 1024px) {
   .issue-create-form {
-    &__card {
-      width: 100%;
-    }
-
     &__split-grid {
       grid-template-columns: 1fr;
+    }
+
+    &__process-tracker {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
     }
   }
 }
 
 @media (max-width: 640px) {
   .issue-create-form {
-    padding: 0.75rem;
-    border-radius: 14px;
+    padding: 0;
 
     &__card {
       padding: 1rem;
@@ -330,6 +393,10 @@
 
     &__fields {
       padding: 0.75rem;
+    }
+
+    &__process-tracker {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
     }
   }
 }

@@ -1,4 +1,15 @@
-﻿using System.Text.Json;
+/**
+ * File: VehicleController.cs
+ * Purpose: Handles vehicle CRUD, dashboard analytics, and search endpoints.
+ * Dependencies: MediatR, distributed cache, BaseApiController helpers.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateVehicle(): Creates a vehicle with authenticated user context.
+ * - UpdateVehicle(): Updates vehicles and records modifying user.
+ * - DeleteVehicle(): Soft deletes a vehicle and clears related cache.
+ */
+using System.Text.Json;
 using FMS.Application.Command.DatabaseCommand.VehicleCmd;
 using FMS.Application.Common;
 using FMS.Application.Features.Vehicle.DTOs;
@@ -185,10 +196,9 @@ namespace FMS.WebClient.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var userIdClaim = GetUserIdClaim();
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
+            if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
-            vehicleDTO.CreatedBy = userIdClaim.Value;
+            vehicleDTO.CreatedBy = userId;
 
             var command = new CreateVehicleCommand(vehicleDTO);
             var result = await _mediator.Send(command);
@@ -204,15 +214,11 @@ namespace FMS.WebClient.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
-
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
+            if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
             foreach (var vehicle in vehicleDTOs)
             {
-                vehicle.ModifiedBy = userIdClaim.Value;
+                vehicle.ModifiedBy = userId;
             }
 
             var command = new UpdateVehiclesCommand(vehicleDTOs);
@@ -251,14 +257,10 @@ namespace FMS.WebClient.Controllers
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
             // User ID for tracking who made the change
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
-
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
+            if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
             // Add the user ID to the vehicle DTO
-            vehicleDTO.ModifiedBy = userIdClaim.Value;
+            vehicleDTO.ModifiedBy = userId;
             vehicleDTO.VehicleId = id; // Make sure the ID is set correctly
 
             // Create and send the command
@@ -289,14 +291,9 @@ namespace FMS.WebClient.Controllers
         [RequirePermission("_Delete_Vehicle")]
         public async Task<IActionResult> DeleteVehicle(int id)
         {
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
-
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
+            if (!TryGetCurrentUserId(out _)) return BadRequest("Invalid User ID");
 
             // Add a log entry before deleting
-            // Note: userIdClaim.Value would be used for auditing purposes
 
             var command = new DeleteVehicleCommand(id);
             var result = await _mediator.Send(command);

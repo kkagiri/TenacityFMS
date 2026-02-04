@@ -1,5 +1,17 @@
-﻿using System.Diagnostics;
+/**
+ * File: DeliveryController.cs
+ * Purpose: Handles delivery creation, updates, deletes, and retrieval endpoints.
+ * Dependencies: MediatR, delivery commands/queries, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateDelivery(): Creates a delivery and stamps the current user.
+ * - UpdateDelivery(): Applies delivery corrections with user tracking.
+ * - SoftDeleteDelivery(): Soft deletes a delivery with audit user metadata.
+ */
+using System.Diagnostics;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Features.FMS.Delivery.cs;
@@ -26,6 +38,15 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
         }
 
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
+        }
+
         [HttpPost("Create")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
@@ -35,15 +56,10 @@ namespace FMS.WebClient.Controllers
             if (!hasPermission)
                 return Forbid();
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _)
-            );
-
-            if (userIdClaim == null)
+            if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 
-            deliveryDTO.RecordedBy = userIdClaim.Value;
+            deliveryDTO.RecordedBy = userId;
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -112,16 +128,11 @@ namespace FMS.WebClient.Controllers
             if (!hasPermission)
                 return Forbid();
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _)
-            );
-
-            if (userIdClaim == null)
+            if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 
             // Set the user who is making the correction
-            request.CorrectionData.RecordedBy = userIdClaim.Value;
+            request.CorrectionData.RecordedBy = userId;
 
             if (!ModelState.IsValid)
                 return BadRequest(ModelState);
@@ -145,17 +156,12 @@ namespace FMS.WebClient.Controllers
             if (!hasPermission)
                 return Forbid();
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _)
-            );
-
-            if (userIdClaim == null)
+            if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 
             var result = await _mediator.Send(new SoftDeleteDeliveryCommand(
                 DeliveryId: id,
-                DeletedBy: userIdClaim.Value
+                DeletedBy: userId
             ));
 
             if (!result.IsSuccess)

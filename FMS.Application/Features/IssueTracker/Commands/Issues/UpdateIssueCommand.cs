@@ -59,6 +59,8 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
 
             // Manually map DTO to Entity with resolved user IDs
             entity.IssueCategoryId = request.IssueTracker.IssueCategory;
+            entity.IssueTemplateId = request.IssueTracker.IssueTemplateId;
+            entity.DeviceTypeId = request.IssueTracker.DeviceTypeId ?? request.IssueTracker.DeviceType;
             entity.SiteId = request.IssueTracker.Site;
             entity.Openby = openbyUserId ?? entity.Openby;
             entity.RelatedIssue = request.IssueTracker.RelatedIssue;
@@ -72,6 +74,8 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
             entity.VehicleId = request.IssueTracker.Vehicle;
             //entity.DeviceId = request.IssueTracker.Device;
             entity.DeviceType = request.IssueTracker.DeviceType;
+            entity.CanAutoClose = request.IssueTracker.CanAutoClose ?? entity.CanAutoClose;
+            entity.IsAutoCreated = request.IssueTracker.IsAutoCreated ?? entity.IsAutoCreated;
             entity.AssignTo = assignToUserId ?? entity.AssignTo;
 
             await _context.SaveChangesAsync (cancellationToken);

@@ -1,3 +1,14 @@
+/**
+ * File: BaseApiController.cs
+ * Purpose: Provides shared API controller utilities for auth, validation, and permissions.
+ * Dependencies: ASP.NET Core MVC, JWT claims, FMSResponse.
+ * Last Modified: 2026-02-04
+ *
+ * Key Helpers:
+ * - TryGetCurrentUserId(): Resolves and validates current user ID from claims.
+ * - HandlePermissionCheck(): Performs permission guard checks.
+ * - ValidateModelState(): Returns standardized validation responses.
+ */
 using System.Security.Claims;
 using FMS.Application.Common;
 using FMS.WebClient.Constants;
@@ -31,6 +42,19 @@ namespace FMS.WebClient.Controllers.Base {
         protected string GetUserId () {
             var userIdClaim = GetUserIdClaim ();
             return userIdClaim?.Value ?? "Unknown";
+        }
+
+        /// <summary>
+        /// Tries to get current user ID from common JWT claim types and validates it as GUID.
+        /// </summary>
+        /// <param name="userId">Resolved user ID when available</param>
+        /// <returns>True when a valid user ID is found, otherwise false</returns>
+        protected bool TryGetCurrentUserId (out string userId) {
+            userId = User.FindFirstValue (ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue ("sub") ??
+                string.Empty;
+
+            return Guid.TryParse (userId, out _);
         }
 
         /// <summary>

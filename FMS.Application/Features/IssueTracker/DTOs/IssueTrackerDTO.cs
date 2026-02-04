@@ -4,6 +4,10 @@ namespace FMS.Application.Features.FMS.Issuetracker {
     public class IssueTrackerDTO {
         public int Id { get; set; }
         public int IssueCategory { get; set; }
+        public int? IssueTemplateId { get; set; }
+        public int? DeviceTypeId { get; set; }
+        public bool? CanAutoClose { get; set; }
+        public bool? IsAutoCreated { get; set; }
         public int Site { get; set; }
         public string Openby { get; set; }
         public int? RelatedIssue { get; set; }

@@ -1,4 +1,16 @@
+/**
+ * File: FuelRefillController.cs
+ * Purpose: Handles fuel refill CRUD and summary endpoints.
+ * Dependencies: MediatR, fuel refill commands/queries, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateFuelRefil(): Creates a fuel refill with authenticated user context.
+ * - GetFuelRefillSummary(): Returns summary totals by date range.
+ * - GetFuelRefilList(): Returns paged fuel refill records with filters.
+ */
 //using FMS.Application.Command.DatabaseCommand.FuelRefillCommand;
+using System.Security.Claims;
 using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Features.TankManagement.FuelRefill.Commands;
 using FMS.Application.Queries.Database.FMSQuery.FuelRefillQueries;
@@ -22,6 +34,15 @@ public class FuelRefillController : ControllerBase
         _mediator = mediator;
     }
 
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? string.Empty;
+
+        return Guid.TryParse(userId, out _);
+    }
+
     //api: Post fuelrefill
     // [HttpPost]
     // public async Task<IActionResult> CreateFuelRefil (CreateFuelRrefillCommand command) {
@@ -38,13 +59,9 @@ public class FuelRefillController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
+        if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
-        if (userIdClaim == null) return BadRequest("Invalid User ID");
-
-        fuelRefilDTO.FuelBy = userIdClaim.Value;
+        fuelRefilDTO.FuelBy = userId;
 
         var command = new CreateFuelRrefillCommand(fuelRefilDTO);
 

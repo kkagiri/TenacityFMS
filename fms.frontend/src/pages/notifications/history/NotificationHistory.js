@@ -1,3 +1,14 @@
+/**
+ * File: NotificationHistory.js
+ * Purpose: Display notification delivery history with filters, retry actions, and trend chart.
+ * Dependencies: react, devextreme-react, notificationsApi
+ * Last Modified: 2026-02-04
+ *
+ * Key Functions/Components:
+ * - loadAll: Loads notification rows and chart data.
+ * - handleRetry: Re-sends failed or pending notifications.
+ * - renderStatus/renderType/renderPriority: Grid cell formatters.
+ */
 import React, { useState, useEffect } from 'react';
 import { DataGrid, Column } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
@@ -9,6 +20,115 @@ import notify from 'devextreme/ui/notify';
 import notificationsApi from '../../../dataservice/notificationsApi';
 
 // No mocks: data loads from controller via notificationsApi
+
+const ensureArray = (value) => {
+  if (Array.isArray(value)) return value;
+  if (value && Array.isArray(value.items)) return value.items;
+  if (value && Array.isArray(value.data)) return value.data;
+  return [];
+};
+
+const normalizeDateValue = (value) => {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const normalizeStatsToChartRows = (statsPayload) => {
+  const directList = ensureArray(statsPayload);
+  if (directList.length > 0) {
+    return directList.map((s) => ({
+      date: s.date || s.day || s.bucket || s.dateString || new Date().toISOString(),
+      sent: s.sent ?? s.totalSent ?? s.count ?? 0,
+      delivered: s.delivered ?? s.totalDelivered ?? s.readCount ?? 0,
+      failed: s.failed ?? s.totalFailed ?? 0,
+    }));
+  }
+
+  const dailyList = ensureArray(statsPayload?.dailyStatistics || statsPayload?.DailyStatistics);
+  if (dailyList.length > 0) {
+    return dailyList.map((s) => ({
+      date: s.date || s.Date || s.dateString || s.DateString || new Date().toISOString(),
+      sent: s.sent ?? s.totalSent ?? s.count ?? s.Count ?? 0,
+      delivered: s.delivered ?? s.totalDelivered ?? s.readCount ?? s.ReadCount ?? 0,
+      failed: s.failed ?? s.totalFailed ?? 0,
+    }));
+  }
+
+  return [];
+};
+
+const resolveRecipientDisplay = (n) => {
+  return (
+    n.recipient ||
+    n.to ||
+    n.userEmail ||
+    n.recipientEmail ||
+    n.siteName ||
+    n.vehicleName ||
+    n.tankName ||
+    n.ptsDeviceName ||
+    '-'
+  );
+};
+
+const resolveDeliveredAt = (n) => {
+  return (
+    n.deliveredAt ||
+    n.readAt ||
+    n.acknowledgedAt ||
+    null
+  );
+};
+
+const tryParseMetadata = (n) => {
+  if (n.metadata && typeof n.metadata === 'object') return n.metadata;
+  if (n.meta && typeof n.meta === 'object') return n.meta;
+  if (n.data && typeof n.data === 'object') return n.data;
+  if (typeof n.data === 'string' && n.data.trim().startsWith('{')) {
+    try {
+      return JSON.parse(n.data);
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
+const resolveNotificationFromCell = (cellInfoOrRow, rows) => {
+  if (!cellInfoOrRow) return null;
+
+  if (cellInfoOrRow.data && (cellInfoOrRow.data.id != null || cellInfoOrRow.data.subject)) {
+    return cellInfoOrRow.data;
+  }
+
+  if (cellInfoOrRow.row?.data && (cellInfoOrRow.row.data.id != null || cellInfoOrRow.row.data.subject)) {
+    return cellInfoOrRow.row.data;
+  }
+
+  if (cellInfoOrRow.id != null || cellInfoOrRow.subject) {
+    return cellInfoOrRow;
+  }
+
+  if (cellInfoOrRow.key != null && Array.isArray(rows)) {
+    const matched = rows.find((r) => String(r.id) === String(cellInfoOrRow.key));
+    if (matched) return matched;
+  }
+
+  return null;
+};
+
+const formatMetadataValue = (value) => {
+  if (value == null) return '-';
+  if (typeof value === 'object') {
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return '[object]';
+    }
+  }
+  return String(value);
+};
 
 const NotificationHistory = () => {
   const [notifications, setNotifications] = useState([]);
@@ -43,50 +163,53 @@ const NotificationHistory = () => {
   useEffect(() => {
     const loadAll = async () => {
       setLoading(true);
-      // 1) Fetch notifications from controller
-      const notifResult = await notificationsApi.getNotifications({
-        type: filters.type,
-        status: filters.status,
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-      });
+      try {
+        // 1) Fetch notifications from controller
+        const notifResult = await notificationsApi.getNotifications({
+          type: filters.type,
+          status: filters.status,
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
 
-      const items = (notifResult.isSuccess ? notifResult.data : []);
-      const mappedItems = (items || []).map((n) => ({
-        id: n.id ?? n.notificationId ?? n.Id,
-        type: (n.type || n.channel || 'system').toString().toLowerCase(),
-        subject: n.subject || n.title || 'Notification',
-        recipient: n.recipient || n.to || n.userEmail || '-',
-        status: (n.status || 'pending').toString().toLowerCase(),
-        sentAt: n.sentAt || n.createdAt || n.timestamp,
-        deliveredAt: n.deliveredAt || null,
-        template: n.templateName || n.template || '-',
-        policy: n.policyName || n.policy || '-',
-        priority: (n.priority || 'medium').toString().toLowerCase(),
-        retryCount: n.retryCount ?? 0,
-        errorMessage: n.errorMessage || n.error || null,
-        metadata: n.metadata || n.meta || null,
-      }));
-
-      if (!notifResult.isSuccess) {
-        notify(notifResult.message || 'Failed to load notifications', 'error', 3000);
-      }
-      setNotifications(mappedItems);
-
-      // 2) Try fetching stats; fallback to local aggregation from mappedItems
-      const statsResult = await notificationsApi.getStatistics({
-        dateFrom: filters.dateFrom,
-        dateTo: filters.dateTo,
-      });
-      if (statsResult.isSuccess) {
-        const stats = (statsResult.data || []).map((s) => ({
-          date: s.date || s.day || s.bucket || new Date().toISOString(),
-          sent: s.sent ?? s.totalSent ?? 0,
-          delivered: s.delivered ?? s.totalDelivered ?? 0,
-          failed: s.failed ?? s.totalFailed ?? 0,
+        const items = notifResult.isSuccess ? ensureArray(notifResult.data) : [];
+        const mappedItems = items.map((n) => ({
+          id: n.id ?? n.notificationId ?? n.Id,
+          type: (n.type || n.channel || 'system').toString().toLowerCase(),
+          subject: n.subject || n.title || 'Notification',
+          recipient: resolveRecipientDisplay(n),
+          status: (n.status || 'pending').toString().toLowerCase(),
+          sentAt: n.sentAt || n.createdAt || n.timestamp,
+          deliveredAt: resolveDeliveredAt(n),
+          template: n.templateName || n.template || '-',
+          policy: n.policyName || n.policy || '-',
+          priority: (n.priority || 'medium').toString().toLowerCase(),
+          retryCount: n.retryCount ?? 0,
+          errorMessage: n.errorMessage || n.error || null,
+          metadata: tryParseMetadata(n),
+          body: n.message || n.body || null,
         }));
-        setChartData(stats);
-      } else {
+
+        if (!notifResult.isSuccess) {
+          notify(notifResult.message || 'Failed to load notifications', 'error', 3000);
+        }
+        setNotifications(mappedItems);
+
+        // 2) Try fetching stats; fallback to local aggregation from mappedItems
+        const statsResult = await notificationsApi.getStatistics({
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+        });
+
+        const normalizedStats = statsResult.isSuccess
+          ? normalizeStatsToChartRows(statsResult.data)
+          : [];
+
+        if (normalizedStats.length > 0) {
+          setChartData(normalizedStats);
+          return;
+        }
+
         const now = new Date();
         const days = [];
         for (let i = 6; i >= 0; i--) {
@@ -104,31 +227,46 @@ const NotificationHistory = () => {
         }));
 
         mappedItems.forEach((n) => {
-          const ts = n.sentAt ? new Date(n.sentAt) : null;
+          const ts = normalizeDateValue(n.sentAt);
           if (!ts) return;
+
           const dayKey = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate()).toISOString();
           const bucket = buckets.find((b) => b.key === dayKey);
           if (!bucket) return;
+
           bucket.sent += 1;
           if (n.status === 'delivered') bucket.delivered += 1;
           if (n.status === 'failed') bucket.failed += 1;
         });
 
         setChartData(buckets.map(({ date, sent, delivered, failed }) => ({ date, sent, delivered, failed })));
+      } catch (error) {
+        console.error('Error loading notification history:', error);
+        notify('Error loading notification history', 'error', 3000);
+      } finally {
+        setLoading(false);
       }
-
-      setLoading(false);
     };
 
     loadAll();
   }, [filters]);
 
-  const handleViewDetails = (notification) => {
-    setSelectedNotification(notification);
+  const handleViewDetails = (notificationOrCellInfo) => {
+    const resolved = resolveNotificationFromCell(notificationOrCellInfo, notifications);
+    if (!resolved) {
+      notify('No details available for this notification row', 'warning', 2500);
+      return;
+    }
+    setSelectedNotification(resolved);
     setShowDetailsPopup(true);
   };
 
-  const handleRetry = async (notification) => {
+  const handleRetry = async (notificationOrCellInfo) => {
+    const notification = resolveNotificationFromCell(notificationOrCellInfo, notifications);
+    if (!notification) {
+      notify('Cannot retry. Notification row data is missing.', 'warning', 2500);
+      return;
+    }
     if (notification.status === 'failed' || notification.status === 'pending') {
       setLoading(true);
       const result = await notificationsApi.sendNotification(notification.id);
@@ -152,15 +290,15 @@ const NotificationHistory = () => {
         <Button
           icon="fa-solid fa-eye"
           hint="View Details"
-          onClick={() => handleViewDetails(data.data)}
+          onClick={() => handleViewDetails(data)}
           type="normal"
           stylingMode="text"
         />
-        {data.data.status === 'failed' && (
+        {resolveNotificationFromCell(data, notifications)?.status === 'failed' && (
           <Button
             icon="fa-solid fa-redo"
             hint="Retry"
-            onClick={() => handleRetry(data.data)}
+            onClick={() => handleRetry(data)}
             type="normal"
             stylingMode="text"
           />
@@ -358,7 +496,7 @@ const NotificationHistory = () => {
         height={600}
         showCloseButton={true}
       >
-        {selectedNotification && (
+        {selectedNotification ? (
           <div className="tw-p-4">
             {/* Header Info */}
             <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-mb-4">
@@ -379,6 +517,15 @@ const NotificationHistory = () => {
                 </div>
               </div>
             </div>
+
+            {selectedNotification.body && (
+              <div className="tw-mb-4">
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Message:</label>
+                <div className="tw-bg-white tw-border tw-p-3 tw-rounded tw-text-sm tw-text-gray-800">
+                  {selectedNotification.body}
+                </div>
+              </div>
+            )}
 
             {/* Details Grid */}
             <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mb-4">
@@ -428,7 +575,7 @@ const NotificationHistory = () => {
                   {Object.entries(selectedNotification.metadata).map(([key, value]) => (
                     <div key={key} className="tw-flex tw-justify-between tw-py-1">
                       <span className="tw-text-sm tw-font-medium tw-text-gray-600">{key}:</span>
-                      <span className="tw-text-sm tw-text-gray-900">{value}</span>
+                      <span className="tw-text-sm tw-text-gray-900">{formatMetadataValue(value)}</span>
                     </div>
                   ))}
                 </div>
@@ -452,6 +599,10 @@ const NotificationHistory = () => {
                 onClick={() => setShowDetailsPopup(false)}
               />
             </div>
+          </div>
+        ) : (
+          <div className="tw-p-4 tw-text-sm tw-text-gray-600">
+            No notification details available.
           </div>
         )}
       </Popup>

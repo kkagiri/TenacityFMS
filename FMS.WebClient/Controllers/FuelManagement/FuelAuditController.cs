@@ -1,4 +1,16 @@
+/**
+ * File: FuelAuditController.cs
+ * Purpose: Manages fuel audit workflow endpoints including draft, calculation, and finalization.
+ * Dependencies: MediatR, fuel audit commands/queries, ILogger, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - SaveDraftAudit(): Persists wizard draft data with user context.
+ * - CalculateAudit(): Runs variance calculations for an audit.
+ * - CancelAudit(): Cancels an audit with audit trail user metadata.
+ */
 using System.Threading.Tasks;
+using System.Security.Claims;
 using FMS.Application.Common;
 using FMS.Application.Features.FuelAudit.Commands;
 using FMS.Application.Features.FuelAudit.DTOs;
@@ -25,6 +37,16 @@ namespace FMS.WebClient.Controllers.FuelManagement
         {
             _mediator = mediator;
             _logger = logger;
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("id")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
         }
 
         /// <summary>
@@ -115,9 +137,9 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 dto.WizardStep, dto.AuditId);
 
             // Set user ID from claims if not provided
-            if (string.IsNullOrEmpty(dto.UserId))
+            if (string.IsNullOrEmpty(dto.UserId) && TryGetCurrentUserId(out var userId))
             {
-                dto.UserId = User.FindFirst("sub")?.Value ?? User.FindFirst("id")?.Value;
+                dto.UserId = userId;
             }
 
             var command = new SaveDraftAuditCommand(dto);
@@ -213,7 +235,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
             _logger.LogInformation("Cancelling audit {AuditId}", id);
 
             // Get the current user ID from claims (or use a default)
-            var userId = User.FindFirst("sub")?.Value ?? "system";
+            var userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : "system";
 
             var command = new CancelAuditCommand(id, userId, request.CancellationReason);
             var result = await _mediator.Send(command);

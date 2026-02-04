@@ -1,16 +1,28 @@
-import React, { useState, useEffect } from "react";
+/**
+ * File: EmailConfiguration.js
+ * Purpose: Manage SMTP/email settings and provide connection/test-email actions.
+ * Dependencies: react, devextreme-react, axiosInstance
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - loadConfiguration: Loads current SMTP settings from backend.
+ * - saveConfiguration: Persists SMTP settings to backend.
+ * - testConnection: Verifies SMTP configuration availability.
+ * - sendTestEmail: Sends a test email to validate delivery.
+ */
+import React, { useEffect, useState } from "react";
+import TextBox from "devextreme-react/text-box";
+import NumberBox from "devextreme-react/number-box";
+import SelectBox from "devextreme-react/select-box";
+import CheckBox from "devextreme-react/check-box";
+import Button from "devextreme-react/button";
+import LoadIndicator from "devextreme-react/load-indicator";
 import {
-  Form,
-  TextBox,
-  NumberBox,
-  SelectBox,
-  CheckBox,
-  Button,
-  LoadIndicator,
-  ValidationGroup,
   Validator,
-} from "devextreme-react";
-import { RequiredRule, EmailRule, NumericRule } from "devextreme-react/form";
+  RequiredRule,
+  EmailRule,
+  NumericRule,
+} from "devextreme-react/validator";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
 import "../layout/NotificationLayout.scss";
@@ -227,8 +239,7 @@ const EmailConfiguration = () => {
                 <h3 className="config-title">SMTP Server Settings</h3>
               </div>
 
-              <ValidationGroup>
-                <Form formData={config} colCount={2}>
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
                   <TextBox
                     label="SMTP Server"
                     labelMode="floating"
@@ -363,25 +374,24 @@ const EmailConfiguration = () => {
                     min={0}
                     max={10}
                   />
-                </Form>
+              </div>
 
-                <div className="tw-mt-6 tw-space-y-4">
-                  <CheckBox
-                    text="Enable SSL/TLS"
-                    value={config.enableSsl}
-                    onValueChanged={(e) =>
-                      handleConfigChange("enableSsl", e.value)
-                    }
-                  />
-                  <CheckBox
-                    text="Requires Authentication"
-                    value={config.requiresAuthentication}
-                    onValueChanged={(e) =>
-                      handleConfigChange("requiresAuthentication", e.value)
-                    }
-                  />
-                </div>
-              </ValidationGroup>
+              <div className="tw-mt-6 tw-space-y-4">
+                <CheckBox
+                  text="Enable SSL/TLS"
+                  value={config.enableSsl}
+                  onValueChanged={(e) =>
+                    handleConfigChange("enableSsl", e.value)
+                  }
+                />
+                <CheckBox
+                  text="Requires Authentication"
+                  value={config.requiresAuthentication}
+                  onValueChanged={(e) =>
+                    handleConfigChange("requiresAuthentication", e.value)
+                  }
+                />
+              </div>
             </div>
           </div>
 
@@ -403,17 +413,17 @@ const EmailConfiguration = () => {
                     </div>
                   ) : connectionStatus === "success" ? (
                     <div className="tw-flex tw-items-center">
-                      <i className="fa-light fa-check-circle tw-mr-2"></i>
+                      <span className="tw-mr-2" aria-hidden="true">OK</span>
                       <span>Connection successful</span>
                     </div>
                   ) : connectionStatus === "error" ? (
                     <div className="tw-flex tw-items-center">
-                      <i className="fa-light fa-exclamation-circle tw-mr-2"></i>
+                      <span className="tw-mr-2" aria-hidden="true">ERR</span>
                       <span>Connection failed</span>
                     </div>
                   ) : (
                     <div className="tw-flex tw-items-center">
-                      <i className="fa-light fa-circle tw-mr-2"></i>
+                      <span className="tw-mr-2" aria-hidden="true">...</span>
                       <span>Not tested</span>
                     </div>
                   )}
@@ -503,12 +513,12 @@ const EmailConfiguration = () => {
                     </>
                   ) : testEmailStatus === "success" ? (
                     <>
-                      <i className="fa-light fa-check-circle"></i>
+                      <span aria-hidden="true">OK</span>
                       <span>Test email sent successfully</span>
                     </>
                   ) : testEmailStatus === "error" ? (
                     <>
-                      <i className="fa-light fa-exclamation-circle"></i>
+                      <span aria-hidden="true">ERR</span>
                       <span>Failed to send test email</span>
                     </>
                   ) : null}

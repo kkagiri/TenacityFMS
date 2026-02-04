@@ -1,4 +1,15 @@
-﻿using System.Collections.Generic;
+/**
+ * File: EmployeeController.cs
+ * Purpose: Handles employee CRUD and search endpoints with caching support.
+ * Dependencies: MediatR, distributed cache, BaseApiController helpers.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateEmployee(): Creates employee records with created-by metadata.
+ * - UpdateEmployee(): Updates employee records with modified-by metadata.
+ * - SearchEmployees(): Returns filtered employee search results.
+ */
+using System.Collections.Generic;
 using System.Text.Json;
 using AutoMapper.Configuration.Annotations;
 using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
@@ -36,10 +47,9 @@ namespace FMS.WebClient.Controllers
         {
             var hasPermission = User.HasClaim("permissions", "_createEmployee");
 
-            var userIdClaim = GetUserIdClaim();
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
+            if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
-            employeeDto.CreatedBy = userIdClaim.Value;
+            employeeDto.CreatedBy = userId;
 
             if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -118,13 +128,9 @@ namespace FMS.WebClient.Controllers
             if (id <= 0) return BadRequest("Invalid ID");
             if (id != employeeDto.Id) return BadRequest("ID mismatch");
 
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
+            if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
-            if (userIdClaim == null) return BadRequest("Invalid User ID");
-
-            employeeDto.ModifiedBy = userIdClaim.Value;
+            employeeDto.ModifiedBy = userId;
 
             var command = new EmployeeUpdateCmd(id, employeeDto);
 

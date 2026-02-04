@@ -1,3 +1,12 @@
+/**
+ * File: NotificationPolicyRequestDTO.cs
+ * Purpose: Defines request payloads used to create notification policies.
+ * Dependencies: None
+ * Last Modified: 2026-02-04
+ *
+ * Key Classes:
+ * - CreateNotificationPolicyRequestDTO: Carries policy settings from API to application layer.
+ */
 namespace FMS.Application.Features.Notification.DTOs {
     public class CreateNotificationPolicyRequestDTO {
         public string Name { get; set; } = null!;
@@ -13,6 +22,6 @@ namespace FMS.Application.Features.Notification.DTOs {
         public string? TitleTemplate { get; set; }
         public string? MessageTemplate { get; set; }
         public bool RequireAcknowledgment { get; set; } = false;
-        public string CreatedBy { get; set; } = null!;
+        public string? CreatedBy { get; set; }
     }
 }

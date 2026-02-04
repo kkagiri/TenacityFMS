@@ -2,7 +2,7 @@
  * File: NotificationService.cs
  * Purpose: Handles notification creation, routing, and delivery across channels.
  * Dependencies: GpsdataContext, ILogger, ISignalRNotificationService, INotificationRecipientResolver
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-02-03
  *
  * Key Functions:
  * - CreateNotificationAsync(): Creates a notification and dispatches it to recipients.
@@ -29,6 +29,7 @@ using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using FMS.Domain.Entities.Features.Notifications;
 using Noti = FMS.Domain.Entities.Features.Notifications;
 
@@ -327,7 +328,13 @@ namespace FMS.Application.Features.Notification.Services
             {
                 var now = DateTime.UtcNow;
                 var scheduledNotifications = await _context.Notifications
-                    .Where(n => n.Status == "Scheduled" && n.ScheduledAt <= now)
+                    .Where(n => n.Status == "Scheduled" && n.ScheduledAt.HasValue && n.ScheduledAt <= now)
+                    .Select(n => new
+                    {
+                        n.Id,
+                        n.NotificationId,
+                        n.Data
+                    })
                     .ToListAsync(cancellationToken);
 
                 var processedCount = 0;
@@ -337,7 +344,26 @@ namespace FMS.Application.Features.Notification.Services
                 {
                     try
                     {
+                        var isRecurringSchedule = HasRecurringSchedule(notification.Data);
                         var result = await SendNotificationAsync(notification.Id, cancellationToken);
+
+                        if (isRecurringSchedule)
+                        {
+                            var rescheduled = await TryRescheduleRecurringNotificationAsync(
+                                notification.Id,
+                                notification.NotificationId,
+                                notification.Data,
+                                now,
+                                result.IsSuccess ? null : result.Message,
+                                cancellationToken);
+
+                            if (!rescheduled)
+                            {
+                                _logger.LogWarning("Recurring schedule for notification {NotificationId} could not be re-armed after processing",
+                                    notification.NotificationId);
+                            }
+                        }
+
                         if (result.IsSuccess)
                             processedCount++;
                         else
@@ -364,6 +390,468 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogError(ex, "Error processing scheduled notifications");
                 return FMSResponse.FailedResponse($"Error processing scheduled notifications: {ex.Message}");
+            }
+        }
+
+        private bool HasRecurringSchedule(string? dataJson)
+        {
+            if (string.IsNullOrWhiteSpace(dataJson))
+                return false;
+
+            try
+            {
+                var root = JObject.Parse(dataJson);
+                var recurringSchedule = root["recurringSchedule"] as JObject;
+                return recurringSchedule?.Value<bool?>("enabled") == true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private async Task<bool> TryRescheduleRecurringNotificationAsync(
+            int notificationId,
+            string notificationPublicId,
+            string? dataJson,
+            DateTime referenceUtc,
+            string? lastDeliveryError,
+            CancellationToken cancellationToken)
+        {
+            if (!TryResolveNextRecurringRunUtc(dataJson, referenceUtc, out var nextRunUtc, out var parseError))
+            {
+                _logger.LogWarning(
+                    "Recurring schedule parse failed for notification {NotificationId}: {ParseError}",
+                    notificationPublicId,
+                    parseError ?? "Unknown parse error");
+                return false;
+            }
+
+            var notification = await _context.Notifications
+                .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+
+            if (notification == null)
+            {
+                _logger.LogWarning("Cannot re-arm recurring notification {NotificationId}; record not found", notificationPublicId);
+                return false;
+            }
+
+            notification.Status = "Scheduled";
+            notification.ScheduledAt = nextRunUtc;
+            notification.ErrorMessage = string.IsNullOrWhiteSpace(lastDeliveryError) ? null : lastDeliveryError;
+            notification.Data = UpdateRecurringScheduleData(dataJson, nextRunUtc, referenceUtc);
+
+            await _context.SaveChangesAsync(cancellationToken);
+
+            _logger.LogInformation(
+                "Recurring notification {NotificationId} re-armed for next run at {NextRunUtc}",
+                notificationPublicId,
+                nextRunUtc);
+
+            return true;
+        }
+
+        private bool TryResolveNextRecurringRunUtc(
+            string? dataJson,
+            DateTime referenceUtc,
+            out DateTime nextRunUtc,
+            out string? parseError)
+        {
+            nextRunUtc = default;
+            parseError = null;
+
+            if (!TryParseRecurringScheduleData(
+                    dataJson,
+                    out var scheduleType,
+                    out var dayOfWeeks,
+                    out var weekOfMonthOrdinal,
+                    out var timeOfDay,
+                    out var timeZoneId,
+                    out parseError))
+            {
+                return false;
+            }
+
+            if (string.Equals(scheduleType, "monthly", StringComparison.OrdinalIgnoreCase))
+            {
+                var monthlyRunUtc = ComputeNextMonthlyRunUtc(
+                    dayOfWeeks,
+                    weekOfMonthOrdinal ?? 1,
+                    timeOfDay,
+                    timeZoneId,
+                    referenceUtc);
+
+                if (!monthlyRunUtc.HasValue)
+                {
+                    parseError = "Could not compute next monthly run date for schedule";
+                    return false;
+                }
+
+                nextRunUtc = monthlyRunUtc.Value;
+                return true;
+            }
+
+            nextRunUtc = ComputeNextWeeklyRunUtc(
+                dayOfWeeks,
+                timeOfDay,
+                timeZoneId,
+                referenceUtc);
+
+            return true;
+        }
+
+        private bool TryParseRecurringScheduleData(
+            string? dataJson,
+            out string scheduleType,
+            out IReadOnlyCollection<DayOfWeek> dayOfWeeks,
+            out int? weekOfMonthOrdinal,
+            out TimeSpan timeOfDay,
+            out string? timeZoneId,
+            out string? parseError)
+        {
+            scheduleType = "weekly";
+            dayOfWeeks = new List<DayOfWeek> { DayOfWeek.Monday };
+            weekOfMonthOrdinal = null;
+            timeOfDay = TimeSpan.FromHours(8);
+            timeZoneId = "UTC";
+            parseError = null;
+
+            if (string.IsNullOrWhiteSpace(dataJson))
+            {
+                parseError = "Notification data payload is empty";
+                return false;
+            }
+
+            try
+            {
+                var root = JObject.Parse(dataJson);
+                var recurringSchedule = root["recurringSchedule"] as JObject;
+
+                if (recurringSchedule == null || recurringSchedule.Value<bool?>("enabled") != true)
+                {
+                    parseError = "Recurring schedule is missing or disabled";
+                    return false;
+                }
+
+                var scheduleTypeValue = recurringSchedule.Value<string>("scheduleType");
+                if (!string.IsNullOrWhiteSpace(scheduleTypeValue))
+                {
+                    scheduleType = scheduleTypeValue.Trim().ToLowerInvariant();
+                }
+
+                if (!TryParseDayOfWeekValues(recurringSchedule, out dayOfWeeks, out parseError))
+                {
+                    return false;
+                }
+
+                var timeValue = recurringSchedule.Value<string>("timeOfDay");
+                if (!TryParseTimeOfDayValue(timeValue, out timeOfDay))
+                {
+                    parseError = $"Invalid recurring timeOfDay value '{timeValue}'";
+                    return false;
+                }
+
+                timeZoneId = recurringSchedule.Value<string>("timeZone");
+
+                if (string.Equals(scheduleType, "monthly", StringComparison.OrdinalIgnoreCase))
+                {
+                    var weekValue = recurringSchedule.Value<string>("weekOfMonth");
+                    weekOfMonthOrdinal = ParseWeekOfMonthOrdinal(weekValue);
+                    if (!weekOfMonthOrdinal.HasValue)
+                    {
+                        parseError = $"Invalid recurring weekOfMonth value '{weekValue}'";
+                        return false;
+                    }
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                parseError = $"Recurring schedule JSON parsing failed: {ex.Message}";
+                return false;
+            }
+        }
+
+        private bool TryParseDayOfWeekValues(
+            JObject recurringSchedule,
+            out IReadOnlyCollection<DayOfWeek> dayOfWeeks,
+            out string? parseError)
+        {
+            var parsedDays = new List<DayOfWeek>();
+            parseError = null;
+
+            if (recurringSchedule["daysOfWeek"] is JArray dayArray && dayArray.Count > 0)
+            {
+                foreach (var dayToken in dayArray)
+                {
+                    var rawDayValue = dayToken?.ToString();
+                    if (!TryParseDayOfWeekValue(rawDayValue, out var parsedDay))
+                    {
+                        parseError = $"Invalid recurring daysOfWeek value '{rawDayValue}'";
+                        dayOfWeeks = Array.Empty<DayOfWeek>();
+                        return false;
+                    }
+
+                    parsedDays.Add(parsedDay);
+                }
+            }
+            else
+            {
+                var dayValue = recurringSchedule.Value<string>("dayOfWeek");
+                if (!TryParseDayOfWeekValue(dayValue, out var parsedDay))
+                {
+                    parseError = $"Invalid recurring dayOfWeek value '{dayValue}'";
+                    dayOfWeeks = Array.Empty<DayOfWeek>();
+                    return false;
+                }
+
+                parsedDays.Add(parsedDay);
+            }
+
+            dayOfWeeks = parsedDays
+                .Distinct()
+                .ToList();
+
+            if (!dayOfWeeks.Any())
+            {
+                parseError = "Recurring schedule requires at least one day of week";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryParseDayOfWeekValue(string? rawValue, out DayOfWeek dayOfWeek)
+        {
+            dayOfWeek = DayOfWeek.Monday;
+            if (string.IsNullOrWhiteSpace(rawValue))
+                return false;
+
+            if (int.TryParse(rawValue.Trim(), out var numericValue) &&
+                numericValue >= 0 &&
+                numericValue <= 6)
+            {
+                return SetDayOfWeek((DayOfWeek)numericValue, out dayOfWeek);
+            }
+
+            return rawValue.Trim().ToLowerInvariant() switch
+            {
+                "monday" or "mon" => SetDayOfWeek(DayOfWeek.Monday, out dayOfWeek),
+                "tuesday" or "tue" or "tues" => SetDayOfWeek(DayOfWeek.Tuesday, out dayOfWeek),
+                "wednesday" or "wed" => SetDayOfWeek(DayOfWeek.Wednesday, out dayOfWeek),
+                "thursday" or "thu" or "thurs" => SetDayOfWeek(DayOfWeek.Thursday, out dayOfWeek),
+                "friday" or "fri" => SetDayOfWeek(DayOfWeek.Friday, out dayOfWeek),
+                "saturday" or "sat" => SetDayOfWeek(DayOfWeek.Saturday, out dayOfWeek),
+                "sunday" or "sun" => SetDayOfWeek(DayOfWeek.Sunday, out dayOfWeek),
+                _ => false
+            };
+        }
+
+        private static bool SetDayOfWeek(DayOfWeek value, out DayOfWeek dayOfWeek)
+        {
+            dayOfWeek = value;
+            return true;
+        }
+
+        private int? ParseWeekOfMonthOrdinal(string? rawValue)
+        {
+            if (string.IsNullOrWhiteSpace(rawValue))
+                return null;
+
+            return rawValue.Trim().ToLowerInvariant() switch
+            {
+                "first" or "1st" or "1" => 1,
+                "second" or "2nd" or "2" => 2,
+                "third" or "3rd" or "3" => 3,
+                "fourth" or "4th" or "4" => 4,
+                "last" => -1,
+                _ => null
+            };
+        }
+
+        private bool TryParseTimeOfDayValue(string? rawValue, out TimeSpan timeOfDay)
+        {
+            timeOfDay = default;
+            if (string.IsNullOrWhiteSpace(rawValue))
+                return false;
+
+            if (TimeSpan.TryParse(rawValue, out timeOfDay))
+            {
+                return timeOfDay >= TimeSpan.Zero && timeOfDay < TimeSpan.FromDays(1);
+            }
+
+            var parts = rawValue.Split(':', StringSplitOptions.RemoveEmptyEntries);
+            if (parts.Length < 2)
+                return false;
+
+            if (!int.TryParse(parts[0], out var hours) || !int.TryParse(parts[1], out var minutes))
+                return false;
+
+            if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59)
+                return false;
+
+            timeOfDay = new TimeSpan(hours, minutes, 0);
+            return true;
+        }
+
+        private TimeZoneInfo ResolveTimeZoneInfo(string? timeZoneId)
+        {
+            if (string.IsNullOrWhiteSpace(timeZoneId))
+                return TimeZoneInfo.Utc;
+
+            try
+            {
+                return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+            }
+            catch (TimeZoneNotFoundException)
+            {
+                _logger.LogWarning("Time zone '{TimeZoneId}' not found. Falling back to UTC.", timeZoneId);
+                return TimeZoneInfo.Utc;
+            }
+            catch (InvalidTimeZoneException)
+            {
+                _logger.LogWarning("Time zone '{TimeZoneId}' is invalid. Falling back to UTC.", timeZoneId);
+                return TimeZoneInfo.Utc;
+            }
+        }
+
+        private DateTime ComputeNextWeeklyRunUtc(
+            DayOfWeek dayOfWeek,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var timezone = ResolveTimeZoneInfo(timeZoneId);
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(referenceUtc, timezone);
+
+            var candidateLocal = localNow.Date.Add(timeOfDay);
+            var daysUntilTarget = ((int)dayOfWeek - (int)candidateLocal.DayOfWeek + 7) % 7;
+            candidateLocal = candidateLocal.AddDays(daysUntilTarget);
+
+            if (candidateLocal <= localNow)
+            {
+                candidateLocal = candidateLocal.AddDays(7);
+            }
+
+            return TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(candidateLocal, DateTimeKind.Unspecified),
+                timezone);
+        }
+
+        private DateTime ComputeNextWeeklyRunUtc(
+            IReadOnlyCollection<DayOfWeek> dayOfWeeks,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var candidates = dayOfWeeks
+                .Distinct()
+                .Select(dayOfWeek => ComputeNextWeeklyRunUtc(dayOfWeek, timeOfDay, timeZoneId, referenceUtc))
+                .OrderBy(candidate => candidate)
+                .ToList();
+
+            return candidates.Any()
+                ? candidates[0]
+                : ComputeNextWeeklyRunUtc(DayOfWeek.Monday, timeOfDay, timeZoneId, referenceUtc);
+        }
+
+        private DateTime? ComputeNextMonthlyRunUtc(
+            DayOfWeek dayOfWeek,
+            int weekOfMonthOrdinal,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var timezone = ResolveTimeZoneInfo(timeZoneId);
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(referenceUtc, timezone);
+
+            var candidateDate = GetNthWeekdayOfMonth(localNow.Year, localNow.Month, dayOfWeek, weekOfMonthOrdinal);
+            if (!candidateDate.HasValue) return null;
+
+            var candidateLocal = candidateDate.Value.Date.Add(timeOfDay);
+            if (candidateLocal <= localNow)
+            {
+                var nextMonth = new DateTime(localNow.Year, localNow.Month, 1).AddMonths(1);
+                candidateDate = GetNthWeekdayOfMonth(nextMonth.Year, nextMonth.Month, dayOfWeek, weekOfMonthOrdinal);
+                if (!candidateDate.HasValue) return null;
+                candidateLocal = candidateDate.Value.Date.Add(timeOfDay);
+            }
+
+            return TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(candidateLocal, DateTimeKind.Unspecified),
+                timezone);
+        }
+
+        private DateTime? ComputeNextMonthlyRunUtc(
+            IReadOnlyCollection<DayOfWeek> dayOfWeeks,
+            int weekOfMonthOrdinal,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var candidates = dayOfWeeks
+                .Distinct()
+                .Select(dayOfWeek => ComputeNextMonthlyRunUtc(
+                    dayOfWeek,
+                    weekOfMonthOrdinal,
+                    timeOfDay,
+                    timeZoneId,
+                    referenceUtc))
+                .Where(candidate => candidate.HasValue)
+                .Select(candidate => candidate.Value)
+                .OrderBy(candidate => candidate)
+                .ToList();
+
+            return candidates.Any() ? candidates[0] : null;
+        }
+
+        private DateTime? GetNthWeekdayOfMonth(int year, int month, DayOfWeek dayOfWeek, int weekOfMonthOrdinal)
+        {
+            if (weekOfMonthOrdinal == -1)
+            {
+                var lastDay = new DateTime(year, month, DateTime.DaysInMonth(year, month));
+                while (lastDay.DayOfWeek != dayOfWeek)
+                {
+                    lastDay = lastDay.AddDays(-1);
+                }
+
+                return lastDay;
+            }
+
+            if (weekOfMonthOrdinal < 1 || weekOfMonthOrdinal > 4)
+                return null;
+
+            var firstDay = new DateTime(year, month, 1);
+            var offset = ((int)dayOfWeek - (int)firstDay.DayOfWeek + 7) % 7;
+            var candidate = firstDay.AddDays(offset + (weekOfMonthOrdinal - 1) * 7);
+
+            if (candidate.Month != month)
+                return null;
+
+            return candidate;
+        }
+
+        private string? UpdateRecurringScheduleData(string? dataJson, DateTime nextRunUtc, DateTime processedAtUtc)
+        {
+            if (string.IsNullOrWhiteSpace(dataJson))
+                return dataJson;
+
+            try
+            {
+                var root = JObject.Parse(dataJson);
+                if (root["recurringSchedule"] is not JObject recurringSchedule)
+                    return dataJson;
+
+                recurringSchedule["nextRunAtUtc"] = nextRunUtc.ToString("o");
+                recurringSchedule["lastProcessedAtUtc"] = processedAtUtc.ToString("o");
+                root["recurringSchedule"] = recurringSchedule;
+                return root.ToString(Formatting.None);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update recurring schedule metadata in notification data payload");
+                return dataJson;
             }
         }
 
@@ -838,6 +1326,17 @@ namespace FMS.Application.Features.Notification.Services
         {
             try
             {
+                var customEmailBody = TryGetCustomEmailBodyFromData(notification.Data);
+                if (!string.IsNullOrWhiteSpace(customEmailBody))
+                {
+                    return await _emailService.SendEmailAsync(
+                        recipient.RecipientAddress,
+                        notification.Title,
+                        customEmailBody,
+                        isHtml: true,
+                        cancellationToken);
+                }
+
                 var policy = notification.NotificationPolicy;
                 var emailTemplate = policy?.EmailTemplate ?? GetDefaultEmailTemplate();
 
@@ -865,6 +1364,28 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogError(ex, "Error sending email notification to {Email}", recipient.RecipientAddress);
                 return false;
+            }
+        }
+
+        private string? TryGetCustomEmailBodyFromData(string? dataJson)
+        {
+            if (string.IsNullOrWhiteSpace(dataJson))
+            {
+                return null;
+            }
+
+            try
+            {
+                var dataObject = JObject.Parse(dataJson);
+                var customEmailBody = dataObject.Value<string>("EmailBodyHtml")
+                    ?? dataObject.Value<string>("emailBodyHtml");
+
+                return string.IsNullOrWhiteSpace(customEmailBody) ? null : customEmailBody;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Could not parse notification Data for custom email body");
+                return null;
             }
         }
 
@@ -1355,7 +1876,9 @@ namespace FMS.Application.Features.Notification.Services
                     RequireAcknowledgment = request.RequireAcknowledgment,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = request.CreatedBy
+                    CreatedBy = string.IsNullOrWhiteSpace(request.CreatedBy)
+                        ? SystemConstants.Defaults.SystemTriggeredBy
+                        : request.CreatedBy!
                 };
 
                 _context.NotificationPolicies.Add(policy);

@@ -3,6 +3,8 @@
  * Purpose: Create issue records and notify assigned worker through notification service
  * Dependencies: MediatR, GpsdataContext, INotificationService, IConfiguration
  * Last Modified: 2026-02-03
+ *
+ * CRITICAL FIX: Explicitly sets CanAutoClose/IsAutoCreated values to avoid EF value-generation issues.
  */
 using System;
 using System.Collections.Generic;
@@ -22,28 +24,33 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Features.IssueTracker.Commands.Issues {
-    public record CreateIssueCommand (IssueTrackerDTO IssueTrackerDto) : IRequest<int>;
+namespace FMS.Application.Features.IssueTracker.Commands.Issues
+{
+    public record CreateIssueCommand(IssueTrackerDTO IssueTrackerDto) : IRequest<int>;
 
-    public class IssueCreateCommandHandler : IRequestHandler<CreateIssueCommand, int> {
+    public class IssueCreateCommandHandler : IRequestHandler<CreateIssueCommand, int>
+    {
         private readonly GpsdataContext _context;
         private readonly INotificationService _notificationService;
         private readonly IConfiguration _configuration;
         private readonly ILogger<IssueCreateCommandHandler> _logger;
 
-        public IssueCreateCommandHandler (
+        public IssueCreateCommandHandler(
             GpsdataContext context,
             INotificationService notificationService,
             IConfiguration configuration,
-            ILogger<IssueCreateCommandHandler> logger) {
+            ILogger<IssueCreateCommandHandler> logger)
+        {
             _context = context;
             _notificationService = notificationService;
             _configuration = configuration;
             _logger = logger;
         }
 
-        public async Task<int> Handle (CreateIssueCommand request, CancellationToken cancellationToken) {
-            try {
+        public async Task<int> Handle(CreateIssueCommand request, CancellationToken cancellationToken)
+        {
+            try
+            {
                 // Resolve usernames to user IDs
                 string? openbyUserId = null;
                 string? assignToUserId = null;
@@ -51,38 +58,51 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                 User? assignToUser = null;
 
                 // Find user by username for Openby field
-                if (!string.IsNullOrEmpty (request.IssueTrackerDto.Openby)) {
+                if (!string.IsNullOrEmpty(request.IssueTrackerDto.Openby))
+                {
                     openbyUser = await _context.Users
-                        .FirstOrDefaultAsync (u => u.UserName == request.IssueTrackerDto.Openby, cancellationToken);
-                    if (openbyUser != null) {
+                        .FirstOrDefaultAsync(u => u.UserName == request.IssueTrackerDto.Openby, cancellationToken);
+                    if (openbyUser != null)
+                    {
                         openbyUserId = openbyUser.Id;
-                    } else {
-                        throw new Exception ($"User '{request.IssueTrackerDto.Openby}' not found");
+                    }
+                    else
+                    {
+                        throw new Exception($"User '{request.IssueTrackerDto.Openby}' not found");
                     }
                 }
 
                 // Find user by username for AssignTo field
-                if (!string.IsNullOrEmpty (request.IssueTrackerDto.AssignTo)) {
+                if (!string.IsNullOrEmpty(request.IssueTrackerDto.AssignTo))
+                {
                     assignToUser = await _context.Users
-                        .FirstOrDefaultAsync (u => u.UserName == request.IssueTrackerDto.AssignTo, cancellationToken);
-                    if (assignToUser != null) {
+                        .FirstOrDefaultAsync(u => u.UserName == request.IssueTrackerDto.AssignTo, cancellationToken);
+                    if (assignToUser != null)
+                    {
                         assignToUserId = assignToUser.Id;
-                    } else {
-                        throw new Exception ($"User '{request.IssueTrackerDto.AssignTo}' not found");
+                    }
+                    else
+                    {
+                        throw new Exception($"User '{request.IssueTrackerDto.AssignTo}' not found");
                     }
                 }
 
                 // Validate required fields
-                if (string.IsNullOrEmpty (openbyUserId)) {
-                    throw new Exception ("Openby user is required");
+                if (string.IsNullOrEmpty(openbyUserId))
+                {
+                    throw new Exception("Openby user is required");
                 }
-                if (string.IsNullOrEmpty (assignToUserId)) {
-                    throw new Exception ("AssignTo user is required");
+                if (string.IsNullOrEmpty(assignToUserId))
+                {
+                    throw new Exception("AssignTo user is required");
                 }
 
                 // Map DTO to Entity
-                Issuetracker issueEntity = new Issuetracker {
+                Issuetracker issueEntity = new Issuetracker
+                {
                     IssueCategoryId = request.IssueTrackerDto.IssueCategory,
+                    IssueTemplateId = request.IssueTrackerDto.IssueTemplateId,
+                    DeviceTypeId = request.IssueTrackerDto.DeviceTypeId ?? request.IssueTrackerDto.DeviceType,
                     SiteId = request.IssueTrackerDto.Site,
                     Openby = openbyUserId,
                     RelatedIssue = request.IssueTrackerDto.RelatedIssue,
@@ -97,11 +117,13 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                     VehicleId = request.IssueTrackerDto.Vehicle,
                     //DeviceId = request.IssueTrackerDto.Device,
                     DeviceType = request.IssueTrackerDto.DeviceType,
-                    AssignTo = assignToUserId
+                    AssignTo = assignToUserId,
+                    CanAutoClose = request.IssueTrackerDto.CanAutoClose ?? false,
+                    IsAutoCreated = request.IssueTrackerDto.IsAutoCreated ?? false
                 };
 
-                await _context.Issuetrackers.AddAsync (issueEntity, cancellationToken);
-                await _context.SaveChangesAsync (cancellationToken);
+                await _context.Issuetrackers.AddAsync(issueEntity, cancellationToken);
+                await _context.SaveChangesAsync(cancellationToken);
 
                 await SendAssignmentNotificationAsync(
                     issueEntity,
@@ -113,9 +135,11 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                     cancellationToken);
 
                 return issueEntity.Id;
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error creating issue");
-                throw new Exception ("Error creating issue", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating issue");
+                throw new Exception("Error creating issue", ex);
             }
         }
 
@@ -143,6 +167,16 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                 var dueDateText = issueDto.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
                 var assignedWorkerName = assignToUser?.UserName ?? "Assigned Worker";
                 var assignedWorkerEmail = assignToUser?.Email ?? "N/A";
+                var systemMessage = "You have been assigned this issue.";
+                var emailBodyHtml = BuildAssignmentEmailHtmlMessage(
+                    issueEntity.Id,
+                    issueEntity.ProblemTitle,
+                    dueDateText,
+                    assignedWorkerName,
+                    assignedWorkerEmail,
+                    confirmUrl,
+                    scheduleUrl,
+                    issueUrl);
 
                 var notificationPriority = await ResolveNotificationPriorityAsync(issueDto.Priority, cancellationToken);
 
@@ -152,15 +186,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                     CategoryId = (int)WellKnownCategories.IssueTracker,
                     Priority = notificationPriority,
                     Title = $"Issue Assigned: {issueEntity.ProblemTitle}",
-                    Message = BuildAssignmentEmailHtmlMessage(
-                        issueEntity.Id,
-                        issueEntity.ProblemTitle,
-                        dueDateText,
-                        assignedWorkerName,
-                        assignedWorkerEmail,
-                        confirmUrl,
-                        scheduleUrl,
-                        issueUrl),
+                    Message = systemMessage,
                     Data = new
                     {
                         IssueId = issueEntity.Id,
@@ -172,7 +198,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
                         AssignmentResponseUrl = responseUrl,
                         AssignmentConfirmUrl = confirmUrl,
                         AssignmentScheduleUrl = scheduleUrl,
-                        IssueUrl = issueUrl
+                        IssueUrl = issueUrl,
+                        EmailBodyHtml = emailBodyHtml
                     },
                     TriggerSource = "IssueTrackerAssignment",
                     TriggeredBy = openbyUserId ?? openbyUser?.UserName ?? "System",
@@ -249,7 +276,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues {
 
             if (string.IsNullOrWhiteSpace(configuredBaseUrl))
             {
-                configuredBaseUrl = "http://localhost:3000";
+                throw new InvalidOperationException(
+                    "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' (or 'Frontend:BaseUrl') in appsettings or environment variables.");
             }
 
             return configuredBaseUrl.TrimEnd('/');

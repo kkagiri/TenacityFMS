@@ -2,10 +2,15 @@
  * File: IssuetrackerConfiguration.cs
  * Purpose: Configures the EF Core mapping for the issuetracker entity including relationships and constraints.
  * Dependencies: Microsoft.EntityFrameworkCore, FMS.Domain.Entities
- * Last Modified: 2025-11-04
+ * Last Modified: 2026-02-03
  *
  * Key Functions/Components:
  * - Configure(): Applies entity configuration metadata for Issuetracker.
+ *
+ * CRITICAL FIX: Removed HasDefaultValue() from CanAutoClose and IsAutoCreated
+ * - HasDefaultValue() causes EF to treat these as database-generated values
+ * - This triggers a SELECT after INSERT which fails with concurrency exception
+ * - Solution: Use ValueGeneratedNever() to indicate these are client-set values
  */
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -93,9 +98,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasColumnName("DeviceTypeId");
 
+                // CRITICAL FIX: These are client-set values, not database-generated
+                // Previously had HasDefaultValue(false) which caused EF to try reading them back
+                // This triggered a SELECT after INSERT that failed with concurrency exception
                 builder.Property(e => e.CanAutoClose)
-                    .HasDefaultValue(false)
-                    .HasColumnName("CanAutoClose");
+                    .HasColumnName("CanAutoClose")
+                    .IsRequired()
+                    .ValueGeneratedNever(); // Not database-generated
 
                 builder.Property(e => e.AutoCloseReason)
                     .HasMaxLength(500)
@@ -104,8 +113,9 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasCharSet("utf8mb4");
 
                 builder.Property(e => e.IsAutoCreated)
-                    .HasDefaultValue(false)
-                    .HasColumnName("IsAutoCreated");
+                    .HasColumnName("IsAutoCreated")
+                    .IsRequired()
+                    .ValueGeneratedNever(); // Not database-generated
 
                 // V2 Related entity fields for background service auto-creation
                 builder.Property(e => e.RelatedEntityId)

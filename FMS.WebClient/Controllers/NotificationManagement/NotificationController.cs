@@ -1,3 +1,14 @@
+/**
+ * File: NotificationController.cs
+ * Purpose: Exposes notification management APIs for policies, preferences, history, and delivery actions.
+ * Dependencies: INotificationService, IAlarmHandlerService, IMediator, AutoMapper, ASP.NET Core Identity
+ * Last Modified: 2026-02-04
+ *
+ * Key Endpoints:
+ * - CreateNotificationPolicy(): Creates a new policy using authenticated user context.
+ * - GetNotificationPolicies(): Returns available notification policies.
+ * - BulkUpdateNotificationPreferences(): Saves user notification preferences.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -617,6 +628,7 @@ namespace FMS.WebClient.Controllers
                     Guid.TryParse(c.Value, out _));
 
                 if (userIdClaim == null) return BadRequest("Invalid User ID");
+                request.CreatedBy = userIdClaim.Value;
 
                 var result = await _notificationService.CreateNotificationPolicyAsync(request, cancellationToken);
 

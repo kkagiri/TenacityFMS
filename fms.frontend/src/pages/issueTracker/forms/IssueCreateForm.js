@@ -24,66 +24,15 @@ import {
   fetchIssuePriorities,
   fetchIssueStatuses
 } from '../../../redux/actions/issueTrackerActions';
+import {
+  createInitialFormState,
+  getUserEmail,
+  getUserName,
+  normalizeCollection,
+  PROCESS_STEP_LABELS,
+  resolveIssueId
+} from './issueCreateFormUtils';
 import './IssueCreateForm.scss';
-
-const createInitialFormState = (openByUserName, openStatus) => ({
-  deviceTypeId: null,
-  deviceType: null,
-  issueTemplateId: null,
-  issueTemplate: null,
-  issueCategoryId: null,
-  siteId: null,
-  vehicleId: null,
-  assignTo: '',
-  openBy: openByUserName || 'System',
-  statusId: openStatus?.id ?? null,
-  statusName: openStatus?.status || openStatus?.name || 'Open',
-  openDate: new Date(),
-  dueDate: '',
-  timelineNotes: '',
-  priorityId: null,
-  canAutoClose: false,
-  issueTitle: '',
-  issueDescription: '',
-  attachments: []
-});
-
-const normalizeCollection = (source) => {
-  if (Array.isArray(source)) {
-    return source;
-  }
-
-  if (Array.isArray(source?.data)) {
-    return source.data;
-  }
-
-  return [];
-};
-
-const getUserName = (user) => user?.userName || user?.username || user?.UserName || '';
-const getUserEmail = (user) => user?.email || user?.Email || '';
-const resolveIssueId = (response) => {
-  if (typeof response === 'number' && Number.isFinite(response)) {
-    return response;
-  }
-
-  if (typeof response === 'string' && response.trim() && !Number.isNaN(Number(response))) {
-    return Number(response);
-  }
-
-  if (!response || typeof response !== 'object') {
-    return null;
-  }
-
-  return (
-    resolveIssueId(response.id) ||
-    resolveIssueId(response.Id) ||
-    resolveIssueId(response.issueId) ||
-    resolveIssueId(response.IssueId) ||
-    resolveIssueId(response.data) ||
-    resolveIssueId(response.Data)
-  );
-};
 
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
@@ -223,17 +172,19 @@ const IssueCreateForm = ({ onSubmit = null }) => {
   const validationState = useMemo(() => ({
     hasDeviceType: Boolean(formData.deviceTypeId),
     hasTemplate: Boolean(formData.issueTemplateId),
+    hasCategory: Boolean(formData.issueCategoryId),
     hasTitle: titleLength >= 5,
     hasDescription: descriptionLength >= 15,
     hasLocation: Boolean(formData.siteId),
     hasVehicle: Boolean(formData.vehicleId),
     hasAssignedTo: Boolean(formData.assignTo),
     hasStatus: Boolean(formData.statusId)
-  }), [descriptionLength, formData.assignTo, formData.deviceTypeId, formData.issueTemplateId, formData.siteId, formData.statusId, formData.vehicleId, titleLength]);
+  }), [descriptionLength, formData.assignTo, formData.deviceTypeId, formData.issueCategoryId, formData.issueTemplateId, formData.siteId, formData.statusId, formData.vehicleId, titleLength]);
 
   const isReadyToSubmit = (
     validationState.hasDeviceType &&
     validationState.hasTemplate &&
+    validationState.hasCategory &&
     validationState.hasTitle &&
     validationState.hasDescription &&
     validationState.hasLocation &&
@@ -241,6 +192,27 @@ const IssueCreateForm = ({ onSubmit = null }) => {
     validationState.hasAssignedTo &&
     validationState.hasStatus
   );
+
+  const processSteps = useMemo(() => {
+    const completionFlags = [
+      validationState.hasDeviceType,
+      validationState.hasTemplate,
+      validationState.hasCategory && validationState.hasTitle && validationState.hasDescription && validationState.hasLocation && validationState.hasVehicle,
+      validationState.hasAssignedTo,
+      validationState.hasStatus,
+      true,
+      isReadyToSubmit
+    ];
+
+    const activeIndex = completionFlags.findIndex((flag) => !flag);
+    const normalizedActiveIndex = activeIndex === -1 ? PROCESS_STEP_LABELS.length - 1 : activeIndex;
+
+    return PROCESS_STEP_LABELS.map((label, index) => ({
+      label,
+      isComplete: completionFlags[index],
+      isActive: index === normalizedActiveIndex
+    }));
+  }, [isReadyToSubmit, validationState]);
 
   const openDateDisplay = useMemo(() => (
     formData.openDate instanceof Date
@@ -259,6 +231,10 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
     const payload = {
       IssueCategory: formData.issueCategoryId || categories[0]?.id,
+      IssueTemplateId: formData.issueTemplateId,
+      DeviceTypeId: formData.deviceTypeId,
+      CanAutoClose: Boolean(formData.canAutoClose),
+      IsAutoCreated: false,
       Site: formData.siteId,
       Openby: formData.openBy || 'System',
       RelatedIssue: null,
@@ -325,6 +301,19 @@ const IssueCreateForm = ({ onSubmit = null }) => {
           </span>
         </header>
 
+        <div className="issue-create-form__process-tracker" role="list" aria-label="Issue create progress">
+          {processSteps.map((step, index) => (
+            <div
+              key={step.label}
+              role="listitem"
+              className={`issue-create-form__process-step ${step.isComplete ? 'is-complete' : ''} ${step.isActive ? 'is-active' : ''}`}
+            >
+              <span className="issue-create-form__process-step-index">{index + 1}</span>
+              <span className="issue-create-form__process-step-label">{step.label}</span>
+            </div>
+          ))}
+        </div>
+
         <div className="issue-create-form__layout">
           <div className="issue-create-form__fields">
             <div className="issue-create-form__field">
@@ -362,6 +351,23 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
             <div className="issue-create-form__field">
               <h3 className="issue-create-form__section-title">3. Issue Details</h3>
+              <label htmlFor="issueCategory">Issue Category</label>
+              <select
+                id="issueCategory"
+                value={formData.issueCategoryId ?? ''}
+                onChange={(event) => handleFieldChange('issueCategoryId', event.target.value ? Number(event.target.value) : null)}
+              >
+                <option value="">Select category...</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              {!validationState.hasCategory && (
+                <small className="issue-create-form__helper">Category is required.</small>
+              )}
+
               <label htmlFor="issueTitle">Issue Title</label>
               <input
                 id="issueTitle"

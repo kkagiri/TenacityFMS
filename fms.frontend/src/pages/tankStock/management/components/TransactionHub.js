@@ -4,7 +4,7 @@
  *          chart views, manual refill workflows, and transaction maintenance actions.
  * Dependencies: react, react-redux, DevExtreme data grid and popup components, exceljs,
  *               Redux tank/site/user actions, custom services/hooks/components.
- * Last Modified: 2025-11-26
+ * Last Modified: 2026-02-03
  *
  * Key Components:
  * - TransactionHub: Main container orchestrating transaction data loading, filtering,
@@ -62,11 +62,20 @@ import {
   useDataGridGrouping,
 } from "./transactionHub/useTransactionHub";
 import { EditTransactionDialog } from "./transactionHub/EditTransactionDialog";
-import ScheduleReportEmailDialog from "./transactionHub/ScheduleReportEmailDialog";
 import {
   buildTransactionVolumeHistoryFileName,
   buildTransactionVolumeHistoryReportData
 } from "./transactionHub/transactionHistoryReportUtils";
+import {
+  ScheduleReportEmailDialog,
+  buildReportNameWithPrefix,
+  buildScheduledReportSummaryHtml,
+  createDefaultReportScheduleConfig,
+  getEffectiveReportWindowForRun,
+  getNextRunDateTime,
+  resolveEntityNames,
+  toIsoDate
+} from "../../../../components/Reporting/ReportScheduler";
 
 // Hooks
 import { usePermissions } from "../../../../hooks/usePermissions";
@@ -141,8 +150,12 @@ const TransactionHub = () => {
   // Local state for manual refill form
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
   const [showScheduleReportDialog, setShowScheduleReportDialog] = useState(false);
-  const [scheduleRecipients, setScheduleRecipients] = useState([]);
-  const [scheduleDateTime, setScheduleDateTime] = useState(null);
+  const [scheduleConfig, setScheduleConfig] = useState(() =>
+    createDefaultReportScheduleConfig({
+      siteIds: selectedSiteIds,
+      tankIds: selectedTankIds
+    })
+  );
   const [isSchedulingReport, setIsSchedulingReport] = useState(false);
 
   const reportTemplateName = "transaction-volume-history-report";
@@ -220,15 +233,55 @@ const TransactionHub = () => {
     user
   ]);
 
+  const handleScheduleConfigChange = useCallback((updates) => {
+    setScheduleConfig((prev) => ({
+      ...prev,
+      ...updates
+    }));
+  }, []);
+
   const handleOpenScheduleDialog = useCallback(() => {
-    if (!scheduleDateTime) {
-      setScheduleDateTime(new Date(Date.now() + 60 * 60 * 1000));
-    }
+    setScheduleConfig((prev) => {
+      const existingDayIds =
+        Array.isArray(prev.scheduleDayOfWeekIds) && prev.scheduleDayOfWeekIds.length
+          ? prev.scheduleDayOfWeekIds
+          : [prev.scheduleDayOfWeek || "monday"];
+
+      return createDefaultReportScheduleConfig({
+        siteIds: selectedSiteIds?.length ? selectedSiteIds : prev.siteIds || [],
+        tankIds: selectedTankIds?.length ? selectedTankIds : prev.tankIds || [],
+        recipientIds: prev.recipientIds || [],
+        periodType: prev.periodType || "daily",
+        format: prev.format || "pdf",
+        scheduleDayOfWeekIds: existingDayIds,
+        scheduleDayOfWeek: existingDayIds[0],
+        scheduleWeekOfMonth: prev.scheduleWeekOfMonth || "first",
+        scheduleTime: prev.scheduleTime || null,
+        reportName: prev.reportName || "Scheduled Report",
+        reportDescription: prev.reportDescription || ""
+      });
+    });
     setShowScheduleReportDialog(true);
-  }, [scheduleDateTime]);
+  }, [selectedSiteIds, selectedTankIds]);
 
   const handleScheduleReportEmail = useCallback(async () => {
-    if (!scheduleRecipients || scheduleRecipients.length === 0) {
+    const recipientIds = scheduleConfig?.recipientIds || [];
+    const periodType = scheduleConfig?.periodType || "daily";
+    const scheduleDayOfWeekIds =
+      Array.isArray(scheduleConfig?.scheduleDayOfWeekIds) &&
+      scheduleConfig.scheduleDayOfWeekIds.length
+        ? scheduleConfig.scheduleDayOfWeekIds.filter(Boolean)
+        : [scheduleConfig?.scheduleDayOfWeek || "monday"];
+    const scheduleDayOfWeek = scheduleDayOfWeekIds[0] || "monday";
+    const scheduleWeekOfMonth = scheduleConfig?.scheduleWeekOfMonth || "first";
+    const scheduleTime = scheduleConfig?.scheduleTime || "08:00";
+    const reportFormat = scheduleConfig?.format || "pdf";
+    const selectedScheduleSiteIds = scheduleConfig?.siteIds || [];
+    const selectedScheduleTankIds = scheduleConfig?.tankIds || [];
+    const reportName = scheduleConfig?.reportName || "";
+    const reportDescription = scheduleConfig?.reportDescription || "";
+
+    if (!recipientIds.length) {
       notify({
         message: "Please select at least one recipient.",
         type: "warning",
@@ -238,9 +291,32 @@ const TransactionHub = () => {
       return;
     }
 
-    if (!scheduleDateTime) {
+    const nextRunDate = getNextRunDateTime({
+      periodType,
+      scheduleDayOfWeek,
+      scheduleDayOfWeekIds,
+      scheduleWeekOfMonth,
+      scheduleTime
+    });
+
+    if (!nextRunDate) {
       notify({
-        message: "Please choose a schedule time.",
+        message: "Please provide a valid schedule day/week/time.",
+        type: "warning",
+        displayTime: 3000,
+        position: "top center"
+      });
+      return;
+    }
+
+    const reportWindow = getEffectiveReportWindowForRun({
+      periodType,
+      runDate: nextRunDate
+    });
+
+    if (!reportWindow) {
+      notify({
+        message: "Unable to resolve report period window.",
         type: "warning",
         displayTime: 3000,
         position: "top center"
@@ -250,38 +326,82 @@ const TransactionHub = () => {
 
     setIsSchedulingReport(true);
     try {
-      const reportData = buildTransactionVolumeHistoryReportData({
-        tankVolumeHistory,
-        tanks,
-        sites,
-        headerStartDate,
-        headerEndDate,
-        selectedSiteIds,
-        selectedTankIds,
-        user
+      const siteNames = resolveEntityNames(sites, selectedScheduleSiteIds, {
+        emptyLabel: "All Sites"
       });
+      const tankNames = resolveEntityNames(tanks, selectedScheduleTankIds, {
+        emptyLabel: "All Tanks"
+      });
+      const recipientNames = resolveEntityNames(usersForFilter, recipientIds, {
+        idField: "userId",
+        nameField: "userName",
+        emptyLabel: "Selected users"
+      });
+      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+      const requestedBy = user?.userName || user?.username || "Unknown User";
+      const prefixedReportName = buildReportNameWithPrefix(reportName);
+      const safeDescription =
+        String(reportDescription || "").trim() ||
+        "Scheduled tank volume history report delivery.";
 
-      const htmlResult = await reportingService.previewJsReport(reportTemplateName, reportData);
-      if (!htmlResult.success) {
-        notify({
-          message: htmlResult.error || "Failed to render report for email.",
-          type: "error",
-          displayTime: 3000,
-          position: "top center"
-        });
-        return;
-      }
+      const reportSummaryHtml = buildScheduledReportSummaryHtml({
+        title: prefixedReportName,
+        description: safeDescription,
+        periodType,
+        reportWindow,
+        nextRunAt: nextRunDate,
+        format: reportFormat,
+        scheduleDayOfWeek,
+        scheduleDayOfWeekIds,
+        scheduleWeekOfMonth,
+        scheduleTime,
+        siteNames,
+        tankNames,
+        recipientNames,
+        requestedBy,
+        timeZone
+      });
 
       const notificationRequest = {
         type: 2,
         categoryId: 20,
         priority: 1,
-        title: reportData.reportTitle,
-        message: htmlResult.html,
-        triggerSource: "TransactionVolumeHistoryReport",
-        scheduledAt: scheduleDateTime.toISOString(),
-        siteId: selectedSiteIds?.length === 1 ? selectedSiteIds[0] : null,
-        recipients: scheduleRecipients.map((userId) => ({
+        title: prefixedReportName,
+        message: reportSummaryHtml,
+        data: {
+          schedulerVersion: 3,
+          reportType: "TransactionVolumeHistory",
+          templateName: reportTemplateName,
+          periodType,
+          format: reportFormat.toUpperCase(),
+          reportName: prefixedReportName,
+          reportDescription: safeDescription,
+          effectiveStartDate: toIsoDate(reportWindow.startDate),
+          effectiveEndDate: toIsoDate(reportWindow.endDate),
+          windowMode: periodType === "monthly" ? "runMonth" : "runDateMinusOneDay",
+          siteIds: selectedScheduleSiteIds,
+          tankIds: selectedScheduleTankIds,
+          siteNames,
+          tankNames,
+          recurringSchedule: {
+            enabled: true,
+            scheduleType: periodType === "monthly" ? "monthly" : "weekly",
+            daysOfWeek: scheduleDayOfWeekIds,
+            dayOfWeek: scheduleDayOfWeek,
+            weekOfMonth: periodType === "monthly" ? scheduleWeekOfMonth : null,
+            timeOfDay: scheduleTime,
+            timeZone,
+            nextRunAtUtc: nextRunDate.toISOString()
+          },
+          requestedBy,
+          requestedAt: new Date().toISOString(),
+          timeZone
+        },
+        triggerSource: "TransactionVolumeHistoryReportSchedule",
+        scheduledAt: nextRunDate.toISOString(),
+        siteId: selectedScheduleSiteIds?.length === 1 ? selectedScheduleSiteIds[0] : null,
+        tankId: selectedScheduleTankIds?.length === 1 ? selectedScheduleTankIds[0] : null,
+        recipients: recipientIds.map((userId) => ({
           userId,
           deliveryMethods: ["Email"],
           resolvedFrom: "Manual"
@@ -318,16 +438,12 @@ const TransactionHub = () => {
       setIsSchedulingReport(false);
     }
   }, [
-    scheduleRecipients,
-    scheduleDateTime,
-    tankVolumeHistory,
+    scheduleConfig,
     tanks,
     sites,
-    headerStartDate,
-    headerEndDate,
-    selectedSiteIds,
-    selectedTankIds,
-    user
+    usersForFilter,
+    user,
+    reportTemplateName
   ]);
 
   // Handle row click to prevent errors with group rows
@@ -940,11 +1056,11 @@ const TransactionHub = () => {
       <ScheduleReportEmailDialog
         visible={showScheduleReportDialog}
         onHiding={() => setShowScheduleReportDialog(false)}
+        sites={sites}
+        tanks={tanks}
         usersForFilter={usersForFilter}
-        recipientIds={scheduleRecipients}
-        onRecipientIdsChange={setScheduleRecipients}
-        scheduledAt={scheduleDateTime}
-        onScheduledAtChange={setScheduleDateTime}
+        scheduleConfig={scheduleConfig}
+        onScheduleConfigChange={handleScheduleConfigChange}
         onSchedule={handleScheduleReportEmail}
         isScheduling={isSchedulingReport}
       />

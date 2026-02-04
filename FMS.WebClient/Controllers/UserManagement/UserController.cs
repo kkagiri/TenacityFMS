@@ -2,7 +2,7 @@
  * File: UserController.cs
  * Purpose: Handles user management endpoints including authentication and token refresh.
  * Dependencies: IMediator, GpsdataContext, IJwtTokenGenerator, UserManager<User>
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-02-04
  *
  * Key Functions:
  * - RefreshToken(): Rotates refresh tokens and issues a new access token.
@@ -48,6 +48,15 @@ public class UserController : ControllerBase
         _context = context;
         _jwtTokenGenerator = jwtTokenGenerator;
         _userManager = userManager;
+    }
+
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? string.Empty;
+
+        return !string.IsNullOrWhiteSpace(userId);
     }
 
     [HttpPost]
@@ -196,9 +205,7 @@ public class UserController : ControllerBase
     [HttpGet("details")]
     public async Task<IActionResult> GetUserDetails()
     {
-        var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-        if (string.IsNullOrEmpty(userID))
+        if (!TryGetCurrentUserId(out var userID))
         {
             return Unauthorized();
         }
@@ -218,9 +225,7 @@ public class UserController : ControllerBase
         try
         {
             // If we get here, JWT middleware already validated the token
-            var userID = User.FindFirstValue(ClaimTypes.NameIdentifier);
-
-            if (string.IsNullOrEmpty(userID))
+            if (!TryGetCurrentUserId(out var userID))
             {
                 return Unauthorized(FMSResponse<object>.Failed("Invalid token - no user ID found"));
             }

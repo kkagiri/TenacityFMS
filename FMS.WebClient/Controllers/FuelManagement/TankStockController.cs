@@ -1,3 +1,14 @@
+/**
+ * File: TankStockController.cs
+ * Purpose: Handles tank stock operations, imports, adjustments, and analysis endpoints.
+ * Dependencies: MediatR, SignalR, tank stock services, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateOpeningStock: Records opening stock with authenticated user context.
+ * - BulkImportTankStock: Validates and imports tank stock entries in bulk.
+ * - GetVarianceAnalysis: Returns variance analytics for tank stock behavior.
+ */
 using FMS.Application.Command.DatabaseCommand.DeliveriesCommands;
 using FMS.Application.Command.DatabaseCommand.TankStockCommand;
 using FMS.Application.Command.DatabaseCommand.TankTransferCommand;
@@ -47,6 +58,15 @@ public class TankStockController : ControllerBase
         _futureRecordsService = futureRecordsService;
         _openingStockValidationService = openingStockValidationService;
         _hubContext = hubContext;
+    }
+
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? string.Empty;
+
+        return Guid.TryParse(userId, out _);
     }
 
     /// <summary>
@@ -245,8 +265,8 @@ public class TankStockController : ControllerBase
 
         if (id <= 0) return BadRequest(FMSResponse.FailedResponse("Invalid ID"));
 
-        // Get current user ID
-        var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!TryGetCurrentUserId(out var userId))
+            return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
 
         var result = await _mediator.Send(new DeleteTankStockCommand(id, processHistory, userId));
 
@@ -279,16 +299,10 @@ public class TankStockController : ControllerBase
         // Normalize the provided date to UTC before comparison to avoid false positives when clients send local time
         DateTime dateTimeUtc = dateTime.UtcDateTime;
 
-        Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
-
-        if (userIdClaim == null)
-        {
+        if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
-        }
 
-        FMSResponseMessage result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userIdClaim.Value, dateTimeUtc));
+        FMSResponseMessage result = await _mediator.Send(new OpeningStockCommand(tankId, amount, userId, dateTimeUtc));
 
         if (result.Success)
         {
@@ -315,15 +329,10 @@ public class TankStockController : ControllerBase
         // Normalize to UTC for consistent comparison
         DateTime dateTimeUtc = dateTime.UtcDateTime;
 
-        Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
-
-        if (userIdClaim == null)
-        {
+        if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
-        }
-        FMSResponseMessage result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userIdClaim.Value, dateTimeUtc));
+
+        FMSResponseMessage result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userId, dateTimeUtc));
 
         if (!result.Success)
         {
@@ -341,13 +350,10 @@ public class TankStockController : ControllerBase
         //var hasPermission = User.HasClaim("permissions", "_tankTransfer");
         // if (!hasPermission) return Forbid();
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        var userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
+        if (!TryGetCurrentUserId(out var userId))
+            return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
 
-        if (userIdClaim == null) return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
-
-        tankTransferDTO.RecordedBy = userIdClaim.Value;
+        tankTransferDTO.RecordedBy = userId;
 
         var result = await _mediator.Send(new CreateTankTransfer(tankTransferDTO));
 
@@ -373,15 +379,8 @@ public class TankStockController : ControllerBase
         if (!ModelState.IsValid)
             return BadRequest(ModelState);
 
-        // Get user ID from claims
-        var userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
-
-        if (userIdClaim == null)
-        {
+        if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
-        }
 
         // Build command
         var command = new BulkImportTankStockCommand
@@ -391,7 +390,7 @@ public class TankStockController : ControllerBase
             DuplicateHandling = request.DuplicateHandling,
             IgnoreWarnings = request.IgnoreWarnings,
             SkipValidation = request.SkipValidation,
-            UserId = userIdClaim.Value,
+            UserId = userId,
             StationId = request.StationId
         };
 
@@ -462,14 +461,10 @@ public class TankStockController : ControllerBase
 
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
-
-        if (userIdClaim == null)
+        if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
 
-        adjustmentDTO.CreatedBy = userIdClaim.Value;
+        adjustmentDTO.CreatedBy = userId;
 
         var result = await _mediator.Send(new CreateStockAdjustmentCommand(adjustmentDTO));
 
@@ -532,16 +527,10 @@ public class TankStockController : ControllerBase
 
         DateTime entryDateUtc = entryDate.UtcDateTime;
 
-        Claim? userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _));
-
-        if (userIdClaim == null)
-        {
+        if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
-        }
 
-        FMSResponseMessage result = await _mediator.Send(new CreateDispensingVolumeCommand(tankId, dispensedVolume, userIdClaim.Value, entryDateUtc, notes));
+        FMSResponseMessage result = await _mediator.Send(new CreateDispensingVolumeCommand(tankId, dispensedVolume, userId, entryDateUtc, notes));
 
         if (!result.Success)
         {

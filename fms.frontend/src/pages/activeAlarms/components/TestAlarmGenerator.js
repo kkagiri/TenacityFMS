@@ -1,16 +1,26 @@
+/**
+ * File: TestAlarmGenerator.js
+ * Purpose: Generate test alarms and verify active alarm notification SignalR flow
+ * Dependencies: React, Redux actions, businessSignalRService
+ * Last Modified: 2026-02-03
+ *
+ * Key Functions/Components:
+ * - TestAlarmGenerator: Creates test alarms and validates real-time events on active alarm routes
+ */
+
 import React, { useState, useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import { createTestAlarm, fetchAlarmStatistics, testSignalRBroadcast } from '../../../redux/actions/activeAlarmActions';
 import { addNotification } from '../../../redux/actions/notificationActions';
-import SignalRService from '../../../signalR/SignalRService';
+import businessSignalRService from '../../../signalR/businessSignalRService';
 import './TestAlarmGenerator.scss';
 
 const TestAlarmGenerator = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { loading, statistics } = useSelector(state => state.activeAlarm);
-  const { isConnected } = useSelector(state => state.signalR || {});
+  const [isConnected, setIsConnected] = useState(() => businessSignalRService.getConnectionStatus());
 
   const [formData, setFormData] = useState({
     alarmType: 'TestAlarm',
@@ -104,41 +114,40 @@ const TestAlarmGenerator = () => {
     // Load current statistics
     dispatch(fetchAlarmStatistics());
 
-    // Set up SignalR listeners for testing
-    const setupSignalRListeners = () => {
-      if (SignalRService.connection) {
-        // Listen for alarm-related SignalR events
-        SignalRService.connection.on('ActiveAlarmCreated', (alarm) => {
-          console.log('SignalR: Active alarm created', alarm);
-          setTestResults(prev => ({
-            ...prev,
-            signalRReceived: true
-          }));
-        });
+    // Keep connection status in sync with Business SignalR service (managed by SignalRConnectionManager for /active-alarms routes)
+    const unsubscribeConnectionStatus = businessSignalRService.on('connectionStatusChanged', (connected) => {
+      setIsConnected(Boolean(connected));
+    });
 
-        SignalRService.connection.on('ActiveAlarmUpdated', (alarm) => {
-          console.log('SignalR: Active alarm updated', alarm);
-        });
+    // Listen for alarm-related events exposed by businessSignalRService
+    const unsubscribeAlarmCreated = businessSignalRService.on('activeAlarmCreated', (alarm) => {
+      console.log('SignalR: Active alarm created', alarm);
+      setTestResults(prev => ({
+        ...prev,
+        signalRReceived: true
+      }));
+    });
 
-        SignalRService.connection.on('NotificationCreated', (notification) => {
-          console.log('SignalR: Notification created', notification);
-          setTestResults(prev => ({
-            ...prev,
-            notificationSent: true
-          }));
-        });
-      }
-    };
+    const unsubscribeAlarmUpdated = businessSignalRService.on('activeAlarmUpdated', (alarm) => {
+      console.log('SignalR: Active alarm updated', alarm);
+    });
 
-    setupSignalRListeners();
+    const unsubscribeNotificationCreated = businessSignalRService.on('notificationCreated', (notification) => {
+      console.log('SignalR: Notification created', notification);
+      setTestResults(prev => ({
+        ...prev,
+        notificationSent: true
+      }));
+    });
+
+    // Sync current status immediately
+    setIsConnected(businessSignalRService.getConnectionStatus());
 
     return () => {
-      // Cleanup SignalR listeners
-      if (SignalRService.connection) {
-        SignalRService.connection.off('ActiveAlarmCreated');
-        SignalRService.connection.off('ActiveAlarmUpdated');
-        SignalRService.connection.off('NotificationCreated');
-      }
+      unsubscribeConnectionStatus?.();
+      unsubscribeAlarmCreated?.();
+      unsubscribeAlarmUpdated?.();
+      unsubscribeNotificationCreated?.();
     };
   }, [dispatch]);
 
@@ -204,7 +213,7 @@ const TestAlarmGenerator = () => {
         }
 
         // Step 3: Test SignalR broadcast (if connected)
-        if (SignalRService.connection && isConnected) {
+        if (isConnected) {
           try {
             await dispatch(testSignalRBroadcast('Test alarm SignalR broadcast'));
           } catch (signalRError) {
@@ -238,23 +247,28 @@ const TestAlarmGenerator = () => {
     try {
       console.log('Testing SignalR connection...');
 
-      if (!SignalRService.connection) {
-        await SignalRService.startConnection();
+      // Active alarms use the Business SignalR service on FrontEndHub
+      const connected = await businessSignalRService.ensureConnection();
+      setIsConnected(connected);
+
+      if (!connected) {
+        throw new Error('Business SignalR connection is not available');
       }
 
-      if (SignalRService.connection) {
-        const result = await SignalRService.connection.invoke('HealthCheck');
-        console.log('SignalR health check result:', result);
-
-        dispatch(addNotification({
-          type: 'success',
-          title: 'SignalR Test',
-          message: 'SignalR connection test successful',
-          timestamp: Date.now(),
-          autoExpire: true,
-          expireAfter: 5000
-        }));
+      // FrontEndHub does not expose HealthCheck; RequestAlarmStatistics is the valid business test method
+      const requestSent = await businessSignalRService.requestAlarmStatistics();
+      if (!requestSent) {
+        throw new Error('Connected to FrontEndHub, but RequestAlarmStatistics failed');
       }
+
+      dispatch(addNotification({
+        type: 'success',
+        title: 'SignalR Test',
+        message: 'Business SignalR connection test successful',
+        timestamp: Date.now(),
+        autoExpire: true,
+        expireAfter: 5000
+      }));
     } catch (error) {
       console.error('SignalR test failed:', error);
       dispatch(addNotification({
