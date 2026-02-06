@@ -741,10 +741,10 @@ class ApiService {
     }
   }
 
-  // Site information
+  // Site information - returns sites assigned to the authenticated user
   async getSiteList() {
     try {
-      const response = await this.api.get("/v1/Site");
+      const response = await this.api.get("/v1/Site/me");
       return response.data;
     } catch (error) {
       throw this.handleError(error, "Failed to fetch site list");

@@ -1,23 +1,212 @@
-/**
+﻿/**
  * File: TransactionMonitoringStatus.js
- * Purpose: Real-time transaction monitoring component using PTS SignalR
- * Dependencies: ptsSignalRService, Redux, DevExtreme
- * Last Modified: 2025-10-22
+ * Purpose: Mobile-style real-time transaction monitoring modal for ATG web fueling process
+ * Dependencies: ptsSignalRService, Redux realtimeStatus, DevExtreme Button/ProgressBar/LoadPanel
+ * Last Modified: 2026-02-06
  *
  * Key Functions:
- * - Monitors real-time transaction status via PTS SignalR
- * - Displays live fueling data (volume, amount, pump status)
- * - Handles transaction cancellation and completion
- * - Shows status history and progress indicators
+ * - Track transaction lifecycle using UploadStatus + SignalR events
+ * - Display live volume/amount/progress + fueling context
+ * - Support stop/cancel and manual complete actions
+ * - Maintain concise status history for operator visibility
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useMemo,
+  useRef,
+} from "react";
 import { useSelector } from "react-redux";
 import { Button } from "devextreme-react/button";
 import { ProgressBar } from "devextreme-react/progress-bar";
 import { LoadPanel } from "devextreme-react/load-panel";
 import ptsSignalRService from "../../../signalR/ptsSignalRService";
 import "./TransactionMonitoringStatus.scss";
+
+const TransactionStatus = {
+  AUTHORIZED: "authorized",
+  WAITING_NOZZLE: "waiting_nozzle",
+  FUELING: "fueling",
+  END_OF_TRANSACTION: "end_of_transaction",
+  COMPLETED: "completed",
+  CANCELLED: "cancelled",
+  ERROR: "error",
+  DISCONNECTED: "disconnected",
+};
+
+const PumpSnapshotType = {
+  IDLE: "idle",
+  FILLING: "filling",
+  END_OF_TRANSACTION: "endOfTransaction",
+  OFFLINE: "offline",
+};
+
+const toNumberOrNull = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
+const getSection = (container, pascalName, camelName) =>
+  container?.[pascalName] || container?.[camelName] || null;
+
+const getArray = (section, pascalName, camelName) =>
+  section?.[pascalName] || section?.[camelName] || [];
+
+const getPumpSnapshotFromUploadStatus = (statusPayload, targetPumpId) => {
+  if (!statusPayload || !targetPumpId) {
+    return null;
+  }
+
+  const pumps = statusPayload.pumps || statusPayload.Pumps;
+  if (!pumps) {
+    return null;
+  }
+
+  const readSnapshot = (
+    section,
+    statusType,
+    {
+      transactionField,
+      volumeField,
+      amountField,
+      nozzleField,
+      fallbackVolumeField,
+      fallbackAmountField,
+    } = {}
+  ) => {
+    if (!section) return null;
+
+    const ids = getArray(section, "Ids", "ids");
+    const index = ids.findIndex(
+      (pumpId) => toNumberOrNull(pumpId) === toNumberOrNull(targetPumpId)
+    );
+
+    if (index === -1) {
+      return null;
+    }
+
+    const transactions = transactionField
+      ? getArray(section, transactionField.pascal, transactionField.camel)
+      : [];
+
+    const volumes = volumeField
+      ? getArray(section, volumeField.pascal, volumeField.camel)
+      : [];
+
+    const amounts = amountField
+      ? getArray(section, amountField.pascal, amountField.camel)
+      : [];
+
+    const fallbackVolumes = fallbackVolumeField
+      ? getArray(section, fallbackVolumeField.pascal, fallbackVolumeField.camel)
+      : [];
+
+    const fallbackAmounts = fallbackAmountField
+      ? getArray(section, fallbackAmountField.pascal, fallbackAmountField.camel)
+      : [];
+
+    const nozzles = nozzleField
+      ? getArray(section, nozzleField.pascal, nozzleField.camel)
+      : [];
+
+    return {
+      type: statusType,
+      index,
+      transactionId: toNumberOrNull(transactions[index]),
+      volume:
+        toNumberOrNull(volumes[index]) ?? toNumberOrNull(fallbackVolumes[index]),
+      amount:
+        toNumberOrNull(amounts[index]) ?? toNumberOrNull(fallbackAmounts[index]),
+      nozzle: toNumberOrNull(nozzles[index]),
+    };
+  };
+
+  const fillingSnapshot = readSnapshot(
+    getSection(pumps, "FillingStatus", "fillingStatus"),
+    PumpSnapshotType.FILLING,
+    {
+      transactionField: { pascal: "Transactions", camel: "transactions" },
+      volumeField: { pascal: "Volumes", camel: "volumes" },
+      amountField: { pascal: "Amounts", camel: "amounts" },
+      nozzleField: { pascal: "Nozzles", camel: "nozzles" },
+    }
+  );
+
+  if (fillingSnapshot) {
+    return fillingSnapshot;
+  }
+
+  const eotSnapshot = readSnapshot(
+    getSection(pumps, "EndOfTransactionStatus", "endOfTransactionStatus"),
+    PumpSnapshotType.END_OF_TRANSACTION,
+    {
+      transactionField: { pascal: "Transactions", camel: "transactions" },
+      volumeField: { pascal: "Volumes", camel: "volumes" },
+      amountField: { pascal: "Amounts", camel: "amounts" },
+      nozzleField: { pascal: "Nozzles", camel: "nozzles" },
+    }
+  );
+
+  if (eotSnapshot) {
+    return eotSnapshot;
+  }
+
+  const idleSnapshot = readSnapshot(
+    getSection(pumps, "IdleStatus", "idleStatus"),
+    PumpSnapshotType.IDLE,
+    {
+      transactionField: {
+        pascal: "LastTransactions",
+        camel: "lastTransactions",
+      },
+      volumeField: { pascal: "LastVolumes", camel: "lastVolumes" },
+      amountField: { pascal: "LastAmounts", camel: "lastAmounts" },
+      nozzleField: { pascal: "NozzlesUp", camel: "nozzlesUp" },
+      fallbackVolumeField: { pascal: "Volumes", camel: "volumes" },
+      fallbackAmountField: { pascal: "Amounts", camel: "amounts" },
+    }
+  );
+
+  if (idleSnapshot) {
+    return idleSnapshot;
+  }
+
+  return readSnapshot(
+    getSection(pumps, "OfflineStatus", "offlineStatus"),
+    PumpSnapshotType.OFFLINE
+  );
+};
+
+const isMatchingTransaction = (eventTransactionId, monitoredTransactionId) => {
+  const monitored = toNumberOrNull(monitoredTransactionId);
+  if (monitored === null) {
+    return true;
+  }
+
+  const incoming = toNumberOrNull(eventTransactionId);
+  if (incoming === null) {
+    return false;
+  }
+
+  return incoming === monitored;
+};
+
+const formatElapsed = (seconds) => {
+  const safeSeconds = Number.isFinite(seconds) ? seconds : 0;
+  const mins = Math.floor(safeSeconds / 60)
+    .toString()
+    .padStart(2, "0");
+  const secs = Math.floor(safeSeconds % 60)
+    .toString()
+    .padStart(2, "0");
+  return `${mins}:${secs}`;
+};
 
 const TransactionMonitoringStatus = ({
   deviceId,
@@ -28,689 +217,723 @@ const TransactionMonitoringStatus = ({
   onComplete,
   connectionType = "Unknown",
 }) => {
-  const [monitoringData, setMonitoringData] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isConnected, setIsConnected] = useState(false);
+  const [status, setStatus] = useState(TransactionStatus.AUTHORIZED);
+  const [volume, setVolume] = useState(0);
+  const [amount, setAmount] = useState(0);
+  const [startTime, setStartTime] = useState(null);
+  const [elapsedSeconds, setElapsedSeconds] = useState(0);
+  const [currentPumpStatus, setCurrentPumpStatus] = useState(null);
   const [lastUpdated, setLastUpdated] = useState(null);
   const [statusHistory, setStatusHistory] = useState([]);
-  const [isConnected, setIsConnected] = useState(false);
 
-  // Get real-time data from Redux
   const uploadStatus = useSelector(
-    (state) => state.realtimeStatus?.deviceStatuses?.[deviceId]?.status
+    (reduxState) =>
+      reduxState.realtimeStatus?.uploadStatusByDevice?.[deviceId]?.status
   );
 
-  const deviceStatus = useSelector(
-    (state) => state.realtimeStatus?.deviceStatuses?.[deviceId]
-  );
-
-  // Get fueling context for this pump (Mode, Vehicle/Tank, FueledBy)
   const fuelingContext = useSelector(
-    (state) => state.realtimeStatus?.deviceFuelingContexts?.[deviceId]?.[pumpId]
+    (reduxState) =>
+      reduxState.realtimeStatus?.deviceFuelingContexts?.[deviceId]?.[pumpId]
   );
 
-  /**
-   * Handle connection status changes
-   */
+  const statusRef = useRef(status);
+  const volumeRef = useRef(volume);
+  const amountRef = useRef(amount);
+  const startTimeRef = useRef(startTime);
+
   useEffect(() => {
-    const handleConnectionStatusChange = (connected) => {
-      setIsConnected(connected);
+    statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    volumeRef.current = volume;
+  }, [volume]);
+
+  useEffect(() => {
+    amountRef.current = amount;
+  }, [amount]);
+
+  useEffect(() => {
+    startTimeRef.current = startTime;
+  }, [startTime]);
+
+  const addStatusHistory = useCallback((entryStatus, entryVolume, entryAmount) => {
+    const now = new Date();
+    setStatusHistory((previousEntries) => {
+      const nextEntry = {
+        timestamp: now,
+        status: entryStatus,
+        volume:
+          entryVolume === null || entryVolume === undefined
+            ? null
+            : Number(entryVolume),
+        amount:
+          entryAmount === null || entryAmount === undefined
+            ? null
+            : Number(entryAmount),
+      };
+
+      return [...previousEntries.slice(-9), nextEntry];
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isVisible) return;
+
+    setStatus(TransactionStatus.AUTHORIZED);
+    setVolume(0);
+    setAmount(0);
+    setStartTime(null);
+    setElapsedSeconds(0);
+    setCurrentPumpStatus(null);
+    setLastUpdated(new Date());
+    setStatusHistory([]);
+  }, [isVisible, transactionId, pumpId, deviceId]);
+
+  useEffect(() => {
+    const handleConnectionStatusChanged = (connected) => {
+      setIsConnected(Boolean(connected));
       if (!connected) {
-        console.warn("[TransactionMonitoring] PTS SignalR disconnected");
-      } else {
-        console.log("[TransactionMonitoring] PTS SignalR connected");
+        setStatus((currentStatus) =>
+          currentStatus === TransactionStatus.COMPLETED ||
+          currentStatus === TransactionStatus.CANCELLED
+            ? currentStatus
+            : TransactionStatus.DISCONNECTED
+        );
       }
     };
 
-    // Subscribe to connection status
     const unsubscribe = ptsSignalRService.on(
       "connectionStatusChanged",
-      handleConnectionStatusChange
+      handleConnectionStatusChanged
     );
 
-    // Set initial connection status
-    setIsConnected(ptsSignalRService.isConnected);
+    handleConnectionStatusChanged(ptsSignalRService.isConnected);
 
     return () => {
       if (unsubscribe) unsubscribe();
     };
   }, []);
 
-  /**
-   * Handle transaction monitoring updates
-   */
-  const handleTransactionMonitoringUpdate = useCallback(
-    (data) => {
-      if (
-        !data ||
-        data.deviceId !== deviceId ||
-        data.transactionId !== transactionId
-      ) {
-        return;
-      }
-
-      console.log("[TransactionMonitoring] Update received:", data);
-
-      setMonitoringData(data);
-      setLastUpdated(new Date());
-
-      // Add to status history
-      setStatusHistory((prev) => {
-        const newEntry = {
-          timestamp: new Date(),
-          status: data.status,
-          volume: data.volume,
-          amount: data.amount,
-        };
-        return [...prev.slice(-4), newEntry]; // Keep last 5 entries
-      });
-    },
-    [deviceId, transactionId]
-  );
-
-  /**
-   * Handle transaction completion
-   */
-  const handleTransactionCompleted = useCallback(
-    (data) => {
-      if (!data || data.deviceId !== deviceId || data.pump !== pumpId) {
-        return;
-      }
-
-      console.log("[TransactionMonitoring] Transaction completed:", data);
-
-      setMonitoringData((prev) => ({
-        ...prev,
-        status: "Completed",
-        finalData: data,
-      }));
-      setLastUpdated(new Date());
-
-      // Add completion to history
-      setStatusHistory((prev) => [
-        ...prev.slice(-4),
-        {
-          timestamp: new Date(),
-          status: "Completed",
-          volume: data.volume || data.transactionData?.volume,
-          amount: data.amount || data.transactionData?.amount,
-        },
-      ]);
-    },
-    [deviceId, pumpId]
-  );
-
-  /**
-   * Handle filling status updates
-   */
-  const handleFillingStatus = useCallback(
-    (data) => {
-      if (!data || data.deviceId !== deviceId) {
-        return;
-      }
-
-      console.log("[TransactionMonitoring] Filling status:", data);
-
-      // Update monitoring data with real-time filling info
-      setMonitoringData((prev) => ({
-        ...prev,
-        status: "Filling",
-        volume: data.fillingData?.volume,
-        amount: data.fillingData?.amount,
-        lastUpdate: new Date(),
-      }));
-      setLastUpdated(new Date());
-    },
-    [deviceId]
-  );
-
-  /**
-   * Handle fueling events
-   */
-  const handleFuelingEvent = useCallback(
-    (data) => {
-      if (!data || data.deviceId !== deviceId) {
-        return;
-      }
-
-      console.log("[TransactionMonitoring] Fueling event:", data);
-
-      // Update based on event type
-      const eventType = data.fuelingData?.type || data.type;
-
-      if (
-        eventType === "TransactionStarted" ||
-        eventType === "FuelingStarted"
-      ) {
-        setMonitoringData((prev) => ({
-          ...prev,
-          status: "InProgress",
-          startTime: new Date(),
-        }));
-      } else if (
-        eventType === "TransactionCompleted" ||
-        eventType === "FuelingCompleted"
-      ) {
-        setMonitoringData((prev) => ({
-          ...prev,
-          status: "Completed",
-          endTime: new Date(),
-        }));
-      }
-
-      setLastUpdated(new Date());
-    },
-    [deviceId]
-  );
-
-  /**
-   * Handle upload status updates
-   */
-  const handleUploadStatusUpdate = useCallback(
-    (data) => {
-      if (!data || data.deviceId !== deviceId) {
-        return;
-      }
-
-      console.log("[TransactionMonitoring] Upload status update:", data);
-      setLastUpdated(new Date());
-    },
-    [deviceId]
-  );
-
-  /**
-   * Set up PTS SignalR event handlers
-   */
   useEffect(() => {
-    if (!isVisible || !transactionId) return;
+    if (!isVisible || !deviceId || !pumpId) {
+      return;
+    }
 
-    console.log(
-      "[TransactionMonitoring] Setting up event handlers for transaction:",
+    const pumpSnapshot = getPumpSnapshotFromUploadStatus(uploadStatus, pumpId);
+    if (!pumpSnapshot) {
+      return;
+    }
+
+    setCurrentPumpStatus(pumpSnapshot.type);
+    setLastUpdated(new Date());
+
+    const currentStatus = statusRef.current;
+    const transactionMatches = isMatchingTransaction(
+      pumpSnapshot.transactionId,
       transactionId
     );
 
-    // Register all relevant event handlers
-    const unsubscribers = [
-      ptsSignalRService.on(
-        "pumpTransactionCompleted",
-        handleTransactionCompleted
-      ),
-      ptsSignalRService.on("fillingStatus", handleFillingStatus),
-      ptsSignalRService.on("fuelingEvent", handleFuelingEvent),
-      ptsSignalRService.on("uploadStatusUpdate", handleUploadStatusUpdate),
-    ];
+    if (pumpSnapshot.type === PumpSnapshotType.FILLING) {
+      if (pumpSnapshot.volume !== null && pumpSnapshot.volume !== undefined) {
+        setVolume(pumpSnapshot.volume);
+      }
 
-    // Request initial status if connected
-    if (ptsSignalRService.isConnected) {
-      ptsSignalRService.requestDeviceStatus(deviceId).catch((err) => {
-        console.error(
-          "[TransactionMonitoring] Failed to request device status:",
-          err
+      if (pumpSnapshot.amount !== null && pumpSnapshot.amount !== undefined) {
+        setAmount(pumpSnapshot.amount);
+      }
+
+      if (
+        currentStatus !== TransactionStatus.FUELING &&
+        currentStatus !== TransactionStatus.COMPLETED &&
+        currentStatus !== TransactionStatus.CANCELLED
+      ) {
+        setStatus(TransactionStatus.FUELING);
+        if (!startTimeRef.current) {
+          setStartTime(Date.now());
+        }
+        addStatusHistory(
+          TransactionStatus.FUELING,
+          pumpSnapshot.volume,
+          pumpSnapshot.amount
         );
-      });
+      }
+
+      return;
     }
 
-    // Cleanup function
+    if (pumpSnapshot.type === PumpSnapshotType.END_OF_TRANSACTION) {
+      if (!transactionMatches) {
+        return;
+      }
+
+      if (pumpSnapshot.volume !== null && pumpSnapshot.volume !== undefined) {
+        setVolume(pumpSnapshot.volume);
+      }
+
+      if (pumpSnapshot.amount !== null && pumpSnapshot.amount !== undefined) {
+        setAmount(pumpSnapshot.amount);
+      }
+
+      if (
+        currentStatus !== TransactionStatus.END_OF_TRANSACTION &&
+        currentStatus !== TransactionStatus.COMPLETED
+      ) {
+        setStatus(TransactionStatus.END_OF_TRANSACTION);
+        addStatusHistory(
+          TransactionStatus.END_OF_TRANSACTION,
+          pumpSnapshot.volume,
+          pumpSnapshot.amount
+        );
+      }
+
+      return;
+    }
+
+    if (pumpSnapshot.type === PumpSnapshotType.IDLE) {
+      if (
+        currentStatus === TransactionStatus.AUTHORIZED ||
+        currentStatus === TransactionStatus.WAITING_NOZZLE
+      ) {
+        setStatus(TransactionStatus.WAITING_NOZZLE);
+        return;
+      }
+
+      const shouldComplete =
+        (currentStatus === TransactionStatus.FUELING ||
+          currentStatus === TransactionStatus.END_OF_TRANSACTION) &&
+        transactionMatches;
+
+      if (shouldComplete) {
+        if (pumpSnapshot.volume !== null && pumpSnapshot.volume !== undefined) {
+          setVolume(pumpSnapshot.volume);
+        }
+
+        if (pumpSnapshot.amount !== null && pumpSnapshot.amount !== undefined) {
+          setAmount(pumpSnapshot.amount);
+        }
+
+        if (currentStatus !== TransactionStatus.COMPLETED) {
+          setStatus(TransactionStatus.COMPLETED);
+          addStatusHistory(
+            TransactionStatus.COMPLETED,
+            pumpSnapshot.volume,
+            pumpSnapshot.amount
+          );
+        }
+      }
+
+      return;
+    }
+
+    if (
+      pumpSnapshot.type === PumpSnapshotType.OFFLINE &&
+      currentStatus !== TransactionStatus.COMPLETED &&
+      currentStatus !== TransactionStatus.CANCELLED
+    ) {
+      setStatus(TransactionStatus.DISCONNECTED);
+      addStatusHistory(
+        TransactionStatus.DISCONNECTED,
+        volumeRef.current,
+        amountRef.current
+      );
+    }
+  }, [uploadStatus, isVisible, deviceId, pumpId, transactionId, addStatusHistory]);
+
+  useEffect(() => {
+    if (!isVisible || !transactionId || !deviceId || !pumpId) {
+      return undefined;
+    }
+
+    const handleFillingStatus = (eventData) => {
+      if (!eventData || eventData.deviceId !== deviceId) {
+        return;
+      }
+
+      const eventPumpId =
+        toNumberOrNull(eventData.pumpId) ?? toNumberOrNull(eventData.pump);
+
+      if (eventPumpId !== toNumberOrNull(pumpId)) {
+        return;
+      }
+
+      const eventVolume =
+        eventData.fillingData?.volume ?? eventData.volume ?? volumeRef.current;
+      const eventAmount =
+        eventData.fillingData?.amount ?? eventData.amount ?? amountRef.current;
+
+      setVolume(Number(eventVolume) || 0);
+      setAmount(Number(eventAmount) || 0);
+      setStatus(TransactionStatus.FUELING);
+      setLastUpdated(new Date());
+
+      if (!startTimeRef.current) {
+        setStartTime(Date.now());
+      }
+    };
+
+    const handlePumpTransactionCompleted = (eventData) => {
+      if (!eventData || eventData.deviceId !== deviceId) {
+        return;
+      }
+
+      const eventPumpId =
+        toNumberOrNull(eventData.pumpId) ?? toNumberOrNull(eventData.pump);
+
+      if (eventPumpId !== toNumberOrNull(pumpId)) {
+        return;
+      }
+
+      if (!isMatchingTransaction(eventData.transactionId, transactionId)) {
+        return;
+      }
+
+      const finalVolume =
+        eventData.volume ?? eventData.transactionData?.volume ?? volumeRef.current;
+      const finalAmount =
+        eventData.amount ?? eventData.transactionData?.amount ?? amountRef.current;
+
+      setVolume(Number(finalVolume) || 0);
+      setAmount(Number(finalAmount) || 0);
+      setStatus(TransactionStatus.COMPLETED);
+      setLastUpdated(new Date());
+      addStatusHistory(TransactionStatus.COMPLETED, finalVolume, finalAmount);
+    };
+
+    const handleFuelingEvent = (eventData) => {
+      if (!eventData || eventData.deviceId !== deviceId) {
+        return;
+      }
+
+      const typeValue =
+        eventData.fuelingData?.type ||
+        eventData.type ||
+        eventData.eventType ||
+        "";
+
+      const eventType = String(typeValue).toLowerCase();
+      const eventPumpId =
+        toNumberOrNull(eventData.fuelingData?.pumpId) ??
+        toNumberOrNull(eventData.pumpId) ??
+        toNumberOrNull(eventData.pump);
+
+      if (eventPumpId !== null && eventPumpId !== toNumberOrNull(pumpId)) {
+        return;
+      }
+
+      const eventTxnId =
+        eventData.fuelingData?.transactionId ||
+        eventData.transactionId ||
+        eventData.transaction;
+
+      if (!isMatchingTransaction(eventTxnId, transactionId)) {
+        return;
+      }
+
+      if (
+        eventType.includes("started") ||
+        eventType.includes("filling") ||
+        eventType.includes("inprogress")
+      ) {
+        if (!startTimeRef.current) {
+          setStartTime(Date.now());
+        }
+
+        setStatus(TransactionStatus.FUELING);
+        setLastUpdated(new Date());
+      }
+
+      if (
+        eventType.includes("completed") ||
+        eventType.includes("endoftransaction")
+      ) {
+        setStatus(TransactionStatus.END_OF_TRANSACTION);
+        setLastUpdated(new Date());
+      }
+    };
+
+    const unsubscribers = [
+      ptsSignalRService.on("fillingStatus", handleFillingStatus),
+      ptsSignalRService.on(
+        "pumpTransactionCompleted",
+        handlePumpTransactionCompleted
+      ),
+      ptsSignalRService.on("fuelingEvent", handleFuelingEvent),
+    ];
+
     return () => {
-      console.log("[TransactionMonitoring] Cleaning up event handlers");
-      unsubscribers.forEach((unsub) => {
-        if (typeof unsub === "function") {
-          unsub();
+      unsubscribers.forEach((unsubscribe) => {
+        if (typeof unsubscribe === "function") {
+          unsubscribe();
         }
       });
     };
   }, [
     isVisible,
+    transactionId,
     deviceId,
     pumpId,
-    transactionId,
-    handleTransactionCompleted,
-    handleFillingStatus,
-    handleFuelingEvent,
-    handleUploadStatusUpdate,
+    addStatusHistory,
   ]);
 
-  /**
-   * Get current pump status from upload status
-   */
-  const getCurrentPumpStatus = useCallback(() => {
-    if (!uploadStatus?.pumps) return null;
+  useEffect(() => {
+    const shouldTrackElapsed =
+      isVisible &&
+      (status === TransactionStatus.FUELING ||
+        status === TransactionStatus.END_OF_TRANSACTION) &&
+      startTime;
 
-    const checkStatusType = (statusType, statusKey) => {
-      const status = uploadStatus.pumps[statusType];
-      if (!status?.ids) return null;
-
-      const pumpIndex = status.ids.findIndex((id) => id === pumpId);
-      if (pumpIndex === -1) return null;
-
-      return {
-        type: statusKey,
-        index: pumpIndex,
-        data: status,
-      };
-    };
-
-    return (
-      checkStatusType("idleStatus", "idle") ||
-      checkStatusType("fillingStatus", "filling") ||
-      checkStatusType("endOfTransactionStatus", "endOfTransaction") ||
-      checkStatusType("offlineStatus", "offline")
-    );
-  }, [uploadStatus, pumpId]);
-
-  const currentPumpStatus = getCurrentPumpStatus();
-
-  /**
-   * Get status color based on current status
-   */
-  const getStatusColor = (status) => {
-    switch (status?.toLowerCase()) {
-      case "authorized":
-        return "#2196F3";
-      case "monitoring":
-        return "#FF9800";
-      case "inprogress":
-        return "#4CAF50";
-      case "filling":
-        return "#4CAF50";
-      case "completed":
-        return "#8BC34A";
-      case "awaitingmanualcompletion":
-        return "#FFC107";
-      case "cancelled":
-        return "#F44336";
-      case "error":
-        return "#F44336";
-      default:
-        return "#9E9E9E";
+    if (!shouldTrackElapsed) {
+      return undefined;
     }
-  };
 
-  /**
-   * Get human-readable status text
-   */
-  const getStatusText = (status) => {
-    switch (status?.toLowerCase()) {
-      case "authorized":
-        return "Authorized";
-      case "monitoring":
-        return "Monitoring";
-      case "inprogress":
-        return "Fueling In Progress";
-      case "filling":
-        return "Fueling In Progress";
-      case "completed":
-        return "Completed";
-      case "awaitingmanualcompletion":
-        return "Awaiting Manual Completion";
-      case "cancelled":
-        return "Cancelled";
-      case "error":
-        return "Error";
-      default:
-        return status || "Unknown";
+    const timer = setInterval(() => {
+      setElapsedSeconds(Math.floor((Date.now() - startTime) / 1000));
+    }, 1000);
+
+    return () => clearInterval(timer);
+  }, [isVisible, status, startTime]);
+
+  useEffect(() => {
+    if (!isVisible || !deviceId) {
+      return;
     }
-  };
 
-  /**
-   * Calculate progress value based on status
-   */
-  const getProgressValue = () => {
-    if (!monitoringData) return 0;
+    if (ptsSignalRService.isConnected) {
+      ptsSignalRService.requestDeviceStatus(deviceId).catch((error) => {
+        console.error(
+          "[TransactionMonitoringStatus] Failed to request device status:",
+          error
+        );
+      });
+    }
+  }, [isVisible, deviceId]);
 
-    const status = monitoringData.status?.toLowerCase();
+  const statusConfig = useMemo(() => {
     switch (status) {
-      case "authorized":
-        return 10;
-      case "monitoring":
-        return 25;
-      case "inprogress":
-      case "filling":
-        return 60;
-      case "completed":
-        return 100;
-      case "awaitingmanualcompletion":
-        return 90;
-      case "cancelled":
-      case "error":
-        return 0;
+      case TransactionStatus.AUTHORIZED:
+        return {
+          label: "Authorized",
+          detail: "Pump authorized. Lift nozzle to begin fueling.",
+          color: "#1d4ed8",
+          icon: "fa-light fa-key",
+          progress: 15,
+        };
+      case TransactionStatus.WAITING_NOZZLE:
+        return {
+          label: "Waiting for Nozzle",
+          detail: "Nozzle is down. Lift nozzle to start transaction.",
+          color: "#d97706",
+          icon: "fa-light fa-hand-point-up",
+          progress: 25,
+        };
+      case TransactionStatus.FUELING:
+        return {
+          label: "Fueling In Progress",
+          detail: "Live dispensing data is updating in real time.",
+          color: "#2563eb",
+          icon: "fa-light fa-gas-pump",
+          progress: 65,
+        };
+      case TransactionStatus.END_OF_TRANSACTION:
+        return {
+          label: "End Of Transaction",
+          detail: "Dispensing ended. Confirm completion to finalize.",
+          color: "#059669",
+          icon: "fa-light fa-flag-checkered",
+          progress: 90,
+        };
+      case TransactionStatus.COMPLETED:
+        return {
+          label: "Completed",
+          detail: "Transaction completed and ready to close.",
+          color: "#15803d",
+          icon: "fa-light fa-circle-check",
+          progress: 100,
+        };
+      case TransactionStatus.CANCELLED:
+        return {
+          label: "Cancelled",
+          detail: "Transaction has been cancelled.",
+          color: "#dc2626",
+          icon: "fa-light fa-ban",
+          progress: 0,
+        };
+      case TransactionStatus.DISCONNECTED:
+        return {
+          label: "Disconnected",
+          detail: "Connection lost. Waiting to re-establish live updates.",
+          color: "#b45309",
+          icon: "fa-light fa-plug-circle-xmark",
+          progress: 0,
+        };
       default:
-        return 20;
+        return {
+          label: "Error",
+          detail: "Unexpected transaction monitoring state.",
+          color: "#dc2626",
+          icon: "fa-light fa-triangle-exclamation",
+          progress: 0,
+        };
     }
-  };
+  }, [status]);
 
-  /**
-   * Check if transaction can be cancelled
-   */
-  const canCancel = () => {
-    const status = monitoringData?.status?.toLowerCase();
-    return status && !["completed", "cancelled", "error"].includes(status);
-  };
+  const canCancel =
+    status === TransactionStatus.AUTHORIZED ||
+    status === TransactionStatus.WAITING_NOZZLE ||
+    status === TransactionStatus.FUELING ||
+    status === TransactionStatus.END_OF_TRANSACTION;
 
-  /**
-   * Check if transaction can be completed manually
-   */
-  const canComplete = () => {
-    const status = monitoringData?.status?.toLowerCase();
-    return (
-      status === "awaitingmanualcompletion" ||
-      (currentPumpStatus?.type === "endOfTransaction" &&
-        connectionType !== "HTTPPolling")
-    );
-  };
+  const canComplete =
+    status === TransactionStatus.END_OF_TRANSACTION ||
+    (status === TransactionStatus.FUELING && currentPumpStatus === PumpSnapshotType.IDLE);
 
-  /**
-   * Handle cancel transaction action
-   */
-  const handleCancelTransaction = async () => {
-    if (!canCancel()) return;
+  const handleCancelTransaction = useCallback(async () => {
+    if (!canCancel || !transactionId || !onCancel) {
+      return;
+    }
 
     setIsLoading(true);
     try {
-      await onCancel(transactionId, "User cancelled");
-      setMonitoringData((prev) => ({
-        ...prev,
-        status: "Cancelled",
-      }));
+      await onCancel(transactionId, "User cancelled from monitoring panel");
+      setStatus(TransactionStatus.CANCELLED);
+      setLastUpdated(new Date());
+      addStatusHistory(
+        TransactionStatus.CANCELLED,
+        volumeRef.current,
+        amountRef.current
+      );
     } catch (error) {
       console.error(
-        "[TransactionMonitoring] Error cancelling transaction:",
+        "[TransactionMonitoringStatus] Failed to cancel transaction:",
         error
       );
+      setStatus(TransactionStatus.ERROR);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [canCancel, transactionId, onCancel, addStatusHistory]);
 
-  /**
-   * Handle complete transaction action
-   */
-  const handleCompleteTransaction = async () => {
-    if (!canComplete()) return;
+  const handleCompleteTransaction = useCallback(async () => {
+    if (!canComplete || !transactionId || !onComplete) {
+      return;
+    }
 
     setIsLoading(true);
     try {
       await onComplete(transactionId);
-      setMonitoringData((prev) => ({
-        ...prev,
-        status: "Completed",
-      }));
+      setStatus(TransactionStatus.COMPLETED);
+      setLastUpdated(new Date());
+      addStatusHistory(
+        TransactionStatus.COMPLETED,
+        volumeRef.current,
+        amountRef.current
+      );
     } catch (error) {
       console.error(
-        "[TransactionMonitoring] Error completing transaction:",
+        "[TransactionMonitoringStatus] Failed to complete transaction:",
         error
       );
+      setStatus(TransactionStatus.ERROR);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [canComplete, transactionId, onComplete, addStatusHistory]);
 
-  if (!isVisible) return null;
+  if (!isVisible || !transactionId) {
+    return null;
+  }
 
   return (
-    <div className="tw-transaction-monitoring-status">
-      <LoadPanel visible={isLoading} message="Processing..." />
+    <div className="tw-transaction-monitoring-overlay">
+      <div className="tw-transaction-monitoring-modal">
+        <LoadPanel visible={isLoading} showPane={true} message="Processing..." />
 
-      <div className="tw-monitoring-header">
-        <h4 className="tw-monitoring-title">
-          Transaction Monitoring
-          <span className="tw-transaction-badge">#{transactionId}</span>
-        </h4>
-        <div className="tw-connection-info">
-          <span
-            className={`tw-connection-status ${
-              isConnected ? "tw-connected" : "tw-disconnected"
-            }`}
-          >
-            {isConnected ? "● Connected" : "○ Disconnected"}
-          </span>
-          <span className="tw-connection-type">{connectionType}</span>
-          {lastUpdated && (
-            <span className="tw-last-updated">
-              Updated: {lastUpdated.toLocaleTimeString()}
+        <div className="tw-monitoring-header">
+          <div className="tw-monitoring-title-wrap">
+            <h4 className="tw-monitoring-title">Fueling Monitoring</h4>
+            <span className="tw-transaction-id">TX #{transactionId}</span>
+          </div>
+
+          <div className="tw-monitoring-connection">
+            <span
+              className={`tw-connection-pill ${
+                isConnected ? "tw-online" : "tw-offline"
+              }`}
+            >
+              <i
+                className={`fa-light ${
+                  isConnected ? "fa-signal-stream" : "fa-plug-circle-xmark"
+                }`}
+              ></i>
+              {isConnected ? "Connected" : "Disconnected"}
             </span>
+            <span className="tw-connection-type">{connectionType}</span>
+          </div>
+        </div>
+
+        <div className="tw-monitoring-body">
+          <div className="tw-status-card">
+            <div className="tw-status-main">
+              <div
+                className="tw-status-icon"
+                style={{ backgroundColor: `${statusConfig.color}20` }}
+              >
+                <i
+                  className={statusConfig.icon}
+                  style={{ color: statusConfig.color }}
+                ></i>
+              </div>
+
+              <div className="tw-status-text-wrap">
+                <div className="tw-status-label">{statusConfig.label}</div>
+                <div className="tw-status-detail">{statusConfig.detail}</div>
+              </div>
+            </div>
+
+            <ProgressBar
+              value={statusConfig.progress}
+              showStatus={false}
+              className="tw-status-progress"
+            />
+          </div>
+
+          <div className="tw-metrics-grid">
+            <div className="tw-metric-card">
+              <span className="tw-metric-label">Pump / Nozzle</span>
+              <span className="tw-metric-value">#{pumpId}</span>
+              <span className="tw-metric-sub">
+                {currentPumpStatus || "waiting"}
+              </span>
+            </div>
+
+            <div className="tw-metric-card">
+              <span className="tw-metric-label">Volume</span>
+              <span className="tw-metric-value">{Number(volume).toFixed(2)} L</span>
+              <span className="tw-metric-sub">Dispensed</span>
+            </div>
+
+            <div className="tw-metric-card">
+              <span className="tw-metric-label">Amount</span>
+              <span className="tw-metric-value">{Number(amount).toFixed(2)}</span>
+              <span className="tw-metric-sub">Cost</span>
+            </div>
+
+            <div className="tw-metric-card">
+              <span className="tw-metric-label">Elapsed</span>
+              <span className="tw-metric-value">{formatElapsed(elapsedSeconds)}</span>
+              <span className="tw-metric-sub">MM:SS</span>
+            </div>
+          </div>
+
+          {fuelingContext && (
+            <div className="tw-context-card">
+              <h5 className="tw-section-title">Fueling Context</h5>
+
+              <div className="tw-context-row">
+                <span className="tw-context-key">Mode</span>
+                <span className="tw-context-value">{fuelingContext.mode || "N/A"}</span>
+              </div>
+
+              {fuelingContext.vehicleName && (
+                <div className="tw-context-row">
+                  <span className="tw-context-key">Vehicle</span>
+                  <span className="tw-context-value">{fuelingContext.vehicleName}</span>
+                </div>
+              )}
+
+              {fuelingContext.tankName && (
+                <div className="tw-context-row">
+                  <span className="tw-context-key">Tank</span>
+                  <span className="tw-context-value">{fuelingContext.tankName}</span>
+                </div>
+              )}
+
+              {fuelingContext.fueledByUserName && (
+                <div className="tw-context-row">
+                  <span className="tw-context-key">Operator</span>
+                  <span className="tw-context-value">
+                    {fuelingContext.fueledByUserName}
+                  </span>
+                </div>
+              )}
+
+              {fuelingContext.tag && (
+                <div className="tw-context-row">
+                  <span className="tw-context-key">Tag</span>
+                  <span className="tw-context-value">{fuelingContext.tag}</span>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="tw-history-card">
+            <h5 className="tw-section-title">Recent Updates</h5>
+
+            {statusHistory.length === 0 ? (
+              <div className="tw-history-empty">
+                Waiting for transaction updates...
+              </div>
+            ) : (
+              <div className="tw-history-list">
+                {statusHistory
+                  .slice()
+                  .reverse()
+                  .map((entry, entryIndex) => (
+                    <div key={`${entry.timestamp?.toISOString?.() || "time"}-${entryIndex}`} className="tw-history-row">
+                      <span className="tw-history-time">
+                        {entry.timestamp?.toLocaleTimeString?.() || "--:--:--"}
+                      </span>
+                      <span className="tw-history-status">{entry.status}</span>
+                      <span className="tw-history-values">
+                        {entry.volume !== null && entry.volume !== undefined
+                          ? `${Number(entry.volume).toFixed(2)}L`
+                          : "-"}
+                        {entry.amount !== null && entry.amount !== undefined
+                          ? ` / ${Number(entry.amount).toFixed(2)}`
+                          : ""}
+                      </span>
+                    </div>
+                  ))}
+              </div>
+            )}
+
+            {lastUpdated && (
+              <div className="tw-last-updated">
+                Last update: {lastUpdated.toLocaleTimeString()}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div className="tw-monitoring-actions">
+          {canCancel && (
+            <Button
+              text={
+                status === TransactionStatus.FUELING
+                  ? "Stop / Cancel"
+                  : "Cancel Transaction"
+              }
+              type="danger"
+              stylingMode="outlined"
+              disabled={isLoading}
+              onClick={handleCancelTransaction}
+              icon="fa-light fa-ban"
+            />
+          )}
+
+          {canComplete && (
+            <Button
+              text="Complete Transaction"
+              type="success"
+              disabled={isLoading}
+              onClick={handleCompleteTransaction}
+              icon="fa-light fa-flag-checkered"
+            />
           )}
         </div>
-      </div>
-
-      <div className="tw-monitoring-body">
-        {/* Current Status */}
-        <div className="tw-status-section">
-          <div className="tw-status-display">
-            <div
-              className="tw-status-indicator"
-              style={{
-                backgroundColor: getStatusColor(monitoringData?.status),
-              }}
-            />
-            <span className="tw-status-text">
-              {getStatusText(monitoringData?.status)}
-            </span>
-          </div>
-
-          <ProgressBar
-            value={getProgressValue()}
-            showStatus={false}
-            className="tw-transaction-progress"
-          />
-        </div>
-
-        {/* Real-time Data */}
-        {monitoringData && (
-          <div className="tw-realtime-data">
-            <div className="tw-data-row">
-              <span className="tw-data-label">Device:</span>
-              <span className="tw-data-value">{deviceId}</span>
-            </div>
-            <div className="tw-data-row">
-              <span className="tw-data-label">Pump:</span>
-              <span className="tw-data-value">#{pumpId}</span>
-            </div>
-            {monitoringData.volume && (
-              <div className="tw-data-row">
-                <span className="tw-data-label">Volume:</span>
-                <span className="tw-data-value">
-                  {Number(monitoringData.volume).toFixed(2)} L
-                </span>
-              </div>
-            )}
-            {monitoringData.amount && (
-              <div className="tw-data-row">
-                <span className="tw-data-label">Amount:</span>
-                <span className="tw-data-value">
-                  ${Number(monitoringData.amount).toFixed(2)}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Fueling Context - Mode, Vehicle/Tank, FueledBy */}
-        {fuelingContext && (
-          <div className="tw-fueling-context">
-            <div className="tw-context-row">
-              <span className="tw-context-label">Mode:</span>
-              <span
-                className={`tw-context-value tw-mode-${
-                  fuelingContext.mode?.toLowerCase() || "unknown"
-                }`}
-              >
-                {fuelingContext.mode === "Vehicle" ? (
-                  <>
-                    <i className="fa-light fa-truck tw-mr-1"></i> Vehicle
-                  </>
-                ) : fuelingContext.mode === "Transfer" ? (
-                  <>
-                    <i className="fa-light fa-arrow-right-arrow-left tw-mr-1"></i>{" "}
-                    Transfer
-                  </>
-                ) : (
-                  fuelingContext.mode || "Unknown"
-                )}
-              </span>
-            </div>
-
-            {fuelingContext.mode === "Vehicle" &&
-              fuelingContext.vehicleName && (
-                <div className="tw-context-row">
-                  <span className="tw-context-label">Vehicle:</span>
-                  <span className="tw-context-value">
-                    <i className="fa-light fa-car tw-mr-1"></i>
-                    {fuelingContext.vehicleName}
-                    {fuelingContext.vehicleId && (
-                      <span className="tw-context-id">
-                        {" "}
-                        (#{fuelingContext.vehicleId})
-                      </span>
-                    )}
-                  </span>
-                </div>
-              )}
-
-            {fuelingContext.mode === "Transfer" && fuelingContext.tankName && (
-              <div className="tw-context-row">
-                <span className="tw-context-label">Tank:</span>
-                <span className="tw-context-value">
-                  <i className="fa-light fa-database tw-mr-1"></i>
-                  {fuelingContext.tankName}
-                  {fuelingContext.tankId && (
-                    <span className="tw-context-id">
-                      {" "}
-                      (#{fuelingContext.tankId})
-                    </span>
-                  )}
-                </span>
-              </div>
-            )}
-
-            {fuelingContext.fueledByUserName && (
-              <div className="tw-context-row">
-                <span className="tw-context-label">Fueled By:</span>
-                <span className="tw-context-value">
-                  <i className="fa-light fa-user tw-mr-1"></i>
-                  {fuelingContext.fueledByUserName}
-                </span>
-              </div>
-            )}
-
-            {fuelingContext.tag && (
-              <div className="tw-context-row">
-                <span className="tw-context-label">Tag:</span>
-                <span className="tw-context-value">
-                  <i className="fa-light fa-tag tw-mr-1"></i>
-                  {fuelingContext.tag}
-                </span>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Live Upload Status Data */}
-        {currentPumpStatus && (
-          <div className="tw-live-status">
-            <div className="tw-live-status-header">
-              <span className="tw-live-status-title">Live Status:</span>
-              <span className="tw-live-status-badge">
-                {currentPumpStatus.type.toUpperCase()}
-              </span>
-            </div>
-
-            {currentPumpStatus.type === "filling" &&
-              currentPumpStatus.data.volumes && (
-                <div className="tw-live-data">
-                  <div className="tw-live-row">
-                    <span>
-                      Volume:{" "}
-                      {currentPumpStatus.data.volumes[
-                        currentPumpStatus.index
-                      ]?.toFixed(2) || "0.00"}{" "}
-                      L
-                    </span>
-                  </div>
-                  <div className="tw-live-row">
-                    <span>
-                      Amount: $
-                      {currentPumpStatus.data.amounts?.[
-                        currentPumpStatus.index
-                      ]?.toFixed(2) || "0.00"}
-                    </span>
-                  </div>
-                </div>
-              )}
-
-            {currentPumpStatus.type === "endOfTransaction" && (
-              <div className="tw-live-data">
-                <div className="tw-live-row">
-                  <span className="tw-completion-message">
-                    Transaction ready for completion
-                  </span>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Status History */}
-        {statusHistory.length > 0 && (
-          <div className="tw-status-history">
-            <h5 className="tw-history-title">Recent Updates</h5>
-            <div className="tw-history-list">
-              {statusHistory
-                .slice()
-                .reverse()
-                .map((entry, index) => (
-                  <div key={index} className="tw-history-entry">
-                    <div className="tw-history-time">
-                      {entry.timestamp.toLocaleTimeString()}
-                    </div>
-                    <div className="tw-history-status">
-                      {getStatusText(entry.status)}
-                    </div>
-                    {entry.volume && (
-                      <div className="tw-history-data">
-                        {Number(entry.volume).toFixed(2)} L
-                        {entry.amount &&
-                          ` - $${Number(entry.amount).toFixed(2)}`}
-                      </div>
-                    )}
-                  </div>
-                ))}
-            </div>
-          </div>
-        )}
-
-        {/* Connection Warning */}
-        {!isConnected && (
-          <div className="tw-connection-warning">
-            <i className="fa-light fa-exclamation-triangle"></i>
-            <span>
-              Real-time updates unavailable - PTS SignalR disconnected
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Action Buttons */}
-      <div className="tw-monitoring-actions">
-        {canCancel() && (
-          <Button
-            text="Cancel Transaction"
-            type="default"
-            stylingMode="outlined"
-            onClick={handleCancelTransaction}
-            disabled={isLoading || !isConnected}
-            className="tw-cancel-button"
-          />
-        )}
-
-        {canComplete() && (
-          <Button
-            text="Complete Transaction"
-            type="success"
-            onClick={handleCompleteTransaction}
-            disabled={isLoading || !isConnected}
-            className="tw-complete-button"
-          />
-        )}
       </div>
     </div>
   );

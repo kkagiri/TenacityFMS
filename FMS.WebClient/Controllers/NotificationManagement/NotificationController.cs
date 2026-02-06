@@ -44,7 +44,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/notifications")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Users)]
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notificationService;
@@ -108,6 +107,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Created notification ID</returns>
         [HttpPost]
+        [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -146,6 +146,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Send result</returns>
         [HttpPost("{notificationId}/send")]
+        [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> SendNotification(int notificationId, CancellationToken cancellationToken = default)
         {
             try
@@ -181,6 +182,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of notifications</returns>
         [HttpGet]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetNotifications(
             [FromQuery] string? type = null, [FromQuery] string? category = null, [FromQuery] string? priority = null, [FromQuery] bool? isRead = null, [FromQuery] int? siteId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] int? skip = null, [FromQuery] int? take = null,
             CancellationToken cancellationToken = default)
@@ -229,6 +231,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("{notificationId}/read")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> MarkAsRead(int notificationId, CancellationToken cancellationToken = default)
         {
             try
@@ -257,6 +260,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("read-all")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken = default)
         {
             try
@@ -286,6 +290,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("{notificationId}/acknowledge")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> AcknowledgeNotification(int notificationId, CancellationToken cancellationToken = default)
         {
             try
@@ -315,6 +320,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("alarm")]
+        [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> TriggerAlarm([FromBody] TriggerAlarmRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -349,6 +355,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("alarm/device-disconnection/{deviceId}")]
+        [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> TriggerDeviceDisconnectionAlarm(string deviceId, CancellationToken cancellationToken = default)
         {
             try
@@ -377,6 +384,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Statistics data</returns>
         [HttpGet("statistics")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetStatistics(
             [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] int? recentCount = null, [FromQuery] bool includeDailyBreakdown = true, [FromQuery] bool includeRecentNotifications = true,
             CancellationToken cancellationToken = default)
@@ -418,6 +426,7 @@ namespace FMS.WebClient.Controllers
         /// Get notification statistics via POST body
         /// </summary>
         [HttpPost("statistics/query")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetStatisticsByPost([FromBody] GetNotificationStatisticsRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -450,6 +459,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of notification policies</returns>
         [HttpGet("policies")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetNotificationPolicies(CancellationToken cancellationToken = default)
         {
             try
@@ -474,6 +484,7 @@ namespace FMS.WebClient.Controllers
         /// Get a single notification policy by id
         /// </summary>
         [HttpGet("policies/{policyId}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetNotificationPolicy(int policyId, CancellationToken cancellationToken = default)
         {
             try
@@ -496,6 +507,7 @@ namespace FMS.WebClient.Controllers
         /// Get groups mapped to a notification policy
         /// </summary>
         [HttpGet("policies/{policyId}/groups")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetGroupsForPolicy(int policyId, CancellationToken cancellationToken = default)
         {
             try
@@ -515,6 +527,7 @@ namespace FMS.WebClient.Controllers
         /// Map a policy to a group
         /// </summary>
         [HttpPost("policies/{policyId}/groups")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> MapPolicyToGroup(int policyId, [FromBody] MapPolicyGroupRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -536,6 +549,7 @@ namespace FMS.WebClient.Controllers
         /// Unmap a policy from a group
         /// </summary>
         [HttpDelete("policies/{policyId}/groups/{groupId}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UnmapPolicyFromGroup(int policyId, int groupId, CancellationToken cancellationToken = default)
         {
             try
@@ -555,6 +569,7 @@ namespace FMS.WebClient.Controllers
         /// Search users by query (username or email)
         /// </summary>
         [HttpGet("search/users")]
+        [RequirePermission(Permissions.Admin.Users)]
         public IActionResult SearchUsers([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
         {
             try
@@ -583,6 +598,7 @@ namespace FMS.WebClient.Controllers
         /// Search roles by query (name)
         /// </summary>
         [HttpGet("search/roles")]
+        [RequirePermission(Permissions.Admin.Users)]
         public IActionResult SearchRoles([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
         {
             try
@@ -614,6 +630,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Created policy</returns>
         [HttpPost("policies")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> CreateNotificationPolicy([FromBody] CreateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
         {
             try
@@ -655,6 +672,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Updated status</returns>
         [HttpPut("policies/{policyId}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UpdateNotificationPolicy(int policyId, [FromBody] UpdateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
         {
             try
@@ -683,6 +701,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of alarm handlers</returns>
         [HttpGet("alarm-handlers")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetAlarmHandlers([FromQuery] int? policyId = null, CancellationToken cancellationToken = default)
         {
             try
@@ -699,6 +718,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("alarm-handlers")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> CreateAlarmHandler([FromBody] FMS.Application.Features.Notification.DTOs.AlarmHandlers.CreateAlarmHandlerRequestDto request, CancellationToken cancellationToken = default)
         {
             try
@@ -716,6 +736,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("alarm-handlers/{id}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UpdateAlarmHandler(int id, [FromBody] FMS.Application.Features.Notification.DTOs.AlarmHandlers.UpdateAlarmHandlerRequestDto request, CancellationToken cancellationToken = default)
         {
             try
@@ -733,6 +754,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("alarm-handlers/{id}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> DeleteAlarmHandler(int id, CancellationToken cancellationToken = default)
         {
             try
@@ -843,6 +865,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>List of alert records</returns>
         [HttpGet("alert-records")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetAlertRecords([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] int skip = 0, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
         {
             try
@@ -870,6 +893,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("test")]
+        [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> TestNotification([FromBody] TestNotificationRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -919,6 +943,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>User notification preferences</returns>
         [HttpGet("preferences/user/{userId}")]
+        [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> GetUserPreferences(string userId, CancellationToken cancellationToken = default)
         {
             try
@@ -963,6 +988,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Current user's notification preferences</returns>
         [HttpGet("preferences/user/current-user")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetCurrentUserPreferences(CancellationToken cancellationToken = default)
         {
             try
@@ -1003,6 +1029,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("preferences/bulk-update")]
+        [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> BulkUpdateNotificationPreferences([FromBody] BulkUpdatePreferencesRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1101,6 +1128,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Created preference ID</returns>
         [HttpPost("preferences")]
+        [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> CreateNotificationPreference([FromBody] CreateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1140,6 +1168,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPut("preferences/{id}")]
+        [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> UpdateNotificationPreference(int id, [FromBody] UpdateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1180,6 +1209,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpDelete("preferences/{id}")]
+        [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> DeleteNotificationPreference(int id, CancellationToken cancellationToken = default)
         {
             try
@@ -1223,6 +1253,7 @@ namespace FMS.WebClient.Controllers
         /// <returns>List of notification categories</returns>
         [HttpGet("admin/categories")]
         [Authorize]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetAllNotificationCategories([FromQuery] bool includeInactive = false, CancellationToken cancellationToken = default)
         {
             try
@@ -1256,6 +1287,7 @@ namespace FMS.WebClient.Controllers
         /// <returns>Created category</returns>
         [HttpPost("admin/categories")]
         [Authorize]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> CreateNotificationCategory([FromBody] CreateNotificationCategoryRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1292,6 +1324,7 @@ namespace FMS.WebClient.Controllers
         /// <returns>Result</returns>
         [HttpPut("admin/categories/{id}")]
         [Authorize]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UpdateNotificationCategory(int id, [FromBody] UpdateNotificationCategoryRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1329,6 +1362,7 @@ namespace FMS.WebClient.Controllers
         /// <returns>Result</returns>
         [HttpDelete("admin/categories/{id}")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> DeleteNotificationCategory(int id, CancellationToken cancellationToken = default)
         {
             try
@@ -1365,6 +1399,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpPost("test-email")]
+        [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailRequest request, CancellationToken cancellationToken = default)
         {
             try
@@ -1406,6 +1441,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Connection status</returns>
         [HttpPost("test-smtp-connection")]
+        [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> TestSmtpConnection(CancellationToken cancellationToken = default)
         {
             try
@@ -1440,6 +1476,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Diagnostic info</returns>
         [HttpGet("diagnostics")]
+        [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetDiagnostics(CancellationToken cancellationToken = default)
         {
             try

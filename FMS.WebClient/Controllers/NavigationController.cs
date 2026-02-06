@@ -15,7 +15,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Users)]
     public class NavigationController : ControllerBase
     {
 
@@ -38,7 +37,7 @@ namespace FMS.WebClient.Controllers
 
         //Api/Navigation
         [HttpGet]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Navigation.Read)]
         public async Task<IActionResult> GetNavigationItemList()
         {
             //retrieve user roles from claims (token)
@@ -52,6 +51,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(Permissions.Navigation.Manage)]
         public async Task<IActionResult> CreateNavigationItem([FromBody] CreateNavigationItemCommand command)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -60,6 +60,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("all")]
+        [RequirePermission(Permissions.Navigation.Manage)]
         public async Task<IActionResult> GetAllNavigationItems()
         {
             var navigationItems = await _mediator.Send(new GetAllNavigationItemsQuery());
@@ -67,6 +68,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
+        [RequirePermission(Permissions.Navigation.Manage)]
         public async Task<IActionResult> UpdateNavigationItem(int id, [FromBody] UpdateNavigationItemDto dto) //Cursor - Changed to use DTO
         {
             if (!ModelState.IsValid) return BadRequest();
@@ -82,6 +84,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RequirePermission(Permissions.Navigation.Manage)]
         public async Task<IActionResult> DeleteNavigationItem(int id)
         {
             if (id == 0) return BadRequest();
@@ -91,6 +94,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost("AssignRoles")]
+        [RequirePermission(Permissions.Navigation.Manage)]
         public async Task<IActionResult> AssignRolesToNavigationItem([FromBody] AssignRoleToNavigationCommand command)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);

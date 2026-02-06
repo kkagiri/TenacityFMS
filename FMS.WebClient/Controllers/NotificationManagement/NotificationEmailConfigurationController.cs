@@ -28,7 +28,7 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/notifications/email-config")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Users)]
+    [RequirePermission(Permissions.Notification.ManageEmailConfig)]
     public class NotificationEmailConfigurationController : ControllerBase
     {
         private readonly IConfiguration _configuration;

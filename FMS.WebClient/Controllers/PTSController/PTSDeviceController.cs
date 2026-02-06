@@ -36,7 +36,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Device)]
     public class PTSDeviceController : ControllerBase
     {
 
@@ -70,7 +69,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet]
-
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetDeviceList()
         {
             var devices = await _mediator.Send(new GetPTSDeviceListQuery());
@@ -83,6 +82,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="siteId">The site ID to filter devices by</param>
         /// <returns>List of PTS devices for the specified site</returns>
         [HttpGet("site/{siteId:int}")]
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetDevicesBySite(int siteId)
         {
             try
@@ -103,7 +103,7 @@ namespace FMS.WebClient.Controllers
         /// <returns></returns>
 
         [HttpGet("summary")]
-
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetDeviceSummary()
         {
             try
@@ -133,6 +133,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("Device/{deviceId}")]
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetDeviceStatus(string deviceId)
         {
             try
@@ -173,6 +174,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="deviceId">Optional device ID filter</param>
         /// <param name="minThresholdSeconds">Optional minimum offline duration in seconds (defaults to system config)</param>
         [HttpGet("offline-report")]
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<ActionResult<FMSResponse<List<PtsDeviceOfflineDailySummaryDto>>>> GetOfflineReport(
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate,
@@ -210,6 +212,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("ActiveWebSockets")]
+        [RequirePermission(Permissions.Admin.Device)]
         public async Task<IActionResult> GetActiveWebSockets()
         {
             try
@@ -231,6 +234,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         /// <returns></returns>
         [HttpGet("broadcast")]
+        [RequirePermission(Permissions.Admin.Device)]
         public async Task<IActionResult> BroadcastDeviceSummary()
         {
             try
@@ -247,6 +251,7 @@ namespace FMS.WebClient.Controllers
 
         // New endpoint to get dashboard metrics by comparing DB devices and online connections
         [HttpGet("dashboard-metrics")]
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetDashboardMetrics()
         {
             try
@@ -382,6 +387,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="ptsDevice"></param>
         /// <returns></returns>
         [HttpPost("create")]
+        [RequirePermission(Permissions.PTSDevice.Create, Permissions.Admin.Device)]
         public async Task<IActionResult> CreatePTSDevice([FromBody] CreatePTSDeviceDTO ptsDevice)
         {
             try
@@ -405,6 +411,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="ptsDevice"></param>
         /// <returns></returns>
         [HttpPut("update/{deviceId}")]
+        [RequirePermission(Permissions.PTSDevice.Edit, Permissions.Admin.Device)]
         public async Task<IActionResult> UpdatePTSDevice(string deviceId, [FromBody] Ptsdevice ptsDevice)
         {
             try
@@ -427,6 +434,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="deviceId"></param>
         /// <returns></returns>
         [HttpDelete("delete/{deviceId}")]
+        [RequirePermission(Permissions.PTSDevice.Delete, Permissions.Admin.Device)]
         public async Task<IActionResult> DeletePTSDevice(string deviceId)
         {
             try
@@ -449,6 +457,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="deviceId"></param>
         /// <returns></returns>
         [HttpGet("GetById/{deviceId}")]
+        [RequirePermission(Permissions.PTSDevice.Read, Permissions.Admin.Device)]
         public async Task<IActionResult> GetPTSDeviceById(string deviceId)
         {
             try
@@ -472,6 +481,7 @@ namespace FMS.WebClient.Controllers
         /// <param name="deviceId"></param>
         /// <returns></returns>
         [HttpPost("test-connection/{deviceId}")]
+        [RequirePermission(Permissions.Admin.Device)]
         public async Task<IActionResult> TestDeviceConnection(string deviceId)
         {
             try

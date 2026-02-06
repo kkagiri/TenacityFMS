@@ -32,8 +32,6 @@ namespace FMS.WebClient.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-[RequirePermission(Permissions.Admin.Users)]
-
 public class UserController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -63,6 +61,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> CreateUser([FromBody] UserCreateCommand command)
     {
         if (!ModelState.IsValid)
@@ -90,6 +89,7 @@ public class UserController : ControllerBase
 
     //Get:api/User/{id}
     [HttpGet("{id}")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> GetUser(string id)
     {
         var command = new GetUserByIdQuery(id);
@@ -99,6 +99,7 @@ public class UserController : ControllerBase
 
     //Get user list:api/User
     [HttpGet]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> GetUserList()
     {
         var command = new GetUserListQuery();
@@ -113,6 +114,7 @@ public class UserController : ControllerBase
     /// <param name="limit">Maximum results to return (default 10, max 100)</param>
     /// <returns>List of matching users</returns>
     [HttpGet("quick-search")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> QuickSearchUsers(
         [FromQuery] string searchTerm, [FromQuery] int limit = 10)
     {
@@ -133,6 +135,7 @@ public class UserController : ControllerBase
 
     //Delete:api/User/{id}
     [HttpDelete("{id}")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> DeleteUser(string id)
     {
         var command = new UserPermanentDeleteCommand(id);
@@ -141,6 +144,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("softuserdelete/{id}")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> SoftDeleteUser(string id)
     {
         var command = new UserDeleteCommand(id);
@@ -149,6 +153,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPut("restoreuser/{id}")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> RestoreUser(string id)
     {
         var command = new RestoreUserCommand(id);
@@ -158,6 +163,7 @@ public class UserController : ControllerBase
 
     //Update:api/User/{id}
     [HttpPut("{id}")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> UpdateUser(string id, [FromBody] UserUpdateCommand command)
     {
         if (!ModelState.IsValid)
@@ -367,6 +373,7 @@ public class UserController : ControllerBase
     }
 
     [HttpPost("assignRoles")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> AssignRoles(AssignUserRoleCommand command)
     {
         if (!ModelState.IsValid)
@@ -379,6 +386,7 @@ public class UserController : ControllerBase
 
     // Get user's sites
     [HttpGet("{id}/sites")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> GetUserSites(string id)
     {
         var command = new GetUserSitesQuery(id);
@@ -388,6 +396,7 @@ public class UserController : ControllerBase
 
     // Update user's sites
     [HttpPost("{id}/sites")]
+    [RequirePermission(Permissions.Admin.Users)]
     public async Task<IActionResult> UpdateUserSites(string id, [FromBody] UpdateUserSitesCommand command)
     {
         if (!ModelState.IsValid)

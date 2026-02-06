@@ -18,7 +18,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/notifications/groups")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Users)]
     public class NotificationGroupsController : ControllerBase
     {
         private readonly INotificationGroupService _groupService;
@@ -29,6 +28,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> GetGroups([FromQuery] int? siteId = null, CancellationToken cancellationToken = default)
         {
             FMSResponse<List<NotificationGroupDto>> result = await _groupService.GetGroupsAsync(siteId, cancellationToken);
@@ -37,6 +37,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPost]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> CreateGroup([FromBody] CreateNotificationGroupRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
@@ -46,6 +47,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPut("{groupId}")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> UpdateGroup(int groupId, [FromBody] UpdateNotificationGroupRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
@@ -56,6 +58,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("{groupId}")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> DeleteGroup(int groupId, CancellationToken cancellationToken = default)
         {
             FMSResponse result = await _groupService.DeleteGroupAsync(groupId, cancellationToken);
@@ -63,6 +66,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("{groupId}/members")]
+        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> GetMembers(int groupId, CancellationToken cancellationToken = default)
         {
             FMSResponse<List<GroupMemberDto>> result = await _groupService.GetGroupMembersAsync(groupId, cancellationToken);
@@ -71,6 +75,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPost("{groupId}/members")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> AddMembers(int groupId, [FromBody] List<GroupMemberCreateRequest> members, CancellationToken cancellationToken = default)
         {
             if (members == null || members.Count == 0)
@@ -85,6 +90,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("{groupId}/members/{memberId}")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> RemoveMember(int groupId, int memberId, CancellationToken cancellationToken = default)
         {
             FMSResponse result = await _groupService.RemoveGroupMemberAsync(groupId, memberId, cancellationToken);
@@ -94,6 +100,7 @@ namespace FMS.WebClient.Controllers
         // Policy ↔ Group mapping endpoints (placed under policies route for clarity)
         [HttpPost("/api/notifications/policies/{policyId}/groups")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> MapPolicyToGroup(int policyId, [FromBody] MapPolicyGroupRequest request, CancellationToken cancellationToken = default)
         {
             if (request == null)
@@ -109,6 +116,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("/api/notifications/policies/{policyId}/groups/{groupId}")]
         [Authorize(Roles = "Admin")]
+        [RequirePermission(Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> UnmapPolicyFromGroup(int policyId, int groupId, CancellationToken cancellationToken = default)
         {
             FMSResponse unmapResult = await _groupService.UnmapPolicyFromGroupAsync(policyId, groupId, cancellationToken);
@@ -119,6 +127,7 @@ namespace FMS.WebClient.Controllers
 
         // Get groups mapped to a policy
         [HttpGet("/api/notifications/policies/{policyId}/groups")]
+        [RequirePermission(Permissions.Notification.Read, Permissions.Notification.ManageGroups)]
         public async Task<IActionResult> GetGroupsForPolicy(int policyId, CancellationToken cancellationToken = default)
         {
             FMSResponse<List<NotificationGroupDto>> result = await _groupService.GetGroupsForPolicyAsync(policyId, cancellationToken);

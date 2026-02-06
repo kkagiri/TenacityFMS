@@ -259,6 +259,9 @@ namespace FMS.Application.Common.Constants
 
         public static class Tank
         {
+            /// <summary>Read tanks - DB name: _Read_Tank (added via migration 006)</summary>
+            public const string Read = "_Read_Tank";
+
             /// <summary>Edit tanks (Id: 7) - DB name: _Edit_Tank</summary>
             public const string Edit = "_Edit_Tank";
 
@@ -299,6 +302,17 @@ namespace FMS.Application.Common.Constants
 
             /// <summary>Delete tank volume history (Id: 64) - DB name: _Delete_TankVolumeHistory</summary>
             public const string Delete = "_Delete_TankVolumeHistory";
+        }
+
+        // ============================================================
+        // SITE PERMISSIONS
+        // Parent: Admin Module (Id: 35)
+        // ============================================================
+
+        public static class Site
+        {
+            /// <summary>Read site data (Id: TBD) - DB name: _Read_Site</summary>
+            public const string Read = "_Read_Site";
         }
 
         // ============================================================

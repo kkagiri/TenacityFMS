@@ -30,7 +30,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Site)]
     public class SiteController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -54,6 +53,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: GET /api/site
         /// </summary>
         [HttpGet]
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public async Task<IActionResult> GetAll()
         {
             FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSiteQuery());
@@ -65,6 +65,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: GET /api/site/{id}
         /// </summary>
         [HttpGet("{id:int}")]
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public async Task<IActionResult> GetById(int id)
         {
             FMSResponse<SiteDTO> result = await _mediator.Send(new GetSiteByIdQuery(id));
@@ -84,6 +85,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("get/{id:int}")]
         [Obsolete("Use GET /api/site/{id}")] // kept for backward compatibility
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public Task<IActionResult> LegacyGetById(int id)
         {
             return GetById(id);
@@ -94,6 +96,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: GET /api/site/me
         /// </summary>
         [HttpGet("me")]
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public async Task<IActionResult> GetForCurrentUser()
         {
             if (!TryGetCurrentUserId(out var userId))
@@ -109,6 +112,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("getsitebyuserid")]
         [Obsolete("Use GET /api/site/me")] // backward compatibility
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public Task<IActionResult> LegacyGetForCurrentUser()
         {
             return GetForCurrentUser();
@@ -119,6 +123,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: GET /api/site/users/{userId}
         /// </summary>
         [HttpGet("users/{userId:guid}")]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> GetForUserId(Guid userId)
         {
             FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSitesByUserIdQuery(userId.ToString()));
@@ -130,6 +135,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("getsitebyuserid/{userId:guid}")]
         [Obsolete("Use GET /api/site/users/{userId}")] // backward compatibility
+        [RequirePermission(Permissions.Admin.Site)]
         public Task<IActionResult> LegacyGetForUserId(Guid userId)
         {
             return GetForUserId(userId);
@@ -140,6 +146,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: POST /api/site
         /// </summary>
         [HttpPost]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> Create([FromBody] CreateSiteDTO siteDto)
         {
             if (!ModelState.IsValid)
@@ -163,6 +170,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPost("create")]
         [Obsolete("Use POST /api/site")] // backward compatibility
+        [RequirePermission(Permissions.Admin.Site)]
         public Task<IActionResult> LegacyCreate([FromBody] CreateSiteDTO siteDto)
         {
             return Create(siteDto);
@@ -173,6 +181,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: PUT /api/site/{id}
         /// </summary>
         [HttpPut("{id:int}")]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> Update(int id, [FromBody] UpdateSiteDTO siteDto)
         {
             if (!ModelState.IsValid)
@@ -196,6 +205,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPut("update/{id:int}")]
         [Obsolete("Use PUT /api/site/{id}")] // backward compatibility
+        [RequirePermission(Permissions.Admin.Site)]
         public Task<IActionResult> LegacyUpdate(int id, [FromBody] UpdateSiteDTO siteDto)
         {
             return Update(id, siteDto);
@@ -206,6 +216,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: DELETE /api/site/{id}
         /// </summary>
         [HttpDelete("{id:int}")]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> Delete(int id)
         {
             FMSResponse<bool> result = await _mediator.Send(new DeleteSiteCommand(id));
@@ -225,6 +236,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpDelete("delete/{id:int}")]
         [Obsolete("Use DELETE /api/site/{id}")] // backward compatibility
+        [RequirePermission(Permissions.Admin.Site)]
         public Task<IActionResult> LegacyDelete(int id)
         {
             return Delete(id);
@@ -235,6 +247,7 @@ namespace FMS.WebClient.Controllers
         /// NEW: PUT /api/site/users/{userId}/sites
         /// </summary>
         [HttpPut("users/{userId:guid}/sites")]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> AssignSites(Guid userId, [FromBody] AssignSitesToUserCommand command)
         {
             if (command?.SiteIds == null || !command.SiteIds.Any())
@@ -251,6 +264,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPut("assignSitestoUser")]
         [Obsolete("Use PUT /api/site/users/{userId}/sites")] // backward compatibility
+        [RequirePermission(Permissions.Admin.Site)]
         public Task<IActionResult> LegacyAssign([FromBody] AssignSitesToUserCommand command)
         {
             if (command is null || string.IsNullOrEmpty(command.UserId) || !Guid.TryParse(command.UserId, out var uid))
@@ -267,6 +281,7 @@ namespace FMS.WebClient.Controllers
         /// GET /api/site/tags
         /// </summary>
         [HttpGet("tags")]
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
         public async Task<IActionResult> GetSiteTagConfigurations()
         {
             var result = await _mediator.Send(new GetSiteTagConfigurationsQuery());
@@ -278,6 +293,7 @@ namespace FMS.WebClient.Controllers
         /// PUT /api/site/{id}/tags
         /// </summary>
         [HttpPut("{id:int}/tags")]
+        [RequirePermission(Permissions.Admin.Site)]
         public async Task<IActionResult> UpdateSiteTagConfiguration(int id, [FromBody] UpdateSiteTagDto tagDto)
         {
             if (!ModelState.IsValid)

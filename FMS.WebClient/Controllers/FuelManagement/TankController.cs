@@ -16,7 +16,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Tank.Edit, Permissions.Tank.Create)]
     public class TankController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -27,6 +26,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet]
+        [RequirePermission(Permissions.Tank.Read, Permissions.Tank.Edit)]
         public async Task<ActionResult<List<TankDTO>>> GetTanks([FromQuery] string? siteIds = null)
         {
             var query = new GetTankListQuery();
@@ -47,6 +47,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("{id}")]
+        [RequirePermission(Permissions.Tank.Read, Permissions.Tank.Edit)]
         public async Task<ActionResult<TankDTO>> GetTank(int id)
         {
             if (id <= 0) return BadRequest("Invalid ID");
@@ -60,6 +61,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("site/{siteId}")]
+        [RequirePermission(Permissions.Tank.Read, Permissions.Tank.Edit)]
         public async Task<ActionResult<List<TankDTO>>> GetTanksBySiteId(int siteId)
         {
             if (siteId <= 0) return BadRequest("Invalid Site ID");
@@ -69,6 +71,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPost]
+        [RequirePermission(Permissions.Tank.Create)]
         public async Task<ActionResult<int>> CreateTank([FromBody] TankDTO tank)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -84,6 +87,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpPut("{id}")]
+        [RequirePermission(Permissions.Tank.Edit)]
         public async Task<ActionResult> UpdateTank(int id, [FromBody] TankDTO tank)
         {
             if (id <= 0) return BadRequest("Invalid ID");
@@ -99,6 +103,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("volume-history")]
+        [RequirePermission(Permissions.Tank.Read, Permissions.Tank.Edit)]
         public async Task<ActionResult> GetTankVolumeHistory([FromQuery] DateTime startDate, [FromQuery] DateTime endDate, [FromQuery] int tankId)
         {
             if (tankId <= 0) return BadRequest("Invalid tank ID");
@@ -116,6 +121,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpDelete("{id}")]
+        [RequirePermission(Permissions.Tank.Delete)]
         public async Task<ActionResult> DeleteTank(int id)
         {
             if (id == 0 || id < 0) return BadRequest();
