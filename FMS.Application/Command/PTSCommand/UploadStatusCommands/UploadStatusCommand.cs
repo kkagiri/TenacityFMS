@@ -888,7 +888,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 }
 
                 var percentageFull = (currentVolume / tank.TankVolume) * 100m;
-                
+
                 // Get system configuration thresholds (with defaults)
                 var criticalLowThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.CriticalLowLevelPercent", 10m);
                 var lowThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.LowLevelPercent", 20m);
@@ -983,7 +983,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     SiteId = tank.SiteId,
                     TankId = tank.Id,
                     PtsDeviceId = tank.PtsId,
-                    ThresholdValue = alarmType.Contains("Low") 
+                    ThresholdValue = alarmType.Contains("Low")
                         ? (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalLowLevelPercent" : "Tank.LowLevelPercent", alarmType.Contains("Critical") ? 10m : 20m))
                         : (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalHighLevelPercent" : "Tank.HighLevelPercent", alarmType.Contains("Critical") ? 95m : 90m)),
                     ActualValue = percentageFull,
