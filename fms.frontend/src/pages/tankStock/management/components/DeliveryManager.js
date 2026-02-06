@@ -340,14 +340,14 @@ const DeliveryManager = () => {
             onClick={fetchDeliveriesData}
             stylingMode="outlined"
           />
-          {canCreateDelivery && (
+          {/* {canCreateDelivery && (
             <Button
               text="New Delivery"
               icon="fa-light fa-plus"
               onClick={handleCreateDelivery}
               type="default"
             />
-          )}
+          )} */}
         </div>
       </div>
 
