@@ -12,6 +12,10 @@ namespace FMS.Application.Dtos.UserManagement
         public string PhoneNumber { get; set; }
         public int MasterRFIDTag { get; set; }
 
+        // Department Information
+        public int? DepartmentId { get; set; }
+        public string? DepartmentName { get; set; }
+
         // Master Tag Information
         public string? MasterTagName { get; set; }
         public bool? MasterTagIsEnabled { get; set; }

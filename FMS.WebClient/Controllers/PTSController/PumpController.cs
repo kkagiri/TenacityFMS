@@ -54,6 +54,15 @@ namespace FMS.WebClient.Controllers.PTSController
             _authTracker = authTracker;
         }
 
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
+        }
+
         /// <summary>
         /// Authorizes a pump for refueling
         /// </summary>
@@ -73,8 +82,7 @@ namespace FMS.WebClient.Controllers.PTSController
                     return BadRequest(FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(modelErrors));
                 }
 
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(FMSResponse<PumpAuthorizeConfirmation>.Failed("User not authenticated"));
                 }
@@ -123,8 +131,7 @@ namespace FMS.WebClient.Controllers.PTSController
                     return BadRequest(FMSResponse<PumpAuthorizeConfirmation>.ValidationFailed(modelErrors));
                 }
 
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(FMSResponse<PumpAuthorizeConfirmation>.Failed("User not authenticated"));
                 }

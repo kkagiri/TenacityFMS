@@ -1,3 +1,14 @@
+/**
+ * File: DashboardController.cs
+ * Purpose: Manages dashboard widgets, layouts, and data source orchestration endpoints.
+ * Dependencies: MediatR, widget services, GpsdataContext, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GetWidgetTemplates(): Returns available widgets for the current user.
+ * - CreateWidgetInstance(): Creates widget instances in a user's dashboard.
+ * - SaveLayout(): Persists dashboard layout state per user.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +63,21 @@ namespace FMS.WebClient.Controllers
             _context = context;
         }
 
-        private string CurrentUserId => User?.FindFirstValue(ClaimTypes.NameIdentifier) ?? User?.Identity?.Name ?? "system";
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User?.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User?.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
+        }
+
+        private string GetCurrentUserIdOrDefault(string fallback = "system")
+        {
+            return TryGetCurrentUserId(out var userId) ? userId : fallback;
+        }
+
+        private string CurrentUserId => GetCurrentUserIdOrDefault(User?.Identity?.Name ?? "system");
         private string CurrentActor => User?.Identity?.Name ?? "system";
 
         // ===== WIDGET MANAGEMENT ENDPOINTS =====

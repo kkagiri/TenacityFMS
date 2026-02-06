@@ -1,11 +1,11 @@
 /**
  * File: IssueCreateForm.js
- * Purpose: Guided issue creation form with backend save and redirect to details on success
- * Dependencies: React, Redux, Router, DevExtreme notify, createIssue action, IssueCreateForm.scss
- * Last Modified: 2026-02-03
+ * Purpose: Standardized issue creation form with Tailwind CSS layout (matching vehicle module patterns)
+ * Dependencies: React, Redux, Router, DevExtreme notify, createIssue action
+ * Last Modified: 2026-02-05
  *
  * Key Functions/Components:
- * - IssueCreateForm: Captures issue creation data in the requested UX flow
+ * - IssueCreateForm: Captures issue creation data using standardized FMS form layout
  * - handleTemplateSelected: Pre-fills issue fields from selected template
  * - handleSubmit: Saves issue and navigates to details when backend confirms success
  */
@@ -13,6 +13,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import notify from 'devextreme/ui/notify';
+import { SelectBox } from 'devextreme-react/select-box';
 import VehicleSearchableSelector from '../../../components/selectors/VehicleSearchableSelector';
 import DeviceTypeDropdown from '../components/DeviceTypeDropdown';
 import IssueTemplateDropdown from '../components/IssueTemplateDropdown';
@@ -32,7 +33,6 @@ import {
   PROCESS_STEP_LABELS,
   resolveIssueId
 } from './issueCreateFormUtils';
-import './IssueCreateForm.scss';
 
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
@@ -77,15 +77,24 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
   const [formData, setFormData] = useState(() => createInitialFormState(loggedInUserName, openStatus));
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    Promise.allSettled([
-      dispatch(fetchUsers()),
-      dispatch(fetchSiteList()),
-      dispatch(fetchIssueCategories()),
-      dispatch(fetchIssueStatuses()),
-      dispatch(fetchIssuePriorities())
-    ]);
+    const loadData = async () => {
+      try {
+        setIsLoading(true);
+        await Promise.allSettled([
+          dispatch(fetchUsers()),
+          dispatch(fetchSiteList()),
+          dispatch(fetchIssueCategories()),
+          dispatch(fetchIssueStatuses()),
+          dispatch(fetchIssuePriorities())
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadData();
   }, [dispatch]);
 
   useEffect(() => {
@@ -164,6 +173,10 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
   const handleReset = () => {
     setFormData(createInitialFormState(loggedInUserName, openStatus));
+  };
+
+  const handleCancel = () => {
+    navigate('/issue-tracker');
   };
 
   const titleLength = useMemo(() => formData.issueTitle.trim().length, [formData.issueTitle]);
@@ -268,7 +281,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
       }
 
       notify({
-        message: 'Issue saved successfully.',
+        message: 'Issue created successfully.',
         type: 'success',
         displayTime: 2500
       });
@@ -285,53 +298,92 @@ const IssueCreateForm = ({ onSubmit = null }) => {
     }
   };
 
+  if (isLoading) {
+    return (
+      <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
+        <div className="tw-text-center">
+          <i className="fa-light fa-spinner fa-spin tw-text-4xl tw-text-blue-600 tw-mb-4"></i>
+          <p className="tw-text-gray-600">Loading form data...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <section className="issue-create-form">
-      <form className="issue-create-form__card" onSubmit={handleSubmit}>
-        <header className="issue-create-form__header">
+    <div className="tw-p-4 tw-max-w-6xl tw-mx-auto">
+      {/* Header */}
+      <div className="tw-mb-6">
+        <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
           <div>
-            <p className="issue-create-form__eyebrow">Issue Tracker</p>
-            <h2>Create New Issue</h2>
-            <p className="issue-create-form__subtitle">
-              Follow the workflow: Device Type - Template - Issue Details - Assigned To - Timeline - Attachments.
+            <p className="tw-text-xs tw-uppercase tw-tracking-wider tw-text-gray-500 tw-font-semibold tw-mb-1">
+              Issue Tracker
+            </p>
+            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">Create New Issue</h1>
+            <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
+              Follow the workflow: Device Type → Template → Details → Assignment → Timeline
             </p>
           </div>
-          <span className={`issue-create-form__status-chip ${isReadyToSubmit ? 'is-ready' : 'is-pending'}`}>
-            {isReadyToSubmit ? 'Ready to submit' : 'Incomplete'}
+          <span className={`tw-px-4 tw-py-2 tw-rounded-full tw-text-xs tw-font-bold tw-uppercase tw-tracking-wide ${isReadyToSubmit
+              ? 'tw-bg-green-100 tw-text-green-700 tw-border tw-border-green-200'
+              : 'tw-bg-gray-100 tw-text-gray-600 tw-border tw-border-gray-200'
+            }`}>
+            {isReadyToSubmit ? 'Ready to Submit' : 'Incomplete'}
           </span>
-        </header>
+        </div>
 
-        <div className="issue-create-form__process-tracker" role="list" aria-label="Issue create progress">
+        {/* Progress Steps */}
+        <div className="tw-flex tw-gap-2 tw-mt-4 tw-overflow-x-auto tw-pb-2">
           {processSteps.map((step, index) => (
             <div
               key={step.label}
-              role="listitem"
-              className={`issue-create-form__process-step ${step.isComplete ? 'is-complete' : ''} ${step.isActive ? 'is-active' : ''}`}
+              className={`tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-medium tw-whitespace-nowrap tw-transition-all ${step.isComplete
+                  ? 'tw-bg-green-100 tw-text-green-700'
+                  : step.isActive
+                    ? 'tw-bg-blue-100 tw-text-blue-700 tw-ring-2 tw-ring-blue-300'
+                    : 'tw-bg-gray-100 tw-text-gray-500'
+                }`}
             >
-              <span className="issue-create-form__process-step-index">{index + 1}</span>
-              <span className="issue-create-form__process-step-label">{step.label}</span>
+              <span className={`tw-w-5 tw-h-5 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-bold ${step.isComplete
+                  ? 'tw-bg-green-600 tw-text-white'
+                  : step.isActive
+                    ? 'tw-bg-blue-600 tw-text-white'
+                    : 'tw-bg-gray-300 tw-text-gray-600'
+                }`}>
+                {step.isComplete ? <i className="fa-light fa-check"></i> : index + 1}
+              </span>
+              {step.label}
             </div>
           ))}
         </div>
+      </div>
 
-        <div className="issue-create-form__layout">
-          <div className="issue-create-form__fields">
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">1. Select Device Type</h3>
+      <form onSubmit={handleSubmit}>
+        {/* Section 1: Device Type & Template */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-microchip tw-text-blue-600"></i>
+            Device & Template Selection
+          </h2>
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Device Type <span className="tw-text-red-500">*</span>
+              </label>
               <DeviceTypeDropdown
                 value={formData.deviceTypeId}
                 onValueChanged={handleDeviceTypeChange}
                 placeholder="Select device type..."
                 isRequired={true}
-                label="Device Type"
               />
               {!validationState.hasDeviceType && (
-                <small className="issue-create-form__helper">Device type is required.</small>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Device type is required</p>
               )}
             </div>
 
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">2. Select Issue Template</h3>
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Issue Template <span className="tw-text-red-500">*</span>
+              </label>
               <IssueTemplateDropdown
                 value={formData.issueTemplateId}
                 deviceTypeId={formData.deviceTypeId}
@@ -342,88 +394,120 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                 showClearButton={false}
                 isRequired={true}
                 placeholder="Select issue template..."
-                label="Issue Template"
               />
               {!validationState.hasTemplate && (
-                <small className="issue-create-form__helper">Issue template is required.</small>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Issue template is required</p>
               )}
             </div>
+          </div>
+        </div>
 
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">3. Issue Details</h3>
-              <label htmlFor="issueCategory">Issue Category</label>
-              <select
-                id="issueCategory"
-                value={formData.issueCategoryId ?? ''}
-                onChange={(event) => handleFieldChange('issueCategoryId', event.target.value ? Number(event.target.value) : null)}
-              >
-                <option value="">Select category...</option>
-                {categories.map((category) => (
-                  <option key={category.id} value={category.id}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
+        {/* Section 2: Issue Details */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-file-lines tw-text-blue-600"></i>
+            Issue Details
+          </h2>
+
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Issue Category <span className="tw-text-red-500">*</span>
+              </label>
+              <SelectBox
+                value={formData.issueCategoryId}
+                dataSource={categories}
+                displayExpr="name"
+                valueExpr="id"
+                placeholder="Select category..."
+                searchEnabled={true}
+                onValueChanged={(e) => handleFieldChange('issueCategoryId', e.value)}
+              />
               {!validationState.hasCategory && (
-                <small className="issue-create-form__helper">Category is required.</small>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Category is required</p>
               )}
-
-              <label htmlFor="issueTitle">Issue Title</label>
-              <input
-                id="issueTitle"
-                type="text"
-                maxLength={160}
-                placeholder="Example: Fuel pump pressure drop on lane 2"
-                value={formData.issueTitle}
-                onChange={(event) => handleFieldChange('issueTitle', event.target.value)}
-              />
-              <div className="issue-create-form__meta-row">
-                <small className={`issue-create-form__helper ${validationState.hasTitle ? 'is-valid' : ''}`}>
-                  Minimum 5 characters
-                </small>
-                <span>{titleLength}/160</span>
-              </div>
             </div>
 
-            <div className="issue-create-form__field">
-              <label htmlFor="issueDescription">Description</label>
-              <textarea
-                id="issueDescription"
-                rows={5}
-                maxLength={2000}
-                placeholder="Share what happened, where it happened, and any immediate impact."
-                value={formData.issueDescription}
-                onChange={(event) => handleFieldChange('issueDescription', event.target.value)}
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Priority
+              </label>
+              <SelectBox
+                value={formData.priorityId}
+                dataSource={priorities}
+                displayExpr="name"
+                valueExpr="id"
+                placeholder="Select priority..."
+                searchEnabled={true}
+                showClearButton={true}
+                onValueChanged={(e) => handleFieldChange('priorityId', e.value)}
               />
-              <div className="issue-create-form__meta-row">
-                <small className={`issue-create-form__helper ${validationState.hasDescription ? 'is-valid' : ''}`}>
-                  Minimum 15 characters
-                </small>
-                <span>{descriptionLength}/2000</span>
-              </div>
             </div>
+          </div>
 
-            <div className="issue-create-form__field">
-              <label htmlFor="issueLocation">Location (Site)</label>
-              <select
-                id="issueLocation"
-                value={formData.siteId ?? ''}
-                onChange={(event) => handleFieldChange('siteId', event.target.value ? Number(event.target.value) : null)}
-              >
-                <option value="">Select site...</option>
-                {sites.map((site) => (
-                  <option key={site.id} value={site.id}>
-                    {site.name}
-                  </option>
-                ))}
-              </select>
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Issue Title <span className="tw-text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              maxLength={160}
+              placeholder="Example: Fuel pump pressure drop on lane 2"
+              value={formData.issueTitle}
+              onChange={(e) => handleFieldChange('issueTitle', e.target.value)}
+              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+            />
+            <div className="tw-flex tw-justify-between tw-mt-1">
+              <p className={`tw-text-xs ${validationState.hasTitle ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
+                {validationState.hasTitle ? '✓ Valid title' : 'Minimum 5 characters required'}
+              </p>
+              <span className="tw-text-xs tw-text-gray-400">{titleLength}/160</span>
+            </div>
+          </div>
+
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Description <span className="tw-text-red-500">*</span>
+            </label>
+            <textarea
+              rows={4}
+              maxLength={2000}
+              placeholder="Share what happened, where it happened, and any immediate impact."
+              value={formData.issueDescription}
+              onChange={(e) => handleFieldChange('issueDescription', e.target.value)}
+              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
+            />
+            <div className="tw-flex tw-justify-between tw-mt-1">
+              <p className={`tw-text-xs ${validationState.hasDescription ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
+                {validationState.hasDescription ? '✓ Valid description' : 'Minimum 15 characters required'}
+              </p>
+              <span className="tw-text-xs tw-text-gray-400">{descriptionLength}/2000</span>
+            </div>
+          </div>
+
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Site / Location <span className="tw-text-red-500">*</span>
+              </label>
+              <SelectBox
+                value={formData.siteId}
+                dataSource={sites}
+                displayExpr="name"
+                valueExpr="id"
+                placeholder="Select site..."
+                searchEnabled={true}
+                onValueChanged={(e) => handleFieldChange('siteId', e.value)}
+              />
               {!validationState.hasLocation && (
-                <small className="issue-create-form__helper">Location is required.</small>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Site is required</p>
               )}
             </div>
 
-            <div className="issue-create-form__field">
-              <label>Vehicle</label>
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                Vehicle <span className="tw-text-red-500">*</span>
+              </label>
               <VehicleSearchableSelector
                 value={formData.vehicleId}
                 onValueChanged={(e) => handleFieldChange('vehicleId', e?.value ?? null)}
@@ -431,145 +515,195 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                 width="100%"
               />
               {!validationState.hasVehicle && (
-                <small className="issue-create-form__helper">Vehicle is required.</small>
-              )}
-            </div>
-
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">4. Assigned To</h3>
-              <label htmlFor="assignedTo">Assigned To</label>
-              <select
-                id="assignedTo"
-                value={formData.assignTo}
-                onChange={(event) => handleFieldChange('assignTo', event.target.value)}
-              >
-                <option value="">Select user...</option>
-                {users.map((user) => {
-                  const userName = getUserName(user);
-                  const email = getUserEmail(user);
-                  return (
-                    <option key={`${user.id || userName}-${email}`} value={userName}>
-                      {userName}{email ? ` (${email})` : ''}
-                    </option>
-                  );
-                })}
-              </select>
-              {!validationState.hasAssignedTo && (
-                <small className="issue-create-form__helper">Assignee is required.</small>
-              )}
-            </div>
-
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">5. Timeline</h3>
-
-              <div className="issue-create-form__split-grid">
-                <div>
-                  <label htmlFor="openedBy">Opened By</label>
-                  <input
-                    id="openedBy"
-                    type="text"
-                    value={formData.openBy}
-                    readOnly
-                    className="issue-create-form__readonly"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="issueStatus">Status</label>
-                  <input
-                    id="issueStatus"
-                    type="text"
-                    value={formData.statusName || 'Open'}
-                    readOnly
-                    className="issue-create-form__readonly"
-                  />
-                </div>
-              </div>
-
-              <div className="issue-create-form__split-grid">
-                <div>
-                  <label htmlFor="openDate">Open Date</label>
-                  <input
-                    id="openDate"
-                    type="text"
-                    value={openDateDisplay}
-                    readOnly
-                    className="issue-create-form__readonly"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="dueDate">Target Due Date</label>
-                  <input
-                    id="dueDate"
-                    type="date"
-                    value={formData.dueDate}
-                    onChange={(event) => handleFieldChange('dueDate', event.target.value)}
-                  />
-                </div>
-              </div>
-
-              <small className="issue-create-form__helper issue-create-form__helper--muted">
-                Status is locked to Open at creation time and cannot be set to Closed from this form.
-              </small>
-              {!validationState.hasStatus && (
-                <small className="issue-create-form__helper">Open status is loading. Please wait.</small>
-              )}
-
-              <label htmlFor="timelineNotes">Timeline Notes</label>
-              <textarea
-                id="timelineNotes"
-                rows={3}
-                maxLength={1000}
-                placeholder="Optional: add timeline checkpoints, ETA, or dependencies."
-                value={formData.timelineNotes}
-                onChange={(event) => handleFieldChange('timelineNotes', event.target.value)}
-              />
-            </div>
-
-            <div className="issue-create-form__field">
-              <h3 className="issue-create-form__section-title">6. Attachments</h3>
-              <label htmlFor="issueAttachments">Upload files</label>
-              <input
-                id="issueAttachments"
-                type="file"
-                multiple
-                onChange={handleAttachmentsChanged}
-              />
-
-              {attachmentCount > 0 && (
-                <div className="issue-create-form__attachments">
-                  {formData.attachments.map((file, index) => (
-                    <div key={`${file.name}-${file.lastModified}-${index}`} className="issue-create-form__attachment-item">
-                      <span>{file.name}</span>
-                      <button type="button" onClick={() => handleRemoveAttachment(index)}>
-                        Remove
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Vehicle is required</p>
               )}
             </div>
           </div>
         </div>
 
-        <footer className="issue-create-form__actions">
+        {/* Section 3: Assignment */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-user-check tw-text-blue-600"></i>
+            Assignment
+          </h2>
+
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Assign To <span className="tw-text-red-500">*</span>
+            </label>
+            <SelectBox
+              value={formData.assignTo}
+              dataSource={users.map(user => ({
+                id: user.id,
+                userName: getUserName(user),
+                email: getUserEmail(user),
+                displayName: `${getUserName(user)}${getUserEmail(user) ? ` (${getUserEmail(user)})` : ''}`
+              }))}
+              displayExpr="displayName"
+              valueExpr="userName"
+              placeholder="Select user..."
+              searchEnabled={true}
+              searchExpr={['userName', 'email']}
+              onValueChanged={(e) => handleFieldChange('assignTo', e.value)}
+            />
+            {!validationState.hasAssignedTo && (
+              <p className="tw-text-xs tw-text-red-500 tw-mt-1">Assignee is required</p>
+            )}
+          </div>
+        </div>
+
+        {/* Section 4: Timeline */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-calendar tw-text-blue-600"></i>
+            Timeline
+          </h2>
+
+          <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-mb-4">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Opened By</label>
+              <input
+                type="text"
+                value={formData.openBy}
+                readOnly
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
+              />
+            </div>
+
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Status</label>
+              <input
+                type="text"
+                value={formData.statusName || 'Open'}
+                readOnly
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
+              />
+            </div>
+
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Open Date</label>
+              <input
+                type="text"
+                value={openDateDisplay}
+                readOnly
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
+              />
+            </div>
+
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Target Due Date</label>
+              <input
+                type="date"
+                value={formData.dueDate}
+                onChange={(e) => handleFieldChange('dueDate', e.target.value)}
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Timeline Notes</label>
+            <textarea
+              rows={2}
+              maxLength={1000}
+              placeholder="Optional: add timeline checkpoints, ETA, or dependencies."
+              value={formData.timelineNotes}
+              onChange={(e) => handleFieldChange('timelineNotes', e.target.value)}
+              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
+            />
+          </div>
+        </div>
+
+        {/* Section 5: Attachments */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-6 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-paperclip tw-text-blue-600"></i>
+            Attachments
+          </h2>
+
+          <div className="tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4 tw-text-center tw-bg-gray-50">
+            <input
+              type="file"
+              id="attachments"
+              multiple
+              onChange={handleAttachmentsChanged}
+              className="tw-hidden"
+            />
+            <label
+              htmlFor="attachments"
+              className="tw-cursor-pointer tw-flex tw-flex-col tw-items-center tw-gap-2"
+            >
+              <i className="fa-light fa-cloud-upload tw-text-3xl tw-text-gray-400"></i>
+              <span className="tw-text-sm tw-text-gray-600">Click to upload files</span>
+              <span className="tw-text-xs tw-text-gray-400">or drag and drop</span>
+            </label>
+          </div>
+
+          {attachmentCount > 0 && (
+            <div className="tw-mt-4 tw-space-y-2">
+              {formData.attachments.map((file, index) => (
+                <div
+                  key={`${file.name}-${file.lastModified}-${index}`}
+                  className="tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-md"
+                >
+                  <div className="tw-flex tw-items-center tw-gap-2">
+                    <i className="fa-light fa-file tw-text-gray-400"></i>
+                    <span className="tw-text-sm tw-text-gray-700">{file.name}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleRemoveAttachment(index)}
+                    className="tw-text-red-500 hover:tw-text-red-700 tw-text-sm"
+                  >
+                    <i className="fa-light fa-trash"></i>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Form Actions */}
+        <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-4 tw-border-t tw-border-gray-200">
           <button
             type="button"
-            className="issue-create-form__btn issue-create-form__btn--ghost"
-            onClick={handleReset}
+            onClick={handleCancel}
+            className="tw-px-4 tw-py-2 tw-text-gray-600 tw-bg-white tw-rounded-md hover:tw-bg-gray-50 tw-transition-colors tw-shadow-sm"
             disabled={isSubmitting}
           >
+            <i className="fa-light fa-times tw-mr-2"></i>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={handleReset}
+            className="tw-px-4 tw-py-2 tw-text-gray-600 tw-bg-white tw-rounded-md hover:tw-bg-gray-50 tw-transition-colors tw-shadow-sm"
+            disabled={isSubmitting}
+          >
+            <i className="fa-light fa-rotate tw-mr-2"></i>
             Reset
           </button>
           <button
             type="submit"
-            className="issue-create-form__btn issue-create-form__btn--primary"
             disabled={!isReadyToSubmit || isSubmitting}
+            className="tw-px-6 tw-py-2 tw-bg-blue-600 tw-text-white tw-rounded-md hover:tw-bg-blue-700 disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-colors tw-shadow-sm"
           >
-            {isSubmitting ? 'Saving...' : '7. Save Issue'}
+            {isSubmitting ? (
+              <>
+                <i className="fa-light fa-spinner fa-spin tw-mr-2"></i>
+                Creating...
+              </>
+            ) : (
+              <>
+                <i className="fa-light fa-save tw-mr-2"></i>
+                Create Issue
+              </>
+            )}
           </button>
-        </footer>
+        </div>
       </form>
-    </section>
+    </div>
   );
 };
 

@@ -1,3 +1,9 @@
+/**
+ * File: SystemConfigurationService.cs
+ * Purpose: Provides cached access to system configuration values from DB/settings/defaults.
+ * Dependencies: EF Core, IMemoryCache, IOptionsMonitor
+ * Last Modified: 2026-02-04
+ */
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -376,6 +382,15 @@ namespace FMS.Application.Services.Configuration
                 cancellationToken);
         }
 
+        public async Task<int> GetPtsUploadStatusPhysicalStockUpdateIntervalSecondsAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_PTS_UPLOADSTATUS_PHYSICAL_STOCK_UPDATE_INTERVAL_SECONDS_KEY,
+                0, // No settings override
+                SystemConfigurationConstants.DEFAULT_PTS_UPLOADSTATUS_PHYSICAL_STOCK_UPDATE_INTERVAL_SECONDS,
+                cancellationToken);
+        }
+
         public async Task<int> GetPtsVolumeSourcePriorityAsync(CancellationToken cancellationToken = default)
         {
             return await GetConfigurationValueAsync(
@@ -465,6 +480,26 @@ namespace FMS.Application.Services.Configuration
                 SystemConfigurationConstants.DB_CONFIG_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK_KEY,
                 SystemConfigurationConstants.DEFAULT_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK,
                 cancellationToken);
+        }
+        #endregion
+
+        #region Generic Configuration Access
+        /// <inheritdoc />
+        public async Task<decimal> GetDecimalAsync(string key, decimal defaultValue, CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(key, defaultValue, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public async Task<bool> GetBoolAsync(string key, bool defaultValue, CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(key, defaultValue, cancellationToken);
+        }
+
+        /// <inheritdoc />
+        public async Task<int> GetIntAsync(string key, int defaultValue, CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(key, 0, defaultValue, cancellationToken);
         }
         #endregion
     }

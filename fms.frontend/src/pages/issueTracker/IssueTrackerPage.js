@@ -79,7 +79,7 @@ const IssueTrackerPage = () => {
   };
 
   const handleIssueEdit = (issue) => {
-    navigate(`/issue-tracker/edit/${issue.id}`);
+    navigate(`/issue-tracker/details/${issue.id}`);
   };
 
   const handleFilterByPriority = (priority) => {

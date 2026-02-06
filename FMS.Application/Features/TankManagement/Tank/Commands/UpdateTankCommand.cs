@@ -1,11 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿/**
+ * File: UpdateTankCommand.cs
+ * Purpose: Updates tank master data including PTS device and probe binding.
+ * Dependencies: EF Core, MediatR
+ * Last Modified: 2026-02-05
+ */
+using System;
 using System.Threading;
 using System.Threading.Tasks;
-using AutoMapper;
 using FMS.Application.Features.FMS.Tank;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -19,13 +22,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
     public class UpdateTankCommandHandler : IRequestHandler<UpdateTankCommand, bool>
     {
         private readonly GpsdataContext _context;
-        private readonly IMapper _mapper;
         private readonly ILogger<UpdateTankCommandHandler> _logger;
 
-        public UpdateTankCommandHandler(GpsdataContext context, IMapper mapper, ILogger<UpdateTankCommandHandler> logger)
+        public UpdateTankCommandHandler(GpsdataContext context, ILogger<UpdateTankCommandHandler> logger)
         {
             _context = context;
-            _mapper = mapper;
             _logger = logger;
         }
 
@@ -39,19 +40,23 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     return false;
                 }
 
-                // Direct property assignment instead of AutoMapper
                 // Basic Info
                 tank.Name = request.Tank.Name;
                 tank.TankVolume = request.Tank.TankVolume;
                 tank.TankHeight = request.Tank.TankHeight;
                 tank.TankLength = request.Tank.TankLength;
-                tank.PtsId = request.Tank.PtsId;
                 tank.SiteId = request.Tank.SiteId;
                 tank.DiscrepancyThreshold = request.Tank.DiscrepancyThreshold;
                 tank.CurrentStock = request.Tank.CurrentStock;
                 tank.UseBookKeeping = request.Tank.UseBookKeeping ? (sbyte)1 : (sbyte)0;
                 tank.HasAutomaticBookKeeping = request.Tank.HasAutomaticBookKeeping ? (sbyte)1 : (sbyte)0;
                 tank.Priority = request.Tank.Priority;
+
+                // PTS Device and Probe Binding - stored directly on tank
+                tank.PtsId = request.Tank.PtsId;
+                tank.ProbeNumber = request.Tank.ProbeNumber;
+                tank.PtsTankId = request.Tank.PtsTankId;
+                tank.UsePtsProbeReadings = request.Tank.UsePtsProbeReadings;
 
                 // Fuel Grade
                 tank.FuelGradeId = request.Tank.FuelGradeId;
@@ -67,7 +72,10 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                 // NOTE: LastStockUpdate, PhysicalStockValue, LastPhysicalStockUpdate, PhysicalStockSource
                 // are NOT updated here - they are managed by the stock management system
 
-                if (tank.SiteId == null) throw new ArgumentException("SiteId is required");
+                if (tank.SiteId <= 0)
+                {
+                    throw new ArgumentException("SiteId is required");
+                }
 
                 var siteExists = await _context.Sites.AnyAsync(s => s.Id == tank.SiteId, cancellationToken);
                 if (!siteExists)
@@ -75,7 +83,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     throw new ArgumentException("Invalid SiteId");
                 }
 
-                if (tank.PtsId != null)
+                if (!string.IsNullOrWhiteSpace(tank.PtsId))
                 {
                     var ptsExists = await _context.Ptsdevices.AnyAsync(p => p.Ptsid == tank.PtsId, cancellationToken);
                     if (!ptsExists)
@@ -84,7 +92,18 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     }
                 }
 
+                // Validate ProbeNumber if provided
+                if (tank.ProbeNumber.HasValue && tank.ProbeNumber.Value <= 0)
+                {
+                    throw new ArgumentException("ProbeNumber must be greater than 0");
+                }
+
                 await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Updated tank {TankId} with PtsId={PtsId}, ProbeNumber={ProbeNumber}, PtsTankId={PtsTankId}",
+                    tank.Id, tank.PtsId, tank.ProbeNumber, tank.PtsTankId);
+
                 return true;
             }
             catch (Exception ex)

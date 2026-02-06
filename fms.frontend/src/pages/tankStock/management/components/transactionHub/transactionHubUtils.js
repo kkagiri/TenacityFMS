@@ -89,15 +89,21 @@ export const renderChangeReason = (cellInfo) => {
 };
 
 /**
- * Convert a local date to ISO string preserving local time
- * This prevents timezone shifts when sending dates to the API
+ * Convert a local date to an API-safe string without UTC conversion.
+ * This prevents timezone shifts (e.g., 00:00 local becoming previous day in UTC).
  * @param {Date} date - The date to convert
- * @returns {string|null} ISO formatted date string in local time
+ * @returns {string|null} Local date-time string (YYYY-MM-DDTHH:mm:ss.SSS)
  */
 export const toLocalISOString = (date) => {
   if (!date) return null;
-  // This correctly converts Local 10:00 AM EAT to 07:00 AM UTC
-  return date.toISOString();
+  const value = new Date(date);
+  if (Number.isNaN(value.getTime())) return null;
+
+  const pad2 = (num) => String(num).padStart(2, "0");
+  const pad3 = (num) => String(num).padStart(3, "0");
+
+  return `${value.getFullYear()}-${pad2(value.getMonth() + 1)}-${pad2(value.getDate())}` +
+    `T${pad2(value.getHours())}:${pad2(value.getMinutes())}:${pad2(value.getSeconds())}.${pad3(value.getMilliseconds())}`;
 };
 
 /**

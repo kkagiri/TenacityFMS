@@ -17,6 +17,26 @@ public partial class Tank
     public decimal? TankHeight { get; set; }
 
     public string? PtsId { get; set; }
+
+    /// <summary>
+    /// The physical probe number assigned to this tank for ATG/probe measurements.
+    /// This maps to the probe number in the PTS device's probe configuration.
+    /// </summary>
+    public int? ProbeNumber { get; set; }
+
+    /// <summary>
+    /// The tank ID in the PTS system. Reserved for future JsonPTS services.
+    /// Maps to the tank configuration in the PTS device.
+    /// </summary>
+    public int? PtsTankId { get; set; }
+
+    /// <summary>
+    /// Whether to use PTS probe readings for automatic physical stock updates on this tank.
+    /// When true, the system will use probe measurements from UploadStatus to update PhysicalStockValue.
+    /// When false (default), probe readings will not automatically update this tank's physical stock.
+    /// </summary>
+    public bool UsePtsProbeReadings { get; set; } = false;
+
     public sbyte? UseBookKeeping { get; set; }
     public int SiteId { get; set; }
     public decimal? DiscrepancyThreshold { get; set; }

@@ -1,5 +1,17 @@
+/**
+ * File: VehicleTransferController.cs
+ * Purpose: Manages vehicle transfer workflows, status updates, reports, and email notifications.
+ * Dependencies: MediatR, transfer commands/queries, jsReport, email service, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateTransfer(): Creates transfer records with authenticated user metadata.
+ * - UpdateTransferStatus(): Updates transfer lifecycle state.
+ * - DownloadTransferReport(): Generates transfer checkup PDFs.
+ */
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleTransfer.Commands;
 using FMS.Application.Features.VehicleTransfer.DTOs;
@@ -37,6 +49,14 @@ public class VehicleTransferController : ControllerBase
         _logger = logger;
         _jsReportService = jsReportService;
         _emailService = emailService;
+    }
+
+    private string? GetCurrentUserId()
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub");
+
+        return string.IsNullOrWhiteSpace(userId) ? null : userId;
     }
 
     /// <summary>
@@ -90,7 +110,7 @@ public class VehicleTransferController : ControllerBase
     public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> CreateTransfer([FromForm] CreateVehicleTransferDTO createTransferDto)
     {
         // Set user ID from claims
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetCurrentUserId();
         createTransferDto.UserId = userId;
 
         var result = await _mediator.Send(new CreateVehicleTransferCommand(createTransferDto));
@@ -114,7 +134,7 @@ public class VehicleTransferController : ControllerBase
     [HttpPut("{id}/status")]
     public async Task<ActionResult<FMSResponse<bool>>> UpdateTransferStatus(int id, [FromBody] UpdateTransferStatusRequest request)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetCurrentUserId();
         var result = await _mediator.Send(new UpdateVehicleTransferStatusCommand(id, request.Status, userId));
         if (!result.IsSuccess)
         {
@@ -129,7 +149,7 @@ public class VehicleTransferController : ControllerBase
     [HttpDelete("{id}")]
     public async Task<ActionResult<FMSResponse<bool>>> DeleteTransfer(int id)
     {
-        var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userId = GetCurrentUserId();
         var result = await _mediator.Send(new DeleteVehicleTransferCommand(id, userId));
         if (!result.IsSuccess)
         {

@@ -1,3 +1,14 @@
+/**
+ * File: VehicleDocumentsController.cs
+ * Purpose: Handles vehicle document CRUD and expiration query endpoints.
+ * Dependencies: MediatR vehicle document commands/queries, FMSResponse, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateVehicleDocument(): Creates vehicle documents with user context.
+ * - UpdateVehicleDocument(): Updates document metadata/files.
+ * - GetExpiringDocuments(): Returns documents nearing expiry.
+ */
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Commands;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
@@ -7,6 +18,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
+using System.Security.Claims;
 using System.Threading.Tasks;
 
 namespace FMS.WebClient.Controllers.VehicleManagement;
@@ -21,6 +33,15 @@ public class VehicleDocumentsController : ControllerBase
     public VehicleDocumentsController(IMediator mediator)
     {
         _mediator = mediator;
+    }
+
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? string.Empty;
+
+        return Guid.TryParse(userId, out _);
     }
 
     [HttpGet]
@@ -42,11 +63,7 @@ public class VehicleDocumentsController : ControllerBase
     {
 
 
-        var userIdClaim = User.Claims.FirstOrDefault(c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse(c.Value, out _)
-        );
-        var userId = userIdClaim?.Value;
+        string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
         createVehicleDocumentDto.UserId = userId;
 
 

@@ -21,7 +21,12 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
   const getPageInfo = () => {
     const pathname = location.pathname;
 
-    if (pathname.includes('/tickets')) {
+    if (pathname.includes('/my-dashboard')) {
+      return {
+        title: 'My Issues Dashboard',
+        subtitle: 'View your assigned and opened issues with statistics'
+      };
+    } else if (pathname.includes('/tickets')) {
       return {
         title: 'Issue Tickets',
         subtitle: 'Manage and track all issue tickets'
@@ -76,13 +81,6 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
       title: 'Issue Tickets',
       icon: 'fa-light fa-ticket',
       path: '/issue-tracker/tickets',
-      badge: null,
-    },
-    {
-      id: 'create',
-      title: 'Create Issue',
-      icon: 'fa-light fa-plus-circle',
-      path: '/issue-tracker/create',
       badge: null,
     },
     {
@@ -189,17 +187,8 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
 
       {/* Main Content */}
       <main className="issue-tracker-main">
-        {/* Header */}
-        <header className="main-header">
-          {/* Title on LEFT - Single line compact header */}
-          <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
-            {/* Title Section - LEFT (Compact, no subtitle) */}
-            <div className="tw-flex-shrink-0">
-              <h1 className="tw-text-xl tw-font-bold tw-text-gray-800">
-                {finalTitle}
-              </h1>
-            </div>
-          </div>
+        {/* Header - Empty, content handles its own header */}
+        <header className="main-header tw-h-0 tw-p-0 tw-border-0">
         </header>
 
         {/* Content */}

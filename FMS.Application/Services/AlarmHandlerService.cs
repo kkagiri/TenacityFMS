@@ -59,6 +59,7 @@ namespace FMS.Application.Services
 
     public class AlarmHandlerService : IAlarmHandlerService
     {
+        private const string MissingFuelFillAlarmType = "TankNoFuelFillPosted";
         private readonly GpsdataContext _context;
         private readonly ILogger<AlarmHandlerService> _logger;
         private readonly INotificationService _notificationService;
@@ -367,6 +368,14 @@ namespace FMS.Application.Services
 
                 // Check for tanks approaching capacity limits
                 await CheckCapacityLimitsAsync(cancellationToken);
+
+                // Dynamic trigger: missing fuel fill records for tanks
+                bool hasMissingFuelFillHandlers = await _context.AlarmHandlers
+                    .AnyAsync(h => h.IsActive && h.AlarmType == MissingFuelFillAlarmType, cancellationToken);
+                if (hasMissingFuelFillHandlers)
+                {
+                    alarmsProcessed += await CheckMissingFuelFillRecordsAsync(cancellationToken);
+                }
 
                 var message = $"Processed {alarmsProcessed} scheduled alarm checks";
                 if (errors.Any())
@@ -683,6 +692,80 @@ namespace FMS.Application.Services
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking capacity limits");
+            }
+        }
+
+        private async Task<int> CheckMissingFuelFillRecordsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                var now = DateTime.UtcNow;
+                var tanks = await _context.Tanks
+                    .Include(t => t.Site)
+                    .ToListAsync(cancellationToken);
+
+                if (tanks.Count == 0)
+                {
+                    return 0;
+                }
+
+                var tankIds = tanks.Select(t => t.Id).ToList();
+                var lastFuelFillByTank = await _context.FuelRefills
+                    .Where(fr => fr.TankId.HasValue &&
+                                 tankIds.Contains(fr.TankId.Value) &&
+                                 fr.IsDeleted != true)
+                    .GroupBy(fr => fr.TankId!.Value)
+                    .Select(g => new
+                    {
+                        TankId = g.Key,
+                        LastFuelFillAt = g.Max(fr => fr.Date ?? fr.DateCreated)
+                    })
+                    .ToDictionaryAsync(x => x.TankId, x => x.LastFuelFillAt, cancellationToken);
+
+                var created = 0;
+                foreach (var tank in tanks)
+                {
+                    lastFuelFillByTank.TryGetValue(tank.Id, out var lastFuelFillAt);
+                    var hasFuelFillRecord = lastFuelFillAt != default;
+                    var hoursSinceLastFuelFill = hasFuelFillRecord
+                        ? Math.Max(0, (now - lastFuelFillAt).TotalHours)
+                        : (double?)null;
+
+                    var evt = new AlarmEvaluationEvent
+                    {
+                        AlarmType = MissingFuelFillAlarmType,
+                        SiteId = tank.SiteId,
+                        TankId = tank.Id,
+                        OccurredAtUtc = now,
+                        Data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
+                        {
+                            ["hasFuelFillRecord"] = hasFuelFillRecord,
+                            ["hoursSinceLastFuelFill"] = hoursSinceLastFuelFill,
+                            ["daysSinceLastFuelFill"] = hoursSinceLastFuelFill.HasValue ? hoursSinceLastFuelFill.Value / 24d : (double?)null,
+                            ["lastFuelFillAt"] = hasFuelFillRecord ? lastFuelFillAt : null,
+                            ["tankName"] = tank.Name,
+                            ["siteName"] = tank.Site?.Name
+                        }
+                    };
+
+                    var evaluationResult = await EvaluateHandlersAsync(evt, cancellationToken);
+                    created += evaluationResult.Data;
+
+                    if (!evaluationResult.IsSuccess)
+                    {
+                        _logger.LogWarning(
+                            "Failed to evaluate missing fuel fill trigger for Tank {TankId}: {Message}",
+                            tank.Id,
+                            evaluationResult.Message);
+                    }
+                }
+
+                return created;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error checking missing fuel fill records");
+                return 0;
             }
         }
 
@@ -1039,6 +1122,15 @@ namespace FMS.Application.Services
             Fields = new () {
             new () { Name = "offlineDurationMinutes", Label = "Offline Duration (min)", FieldType = "number", Required = true, DefaultValue = 30 }
             }
+            },
+            new () {
+            Type = MissingFuelFillAlarmType,
+            Label = "Fuel Fill Not Posted",
+            Description = "Triggers when no fuel fill record has been posted for a tank within the configured period.",
+            Fields = new () {
+            new () { Name = "missingForDays", Label = "Missing For (days)", FieldType = "number", Unit = "days", Required = true, DefaultValue = 1 },
+            new () { Name = "includeNeverPosted", Label = "Include Tanks With No History", FieldType = "boolean", Required = false, DefaultValue = true }
+            }
             }
             };
             return Task.FromResult(FMSResponse<List<AlarmHandlerTypeMetadataDto>>.Success(list, "Alarm handler types retrieved"));
@@ -1077,8 +1169,22 @@ namespace FMS.Application.Services
 
                         // Build notification from policy + handler context
                         var policy = h.NotificationPolicy;
-                        var title = h.MessageTemplate ?? policy.TitleTemplate ?? $"{evt.AlarmType} triggered";
-                        var message = policy.MessageTemplate ?? h.Description ?? $"Alarm {evt.AlarmType} matched conditions";
+                        var title = h.MessageTemplate ?? policy.TitleTemplate;
+                        var message = policy.MessageTemplate ?? h.Description;
+
+                        if (string.IsNullOrWhiteSpace(title))
+                        {
+                            title = evt.AlarmType == MissingFuelFillAlarmType
+                                ? "Fuel Fill Record Missing"
+                                : $"{evt.AlarmType} triggered";
+                        }
+
+                        if (string.IsNullOrWhiteSpace(message))
+                        {
+                            message = evt.AlarmType == MissingFuelFillAlarmType
+                                ? BuildMissingFuelFillMessage(evt)
+                                : $"Alarm {evt.AlarmType} matched conditions";
+                        }
                         var request = new CreateNotificationRequest
                         {
                             Type = Enum.TryParse<Features.Notification.Enums.NotificationType>(policy.NotificationType, true, out var nt) ? nt : Features.Notification.Enums.NotificationType.Alert,
@@ -1215,6 +1321,44 @@ namespace FMS.Application.Services
                         return offlineMins >= cfgMins;
                     }
                 }
+                if (evt.AlarmType == MissingFuelFillAlarmType && node.Type == Newtonsoft.Json.Linq.JTokenType.Object)
+                {
+                    var config = (Newtonsoft.Json.Linq.JObject)node;
+                    var missingForDaysToken = config["missingForDays"] ?? config["thresholdDays"];
+                    var missingForHoursToken = config["missingForHours"] ?? config["thresholdHours"]; // backward compatibility
+                    var includeNeverPostedToken = config["includeNeverPosted"];
+
+                    var includeNeverPosted = true;
+                    if (includeNeverPostedToken != null && TryAsBoolean(includeNeverPostedToken, out var includeNeverPostedValue))
+                    {
+                        includeNeverPosted = includeNeverPostedValue;
+                    }
+
+                    if (evt.Data.TryGetValue("hasFuelFillRecord", out object hasRecordObj) &&
+                        TryAsBoolean(hasRecordObj, out var hasRecord) &&
+                        !hasRecord)
+                    {
+                        return includeNeverPosted;
+                    }
+
+                    if (missingForDaysToken != null &&
+                        evt.Data.TryGetValue("daysSinceLastFuelFill", out object daysObj) &&
+                        TryAsDecimal(daysObj, out var daysSinceLastFuelFill) &&
+                        TryAsDecimal(missingForDaysToken, out var missingForDays))
+                    {
+                        return daysSinceLastFuelFill >= missingForDays;
+                    }
+
+                    if (missingForHoursToken != null &&
+                        evt.Data.TryGetValue("hoursSinceLastFuelFill", out object hoursObj) &&
+                        TryAsDecimal(hoursObj, out var hoursSinceLastFuelFill) &&
+                        TryAsDecimal(missingForHoursToken, out var missingForHours))
+                    {
+                        return hoursSinceLastFuelFill >= missingForHours;
+                    }
+
+                    return false;
+                }
                 // Support simplified schema: {"field":"temperature","operator":"gt","value":50}
                 if (node.Type == Newtonsoft.Json.Linq.JTokenType.Object)
                 {
@@ -1287,6 +1431,27 @@ namespace FMS.Application.Services
 
         private bool TryAsDecimal(object? v, out decimal d)
         {
+            if (v is Newtonsoft.Json.Linq.JToken token)
+            {
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Integer || token.Type == Newtonsoft.Json.Linq.JTokenType.Float)
+                {
+                    var numeric = token.ToObject<decimal?>();
+                    if (numeric.HasValue)
+                    {
+                        d = numeric.Value;
+                        return true;
+                    }
+                }
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                {
+                    var tokenString = token.ToObject<string>();
+                    if (!string.IsNullOrWhiteSpace(tokenString) && decimal.TryParse(tokenString, out var tokenParsed))
+                    {
+                        d = tokenParsed;
+                        return true;
+                    }
+                }
+            }
             if (v is decimal dec) { d = dec; return true; }
             if (v is double db) { d = (decimal)db; return true; }
             if (v is float fl) { d = (decimal)fl; return true; }
@@ -1294,6 +1459,70 @@ namespace FMS.Application.Services
             if (v is long l) { d = l; return true; }
             if (v is string s && decimal.TryParse(s, out var parsed)) { d = parsed; return true; }
             d = 0;
+            return false;
+        }
+
+        private string BuildMissingFuelFillMessage(AlarmEvaluationEvent evt)
+        {
+            var tankName = evt.Data.TryGetValue("tankName", out var tankObj) ? tankObj?.ToString() : null;
+            var siteName = evt.Data.TryGetValue("siteName", out var siteObj) ? siteObj?.ToString() : null;
+            var tankLabel = string.IsNullOrWhiteSpace(tankName) ? $"Tank {evt.TankId?.ToString() ?? "N/A"}" : tankName;
+            var siteLabel = string.IsNullOrWhiteSpace(siteName) ? $"Site {evt.SiteId?.ToString() ?? "N/A"}" : siteName;
+
+            if (evt.Data.TryGetValue("hasFuelFillRecord", out var hasRecordObj) &&
+                TryAsBoolean(hasRecordObj, out var hasRecord) &&
+                !hasRecord)
+            {
+                return $"No fuel fill record has been posted yet for {tankLabel} at {siteLabel}. Please verify operations and post the required fuel fill entry.";
+            }
+
+            if (evt.Data.TryGetValue("daysSinceLastFuelFill", out var daysObj) &&
+                TryAsDecimal(daysObj, out var daysSinceLastFuelFill))
+            {
+                return $"No fuel fill record has been posted for {tankLabel} at {siteLabel} for {Math.Round(daysSinceLastFuelFill, 1):0.0} day(s). Please verify operations and post pending fuel fill entries.";
+            }
+
+            return $"Fuel fill record is missing for {tankLabel} at {siteLabel}. Please verify operations and post the required fuel fill entry.";
+        }
+
+        private bool TryAsBoolean(object? v, out bool value)
+        {
+            if (v is bool b)
+            {
+                value = b;
+                return true;
+            }
+
+            if (v is string s && bool.TryParse(s, out var parsed))
+            {
+                value = parsed;
+                return true;
+            }
+
+            if (v is Newtonsoft.Json.Linq.JToken token)
+            {
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.Boolean)
+                {
+                    var tokenBool = token.ToObject<bool?>();
+                    if (tokenBool.HasValue)
+                    {
+                        value = tokenBool.Value;
+                        return true;
+                    }
+                }
+
+                if (token.Type == Newtonsoft.Json.Linq.JTokenType.String)
+                {
+                    var tokenString = token.ToObject<string>();
+                    if (!string.IsNullOrWhiteSpace(tokenString) && bool.TryParse(tokenString, out var tokenParsed))
+                    {
+                        value = tokenParsed;
+                        return true;
+                    }
+                }
+            }
+
+            value = false;
             return false;
         }
     }

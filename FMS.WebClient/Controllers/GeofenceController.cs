@@ -1,3 +1,14 @@
+/**
+ * File: GeofenceController.cs
+ * Purpose: Manages geofence data, sync jobs, and location validation bypass operations.
+ * Dependencies: MediatR geofence commands/queries, JWT claims, logging.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - StartSyncJob(): Starts asynchronous geofence synchronization jobs.
+ * - UpdateGroupAllowedForFueling(): Updates global allowed-group settings.
+ * - EnableTemporaryBypass(): Enables temporary location validation bypass.
+ */
 using System.Security.Claims;
 using System.Threading.Tasks;
 using FMS.Application.Common;
@@ -29,9 +40,18 @@ public class GeofenceController : ControllerBase
         _logger = logger;
     }
 
+    private bool TryGetCurrentUserId(out string userId)
+    {
+        userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+            ?? User.FindFirstValue("sub")
+            ?? string.Empty;
+
+        return !string.IsNullOrWhiteSpace(userId);
+    }
+
     private string GetCurrentUserId()
     {
-        return User.FindFirstValue(ClaimTypes.NameIdentifier) ?? User.FindFirstValue("sub") ?? "system";
+        return TryGetCurrentUserId(out var userId) ? userId : "system";
     }
 
     private string GetCurrentUserName()

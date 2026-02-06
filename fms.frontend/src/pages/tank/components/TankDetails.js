@@ -1,6 +1,15 @@
+/**
+ * File: TankDetails.js
+ * Purpose: Displays tank details and live PTS UploadStatus probe information.
+ * Dependencies: react
+ * Last Modified: 2026-02-04
+ *
+ * Key Functions/Components:
+ * - TankDetails: Renders full tank profile including configuration, status, and live probe data.
+ */
 import React from "react";
 
-const TankDetails = ({ tank }) => {
+const TankDetails = ({ tank, liveStatus, connectionStatus }) => {
   if (!tank) return null;
 
   const fillPercentage =
@@ -32,6 +41,60 @@ const TankDetails = ({ tank }) => {
     if (!dateString) return "N/A";
     return new Date(dateString).toLocaleString();
   };
+
+  const probes = liveStatus?.status?.probes;
+  const onlineStatus = probes?.onlineStatus || probes?.OnlineStatus;
+  const measurements = onlineStatus?.measurements || onlineStatus?.Measurements || [];
+  const ids = onlineStatus?.ids || onlineStatus?.Ids || [];
+
+  const probeReadings =
+    Array.isArray(measurements) && measurements.length > 0
+      ? measurements
+        .map((measurement, index) => {
+          const probeNumber =
+            Number(
+              measurement?.probeNumber ??
+              measurement?.ProbeNumber ??
+              ids[index] ??
+              0
+            ) || 0;
+
+          if (probeNumber <= 0) {
+            return null;
+          }
+
+          return {
+            probeNumber,
+            productVolume:
+              measurement?.productVolume ?? measurement?.ProductVolume ?? null,
+            productHeight:
+              measurement?.productHeight ?? measurement?.ProductHeight ?? null,
+            waterHeight:
+              measurement?.waterHeight ?? measurement?.WaterHeight ?? null,
+            temperature:
+              measurement?.temperature ?? measurement?.Temperature ?? null,
+          };
+        })
+        .filter(Boolean)
+        .sort((a, b) => a.probeNumber - b.probeNumber)
+      : (Array.isArray(ids) ? ids : [])
+        .map((id) => Number(id || 0))
+        .filter((id) => id > 0)
+        .map((probeNumber) => ({
+          probeNumber,
+          productVolume: null,
+          productHeight: null,
+          waterHeight: null,
+          temperature: null,
+        }));
+
+  const selectedProbeReading =
+    probeReadings.length === 0
+      ? null
+      : tank.probeNumber
+        ? probeReadings.find((reading) => reading.probeNumber === tank.probeNumber) ||
+        null
+        : probeReadings[0];
 
   const InfoRow = ({ label, value, icon }) => (
     <div className="tw-flex tw-items-center tw-justify-between tw-py-3 tw-border-b tw-border-slate-100 last:tw-border-0">
@@ -74,6 +137,11 @@ const TankDetails = ({ tank }) => {
                 {tank.ptsId && (
                   <span className="tw-bg-white/10 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-backdrop-blur">
                     PTS: {tank.ptsId}
+                  </span>
+                )}
+                {tank.probeNumber && (
+                  <span className="tw-bg-emerald-500/20 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-backdrop-blur">
+                    Probe: {tank.probeNumber}
                   </span>
                 )}
               </div>
@@ -197,13 +265,12 @@ const TankDetails = ({ tank }) => {
             value={
               tank.priority ? (
                 <span
-                  className={`tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium ${
-                    tank.priority === "High"
-                      ? "tw-bg-red-50 tw-text-red-700"
-                      : tank.priority === "Medium"
+                  className={`tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded tw-text-xs tw-font-medium ${tank.priority === "High"
+                    ? "tw-bg-red-50 tw-text-red-700"
+                    : tank.priority === "Medium"
                       ? "tw-bg-amber-50 tw-text-amber-700"
                       : "tw-bg-slate-50 tw-text-slate-700"
-                  }`}
+                    }`}
                 >
                   {tank.priority}
                 </span>
@@ -250,7 +317,7 @@ const TankDetails = ({ tank }) => {
         {/* Status */}
         <SectionCard title="Status" icon="fa-light fa-chart-line">
           <InfoRow
-            label="Last Update"
+            label="Last Book Update"
             icon="fa-light fa-clock"
             value={
               <span className="tw-text-xs">
@@ -262,10 +329,15 @@ const TankDetails = ({ tank }) => {
             label="Physical Stock"
             icon="fa-light fa-gauge"
             value={
-              tank.physicalStockValue
+              tank.physicalStockValue || tank.physicalStockValue === 0
                 ? `${tank.physicalStockValue.toLocaleString()} L`
                 : "N/A"
             }
+          />
+          <InfoRow
+            label="Physical Updated"
+            icon="fa-light fa-timer"
+            value={<span className="tw-text-xs">{formatDate(tank.lastPhysicalStockUpdate)}</span>}
           />
           <InfoRow
             label="Stock Source"
@@ -274,6 +346,94 @@ const TankDetails = ({ tank }) => {
           />
         </SectionCard>
       </div>
+
+      {/* Live PTS section */}
+      <SectionCard title="PTS Live Data" icon="fa-light fa-satellite-dish">
+        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-x-8">
+          <InfoRow
+            label="Connection"
+            icon="fa-light fa-plug"
+            value={
+              tank.ptsId ? (
+                <span
+                  className={`tw-inline-flex tw-items-center tw-gap-1 ${connectionStatus?.status && connectionStatus.status !== "Disconnected"
+                    ? "tw-text-emerald-600"
+                    : "tw-text-amber-600"
+                    }`}
+                >
+                  {connectionStatus?.status || "Awaiting signal"}
+                </span>
+              ) : (
+                <span className="tw-text-slate-400">Not Linked</span>
+              )
+            }
+          />
+          <InfoRow
+            label="Mapped Probe"
+            icon="fa-light fa-link"
+            value={tank.probeNumber || "Not Set"}
+          />
+          <InfoRow
+            label="Auto Stock Updates"
+            icon="fa-light fa-gauge-high"
+            value={
+              tank.usePtsProbeReadings ? (
+                <span className="tw-text-emerald-600 tw-flex tw-items-center tw-gap-1">
+                  <i className="fa-light fa-check-circle"></i> Enabled
+                </span>
+              ) : (
+                <span className="tw-text-slate-400">Disabled</span>
+              )
+            }
+          />
+          <InfoRow
+            label="Live Product Volume"
+            icon="fa-light fa-chart-simple"
+            value={
+              selectedProbeReading?.productVolume || selectedProbeReading?.productVolume === 0
+                ? `${Number(selectedProbeReading.productVolume).toFixed(2)} L`
+                : "N/A"
+            }
+          />
+          <InfoRow
+            label="Last UploadStatus"
+            icon="fa-light fa-waveform-lines"
+            value={<span className="tw-text-xs">{formatDate(liveStatus?.receivedAt)}</span>}
+          />
+          <InfoRow
+            label="Temperature"
+            icon="fa-light fa-temperature-half"
+            value={
+              selectedProbeReading?.temperature || selectedProbeReading?.temperature === 0
+                ? `${Number(selectedProbeReading.temperature).toFixed(1)} C`
+                : "N/A"
+            }
+          />
+          <InfoRow
+            label="Product Height"
+            icon="fa-light fa-arrows-up-down"
+            value={
+              selectedProbeReading?.productHeight || selectedProbeReading?.productHeight === 0
+                ? `${Number(selectedProbeReading.productHeight).toFixed(1)} mm`
+                : "N/A"
+            }
+          />
+          <InfoRow
+            label="Water Height"
+            icon="fa-light fa-droplet"
+            value={
+              selectedProbeReading?.waterHeight || selectedProbeReading?.waterHeight === 0
+                ? `${Number(selectedProbeReading.waterHeight).toFixed(1)} mm`
+                : "N/A"
+            }
+          />
+          <InfoRow
+            label="Probe Data"
+            icon="fa-light fa-circle-nodes"
+            value={`${probeReadings.length} channel(s)`}
+          />
+        </div>
+      </SectionCard>
 
       {/* Location Validation */}
       <SectionCard
@@ -294,11 +454,10 @@ const TankDetails = ({ tank }) => {
             }
             value={
               <span
-                className={`tw-inline-flex tw-items-center tw-gap-2 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
-                  tank.tankType === "MobileTanker"
-                    ? "tw-bg-amber-50 tw-text-amber-700"
-                    : "tw-bg-sky-50 tw-text-sky-700"
-                }`}
+                className={`tw-inline-flex tw-items-center tw-gap-2 tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${tank.tankType === "MobileTanker"
+                  ? "tw-bg-amber-50 tw-text-amber-700"
+                  : "tw-bg-sky-50 tw-text-sky-700"
+                  }`}
               >
                 {tank.tankType === "MobileTanker"
                   ? "Mobile Tanker"

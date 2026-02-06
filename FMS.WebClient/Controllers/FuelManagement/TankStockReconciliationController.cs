@@ -1,5 +1,17 @@
+/**
+ * File: TankStockReconciliationController.cs
+ * Purpose: Provides endpoints to reconcile and fix tank stock/history discrepancies.
+ * Dependencies: TankStockReconciliationService, ILogger, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CheckReconciliation(): Compares stock and history for a given tank/day.
+ * - FixDiscrepancies(): Repairs detected discrepancies with audit user context.
+ * - FixBatchReconciliation(): Reconciles and auto-fixes across date ranges.
+ */
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using FMS.Application.Features.TankManagement.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
@@ -25,6 +37,25 @@ namespace FMS.WebClient.Controllers.FuelManagement
         {
             _reconciliationService = reconciliationService;
             _logger = logger;
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
+        }
+
+        private string GetCurrentUserIdOrDefault(string fallback = "SYSTEM")
+        {
+            if (TryGetCurrentUserId(out var userId))
+            {
+                return userId;
+            }
+
+            return User.Identity?.Name ?? fallback;
         }
 
         /// <summary>
@@ -75,7 +106,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 }
 
                 // Get user ID from claims
-                var userId = User.FindFirst("sub")?.Value ?? User.Identity?.Name ?? "SYSTEM";
+                var userId = GetCurrentUserIdOrDefault();
 
                 // Fix the discrepancies
                 var fixResult = await _reconciliationService.FixDiscrepanciesAsync(
@@ -137,7 +168,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
 
             try
             {
-                var userId = User.FindFirst("sub")?.Value ?? User.Identity?.Name ?? "SYSTEM";
+                var userId = GetCurrentUserIdOrDefault();
 
                 var result = await _reconciliationService.ReconcileDateRangeAsync(
                     request.TankId,

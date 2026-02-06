@@ -1,4 +1,10 @@
-﻿using FMS.Application.Command.PTSCommand.PumpCommands;
+﻿/**
+ * File: UploadStatusCommand.cs
+ * Purpose: Handles UploadStatus packets, broadcasts live status, and updates tank physical stock from probe data.
+ * Dependencies: MediatR, SignalR, Redis, GpsdataContext, SystemConfigurationService
+ * Last Modified: 2026-02-04
+ */
+using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
 using FMS.Application.Common.PTSResponse;
@@ -9,7 +15,12 @@ using FMS.Application.Features.ATG.Common;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock; //Cursor: Add for tank transfer service
+using FMS.Application.Features.Notification.Services.Integration;
+using FMS.Application.Features.Notification.Services.ActiveAlarm;
+using FMS.Application.Features.Notification.DTOs;
+using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
 using FMS.Domain.Entities.PTS.PTSStatus;
@@ -37,6 +48,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
 using StackExchange.Redis;
+using SystemConfigurationKeys = FMS.Application.Configuration.SystemConfiguration;
 
 namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 {
@@ -66,6 +78,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IAutoTransactionCompletionService _autoCompletionService; //Cursor: Add auto-completion service
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
         private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
+        private readonly ISystemConfigurationService _systemConfigurationService;
+        private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration; // For probe alarm processing
+        private readonly IActiveAlarmService _activeAlarmService; // For system-based alarms
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -81,7 +96,10 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             ITransactionCompletionService transactionCompletionService, //Cursor: Add for transaction completion
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
             IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
-            IServiceScopeFactory serviceScopeFactory) // For background task scoping
+            ISystemConfigurationService systemConfigurationService,
+            IServiceScopeFactory serviceScopeFactory, // For background task scoping
+            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration, // For probe alarm processing
+            IActiveAlarmService activeAlarmService) // For system-based alarms
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -96,7 +114,10 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _transactionCompletionService = transactionCompletionService; //Cursor: Add for transaction completion
             _autoCompletionService = autoCompletionService; //Cursor: Add auto-completion service
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
+            _systemConfigurationService = systemConfigurationService;
             _serviceScopeFactory = serviceScopeFactory; // For background task scoping
+            _activeAlarmIntegration = activeAlarmIntegration; // For probe alarm processing
+            _activeAlarmService = activeAlarmService; // For system-based alarms
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -131,11 +152,14 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     await ProcessLivePumpStatusInternally(deviceId!, uploadstatus.Pumps);
                 }
 
-                // // Optional: Internal processing for probes/readers - NO Hub calls
-                //  if (uploadstatus?.Probes != null)
-                //  {
-                //      await ProcessLiveProbeStatusInternalLogic(deviceId!, uploadstatus.Probes);
-                //  }
+                if (uploadstatus?.Probes != null)
+                {
+                    await ProcessLiveProbeStatusInternalLogic(deviceId!, uploadstatus.Probes, cancellationToken);
+
+                    // Process probe alarms from UploadStatus (Low/High product alarms, water alarms, leakage)
+                    await ProcessProbeAlarmsFromUploadStatusAsync(deviceId!, uploadstatus.Probes, cancellationToken);
+                }
+
                 //  if (uploadstatus?.Readers != null)
                 //  {
                 //      await ProcessLiveReaderStatusInternalLogic(deviceId!, uploadstatus.Readers);
@@ -420,13 +444,573 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         }
 
         // Internal processing logic - NO Hub calls
-        private Task ProcessLiveProbeStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus)
+        private async Task ProcessLiveProbeStatusInternalLogic(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus, CancellationToken cancellationToken)
         {
             _logger.LogTrace("[Internal] Processing Probe Status for {DeviceId}", deviceId);
-            // Example: Log online/offline probes
-            // if (probeStatus.OnlineStatus?.Ids != null) { /* Log IDs and maybe measurements */ }
-            // if (probeStatus.OfflineStatus?.Ids != null) { /* Log IDs */ }
-            return Task.CompletedTask;
+
+            if (string.IsNullOrWhiteSpace(deviceId) || probeStatus?.OnlineStatus?.Measurements == null)
+            {
+                return;
+            }
+
+            var usePtsProbeReadings = await _systemConfigurationService.GetPtsUsePtsProbeReadingsAsync(cancellationToken);
+            if (!usePtsProbeReadings)
+            {
+                return;
+            }
+
+            var measurements = probeStatus.OnlineStatus.Measurements
+                .Where(m => m != null && m.ProductVolume.HasValue && m.ProductVolume.Value >= 0)
+                .ToList();
+
+            if (measurements.Count == 0)
+            {
+                return;
+            }
+
+            var linkedTanks = await _context.Tanks
+                .Where(t => t.PtsId == deviceId)
+                .ToListAsync(cancellationToken);
+
+            if (linkedTanks.Count == 0)
+            {
+                return;
+            }
+
+            var updateIntervalSeconds = await _systemConfigurationService
+                .GetPtsUploadStatusPhysicalStockUpdateIntervalSecondsAsync(cancellationToken);
+            if (updateIntervalSeconds <= 0)
+            {
+                updateIntervalSeconds = SystemConfigurationKeys.DEFAULT_PTS_UPLOADSTATUS_PHYSICAL_STOCK_UPDATE_INTERVAL_SECONDS;
+            }
+
+            var updatesApplied = 0;
+
+            foreach (var tank in linkedTanks)
+            {
+                // Check per-tank setting - skip tanks that don't have probe reading updates enabled
+                if (!tank.UsePtsProbeReadings)
+                {
+                    continue;
+                }
+
+                var probeMeasurement = await ResolveProbeMeasurementForTankAsync(
+                    tank,
+                    measurements,
+                    linkedTanks.Count,
+                    cancellationToken);
+
+                if (probeMeasurement == null)
+                {
+                    continue;
+                }
+
+                var updated = await TryApplyAveragedPhysicalStockUpdateAsync(
+                    tank,
+                    probeMeasurement,
+                    updateIntervalSeconds);
+
+                if (updated)
+                {
+                    updatesApplied++;
+                }
+            }
+
+            if (updatesApplied > 0)
+            {
+                await _context.SaveChangesAsync(cancellationToken);
+                _logger.LogInformation(
+                    "[UploadStatus] Updated physical stock from probe averages for {UpdatedCount} tank(s) on device {DeviceId}",
+                    updatesApplied,
+                    deviceId);
+            }
+        }
+
+        /// <summary>
+        /// Processes probe alarms from UploadStatus OnlineStatus arrays.
+        /// Creates ActiveAlarm records for low/high product levels, water alarms, and tank leakage.
+        /// Uses Redis cooldown to prevent duplicate alarms within 5-minute windows.
+        /// </summary>
+        private async Task ProcessProbeAlarmsFromUploadStatusAsync(
+            string deviceId,
+            Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(deviceId) || probeStatus?.OnlineStatus == null)
+                {
+                    return;
+                }
+
+                var onlineStatus = probeStatus.OnlineStatus;
+
+                // Get device and linked tanks for context
+                var device = await _context.Ptsdevices
+                    .Include(d => d.SiteNavigation)
+                    .FirstOrDefaultAsync(d => d.Ptsid == deviceId, cancellationToken);
+
+                var linkedTanks = await _context.Tanks
+                    .Where(t => t.PtsId == deviceId)
+                    .ToListAsync(cancellationToken);
+
+                // Process Critical Low Product Alarms (Priority: Critical)
+                if (onlineStatus.CriticalLowProductAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.CriticalLowProductAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankCriticalLowLevel", "Critical", DiscrepancySeverity.Critical,
+                            "Critical low product level detected",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process Low Product Alarms (Priority: High)
+                if (onlineStatus.LowProductAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.LowProductAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankLowLevel", "High", DiscrepancySeverity.High,
+                            "Low product level detected",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process Critical High Product Alarms (Priority: Critical)
+                if (onlineStatus.CriticalHighProductAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.CriticalHighProductAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankCriticalHighLevel", "Critical", DiscrepancySeverity.Critical,
+                            "Critical high product level detected - potential overflow",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process High Product Alarms (Priority: High)
+                if (onlineStatus.HighProductAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.HighProductAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankHighLevel", "High", DiscrepancySeverity.High,
+                            "High product level detected",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process High Water Alarms (Priority: High)
+                if (onlineStatus.HighWaterAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.HighWaterAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankHighWaterLevel", "High", DiscrepancySeverity.High,
+                            "High water level detected in tank",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process Tank Leakage Alarms (Priority: Critical)
+                if (onlineStatus.TankLeakageAlarms?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.TankLeakageAlarms.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "TankLeakage", "Critical", DiscrepancySeverity.Critical,
+                            "Potential tank leakage detected - immediate investigation required",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+
+                // Process Errors (Priority: Medium)
+                if (onlineStatus.Errors?.Any() == true)
+                {
+                    foreach (var probeId in onlineStatus.Errors.Where(p => p.HasValue))
+                    {
+                        await CreateProbeAlarmIfNotInCooldownAsync(
+                            deviceId, device, linkedTanks, probeId!.Value,
+                            "ProbeError", "Medium", DiscrepancySeverity.Medium,
+                            "Probe error detected",
+                            onlineStatus.Measurements, cancellationToken);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] Error processing probe alarms for device {DeviceId}", deviceId);
+            }
+        }
+
+        /// <summary>
+        /// Creates an ActiveAlarm for a probe if not already in cooldown period.
+        /// Uses Redis to track 5-minute cooldown windows to prevent alarm spam.
+        /// </summary>
+        private async Task CreateProbeAlarmIfNotInCooldownAsync(
+            string deviceId,
+            Ptsdevice? device,
+            List<Tank> linkedTanks,
+            int probeId,
+            string alarmType,
+            string priority,
+            DiscrepancySeverity severity,
+            string message,
+            List<ProbeMeasurement>? measurements,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                // Check Redis cooldown (5 minutes to prevent alarm spam from 8-second uploads)
+                var cooldownKey = $"probe_alarm_cooldown:{deviceId}:{alarmType}:{probeId}";
+                var cooldownExists = await _redisDb.KeyExistsAsync(cooldownKey);
+
+                if (cooldownExists)
+                {
+                    _logger.LogTrace("[UploadStatus] Probe alarm {AlarmType} for device {DeviceId} probe {ProbeId} is in cooldown",
+                        alarmType, deviceId, probeId);
+                    return;
+                }
+
+                // Find the tank linked to this probe
+                var tank = linkedTanks.FirstOrDefault(t => t.ProbeNumber == probeId)
+                    ?? (linkedTanks.Count == 1 ? linkedTanks.First() : null);
+
+                // Get measurement data for the probe
+                var measurement = measurements?.FirstOrDefault(m => m.ProbeNumber == probeId);
+
+                // Set cooldown in Redis (5 minutes)
+                await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(5));
+
+                // Create ActiveAlarm via AlarmHandlerActiveAlarmIntegration
+                var additionalData = new Dictionary<string, object>
+                {
+                    { "ProbeId", probeId },
+                    { "DeviceId", deviceId },
+                    { "TriggerSource", "UploadStatus" }
+                };
+
+                if (measurement != null)
+                {
+                    if (measurement.ProductVolume.HasValue)
+                        additionalData["ProductVolume"] = measurement.ProductVolume.Value;
+                    if (measurement.ProductHeight.HasValue)
+                        additionalData["ProductHeight"] = measurement.ProductHeight.Value;
+                    if (measurement.WaterHeight.HasValue)
+                        additionalData["WaterHeight"] = measurement.WaterHeight.Value;
+                    if (measurement.Temperature.HasValue)
+                        additionalData["Temperature"] = measurement.Temperature.Value;
+                }
+
+                var activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
+                    alertRecordId: 0, // No alert record, this is from UploadStatus
+                    alarmType: alarmType,
+                    message: $"{message} - Tank: {tank?.Name ?? "Unknown"}, Probe: {probeId}",
+                    priority: priority,
+                    siteId: tank?.SiteId ?? device?.Site,
+                    tankId: tank?.Id,
+                    ptsDeviceId: deviceId,
+                    triggeredBy: "PTS-UploadStatus",
+                    additionalData: additionalData,
+                    cancellationToken: cancellationToken);
+
+                if (activeAlarm != null)
+                {
+                    _logger.LogInformation(
+                        "[UploadStatus] Created ActiveAlarm {AlarmId} of type {AlarmType} for device {DeviceId} probe {ProbeId}",
+                        activeAlarm.Id, alarmType, deviceId, probeId);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] Error creating probe alarm {AlarmType} for device {DeviceId} probe {ProbeId}",
+                    alarmType, deviceId, probeId);
+            }
+        }
+
+        private async Task<ProbeMeasurement?> ResolveProbeMeasurementForTankAsync(
+            Tank tank,
+            IReadOnlyCollection<ProbeMeasurement> measurements,
+            int linkedTankCount,
+            CancellationToken cancellationToken)
+        {
+            // ProbeNumber is now stored directly on the Tank entity
+            if (tank.ProbeNumber.HasValue && tank.ProbeNumber.Value > 0)
+            {
+                return measurements.FirstOrDefault(m => m.ProbeNumber == tank.ProbeNumber.Value);
+            }
+
+            if (linkedTankCount == 1)
+            {
+                return measurements.OrderBy(m => m.ProbeNumber).FirstOrDefault();
+            }
+
+            _logger.LogDebug(
+                "[UploadStatus] Skipping tank {TankId} on device {DeviceId}: probe binding not configured and multiple tanks are linked.",
+                tank.Id,
+                tank.PtsId);
+
+            return null;
+        }
+
+        private async Task<bool> TryApplyAveragedPhysicalStockUpdateAsync(Tank tank, ProbeMeasurement probeMeasurement, int updateIntervalSeconds)
+        {
+            if (!probeMeasurement.ProductVolume.HasValue)
+            {
+                return false;
+            }
+
+            var probeNumber = probeMeasurement.ProbeNumber > 0 ? probeMeasurement.ProbeNumber : 1;
+            var redisKey = $"device:{tank.PtsId}:tank:{tank.Id}:probe:{probeNumber}:physical-stock-window";
+            var now = DateTime.UtcNow;
+
+            var (sum, count, windowStartedAtUtc) = await GetProbeAccumulatorAsync(redisKey);
+            if (count <= 0 || windowStartedAtUtc > now)
+            {
+                windowStartedAtUtc = now;
+            }
+
+            sum += probeMeasurement.ProductVolume.Value;
+            count += 1;
+
+            var elapsed = now - windowStartedAtUtc;
+            if (elapsed.TotalSeconds < updateIntervalSeconds)
+            {
+                await SetProbeAccumulatorAsync(redisKey, sum, count, windowStartedAtUtc, now);
+                return false;
+            }
+
+            var average = sum / count;
+            if (double.IsNaN(average) || double.IsInfinity(average))
+            {
+                await SetProbeAccumulatorAsync(redisKey, 0d, 0, now, now);
+                return false;
+            }
+
+            tank.PhysicalStockValue = Convert.ToDecimal(Math.Round(average, 3));
+            tank.LastPhysicalStockUpdate = now;
+            tank.PhysicalStockSource = $"PTS UploadStatus Probe {probeNumber} (avg {count} samples/{updateIntervalSeconds}s)";
+
+            await SetProbeAccumulatorAsync(redisKey, 0d, 0, now, now);
+
+            _logger.LogDebug(
+                "[UploadStatus] Applied averaged physical stock update for tank {TankId} from probe {ProbeNumber}: {AverageVolume}L ({SampleCount} samples)",
+                tank.Id,
+                probeNumber,
+                average,
+                count);
+
+            // Check for system-based low level alarm (independent of PTS probe alarms)
+            await CheckSystemLowLevelAlarmAsync(tank, Convert.ToDecimal(average));
+
+            return true;
+        }
+
+        private async Task<(double Sum, int Count, DateTime WindowStartedAtUtc)> GetProbeAccumulatorAsync(string redisKey)
+        {
+            try
+            {
+                var redisValue = await _redisDb.StringGetAsync(redisKey);
+                if (!redisValue.HasValue)
+                {
+                    return (0d, 0, DateTime.UtcNow);
+                }
+
+                using var document = JsonDocument.Parse(redisValue.ToString());
+                var root = document.RootElement;
+
+                var sum = root.TryGetProperty("sum", out var sumElement) && sumElement.TryGetDouble(out var parsedSum)
+                    ? parsedSum
+                    : 0d;
+                var count = root.TryGetProperty("count", out var countElement) && countElement.TryGetInt32(out var parsedCount)
+                    ? parsedCount
+                    : 0;
+
+                DateTime windowStartedAtUtc = DateTime.UtcNow;
+                if (root.TryGetProperty("windowStartedAtUtc", out var windowElement))
+                {
+                    var windowString = windowElement.GetString();
+                    if (DateTime.TryParse(windowString, out var parsedWindow))
+                    {
+                        windowStartedAtUtc = parsedWindow.ToUniversalTime();
+                    }
+                }
+
+                return (sum, count, windowStartedAtUtc);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[UploadStatus] Failed to parse probe accumulator for key {RedisKey}", redisKey);
+                return (0d, 0, DateTime.UtcNow);
+            }
+        }
+
+        private async Task SetProbeAccumulatorAsync(string redisKey, double sum, int count, DateTime windowStartedAtUtc, DateTime lastReadingAtUtc)
+        {
+            var payload = JsonSerializer.Serialize(new
+            {
+                sum,
+                count,
+                windowStartedAtUtc = windowStartedAtUtc.ToUniversalTime().ToString("o"),
+                lastReadingAtUtc = lastReadingAtUtc.ToUniversalTime().ToString("o")
+            });
+
+            await _redisDb.StringSetAsync(
+                redisKey,
+                payload,
+                expiry: TimeSpan.FromMinutes(30));
+        }
+
+        /// <summary>
+        /// Checks if tank physical stock has fallen below configured threshold and creates a system-based ActiveAlarm.
+        /// This is independent of PTS probe alarms - it uses FMS system configuration for thresholds.
+        /// Uses percentage-based thresholds:
+        /// - Critical Low: 10% of tank capacity
+        /// - Low: 20% of tank capacity
+        /// - High: 90% of tank capacity
+        /// - Critical High: 95% of tank capacity
+        /// </summary>
+        private async Task CheckSystemLowLevelAlarmAsync(Tank tank, decimal currentVolume)
+        {
+            try
+            {
+                if (tank.TankVolume <= 0)
+                {
+                    return;
+                }
+
+                var percentageFull = (currentVolume / tank.TankVolume) * 100m;
+                
+                // Get system configuration thresholds (with defaults)
+                var criticalLowThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.CriticalLowLevelPercent", 10m);
+                var lowThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.LowLevelPercent", 20m);
+                var highThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.HighLevelPercent", 90m);
+                var criticalHighThreshold = await _systemConfigurationService.GetDecimalAsync("Tank.CriticalHighLevelPercent", 95m);
+
+                // Check thresholds and create alarms
+                if (percentageFull <= criticalLowThreshold)
+                {
+                    await CreateSystemLevelAlarmAsync(tank, currentVolume, percentageFull,
+                        "SystemCriticalLowLevel", "Critical", DiscrepancySeverity.Critical,
+                        $"Tank {tank.Name} is at critical low level ({percentageFull:F1}% - below {criticalLowThreshold}% threshold)");
+                }
+                else if (percentageFull <= lowThreshold)
+                {
+                    await CreateSystemLevelAlarmAsync(tank, currentVolume, percentageFull,
+                        "SystemLowLevel", "High", DiscrepancySeverity.High,
+                        $"Tank {tank.Name} is at low level ({percentageFull:F1}% - below {lowThreshold}% threshold)");
+                }
+                else if (percentageFull >= criticalHighThreshold)
+                {
+                    await CreateSystemLevelAlarmAsync(tank, currentVolume, percentageFull,
+                        "SystemCriticalHighLevel", "Critical", DiscrepancySeverity.Critical,
+                        $"Tank {tank.Name} is at critical high level ({percentageFull:F1}% - above {criticalHighThreshold}% threshold) - overflow risk");
+                }
+                else if (percentageFull >= highThreshold)
+                {
+                    await CreateSystemLevelAlarmAsync(tank, currentVolume, percentageFull,
+                        "SystemHighLevel", "High", DiscrepancySeverity.High,
+                        $"Tank {tank.Name} is at high level ({percentageFull:F1}% - above {highThreshold}% threshold)");
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] Error checking system low level alarm for tank {TankId}", tank.Id);
+            }
+        }
+
+        /// <summary>
+        /// Creates an ActiveAlarm for system-based tank level monitoring.
+        /// Uses 15-minute cooldown to prevent alarm spam while still being responsive.
+        /// </summary>
+        private async Task CreateSystemLevelAlarmAsync(
+            Tank tank,
+            decimal currentVolume,
+            decimal percentageFull,
+            string alarmType,
+            string priority,
+            DiscrepancySeverity severity,
+            string message)
+        {
+            try
+            {
+                // Use 15-minute cooldown for system alarms (longer than 5-minute PTS cooldown)
+                // This allows for operator response time while avoiding spam
+                var cooldownKey = $"system_tank_alarm:{tank.Id}:{alarmType}";
+                var cooldownExists = await _redisDb.KeyExistsAsync(cooldownKey);
+
+                if (cooldownExists)
+                {
+                    _logger.LogTrace("[UploadStatus] System alarm {AlarmType} for tank {TankId} is in cooldown", alarmType, tank.Id);
+                    return;
+                }
+
+                // Set cooldown in Redis (15 minutes)
+                await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(15));
+
+                var additionalData = new Dictionary<string, object>
+                {
+                    { "TankId", tank.Id },
+                    { "TankName", tank.Name },
+                    { "TankCapacity", tank.TankVolume },
+                    { "CurrentVolume", currentVolume },
+                    { "PercentageFull", percentageFull },
+                    { "TriggerSource", "System" },
+                    { "PtsId", tank.PtsId ?? "N/A" },
+                    { "ProbeNumber", tank.ProbeNumber ?? 0 },
+                    { "PtsTankId", tank.PtsTankId ?? 0 }
+                };
+
+                var activeAlarmRequest = new CreateActiveAlarmRequest
+                {
+                    AlarmType = alarmType,
+                    TriggerSource = "System",
+                    Message = message,
+                    Description = $"System-monitored tank level alarm. Tank: {tank.Name}, " +
+                                  $"Current: {currentVolume:N0}L ({percentageFull:F1}%), " +
+                                  $"Capacity: {tank.TankVolume:N0}L. " +
+                                  $"PTS Device: {tank.PtsId ?? "Not linked"}, Probe: {tank.ProbeNumber?.ToString() ?? "N/A"}",
+                    Severity = severity,
+                    Priority = priority,
+                    SiteId = tank.SiteId,
+                    TankId = tank.Id,
+                    PtsDeviceId = tank.PtsId,
+                    ThresholdValue = alarmType.Contains("Low") 
+                        ? (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalLowLevelPercent" : "Tank.LowLevelPercent", alarmType.Contains("Critical") ? 10m : 20m))
+                        : (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalHighLevelPercent" : "Tank.HighLevelPercent", alarmType.Contains("Critical") ? 95m : 90m)),
+                    ActualValue = percentageFull,
+                    Unit = "%",
+                    AdditionalData = additionalData,
+                    CheckForDuplicates = true,
+                    CreateNotification = true,
+                    SuppressNotifications = false,
+                    AutoResolveMinutes = 0, // System level alarms require manual resolution or next check
+                    TriggeredBy = "FMS-System"
+                };
+
+                var activeAlarm = await _activeAlarmService.CreateActiveAlarmAsync(
+                    activeAlarmRequest,
+                    CancellationToken.None);
+
+                if (activeAlarm != null)
+                {
+                    _logger.LogWarning(
+                        "[UploadStatus] Created system ActiveAlarm {AlarmId} of type {AlarmType} for tank {TankId} ({TankName}): {PercentageFull:F1}% full",
+                        activeAlarm.Id, alarmType, tank.Id, tank.Name, percentageFull);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[UploadStatus] Error creating system level alarm {AlarmType} for tank {TankId}", alarmType, tank.Id);
+            }
         }
 
         // Renamed to indicate internal processing only

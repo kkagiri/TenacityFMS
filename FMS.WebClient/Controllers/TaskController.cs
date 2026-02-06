@@ -1,4 +1,15 @@
- //Cursor - Create TaskController in FMS.WebClient/Controllers/
+/**
+ * File: TaskController.cs
+ * Purpose: Manages task CRUD, assignment, completion, and summary endpoints.
+ * Dependencies: MediatR task commands/queries, FMSResponse, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateTask(): Creates tasks with authenticated created-by metadata.
+ * - AssignTask(): Assigns tasks and records assignment actor.
+ * - GetTaskSummary(): Returns task summary with role-sensitive scoping.
+ */
+//Cursor - Create TaskController in FMS.WebClient/Controllers/
  using System.Security.Claims;
  using FMS.Application.Common;
  using FMS.Application.Features.FMS.Task;
@@ -19,6 +30,14 @@
 
          public TaskController (IMediator mediator) {
              _mediator = mediator;
+         }
+
+         private bool TryGetCurrentUserId (out string userId) {
+             userId = User.FindFirstValue (ClaimTypes.NameIdentifier) ??
+                 User.FindFirstValue ("sub") ??
+                 string.Empty;
+
+             return !string.IsNullOrWhiteSpace (userId);
          }
 
          [HttpGet]
@@ -57,8 +76,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> CreateTask ([FromBody] CreateTaskDTO taskDto) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var command = new CreateTaskCommand {
@@ -90,8 +108,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> UpdateTask (int id, [FromBody] UpdateTaskDTO taskDto) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var command = new UpdateTaskCommand {
@@ -124,8 +141,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> DeleteTask (int id) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var command = new DeleteTaskCommand {
@@ -148,8 +164,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> AssignTask (int id, [FromBody] AssignTaskDTO assignment) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var command = new AssignTaskCommand {
@@ -175,8 +190,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> CompleteTask (int id, [FromBody] CompleteTaskDTO completion) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var command = new CompleteTaskCommand {
@@ -201,8 +215,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> GetMyTasks ([FromQuery] bool includeCompleted = false) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
-                 if (string.IsNullOrEmpty (userId))
+                 if (!TryGetCurrentUserId (out var userId))
                      return Unauthorized ();
 
                  var query = new GetMyTasksQuery {
@@ -225,7 +238,7 @@
          [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
          public async Task<IActionResult> GetTaskSummary ([FromQuery] int? siteId, [FromQuery] DateTime? startDate, [FromQuery] DateTime? endDate) {
              try {
-                 var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value;
+                 var userId = TryGetCurrentUserId (out var currentUserId) ? currentUserId : null;
                  var userRole = User.FindFirst (ClaimTypes.Role)?.Value;
 
                  var query = new GetTaskSummaryQuery {

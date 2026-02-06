@@ -175,11 +175,14 @@ export const refreshAuthToken = async (serviceName = "SignalR") => {
       console.log(`[${serviceName}] Attempting token refresh...`);
 
       const response = await axiosInstance.post("/User/refresh-token", { refreshToken });
-      const responseData = response.data.Data || response.data.data || response.data;
-      const { Token: newToken, RefreshToken: newRefreshToken } = responseData;
+      // Backend uses camelCase JSON serialization
+      const responseData = response.data.data || response.data.Data || response.data;
+      // Support both camelCase (token) and PascalCase (Token) property names
+      const newToken = responseData.token || responseData.Token;
+      const newRefreshToken = responseData.refreshToken || responseData.RefreshToken;
 
       if (!newToken) {
-        console.error(`[${serviceName}] Token refresh returned no token`);
+        console.error(`[${serviceName}] Token refresh returned no token`, responseData);
         return null;
       }
 

@@ -1,3 +1,13 @@
+/**
+ * File: ErrorManagementController.cs
+ * Purpose: Captures and retrieves frontend error telemetry for diagnostics.
+ * Dependencies: MediatR, error log commands/queries, BaseApiController helpers.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GetErrorLogs(log): Persists frontend error reports with user context.
+ * - GetErrorLogs(list): Returns paged error logs with date filters.
+ */
 using System;
 using FMS.Application.Features.ErrorHandling.Commands;
 using FMS.Application.Features.ErrorHandling.Dtos;
@@ -28,11 +38,7 @@ public class ErrorManagementController : BaseApiController
     {
         try
         {
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _)
-            );
-            var userId = userIdClaim?.Value;
+            string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
             _logger.LogError("Frontend Error Reported by User {UserId}, Message : {ErrorMessage} ,UserAgent: {UserAgent}, URL: {Url}",
                 userId, errorLogReportDto.Message, errorLogReportDto.UserAgent, errorLogReportDto.Url);

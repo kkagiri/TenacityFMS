@@ -1,9 +1,19 @@
+/**
+ * File: App.js
+ * Purpose: Application root composition, auth bootstrapping, and global providers.
+ * Dependencies: React, Redux, Router, DevExtreme, FontAwesome assets.
+ * Last Modified: 2026-02-04
+ *
+ * Key Functions:
+ * - App(): Initializes API/auth state and returns authenticated or guest content.
+ * - Root(): Wraps App with global providers and error boundaries.
+ */
+
 import "devextreme/dist/css/dx.common.css";
 import "./themes/generated/theme.base.css";
 import "./themes/generated/dx.fluent.custom-scheme1.css";
 import "./themes/generated/theme.additional.css";
-import "./../assests/fontawesome/js/fontawesome";
-import "./../assests/fontawesome/js/light";
+import "./fontAwesomeConfig";
 
 import "./../assests/fontawesome/css/fontawesome.css";
 import "./../assests/fontawesome/css/light.css";

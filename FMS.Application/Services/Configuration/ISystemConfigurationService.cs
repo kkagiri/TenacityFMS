@@ -1,3 +1,9 @@
+/**
+ * File: ISystemConfigurationService.cs
+ * Purpose: Contract for accessing runtime system configuration values.
+ * Dependencies: System, System.Threading, FMS.Application.Configuration
+ * Last Modified: 2026-02-04
+ */
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -160,6 +166,11 @@ namespace FMS.Application.Services.Configuration
         Task<bool> GetPtsUsePtsProbeReadingsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Gets upload status physical stock update interval in seconds.
+        /// </summary>
+        Task<int> GetPtsUploadStatusPhysicalStockUpdateIntervalSecondsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets the volume source priority: 1=BookKeeping, 2=PTS Probe
         /// </summary>
         Task<int> GetPtsVolumeSourcePriorityAsync(CancellationToken cancellationToken = default);
@@ -213,6 +224,36 @@ namespace FMS.Application.Services.Configuration
         /// Gets whether to use GPS fuel level sensor to calculate remaining tank capacity (mobile app)
         /// </summary>
         Task<bool> GetPtsEnableGPSFuelLevelCheckAsync(CancellationToken cancellationToken = default);
+        #endregion
+
+        #region Generic Configuration Access
+        /// <summary>
+        /// Gets a decimal configuration value by key with a default fallback.
+        /// Useful for dynamic threshold configurations.
+        /// </summary>
+        /// <param name="key">The configuration key to look up</param>
+        /// <param name="defaultValue">Default value if key not found</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The decimal configuration value or default</returns>
+        Task<decimal> GetDecimalAsync(string key, decimal defaultValue, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets a boolean configuration value by key with a default fallback.
+        /// </summary>
+        /// <param name="key">The configuration key to look up</param>
+        /// <param name="defaultValue">Default value if key not found</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The boolean configuration value or default</returns>
+        Task<bool> GetBoolAsync(string key, bool defaultValue, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets an integer configuration value by key with a default fallback.
+        /// </summary>
+        /// <param name="key">The configuration key to look up</param>
+        /// <param name="defaultValue">Default value if key not found</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>The integer configuration value or default</returns>
+        Task<int> GetIntAsync(string key, int defaultValue, CancellationToken cancellationToken = default);
         #endregion
     }
 }

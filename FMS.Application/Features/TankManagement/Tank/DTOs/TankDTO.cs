@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**
+ * File: TankDTO.cs
+ * Purpose: Data transfer object for tank create/update/read operations.
+ * Dependencies: Newtonsoft.Json
+ * Last Modified: 2026-02-04
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,6 +24,22 @@ namespace FMS.Application.Features.FMS.Tank
         public decimal? TankHeight { get; set; }
 
         public string? PtsId { get; set; }
+
+        /// <summary>
+        /// The physical probe number assigned to this tank for ATG/probe measurements.
+        /// </summary>
+        public int? ProbeNumber { get; set; }
+
+        /// <summary>
+        /// The tank ID in the PTS system. Reserved for future JsonPTS services.
+        /// </summary>
+        public int? PtsTankId { get; set; }
+
+        /// <summary>
+        /// Whether to use PTS probe readings for automatic physical stock updates on this tank.
+        /// When true, the system will use probe measurements from UploadStatus to update PhysicalStockValue.
+        /// </summary>
+        public bool UsePtsProbeReadings { get; set; }
 
         public int SiteId { get; set; }
         public decimal? DiscrepancyThreshold { get; set; }

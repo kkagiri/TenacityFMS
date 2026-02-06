@@ -44,10 +44,6 @@ CREATE INDEX `IX_SystemConfigurations_IsActive_ConfigurationKey` ON `systemconfi
 INSERT IGNORE INTO `systemconfigurations`
 (`ConfigurationKey`, `ConfigurationValue`, `Description`, `DataType`, `Category`, `IsActive`, `IsEditable`, `CreatedBy`, `DefaultValue`)
 VALUES
-('System.WebSocketTimeout', '300000', 'WebSocket connection timeout in milliseconds', 'Int32', 'System', 1, 1, 'System', '300000'),
-('System.MaxConcurrentConnections', '100', 'Maximum concurrent WebSocket connections', 'Int32', 'System', 1, 1, 'System', '100'),
-('System.BufferSize', '65536', 'WebSocket buffer size in bytes', 'Int32', 'System', 1, 1, 'System', '65536'),
-('Reconciliation.DefaultThresholdLiters', '10.0', 'Default threshold for reconciliation discrepancies in liters', 'Double', 'Reconciliation', 1, 1, 'System', '10.0'),
-('Reconciliation.MaxRetryAttempts', '3', 'Maximum retry attempts for reconciliation processes', 'Int32', 'Reconciliation', 1, 1, 'System', '3'),
-('Email.TimeoutSeconds', '30', 'Email send timeout in seconds', 'Int32', 'Email', 1, 1, 'System', '30'),
-('Notification.MaxRetryAttempts', '3', 'Maximum retry attempts for notifications', 'Int32', 'Notification', 1, 1, 'System', '3');
+
+('Notification.MaxRetryAttempts', '3', 'Maximum retry attempts for notifications', 'Int32', 'Notification', 1, 1, 'System', '3'),
+('PTS.UploadStatus.PhysicalStockUpdateIntervalSeconds', '60', 'Minimum interval in seconds for applying averaged UploadStatus probe readings to tank physical stock', 'Int32', 'PTS', 1, 1, 'System', '60');

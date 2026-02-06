@@ -1,0 +1,91 @@
+/**
+ * File: IssueTrackerDetailPage.scss
+ * Purpose: Styles for Issue Tracker detail page tabs and components
+ * Dependencies: Tailwind CSS
+ * Last Modified: 2026-02-05
+ */
+
+.issue-detail-tabs {
+  .dx-tabpanel-tabs {
+    @apply tw-border-b tw-border-gray-200;
+
+    .dx-tab {
+      @apply tw-px-5 tw-py-3 tw-text-sm tw-font-medium tw-text-gray-600;
+      @apply tw-border-b-2 tw-border-transparent;
+      @apply tw-transition-colors tw-duration-150;
+
+      &:hover:not(.dx-tab-selected) {
+        @apply tw-text-gray-800 tw-bg-gray-50;
+      }
+
+      &.dx-tab-selected {
+        @apply tw-text-blue-600 tw-border-blue-600;
+        @apply tw-bg-white;
+      }
+
+      .dx-tab-text {
+        @apply tw-flex tw-items-center tw-gap-2;
+      }
+
+      i {
+        @apply tw-text-base;
+      }
+    }
+  }
+
+  .dx-multiview-wrapper {
+    @apply tw-border tw-border-t-0 tw-border-gray-200 tw-rounded-b-lg;
+    @apply tw-bg-white;
+  }
+}
+
+// Activity stream timeline styles
+.activity-timeline {
+  &-line {
+    @apply tw-absolute tw-left-4 tw-top-0 tw-bottom-0 tw-w-0.5 tw-bg-gray-200;
+    margin-left: 11px;
+  }
+
+  &-item {
+    @apply tw-relative tw-flex tw-items-start tw-gap-4 tw-py-3;
+
+    &:last-child {
+      @apply tw-pb-0;
+    }
+  }
+
+  &-icon {
+    @apply tw-relative tw-z-10 tw-flex tw-items-center tw-justify-center;
+    @apply tw-w-8 tw-h-8 tw-rounded-full;
+    @apply tw-flex-shrink-0;
+  }
+
+  &-content {
+    @apply tw-flex-1 tw-min-w-0;
+  }
+}
+
+// Print popup styles
+.issue-print-popup {
+  .dx-popup-content {
+    @apply tw-p-0;
+  }
+
+  .print-preview {
+    @apply tw-max-h-96 tw-overflow-y-auto tw-p-4;
+    @apply tw-border tw-border-gray-200 tw-rounded-lg tw-bg-gray-50;
+  }
+}
+
+// Linked issues grid styles
+.linked-issues-grid {
+  .dx-datagrid-rowsview {
+    .dx-row {
+      @apply tw-cursor-pointer;
+
+      &:hover {
+        @apply tw-bg-blue-50;
+      }
+    }
+  }
+}

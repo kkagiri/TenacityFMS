@@ -1,6 +1,18 @@
+/**
+ * File: ReportingController.cs
+ * Purpose: Manages report generation and user template operations for reporting.
+ * Dependencies: MediatR reporting commands/queries, ILogger, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GenerateReport(): Generates filtered reports and optional exports.
+ * - GetReportTemplates(): Retrieves templates for current user scope.
+ * - SaveReportTemplate(): Saves user-owned report templates.
+ */
 using System;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using FMS.Application.Features.Reporting.Commands;
 using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Queries;
@@ -27,6 +39,15 @@ namespace FMS.WebClient.Controllers
         {
             _mediator = mediator;
             _logger = logger;
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
         }
 
         /// <summary>
@@ -88,8 +109,7 @@ namespace FMS.WebClient.Controllers
                     return BadRequest("ReportId is required");
 
                 // Get user ID from claims
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+                string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 var command = new GenerateReportCommand
                 {
@@ -97,7 +117,7 @@ namespace FMS.WebClient.Controllers
                     Filters = request.Filters,
                     ExportFormat = request.ExportFormat,
                     IncludeCharts = request.IncludeCharts,
-                    UserId = userIdClaim?.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);
@@ -132,12 +152,11 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
+                string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 var query = new GetReportTemplatesQuery
                 {
-                    UserId = userIdClaim?.Value,
+                    UserId = userId,
                     ReportId = reportId,
                     IncludeShared = includeShared
                 };
@@ -163,16 +182,13 @@ namespace FMS.WebClient.Controllers
                 if (string.IsNullOrEmpty(template.TemplateName))
                     return BadRequest("Template name is required");
 
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentUserId(out var userId))
                     return Unauthorized();
 
                 var command = new SaveReportTemplateCommand
                 {
                     Template = template,
-                    UserId = userIdClaim.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);
@@ -193,16 +209,13 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier");
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentUserId(out var userId))
                     return Unauthorized();
 
                 var command = new DeleteReportTemplateCommand
                 {
                     TemplateId = templateId,
-                    UserId = userIdClaim.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);

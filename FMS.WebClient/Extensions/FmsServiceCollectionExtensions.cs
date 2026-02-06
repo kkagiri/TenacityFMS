@@ -529,6 +529,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IEmailService, EmailService>();
         services.AddScoped<ISmsService, SmsService>();
         services.AddScoped<INotificationService, NotificationService>();
+        // Issue Tracker Activity Service
+        services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueActivityService, FMS.Application.Features.IssueTracker.Services.IssueActivityService>();
         // Push notification service for mobile/web push
         services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
         // Real-time notification abstraction

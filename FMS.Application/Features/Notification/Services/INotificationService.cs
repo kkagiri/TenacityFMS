@@ -25,6 +25,7 @@ namespace FMS.Application.Features.Notification.Services
         Task<FMSResponse<List<NotificationPolicyDto>>> GetNotificationPoliciesAsync(CancellationToken cancellationToken = default);
         Task<FMSResponse<NotificationPolicyDto>> GetNotificationPolicyAsync(int policyId, CancellationToken cancellationToken = default);
         Task<FMSResponse<int>> CreateNotificationPolicyAsync(CreateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default);
+        Task<FMSResponse> UpdateNotificationPolicyAsync(int policyId, UpdateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default);
         Task<FMSResponse<List<object>>> GetAlertRecordsAsync(DateTime? fromDate, DateTime? toDate, int skip, int take, CancellationToken cancellationToken = default);
         Task<FMSResponse> SendTestNotificationAsync(TestNotificationRequest request, CancellationToken cancellationToken = default);
 

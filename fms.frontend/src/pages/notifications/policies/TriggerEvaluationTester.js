@@ -6,6 +6,16 @@ import { fetctTankbySiteId } from '../../../redux/actions/tankActions';
 import { selectSites } from '../../../redux/selectors/siteSelectors';
 import { selectTanksBySite } from '../../../redux/selectors/tankSelectors';
 
+/**
+ * File: TriggerEvaluationTester.js
+ * Purpose: Runs synthetic trigger evaluations for notification alarm handlers.
+ * Dependencies: react, react-redux, alarmHandlerApi, site/tank redux actions/selectors.
+ * Last Modified: 2026-02-04
+ *
+ * Key Functions:
+ * - TriggerEvaluationTester(): Renders test form for trigger types and submits evaluate-test payloads.
+ */
+
 // TriggerEvaluationTester: standalone synthetic evaluation form
 // Includes waterHeight and offlineMinutes fields derived from UploadStatus telemetry domain.
 export default function TriggerEvaluationTester({ policyId }) {
@@ -18,6 +28,8 @@ export default function TriggerEvaluationTester({ policyId }) {
     percentageFull: '', // used by TankLevelBelowThreshold
     waterHeight: '',    // may be used by WaterDetected
     offlineMinutes: '', // used by DeviceOffline
+    daysSinceLastFuelFill: '',  // used by TankNoFuelFillPosted
+    hasFuelFillRecord: true,    // used by TankNoFuelFillPosted
     siteId: '',
     tankId: '',
     deviceId: '',
@@ -45,12 +57,19 @@ export default function TriggerEvaluationTester({ policyId }) {
   const showPercentageFull = alarmType === 'TankLevelBelowThreshold';
   const showWaterHeight = alarmType === 'WaterDetected';
   const showOffline = alarmType === 'DeviceOffline';
+  const showMissingFuelFill = alarmType === 'TankNoFuelFillPosted';
   const showTankSelect = alarmType !== 'DeviceOffline'; // offline maybe device-level
 
   const runTest = async () => {
     setBusy(true);
     setResult(null);
     try {
+      const customData = {};
+      if (showMissingFuelFill) {
+        customData.hasFuelFillRecord = !!form.hasFuelFillRecord;
+        customData.daysSinceLastFuelFill = form.daysSinceLastFuelFill !== '' ? Number(form.daysSinceLastFuelFill) : null;
+      }
+
       const payload = {
         alarmType: form.alarmType,
         percentageFull: showPercentageFull && form.percentageFull !== '' ? Number(form.percentageFull) : undefined,
@@ -59,7 +78,8 @@ export default function TriggerEvaluationTester({ policyId }) {
         siteId: form.siteId ? Number(form.siteId) : undefined,
         tankId: showTankSelect && form.tankId ? Number(form.tankId) : undefined,
         deviceId: form.deviceId ? Number(form.deviceId) : undefined,
-        ptsDeviceId: form.ptsDeviceId || undefined
+        ptsDeviceId: form.ptsDeviceId || undefined,
+        data: Object.keys(customData).length > 0 ? customData : undefined
       };
       const res = await alarmHandlerApi.evaluateTest(payload);
       setResult(res);
@@ -80,6 +100,7 @@ export default function TriggerEvaluationTester({ policyId }) {
             <option value="TankLevelBelowThreshold">TankLevelBelowThreshold</option>
             <option value="WaterDetected">WaterDetected</option>
             <option value="DeviceOffline">DeviceOffline</option>
+            <option value="TankNoFuelFillPosted">TankNoFuelFillPosted</option>
           </select>
         </div>
         {showPercentageFull && (
@@ -98,6 +119,21 @@ export default function TriggerEvaluationTester({ policyId }) {
           <div>
             <label className="tw-block tw-mb-1">Offline Minutes</label>
             <input className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" type="number" value={form.offlineMinutes} onChange={e => update('offlineMinutes', e.target.value)} placeholder="e.g. 30" />
+          </div>
+        )}
+        {showMissingFuelFill && (
+          <div>
+            <label className="tw-block tw-mb-1">Days Since Fuel Fill</label>
+            <input className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" type="number" value={form.daysSinceLastFuelFill} onChange={e => update('daysSinceLastFuelFill', e.target.value)} placeholder="e.g. 3" />
+          </div>
+        )}
+        {showMissingFuelFill && (
+          <div>
+            <label className="tw-block tw-mb-1">Has Fuel Fill Record</label>
+            <select className="tw-w-full tw-border tw-rounded tw-px-2 tw-py-1" value={form.hasFuelFillRecord ? 'true' : 'false'} onChange={e => update('hasFuelFillRecord', e.target.value === 'true')}>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </select>
           </div>
         )}
         <div>

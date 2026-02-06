@@ -30,9 +30,13 @@ namespace FMS.WebClient.Controllers.Base {
         /// </summary>
         /// <returns>User ID claim if valid, null otherwise</returns>
         protected Claim? GetUserIdClaim () {
-            return User.Claims.FirstOrDefault (c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse (c.Value, out _));
+            Claim? userIdClaim = User.FindFirst (ClaimTypes.NameIdentifier) ??
+                User.FindFirst ("sub");
+
+            if (userIdClaim == null)
+                return null;
+
+            return Guid.TryParse (userIdClaim.Value, out _) ? userIdClaim : null;
         }
 
         /// <summary>

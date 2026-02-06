@@ -1,3 +1,12 @@
+/**
+ * File: NotificationMappingProfile.cs
+ * Purpose: AutoMapper profile for notification-related DTO/entity conversions.
+ * Dependencies: AutoMapper, Notification DTOs, Domain entities
+ * Last Modified: 2026-02-04
+ *
+ * Key Functions:
+ * - NotificationMappingProfile(): Registers notification mapping configurations.
+ */
 using System;
 using System.Linq;
 using AutoMapper;
@@ -80,6 +89,7 @@ namespace FMS.Application.MappingProfile {
 
             // Notification policy listing
             CreateMap<NotificationPolicy, NotificationPolicyDto> ()
+                .ForMember (d => d.ActiveAlarmFilter, opt => opt.MapFrom (s => s.TriggerConditions))
                 .ForMember (d => d.CategoryName, opt => opt.MapFrom (s => s.NotificationCategory != null ? s.NotificationCategory.Name : null))
                 .ForMember (d => d.RecipientCount, opt => opt.MapFrom (s => s.PolicyRecipients.Count (r => r.IsActive)))
                 .ForMember (d => d.GroupCount, opt => opt.MapFrom (s => s.PolicyGroups.Count ()))

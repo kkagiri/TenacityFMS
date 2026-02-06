@@ -66,6 +66,15 @@ const IssueTrackerListPage = () => {
   const [bulkStatus, setBulkStatus] = useState('');
   const dataGridRef = useRef(null);
 
+  // Apply filters from navigation state (e.g., from detail page vehicle/site history links)
+  useEffect(() => {
+    if (location.state?.applyFilters) {
+      updateFilters(location.state.applyFilters);
+      // Clear the navigation state after applying
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state, updateFilters]);
+
   useEffect(() => {
     loadIssues(filters);
   }, [filters, loadIssues]);
@@ -176,7 +185,7 @@ const IssueTrackerListPage = () => {
         stylingMode="text"
         onClick={(e) => {
           e.stopPropagation();
-          navigate(`/issue-tracker/edit/${cellData.data.id}`);
+          navigate(`/issue-tracker/details/${cellData.data.id}`);
         }}
       />
       {cellData.data.gpsLatitude && cellData.data.gpsLongitude && (
@@ -432,8 +441,17 @@ const IssueTrackerListPage = () => {
               caption="Vehicle"
               width="150"
               allowSorting={true}
+              visible={true}
               cellRender={(data) => (
-                <span>{data.data.vehicleHyoungNo || data.data.vehicleNumber || 'N/A'}</span>
+                <div className="tw-flex tw-items-center">
+                  {data.data.vehicleHyoungNo || data.data.vehicleNumber ? (
+                    <span className="tw-font-medium tw-text-gray-700">
+                      {data.data.vehicleHyoungNo || data.data.vehicleNumber}
+                    </span>
+                  ) : (
+                    <span className="tw-text-gray-400 tw-text-sm">N/A</span>
+                  )}
+                </div>
               )}
             />
 
@@ -442,6 +460,7 @@ const IssueTrackerListPage = () => {
               caption="Assigned To"
               width="150"
               allowSorting={true}
+              visible={true}
               cellRender={(data) => (
                 <div className="tw-flex tw-items-center">
                   {data.value ? (
@@ -534,7 +553,7 @@ const IssueTrackerListPage = () => {
                   key={issue.id}
                   issue={issue}
                   onView={(issue) => navigate(`/issue-tracker/details/${issue.id}`)}
-                  onEdit={(issue) => navigate(`/issue-tracker/edit/${issue.id}`)}
+                  onEdit={(issue) => navigate(`/issue-tracker/details/${issue.id}`)}
                   className="tw-h-full"
                 />
               ))}

@@ -138,7 +138,7 @@ const IssueAssignmentResponsePage = () => {
             <button
               type="button"
               className="tw-px-4 tw-py-2 tw-bg-blue-600 tw-text-white tw-rounded"
-              onClick={() => navigate(`/issue-tracker/edit/${issue.id}`)}
+              onClick={() => navigate(`/issue-tracker/details/${issue.id}`)}
             >
               Open Issue
             </button>
@@ -222,7 +222,7 @@ const IssueAssignmentResponsePage = () => {
             <button
               type="button"
               className="tw-px-4 tw-py-2 tw-border tw-border-gray-300 tw-rounded tw-text-gray-700"
-              onClick={() => navigate(`/issue-tracker/edit/${issue.id}`)}
+              onClick={() => navigate(`/issue-tracker/details/${issue.id}`)}
               disabled={submitting}
             >
               Open Issue

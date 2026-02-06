@@ -74,8 +74,12 @@ export const signIn = (username, password) => async (dispatch) => {
         const response = await axiosInstance.post(`/User/Login`, { username, password });
 
         // Backend now returns FMSResponse with { Data: { Token, RefreshToken, User } }
-        const responseData = response.data.Data || response.data.data || response.data;
-        const { Token: token, RefreshToken: refreshToken, User: user } = responseData;
+        // Backend uses camelCase JSON serialization
+        const responseData = response.data.data || response.data.Data || response.data;
+        // Support both camelCase and PascalCase property names
+        const token = responseData.token || responseData.Token;
+        const refreshToken = responseData.refreshToken || responseData.RefreshToken;
+        const user = responseData.user || responseData.User;
 
         if (!token) {
             throw new Error('No token received from server');

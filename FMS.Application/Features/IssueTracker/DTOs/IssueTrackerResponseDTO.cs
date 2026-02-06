@@ -1,7 +1,9 @@
 using System;
 
-namespace FMS.Application.Features.FMS.Issuetracker {
-    public class IssueTrackerResponseDTO {
+namespace FMS.Application.Features.FMS.Issuetracker
+{
+    public class IssueTrackerResponseDTO
+    {
         public int Id { get; set; }
         public string ProblemTitle { get; set; } = string.Empty;
         public string ProblemDescription { get; set; } = string.Empty;
@@ -45,5 +47,11 @@ namespace FMS.Application.Features.FMS.Issuetracker {
         public int? DeviceId { get; set; }
         public int? DeviceType { get; set; }
         public string DeviceTypeName { get; set; } = string.Empty;
+
+        // V2 Template-based fields
+        public int? IssueTemplateId { get; set; }
+        public string? TemplateName { get; set; }
+        public bool CanAutoClose { get; set; }
+        public bool IsAutoCreated { get; set; }
     }
 }

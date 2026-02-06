@@ -81,6 +81,10 @@ Email system configurations:
 Notification system settings:
 - `Notification.MaxRetryAttempts`: Maximum retry attempts for notifications
 
+### PTS
+PTS device and probe integration settings:
+- `PTS.UploadStatus.PhysicalStockUpdateIntervalSeconds`: Minimum interval in seconds before applying averaged UploadStatus `ProductVolume` to `Tank.PhysicalStockValue` (default: 60)
+
 ## Data Type Support
 
 The system supports the following data types:

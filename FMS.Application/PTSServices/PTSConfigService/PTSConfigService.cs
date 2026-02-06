@@ -132,10 +132,41 @@ namespace FMS.Application.PTSServices.PTSConfigService
             throw new NotImplementedException();
         }
 
-        public Task<FMSResponse<ProbesConfigurationResponse>> GetProbesConfigurationAsync(string ptsDeviceId)
+        public async Task<FMSResponse<ProbesConfigurationResponse>> GetProbesConfigurationAsync(string ptsDeviceId)
         {
-            _logger.LogWarning("GetProbesConfigurationAsync is not yet implemented.");
-            throw new NotImplementedException();
+            try
+            {
+                _logger.LogInformation("Requesting Probes Configuration from PTS device {DeviceId}", ptsDeviceId);
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, "GetProbesConfiguration", null);
+
+                if (!result.Success || result.CommandData == null)
+                {
+                    _logger.LogWarning("Failed to get Probes Configuration from PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<ProbesConfigurationResponse>.Failed(result.Message ?? "Failed to retrieve Probes Configuration from device.");
+                }
+
+                var data = JObject.FromObject(result.CommandData);
+                var probesConfigResponse = data.ToObject<ProbesConfigurationResponse>();
+
+                if (probesConfigResponse == null)
+                {
+                    _logger.LogError("Failed to parse Probes Configuration response from PTS device {DeviceId}. Data: {CommandData}", ptsDeviceId, result.CommandData);
+                    return FMSResponse<ProbesConfigurationResponse>.Failed("Failed to parse Probes Configuration response from device");
+                }
+
+                return FMSResponse<ProbesConfigurationResponse>.Success(probesConfigResponse, "Probes Configuration retrieved successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while getting Probes Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<ProbesConfigurationResponse>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Probes Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<ProbesConfigurationResponse>.Failed("Internal server error while getting Probes Configuration");
+            }
         }
 
         public Task<FMSResponse<FuelGradesConfigurationResponse>> GetFuelGradesConfigurationAsync(string ptsDeviceId)

@@ -1,9 +1,22 @@
+/**
+ * File: IssueTrackerController.cs
+ * Purpose: Exposes issue tracking CRUD and assignment workflow APIs.
+ * Dependencies: MediatR issue commands/queries, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - PostIssueTracker(): Creates issue records.
+ * - RespondToIssueAssignment(): Captures assignment accept/decline responses.
+ * - DeleteIssueTracker(): Deletes issue records by ID.
+ */
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Category;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Priority;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Status;
 using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Application.Features.IssueTracker.Commands.Issues;
+using FMS.Application.Features.IssueTracker.DTOs;
+using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Category;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Priority;
@@ -22,6 +35,23 @@ namespace FMS.WebClient.Controllers
     public class IssueTrackerController(IMediator mediator) : ControllerBase
     {
         private readonly IMediator _mediator = mediator;
+
+        private string GetCurrentUserIdOrDefault()
+        {
+            return User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.Identity?.Name
+                ?? string.Empty;
+        }
+
+        private string GetCurrentUserNameOrDefault()
+        {
+            return User.FindFirstValue(ClaimTypes.Name)
+                ?? User.FindFirstValue("name")
+                ?? User.FindFirstValue("username")
+                ?? User.Identity?.Name
+                ?? string.Empty;
+        }
 
         //Api: Get all issue tracker
         [HttpGet]
@@ -85,6 +115,47 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        // Api: Quick action on issue (Mark Complete, Escalate Priority) with notifications
+        [HttpPost("{id}/quick-action")]
+        [Authorize]
+        public async Task<IActionResult> PerformQuickAction(int id, [FromBody] QuickActionRequest request)
+        {
+            try
+            {
+                if (request is null)
+                {
+                    return BadRequest(new { message = "Quick action request is required" });
+                }
+
+                // Map the request to the command
+                var quickActionRequest = new IssueQuickActionRequest
+                {
+                    IssueId = id,
+                    ActionType = request.ActionType.ToLower() switch
+                    {
+                        "markcomplete" or "complete" or "close" => IssueQuickActionType.MarkComplete,
+                        "escalate" or "escalatehigh" or "highpriority" => IssueQuickActionType.EscalateToHigh,
+                        _ => throw new ArgumentException($"Unknown action type: {request.ActionType}")
+                    },
+                    PerformedByUserId = GetCurrentUserIdOrDefault(),
+                    Notes = request.Notes
+                };
+
+                var command = new IssueQuickActionCommand(quickActionRequest);
+                var result = await _mediator.Send(command);
+
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (ArgumentException ex)
+            {
+                return BadRequest(new { message = ex.Message });
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error performing quick action on issue {id}: {ex.Message}" });
+            }
+        }
+
         // Api: Assigned worker confirms or schedules issue assignment
         [HttpPost("{id}/assignment-response")]
         [Authorize]
@@ -97,9 +168,7 @@ namespace FMS.WebClient.Controllers
                     return BadRequest(new { message = "Assignment response payload is required" });
                 }
 
-                request.RespondedByUserId = User.FindFirstValue(ClaimTypes.NameIdentifier)
-                    ?? User.FindFirstValue("sub")
-                    ?? User.Identity?.Name;
+                request.RespondedByUserId = GetCurrentUserIdOrDefault();
 
                 RespondToIssueAssignmentCommand command = new(request, id);
                 var result = await _mediator.Send(command);
@@ -141,6 +210,47 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = $"Error fetching issues for vehicle {vehicleId}: {ex.Message}" });
+            }
+        }
+
+        // Api: Get user dashboard data - comprehensive issue statistics for logged-in user
+        [HttpGet("user-dashboard")]
+        [Authorize]
+        public async Task<IActionResult> GetUserDashboard(
+            [FromQuery] int? vehicleId = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] int? categoryId = null,
+            [FromQuery] int? weeksBack = null,
+            [FromQuery] DateTime? startDate = null,
+            [FromQuery] DateTime? endDate = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var request = new FMS.Application.Features.IssueTracker.Queries.UserIssuesDashboardRequest
+                {
+                    UserId = userId,
+                    VehicleId = vehicleId,
+                    SiteId = siteId,
+                    CategoryId = categoryId,
+                    WeeksBack = weeksBack,
+                    StartDate = startDate,
+                    EndDate = endDate
+                };
+
+                var query = new FMS.Application.Features.IssueTracker.Queries.GetUserIssuesDashboardQuery(request);
+                var result = await _mediator.Send(query);
+
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching user dashboard: {ex.Message}" });
             }
         }
 
@@ -477,6 +587,209 @@ namespace FMS.WebClient.Controllers
                 return Task.FromResult<IActionResult>(BadRequest(new { message = $"Error in bulk status update: {ex.Message}" }));
             }
         }
+
+        // ===== ACTIVITY LOG ENDPOINTS =====
+
+        /// <summary>
+        /// Get activity stream for an issue
+        /// </summary>
+        [HttpGet("{id}/activities")]
+        public async Task<IActionResult> GetIssueActivities(int id, [FromQuery] int? limit = null)
+        {
+            try
+            {
+                var query = new GetIssueActivitiesQuery(id, limit);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching activities for issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== REMINDER ENDPOINTS =====
+
+        /// <summary>
+        /// Get reminder for an issue
+        /// </summary>
+        [HttpGet("{id}/reminder")]
+        public async Task<IActionResult> GetIssueReminder(int id)
+        {
+            try
+            {
+                var query = new GetIssueReminderQuery(id);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching reminder for issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Create or update reminder for an issue
+        /// </summary>
+        [HttpPost("{id}/reminder")]
+        [Authorize]
+        public async Task<IActionResult> CreateIssueReminder(int id, [FromBody] CreateIssueReminderDTO reminderData)
+        {
+            try
+            {
+                if (reminderData is null)
+                {
+                    return BadRequest(new { message = "Reminder data is required" });
+                }
+
+                reminderData.IssueId = id;
+                var userId = GetCurrentUserIdOrDefault();
+                var userName = GetCurrentUserNameOrDefault();
+
+                var command = new CreateIssueReminderCommand(reminderData, userId, userName);
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error creating reminder for issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== FOLLOW ISSUE ENDPOINTS =====
+
+        /// <summary>
+        /// Follow an issue to receive activity notifications
+        /// </summary>
+        [Authorize]
+        [HttpPost("{id}/follow")]
+        public async Task<IActionResult> FollowIssue(int id, [FromBody] FollowIssueRequestDTO? request = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+                var userName = GetCurrentUserNameOrDefault();
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var command = new FollowIssueCommand(
+                    id,
+                    userId,
+                    userName,
+                    request?.NotifyByEmail ?? true,
+                    request?.NotifyByPush ?? true
+                );
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error following issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Unfollow an issue to stop receiving activity notifications
+        /// </summary>
+        [Authorize]
+        [HttpDelete("{id}/follow")]
+        public async Task<IActionResult> UnfollowIssue(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+                var userName = GetCurrentUserNameOrDefault();
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var command = new UnfollowIssueCommand(id, userId, userName);
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error unfollowing issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Check if current user is following an issue
+        /// </summary>
+        [Authorize]
+        [HttpGet("{id}/is-following")]
+        public async Task<IActionResult> IsFollowingIssue(int id)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Ok(new { isFollowing = false });
+                }
+
+                var query = new IsFollowingIssueQuery(id, userId);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error checking follow status for issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Get all issues followed by the current user (for dashboard ticker)
+        /// </summary>
+        [Authorize]
+        [HttpGet("followed")]
+        public async Task<IActionResult> GetFollowedIssues([FromQuery] int? limit = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var query = new GetFollowedIssuesQuery(userId, limit);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching followed issues: {ex.Message}" });
+            }
+        }
+
+        // ===== LINKED ISSUES ENDPOINTS =====
+
+        /// <summary>
+        /// Get issues linked by the same template or category
+        /// </summary>
+        [HttpGet("{id}/linked-issues")]
+        public async Task<IActionResult> GetLinkedIssues(int id)
+        {
+            try
+            {
+                var query = new GetLinkedIssuesQuery(id);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching linked issues for issue {id}: {ex.Message}" });
+            }
+        }
     }
 
     // DTOs for bulk operations
@@ -492,5 +805,14 @@ namespace FMS.WebClient.Controllers
         public IEnumerable<int> IssueIds { get; set; } = [];
         public string NewStatus { get; set; } = string.Empty;
         public string UpdatedBy { get; set; } = string.Empty;
+    }
+
+    public class QuickActionRequest
+    {
+        /// <summary>
+        /// Action type: "MarkComplete", "Complete", "Close", "Escalate", "EscalateHigh", "HighPriority"
+        /// </summary>
+        public string ActionType { get; set; } = string.Empty;
+        public string? Notes { get; set; }
     }
 }

@@ -1,9 +1,21 @@
+/**
+ * File: StockReportController.cs
+ * Purpose: Generates and exports tank stock reports with filtering options.
+ * Dependencies: MediatR stock report commands/queries, ILogger, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GenerateStockReport(): Generates stock reports for selected filters.
+ * - ExportStockReport(): Exports generated reports in selected format.
+ * - GetStockReports(): Retrieves generated stock report history.
+ */
 using System.ComponentModel.DataAnnotations;
 using FMS.Application.Common;
 using FMS.Application.Features.FMS.TankStock;
 using FMS.Application.Features.TankManagement.TankStock.Commands;
 using FMS.Application.Features.TankManagement.TankStock.Queries;
 using MediatR;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -23,6 +35,14 @@ public class StockReportController : ControllerBase {
         _logger = logger;
     }
 
+    private bool TryGetCurrentUserId (out string userId) {
+        userId = User.FindFirstValue (ClaimTypes.NameIdentifier) ??
+            User.FindFirstValue ("sub") ??
+            string.Empty;
+
+        return Guid.TryParse (userId, out _);
+    }
+
     /// <summary>
     /// Generate a stock report based on specified criteria
     /// </summary>
@@ -34,11 +54,7 @@ public class StockReportController : ControllerBase {
 
         if (!ModelState.IsValid) return BadRequest (ModelState);
 
-        var userIdClaim = User.Claims.FirstOrDefault (c =>
-            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-            Guid.TryParse (c.Value, out _));
-
-        if (userIdClaim == null) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
+        if (!TryGetCurrentUserId (out var userId)) return BadRequest (new FMSResponseMessage (false, "Invalid User ID"));
 
         try {
             //Cursor - Generate actual stock report using real data
@@ -50,23 +66,23 @@ public class StockReportController : ControllerBase {
                 IncludeCharts = reportRequest.IncludeCharts,
                 IncludeDetails = reportRequest.IncludeDetails,
                 TankIds = reportRequest.TankIds,
-                UserId = userIdClaim.Value
+                UserId = userId
             };
 
             var result = await _mediator.Send (command);
 
             if (result.IsSuccess) {
                 _logger.LogInformation ("Stock report generated successfully: {ReportId} for user {UserId}",
-                    result.Data.Id, userIdClaim.Value);
+                    result.Data.Id, userId);
 
                 return Ok (result);
             } else {
                 _logger.LogWarning ("Failed to generate stock report for user {UserId}: {Message}",
-                    userIdClaim.Value, result.Message);
+                    userId, result.Message);
                 return BadRequest (result);
             }
         } catch (Exception ex) {
-            _logger.LogError (ex, "Error generating stock report for user {UserId}", userIdClaim.Value);
+            _logger.LogError (ex, "Error generating stock report for user {UserId}", userId);
             return BadRequest (FMSResponse<StockReportResultDTO>.SystemError ("Error generating stock report"));
         }
     }

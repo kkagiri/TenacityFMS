@@ -1,6 +1,8 @@
 ﻿using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -13,22 +15,29 @@ using System.Threading.Tasks;
 namespace FMS.Application.Command.DatabaseCommand.UserManagement
 {
     public record UserUpdateCommand(
-        string UserId, 
-        string Email, 
-        string UserName, 
+        string UserId,
+        string Email,
+        string UserName,
         string RoleName,
-        bool? BypassLocationValidation = null) : IRequest<bool>;
+        bool? BypassLocationValidation = null,
+        int? DepartmentId = null) : IRequest<bool>;
 
     public class UserUpdateCommandHandler : IRequestHandler<UserUpdateCommand, bool>
     {
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
+        private readonly GpsdataContext _context;
         private readonly ILogger<UserUpdateCommandHandler> _logger;
 
-        public UserUpdateCommandHandler(UserManager<User> userManager, RoleManager<Role> roleManager, ILogger<UserUpdateCommandHandler> logger)
+        public UserUpdateCommandHandler(
+            UserManager<User> userManager,
+            RoleManager<Role> roleManager,
+            GpsdataContext context,
+            ILogger<UserUpdateCommandHandler> logger)
         {
             _userManager = userManager;
             _roleManager = roleManager;
+            _context = context;
             _logger = logger;
         }
 
@@ -46,12 +55,28 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
 
                 user.Email = request.Email;
                 user.UserName = request.UserName;
-                
+
                 // Update bypass location validation if provided
                 if (request.BypassLocationValidation.HasValue)
                 {
                     user.BypassLocationValidation = request.BypassLocationValidation.Value;
                 }
+
+                // Update department if provided (allow setting to null to remove department)
+                // DepartmentId is always updated when present in the request
+                if (request.DepartmentId.HasValue)
+                {
+                    // Validate department exists and is active
+                    var departmentExists = await _context.Departments
+                        .AsNoTracking()
+                        .AnyAsync(d => d.DepartmentId == request.DepartmentId.Value && d.IsActive, cancellationToken);
+
+                    if (!departmentExists)
+                    {
+                        throw new Exception("Selected department does not exist or is inactive.");
+                    }
+                }
+                user.DepartmentId = request.DepartmentId;
 
                 var result = await _userManager.UpdateAsync(user);
 

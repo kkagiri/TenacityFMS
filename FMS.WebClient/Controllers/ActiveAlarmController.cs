@@ -1,3 +1,14 @@
+/**
+ * File: ActiveAlarmController.cs
+ * Purpose: Manages active alarm lifecycle actions and testing endpoints.
+ * Dependencies: IActiveAlarmService, INotificationService, ILogger, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - CreateActiveAlarm(): Creates active alarms with current user context.
+ * - BulkAcknowledgeAlarms(): Acknowledges multiple alarms in one request.
+ * - CreateTestAlarm(): Creates test alarms and related notifications.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -37,6 +48,18 @@ namespace FMS.WebClient.Controllers {
             _logger = logger;
         }
 
+        private bool TryGetCurrentUserId (out string userId) {
+            userId = User.FindFirstValue (ClaimTypes.NameIdentifier) ??
+                User.FindFirstValue ("sub") ??
+                string.Empty;
+
+            return !string.IsNullOrWhiteSpace (userId);
+        }
+
+        private string GetCurrentUserIdOrDefault (string fallback = "Unknown") {
+            return TryGetCurrentUserId (out var userId) ? userId : fallback;
+        }
+
         /// <summary>
         /// Creates a new active alarm
         /// </summary>
@@ -46,7 +69,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost]
         public async Task<IActionResult> CreateActiveAlarm ([FromBody] CreateActiveAlarmRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 if (string.IsNullOrEmpty (request.TriggeredBy)) {
                     request.TriggeredBy = userId;
                 }
@@ -134,7 +157,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("{id}/acknowledge")]
         public async Task<IActionResult> AcknowledgeAlarm (int id, [FromBody] AcknowledgeAlarmRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 var alarm = await _activeAlarmService.AcknowledgeAlarmAsync (id, userId, request.Notes, cancellationToken);
 
                 if (alarm == null) {
@@ -165,7 +188,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("{id}/resolve")]
         public async Task<IActionResult> ResolveAlarm (int id, [FromBody] ResolveAlarmRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 var alarm = await _activeAlarmService.ResolveAlarmAsync (id, userId, request.ResolutionNotes, cancellationToken);
 
                 if (alarm == null) {
@@ -195,7 +218,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("{id}/suppress")]
         public async Task<IActionResult> SuppressAlarm (int id, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 var alarm = await _activeAlarmService.SuppressAlarmAsync (id, userId, cancellationToken);
 
                 if (alarm == null) {
@@ -225,7 +248,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("{id}/escalate")]
         public async Task<IActionResult> EscalateAlarm (int id, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 var alarm = await _activeAlarmService.EscalateAlarmAsync (id, userId, cancellationToken);
 
                 if (alarm == null) {
@@ -255,7 +278,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("bulk-acknowledge")]
         public async Task<IActionResult> BulkAcknowledgeAlarms ([FromBody] BulkAcknowledgeRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userId = User.FindFirst (ClaimTypes.NameIdentifier)?.Value ?? "Unknown";
+                var userId = GetCurrentUserIdOrDefault ();
                 var count = await _activeAlarmService.BulkAcknowledgeAlarmsAsync (request.AlarmIds, userId, request.Notes, cancellationToken);
 
                 return Ok (new {
@@ -343,12 +366,7 @@ namespace FMS.WebClient.Controllers {
         [HttpPost ("test")]
         public async Task<IActionResult> CreateTestAlarm ([FromBody] CreateActiveAlarmRequest request, CancellationToken cancellationToken = default) {
             try {
-                var userIdClaim = User.Claims.FirstOrDefault (c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse (c.Value, out _)
-                );
-
-                var userId = userIdClaim?.Value ?? "TestUser";
+                var userId = GetCurrentUserIdOrDefault ("TestUser");
 
                 // Override some fields for test alarms
                 request.TriggerSource = "Manual";
@@ -377,7 +395,7 @@ namespace FMS.WebClient.Controllers {
                     TankId = request.TankId,
                     Recipients = new List<NotificationRecipientDto> {
                     new NotificationRecipientDto {
-                    UserId = userIdClaim.Value,
+                    UserId = userId,
                     DeliveryMethods = new List<string> { "System" }
                     }
                     }

@@ -30,12 +30,17 @@ import notify from 'devextreme/ui/notify';
 import {
     fetchUsers,
     createUser,
+    updateUser,
     softDeleteUser,
     restoreUser,
     fetchAllUserActivities,
     fetchAllSites,
     fetchUserSiteCounts, //Cursor
-    fetchAllRoles
+    fetchAllRoles,
+    fetchAllDepartments,
+    createDepartment,
+    updateDepartment,
+    deleteDepartment
 } from '../../redux/actions/userActions';
 import './userPage.scss';
 
@@ -58,6 +63,7 @@ const UserPage = () => {
     const allActivities = useSelector((state) => state.user.allActivities);
     const allSites = useSelector((state) => state.user.allSites); //Cursor
     const allRoles = useSelector((state) => state.user.allRoles);
+    const allDepartments = useSelector((state) => state.user.allDepartments);
 
     const [selectedTab, setSelectedTab] = useState(0);
     const [searchText, setSearchText] = useState('');
@@ -71,15 +77,29 @@ const UserPage = () => {
         email: '',
         password: '',
         confirmPassword: '',
-        roleName: ''
+        roleName: '',
+        departmentId: null
     });
+
+    // Manage Departments state
+    const [isDepartmentPopupVisible, setDepartmentPopupVisible] = useState(false);
+    const [departmentFormData, setDepartmentFormData] = useState({
+        departmentId: null,
+        name: '',
+        description: ''
+    });
+    const [isDepartmentFormVisible, setDepartmentFormVisible] = useState(false);
+    const [departmentSaving, setDepartmentSaving] = useState(false);
+    const [departmentEditTab, setDepartmentEditTab] = useState(0); // 0 = Details, 1 = Users
+    const [selectedUsersForDepartment, setSelectedUsersForDepartment] = useState([]); // Track selected users for assignment
 
     const formData = useRef({
         userName: '',
         email: '',
         password: '',
         confirmPassword: '',
-        roleName: ''
+        roleName: '',
+        departmentId: null
     });
 
     const gridRef = useRef(null);
@@ -92,6 +112,7 @@ const UserPage = () => {
             await dispatch(fetchAllUserActivities());
             await dispatch(fetchAllSites()); //Cursor
             await dispatch(fetchAllRoles());
+            await dispatch(fetchAllDepartments());
         } catch (error) {
             notify(error.message, 'error', 3000);
         } finally {
@@ -180,7 +201,8 @@ const UserPage = () => {
             email: '',
             password: '',
             confirmPassword: '',
-            roleName: ''
+            roleName: '',
+            departmentId: null
         };
         formData.current = initialFormData;
         setFormDataState(initialFormData);
@@ -191,6 +213,14 @@ const UserPage = () => {
                 await dispatch(fetchAllRoles());
             } catch (error) {
                 notify('Error loading roles', 'error', 3000);
+            }
+        }
+        // Ensure departments are loaded before opening popup
+        if (!allDepartments || allDepartments.length === 0) {
+            try {
+                await dispatch(fetchAllDepartments());
+            } catch (error) {
+                notify('Error loading departments', 'error', 3000);
             }
         }
         setCreatePopupVisible(true);
@@ -217,7 +247,8 @@ const UserPage = () => {
                 Email: formDataState.email,
                 Username: formDataState.userName,
                 Password: formDataState.password,
-                RoleName: formDataState.roleName
+                RoleName: formDataState.roleName,
+                DepartmentId: formDataState.departmentId
             };
 
             await dispatch(createUser(userData));
@@ -228,7 +259,8 @@ const UserPage = () => {
                 email: '',
                 password: '',
                 confirmPassword: '',
-                roleName: ''
+                roleName: '',
+                departmentId: null
             };
             formData.current = resetData;
             setFormDataState(resetData);
@@ -243,7 +275,7 @@ const UserPage = () => {
         } finally {
             setCreateUserLoading(false);
         }
-    };    const handleViewDetails = (userId) => {
+    }; const handleViewDetails = (userId) => {
         navigate(`/admin/users/${userId}`);
     };
 
@@ -340,6 +372,195 @@ const UserPage = () => {
         return <div className="site-badge">{count} sites</div>;
     };
 
+    // Department management handlers
+    const handleOpenDepartmentForm = (department = null) => {
+        if (department) {
+            setDepartmentFormData({
+                departmentId: department.departmentId,
+                name: department.name || '',
+                description: department.description || ''
+            });
+            // Initialize selected users with current department users
+            const currentDeptUsers = users.filter(u => u.departmentId === department.departmentId && !u.isDeleted);
+            setSelectedUsersForDepartment(currentDeptUsers.map(u => u.id));
+        } else {
+            setDepartmentFormData({
+                departmentId: null,
+                name: '',
+                description: ''
+            });
+            setSelectedUsersForDepartment([]);
+        }
+        setDepartmentEditTab(0); // Reset to Details tab
+        setDepartmentFormVisible(true);
+    };
+
+    // Get users in the currently selected department
+    const getUsersInDepartment = () => {
+        if (!departmentFormData.departmentId) return [];
+        return users.filter(u => u.departmentId === departmentFormData.departmentId && !u.isDeleted);
+    };
+
+    // Get all available users (not deleted) for assignment
+    const getAvailableUsers = () => {
+        return users.filter(u => !u.isDeleted).map(u => ({
+            ...u,
+            currentDepartmentName: u.departmentId
+                ? allDepartments.find(d => d.departmentId === u.departmentId)?.name || 'Unknown'
+                : 'None'
+        }));
+    };
+
+    // Handle user selection change in the Users tab
+    const handleUserSelectionChanged = (e) => {
+        setSelectedUsersForDepartment(e.selectedRowKeys);
+    };
+
+    // Assign selected users to the department
+    const handleAssignUsersToDepartment = async () => {
+        if (!departmentFormData.departmentId) {
+            notify('Please save the department first before assigning users', 'warning', 3000);
+            return;
+        }
+
+        setDepartmentSaving(true);
+        try {
+            const currentDeptUserIds = getUsersInDepartment().map(u => u.id);
+
+            // Users to add to this department (newly selected)
+            const usersToAdd = selectedUsersForDepartment.filter(id => !currentDeptUserIds.includes(id));
+
+            // Users to remove from this department (previously in dept, now unselected)
+            const usersToRemove = currentDeptUserIds.filter(id => !selectedUsersForDepartment.includes(id));
+
+            // Update users being added to this department
+            for (const userId of usersToAdd) {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    // Send complete user object with updated departmentId
+                    const updateData = {
+                        userName: user.userName,
+                        email: user.email,
+                        roleName: user.roleName || (Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : ''),
+                        departmentId: departmentFormData.departmentId
+                    };
+                    await dispatch(updateUser(userId, updateData));
+                }
+            }
+
+            // Remove users from this department (set departmentId to null)
+            for (const userId of usersToRemove) {
+                const user = users.find(u => u.id === userId);
+                if (user) {
+                    // Send complete user object with departmentId set to null
+                    const updateData = {
+                        userName: user.userName,
+                        email: user.email,
+                        roleName: user.roleName || (Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : ''),
+                        departmentId: null
+                    };
+                    await dispatch(updateUser(userId, updateData));
+                }
+            }
+
+            if (usersToAdd.length > 0 || usersToRemove.length > 0) {
+                notify(
+                    `Updated: ${usersToAdd.length} user(s) added, ${usersToRemove.length} user(s) removed`,
+                    'success',
+                    3000
+                );
+                // Refresh users to get updated data
+                await dispatch(fetchUsers());
+                // Update selected users after refresh
+                if (departmentFormData.departmentId) {
+                    const updatedDeptUsers = users.filter(u =>
+                        selectedUsersForDepartment.includes(u.id) ||
+                        (usersToAdd.includes(u.id) && !usersToRemove.includes(u.id))
+                    );
+                    setSelectedUsersForDepartment(updatedDeptUsers.map(u => u.id));
+                }
+            } else {
+                notify('No changes to save', 'info', 2000);
+            }
+        } catch (error) {
+            notify(error.message || 'Failed to update user assignments', 'error', 3000);
+        } finally {
+            setDepartmentSaving(false);
+        }
+    };
+
+    const handleSaveDepartment = async () => {
+        if (!departmentFormData.name.trim()) {
+            notify('Department name is required', 'warning', 3000);
+            return;
+        }
+
+        setDepartmentSaving(true);
+        try {
+            if (departmentFormData.departmentId) {
+                // Update existing department
+                await dispatch(updateDepartment(departmentFormData.departmentId, {
+                    departmentId: departmentFormData.departmentId,
+                    name: departmentFormData.name,
+                    description: departmentFormData.description
+                }));
+                notify('Department updated successfully', 'success', 3000);
+            } else {
+                // Create new department
+                await dispatch(createDepartment({
+                    name: departmentFormData.name,
+                    description: departmentFormData.description
+                }));
+                notify('Department created successfully', 'success', 3000);
+            }
+            setDepartmentFormVisible(false);
+        } catch (error) {
+            notify(error.message, 'error', 3000);
+        } finally {
+            setDepartmentSaving(false);
+        }
+    };
+
+    const handleDeleteDepartment = async (department) => {
+        // Get count of users in this department
+        const usersInDepartment = users.filter(u => u.departmentId === department.departmentId && !u.isDeleted);
+
+        if (usersInDepartment.length > 0) {
+            notify(
+                `Cannot delete '${department.name}'. It has ${usersInDepartment.length} active user(s). Please reassign users first.`,
+                'error',
+                5000
+            );
+            return;
+        }
+
+        try {
+            await dispatch(deleteDepartment(department.departmentId));
+            notify('Department deleted successfully', 'success', 3000);
+        } catch (error) {
+            notify(error.message, 'error', 3000);
+        }
+    };
+
+    const renderDepartmentActions = (data) => {
+        return (
+            <div className="tw-flex tw-gap-2">
+                <Button
+                    icon="edit"
+                    stylingMode="text"
+                    onClick={() => handleOpenDepartmentForm(data.data)}
+                    hint="Edit Department"
+                />
+                <Button
+                    icon="trash"
+                    stylingMode="text"
+                    onClick={() => handleDeleteDepartment(data.data)}
+                    hint="Delete Department"
+                />
+            </div>
+        );
+    };
+
     return (
         <div className="user-management-container">
             <div className="header-container">
@@ -347,6 +568,12 @@ const UserPage = () => {
                     <h2>User Management</h2>
                 </div>
                 <div className="actions-container">
+                    <Button
+                        text="Manage Departments"
+                        type="normal"
+                        icon="folder"
+                        onClick={() => setDepartmentPopupVisible(true)}
+                    />
                     <Button
                         text="Add User"
                         type="default"
@@ -421,6 +648,11 @@ const UserPage = () => {
                         <Column dataField="userName" caption="Username" />
                         <Column dataField="email" caption="Email" />
                         <Column
+                            dataField="departmentName"
+                            caption="Department"
+                            allowFiltering={true}
+                        />
+                        <Column
                             dataField="isDeleted"
                             caption="Status"
                             cellRender={renderStatusCell}
@@ -489,6 +721,11 @@ const UserPage = () => {
 
                         <Column dataField="userName" caption="Username" />
                         <Column dataField="email" caption="Email" />
+                        <Column
+                            dataField="departmentName"
+                            caption="Department"
+                            allowFiltering={true}
+                        />
                         <Column
                             dataField="recentActivity"
                             caption="Recent Activity"
@@ -570,90 +807,310 @@ const UserPage = () => {
                                 colCount={1}
                                 width="100%"
                             >
-                        <GroupItem>
-                            <SimpleItem
-                                dataField="userName"
-                                editorType="dxTextBox"
-                                editorOptions={{
-                                    stylingMode: "filled"
-                                }}
-                                label={{ text: "Username" }}
-                            >
-                                <RequiredRule message="Username is required" />
-                            </SimpleItem>
+                                <GroupItem>
+                                    <SimpleItem
+                                        dataField="userName"
+                                        editorType="dxTextBox"
+                                        editorOptions={{
+                                            stylingMode: "filled"
+                                        }}
+                                        label={{ text: "Username" }}
+                                    >
+                                        <RequiredRule message="Username is required" />
+                                    </SimpleItem>
 
-                            <SimpleItem
-                                dataField="email"
-                                editorType="dxTextBox"
-                                editorOptions={{
-                                    stylingMode: "filled"
-                                }}
-                                label={{ text: "Email" }}
-                            >
-                                <RequiredRule message="Email is required" />
-                            </SimpleItem>
+                                    <SimpleItem
+                                        dataField="email"
+                                        editorType="dxTextBox"
+                                        editorOptions={{
+                                            stylingMode: "filled"
+                                        }}
+                                        label={{ text: "Email" }}
+                                    >
+                                        <RequiredRule message="Email is required" />
+                                    </SimpleItem>
 
-                            <SimpleItem
-                                dataField="password"
-                                editorType="dxTextBox"
-                                editorOptions={{
-                                    stylingMode: "filled",
-                                    mode: "password"
-                                }}
-                                label={{ text: "Password" }}
-                            >
-                                <RequiredRule message="Password is required" />
-                            </SimpleItem>
+                                    <SimpleItem
+                                        dataField="password"
+                                        editorType="dxTextBox"
+                                        editorOptions={{
+                                            stylingMode: "filled",
+                                            mode: "password"
+                                        }}
+                                        label={{ text: "Password" }}
+                                    >
+                                        <RequiredRule message="Password is required" />
+                                    </SimpleItem>
 
-                            <SimpleItem
-                                dataField="confirmPassword"
-                                editorType="dxTextBox"
-                                editorOptions={{
-                                    stylingMode: "filled",
-                                    mode: "password"
-                                }}
-                                label={{ text: "Confirm Password" }}
-                            >
-                                <RequiredRule message="Password confirmation is required" />
-                            </SimpleItem>
+                                    <SimpleItem
+                                        dataField="confirmPassword"
+                                        editorType="dxTextBox"
+                                        editorOptions={{
+                                            stylingMode: "filled",
+                                            mode: "password"
+                                        }}
+                                        label={{ text: "Confirm Password" }}
+                                    >
+                                        <RequiredRule message="Password confirmation is required" />
+                                    </SimpleItem>
 
-                            <SimpleItem
-                                dataField="roleName"
-                                editorType="dxSelectBox"
-                                editorOptions={{
-                                    stylingMode: "filled",
-                                    dataSource: allRoles || [],
-                                    displayExpr: "name",
-                                    valueExpr: "name",
-                                    searchEnabled: true,
-                                    placeholder: "Select a role",
-                                    width: "100%"
-                                }}
-                                label={{ text: "Role" }}
-                            >
-                                <RequiredRule message="Role is required" />
-                            </SimpleItem>
-                        </GroupItem>
+                                    <SimpleItem
+                                        dataField="roleName"
+                                        editorType="dxSelectBox"
+                                        editorOptions={{
+                                            stylingMode: "filled",
+                                            dataSource: allRoles || [],
+                                            displayExpr: "name",
+                                            valueExpr: "name",
+                                            searchEnabled: true,
+                                            placeholder: "Select a role",
+                                            width: "100%"
+                                        }}
+                                        label={{ text: "Role" }}
+                                    >
+                                        <RequiredRule message="Role is required" />
+                                    </SimpleItem>
+
+                                    <SimpleItem
+                                        dataField="departmentId"
+                                        editorType="dxSelectBox"
+                                        editorOptions={{
+                                            stylingMode: "filled",
+                                            dataSource: allDepartments || [],
+                                            displayExpr: "name",
+                                            valueExpr: "departmentId",
+                                            searchEnabled: true,
+                                            placeholder: "Select a department",
+                                            showClearButton: true,
+                                            width: "100%"
+                                        }}
+                                        label={{ text: "Department" }}
+                                    />
+                                </GroupItem>
                             </Form>
                         </div>
 
                         <div className="create-user-form-buttons">
-                        <Button
-                            text="Cancel"
-                            stylingMode="outlined"
-                            onClick={() => setCreatePopupVisible(false)}
-                            disabled={createUserLoading}
-                            elementAttr={{ class: 'cancel-button' }}
-                        />
-                        <Button
-                            text={createUserLoading ? "Creating..." : "Create User"}
-                            type="default"
-                            icon={createUserLoading ? "loading" : "user"}
-                            onClick={handleCreateUser}
-                            disabled={createUserLoading}
-                            elementAttr={{ class: 'create-button' }}
-                        />
+                            <Button
+                                text="Cancel"
+                                stylingMode="outlined"
+                                onClick={() => setCreatePopupVisible(false)}
+                                disabled={createUserLoading}
+                                elementAttr={{ class: 'cancel-button' }}
+                            />
+                            <Button
+                                text={createUserLoading ? "Creating..." : "Create User"}
+                                type="default"
+                                icon={createUserLoading ? "loading" : "user"}
+                                onClick={handleCreateUser}
+                                disabled={createUserLoading}
+                                elementAttr={{ class: 'create-button' }}
+                            />
+                        </div>
                     </div>
+                )}
+            />
+
+            {/* Manage Departments Popup */}
+            <Popup
+                visible={isDepartmentPopupVisible}
+                onHiding={() => {
+                    setDepartmentPopupVisible(false);
+                    setDepartmentFormVisible(false);
+                }}
+                title="Manage Departments"
+                showCloseButton={true}
+                width={700}
+                height={500}
+                contentRender={() => (
+                    <div className="tw-flex tw-flex-col tw-h-full tw-p-4">
+                        {!isDepartmentFormVisible ? (
+                            <>
+                                <div className="tw-flex tw-items-center tw-gap-4 tw-mb-4">
+                                    <Button
+                                        text="Add Department"
+                                        type="default"
+                                        icon="plus"
+                                        onClick={() => handleOpenDepartmentForm()}
+                                    />
+                                </div>
+                                <DataGrid
+                                    dataSource={allDepartments || []}
+                                    showBorders={true}
+                                    columnAutoWidth={true}
+                                    rowAlternationEnabled={true}
+                                    height="100%"
+                                >
+                                    <Column dataField="name" caption="Name" />
+                                    <Column dataField="description" caption="Description" />
+                                    <Column
+                                        caption="Actions"
+                                        width={120}
+                                        cellRender={renderDepartmentActions}
+                                        alignment="center"
+                                    />
+                                    <Paging enabled={true} pageSize={10} />
+                                    <SearchPanel visible={true} placeholder="Search departments..." />
+                                </DataGrid>
+                            </>
+                        ) : (
+                            <div className="tw-flex tw-flex-col tw-h-full">
+                                <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                    <Button
+                                        icon="back"
+                                        stylingMode="text"
+                                        onClick={() => setDepartmentFormVisible(false)}
+                                        hint="Back to list"
+                                    />
+                                    <h4 className="tw-text-lg tw-font-semibold tw-m-0">
+                                        {departmentFormData.departmentId ? 'Edit Department' : 'Add Department'}
+                                    </h4>
+                                    <div style={{ width: 40 }}></div>
+                                </div>
+
+                                {/* Tabs for Create and Edit Mode */}
+                                <Tabs
+                                    selectedIndex={departmentEditTab}
+                                    onItemClick={(e) => setDepartmentEditTab(e.itemIndex)}
+                                    style={styles.tabs}
+                                >
+                                    <TabItem
+                                        text="Details"
+                                        icon="fa-light fa-edit"
+                                        render={() => (
+                                            <div style={styles.tabItem}>
+                                                <i className="fa-light fa-edit"></i>
+                                                <span>Details</span>
+                                            </div>
+                                        )}
+                                    />
+                                    <TabItem
+                                        text={`Users (${departmentFormData.departmentId ? getUsersInDepartment().length : 0})`}
+                                        icon="fa-light fa-users"
+                                        render={() => (
+                                            <div style={styles.tabItem}>
+                                                <i className="fa-light fa-users"></i>
+                                                <span>Users ({departmentFormData.departmentId ? getUsersInDepartment().length : 0})</span>
+                                            </div>
+                                        )}
+                                    />
+                                </Tabs>
+
+                                {/* Tab Content */}
+                                {departmentEditTab === 0 && (
+                                    <div className="tw-flex tw-flex-col tw-flex-1">
+                                        <Form
+                                            formData={departmentFormData}
+                                            labelMode="floating"
+                                            onFieldDataChanged={(e) => {
+                                                setDepartmentFormData(prev => ({
+                                                    ...prev,
+                                                    [e.dataField]: e.value
+                                                }));
+                                            }}
+                                        >
+                                            <SimpleItem
+                                                dataField="name"
+                                                editorType="dxTextBox"
+                                                editorOptions={{
+                                                    stylingMode: "filled",
+                                                    placeholder: "Enter department name"
+                                                }}
+                                                label={{ text: "Department Name" }}
+                                            >
+                                                <RequiredRule message="Department name is required" />
+                                            </SimpleItem>
+                                            <SimpleItem
+                                                dataField="description"
+                                                editorType="dxTextArea"
+                                                editorOptions={{
+                                                    stylingMode: "filled",
+                                                    placeholder: "Enter description (optional)",
+                                                    height: 100
+                                                }}
+                                                label={{ text: "Description" }}
+                                            />
+                                        </Form>
+                                        <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-4">
+                                            <Button
+                                                text="Cancel"
+                                                stylingMode="outlined"
+                                                onClick={() => setDepartmentFormVisible(false)}
+                                                disabled={departmentSaving}
+                                            />
+                                            <Button
+                                                text={departmentSaving ? "Saving..." : "Save"}
+                                                type="default"
+                                                onClick={handleSaveDepartment}
+                                                disabled={departmentSaving}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Users Tab */}
+                                {departmentEditTab === 1 && (
+                                    <div className="tw-flex tw-flex-col tw-flex-1">
+                                        {!departmentFormData.departmentId ? (
+                                            <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-full tw-text-gray-500">
+                                                <i className="fa-light fa-info-circle tw-text-4xl tw-mb-2"></i>
+                                                <p>Please save the department first before assigning users</p>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className="tw-mb-2 tw-text-sm tw-text-gray-600">
+                                                    <i className="fa-light fa-info-circle tw-mr-1"></i>
+                                                    Select users to assign to this department. Users can only belong to one department.
+                                                </div>
+                                                <DataGrid
+                                                    dataSource={getAvailableUsers()}
+                                                    keyExpr="id"
+                                                    showBorders={true}
+                                                    columnAutoWidth={true}
+                                                    rowAlternationEnabled={true}
+                                                    height="calc(100% - 80px)"
+                                                    selectedRowKeys={selectedUsersForDepartment}
+                                                    onSelectionChanged={handleUserSelectionChanged}
+                                                    noDataText="No users available"
+                                                >
+                                                    <Selection mode="multiple" showCheckBoxesMode="always" />
+                                                    <Column dataField="userName" caption="Username" />
+                                                    <Column dataField="email" caption="Email" />
+                                                    <Column
+                                                        dataField="currentDepartmentName"
+                                                        caption="Current Department"
+                                                        cellRender={(data) => (
+                                                            <span className={data.value !== 'None' && data.data.departmentId !== departmentFormData.departmentId ? 'tw-text-orange-600' : ''}>
+                                                                {data.value}
+                                                                {data.value !== 'None' && data.data.departmentId !== departmentFormData.departmentId && (
+                                                                    <i className="fa-light fa-exclamation-triangle tw-ml-1" title="Will be reassigned from current department"></i>
+                                                                )}
+                                                            </span>
+                                                        )}
+                                                    />
+                                                    <Paging enabled={true} pageSize={10} />
+                                                    <SearchPanel visible={true} placeholder="Search users..." />
+                                                </DataGrid>
+                                                <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-4">
+                                                    <Button
+                                                        text="Cancel"
+                                                        stylingMode="outlined"
+                                                        onClick={() => setDepartmentFormVisible(false)}
+                                                        disabled={departmentSaving}
+                                                    />
+                                                    <Button
+                                                        text={departmentSaving ? "Saving..." : "Save Assignments"}
+                                                        type="default"
+                                                        onClick={handleAssignUsersToDepartment}
+                                                        disabled={departmentSaving}
+                                                    />
+                                                </div>
+                                            </>
+                                        )}
+                                    </div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 )}
             />

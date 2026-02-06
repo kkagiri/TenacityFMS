@@ -42,7 +42,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     TankVolume = request.TankDto.TankVolume,
                     TankHeight = request.TankDto.TankHeight,
                     TankLength = request.TankDto.TankLength,
-                    PtsId = request.TankDto.PtsId,
                     SiteId = request.TankDto.SiteId,
                     DiscrepancyThreshold = request.TankDto.DiscrepancyThreshold,
                     CurrentStock = request.TankDto.CurrentStock ?? 0,
@@ -50,6 +49,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     HasAutomaticBookKeeping = request.TankDto.HasAutomaticBookKeeping ? (sbyte)1 : (sbyte)0,
                     Priority = request.TankDto.Priority,
                     LastStockUpdate = DateTime.UtcNow, // Set to now for new tanks
+
+                    // PTS Device and Probe Binding
+                    PtsId = request.TankDto.PtsId,
+                    ProbeNumber = request.TankDto.ProbeNumber,
+                    PtsTankId = request.TankDto.PtsTankId,
+                    UsePtsProbeReadings = request.TankDto.UsePtsProbeReadings,
 
                     // Fuel Grade
                     FuelGradeId = request.TankDto.FuelGradeId,

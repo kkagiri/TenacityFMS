@@ -171,7 +171,11 @@ namespace FMS.Application.Features.Notification.Services.RecipientResolver
             }
 
             // 3b. Policy Recipients - using CategoryId and optional Site scope
-            List<NotificationPolicy> policies = await GetNotificationPoliciesAsync(request.CategoryId, request.SiteId, cancellationToken);
+            List<NotificationPolicy> policies = await GetNotificationPoliciesAsync(
+                request.CategoryId,
+                request.SiteId,
+                request.NotificationPolicyId,
+                cancellationToken);
             foreach (NotificationPolicy policy in policies)
             {
                 List<NotificationRecipientDto> policyRecipients = await GetPolicyRecipientsAsync(policy, cancellationToken);
@@ -425,10 +429,19 @@ namespace FMS.Application.Features.Notification.Services.RecipientResolver
             return subscribedUsers;
         }
 
-        private async Task<List<NotificationPolicy>> GetNotificationPoliciesAsync(int categoryId, int? siteId, CancellationToken cancellationToken = default)
+        private async Task<List<NotificationPolicy>> GetNotificationPoliciesAsync(
+            int categoryId,
+            int? siteId,
+            int? policyId,
+            CancellationToken cancellationToken = default)
         {
             IQueryable<NotificationPolicy> query = _context.NotificationPolicies
                 .Where(p => p.NotificationCategoryId == categoryId && p.IsActive);
+
+            if (policyId.HasValue)
+            {
+                query = query.Where(p => p.Id == policyId.Value);
+            }
 
             if (siteId.HasValue)
             {

@@ -220,23 +220,21 @@ const IssueTemplateDropdown = ({
     return (
       <div className="tw-py-1">
         <div className="tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-file-lines tw-text-orange-500 tw-w-4"></i>
-          <span className="tw-font-medium">{item.name}</span>
-          {item.hasAutoCloseConfig && (
-            <span
-              className={`tw-ml-auto tw-text-xs tw-px-2 tw-py-0.5 tw-rounded ${
-                item.autoCloseEnabled
-                  ? 'tw-bg-blue-100 tw-text-blue-700'
-                  : 'tw-bg-gray-100 tw-text-gray-600'
-              }`}
-            >
-              {item.autoCloseEnabled ? 'Auto-Close On' : 'Auto-Close Off'}
+          <span className="tw-font-medium tw-text-gray-700">{item.name}</span>
+          {item.hasAutoCloseConfig && item.autoCloseEnabled && (
+            <span className="tw-ml-auto tw-text-xs tw-bg-blue-100 tw-text-blue-700 tw-px-2 tw-py-0.5 tw-rounded">
+              Auto-Close
             </span>
           )}
         </div>
-        {item.titleTemplate && (
-          <div className="tw-text-xs tw-text-gray-500 tw-ml-6 tw-truncate tw-max-w-xs">
-            {item.titleTemplate}
+        {(item.titleTemplate || item.descriptionTemplate) && (
+          <div className="tw-text-xs tw-text-gray-500 tw-mt-0.5 tw-truncate tw-max-w-md">
+            {item.titleTemplate ?
+              item.titleTemplate.substring(0, 50) + (item.titleTemplate.length > 50 ? '...' : '') :
+              item.descriptionTemplate ?
+                item.descriptionTemplate.split(' ').slice(0, 4).join(' ') + '...' :
+                ''
+            }
           </div>
         )}
       </div>

@@ -23,7 +23,12 @@ import {
     FETCH_USERS_FOR_FILTER_SUCCESS,
     FETCH_USERS_FOR_FILTER_FAILURE,
     FETCH_ALL_ROLES_SUCCESS,
-    FETCH_ALL_ROLES_FAILURE
+    FETCH_ALL_ROLES_FAILURE,
+    FETCH_ALL_DEPARTMENTS_SUCCESS,
+    FETCH_ALL_DEPARTMENTS_FAILURE,
+    CREATE_DEPARTMENT_SUCCESS,
+    UPDATE_DEPARTMENT_SUCCESS,
+    DELETE_DEPARTMENT_SUCCESS
 } from '../actions/userActions';
 
 const initialState = {
@@ -39,6 +44,7 @@ const initialState = {
     userRoles: [],
     userPermissions: [],
     allRoles: [],
+    allDepartments: [],
     loading: false,
     error: null,
 };
@@ -148,6 +154,30 @@ const userReducer = (state = initialState, action) => {
             return { ...state, allRoles: action.payload, loading: false };
         case FETCH_ALL_ROLES_FAILURE:
             return { ...state, loading: false, error: action.payload };
+        case FETCH_ALL_DEPARTMENTS_SUCCESS:
+            return { ...state, allDepartments: action.payload, loading: false };
+        case FETCH_ALL_DEPARTMENTS_FAILURE:
+            return { ...state, loading: false, error: action.payload };
+        case CREATE_DEPARTMENT_SUCCESS:
+            return {
+                ...state,
+                allDepartments: [...state.allDepartments, action.payload],
+                loading: false
+            };
+        case UPDATE_DEPARTMENT_SUCCESS:
+            return {
+                ...state,
+                allDepartments: state.allDepartments.map(dept =>
+                    dept.departmentId === action.payload.departmentId ? action.payload : dept
+                ),
+                loading: false
+            };
+        case DELETE_DEPARTMENT_SUCCESS:
+            return {
+                ...state,
+                allDepartments: state.allDepartments.filter(dept => dept.departmentId !== action.payload),
+                loading: false
+            };
         default:
             return state;
     }

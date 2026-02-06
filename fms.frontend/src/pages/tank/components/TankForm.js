@@ -33,13 +33,11 @@ const tankTypeOptions = [
 const TankForm = ({ tank, onClose, onSubmit }) => {
   const dispatch = useDispatch();
   const { sites } = useSelector((state) => state.site);
-  const { ptsDevices } = useSelector((state) => state.ptsDevice);
   const { vehicles } = useSelector((state) => state.vehicle);
 
   // DevExtreme editors can throw if `dataSource` is undefined while a value exists.
   // Always provide an array (or empty array) while data is loading.
   const sitesDataSource = Array.isArray(sites) ? sites : [];
-  const ptsDevicesDataSource = Array.isArray(ptsDevices) ? ptsDevices : [];
   const vehiclesDataSource = Array.isArray(vehicles) ? vehicles : [];
 
   const [formData, setFormData] = useState({
@@ -47,7 +45,6 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
     tankVolume: 0,
     tankHeight: null,
     tankLength: null,
-    ptsId: null,
     useBookKeeping: false,
     hasAutomaticBookKeeping: false,
     priority: null,
@@ -106,12 +103,12 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
         tankVolume: formData.tankVolume,
         tankHeight: formData.tankHeight || null,
         tankLength: formData.tankLength || null,
-        // Only include ptsId if it's valid and the device exists in our loaded list
-        ptsId:
-          formData.ptsId &&
-          ptsDevicesDataSource.some((d) => d.ptsid === formData.ptsId)
-            ? formData.ptsId
-            : null,
+        // PTS Device and Probe linking is handled via the "Link PTS" popup, not here
+        // Preserve existing values if editing
+        ptsId: tank?.ptsId || null,
+        probeNumber: tank?.probeNumber || null,
+        ptsTankId: tank?.ptsTankId || null,
+        usePtsProbeReadings: tank?.usePtsProbeReadings || false,
         useBookKeeping: Boolean(formData.useBookKeeping),
         hasAutomaticBookKeeping: Boolean(formData.hasAutomaticBookKeeping),
         priority: formData.priority || null,
@@ -160,8 +157,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
         const validationMessages = Object.entries(error.validationErrors)
           .map(
             ([field, messages]) =>
-              `${field}: ${
-                Array.isArray(messages) ? messages.join(", ") : messages
+              `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages
               }`
           )
           .join("\n");
@@ -176,8 +172,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
           const errorDetails = Object.entries(responseData.errors)
             .map(
               ([field, messages]) =>
-                `${field}: ${
-                  Array.isArray(messages) ? messages.join(", ") : messages
+                `${field}: ${Array.isArray(messages) ? messages.join(", ") : messages
                 }`
             )
             .join("\n");
@@ -293,28 +288,6 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
           </GroupItem>
 
           <GroupItem colCount={2}>
-            <Item
-              dataField="ptsId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                dataSource: ptsDevicesDataSource,
-                displayExpr: (item) => {
-                  if (!item) return "";
-                  const displayName = item.ptsName || item.name || "";
-                  const id = item.ptsid ?? "";
-                  return displayName && id
-                    ? `${displayName} (${id})`
-                    : displayName || id;
-                },
-                valueExpr: "ptsid",
-                placeholder: "Select PTS Device (Optional)",
-                searchEnabled: true,
-                width: "100%",
-              }}
-            >
-              <Label text="PTS Device" />
-            </Item>
-
             <Item
               dataField="discrepancyThreshold"
               editorType="dxNumberBox"
@@ -455,9 +428,8 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                     dataSource: vehiclesDataSource,
                     displayExpr: (item) =>
                       item
-                        ? `${
-                            item.hyoungNo || item.registrationNo || "Unknown"
-                          } - ${item.vehicleName || item.model || ""}`
+                        ? `${item.hyoungNo || item.registrationNo || "Unknown"
+                        } - ${item.vehicleName || item.model || ""}`
                         : "",
                     valueExpr: "vehicleId",
                     placeholder:

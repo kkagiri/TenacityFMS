@@ -1,3 +1,12 @@
+/**
+ * File: NotificationPolicyDto.cs
+ * Purpose: Defines DTO fields returned for notification policy views and details.
+ * Dependencies: System
+ * Last Modified: 2026-02-04
+ *
+ * Key Classes:
+ * - NotificationPolicyDto: Lightweight model for notification policy responses.
+ */
 using System;
 
 namespace FMS.Application.Features.Notification.DTOs {
@@ -20,16 +29,21 @@ namespace FMS.Application.Features.Notification.DTOs {
         public int CooldownMinutes { get; set; }
         public bool RequireAcknowledgment { get; set; }
         public bool IsActive { get; set; }
+        /// <summary>
+        /// Active alarm filter definition in JSON format.
+        /// Mapped from NotificationPolicy.TriggerConditions.
+        /// </summary>
+        public string? ActiveAlarmFilter { get; set; }
         public DateTime CreatedAt { get; set; }
-    /// <summary>
-    /// Creator display name (username). Backend now maps navigation UserName instead of raw id.
-    /// </summary>
-    public string? CreatedBy { get; set; }
+        /// <summary>
+        /// Creator display name (username). Backend now maps navigation UserName instead of raw id.
+        /// </summary>
+        public string? CreatedBy { get; set; }
         public DateTime? ModifiedAt { get; set; }
-    /// <summary>
-    /// Last modifier display name (username). Added to support showing name without extra frontend calls.
-    /// </summary>
-    public string? ModifiedBy { get; set; }
+        /// <summary>
+        /// Last modifier display name (username). Added to support showing name without extra frontend calls.
+        /// </summary>
+        public string? ModifiedBy { get; set; }
         public int RecipientCount { get; set; }
         public int GroupCount { get; set; }
         public int NotificationCount { get; set; }

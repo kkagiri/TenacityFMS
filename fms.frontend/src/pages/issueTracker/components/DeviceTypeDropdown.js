@@ -70,8 +70,7 @@ const DeviceTypeDropdown = ({
 
     return (
       <div className="tw-flex tw-items-center tw-gap-2 tw-py-1">
-        <i className={`fa-light ${getDeviceTypeIcon(item.name)} tw-text-blue-500 tw-w-5`}></i>
-        <span className="tw-font-medium">{item.name}</span>
+        <span className="tw-font-medium tw-text-gray-700">{item.name}</span>
         {item.isMonitored && (
           <span className="tw-ml-auto tw-text-xs tw-bg-green-100 tw-text-green-700 tw-px-2 tw-py-0.5 tw-rounded">
             Monitored

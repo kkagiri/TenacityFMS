@@ -556,7 +556,7 @@ const IssueFiltersPage = () => {
               allowColumnResizing={true}
               columnAutoWidth={true}
               height={500}
-              onRowClick={(e) => navigate(`/issue-tracker/edit/${e.data.id}`)}
+              onRowClick={(e) => navigate(`/issue-tracker/details/${e.data.id}`)}
             >
               <Paging enabled={true} defaultPageSize={10} />
               <FilterRow visible={true} />

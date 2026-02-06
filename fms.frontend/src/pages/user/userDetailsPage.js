@@ -18,6 +18,7 @@ import {
   updateUserSites,
   updateUser,
   fetchAllRoles,
+  fetchAllDepartments,
 } from "../../redux/actions/userActions";
 import { Button } from "devextreme-react/button";
 import DataGrid, {
@@ -55,6 +56,7 @@ const UserDetailsPage = () => {
   const userSites = useSelector((state) => state.user.userSites);
   const allSites = useSelector((state) => state.user.allSites);
   const allRoles = useSelector((state) => state.user.allRoles);
+  const allDepartments = useSelector((state) => state.user.allDepartments);
 
   const [loading, setLoading] = useState(true);
   const [showEditPopup, setShowEditPopup] = useState(false);
@@ -81,6 +83,7 @@ const UserDetailsPage = () => {
     email: "",
     roleName: "",
     bypassLocationValidation: false,
+    departmentId: null,
   });
 
   useEffect(() => {
@@ -93,6 +96,8 @@ const UserDetailsPage = () => {
         await dispatch(fetchUserSites(id));
         // Load recent activities for the main grid
         await dispatch(fetchUserActivities(id));
+        // Load departments for display
+        await dispatch(fetchAllDepartments());
       } catch (error) {
         notify(error.message, "error", 3000);
       } finally {
@@ -113,6 +118,7 @@ const UserDetailsPage = () => {
         email: user.email || "",
         roleName: user.roles && user.roles.length > 0 ? user.roles[0] : "",
         bypassLocationValidation: user.bypassLocationValidation || false,
+        departmentId: user.departmentId || null,
       });
     }
   }, [user]);
@@ -203,6 +209,7 @@ const UserDetailsPage = () => {
         email: user.email || "",
         roleName: user.roles && user.roles.length > 0 ? user.roles[0] : "",
         bypassLocationValidation: user.bypassLocationValidation || false,
+        departmentId: user.departmentId || null,
       });
     }
 
@@ -213,6 +220,13 @@ const UserDetailsPage = () => {
       } catch (error) {
         console.error("Error loading roles:", error);
       }
+    }
+
+    // Always fetch departments to get fresh data (including newly created ones)
+    try {
+      await dispatch(fetchAllDepartments());
+    } catch (error) {
+      console.error("Error loading departments:", error);
     }
 
     setShowEditPopup(true);
@@ -465,6 +479,14 @@ const UserDetailsPage = () => {
               </div>
             </div>
             <div className="info-item">
+              <div className="label">Department</div>
+              <div className="value">
+                {user.departmentId
+                  ? allDepartments?.find(d => d.departmentId === user.departmentId)?.name || "Unknown"
+                  : "Not assigned"}
+              </div>
+            </div>
+            <div className="info-item">
               <div className="label">Status</div>
               <div className="value">{renderStatusBadge()}</div>
             </div>
@@ -499,14 +521,14 @@ const UserDetailsPage = () => {
               dataSource={
                 activities
                   ? activities
-                      .filter(
-                        (activity) =>
-                          !(
-                            typeof activity.action === "string" &&
-                            activity.action.endsWith(" - 101")
-                          )
-                      )
-                      .slice(0, 5)
+                    .filter(
+                      (activity) =>
+                        !(
+                          typeof activity.action === "string" &&
+                          activity.action.endsWith(" - 101")
+                        )
+                    )
+                    .slice(0, 5)
                   : []
               }
               showBorders={true}
@@ -543,6 +565,7 @@ const UserDetailsPage = () => {
       >
         <div className="tw-p-4">
           <Form
+            key={`edit-popup-form-${id}-${editFormData.departmentId}`}
             formData={editFormData}
             labelMode="floating"
             onFieldDataChanged={(e) => {
@@ -589,6 +612,21 @@ const UserDetailsPage = () => {
                   placeholder: "Select a role",
                 }}
                 label={{ text: "Role" }}
+              />
+
+              <SimpleItem
+                dataField="departmentId"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  dataSource: allDepartments || [],
+                  displayExpr: "name",
+                  valueExpr: "departmentId",
+                  searchEnabled: true,
+                  showClearButton: true,
+                  placeholder: "Select a department",
+                }}
+                label={{ text: "Department" }}
               />
             </GroupItem>
 

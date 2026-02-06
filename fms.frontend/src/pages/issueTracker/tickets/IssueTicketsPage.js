@@ -201,7 +201,7 @@ const IssueTicketsPage = () => {
         stylingMode="text"
         onClick={(e) => {
           e.event.stopPropagation();
-          navigate(`/issue-tracker/edit/${cellData.data.id}`);
+          navigate(`/issue-tracker/details/${cellData.data.id}`);
         }}
       />
     </div>

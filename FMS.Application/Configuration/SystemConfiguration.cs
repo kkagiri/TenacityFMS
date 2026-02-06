@@ -1,3 +1,9 @@
+/**
+ * File: SystemConfiguration.cs
+ * Purpose: Defines system configuration keys and default values used across the application.
+ * Dependencies: System
+ * Last Modified: 2026-02-04
+ */
 using System;
 
 namespace FMS.Application.Configuration
@@ -193,6 +199,17 @@ namespace FMS.Application.Configuration
         public const string DB_CONFIG_PTS_USE_PTS_PROBE_READINGS_KEY = "PTS.AutomatedFueling.UsePtsProbeReadings";
 
         /// <summary>
+        /// Configuration key for upload status physical stock update interval in seconds
+        /// </summary>
+        public const string DB_CONFIG_PTS_UPLOADSTATUS_PHYSICAL_STOCK_UPDATE_INTERVAL_SECONDS_KEY = "PTS.UploadStatus.PhysicalStockUpdateIntervalSeconds";
+
+        /// <summary>
+        /// Configuration key prefix for mapping a physical tank to a PTS probe/tank number
+        /// Final key format: PTS.TankBinding.ProbeNumber.{TankId}
+        /// </summary>
+        public const string DB_CONFIG_PTS_TANK_BINDING_PROBE_NUMBER_PREFIX = "PTS.TankBinding.ProbeNumber.";
+
+        /// <summary>
         /// Configuration key for volume source priority: 1=BookKeeping, 2=PTS Probe
         /// </summary>
         public const string DB_CONFIG_PTS_VOLUME_SOURCE_PRIORITY_KEY = "PTS.AutomatedFueling.VolumeSourcePriority";
@@ -266,6 +283,7 @@ namespace FMS.Application.Configuration
         #region PTS Automated Fueling Default Values
         public const bool DEFAULT_PTS_UPDATE_TANK_VOLUME_FROM_BOOKKEEPING = true;
         public const bool DEFAULT_PTS_USE_PTS_PROBE_READINGS = false;
+        public const int DEFAULT_PTS_UPLOADSTATUS_PHYSICAL_STOCK_UPDATE_INTERVAL_SECONDS = 60;
         public const int DEFAULT_PTS_VOLUME_SOURCE_PRIORITY = 1; // BookKeeping
         public const bool DEFAULT_PTS_AUTO_CREATE_LEDGER_ENTRIES = true;
         public const bool DEFAULT_PTS_CHECK_FOR_DUPLICATE_MANUAL_ENTRIES = true;

@@ -33,7 +33,20 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
 
             try
             {
-                return _mapper.Map<List<UserDto>>(await _context.Users.ToListAsync(cancellationToken));
+                var users = await _context.Users
+                    .Include(u => u.Department)
+                    .Select(u => new UserDto
+                    {
+                        Id = u.Id,
+                        UserName = u.UserName,
+                        Email = u.Email,
+                        DepartmentId = u.DepartmentId,
+                        DepartmentName = u.Department != null ? u.Department.Name : null,
+                        IsDeleted = u.IsDeleted
+                    })
+                    .ToListAsync(cancellationToken);
+
+                return users;
             }
             catch (Exception ex)
             {

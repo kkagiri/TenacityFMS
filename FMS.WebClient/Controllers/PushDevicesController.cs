@@ -2,7 +2,7 @@
  * File: PushDevicesController.cs
  * Purpose: Manage push notification device registration and test delivery endpoints.
  * Dependencies: IPushNotificationService, FMSResponse, ASP.NET Core MVC
- * Last Modified: 2026-01-15
+ * Last Modified: 2026-02-04
  *
  * Key Endpoints:
  * - RegisterDevice(): Registers a device token for push notifications
@@ -43,13 +43,18 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Extract user ID from JWT claims (GUID format only)
         /// </summary>
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
+        }
+
         private string? GetAuthenticatedUserId()
         {
-            var userIdClaim = User.Claims.FirstOrDefault(c =>
-                c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                Guid.TryParse(c.Value, out _));
-
-            return userIdClaim?.Value;
+            return TryGetCurrentUserId(out var userId) ? userId : null;
         }
 
         /// <summary>

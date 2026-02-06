@@ -1,0 +1,104 @@
+/**
+ * File: UserIssuesDashboard.scss
+ * Purpose: Styles for User Issues Dashboard component
+ * Last Modified: 2025-02-02
+ */
+
+.user-issues-dashboard {
+  // Stat card hover effects
+  .stat-card {
+    @apply tw-transition-all tw-duration-200;
+
+    &:hover {
+      @apply tw-transform tw-scale-105;
+    }
+  }
+
+  // Chart container styling
+  .chart-container {
+    @apply tw-min-h-[300px];
+
+    .dx-chart {
+      @apply tw-w-full;
+    }
+  }
+
+  // Tab panel customization
+  .dx-tabpanel {
+    .dx-tabs {
+      @apply tw-bg-gray-50 tw-rounded-t-lg;
+    }
+
+    .dx-tab {
+      @apply tw-font-medium;
+
+      &.dx-tab-selected {
+        @apply tw-bg-white;
+      }
+    }
+  }
+
+  // DataGrid customization
+  .dx-datagrid {
+    .dx-row {
+      &.dx-row-alt {
+        @apply tw-bg-gray-50;
+      }
+    }
+
+    .dx-header-row {
+      @apply tw-bg-gray-100;
+
+      .dx-datagrid-text-content {
+        @apply tw-font-semibold tw-text-gray-700;
+      }
+    }
+  }
+
+  // Filter section
+  .filter-section {
+    @apply tw-sticky tw-top-0 tw-z-10;
+
+    .dx-selectbox,
+    .dx-datebox {
+      @apply tw-w-full;
+    }
+  }
+
+  // Loading overlay
+  .loading-overlay {
+    backdrop-filter: blur(2px);
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .user-issues-dashboard {
+    .stat-card {
+      .stat-value {
+        font-size: 1.25rem; // equivalent to text-xl
+      }
+
+      .stat-value-large {
+        font-size: 1.5rem; // equivalent to text-2xl
+      }
+    }
+
+    .chart-container {
+      @apply tw-min-h-[250px];
+    }
+  }
+}
+
+// Print styles
+@media print {
+  .user-issues-dashboard {
+    .filter-section {
+      @apply tw-hidden;
+    }
+
+    .dx-datagrid-pager {
+      @apply tw-hidden;
+    }
+  }
+}

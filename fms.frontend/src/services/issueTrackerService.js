@@ -1,11 +1,21 @@
+/**
+ * File: issueTrackerService.js
+ * Purpose: Handles all API operations for the Issue Tracker module
+ * Dependencies: axiosInstance, devextreme notify
+ * Last Modified: 2026-02-05
+ *
+ * Key Functions:
+ * - getIssues(): Fetches all issues with optional filtering
+ * - getIssueById(id): Fetches single issue details
+ * - createIssue(data): Creates a new issue with notification
+ * - updateIssue(id, data): Updates existing issue
+ * - performQuickAction(id, actionType, notes): Performs quick actions (Mark Complete, Escalate Priority)
+ * - markIssueComplete(id, notes): Shorthand for mark complete action
+ * - escalateIssuePriority(id, notes): Shorthand for escalate priority action
+ */
 import axiosInstance from '../api/axiosInstance';
 import notify from 'devextreme/ui/notify';
 
-/**
- * Issue Tracker Service
- * Handles all API operations for the Issue Tracker module
- * Following FMS service patterns with FMSResponse handling
- */
 class IssueTrackerService {
   constructor() {
     this.baseURL = '/issuetracker';
@@ -130,6 +140,63 @@ class IssueTrackerService {
   }
 
   /**
+   * Perform quick action on issue (Mark Complete, Escalate Priority) with notifications
+   * @param {number} issueId - Issue ID
+   * @param {string} actionType - Action type: "MarkComplete" or "EscalateHigh"
+   * @param {string} [notes] - Optional notes for the action
+   * @returns {Promise} Action result
+   */
+  async performQuickAction(issueId, actionType, notes = null) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/quick-action`, {
+        actionType,
+        notes
+      });
+
+      const actionMessage = actionType.toLowerCase().includes('complete')
+        ? 'Issue marked as complete'
+        : 'Issue escalated to high priority';
+
+      notify({
+        message: response.data?.message || actionMessage,
+        type: 'success',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+
+      return response.data;
+    } catch (error) {
+      console.error(`Error performing quick action on issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to perform action on issue');
+    }
+  }
+
+  /**
+   * Mark issue as complete with notification to opener
+   * @param {number} issueId - Issue ID
+   * @param {string} [notes] - Optional completion notes
+   * @returns {Promise} Action result
+   */
+  async markIssueComplete(issueId, notes = null) {
+    return this.performQuickAction(issueId, 'MarkComplete', notes);
+  }
+
+  /**
+   * Escalate issue to high priority with notification to assignee
+   * @param {number} issueId - Issue ID
+   * @param {string} [notes] - Optional escalation notes
+   * @returns {Promise} Action result
+   */
+  async escalateIssuePriority(issueId, notes = null) {
+    return this.performQuickAction(issueId, 'EscalateHigh', notes);
+  }
+
+  /**
    * Delete issue
    * @param {number} id - Issue ID
    * @returns {Promise} Deletion result
@@ -171,6 +238,35 @@ class IssueTrackerService {
     } catch (error) {
       console.error(`Error fetching issues for vehicle ${vehicleId}:`, error);
       throw this.handleError(error, `Failed to fetch issues for vehicle ${vehicleId}`);
+    }
+  }
+
+  /**
+   * Get user dashboard data - comprehensive issue statistics for the logged-in user
+   * @param {Object} filters - Filtering parameters
+   * @param {number} [filters.vehicleId] - Filter by vehicle
+   * @param {number} [filters.siteId] - Filter by site
+   * @param {number} [filters.categoryId] - Filter by category
+   * @param {number} [filters.weeksBack] - Filter by last N weeks
+   * @param {Date} [filters.startDate] - Filter start date
+   * @param {Date} [filters.endDate] - Filter end date
+   * @returns {Promise} User dashboard data with statistics and issue lists
+   */
+  async getUserDashboard(filters = {}) {
+    try {
+      const params = {};
+      if (filters.vehicleId) params.vehicleId = filters.vehicleId;
+      if (filters.siteId) params.siteId = filters.siteId;
+      if (filters.categoryId) params.categoryId = filters.categoryId;
+      if (filters.weeksBack) params.weeksBack = filters.weeksBack;
+      if (filters.startDate) params.startDate = filters.startDate.toISOString();
+      if (filters.endDate) params.endDate = filters.endDate.toISOString();
+
+      const response = await axiosInstance.get(`${this.baseURL}/user-dashboard`, { params });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching user dashboard:', error);
+      throw this.handleError(error, 'Failed to fetch user dashboard');
     }
   }
 
@@ -508,6 +604,272 @@ class IssueTrackerService {
     } catch (error) {
       console.error(`Error deleting issue status ${id}:`, error);
       throw this.handleError(error, `Failed to delete status ${id}`);
+    }
+  }
+
+  // ===== HELPER METHODS FOR DASHBOARD FILTERS =====
+
+  /**
+   * Get all vehicles for filtering
+   * Uses the simple vehicle endpoint for lightweight data
+   * @returns {Promise} List of vehicles
+   */
+  async getVehicles() {
+    try {
+      const response = await axiosInstance.get('/vehicle/simple');
+      // Simple endpoint returns array directly, not FMSResponse
+      return response.data || [];
+    } catch (error) {
+      console.error('Error fetching vehicles:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get all sites for filtering
+   * Uses the site endpoint for current user's sites
+   * @returns {Promise} List of sites
+   */
+  async getSites() {
+    try {
+      const response = await axiosInstance.get('/site');
+      const result = response.data;
+      // Handle FMSResponse format
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return result || [];
+    } catch (error) {
+      console.error('Error fetching sites:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Get issue categories for filtering
+   * @returns {Promise} List of categories
+   */
+  async getCategories() {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/categories`);
+      const result = response.data;
+      // Handle FMSResponse format
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return result || [];
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+      return [];
+    }
+  }
+
+  // ===== ACTIVITY STREAM OPERATIONS =====
+
+  /**
+   * Get activity stream for an issue
+   * @param {number} issueId - Issue ID
+   * @param {number} [limit] - Optional limit on number of activities
+   * @returns {Promise} List of activities
+   */
+  async getIssueActivities(issueId, limit = null) {
+    try {
+      const params = limit ? { limit } : {};
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/activities`, { params });
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return result || [];
+    } catch (error) {
+      console.error(`Error fetching activities for issue ${issueId}:`, error);
+      return [];
+    }
+  }
+
+  // ===== REMINDER OPERATIONS =====
+
+  /**
+   * Get reminder for an issue
+   * @param {number} issueId - Issue ID
+   * @returns {Promise} Reminder data or null
+   */
+  async getIssueReminder(issueId) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/reminder`);
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || null;
+      }
+      return result || null;
+    } catch (error) {
+      console.error(`Error fetching reminder for issue ${issueId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Create or update reminder for an issue
+   * @param {number} issueId - Issue ID
+   * @param {Object} reminderData - Reminder configuration
+   * @returns {Promise} Created reminder
+   */
+  async createIssueReminder(issueId, reminderData) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/reminder`, reminderData);
+
+      notify({
+        message: 'Reminder set successfully',
+        type: 'success',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data;
+      }
+      return result;
+    } catch (error) {
+      console.error(`Error creating reminder for issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to create reminder');
+    }
+  }
+
+  // ===== LINKED ISSUES OPERATIONS =====
+
+  /**
+   * Get linked issues (same template or category)
+   * @param {number} issueId - Issue ID
+   * @returns {Promise} List of linked issues
+   */
+  async getLinkedIssues(issueId) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/linked-issues`);
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return result || [];
+    } catch (error) {
+      console.error(`Error fetching linked issues for issue ${issueId}:`, error);
+      return [];
+    }
+  }
+
+  // ===== FOLLOW ISSUE OPERATIONS =====
+
+  /**
+   * Follow an issue to receive activity notifications
+   * @param {number} issueId - Issue ID
+   * @param {Object} options - Follow options
+   * @param {boolean} [options.notifyByEmail=true] - Receive email notifications
+   * @param {boolean} [options.notifyByPush=true] - Receive push notifications
+   * @returns {Promise} Follow result
+   */
+  async followIssue(issueId, options = {}) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/follow`, {
+        notifyByEmail: options.notifyByEmail ?? true,
+        notifyByPush: options.notifyByPush ?? true
+      });
+
+      notify({
+        message: 'You are now following this issue',
+        type: 'success',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data;
+      }
+      return result;
+    } catch (error) {
+      console.error(`Error following issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to follow issue');
+    }
+  }
+
+  /**
+   * Unfollow an issue to stop receiving activity notifications
+   * @param {number} issueId - Issue ID
+   * @returns {Promise} Unfollow result
+   */
+  async unfollowIssue(issueId) {
+    try {
+      const response = await axiosInstance.delete(`${this.baseURL}/${issueId}/follow`);
+
+      notify({
+        message: 'You have unfollowed this issue',
+        type: 'info',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data;
+      }
+      return result;
+    } catch (error) {
+      console.error(`Error unfollowing issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to unfollow issue');
+    }
+  }
+
+  /**
+   * Check if current user is following an issue
+   * @param {number} issueId - Issue ID
+   * @returns {Promise<{isFollowing: boolean, followerId?: number, followedDate?: string}>}
+   */
+  async isFollowingIssue(issueId) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/is-following`);
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || { isFollowing: false };
+      }
+      return result || { isFollowing: false };
+    } catch (error) {
+      console.error(`Error checking follow status for issue ${issueId}:`, error);
+      return { isFollowing: false };
+    }
+  }
+
+  /**
+   * Get all issues followed by the current user (for dashboard ticker)
+   * @param {number} [limit] - Maximum number of issues to return
+   * @returns {Promise<Array>} List of followed issues with activity summary
+   */
+  async getFollowedIssues(limit = null) {
+    try {
+      const params = limit ? { limit } : {};
+      const response = await axiosInstance.get(`${this.baseURL}/followed`, { params });
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return result || [];
+    } catch (error) {
+      console.error('Error fetching followed issues:', error);
+      return [];
     }
   }
 }

@@ -1,3 +1,14 @@
+/**
+ * File: ConsumptionController.cs
+ * Purpose: Handles fuel consumption retrieval and fuel import processing workflows.
+ * Dependencies: MediatR, AutoMapper, SignalR, configuration/logging services, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GetManualConsumptionFiltered(): Returns filtered manual refill consumption data.
+ * - ImportFuelReport(): Imports and validates fuel consumption report records.
+ * - ImportFuelReportAsync(): Starts asynchronous fuel report import jobs.
+ */
 using System.Globalization;
 using FMS.Application.Queries;
 using FMS.Application.Queries.GPSGATEServer.GetconsumptionReport;
@@ -23,6 +34,7 @@ using Microsoft.Extensions.DependencyInjection;
 //using FMS.Application.Queries.Database.Consumption;
 using System;
 using System.Linq;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
@@ -69,6 +81,15 @@ namespace FMS.WebClient.Controllers
             _logger = logger;
             _hubContext = hubContext;
             _serviceScopeFactory = serviceScopeFactory;
+        }
+
+        private bool TryGetCurrentGuidUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
         }
 
         [HttpGet("manualRefills")]
@@ -566,23 +587,10 @@ namespace FMS.WebClient.Controllers
                 }
 
                 // Get user ID from claims for tracking
-                // Try the full URI format first
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                // Fallback to short form if full URI not found
-                if (userIdClaim == null)
-                {
-                    userIdClaim = User.Claims.FirstOrDefault(c =>
-                        c.Type == System.Security.Claims.ClaimTypes.NameIdentifier &&
-                        Guid.TryParse(c.Value, out _));
-                }
-
                 string userId;
-                if (userIdClaim != null)
+                if (TryGetCurrentGuidUserId(out var currentUserId))
                 {
-                    userId = userIdClaim.Value;
+                    userId = currentUserId;
                     _logger.LogInformation("Import initiated by user: {UserId}", userId);
                 }
                 else
@@ -718,23 +726,10 @@ namespace FMS.WebClient.Controllers
                 var jobId = Guid.NewGuid().ToString("N");
 
                 // Get user ID from claims for tracking
-                // Try the full URI format first
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                // Fallback to short form if full URI not found
-                if (userIdClaim == null)
-                {
-                    userIdClaim = User.Claims.FirstOrDefault(c =>
-                        c.Type == System.Security.Claims.ClaimTypes.NameIdentifier &&
-                        Guid.TryParse(c.Value, out _));
-                }
-
                 string userId;
-                if (userIdClaim != null)
+                if (TryGetCurrentGuidUserId(out var currentUserId))
                 {
-                    userId = userIdClaim.Value;
+                    userId = currentUserId;
                 }
                 else
                 {

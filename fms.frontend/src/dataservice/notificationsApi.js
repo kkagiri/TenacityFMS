@@ -147,6 +147,25 @@ class NotificationsApi {
     }
   }
 
+  // Update an existing policy
+  async updatePolicy(policyId, payload) {
+    try {
+      const response = await axiosInstance.put(`${this.basePath}/policies/${policyId}`, payload);
+      return {
+        isSuccess: response.data?.success !== false,
+        data: response.data,
+        message: response.data?.message || "Policy updated successfully",
+      };
+    } catch (error) {
+      console.error("Error updating policy:", error);
+      return {
+        isSuccess: false,
+        data: null,
+        message: error.response?.data?.message || "Failed to update policy",
+      };
+    }
+  }
+
   // Delete a policy
   async deletePolicy(policyId) {
     try {

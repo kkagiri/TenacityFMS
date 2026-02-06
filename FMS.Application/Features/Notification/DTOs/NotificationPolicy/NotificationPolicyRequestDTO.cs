@@ -22,6 +22,11 @@ namespace FMS.Application.Features.Notification.DTOs {
         public string? TitleTemplate { get; set; }
         public string? MessageTemplate { get; set; }
         public bool RequireAcknowledgment { get; set; } = false;
+        /// <summary>
+        /// Active alarm filter definition in JSON format.
+        /// Stored in NotificationPolicy.TriggerConditions for backward compatibility.
+        /// </summary>
+        public string? ActiveAlarmFilter { get; set; }
         public string? CreatedBy { get; set; }
     }
 }

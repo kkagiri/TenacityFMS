@@ -1,3 +1,14 @@
+/**
+ * File: ProviderManagementController.cs
+ * Purpose: Manages tracking-provider configuration, health, and vehicle mapping operations.
+ * Dependencies: MediatR, provider services, SignalR hub, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - BulkAssignVehiclesToProvider(): Starts bulk provider assignment jobs.
+ * - BulkUnassignVehiclesFromProvider(): Starts bulk unassignment jobs.
+ * - AssignVehicleToProvider(): Assigns a single vehicle to a provider.
+ */
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.VehicleTracking.Commands.AssignVehicleToProvider;
 using FMS.Application.Features.VehicleTracking.Commands.BulkAssignVehiclesToProvider;
@@ -16,6 +27,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
+using System.Security.Claims;
 
 
 namespace FMS.WebClient.Controllers.VehicleManagement
@@ -43,6 +55,15 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         private readonly ILogger<ProviderManagementController> _logger = logger;
         private readonly IServiceScopeFactory _serviceScopeFactory = serviceScopeFactory;
         private readonly IHubContext<FrontEndHub> _hubContext = hubContext;
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
+        }
 
         /// <summary>
         /// Get health status of all providers
@@ -600,11 +621,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 _logger.LogInformation("Initiating bulk assignment of {Count} vehicles to provider {ProviderId}",
                     request.VehicleIds.Count, request.ProviderId);
 
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                            c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                            Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return BadRequest("Invalid User ID");
                 }
@@ -613,7 +630,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 {
                     ProviderId = request.ProviderId,
                     VehicleIds = request.VehicleIds,
-                    UserId = userIdClaim.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);
@@ -651,11 +668,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return BadRequest("Invalid User ID");
                 }
@@ -663,7 +676,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 // Use MediatR command
                 var command = new BulkUnassignVehiclesFromProviderCommand(
                     request.VehicleIds,
-                    userIdClaim.Value);
+                    userId);
 
                 var result = await _mediator.Send(command);
 
@@ -704,11 +717,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                       c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                       Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
+                if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
                 // Use MediatR command
                 var command = new MapVehicleToDeviceCommand
@@ -721,7 +730,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                     DeviceName = request.DeviceName,
                     DeviceType = request.DeviceType,
                     Metadata = request.Metadata,
-                    UserId = userIdClaim.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);
@@ -767,18 +776,14 @@ namespace FMS.WebClient.Controllers.VehicleManagement
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                       c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                       Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
+                if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
                 // Use MediatR command
                 var command = new AssignVehicleToProviderCommand
                 {
                     VehicleId = request.VehicleId,
                     ProviderId = request.ProviderId,
-                    UserId = userIdClaim.Value
+                    UserId = userId
                 };
 
                 var result = await _mediator.Send(command);

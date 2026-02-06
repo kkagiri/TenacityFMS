@@ -11,7 +11,6 @@ import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import IssueTrackerLayout from './layout/IssueTrackerLayout';
 import IssueTrackerPage from './IssueTrackerPage';
-import IssueTrackerFormPage from './IssueTrackerFormPage';
 import IssueAssignmentResponsePage from './IssueAssignmentResponsePage';
 import IssueCreateForm from './forms/IssueCreateForm';
 import IssueTrackerDetailPage from './IssueTrackerDetailPage';
@@ -21,20 +20,23 @@ import IssueAnalyticsPage from './analytics/IssueAnalyticsPage';
 import IssueSettingsPage from './settings/IssueSettingsPage';
 import IssueFiltersPage from './filters/IssueFiltersPage';
 import IssueNotificationsPage from './notifications/IssueNotificationsPage';
+import CombinedIssueDashboard from './components/CombinedIssueDashboard';
 
 const IssueTrackerMain = () => {
   return (
     <IssueTrackerLayout>
       <Routes>
-        {/* Default route - Issue Tracker Dashboard */}
-        <Route index element={<IssueTrackerPage />} />
-        <Route path="/" element={<IssueTrackerPage />} />
-        <Route path="/dashboard" element={<IssueTrackerPage />} />
+        {/* Default route - Combined Issue Dashboard */}
+        <Route index element={<CombinedIssueDashboard />} />
+        <Route path="/" element={<CombinedIssueDashboard />} />
+        <Route path="/dashboard" element={<CombinedIssueDashboard />} />
+
+        {/* Legacy route - redirects to combined dashboard */}
+        <Route path="/my-dashboard" element={<CombinedIssueDashboard />} />
 
         {/* Feature routes */}
         <Route path="/tickets" element={<IssueTicketsPage />} />
         <Route path="/create" element={<IssueCreateForm />} />
-        <Route path="/edit/:id" element={<IssueTrackerFormPage />} />
         <Route path="/details/:id" element={<IssueTrackerDetailPage />} />
         <Route path="/assignment/:id/respond" element={<IssueAssignmentResponsePage />} />
         <Route path="/reports" element={<IssueReportsPage />} />

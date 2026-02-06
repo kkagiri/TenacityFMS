@@ -1,23 +1,33 @@
-//Cursor - Admin System Configuration Management Page
-import React, { useState, useEffect, useCallback, useRef } from "react";
+/**
+ * File: SystemConfigPage.js
+ * Purpose: Admin System Configuration Management Page with Tree View by Category
+ * Dependencies: Redux, DevExtreme TreeList, SystemConfig components
+ * Last Modified: 2026-02-05
+ *
+ * Key Functions:
+ * - buildTreeData(): Transforms flat config list into tree structure with category nodes
+ * - handleCreate/handleEdit/handleDelete: CRUD operations for configurations
+ * - renderToolbar(): Renders action toolbar with add, refresh, filters, import
+ */
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ScrollView from "devextreme-react/scroll-view";
 import Button from "devextreme-react/button";
 import notify from "devextreme/ui/notify";
-import DataGrid, {
+import TreeList, {
   Column,
-  Paging,
   FilterRow,
   Sorting,
   ColumnChooser,
   HeaderFilter,
   Toolbar,
   Item as TItems,
-  Export,
   StateStoring,
   LoadPanel,
   Selection,
-} from "devextreme-react/data-grid";
+  SearchPanel,
+  Paging,
+} from "devextreme-react/tree-list";
 import "./SystemConfigPage.scss";
 import {
   fetchSystemConfigurations,
@@ -36,7 +46,7 @@ import SystemConfigImport from "./components/SystemConfigImport";
 
 const SystemConfigPage = () => {
   const dispatch = useDispatch();
-  const gridRef = useRef(null);
+  const treeListRef = useRef(null);
   const { configurations, loading, saving, error, pagination, filters } =
     useSelector((state) => state.systemConfig);
 
@@ -48,7 +58,58 @@ const SystemConfigPage = () => {
   const [showImport, setShowImport] = useState(false);
   const [editingConfig, setEditingConfig] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const exportFormats = ["xlsx"];
+
+  // Transform flat configurations into tree structure with categories as parent nodes
+  const treeData = useMemo(() => {
+    if (!configurations || configurations.length === 0) return [];
+
+    // Group configurations by category
+    const categoryMap = new Map();
+
+    configurations.forEach((config) => {
+      const category = config.category || "Uncategorized";
+      if (!categoryMap.has(category)) {
+        categoryMap.set(category, []);
+      }
+      categoryMap.get(category).push(config);
+    });
+
+    // Build tree structure
+    const result = [];
+    let categoryIndex = 0;
+
+    categoryMap.forEach((configs, categoryName) => {
+      // Create category node (parent)
+      const categoryId = `category_${categoryIndex}`;
+      result.push({
+        id: categoryId,
+        parentId: null,
+        isCategory: true,
+        configurationKey: categoryName,
+        configurationValue: `${configs.length} configuration(s)`,
+        description: `Category: ${categoryName}`,
+        category: categoryName,
+        dataType: "",
+        isActive: configs.every((c) => c.isActive),
+        isEditable: false,
+        defaultValue: "",
+        itemCount: configs.length,
+      });
+
+      // Add configuration items under this category
+      configs.forEach((config) => {
+        result.push({
+          ...config,
+          parentId: categoryId,
+          isCategory: false,
+        });
+      });
+
+      categoryIndex++;
+    });
+
+    return result;
+  }, [configurations]);
 
   // Load configurations on component mount
   useEffect(() => {
@@ -136,7 +197,11 @@ const SystemConfigPage = () => {
   );
 
   const handleSelectionChanged = useCallback((e) => {
-    setSelectedKeys(e.selectedRowKeys);
+    // Filter out category nodes from selection (only allow config items to be selected)
+    const configKeys = e.selectedRowKeys.filter(
+      (key) => !String(key).startsWith("category_")
+    );
+    setSelectedKeys(configKeys);
   }, []);
 
   const handleBulkAction = useCallback(() => {
@@ -153,6 +218,15 @@ const SystemConfigPage = () => {
     setShowImport(false);
     handleRefresh();
   }, [handleRefresh]);
+
+  // Apply styling to category rows
+  const onRowPrepared = useCallback((e) => {
+    if (e.rowType === "data" && e.data?.isCategory) {
+      e.rowElement.classList.add("category-row");
+      e.rowElement.style.backgroundColor = "#f1f5f9";
+      e.rowElement.style.fontWeight = "600";
+    }
+  }, []);
 
   // Render functions
   const renderToolbar = () => (
@@ -206,25 +280,26 @@ const SystemConfigPage = () => {
           />
         </TItems>
       )}
-      <TItems name="exportButton" locateInMenu="auto" />
       <TItems name="columnChooserButton" />
       <TItems name="searchPanel" />
     </Toolbar>
   );
 
   const renderStatusCell = (cellData) => {
+    // Don't show status for category rows
+    if (cellData.data.isCategory) {
+      return null;
+    }
     const isActive = cellData.value;
     return (
       <div className={`tw-flex tw-items-center tw-gap-2`}>
         <div
-          className={`tw-w-3 tw-h-3 tw-rounded-full ${
-            isActive ? "tw-bg-green-500" : "tw-bg-red-500"
-          }`}
+          className={`tw-w-3 tw-h-3 tw-rounded-full ${isActive ? "tw-bg-green-500" : "tw-bg-red-500"
+            }`}
         ></div>
         <span
-          className={`tw-text-sm tw-font-medium ${
-            isActive ? "tw-text-green-700" : "tw-text-red-700"
-          }`}
+          className={`tw-text-sm tw-font-medium ${isActive ? "tw-text-green-700" : "tw-text-red-700"
+            }`}
         >
           {isActive ? "Active" : "Inactive"}
         </span>
@@ -234,6 +309,10 @@ const SystemConfigPage = () => {
 
   const renderActionCell = (cellData) => {
     const config = cellData.data;
+    // Don't show actions for category rows
+    if (config.isCategory) {
+      return null;
+    }
     return (
       <div className="tw-flex tw-gap-2">
         <Button
@@ -262,6 +341,26 @@ const SystemConfigPage = () => {
     );
   };
 
+  // Custom cell render for the configuration key column (shows category or key)
+  const renderKeyCell = (cellData) => {
+    const data = cellData.data;
+    if (data.isCategory) {
+      return (
+        <div className="tw-flex tw-items-center tw-gap-2">
+          <span className="tw-font-semibold tw-text-gray-800">
+            {data.configurationKey}
+          </span>
+          <span className="tw-ml-2 tw-px-2 tw-py-0.5 tw-bg-blue-100 tw-text-blue-700 tw-text-xs tw-rounded-full">
+            {data.itemCount}
+          </span>
+        </div>
+      );
+    }
+    return (
+      <span className="tw-text-gray-700">{data.configurationKey}</span>
+    );
+  };
+
   return (
     <ScrollView className="">
       <div className=" content content-block">
@@ -276,39 +375,39 @@ const SystemConfigPage = () => {
           </div>
         )}
 
-        {/* Main Data Grid Container */}
-        <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-overflow-hidden">
-          <DataGrid
-            ref={gridRef}
-            dataSource={configurations || []}
+        {/* Main TreeList Container */}
+        <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-overflow-hidden system-config-tree">
+          <TreeList
+            ref={treeListRef}
+            dataSource={treeData}
             keyExpr="id"
+            parentIdExpr="parentId"
             showBorders={true}
             allowColumnReordering={true}
             allowColumnResizing={true}
             columnAutoWidth={false}
-            rowAlternationEnabled={true}
-            repaintChangesOnly={true}
+            rowAlternationEnabled={false}
+            repaintChangesOnly={false}
             selectedRowKeys={selectedKeys}
             onSelectionChanged={handleSelectionChanged}
+            onRowPrepared={onRowPrepared}
+            autoExpandAll={true}
+            rootValue={null}
             noDataText="No configurations found. Create a new configuration to get started."
           >
-            <Export
-              enabled={true}
-              allowExportSelectedData={true}
-              formats={exportFormats}
-            />
+            <Paging enabled={true} defaultPageSize={20} />
             <StateStoring
               enabled={true}
               type="sessionStorage"
-              storageKey="systemConfigGrid"
+              storageKey="systemConfigTreeList"
             />
-            <Paging enabled={true} defaultPageSize={30} />
             <ColumnChooser enabled={true} mode="select" height={200} />
             <LoadPanel enabled={true} />
             <FilterRow visible={true} />
             <HeaderFilter visible={true} />
-            <Selection mode="multiple" />
+            <Selection mode="multiple" recursive={false} />
             <Sorting mode="multiple" />
+            <SearchPanel visible={true} width={200} placeholder="Search..." />
 
             {/* Toolbar */}
             {renderToolbar()}
@@ -316,21 +415,20 @@ const SystemConfigPage = () => {
             {/* Selection Column */}
             <Column type="selection" width={50} />
 
-            {/* Data Columns */}
+            {/* Configuration Key Column with Tree Expand */}
             <Column
               dataField="configurationKey"
-              caption="Configuration Key"
-              width={200}
-              fixed={true}
+              caption="Configuration Key / Category"
+              minWidth={280}
+              cellRender={renderKeyCell}
               allowHiding={false}
             />
             <Column
               dataField="configurationValue"
               caption="Value"
-              minWidth={100}
+              minWidth={150}
             />
-            <Column dataField="description" caption="Description" width={150} />
-            <Column dataField="category" caption="Category" minWidth={120} />
+            <Column dataField="description" caption="Description" minWidth={150} />
             <Column dataField="dataType" caption="Data Type" minWidth={100} />
             <Column
               dataField="isActive"
@@ -341,10 +439,9 @@ const SystemConfigPage = () => {
             <Column
               dataField="isEditable"
               caption="Editable"
-              minWidth={100}
+              minWidth={80}
               dataType="boolean"
             />
-
             <Column
               dataField="defaultValue"
               caption="Default Value"
@@ -354,12 +451,12 @@ const SystemConfigPage = () => {
             {/* Actions Column */}
             <Column
               caption="Actions"
-              minWidth={140}
+              minWidth={100}
               cellRender={renderActionCell}
               allowSorting={false}
               allowFiltering={false}
             />
-          </DataGrid>
+          </TreeList>
         </div>
 
         {/* Modals and Popups */}

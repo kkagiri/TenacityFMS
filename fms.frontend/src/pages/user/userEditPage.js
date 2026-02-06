@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
-import { fetchUserById, updateUser } from "../../redux/actions/userActions";
+import { fetchUserById, updateUser, fetchAllDepartments } from "../../redux/actions/userActions";
 import { Button } from "devextreme-react/button";
 import { Switch } from "devextreme-react/switch";
 import Form, {
@@ -21,15 +21,18 @@ const UserEditPage = () => {
   const dispatch = useDispatch();
 
   const user = useSelector((state) => state.user.selectedUserDetails);
+  const allDepartments = useSelector((state) => state.user.allDepartments);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPasswordPopup, setShowPasswordPopup] = useState(false);
 
-  const formData = useRef({
+  // Use state instead of ref for form data to trigger re-renders
+  const [formData, setFormData] = useState({
     userName: "",
     email: "",
     bypassLocationValidation: false,
+    departmentId: null,
   });
 
   const passwordFormData = useRef({
@@ -40,29 +43,38 @@ const UserEditPage = () => {
 
   useEffect(() => {
     const loadData = async () => {
+      setLoading(true);
+
+      // Always fetch departments
+      try {
+        await dispatch(fetchAllDepartments());
+      } catch (error) {
+        console.error('Error loading departments:', error);
+      }
+
       // Check if user data for this ID is already in the store
       const userInStore = user && user.id === id;
 
       if (userInStore) {
-        console.log(`User data for ${id} already in store. Skipping fetch.`);
-        formData.current = {
+        console.log(`User data for ${id} already in store. Using cached data.`);
+        setFormData({
           userName: user.userName || "",
           email: user.email || "",
           bypassLocationValidation: user.bypassLocationValidation || false,
-        };
+          departmentId: user.departmentId || null,
+        });
         setLoading(false);
       } else {
         console.log(`User data for ${id} not in store. Fetching...`);
-        setLoading(true);
         try {
           const userData = await dispatch(fetchUserById(id));
           if (userData) {
-            formData.current = {
+            setFormData({
               userName: userData.userName || "",
               email: userData.email || "",
-              bypassLocationValidation:
-                userData.bypassLocationValidation || false,
-            };
+              bypassLocationValidation: userData.bypassLocationValidation || false,
+              departmentId: userData.departmentId || null,
+            });
           }
         } catch (error) {
           notify(error.message, "error", 3000);
@@ -73,7 +85,19 @@ const UserEditPage = () => {
     };
 
     loadData();
-  }, [dispatch, id, user]);
+  }, [dispatch, id]); // Removed user from dependencies to prevent loop
+
+  // Update form when user data changes
+  useEffect(() => {
+    if (user && user.id === id) {
+      setFormData({
+        userName: user.userName || "",
+        email: user.email || "",
+        bypassLocationValidation: user.bypassLocationValidation || false,
+        departmentId: user.departmentId || null,
+      });
+    }
+  }, [user, id]);
 
   const goBack = () => {
     navigate("/admin/users");
@@ -86,7 +110,7 @@ const UserEditPage = () => {
 
     setSaving(true);
     try {
-      await dispatch(updateUser(id, formData.current));
+      await dispatch(updateUser(id, formData));
       notify("User information updated successfully", "success", 3000);
       goBack();
     } catch (error) {
@@ -159,10 +183,14 @@ const UserEditPage = () => {
       <div className="edit-card">
         <div className="form-container">
           <Form
-            formData={formData.current}
+            key={`edit-form-${id}-${formData.departmentId}`}
+            formData={formData}
             labelMode="floating"
             onFieldDataChanged={(e) => {
-              formData.current[e.dataField] = e.value;
+              setFormData(prev => ({
+                ...prev,
+                [e.dataField]: e.value
+              }));
             }}
             colCount={1}
             width="100%"
@@ -190,6 +218,22 @@ const UserEditPage = () => {
               >
                 <RequiredRule message="Email is required" />
               </SimpleItem>
+
+              <SimpleItem
+                dataField="departmentId"
+                editorType="dxSelectBox"
+                editorOptions={{
+                  stylingMode: "filled",
+                  dataSource: allDepartments || [],
+                  displayExpr: "name",
+                  valueExpr: "departmentId",
+                  searchEnabled: true,
+                  placeholder: "Select a department",
+                  showClearButton: true,
+                  width: "100%"
+                }}
+                label={{ text: "Department" }}
+              />
             </GroupItem>
 
             {/* Mobile GPS Settings */}

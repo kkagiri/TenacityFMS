@@ -26,30 +26,72 @@ export const TRIGGER_SOURCES = {
 
 // Alarm Types (extend as needed)
 export const ALARM_TYPES = {
-  // Tank-related alarms
+  // ===== TANK/PROBE ALARMS (from PTS UploadStatus) =====
+  // Product Level Alarms
   LOW_TANK_VOLUME: 'LowTankVolume',
   HIGH_TANK_VOLUME: 'HighTankVolume',
-  TANK_CRITICAL_HIGH_LEVEL: 'TankCriticalHighLevel',
-  TANK_CRITICAL_LOW_LEVEL: 'TankCriticalLowLevel',
+  TANK_LOW_LEVEL: 'TankLowLevel',               // From probe LowProductAlarms
+  TANK_HIGH_LEVEL: 'TankHighLevel',             // From probe HighProductAlarms
+  TANK_CRITICAL_HIGH_LEVEL: 'TankCriticalHighLevel', // From probe CriticalHighProductAlarms
+  TANK_CRITICAL_LOW_LEVEL: 'TankCriticalLowLevel',   // From probe CriticalLowProductAlarms
+
+  // Water & Leakage Alarms
+  TANK_HIGH_WATER_LEVEL: 'TankHighWaterLevel',  // From probe HighWaterAlarms
   TANK_LEAK_DETECTED: 'TankLeakDetected',
+  TANK_LEAKAGE: 'TankLeakage',                  // From probe TankLeakageAlarms
   TANK_OVERFILLING: 'TankOverfilling',
 
-  // Device alarms
+  // Tank System Alarms
+  TANK_LEVEL_BELOW_THRESHOLD: 'TankLevelBelowThreshold', // System threshold alarm
+  WATER_DETECTED: 'WaterDetected',
+  WATER_DETECTION: 'WaterDetection',
+  TEMPERATURE_ALARM: 'TemperatureAlarm',
+  TANK_SENSOR_VARIANCE: 'TankSensorVariance',   // From ClosingStockCommand
+  TANK_NO_FUEL_FILL_POSTED: 'TankNoFuelFillPosted',
+
+  // ===== DEVICE ALARMS =====
   DEVICE_DISCONNECTION: 'DeviceDisconnection',
   DEVICE_OFFLINE: 'DeviceOffline',
-  PUMP_OFFLINE: 'PumpOffline',
-  SENSOR_MALFUNCTION: 'SensorMalfunction',
-  HARDWARE_FAILURE: 'HardwareFailure',
+  STALE_DATA: 'StaleData',
+  COMMUNICATION_FAILURE: 'CommunicationFailure',
 
-  // Vehicle GPS alarms
+  // ===== PTS DEVICE ALARMS =====
+  PTS_LOW_BATTERY: 'PTSLowBattery',
+  PTS_HIGH_TEMPERATURE: 'PTSHighTemperature',
+  PTS_POWER_DOWN: 'PTSPowerDown',
+  PTS_RESTART: 'PTSRestart',
+
+  // ===== PUMP ALARMS =====
+  PUMP_OFFLINE: 'PumpOffline',
+  PUMP_OVERFILLING: 'PumpOverfilling',
+  PUMP_OFFLINE_MODE: 'PumpOfflineMode',
+
+  // ===== PROBE ALARMS =====
+  PROBE_OFFLINE: 'ProbeOffline',
+  PROBE_ERROR: 'ProbeError',
+
+  // ===== READER ALARMS =====
+  READER_OFFLINE: 'ReaderOffline',
+  READER_ERROR: 'ReaderError',
+
+  // ===== PRICE BOARD ALARMS =====
+  PRICE_BOARD_OFFLINE: 'PriceBoardOffline',
+  PRICE_BOARD_ERROR: 'PriceBoardError',
+
+  // ===== VEHICLE/GPS ALARMS =====
   VEHICLE_GPS_OFFLINE_DURING_FUELING: 'VehicleGpsOfflineDuringFueling',
 
-  // System alarms
+  // ===== SYSTEM/BUSINESS ALARMS =====
   DISCREPANCY_DETECTED: 'DiscrepancyDetected',
   STOCK_DISCREPANCY: 'StockDiscrepancy',
   SYSTEM_ERROR: 'SystemError',
-  COMMUNICATION_FAILURE: 'CommunicationFailure',
   POLICY_VIOLATION: 'PolicyViolation',
+  UNUSUAL_CONSUMPTION: 'UnusualConsumption',
+  CAPACITY_LIMIT: 'CapacityLimit',
+
+  // ===== HARDWARE ALARMS =====
+  SENSOR_MALFUNCTION: 'SensorMalfunction',
+  HARDWARE_FAILURE: 'HardwareFailure',
 };
 
 // Severity levels (maps to backend DiscrepancySeverity)

@@ -1,5 +1,17 @@
+/**
+ * File: TankVolumeHistoryController.cs
+ * Purpose: Handles tank volume history retrieval, validation, deletion, and admin edits.
+ * Dependencies: MediatR, tank volume commands/queries, future-record validation services.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GetTankVolumeHistoryFiltered(): Retrieves filtered transaction history.
+ * - DeleteTransaction(): Deletes transactions with user audit context.
+ * - UpdateTransaction(): Performs admin-only direct transaction updates.
+ */
 using System;
 using System.Threading.Tasks;
+using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
@@ -27,6 +39,15 @@ namespace FMS.WebClient.Controllers
         public TankVolumeHistoryController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
         }
 
         [HttpGet]
@@ -200,11 +221,7 @@ namespace FMS.WebClient.Controllers
             try
             {
                 // Get the current user identifier
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                var deletedBy = userIdClaim?.Value;
+                string? deletedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 var command = new DeleteTankVolumeHistoryCommand(
                     DeletedBy: deletedBy,
@@ -349,10 +366,7 @@ namespace FMS.WebClient.Controllers
             try
             {
                 // Get the current user identifier
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-                var updatedBy = userIdClaim?.Value;
+                string? updatedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 // Get the transaction
                 var context = HttpContext.RequestServices.GetService<GpsdataContext>();

@@ -145,6 +145,25 @@ const ptsConfigService = {
   },
 
   /**
+   * Get the probes configuration from a PTS device
+   * Based on protocol 52. GetProbesConfiguration
+   *
+   * @param {string} deviceId - The PTS device ID
+   * @returns {Promise<{isSuccess: boolean, data: {ports: Array, probes: Array}, message: string}>}
+   */
+  getProbesConfiguration: async (deviceId) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting probes configuration:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Get comprehensive diagnostics from a PTS device
    *
    * @param {string} deviceId - The PTS device ID

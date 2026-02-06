@@ -74,6 +74,31 @@ namespace FMS.WebClient.Controllers
             _roleManager = roleManager;
         }
 
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("id")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
+        }
+
+        private bool TryGetCurrentGuidUserId(out string userId)
+        {
+            if (!TryGetCurrentUserId(out userId))
+            {
+                return false;
+            }
+
+            return Guid.TryParse(userId, out _);
+        }
+
+        private string GetCurrentUserIdOrDefault(string fallback = "System")
+        {
+            return TryGetCurrentUserId(out var userId) ? userId : fallback;
+        }
+
         /// <summary>
         /// Create a new notification
         /// </summary>
@@ -86,9 +111,9 @@ namespace FMS.WebClient.Controllers
             try
             {
                 // Set triggered by from current user if not specified
-                if (string.IsNullOrEmpty(request.TriggeredBy))
+                if (string.IsNullOrEmpty(request.TriggeredBy) && TryGetCurrentUserId(out var userId))
                 {
-                    request.TriggeredBy = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                    request.TriggeredBy = userId;
                 }
 
                 var result = await _notificationService.CreateNotificationAsync(request, cancellationToken);
@@ -160,8 +185,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
@@ -207,13 +231,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
-
-                var userId = userIdClaim.Value;
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
 
                 var result = await _notificationService.MarkAsReadAsync(notificationId, userId, cancellationToken);
 
@@ -241,13 +259,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest(new { success = false, message = "Invalid User ID" });
-
-                var userId = userIdClaim.Value;
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest(new { success = false, message = "Invalid User ID" });
 
                 var result = await _notificationService.MarkAllAsReadAsync(userId, cancellationToken);
 
@@ -276,13 +288,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
-
-                var userId = userIdClaim.Value;
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
 
                 var result = await _notificationService.AcknowledgeNotificationAsync(notificationId, userId, cancellationToken);
 
@@ -312,13 +318,7 @@ namespace FMS.WebClient.Controllers
             try
             {
                 if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
-
-                var userId = userIdClaim.Value;
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
 
                 // Use AutoMapper to map TriggerAlarmRequest to CreateAlarmNotificationRequest
                 var alarmRequest = _mapper.Map<CreateAlarmNotificationRequest>(request);
@@ -381,8 +381,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
@@ -425,8 +424,7 @@ namespace FMS.WebClient.Controllers
 
                 if (string.IsNullOrEmpty(request.UserId))
                 {
-                    string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                    if (string.IsNullOrEmpty(userId))
+                    if (!TryGetCurrentUserId(out var userId))
                     {
                         return Unauthorized(new { success = false, message = "User not authenticated" });
                     }
@@ -623,12 +621,8 @@ namespace FMS.WebClient.Controllers
                 //  if (!hasPermission) return Forbid ();
                 //  if (!ModelState.IsValid) return BadRequest (ModelState);
 
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null) return BadRequest("Invalid User ID");
-                request.CreatedBy = userIdClaim.Value;
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
+                request.CreatedBy = userId;
 
                 var result = await _notificationService.CreateNotificationPolicyAsync(request, cancellationToken);
 
@@ -647,6 +641,36 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error creating notification policy");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update notification policy
+        /// </summary>
+        /// <param name="policyId">Policy identifier</param>
+        /// <param name="request">Policy update request</param>
+        /// <param name="cancellationToken">Cancellation token</param>
+        /// <returns>Updated status</returns>
+        [HttpPut("policies/{policyId}")]
+        public async Task<IActionResult> UpdateNotificationPolicy(int policyId, [FromBody] UpdateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
+                request.ModifiedBy = userId;
+
+                var result = await _notificationService.UpdateNotificationPolicyAsync(policyId, request, cancellationToken);
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating notification policy {PolicyId}", policyId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }
@@ -677,7 +701,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var userId = GetCurrentUserIdOrDefault("System");
                 var result = await _alarmHandlerService.CreateAlarmHandlerAsync(request, userId, cancellationToken);
                 if (result.IsSuccess) return Ok(new { success = true, id = result.Data, message = result.Message });
                 return BadRequest(new { success = false, message = result.Message });
@@ -694,7 +718,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "System";
+                var userId = GetCurrentUserIdOrDefault("System");
                 var result = await _alarmHandlerService.UpdateAlarmHandlerAsync(id, request, userId, cancellationToken);
                 if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
                 return BadRequest(new { success = false, message = result.Message });
@@ -848,11 +872,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentGuidUserId(out var userId))
                 {
                     return BadRequest("Invalid User ID");
                 }
@@ -865,10 +885,10 @@ namespace FMS.WebClient.Controllers
                     Title = request.Title ?? "Test Notification",
                     Message = request.Message ?? "This is a test notification from the API",
                     TriggerSource = "API",
-                    TriggeredBy = userIdClaim.Value,
+                    TriggeredBy = userId,
                     Recipients = new List<NotificationRecipientDto> {
                     new NotificationRecipientDto {
-                    UserId = userIdClaim.Value,
+                    UserId = userId,
                     DeliveryMethods = new List<string> { "System" }
                     }
                     }
@@ -902,7 +922,7 @@ namespace FMS.WebClient.Controllers
             try
             {
                 // Ensure user can only access their own preferences or is admin
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var currentUserId = GetCurrentUserIdOrDefault(string.Empty);
                 if (currentUserId != userId && !User.IsInRole("Admin"))
                 {
                     return StatusCode(403, new { success = false, message = "Access denied" });
@@ -945,8 +965,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(currentUserId))
+                if (!TryGetCurrentUserId(out var currentUserId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
@@ -986,16 +1005,12 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var userIdClaim = User.Claims.FirstOrDefault(c =>
-                    c.Type == "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier" &&
-                    Guid.TryParse(c.Value, out _));
-
-                if (userIdClaim == null)
+                if (!TryGetCurrentGuidUserId(out var userId))
                 {
                     return BadRequest("Invalid User ID");
                 }
 
-                var currentUserId = userIdClaim.Value;
+                var currentUserId = userId;
 
                 // Always trust the authenticated user id for preference operations; override any client-provided value
                 // This avoids foreign key violations when the frontend sends a placeholder like 'current-user'.
@@ -1088,7 +1103,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var currentUserId = GetCurrentUserIdOrDefault(string.Empty);
                 if (currentUserId != request.UserId && !User.IsInRole("Admin"))
                 {
                     return StatusCode(403, new { success = false, message = "Access denied" });
@@ -1127,8 +1142,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(currentUserId))
+                if (!TryGetCurrentUserId(out var currentUserId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
@@ -1168,8 +1182,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(currentUserId))
+                if (!TryGetCurrentUserId(out var currentUserId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
@@ -1245,8 +1258,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                request.CreatedBy = currentUserId;
+                request.CreatedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
                 var command = new CreateNotificationCategoryCommand
                 {
@@ -1282,7 +1294,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var currentUserId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+                var currentUserId = TryGetCurrentUserId(out var userId) ? userId : null;
                 request.Id = id;
                 request.UpdatedBy = currentUserId;
 
@@ -1434,8 +1446,7 @@ namespace FMS.WebClient.Controllers
                 var isEmailConfigured = emailService?.IsConfigurationValid() ?? false;
 
                 // Get recent notification counts
-                string? userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-                if (string.IsNullOrEmpty(userId))
+                if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }

@@ -1,16 +1,22 @@
 /**
  * File: IssueTrackerDetailPage.js
- * Purpose: Displays detailed issue information with inline edit mode and vehicle timeline histogram
- * Dependencies: React, react-router-dom, DevExtreme chart/button/load-indicator, issueTrackerService
- * Last Modified: 2026-02-03
+ * Purpose: Displays detailed issue information with tabs for Activity Stream, Linked Issues,
+ *          inline edit mode, vehicle timeline histogram, and print/share functionality
+ * Dependencies: React, react-router-dom, DevExtreme chart/button/load-indicator/tabs, issueTrackerService
+ * Last Modified: 2026-02-05
  *
  * Key Functions/Components:
- * - IssueTrackerDetailPage: Issue detail screen with timeline histogram, quick actions, and inline edit workflow
+ * - IssueTrackerDetailPage: Issue detail screen with tabbed interface
+ * - Overview Tab: Issue details, timeline histogram, quick actions
+ * - Activity Stream Tab: Chronological activity log with timeline display
+ * - Linked Issues Tab: DataGrid of issues with same template/category
+ * - Print/Share: Popup dialog for printing issue details with activity stream
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
+import TabPanel, { Item as TabItem } from 'devextreme-react/tab-panel';
 import {
   Chart,
   Series,
@@ -24,6 +30,10 @@ import notify from 'devextreme/ui/notify';
 import issueTrackerService from '../../services/issueTrackerService';
 import IssuePriorityBadge from './components/IssuePriorityBadge';
 import IssueStatusIndicator from './components/IssueStatusIndicator';
+import IssueActivityStream from './components/IssueActivityStream';
+import LinkedIssuesGrid from './components/LinkedIssuesGrid';
+import IssuePrintPopup from './components/IssuePrintPopup';
+import './styles/IssueTrackerDetailPage.scss';
 
 const TIMELINE_DAYS_WINDOW = 14;
 
@@ -134,6 +144,15 @@ const IssueTrackerDetailPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [editData, setEditData] = useState(null);
 
+  // Tab and Print states
+  const [selectedTabIndex, setSelectedTabIndex] = useState(0);
+  const [showPrintPopup, setShowPrintPopup] = useState(false);
+  const [activityRefreshFn, setActivityRefreshFn] = useState(null);
+
+  // Follow states
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [isFollowLoading, setIsFollowLoading] = useState(false);
+
   const initializeEditData = (issueData) => {
     if (!issueData) {
       setEditData(null);
@@ -155,11 +174,12 @@ const IssueTrackerDetailPage = () => {
     const loadIssueDetails = async () => {
       try {
         setLoading(true);
-        const [issueData, categoriesData, prioritiesData, statusesData] = await Promise.all([
+        const [issueData, categoriesData, prioritiesData, statusesData, followStatus] = await Promise.all([
           issueTrackerService.getIssueById(id),
           issueTrackerService.getIssueCategories(),
           issueTrackerService.getIssuePriorities(),
-          issueTrackerService.getIssueStatuses()
+          issueTrackerService.getIssueStatuses(),
+          issueTrackerService.isFollowingIssue(id)
         ]);
 
         setCategories(normalizeLookupResponse(categoriesData));
@@ -168,6 +188,7 @@ const IssueTrackerDetailPage = () => {
         setIssue(issueData);
         initializeEditData(issueData);
         setIsEditMode(false);
+        setIsFollowing(followStatus?.isFollowing || false);
 
         if (issueData?.vehicleId) {
           const vehicleIssueResponse = await issueTrackerService.getIssuesByVehicle(issueData.vehicleId);
@@ -251,6 +272,8 @@ const IssueTrackerDetailPage = () => {
       setIssue(refreshedIssue);
       initializeEditData(refreshedIssue);
       setIsEditMode(false);
+      // Refresh activity stream to show the edit action
+      refreshActivityStream();
     } catch (error) {
       console.error(`Error updating issue ${issue.id}:`, error);
       notify({
@@ -260,6 +283,28 @@ const IssueTrackerDetailPage = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  // Follow/Unfollow handler
+  const handleToggleFollow = async () => {
+    if (!issue?.id) return;
+
+    try {
+      setIsFollowLoading(true);
+      if (isFollowing) {
+        await issueTrackerService.unfollowIssue(issue.id);
+        setIsFollowing(false);
+      } else {
+        await issueTrackerService.followIssue(issue.id);
+        setIsFollowing(true);
+      }
+      // Refresh activity stream to show follow/unfollow action
+      refreshActivityStream();
+    } catch (error) {
+      console.error('Error toggling follow status:', error);
+    } finally {
+      setIsFollowLoading(false);
     }
   };
 
@@ -436,6 +481,23 @@ const IssueTrackerDetailPage = () => {
   const isAlreadyComplete = Boolean(completeStatusOption && issue?.status === completeStatusOption.id);
   const isAlreadyHigh = Boolean(highPriorityOption && issue?.priority === highPriorityOption.id);
 
+  // Tab change handler
+  const handleTabChange = useCallback((e) => {
+    setSelectedTabIndex(e.component.option('selectedIndex'));
+  }, []);
+
+  // Activity refresh callback
+  const handleActivityRefreshCallback = useCallback((refreshFn) => {
+    setActivityRefreshFn(() => refreshFn);
+  }, []);
+
+  // Refresh activity stream after changes
+  const refreshActivityStream = useCallback(() => {
+    if (activityRefreshFn) {
+      activityRefreshFn();
+    }
+  }, [activityRefreshFn]);
+
   const handleQuickMarkComplete = async () => {
     if (!completeStatusOption) {
       notify({
@@ -446,10 +508,25 @@ const IssueTrackerDetailPage = () => {
       return;
     }
 
-    await updateIssueWithOverrides({
-      Status: completeStatusOption.id,
-      ClosingDate: new Date().toISOString()
-    });
+    try {
+      setIsSaving(true);
+      // Use new quick action API that sends notification to issue opener
+      await issueTrackerService.markIssueComplete(issue.id);
+      const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
+      setIssue(refreshedIssue);
+      initializeEditData(refreshedIssue);
+      setIsEditMode(false);
+      refreshActivityStream();
+    } catch (error) {
+      console.error(`Error marking issue ${issue.id} as complete:`, error);
+      notify({
+        message: 'Unable to mark issue as complete.',
+        type: 'error',
+        displayTime: 3000
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleQuickMarkHighPriority = async () => {
@@ -462,9 +539,25 @@ const IssueTrackerDetailPage = () => {
       return;
     }
 
-    await updateIssueWithOverrides({
-      Priority: highPriorityOption.id
-    });
+    try {
+      setIsSaving(true);
+      // Use new quick action API that sends notification to assignee
+      await issueTrackerService.escalateIssuePriority(issue.id);
+      const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
+      setIssue(refreshedIssue);
+      initializeEditData(refreshedIssue);
+      setIsEditMode(false);
+      refreshActivityStream();
+    } catch (error) {
+      console.error(`Error escalating issue ${issue.id} priority:`, error);
+      notify({
+        message: 'Unable to escalate issue priority.',
+        type: 'error',
+        displayTime: 3000
+      });
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   if (loading) {
@@ -503,6 +596,21 @@ const IssueTrackerDetailPage = () => {
         <div className="tw-flex tw-flex-wrap tw-gap-2">
           {!isEditMode && (
             <>
+              <Button
+                text={isFollowing ? 'Following' : 'Follow'}
+                icon={isFollowing ? 'fa-light fa-bell-on' : 'fa-light fa-bell'}
+                stylingMode={isFollowing ? 'contained' : 'outlined'}
+                type={isFollowing ? 'success' : 'default'}
+                onClick={handleToggleFollow}
+                disabled={isFollowLoading}
+                hint={isFollowing ? 'Click to unfollow and stop receiving notifications' : 'Follow this issue to receive activity notifications'}
+              />
+              <Button
+                text="Print / Share"
+                icon="fa-light fa-print"
+                stylingMode="outlined"
+                onClick={() => setShowPrintPopup(true)}
+              />
               <Button
                 text={isAlreadyComplete ? 'Completed' : 'Mark as Complete'}
                 icon="fa-light fa-circle-check"
@@ -692,14 +800,66 @@ const IssueTrackerDetailPage = () => {
           </div>
 
           <div className="tw-bg-gray-50 tw-rounded tw-p-3">
-            <p className="tw-text-xs tw-text-gray-500">Vehicle</p>
+            <p className="tw-text-xs tw-text-gray-500 tw-mb-1">Vehicle</p>
             <p className="tw-font-medium tw-text-gray-800">{issue.vehicleHyoungNo || issue.vehicleNumber || 'Not linked'}</p>
+            {issue.vehicleId && (
+              <button
+                type="button"
+                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                onClick={() => navigate('/issue-tracker', {
+                  state: {
+                    applyFilters: { vehicleId: issue.vehicleId },
+                    filterLabel: `Vehicle: ${issue.vehicleHyoungNo || issue.vehicleNumber}`
+                  }
+                })}
+              >
+                <i className="fa-light fa-history"></i>
+                View Vehicle Issue History
+              </button>
+            )}
           </div>
 
           <div className="tw-bg-gray-50 tw-rounded tw-p-3">
-            <p className="tw-text-xs tw-text-gray-500">Site</p>
+            <p className="tw-text-xs tw-text-gray-500 tw-mb-1">Site</p>
             <p className="tw-font-medium tw-text-gray-800">{issue.siteName || 'Not specified'}</p>
+            {issue.siteId && (
+              <button
+                type="button"
+                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                onClick={() => navigate('/issue-tracker', {
+                  state: {
+                    applyFilters: { siteId: issue.siteId },
+                    filterLabel: `Site: ${issue.siteName}`
+                  }
+                })}
+              >
+                <i className="fa-light fa-history"></i>
+                View Site Issue History
+              </button>
+            )}
           </div>
+
+          {(issue.deviceId || issue.deviceTypeName) && (
+            <div className="tw-bg-gray-50 tw-rounded tw-p-3">
+              <p className="tw-text-xs tw-text-gray-500 tw-mb-1">Device</p>
+              <p className="tw-font-medium tw-text-gray-800">{issue.deviceTypeName || `Device #${issue.deviceId}`}</p>
+              {issue.deviceId && (
+                <button
+                  type="button"
+                  className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                  onClick={() => navigate('/issue-tracker', {
+                    state: {
+                      applyFilters: { deviceId: issue.deviceId },
+                      filterLabel: `Device: ${issue.deviceTypeName || issue.deviceId}`
+                    }
+                  })}
+                >
+                  <i className="fa-light fa-history"></i>
+                  View Device Issue History
+                </button>
+              )}
+            </div>
+          )}
 
           <div className="tw-bg-gray-50 tw-rounded tw-p-3">
             <p className="tw-text-xs tw-text-gray-500">Opened</p>
@@ -713,61 +873,130 @@ const IssueTrackerDetailPage = () => {
         </div>
       </div>
 
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-6">
-        <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-mb-4">
-          <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-            <i className="fa-light fa-chart-column tw-mr-2 tw-text-blue-600"></i>
-            Vehicle Issue Timeline Histogram (Last {TIMELINE_DAYS_WINDOW} Days)
-          </h2>
-          <span className="tw-text-xs tw-text-gray-500">
-            Current issue open day is highlighted in orange
-          </span>
-        </div>
-
-        <Chart dataSource={timelineHistogramData} height={300}>
-          <CommonSeriesSettings argumentField="label" type="bar" />
-          <Series
-            valueField="count"
-            name="Issues Opened"
-            color="#60a5fa"
-            customizePoint={(point) => (point.data.isCurrentIssueDay ? { color: '#f97316' } : null)}
-          />
-          <ArgumentAxis />
-          <ValueAxis allowDecimals={false} />
-          <Legend visible={false} />
-          <Tooltip
-            enabled={true}
-            customizeTooltip={(pointInfo) => ({
-              text: `${pointInfo.argument}: ${pointInfo.valueText} issue(s) opened`
-            })}
-          />
-        </Chart>
-      </div>
-
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-6">
-        <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-mb-4">
-          <i className="fa-light fa-timeline tw-mr-2 tw-text-orange-600"></i>
-          Issue Timeline
-        </h2>
-
-        {timelineEvents.length === 0 ? (
-          <p className="tw-text-sm tw-text-gray-500">No timeline events are available yet.</p>
-        ) : (
-          <div className="tw-space-y-3">
-            {timelineEvents.map((event) => (
-              <div key={`${event.label}-${event.value}`} className="tw-flex tw-items-start tw-gap-3 tw-border-b tw-border-gray-100 tw-pb-3">
-                <div className={`tw-w-8 tw-h-8 tw-rounded-full tw-bg-gray-100 tw-flex tw-items-center tw-justify-center ${event.accentClass}`}>
-                  <i className={event.icon}></i>
+      {/* Tabbed Content */}
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
+        <TabPanel
+          selectedIndex={selectedTabIndex}
+          onOptionChanged={handleTabChange}
+          animationEnabled={true}
+          swipeEnabled={false}
+          className="issue-detail-tabs"
+        >
+          {/* Overview Tab */}
+          <TabItem title="Overview" icon="fa-light fa-info-circle">
+            <div className="tw-p-6 tw-space-y-6">
+              {/* Vehicle Issue Timeline Histogram */}
+              <div>
+                <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-mb-4">
+                  <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
+                    <i className="fa-light fa-chart-column tw-mr-2 tw-text-blue-600"></i>
+                    Vehicle Issue Timeline Histogram (Last {TIMELINE_DAYS_WINDOW} Days)
+                  </h2>
+                  <span className="tw-text-xs tw-text-gray-500">
+                    Current issue open day is highlighted in orange
+                  </span>
                 </div>
-                <div>
-                  <p className="tw-font-medium tw-text-gray-800">{event.label}</p>
-                  <p className="tw-text-sm tw-text-gray-500">{formatDateTime(event.value)}</p>
-                </div>
+
+                <Chart dataSource={timelineHistogramData} height={300}>
+                  <CommonSeriesSettings argumentField="label" type="bar" />
+                  <Series
+                    valueField="count"
+                    name="Issues Opened"
+                    color="#60a5fa"
+                    customizePoint={(point) => (point.data.isCurrentIssueDay ? { color: '#f97316' } : null)}
+                  />
+                  <ArgumentAxis />
+                  <ValueAxis allowDecimals={false} />
+                  <Legend visible={false} />
+                  <Tooltip
+                    enabled={true}
+                    customizeTooltip={(pointInfo) => ({
+                      text: `${pointInfo.argument}: ${pointInfo.valueText} issue(s) opened`
+                    })}
+                  />
+                </Chart>
               </div>
-            ))}
-          </div>
-        )}
+
+              {/* Issue Timeline Events */}
+              <div>
+                <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-mb-4">
+                  <i className="fa-light fa-timeline tw-mr-2 tw-text-orange-600"></i>
+                  Issue Timeline
+                </h2>
+
+                {timelineEvents.length === 0 ? (
+                  <p className="tw-text-sm tw-text-gray-500">No timeline events are available yet.</p>
+                ) : (
+                  <div className="tw-space-y-3">
+                    {timelineEvents.map((event) => (
+                      <div key={`${event.label}-${event.value}`} className="tw-flex tw-items-start tw-gap-3 tw-border-b tw-border-gray-100 tw-pb-3">
+                        <div className={`tw-w-8 tw-h-8 tw-rounded-full tw-bg-gray-100 tw-flex tw-items-center tw-justify-center ${event.accentClass}`}>
+                          <i className={event.icon}></i>
+                        </div>
+                        <div>
+                          <p className="tw-font-medium tw-text-gray-800">{event.label}</p>
+                          <p className="tw-text-sm tw-text-gray-500">{formatDateTime(event.value)}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </TabItem>
+
+          {/* Activity Stream Tab */}
+          <TabItem title="Activity Stream" icon="fa-light fa-clock-rotate-left">
+            <div className="tw-p-6">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
+                  <i className="fa-light fa-clock-rotate-left tw-mr-2 tw-text-purple-600"></i>
+                  Activity Stream
+                </h2>
+                <span className="tw-text-xs tw-text-gray-500">
+                  All changes and updates to this issue
+                </span>
+              </div>
+              <IssueActivityStream issueId={id} onRefresh={handleActivityRefreshCallback} />
+            </div>
+          </TabItem>
+
+          {/* Linked Issues Tab */}
+          <TabItem title="Linked Issues" icon="fa-light fa-link">
+            <div className="tw-p-6">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
+                  <i className="fa-light fa-link tw-mr-2 tw-text-indigo-600"></i>
+                  Linked Issues
+                </h2>
+                <span className="tw-text-xs tw-text-gray-500">
+                  Issues using the same template or category
+                </span>
+              </div>
+              <LinkedIssuesGrid issueId={id} currentIssue={issue} />
+            </div>
+          </TabItem>
+        </TabPanel>
       </div>
+
+      {/* Print/Share Popup */}
+      <IssuePrintPopup
+        visible={showPrintPopup}
+        onHide={() => setShowPrintPopup(false)}
+        issue={{
+          id: issue.id,
+          title: issue.problemTitle,
+          description: issue.problemDescription,
+          status: issue.statusName || `Status ${issue.status}`,
+          priority: issue.priorityName || `Priority ${issue.priority}`,
+          assigneeName: issue.assignToUserName,
+          openerName: issue.openbyUserName,
+          dueDate: issue.dueDate,
+          createdAt: issue.openDate,
+          templateName: issue.templateName,
+          vehicleHyoungNumber: issue.vehicleHyoungNo || issue.vehicleNumber
+        }}
+      />
     </div>
   );
 };

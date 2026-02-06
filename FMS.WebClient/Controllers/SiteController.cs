@@ -1,3 +1,14 @@
+/**
+ * File: SiteController.cs
+ * Purpose: Provides site CRUD, user-site assignment, and site tag configuration endpoints.
+ * Dependencies: MediatR site/user commands and queries, JWT claims.
+ * Last Modified: 2026-02-04
+ *
+ * Key Actions:
+ * - GetForCurrentUser(): Returns sites assigned to the authenticated user.
+ * - Create(): Creates site records.
+ * - UpdateSiteTagConfiguration(): Updates GPSGate tag settings with user context.
+ */
 using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.SiteCommands;
 using FMS.Application.Command.DatabaseCommand.UserManagement;
@@ -23,6 +34,15 @@ namespace FMS.WebClient.Controllers
         public SiteController(IMediator mediator)
         {
             _mediator = mediator;
+        }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? string.Empty;
+
+            return Guid.TryParse(userId, out _);
         }
 
         /// <summary>
@@ -72,12 +92,11 @@ namespace FMS.WebClient.Controllers
         [HttpGet("me")]
         public async Task<IActionResult> GetForCurrentUser()
         {
-            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
-            if (!Guid.TryParse(userId, out _))
+            if (!TryGetCurrentUserId(out var userId))
             {
                 return BadRequest("Invalid User ID");
             }
-            FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSitesByUserIdQuery(userId!));
+            FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSitesByUserIdQuery(userId));
             return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Message);
         }
 
@@ -263,7 +282,7 @@ namespace FMS.WebClient.Controllers
             }
 
             tagDto.SiteId = id;
-            string? userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
 
             var result = await _mediator.Send(new UpdateSiteTagConfigurationCommand(tagDto, userId));
             return result.IsSuccess ? Ok(result) : BadRequest(result);

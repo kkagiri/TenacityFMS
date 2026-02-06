@@ -4,6 +4,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.Auth;
 using FMS.Domain.Entities.Features.ErrorManagement;
 using FMS.Domain.Entities.Features.TankStockManagement;
+using FMS.Domain.Entities.Features.UserManagement;
 using FMS.Domain.Entities.Reports;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
@@ -19,12 +20,22 @@ public partial class User : IdentityUser
     public int? MasterRFIDTag { get; set; }
 
     /// <summary>
+    /// Foreign key to the Department entity
+    /// </summary>
+    public int? DepartmentId { get; set; }
+
+    /// <summary>
     /// When true, this user can bypass GPS/location validation during mobile fueling.
     /// Useful for users operating in areas with poor GPS/network coverage.
     /// </summary>
     public bool BypassLocationValidation { get; set; }
     public virtual ICollection<ErrorLog> ErrorLogs { get; set; } = new List<ErrorLog>();
     public virtual FuelTag? MasterTags { get; set; } //Navigation
+
+    /// <summary>
+    /// Navigation property for the user's department
+    /// </summary>
+    public virtual Department? Department { get; set; }
 
     public virtual ICollection<UserSites> UserSites { get; set; } = new List<UserSites>();
     public virtual ICollection<Delivery> Deliveries { get; set; } = new List<Delivery>();

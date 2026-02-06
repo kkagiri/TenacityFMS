@@ -1,3 +1,9 @@
+/**
+ * File: tankPage.js
+ * Purpose: Tank management page with tree view, tank details, and PTS binding actions.
+ * Dependencies: react, react-redux, devextreme-react, tankActions, siteActions
+ * Last Modified: 2026-02-04
+ */
 import React, {
   useState,
   useEffect,
@@ -29,6 +35,12 @@ const TankPage = () => {
   const { tanks, loading: tanksLoading } = useSelector((state) => state.tank);
   const { sites } = useSelector((state) => state.site);
   const { user } = useSelector((state) => state.auth);
+  const connectionStatuses = useSelector(
+    (state) => state.deviceConnections?.connectionStatuses || {}
+  );
+  const uploadStatusByDevice = useSelector(
+    (state) => state.realtimeStatus?.uploadStatusByDevice || {}
+  );
   const mobileMenuRef = useRef(null);
 
   // Get user roles from auth state
@@ -177,6 +189,31 @@ const TankPage = () => {
 
     notify("Tank saved successfully", "success", 3000);
   };
+
+  const handlePTSLinkSubmit = async () => {
+    const previousSelectedTankId = selectedTank?.id;
+
+    // Fetch updated tank data in the background
+    const result = await dispatch(fetchTanks());
+
+    if (previousSelectedTankId && result?.success && result?.data) {
+      const updatedTank = result.data.find(
+        (tankItem) => tankItem.id === previousSelectedTankId
+      );
+      if (updatedTank) {
+        setSelectedTank(updatedTank);
+      }
+    }
+    // Note: Notification is handled in PTSDeviceLinkPopup
+  };
+
+  const selectedTankLiveStatus = selectedTank?.ptsId
+    ? uploadStatusByDevice[selectedTank.ptsId]
+    : null;
+
+  const selectedTankConnection = selectedTank?.ptsId
+    ? connectionStatuses[selectedTank.ptsId]
+    : null;
 
   // Custom cell render to show only name with proper icons
   //Cursor - Fixed tree display to hide internal data fields and show user-friendly information with icons
@@ -438,7 +475,11 @@ const TankPage = () => {
 
           {selectedTank ? (
             <div className="tank-details-container">
-              <TankDetails tank={selectedTank} />
+              <TankDetails
+                tank={selectedTank}
+                liveStatus={selectedTankLiveStatus}
+                connectionStatus={selectedTankConnection}
+              />
             </div>
           ) : selectedSite ? (
             <div className="site-summary tw-animate-fadeIn">
@@ -637,6 +678,7 @@ const TankPage = () => {
       <PTSDeviceLinkPopup
         visible={showPTSLink}
         tank={selectedTank}
+        onLinked={handlePTSLinkSubmit}
         onClose={() => setShowPTSLink(false)}
       />
 

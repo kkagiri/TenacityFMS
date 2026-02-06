@@ -32,6 +32,7 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
         try
         {
             var user = await _context.Users
+                .Include(u => u.Department)
                 .Where(u => u.Id == request.UserId)
                 .FirstOrDefaultAsync(cancellationToken);
 
@@ -63,6 +64,10 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
 
                 // Location Validation Settings
                 BypassLocationValidation = user.BypassLocationValidation,
+
+                // Department Information
+                DepartmentId = user.DepartmentId,
+                DepartmentName = user.Department?.Name,
 
                 // Include roles
                 Roles = roles.ToList()

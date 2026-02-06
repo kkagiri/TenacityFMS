@@ -93,6 +93,30 @@ namespace FMS.WebClient.Controllers.PTSController
         }
 
         /// <summary>
+        /// Gets the probes configuration from the PTS device.
+        /// Based on protocol 52. GetProbesConfiguration
+        /// </summary>
+        [HttpGet("probes")]
+        public async Task<ActionResult<FMSResponse<ProbesConfigurationResponse>>> GetDeviceProbesConfiguration(string deviceId)
+        {
+            try
+            {
+                _logger.LogInformation("API: Getting Probes Configuration for device {DeviceId}", deviceId);
+                var result = await _ptsConfigService.GetProbesConfigurationAsync(deviceId);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Probes Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<ProbesConfigurationResponse>.Failed("Internal server error"));
+            }
+        }
+
+        /// <summary>
         /// Gets a comprehensive diagnostic report from the PTS device.
         /// </summary>
         [HttpGet("diagnostics")]

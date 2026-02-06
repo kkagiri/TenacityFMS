@@ -67,7 +67,10 @@ const ScheduleReportEmailDialog = ({
     return (tanks || []).filter((tank) => selectedSiteIds.includes(tank.siteId));
   }, [tanks, selectedSiteIds]);
 
+  // Only filter tank IDs when dialog is visible to prevent infinite loop
   useEffect(() => {
+    if (!visible) return;
+
     const validTankIds = filterTankIdsBySelectedSites({
       tankIds: selectedTankIds,
       siteIds: selectedSiteIds,
@@ -81,7 +84,7 @@ const ScheduleReportEmailDialog = ({
     if (hasChanged) {
       onScheduleConfigChange({ tankIds: validTankIds });
     }
-  }, [selectedTankIds, selectedSiteIds, tanks, onScheduleConfigChange]);
+  }, [visible, selectedTankIds, selectedSiteIds, tanks, onScheduleConfigChange]);
 
   const nextRunDate = useMemo(
     () =>

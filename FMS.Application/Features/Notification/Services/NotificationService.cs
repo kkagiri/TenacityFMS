@@ -1854,6 +1854,18 @@ namespace FMS.Application.Features.Notification.Services
                 if (request.NotificationCategoryId <= 0)
                     validationErrors.Add("Category is required");
 
+                if (!string.IsNullOrWhiteSpace(request.ActiveAlarmFilter))
+                {
+                    try
+                    {
+                        JObject.Parse(request.ActiveAlarmFilter);
+                    }
+                    catch
+                    {
+                        validationErrors.Add("ActiveAlarmFilter must be a valid JSON object");
+                    }
+                }
+
                 if (validationErrors.Any())
                 {
                     return FMSResponse<int>.ValidationFailed(validationErrors);
@@ -1873,6 +1885,7 @@ namespace FMS.Application.Features.Notification.Services
                     CooldownMinutes = request.CooldownMinutes ?? 30,
                     TitleTemplate = request.TitleTemplate,
                     MessageTemplate = request.MessageTemplate,
+                    TriggerConditions = request.ActiveAlarmFilter,
                     RequireAcknowledgment = request.RequireAcknowledgment,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
@@ -1890,6 +1903,81 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogError(ex, "Error creating notification policy");
                 return FMSResponse<int>.Failed("Error creating notification policy");
+            }
+        }
+
+        public async Task<FMSResponse> UpdateNotificationPolicyAsync(int policyId, UpdateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (policyId <= 0)
+                {
+                    return FMSResponse.FailedResponse("Policy id is required");
+                }
+
+                var validationErrors = new List<string>();
+                if (string.IsNullOrWhiteSpace(request?.Name))
+                {
+                    validationErrors.Add("Policy name is required");
+                }
+                if (request == null || request.NotificationCategoryId <= 0)
+                {
+                    validationErrors.Add("Category is required");
+                }
+
+                if (!string.IsNullOrWhiteSpace(request?.ActiveAlarmFilter))
+                {
+                    try
+                    {
+                        JObject.Parse(request.ActiveAlarmFilter);
+                    }
+                    catch
+                    {
+                        validationErrors.Add("ActiveAlarmFilter must be a valid JSON object");
+                    }
+                }
+
+                if (validationErrors.Any())
+                {
+                    return FMSResponse.FailedResponse(string.Join("; ", validationErrors));
+                }
+
+                var policy = await _context.NotificationPolicies
+                    .FirstOrDefaultAsync(p => p.Id == policyId, cancellationToken);
+
+                if (policy == null)
+                {
+                    return FMSResponse.FailedResponse($"Policy {policyId} not found");
+                }
+
+                policy.Name = request.Name;
+                policy.NotificationCategoryId = request.NotificationCategoryId;
+                policy.NotificationType = request.NotificationType ?? "Alert";
+                policy.Priority = request.Priority ?? "Medium";
+                policy.EnableEmail = request.EnableEmail;
+                policy.EnableSms = request.EnableSms;
+                policy.EnableSystem = request.EnableSystem;
+                policy.MaxNotificationsPerHour = request.MaxNotificationsPerHour ?? 10;
+                policy.MaxNotificationsPerDay = request.MaxNotificationsPerDay ?? 50;
+                policy.CooldownMinutes = request.CooldownMinutes ?? 30;
+                policy.TitleTemplate = request.TitleTemplate;
+                policy.MessageTemplate = request.MessageTemplate;
+                policy.RequireAcknowledgment = request.RequireAcknowledgment;
+                policy.TriggerConditions = request.ActiveAlarmFilter;
+                policy.IsActive = request.IsActive;
+                policy.ModifiedAt = DateTime.UtcNow;
+                policy.ModifiedBy = string.IsNullOrWhiteSpace(request.ModifiedBy)
+                    ? (policy.ModifiedBy ?? SystemConstants.Defaults.SystemTriggeredBy)
+                    : request.ModifiedBy;
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return FMSResponse.SuccessResponse("Notification policy updated successfully");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating notification policy {PolicyId}", policyId);
+                return FMSResponse.FailedResponse("Error updating notification policy");
             }
         }
 

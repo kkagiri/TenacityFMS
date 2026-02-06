@@ -40,6 +40,11 @@ export const FETCH_USERS_FOR_FILTER_SUCCESS = 'FETCH_USERS_FOR_FILTER_SUCCESS';
 export const FETCH_USERS_FOR_FILTER_FAILURE = 'FETCH_USERS_FOR_FILTER_FAILURE';
 export const FETCH_ALL_ROLES_SUCCESS = 'FETCH_ALL_ROLES_SUCCESS';
 export const FETCH_ALL_ROLES_FAILURE = 'FETCH_ALL_ROLES_FAILURE';
+export const FETCH_ALL_DEPARTMENTS_SUCCESS = 'FETCH_ALL_DEPARTMENTS_SUCCESS';
+export const FETCH_ALL_DEPARTMENTS_FAILURE = 'FETCH_ALL_DEPARTMENTS_FAILURE';
+export const CREATE_DEPARTMENT_SUCCESS = 'CREATE_DEPARTMENT_SUCCESS';
+export const UPDATE_DEPARTMENT_SUCCESS = 'UPDATE_DEPARTMENT_SUCCESS';
+export const DELETE_DEPARTMENT_SUCCESS = 'DELETE_DEPARTMENT_SUCCESS';
 
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
@@ -297,5 +302,57 @@ export const fetchAllRoles = () => async (dispatch) => {
     } catch (error) {
         dispatch({ type: FETCH_ALL_ROLES_FAILURE, payload: error.message });
         throw new Error('Error loading roles');
+    }
+};
+
+// Fetch all departments for dropdown
+export const fetchAllDepartments = () => async (dispatch) => {
+    try {
+        const response = await axiosInstance.get('/department');
+        // Handle FMSResponse wrapper - data is in response.data.data
+        const departments = response.data?.data || response.data || [];
+        dispatch({ type: FETCH_ALL_DEPARTMENTS_SUCCESS, payload: departments });
+        return departments;
+    } catch (error) {
+        dispatch({ type: FETCH_ALL_DEPARTMENTS_FAILURE, payload: error.message });
+        throw new Error('Error loading departments');
+    }
+};
+
+// Create a new department
+export const createDepartment = (departmentData) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.post('/department', departmentData);
+        const newDepartment = response.data?.data || response.data;
+        dispatch({ type: CREATE_DEPARTMENT_SUCCESS, payload: newDepartment });
+        return newDepartment;
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Error creating department';
+        throw new Error(errorMessage);
+    }
+};
+
+// Update an existing department
+export const updateDepartment = (id, departmentData) => async (dispatch) => {
+    try {
+        const response = await axiosInstance.put(`/department/${id}`, departmentData);
+        const updatedDepartment = response.data?.data || response.data;
+        dispatch({ type: UPDATE_DEPARTMENT_SUCCESS, payload: updatedDepartment });
+        return updatedDepartment;
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Error updating department';
+        throw new Error(errorMessage);
+    }
+};
+
+// Delete a department (will fail if department has users)
+export const deleteDepartment = (id) => async (dispatch) => {
+    try {
+        await axiosInstance.delete(`/department/${id}`);
+        dispatch({ type: DELETE_DEPARTMENT_SUCCESS, payload: id });
+        return true;
+    } catch (error) {
+        const errorMessage = error.response?.data?.message || error.message || 'Error deleting department';
+        throw new Error(errorMessage);
     }
 };
