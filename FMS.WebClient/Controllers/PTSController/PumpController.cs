@@ -28,12 +28,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers.PTSController
 {
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
+    [RequirePermission(Permissions.Admin.Device)]
     public class PumpController : ControllerBase
     {
         private readonly IMediator _mediator;

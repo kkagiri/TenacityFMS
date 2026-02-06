@@ -86,8 +86,8 @@ const TransactionHub = () => {
 
   // Permission checks using JWT token
   const { hasPermission, hasRole } = usePermissions();
-  const canReadTankVolumeHistory = hasPermission("_Read_tankVolumeHistory");
-  const canDeleteTankVolumeHistory = hasPermission("_Delete_tankVolumeHistory");
+  const canReadTankVolumeHistory = hasPermission("_Read_TankVolumeHistory");
+  const canDeleteTankVolumeHistory = hasPermission("_Delete_TankVolumeHistory");
   // Edit is admin-only feature
   const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
   const canEditTankVolumeHistory = isAdmin;
@@ -159,6 +159,15 @@ const TransactionHub = () => {
   const [isSchedulingReport, setIsSchedulingReport] = useState(false);
 
   const reportTemplateName = "transaction-volume-history-report";
+
+  const areScheduleValuesEqual = useCallback((currentValue, nextValue) => {
+    if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
+      if (currentValue.length !== nextValue.length) return false;
+      return currentValue.every((value, index) => value === nextValue[index]);
+    }
+
+    return currentValue === nextValue;
+  }, []);
 
   // Refresh data after successful manual refill
   const handleManualRefillSuccess = useCallback(() => {
@@ -234,10 +243,29 @@ const TransactionHub = () => {
   ]);
 
   const handleScheduleConfigChange = useCallback((updates) => {
-    setScheduleConfig((prev) => ({
-      ...prev,
-      ...updates
-    }));
+    if (!updates || typeof updates !== "object") {
+      return;
+    }
+
+    setScheduleConfig((prev) => {
+      const updateEntries = Object.entries(updates);
+      const hasActualChange = updateEntries.some(([key, nextValue]) => {
+        return !areScheduleValuesEqual(prev?.[key], nextValue);
+      });
+
+      if (!hasActualChange) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        ...updates
+      };
+    });
+  }, [areScheduleValuesEqual]);
+
+  const handleCloseScheduleDialog = useCallback(() => {
+    setShowScheduleReportDialog(false);
   }, []);
 
   const handleOpenScheduleDialog = useCallback(() => {
@@ -265,11 +293,32 @@ const TransactionHub = () => {
   }, [selectedSiteIds, selectedTankIds]);
 
   const handleScheduleReportEmail = useCallback(async () => {
-    const recipientIds = scheduleConfig?.recipientIds || [];
+    const rawRecipientIds = Array.isArray(scheduleConfig?.recipientIds)
+      ? scheduleConfig.recipientIds
+      : [];
+    const recipientIds = rawRecipientIds
+      .map((recipient) => {
+        if (recipient === null || recipient === undefined) {
+          return null;
+        }
+
+        if (typeof recipient === "object") {
+          return (
+            recipient.userId ??
+            recipient.UserId ??
+            recipient.id ??
+            null
+          );
+        }
+
+        return recipient;
+      })
+      .map((id) => (id === null || id === undefined ? "" : String(id).trim()))
+      .filter((id) => id.length > 0);
     const periodType = scheduleConfig?.periodType || "daily";
     const scheduleDayOfWeekIds =
       Array.isArray(scheduleConfig?.scheduleDayOfWeekIds) &&
-      scheduleConfig.scheduleDayOfWeekIds.length
+        scheduleConfig.scheduleDayOfWeekIds.length
         ? scheduleConfig.scheduleDayOfWeekIds.filter(Boolean)
         : [scheduleConfig?.scheduleDayOfWeek || "monday"];
     const scheduleDayOfWeek = scheduleDayOfWeekIds[0] || "monday";
@@ -286,6 +335,16 @@ const TransactionHub = () => {
         message: "Please select at least one recipient.",
         type: "warning",
         displayTime: 3000,
+        position: "top center"
+      });
+      return;
+    }
+
+    if (recipientIds.some((id) => id.toLowerCase() === "undefined" || id.toLowerCase() === "null")) {
+      notify({
+        message: "One or more selected recipients are invalid. Please reselect recipients.",
+        type: "warning",
+        displayTime: 3500,
         position: "top center"
       });
       return;
@@ -332,9 +391,26 @@ const TransactionHub = () => {
       const tankNames = resolveEntityNames(tanks, selectedScheduleTankIds, {
         emptyLabel: "All Tanks"
       });
-      const recipientNames = resolveEntityNames(usersForFilter, recipientIds, {
-        idField: "userId",
-        nameField: "userName",
+      const normalizedRecipients = (usersForFilter || [])
+        .map((recipient) => {
+          const rawId = recipient?.userId ?? recipient?.id;
+          if (rawId === null || rawId === undefined || rawId === "") {
+            return null;
+          }
+
+          return {
+            id: String(rawId),
+            name:
+              recipient?.userName ||
+              recipient?.username ||
+              recipient?.name ||
+              `User ${rawId}`
+          };
+        })
+        .filter(Boolean);
+      const recipientNames = resolveEntityNames(normalizedRecipients, recipientIds, {
+        idField: "id",
+        nameField: "name",
         emptyLabel: "Selected users"
       });
       const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
@@ -363,12 +439,12 @@ const TransactionHub = () => {
       });
 
       const notificationRequest = {
-        type: 2,
-        categoryId: 20,
-        priority: 1,
-        title: prefixedReportName,
-        message: reportSummaryHtml,
-        data: {
+        Type: 2,
+        CategoryId: 20,
+        Priority: 1,
+        Title: prefixedReportName,
+        Message: reportSummaryHtml,
+        Data: {
           schedulerVersion: 3,
           reportType: "TransactionVolumeHistory",
           templateName: reportTemplateName,
@@ -397,16 +473,16 @@ const TransactionHub = () => {
           requestedAt: new Date().toISOString(),
           timeZone
         },
-        triggerSource: "TransactionVolumeHistoryReportSchedule",
-        scheduledAt: nextRunDate.toISOString(),
-        siteId: selectedScheduleSiteIds?.length === 1 ? selectedScheduleSiteIds[0] : null,
-        tankId: selectedScheduleTankIds?.length === 1 ? selectedScheduleTankIds[0] : null,
-        recipients: recipientIds.map((userId) => ({
-          userId,
-          deliveryMethods: ["Email"],
-          resolvedFrom: "Manual"
+        TriggerSource: "TransactionVolumeHistoryReportSchedule",
+        ScheduledAt: nextRunDate.toISOString(),
+        SiteId: selectedScheduleSiteIds?.length === 1 ? selectedScheduleSiteIds[0] : null,
+        TankId: selectedScheduleTankIds?.length === 1 ? selectedScheduleTankIds[0] : null,
+        Recipients: recipientIds.map((userId) => ({
+          UserId: String(userId),
+          DeliveryMethods: ["Email"],
+          ResolvedFrom: "Manual"
         })),
-        disableFallbackAllUsers: true
+        DisableFallbackAllUsers: true
       };
 
       const scheduleResult = await reportingService.scheduleReportEmail(notificationRequest);
@@ -1055,7 +1131,7 @@ const TransactionHub = () => {
       {/* Schedule Report Email Dialog */}
       <ScheduleReportEmailDialog
         visible={showScheduleReportDialog}
-        onHiding={() => setShowScheduleReportDialog(false)}
+        onHiding={handleCloseScheduleDialog}
         sites={sites}
         tanks={tanks}
         usersForFilter={usersForFilter}

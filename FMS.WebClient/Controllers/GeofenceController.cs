@@ -17,18 +17,23 @@ using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Geofence.Queries;
 using FMS.Application.Features.LocationValidation.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers;
 
 /// <summary>
 /// Controller for managing geofences, geofence groups, and location validation settings
 /// </summary>
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("api/v1/[controller]")]
+[RequirePermission(Permissions.Vehicle.Read)]
 public class GeofenceController : ControllerBase
 {
     private readonly IMediator _mediator;

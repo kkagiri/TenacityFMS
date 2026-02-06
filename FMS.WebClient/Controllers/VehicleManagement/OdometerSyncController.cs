@@ -6,6 +6,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Threading.Tasks;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.VehicleManagement;
 
@@ -15,6 +17,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize]
+[RequirePermission(Permissions.Vehicle.Read)]
 public class OdometerSyncController : ControllerBase
 {
     private readonly IMediator _mediator;

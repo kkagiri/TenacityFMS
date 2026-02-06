@@ -8,15 +8,20 @@ using FMS.Application.Features.GPSGate.Queries;
 using FMS.Application.Features.GPSGate.Services;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
     [ApiController]
     [Route("api/v1/[controller]")]
+    [RequirePermission(Permissions.Vehicle.Read)]
     public class GPSGateController : ControllerBase
     {
         private readonly IMediator _mediator;

@@ -7,12 +7,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/vehicletracking")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Vehicle.Read)]
     public class VehicleTrackingController : ControllerBase
     {
         private readonly IMediator _mediator;

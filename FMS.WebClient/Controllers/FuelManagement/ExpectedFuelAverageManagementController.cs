@@ -3,8 +3,12 @@ using FMS.Application.Features.ExpectedFuelAverage.Commands;
 using FMS.Application.Features.ExpectedFuelAverage.DTOs;
 using FMS.Application.Features.ExpectedFuelAverage.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.FuelManagement;
 
@@ -14,7 +18,8 @@ namespace FMS.WebClient.Controllers.FuelManagement;
 /// </summary>
 [ApiController]
 [Route("api/v1/[controller]")]
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.Admin.ExpectedAverage)]
 public class ExpectedFuelAverageManagementController : ControllerBase
 {
     private readonly IMediator _mediator;

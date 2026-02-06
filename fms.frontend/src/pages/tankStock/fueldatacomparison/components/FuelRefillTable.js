@@ -50,8 +50,8 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
 
   // Get permissions from hook
   const { hasPermission } = usePermissions();
-  const canEdit = hasPermission('_Update_tankStock');
-  const canDelete = hasPermission('_Delete_tankStock');
+  const canEdit = hasPermission('_Update_TankStock');
+  const canDelete = hasPermission('_Delete_TankStock');
 
   /**
    * Format date as DD/MM/YYYY

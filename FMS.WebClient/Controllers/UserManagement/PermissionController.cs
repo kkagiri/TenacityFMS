@@ -6,16 +6,22 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
-namespace FMS.WebClient.Controllers {
-    [Route ("api/v1/[controller]")]
+namespace FMS.WebClient.Controllers
+{
+    [Route("api/v1/[controller]")]
     [ApiController]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public class PermissionController : ControllerBase {
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.Roles)]
+    public class PermissionController : ControllerBase
+    {
 
         private readonly IMediator _mediator;
 
-        public PermissionController (IMediator mediator) {
+        public PermissionController(IMediator mediator)
+        {
             _mediator = mediator;
         }
 
@@ -25,10 +31,11 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         ///
         [HttpGet]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetPermissions () {
-            var result = await _mediator.Send (new GetPermissionQuery ());
-            return Ok (result);
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetPermissions()
+        {
+            var result = await _mediator.Send(new GetPermissionQuery());
+            return Ok(result);
         }
 
         // POST: api/Permission
@@ -39,13 +46,15 @@ namespace FMS.WebClient.Controllers {
         /// <returns> ok </returns>
 
         [HttpPost]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> CreatePermission ([FromBody] AddPermissionCommand command) {
-            if (!ModelState.IsValid) {
-                return BadRequest (ModelState);
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> CreatePermission([FromBody] AddPermissionCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
             }
-            var result = await _mediator.Send (command);
-            return Ok (result);
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
         // PUT: api/Permission/5
@@ -56,24 +65,27 @@ namespace FMS.WebClient.Controllers {
         /// <param name="command"></param>
         /// <returns> ok </returns>
 
-        [HttpPut ("{id}")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> UpdatePermission (int id, [FromBody] UpdatePermissionCommand command) {
-            if (!ModelState.IsValid) {
-                return BadRequest (ModelState);
+        [HttpPut("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> UpdatePermission(int id, [FromBody] UpdatePermissionCommand command)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
             }
 
             command = command with { Id = id }; // Update the Id in the command
-            var result = await _mediator.Send (command);
-            return Ok (result);
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
         // DELETE: api/Permission/5
-        [HttpDelete ("{id}")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> DeletePermission (int id) {
-            var result = await _mediator.Send (new DeletePermissionCommand (id));
-            return Ok (result);
+        [HttpDelete("{id}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> DeletePermission(int id)
+        {
+            var result = await _mediator.Send(new DeletePermissionCommand(id));
+            return Ok(result);
         }
 
         ///Get /Api/Permission/role/{roleId}
@@ -82,13 +94,14 @@ namespace FMS.WebClient.Controllers {
         /// </summary>
         /// <param name="roleId"></param>
         /// <returns></returns>
-        [HttpGet ("role/{roleId:guid}")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetPermissionsByRoleID (string roleId) {
-            if (roleId == null) return BadRequest ("RoleID is null");
+        [HttpGet("role/{roleId:guid}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetPermissionsByRoleID(string roleId)
+        {
+            if (roleId == null) return BadRequest("RoleID is null");
 
-            var result = await _mediator.Send (new GetPermissionsByRoleIDQuery (roleId));
-            return Ok (result);
+            var result = await _mediator.Send(new GetPermissionsByRoleIDQuery(roleId));
+            return Ok(result);
         }
 
         ///Get /Api/Permission/user/{userId} <summary>
@@ -97,13 +110,14 @@ namespace FMS.WebClient.Controllers {
         /// <param name="userId"></param>
         /// <returns></returns>
 
-        [HttpGet ("user/{userId:guid}")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<IActionResult> GetPermissionsByUserID (string userId) {
-            if (userId == null) return BadRequest ("UserID is null");
+        [HttpGet("user/{userId:guid}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> GetPermissionsByUserID(string userId)
+        {
+            if (userId == null) return BadRequest("UserID is null");
 
-            var result = await _mediator.Send (new GetUserPermissionsQuery (userId));
-            return Ok (result);
+            var result = await _mediator.Send(new GetUserPermissionsQuery(userId));
+            return Ok(result);
         }
 
     }

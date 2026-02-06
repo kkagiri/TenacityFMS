@@ -20,7 +20,7 @@ import UserEditPage from "../user/userEditPage";
 import UserActivitiesPage from "../user/userActivitiesPage";
 import UserSitesPage from "../user/userSitesPage";
 import Rolepage from "../Role/rolepage";
-import PermissionTreeList from "../../components/PermissionTreeList/permissionTreeList";
+import PermissionTreeListNonEdit from "../../components/PermissionTreeList/permissionTreeListNonEdit";
 import NavigationPage from "../Navigation/NavigationPage";
 import Tagpage from "../tag/tagPage";
 import SitePage from "../site/sitePage";
@@ -58,8 +58,8 @@ const AdminMain = () => {
         <Route path="users/:id/sites" element={<UserSitesPage />} />
         <Route path="roles" element={<Rolepage />} />
         <Route path="roles/*" element={<Rolepage />} />
-        <Route path="permissions" element={<PermissionTreeList />} />
-        <Route path="permissions/*" element={<PermissionTreeList />} />
+        <Route path="permissions" element={<PermissionTreeListNonEdit />} />
+        <Route path="permissions/*" element={<PermissionTreeListNonEdit />} />
         <Route path="navigation" element={<NavigationPage />} />
         <Route path="navigation/*" element={<NavigationPage />} />
         <Route path="notification" element={<NotificationSystem />} />

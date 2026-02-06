@@ -14,11 +14,16 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers;
 
 [ApiController]
 [Route("api/v1/[controller]")]
-
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.FuelTag.Read)]
 public class FuelingRuleController : ControllerBase
 {
     private readonly IMediator _mediator;

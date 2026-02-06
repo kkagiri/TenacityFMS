@@ -42,7 +42,7 @@ const QUICK_ACTIONS = [
     label: 'Reports',
     icon: 'fa-chart-bar',
     route: '/reports',
-    permission: '_view_dashboard',
+    permission: '_View_Dashboard',
     color: 'orange'
   },
   {
@@ -144,7 +144,7 @@ const QuickActionsWidget = ({
         tw-grid tw-gap-3 tw-h-full
         ${availableActions.length <= 2 ? 'tw-grid-cols-1' :
           availableActions.length <= 4 ? 'tw-grid-cols-2' :
-          'tw-grid-cols-3'}
+            'tw-grid-cols-3'}
       `}>
         {availableActions.map(renderActionButton)}
       </div>
@@ -197,9 +197,9 @@ QuickActionsWidget.defaultProps = {
   currentUser: null,
   isEditMode: false,
   isDragging: false,
-  onRefresh: () => {},
+  onRefresh: () => { },
   onRemove: null,
-  onConfigChange: () => {}
+  onConfigChange: () => { }
 };
 
 export default QuickActionsWidget;

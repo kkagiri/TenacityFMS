@@ -9,10 +9,10 @@ import { Popup } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
 
 // Components
-import VehicleMetricsTiles from './component/VehicleMetricsTiles';
-import VehicleEditForm from './component/VehicleEditForm';
-import TagAssignmentPopup from './component/vehicledetails/TagAssignmentPopup';
-import VehicleConsumptionHistory from './component/VehicleConsumptionHistory';
+import VehicleMetricsTiles from './details/components/VehicleMetricsTiles';
+import VehicleEditForm from './details/components/VehicleEditForm';
+import TagAssignmentPopup from './details/components/TagAssignmentPopup';
+import VehicleConsumptionHistory from './details/components/VehicleConsumptionHistory';
 
 // Services
 import { getVehicleById, updateVehicle, deleteVehicle } from '../../redux/actions/vehicleActions';
@@ -352,7 +352,7 @@ const VehicleEdit = () => {
         onHiding={() => setShowTagAssignment(false)}
         dragEnabled={false}
         showCloseButton
-={true}
+        ={true}
         showTitle={true}
         title="Manage Vehicle Tags"
         width={600}

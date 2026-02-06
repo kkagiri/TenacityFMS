@@ -33,6 +33,7 @@ import {
   PROCESS_STEP_LABELS,
   resolveIssueId
 } from './issueCreateFormUtils';
+import issueTrackerService from '../../../services/issueTrackerService';
 
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
@@ -280,6 +281,27 @@ const IssueCreateForm = ({ onSubmit = null }) => {
         throw new Error('Issue saved but no issue ID was returned from backend.');
       }
 
+      // Upload attachments if any were selected
+      if (formData.attachments && formData.attachments.length > 0) {
+        let uploadedCount = 0;
+        for (const file of formData.attachments) {
+          try {
+            const category = file._category || 'General';
+            await issueTrackerService.uploadAttachment(issueId, file, category);
+            uploadedCount++;
+          } catch (uploadErr) {
+            console.error('Failed to upload attachment:', file.name, uploadErr);
+          }
+        }
+        if (uploadedCount < formData.attachments.length) {
+          notify({
+            message: `Issue created but ${formData.attachments.length - uploadedCount} attachment(s) failed to upload.`,
+            type: 'warning',
+            displayTime: 4000
+          });
+        }
+      }
+
       notify({
         message: 'Issue created successfully.',
         type: 'success',
@@ -324,8 +346,8 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             </p>
           </div>
           <span className={`tw-px-4 tw-py-2 tw-rounded-full tw-text-xs tw-font-bold tw-uppercase tw-tracking-wide ${isReadyToSubmit
-              ? 'tw-bg-green-100 tw-text-green-700 tw-border tw-border-green-200'
-              : 'tw-bg-gray-100 tw-text-gray-600 tw-border tw-border-gray-200'
+            ? 'tw-bg-green-100 tw-text-green-700 tw-border tw-border-green-200'
+            : 'tw-bg-gray-100 tw-text-gray-600 tw-border tw-border-gray-200'
             }`}>
             {isReadyToSubmit ? 'Ready to Submit' : 'Incomplete'}
           </span>
@@ -337,17 +359,17 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             <div
               key={step.label}
               className={`tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-medium tw-whitespace-nowrap tw-transition-all ${step.isComplete
-                  ? 'tw-bg-green-100 tw-text-green-700'
-                  : step.isActive
-                    ? 'tw-bg-blue-100 tw-text-blue-700 tw-ring-2 tw-ring-blue-300'
-                    : 'tw-bg-gray-100 tw-text-gray-500'
+                ? 'tw-bg-green-100 tw-text-green-700'
+                : step.isActive
+                  ? 'tw-bg-blue-100 tw-text-blue-700 tw-ring-2 tw-ring-blue-300'
+                  : 'tw-bg-gray-100 tw-text-gray-500'
                 }`}
             >
               <span className={`tw-w-5 tw-h-5 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-bold ${step.isComplete
-                  ? 'tw-bg-green-600 tw-text-white'
-                  : step.isActive
-                    ? 'tw-bg-blue-600 tw-text-white'
-                    : 'tw-bg-gray-300 tw-text-gray-600'
+                ? 'tw-bg-green-600 tw-text-white'
+                : step.isActive
+                  ? 'tw-bg-blue-600 tw-text-white'
+                  : 'tw-bg-gray-300 tw-text-gray-600'
                 }`}>
                 {step.isComplete ? <i className="fa-light fa-check"></i> : index + 1}
               </span>
@@ -647,10 +669,25 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                   key={`${file.name}-${file.lastModified}-${index}`}
                   className="tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-md"
                 >
-                  <div className="tw-flex tw-items-center tw-gap-2">
+                  <div className="tw-flex tw-items-center tw-gap-2 tw-flex-1 tw-min-w-0">
                     <i className="fa-light fa-file tw-text-gray-400"></i>
-                    <span className="tw-text-sm tw-text-gray-700">{file.name}</span>
+                    <span className="tw-text-sm tw-text-gray-700 tw-truncate">{file.name}</span>
                   </div>
+                  <select
+                    className="tw-border tw-border-gray-300 tw-rounded tw-px-2 tw-py-1 tw-text-xs tw-mx-2"
+                    value={file._category || 'General'}
+                    onChange={(e) => {
+                      setFormData((prev) => {
+                        const updatedFiles = [...prev.attachments];
+                        updatedFiles[index] = Object.assign(updatedFiles[index], { _category: e.target.value });
+                        return { ...prev, attachments: updatedFiles };
+                      });
+                    }}
+                  >
+                    <option value="Installation">Installation</option>
+                    <option value="Calibration">Calibration</option>
+                    <option value="General">General</option>
+                  </select>
                   <button
                     type="button"
                     onClick={() => handleRemoveAttachment(index)}

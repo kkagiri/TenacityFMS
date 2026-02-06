@@ -17,6 +17,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.FuelManagement
 {
@@ -26,6 +28,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
     public class TankStockReconciliationController : ControllerBase
     {
         private readonly TankStockReconciliationService _reconciliationService;
@@ -62,14 +65,11 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// Reconcile TankStock with TankVolumeHistory for a specific tank and date
         /// </summary>
         [HttpGet("check")]
+        [RequirePermission(Permissions.TankStock.Read)]
         public async Task<IActionResult> CheckReconciliation(
             [FromQuery] int tankId,
             [FromQuery] DateTime date)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var result = await _reconciliationService.ReconcileTankStockForDateAsync(tankId, date);
@@ -87,13 +87,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// TankStock is considered the source of truth
         /// </summary>
         [HttpPost("fix")]
+        [RequirePermission(Permissions.TankStock.Update)]
         public async Task<IActionResult> FixDiscrepancies(
             [FromBody] FixDiscrepanciesRequest request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 // First check for discrepancies
@@ -131,13 +128,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// Reconcile a date range for a specific tank
         /// </summary>
         [HttpPost("batch/check")]
+        [RequirePermission(Permissions.TankStock.Read)]
         public async Task<IActionResult> CheckBatchReconciliation(
             [FromBody] BatchReconciliationRequest request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var result = await _reconciliationService.ReconcileDateRangeAsync(
@@ -159,13 +153,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// Reconcile and auto-fix a date range for a specific tank
         /// </summary>
         [HttpPost("batch/fix")]
+        [RequirePermission(Permissions.TankStock.Update)]
         public async Task<IActionResult> FixBatchReconciliation(
             [FromBody] BatchReconciliationRequest request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Update_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var userId = GetCurrentUserIdOrDefault();
@@ -190,13 +181,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// Reconcile all tanks for a specific date (use with caution)
         /// </summary>
         [HttpGet("check-all")]
+        [RequirePermission(Permissions.TankStock.Read)]
         public async Task<IActionResult> CheckAllTanks(
             [FromQuery] DateTime date)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var results = await _reconciliationService.ReconcileAllTanksForDateAsync(date);
@@ -223,15 +211,12 @@ namespace FMS.WebClient.Controllers.FuelManagement
         /// Get reconciliation statistics for a tank
         /// </summary>
         [HttpGet("statistics")]
+        [RequirePermission(Permissions.TankStock.Read)]
         public async Task<IActionResult> GetReconciliationStatistics(
             [FromQuery] int tankId,
             [FromQuery] DateTime startDate,
             [FromQuery] DateTime endDate)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankStock");
-            if (!hasPermission)
-                return Forbid();
-
             try
             {
                 var result = await _reconciliationService.ReconcileDateRangeAsync(

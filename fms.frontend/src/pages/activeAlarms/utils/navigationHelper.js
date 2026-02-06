@@ -12,12 +12,6 @@ export const activeAlarmRoutes = {
   alarmDetails: (id) => `/active-alarms/${id}/details`,
   statistics: '/active-alarms/statistics',
   settings: '/active-alarms/settings',
-  reports: '/active-alarms/reports',
-  escalation: '/active-alarms/escalation',
-  autoProcessing: '/active-alarms/auto-processing',
-  createAlarm: '/active-alarms/create',
-  bulkActions: '/active-alarms/bulk-actions',
-  testGenerator: '/active-alarms/test-generator',
 };
 
 // Helper to check if current path matches a route

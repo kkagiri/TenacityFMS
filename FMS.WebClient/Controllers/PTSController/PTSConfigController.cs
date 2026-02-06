@@ -10,11 +10,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers.PTSController
 {
     [ApiController]
     [Route("api/v1/pts/{deviceId}/config")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.Device)]
     public class PTSConfigController : ControllerBase
     {
         private readonly IPTSConfigService _ptsConfigService;

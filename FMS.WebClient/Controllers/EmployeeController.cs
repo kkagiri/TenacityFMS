@@ -24,11 +24,15 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Distributed;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Employee.Read)]
     public class EmployeeController : BaseApiController
 
     {
@@ -43,15 +47,13 @@ namespace FMS.WebClient.Controllers
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Create)]
         public async Task<IActionResult> CreateEmployee([FromBody] EmployeeDto employeeDto)
         {
-            var hasPermission = User.HasClaim("permissions", "_createEmployee");
-
             if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
             employeeDto.CreatedBy = userId;
 
-            if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
             var command = new EmployeeCreateCmd { EmployeeDto = employeeDto };
             var result = await _mediator.Send(command);
@@ -61,10 +63,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("site/{siteId}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
         public async Task<IActionResult> GetEmployeeBySiteId(int siteId)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            if (!hasPermission) return Forbid();
             if (siteId <= 0) return BadRequest("Invalid ID");
             var query = new GetEmployeeBySiteIdQuery { SiteId = siteId };
             var employees = await _mediator.Send(query);
@@ -73,13 +74,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
         public async Task<IActionResult> GetEmployeeList([FromQuery] bool? active)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            var permissionlist = User.Claims.ToList();
-
-            if (!hasPermission) return Forbid();
-
             var query = new GetEmployeeQuery(active ?? true);
             var employees = await _mediator.Send(query);
             return Ok(employees);
@@ -87,10 +84,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
         public async Task<IActionResult> GetEmployee(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_readEmployee");
-            if (!hasPermission) return Forbid();
             if (id <= 0) return BadRequest("Invalid ID");
 
             // Try cache first
@@ -119,11 +115,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
+        [RequirePermission(Permissions.Employee.Edit)]
         public async Task<IActionResult> UpdateEmployee(int id, [FromBody] EmployeeDto employeeDto)
         {
-            var hasPermission = User.HasClaim("permissions", "_editEmployee");
-            if (!hasPermission) return Forbid();
             if (!ModelState.IsValid) return BadRequest(ModelState);
             if (id <= 0) return BadRequest("Invalid ID");
             if (id != employeeDto.Id) return BadRequest("ID mismatch");
@@ -143,10 +137,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Delete)]
         public async Task<IActionResult> DeleteEmployee(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_deleteEmployee");
-            if (!hasPermission) return Forbid();
             if (id <= 0) return BadRequest("Invalid ID");
 
             var command = new EmployeeDeleteCmd(id);

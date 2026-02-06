@@ -7,43 +7,51 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
-namespace FMS.WebClient.Controllers {
+namespace FMS.WebClient.Controllers
+{
 
     [ApiController]
-    [Route ("api/v1/[controller]")]
-    [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Vehicle.Model)]
 
-    public class VehicleModelController : ControllerBase {
+    public class VehicleModelController : ControllerBase
+    {
 
         private readonly IMediator _mediator;
 
-        public VehicleModelController (IMediator mediator) {
+        public VehicleModelController(IMediator mediator)
+        {
             _mediator = mediator;
         }
 
-        [HttpPost ("CreateVehicleModel")]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        public async Task<ActionResult<int>> CreateVehicleModel ([FromBody] Vehiclemodel vehicleModel) {
-            if (!ModelState.IsValid) return BadRequest (ModelState);
+        [HttpPost("CreateVehicleModel")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<ActionResult<int>> CreateVehicleModel([FromBody] Vehiclemodel vehicleModel)
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var command = new CreateVehicleModelCommand (vehicleModel.ManufacturerId, vehicleModel.Name);
-            var results = await _mediator.Send (command);
+            var command = new CreateVehicleModelCommand(vehicleModel.ManufacturerId, vehicleModel.Name);
+            var results = await _mediator.Send(command);
 
-            if (!results.Success) return BadRequest (results.Message);
+            if (!results.Success) return BadRequest(results.Message);
 
-            return Ok (results.Data);
+            return Ok(results.Data);
 
         }
 
         [HttpGet]
-        [Authorize (AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 
-        public async Task<IActionResult> GetVehicleModel () {
+        public async Task<IActionResult> GetVehicleModel()
+        {
 
-            var query = new GetVehicleModelQuery ();
-            var vehicleModels = await _mediator.Send (query);
-            return Ok (vehicleModels);
+            var query = new GetVehicleModelQuery();
+            var vehicleModels = await _mediator.Send(query);
+            return Ok(vehicleModels);
 
         }
 

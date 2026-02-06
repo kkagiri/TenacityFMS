@@ -95,7 +95,7 @@ const RoleDetails = ({ roleId }) => {
 
   return (
     <div style={{ padding: "20px" }}>
-      <Accordion collapsible={true}>
+      <Accordion collapsible={true} animationDuration={200}>
         <AccordionItem title={`Role Details: ${roleDetails.name}`}>
           <RoleForm
             editData={roleDetails}
@@ -108,14 +108,25 @@ const RoleDetails = ({ roleId }) => {
             }}
           />
         </AccordionItem>
-        <AccordionItem title="Permissions">
-          <PermissionTreeListNonEdit />
-        </AccordionItem>
-        <AccordionItem title="Users">
-          <UserDataList />
-        </AccordionItem>
       </Accordion>
-      <div style={{ margin: 20 }}>
+
+      <div className="tw-mt-4">
+        <Accordion collapsible={true} animationDuration={200}>
+          <AccordionItem title="Permissions">
+            <PermissionTreeListNonEdit />
+          </AccordionItem>
+        </Accordion>
+      </div>
+
+      <div className="tw-mt-4">
+        <Accordion collapsible={true} animationDuration={200}>
+          <AccordionItem title="Users">
+            <UserDataList />
+          </AccordionItem>
+        </Accordion>
+      </div>
+
+      <div className="tw-mt-5">
         <Button
           icon="save"
           width={120}

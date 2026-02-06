@@ -51,7 +51,7 @@ const SequenceDetection = () => {
     name: tank.name
   }));
 
-  const canRead = hasPermission('_Read_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
 
   if (!canRead) {
     return (
@@ -255,9 +255,8 @@ const SequenceDetection = () => {
               return (
                 <button
                   key={severity}
-                  className={`tvcc-severity-badge tvcc-severity-${severity.toLowerCase()} ${
-                    filterSeverity === severity ? 'active' : ''
-                  }`}
+                  className={`tvcc-severity-badge tvcc-severity-${severity.toLowerCase()} ${filterSeverity === severity ? 'active' : ''
+                    }`}
                   onClick={() => dispatch(setFilterSeverity(filterSeverity === severity ? null : severity))}
                 >
                   <i className={`fa-light ${getSeverityIcon(severity)}`}></i>

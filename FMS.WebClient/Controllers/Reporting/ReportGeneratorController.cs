@@ -2,12 +2,16 @@ using FMS.Application.Common;
 using FMS.Application.Features.TankManagement.PumpTransaction;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.Reporting
 {
@@ -16,7 +20,8 @@ namespace FMS.WebClient.Controllers.Reporting
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Report.VehicleConsumption)]
     public class ReportGeneratorController : ControllerBase
     {
         private readonly IJsReportService _reportService;

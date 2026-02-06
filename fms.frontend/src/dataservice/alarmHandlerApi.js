@@ -1,5 +1,15 @@
-// AlarmHandler CRUD for Notification Policy Triggers
-// These methods wire up the backend API endpoints for alarm handlers (triggers)
+/**
+ * File: alarmHandlerApi.js
+ * Purpose: Provides CRUD and metadata calls for notification alarm handlers (policy triggers).
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-02-06
+ *
+ * Key Functions:
+ * - getAlarmHandlers(): Fetches handlers for a policy.
+ * - createAlarmHandler(): Creates a trigger handler for a policy.
+ * - updateAlarmHandler(): Updates handler settings and trigger config.
+ */
+
 import axiosInstance from '../api/axiosInstance';
 
 const basePath = '/notifications/alarm-handlers';
@@ -34,6 +44,10 @@ const alarmHandlerApi = {
   async updateAlarmHandler(id, payload) {
     // Allow passing either backend key names or frontend style; map if needed
     const request = {
+      name: payload.name,
+      description: payload.description,
+      isActive: payload.isActive,
+      priority: payload.priority,
       alarmType: payload.alarmType || payload.type,
       triggerConfig: payload.triggerConfig || payload.config,
       cooldownMinutes: payload.cooldownMinutes,
@@ -42,6 +56,13 @@ const alarmHandlerApi = {
       tankId: payload.tankId,
       deviceId: payload.deviceId
     };
+
+    Object.keys(request).forEach(key => {
+      if (request[key] === undefined) {
+        delete request[key];
+      }
+    });
+
     const response = await axiosInstance.put(`${basePath}/${id}`, request);
     return response.data;
   },

@@ -8,7 +8,7 @@
 /**
  * Check if current user has a specific permission
  * @param {Object} user - User object from Redux state
- * @param {string} permission - Permission name (e.g., "TankStock.Read", "_Read_tankStock")
+ * @param {string} permission - Permission name (e.g., "TankStock.Read", "_Read_TankStock")
  * @returns {boolean} - True if user has permission
  */
 export const hasPermission = (user, permission) => {
@@ -16,7 +16,8 @@ export const hasPermission = (user, permission) => {
     return false;
   }
 
-  return user.permissions.includes(permission);
+  const permLower = permission.toLowerCase();
+  return user.permissions.some(p => p.toLowerCase() === permLower);
 };
 
 /**
@@ -30,7 +31,8 @@ export const hasAnyPermission = (user, permissions) => {
     return false;
   }
 
-  return permissions.some(permission => user.permissions.includes(permission));
+  const userPermSet = new Set(user.permissions.map(p => p.toLowerCase()));
+  return permissions.some(permission => userPermSet.has(permission.toLowerCase()));
 };
 
 /**
@@ -44,7 +46,8 @@ export const hasAllPermissions = (user, permissions) => {
     return false;
   }
 
-  return permissions.every(permission => user.permissions.includes(permission));
+  const userPermSet = new Set(user.permissions.map(p => p.toLowerCase()));
+  return permissions.every(permission => userPermSet.has(permission.toLowerCase()));
 };
 
 /**
@@ -107,20 +110,20 @@ export const filterByPermission = (items, user, getPermission) => {
  * Use these instead of hardcoded strings
  */
 export const TANKSTOCK_PERMISSIONS = {
-  READ: '_Read_tankStock',
-  CREATE: '_Create_tankStock',
-  UPDATE: '_Update_tankStock',
-  DELETE: '_Delete_tankStock',
+  READ: '_Read_TankStock',
+  CREATE: '_Create_TankStock',
+  UPDATE: '_Update_TankStock',
+  DELETE: '_Delete_TankStock',
 };
 
 /**
  * Common permission constants for Employee module
  */
 export const EMPLOYEE_PERMISSIONS = {
-  READ: '_readEmployee',
-  CREATE: '_createEmployee',
-  UPDATE: '_editEmployee',
-  DELETE: '_deleteEmployee',
+  READ: '_Read_Employee',
+  CREATE: '_Create_Employee',
+  UPDATE: '_Edit_Employee',
+  DELETE: '_Delete_Employee',
 };
 
 /**

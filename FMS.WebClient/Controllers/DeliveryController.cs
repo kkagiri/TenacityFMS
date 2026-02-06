@@ -24,11 +24,15 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Delivery.Read)]
     public class DeliveryController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -49,13 +53,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpPost("Create")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Create)]
         public async Task<IActionResult> CreateDelivery([FromBody] DeliveryDTO deliveryDTO)
         {
-            var hasPermission = User.HasClaim("permissions", "_Create_Delivery");
-
-            if (!hasPermission)
-                return Forbid();
-
             if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 
@@ -71,10 +71,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Read)]
         public async Task<IActionResult> GetDeliveries()
         {
-            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-            // if (!hasPermission) return Forbid();
             var result = await _mediator.Send(new GetDeliveryListQuery());
             if (result == null)
                 return NoContent();
@@ -83,10 +82,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byDateRange")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Read)]
         public async Task<IActionResult> GetDeliveryById(DateTime startDate, DateTime endDate)
         {
-            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-            //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default)
                 return BadRequest("Invalid Date Range");
 
@@ -100,14 +98,13 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byDateRangebySite")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Read)]
         public async Task<IActionResult> GetDeliveryById(
             DateTime startDate,
             DateTime endDate,
             int siteId
         )
         {
-            //var hasPermission = User.HasClaim("permissions", "_Read_Delivery");
-            //if (!hasPermission) return Forbid();
             if (startDate == default || endDate == default)
                 return BadRequest("Invalid Date Range");
             if (siteId <= 0)
@@ -122,12 +119,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpPut("update")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Update)]
         public async Task<IActionResult> UpdateDelivery([FromBody] UpdateDeliveryRequest request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Update_Delivery");
-            if (!hasPermission)
-                return Forbid();
-
             if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 
@@ -150,12 +144,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Delivery.Delete)]
         public async Task<IActionResult> SoftDeleteDelivery(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_Delete_Delivery");
-            if (!hasPermission)
-                return Forbid();
-
             if (!TryGetCurrentUserId(out var userId))
                 return BadRequest("Invalid User ID");
 

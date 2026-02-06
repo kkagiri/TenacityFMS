@@ -27,11 +27,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     [Route("api/v1/[controller]")]
     [ApiController]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankVolumeHistory.Read)]
     public class TankVolumeHistoryController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -52,11 +56,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTankVolumeHistory()
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             var result = await _mediator.Send(new GetTankVolumeHistoryQuery());
             if (result == null) return NoContent();
             return Ok(result);
@@ -64,6 +66,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("filtered")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTankVolumeHistoryFiltered(
             [FromQuery] int? siteId = null,
             [FromQuery] int? tankId = null,
@@ -74,9 +77,6 @@ namespace FMS.WebClient.Controllers
             [FromQuery] bool? includeVehicleNames = true,
             [FromQuery] bool? useManualDispensing = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             // Validate parameters
             if (take.HasValue && take.Value <= 0)
                 return BadRequest("Take parameter must be greater than 0");
@@ -106,11 +106,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byTankAndDateRange")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTankVolumeHistoryById(DateTime startDate, DateTime endDate, int TankId)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             if (TankId <= 0) return BadRequest("Invalid ID");
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
@@ -123,11 +121,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("byDateRange")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTankVolumeHistoryByDateRange(DateTime StartDate, DateTime EndDate)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             if (StartDate == default || EndDate == default) return BadRequest("Invalid Date Range");
             var result = await _mediator.Send(new GetTankVolumeHistoryByDateRangeQuery(StartDate, EndDate));
             if (result == null) return NotFound();
@@ -136,11 +132,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("bySite")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTankVolumeHistoryBySite(DateTime startDate, DateTime endDate, int siteId)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             if (siteId <= 0) return BadRequest("Invalid Site ID");
             if (startDate == default || endDate == default) return BadRequest("Invalid Date Range");
 
@@ -152,11 +146,9 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("users")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetUsersForFilter()
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             var result = await _mediator.Send(new GetAllUsersForFilterQuery());
 
             if (!result.IsSuccess)
@@ -170,11 +162,9 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPost("validate-delete")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Delete)]
         public async Task<IActionResult> ValidateDelete([FromBody] ValidateDeleteRequest request)
         {
-            var hasPermission = User.HasClaim("permissions", "_Delete_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             // Input validation
             if (request.TankId <= 0)
                 return BadRequest("Invalid tank ID");
@@ -210,11 +200,9 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Delete)]
         public async Task<IActionResult> DeleteTransaction(int id, [FromQuery] bool userConfirmed = false)
         {
-            var hasPermission = User.HasClaim("permissions", "_Delete_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             if (id <= 0)
                 return BadRequest("Invalid transaction ID");
 
@@ -246,11 +234,9 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("{id}/details")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Read)]
         public async Task<IActionResult> GetTransactionDetails(int id)
         {
-            var hasPermission = User.HasClaim("permissions", "_Read_tankVolumeHistory");
-            if (!hasPermission) return Forbid();
-
             if (id <= 0)
                 return BadRequest("Invalid transaction ID");
 

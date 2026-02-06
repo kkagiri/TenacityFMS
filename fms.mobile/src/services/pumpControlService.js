@@ -713,11 +713,15 @@ class PumpControlService {
     try {
       const response = await this.api.post("/v1/User/Login", credentials);
       const responseData = response.data.data;
-      if (responseData?.token) {
+      // Support both camelCase and PascalCase from backend
+      const token = responseData?.token || responseData?.Token;
+      const refreshToken = responseData?.refreshToken || responseData?.RefreshToken;
+      const user = responseData?.user || responseData?.User;
+      if (token) {
         return {
-          token: responseData.token,
-          refreshToken: responseData.refreshToken,
-          user: responseData.user,
+          token: token,
+          refreshToken: refreshToken,
+          user: user,
         };
       }
       throw new Error(response.data.message || "Login failed");
@@ -736,10 +740,13 @@ class PumpControlService {
     try {
       const response = await this.api.post("/v1/User/refresh-token");
       const responseData = response.data.data;
-      if (responseData?.token) {
+      // Support both camelCase and PascalCase from backend
+      const token = responseData?.token || responseData?.Token;
+      const refreshToken = responseData?.refreshToken || responseData?.RefreshToken;
+      if (token) {
         return {
-          token: responseData.token,
-          refreshToken: responseData.refreshToken,
+          token: token,
+          refreshToken: refreshToken,
         };
       }
       throw new Error("Token refresh failed");

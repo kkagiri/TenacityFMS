@@ -39,7 +39,8 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
-using FMS.Application.Features.Vehicle.DTOs;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers
 {
@@ -54,6 +55,8 @@ namespace FMS.WebClient.Controllers
 
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Report.VehicleConsumption)]
     public class ConsumptionController : ControllerBase
     {
         private readonly IMediator _mediator;

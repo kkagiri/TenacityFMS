@@ -86,7 +86,8 @@ export const getUserInfoFromToken = (token) => {
  */
 export const hasPermission = (token, permission) => {
   const permissions = getPermissionsFromToken(token);
-  return permissions.includes(permission);
+  const permLower = permission.toLowerCase();
+  return permissions.some(p => p.toLowerCase() === permLower);
 };
 
 /**
@@ -97,7 +98,8 @@ export const hasPermission = (token, permission) => {
  */
 export const hasAnyPermission = (token, requiredPermissions) => {
   const permissions = getPermissionsFromToken(token);
-  return requiredPermissions.some(perm => permissions.includes(perm));
+  const permSet = new Set(permissions.map(p => p.toLowerCase()));
+  return requiredPermissions.some(perm => permSet.has(perm.toLowerCase()));
 };
 
 /**
@@ -108,7 +110,8 @@ export const hasAnyPermission = (token, requiredPermissions) => {
  */
 export const hasAllPermissions = (token, requiredPermissions) => {
   const permissions = getPermissionsFromToken(token);
-  return requiredPermissions.every(perm => permissions.includes(perm));
+  const permSet = new Set(permissions.map(p => p.toLowerCase()));
+  return requiredPermissions.every(perm => permSet.has(perm.toLowerCase()));
 };
 
 /**

@@ -18,9 +18,13 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.Notification.Services.DeliveryChannel;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json.Serialization;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers
 {
@@ -30,7 +34,8 @@ namespace FMS.WebClient.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/push-devices")]
-    // [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.Users)]
     public class PushDevicesController : ControllerBase
     {
         private readonly IPushNotificationService _pushService;

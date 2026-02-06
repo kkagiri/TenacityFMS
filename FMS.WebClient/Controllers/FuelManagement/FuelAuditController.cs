@@ -16,9 +16,13 @@ using FMS.Application.Features.FuelAudit.Commands;
 using FMS.Application.Features.FuelAudit.DTOs;
 using FMS.Application.Features.FuelAudit.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.FuelManagement
 {
@@ -27,7 +31,8 @@ namespace FMS.WebClient.Controllers.FuelManagement
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
     public class FuelAuditController : ControllerBase
     {
         private readonly IMediator _mediator;

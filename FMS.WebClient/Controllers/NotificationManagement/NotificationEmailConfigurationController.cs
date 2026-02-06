@@ -20,12 +20,15 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/notifications/email-config")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [Authorize]
+    [RequirePermission(Permissions.Admin.Users)]
     public class NotificationEmailConfigurationController : ControllerBase
     {
         private readonly IConfiguration _configuration;

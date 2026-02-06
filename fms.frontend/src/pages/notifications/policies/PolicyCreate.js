@@ -2,7 +2,7 @@
  * File: PolicyCreate.js
  * Purpose: Create notification policies and configure ActiveAlarm-based filters, recipients, and templates.
  * Dependencies: react, devextreme-react, notifications API services.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-06
  *
  * Key Functions:
  * - PolicyCreate(): Renders policy creation workflow with tabbed sections.
@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   TextBox,
   TextArea,
@@ -36,6 +36,7 @@ import {
 } from '../constants/notificationEnums';
 
 const PolicyCreate = () => {
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
 
@@ -190,7 +191,9 @@ const PolicyCreate = () => {
 
       const res = await notificationsApi.createPolicy(payload);
       if (res.isSuccess && res.data?.id) {
-        notify('Policy created successfully', 'success', 3000);
+        const createdPolicyId = Number(res.data.id);
+        notify('Policy created. Continue with trigger configuration.', 'success', 3000);
+        navigate(`${notificationRoutes.policyEdit(createdPolicyId)}?tab=triggers`);
         return;
       }
 

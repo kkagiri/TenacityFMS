@@ -50,13 +50,13 @@ export const assignPermissionsToRole =
         roleId,
         permissionIds,
       });
-      return response.data;
-
+      return response.data?.success !== undefined
+        ? response.data
+        : { success: true, message: "Permissions assigned" };
     } catch (error) {
       dispatch({ type: ASSIGN_PERMISSIONS_FAILURE, payload: error.message });
-      throw new Error("Error assigning permissions to role", error.message);
+      return { success: false, message: error.message || "Error assigning permissions" };
     }
-
   };
 
 export const updateRoleForUsers = (roleId, userIds) => async (dispatch) => {
@@ -96,11 +96,11 @@ export const setSelectedRole = (role) => ({
 
 export const updateRole = (roleId, roleDetails) => async (dispatch) => {
   try {
-    console.log(" RoleActions_roleDetails", roleDetails);
     const response = await axiosInstance.put(`/role/${roleId}`, roleDetails);
     dispatch({ type: UPDATE_ROLE_SUCCESS, payload: response.data });
+    return { success: true, message: "Role updated" };
   } catch (error) {
     dispatch({ type: UPDATE_ROLE_FAILURE, payload: error.message });
-    throw new Error("Error updating role", error.message);
+    return { success: false, message: error.message || "Error updating role" };
   }
 };

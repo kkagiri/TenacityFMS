@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import DataGrid, { Paging,
-          HeaderFilter, SearchPanel, Toolbar, Item as TItems,
-          Editing, FilterRow, Column, Lookup, Sorting, RequiredRule ,
-          Form,Popup ,LoadPanel,Export,Selection, FilterPanel,
-          FilterBuilderPopup, ColumnChooser,ColumnChooserSelection ,Position,StateStoring
-         } from 'devextreme-react/data-grid';
+import DataGrid, {
+    Paging,
+    HeaderFilter, SearchPanel, Toolbar, Item as TItems,
+    Editing, FilterRow, Column, Lookup, Sorting, RequiredRule,
+    Form, Popup, LoadPanel, Export, Selection, FilterPanel,
+    FilterBuilderPopup, ColumnChooser, ColumnChooserSelection, Position, StateStoring
+} from 'devextreme-react/data-grid';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 import 'devextreme-react/text-area';
@@ -19,15 +20,15 @@ import { jsPDF } from 'jspdf';
 import { exportDataGrid as exportDataGridToPdf } from 'devextreme/pdf_exporter';
 import { confirm } from 'devextreme/ui/dialog';
 
-import {fetchVehicleList} from '../../redux/actions/vehicleActions';
-import {fetchEmployees} from '../../redux/actions/employeeActions';
-import {fetchSiteList} from '../../redux/actions/siteActions';
-import { fetchTanks} from '../../redux/actions/tankActions';
+import { fetchVehicleList } from '../../redux/actions/vehicleActions';
+import { fetchEmployees } from '../../redux/actions/employeeActions';
+import { fetchSiteList } from '../../redux/actions/siteActions';
+import { fetchTanks } from '../../redux/actions/tankActions';
 import { fetchUsers } from '../../redux/actions/userActions';
 import { fetchFuelRefills, createFuelRefill, updateFuelRefill, deleteFuelRefill } from '../../redux/actions/fuelRefillAction';
 
 import { UsersApi } from '../../api/gpsgate';
-import  createApiClient from '../../api/gpsgateAPIClient';
+import createApiClient from '../../api/gpsgateAPIClient';
 
 import { Item as FItem } from 'devextreme-react/form';
 import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
@@ -57,12 +58,12 @@ export default function FuelRefill() {
 
     const vehicles = useSelector((state) => state.vehicle.vehicles);
     const employees = useSelector((state) => state.employee.employees);
-    const sites= useSelector((state) => state.site.sites);
+    const sites = useSelector((state) => state.site.sites);
     const fuelBy = useSelector((state) => state.user.users);
-   const user = useSelector((state) => state.auth.user);
-   const tanks = useSelector((state) => state.tank.tanks);
-   const [filteredTanks, setFilteredTanks] = useState([]);
-   const exportFormats = ['pdf','xlsx'];
+    const user = useSelector((state) => state.auth.user);
+    const tanks = useSelector((state) => state.tank.tanks);
+    const [filteredTanks, setFilteredTanks] = useState([]);
+    const exportFormats = ['pdf', 'xlsx'];
 
     const [formVisible, setFormVisible] = useState(false);
     const [loading, setLoading] = useState(false);
@@ -101,7 +102,7 @@ export default function FuelRefill() {
     } = useFutureRecordsValidation();
 
     const validateRow = (data) => {
-        console.log("data",data)
+        console.log("data", data)
         const previousMeterReadingProvided = data.previousMeterReading !== null && data.previousMeterReading !== undefined && data.previousMeterReading !== ''; // chatgptcomment
         const currentMeterReadingProvided = data.currentMeterReading !== null && data.currentMeterReading !== undefined && data.currentMeterReading !== ''; // chatgptcomment
 
@@ -138,11 +139,11 @@ export default function FuelRefill() {
             await Promise.all([
                 dispatch(fetchFuelRefills(filters.recordCount, filters.dateRange, filters.siteId)),
                 dispatch(fetchVehicleList()),
-               dispatch(fetchEmployees()),
+                dispatch(fetchEmployees()),
                 dispatch(fetchSiteList()),
-              dispatch(fetchpermissionbyUserId(user.id)),
+                dispatch(fetchpermissionbyUserId(user.id)),
                 dispatch(fetchTanks()),
-                 dispatch(fetchUsers())
+                dispatch(fetchUsers())
             ]);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -204,17 +205,17 @@ export default function FuelRefill() {
 
                     if (change.type === 'insert') {
 
-                    const response =    await dispatch(createFuelRefill(formattedData));
-                    if (response.success) {
-                        notify('Manual fuel refill created successfully.', 'success', 3000);
-                        fetchData();
-                        e.component.navigateToRow(e.key);
-                    } else {
-                        // Display the error message from the API
-                        notify(response.message, "error", 6000);
-                        e.component.editRow(e.key);
-                        e.cancel = true;
-                    }
+                        const response = await dispatch(createFuelRefill(formattedData));
+                        if (response.success) {
+                            notify('Manual fuel refill created successfully.', 'success', 3000);
+                            fetchData();
+                            e.component.navigateToRow(e.key);
+                        } else {
+                            // Display the error message from the API
+                            notify(response.message, "error", 6000);
+                            e.component.editRow(e.key);
+                            e.cancel = true;
+                        }
 
                     } else if (change.type === 'update') {
                         await dispatch(updateFuelRefill(change.key, formattedData));
@@ -252,7 +253,7 @@ export default function FuelRefill() {
         } catch (error) {
             console.error('Error deleting manual fuel refill:', error);
             notify('Error deleting manual fuel refill.', 'error', 3000);
-           setSaving(false);
+            setSaving(false);
         }
     }, [dispatch]);
 
@@ -283,7 +284,7 @@ export default function FuelRefill() {
 
 
     const addRow = () => {
-         gridRef.current.instance.addRow();
+        gridRef.current.instance.addRow();
     };
 
     const refresh = useCallback(() => {
@@ -325,42 +326,42 @@ export default function FuelRefill() {
     };
 
 
-const handleTankChange = (e) => {
-    const selectedTankId = e.value;
-    setFormData(prevData => {
-        const updatedData = {
-            ...prevData,
-            tankId: selectedTankId
-        };
+    const handleTankChange = (e) => {
+        const selectedTankId = e.value;
+        setFormData(prevData => {
+            const updatedData = {
+                ...prevData,
+                tankId: selectedTankId
+            };
 
-        // Trigger future records validation when tank and date are available
-        if (selectedTankId && updatedData.date) {
-            validateHistoricalEntry(selectedTankId, new Date(updatedData.date), 'Dispensing');
-        } else if (!selectedTankId) {
-            // Reset validation when tank is cleared
-            resetValidation();
-        }
+            // Trigger future records validation when tank and date are available
+            if (selectedTankId && updatedData.date) {
+                validateHistoricalEntry(selectedTankId, new Date(updatedData.date), 'Dispensing');
+            } else if (!selectedTankId) {
+                // Reset validation when tank is cleared
+                resetValidation();
+            }
 
-        return updatedData;
-    });
-};
+            return updatedData;
+        });
+    };
 
     const onEditorPreparing = (e) => {
         if (e.parentType === 'dataRow' && e.dataField === 'tankId') {
-          const isSiteNotSet = e.row.data.siteId === undefined;
-          e.editorOptions.disabled = isSiteNotSet;
+            const isSiteNotSet = e.row.data.siteId === undefined;
+            e.editorOptions.disabled = isSiteNotSet;
         }
-      };
-      const getFilteredTanks = (options) => ({
+    };
+    const getFilteredTanks = (options) => ({
         store: tanks,
         filter: options.data ? ['siteId', '=', options.data.siteId] : null,
     });
-      const setSiteValue = (rowData, value) => {
+    const setSiteValue = (rowData, value) => {
         rowData.tankId = null; // Reset the tankId when siteId changes
         rowData.siteId = value;
     };
 
-     const formatDateTime = (cellInfo) => {
+    const formatDateTime = (cellInfo) => {
         if (!cellInfo.value) return '';
 
         // Parse the ISO 8601 date string
@@ -368,27 +369,27 @@ const handleTankChange = (e) => {
 
         // Check if the date is valid
         if (isNaN(utcDate.getTime())) {
-          console.error('Invalid date:', cellInfo.value);
-          return cellInfo.value;
+            console.error('Invalid date:', cellInfo.value);
+            return cellInfo.value;
         }
 
         // Format the date and time in local timezone
         return utcDate.toLocaleString('en-GB', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit',
-          hour: '2-digit',
-          minute: '2-digit',
-          second: '2-digit',
-          hour12: false,
-          timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+            timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone
         });
-      };
+    };
 
     // Define the flags for edit and delete permissions
-    const canEdit = permissions.includes('_editFuelRefill');
-    const canDelete = permissions.includes('_deleteFuelRefill');
-    const canCreate = permissions.includes('_createFuelRefill');
+    const canEdit = permissions.includes('_Edit_FuelRefill');
+    const canDelete = permissions.includes('_Delete_FuelRefill');
+    const canCreate = permissions.includes('_Create_FuelRefill');
 
     const onExporting = useCallback((e) => {
         const format = e.format;
@@ -462,9 +463,9 @@ const handleTankChange = (e) => {
 
     if (loading || saving) {
         return (
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-            <LoadIndicator width={'24px'} height={'24px'} visible={true} />
-          </div>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <LoadIndicator width={'24px'} height={'24px'} visible={true} />
+            </div>
         );
     }
 
@@ -508,7 +509,7 @@ const handleTankChange = (e) => {
                     repaintChangesOnly={true}
                     // onRowInserted={onRowInserted}
                     // onRowUpdated={onRowUpdated}
-                     onRowRemoved={onRowRemoved}
+                    onRowRemoved={onRowRemoved}
                     onRowRemoving={onRowRemoving}
                     onSaving={onSaving}
                     onEditorPreparing={onEditorPreparing}
@@ -516,19 +517,19 @@ const handleTankChange = (e) => {
 
 
                 >
-                      <ColumnChooser enabled={true} mode="select"  height={200} >
-                    <Position
-                     my="right top"
-                     at="right top"
-                    />
-                     </ColumnChooser>
+                    <ColumnChooser enabled={true} mode="select" height={200} >
+                        <Position
+                            my="right top"
+                            at="right top"
+                        />
+                    </ColumnChooser>
                     <LoadPanel enabled={true} />
                     <Paging enabled={true} defaultPageSize={30} />
-                    <Export enabled={true} allowExportSelectedData={true} formats ={exportFormats} />
+                    <Export enabled={true} allowExportSelectedData={true} formats={exportFormats} />
                     <StateStoring enabled={true} type="sessionStorage" storageKey="dispensingGridState" />
 
-                   <FilterRow visible={true} />
-                   <HeaderFilter visible={true} />
+                    <FilterRow visible={true} />
+                    <HeaderFilter visible={true} />
                     <SearchPanel visible placeholder='Data Search' />
                     <Sorting mode="multiple" />
                     <Selection mode="multiple" />
@@ -543,19 +544,19 @@ const handleTankChange = (e) => {
                         newRowPosition={'first'}
                         confirmDelete={false}
                     >
-                     <Popup title="Add Fuel Refill"  showTitle={true} width={800} />
+                        <Popup title="Add Fuel Refill" showTitle={true} width={800} />
 
 
-                     <Form  formData={formData}    onFieldDataChanged={handleFieldChange}  >
+                        <Form formData={formData} onFieldDataChanged={handleFieldChange}  >
 
 
                             <FItem itemType={'group'} caption={'Refill Details'} colCount={2} colSpan={2}>
-                            <FItem dataField="date" editorType="dxDateBox" editorOptions={{
-    type: 'datetime',
-    displayFormat: 'dd/MM/yyyy HH:mm',
-    dateSerializationFormat: 'yyyy-MM-ddTHH:mm:ss'
-}}>
-</FItem>
+                                <FItem dataField="date" editorType="dxDateBox" editorOptions={{
+                                    type: 'datetime',
+                                    displayFormat: 'dd/MM/yyyy HH:mm',
+                                    dateSerializationFormat: 'yyyy-MM-ddTHH:mm:ss'
+                                }}>
+                                </FItem>
                                 <FItem dataField="vehicleId" editorType="dxSelectBox" editorOptions={{ dataSource: vehicles, valueExpr: 'vehicleId', displayExpr: 'hyoungNo' }}>
                                     <RequiredRule />
                                 </FItem>
@@ -572,14 +573,14 @@ const handleTankChange = (e) => {
                                 <FItem dataField="siteId" editorType="dxSelectBox" editorOptions={{
                                     dataSource: sites,
                                     valueExpr: 'id',
-                                     displayExpr: 'name',
+                                    displayExpr: 'name',
                                     onValueChanged: handleSiteChange,
                                     value: formData.siteId,
                                     searchEnabled: true
                                 }}>
                                 </FItem>
                                 <FItem dataField="tankId"
-                                 caption={'Tank Used'} editorType={'dxSelectBox'}
+                                    caption={'Tank Used'} editorType={'dxSelectBox'}
                                     editorOptions={{
                                         dataSource: filteredTanks, // chatgptcomment
                                         valueExpr: 'id',
@@ -587,12 +588,12 @@ const handleTankChange = (e) => {
                                         disabled: filteredTanks.length === 0, // chatgptcomment
                                         placeholder: noTanksAvailable ? "No tank. Inquire from Admin" : "Select a tank",
                                         noDataText: "No tank. Inquire from Admin",
-                                       // onValueChanged: handleTankChange, // chatgptcomment
+                                        // onValueChanged: handleTankChange, // chatgptcomment
                                         value: formData.tankId, // chatgptcomment
                                         searchEnabled: true
                                     }}>
                                     <RequiredRule />
-                                    </FItem>
+                                </FItem>
                             </FItem>
                             <FItem itemType={'group'} caption={'Meter Readings'} colCount={2} colSpan={2}>
                                 <FItem dataField="currentMeterReading" editorType="dxNumberBox" />
@@ -624,7 +625,7 @@ const handleTankChange = (e) => {
 
                             <FItem itemType={'group'} caption={'Integration'} colCount={2} colSpan={2}>
 
-                                <FItem dataField="fuelBy" editorType="dxTextBox" disabled ={true} value={user.userName}>
+                                <FItem dataField="fuelBy" editorType="dxTextBox" disabled={true} value={user.userName}>
                                 </FItem>
                             </FItem>
                         </Form>
@@ -637,7 +638,7 @@ const handleTankChange = (e) => {
                                 type='default'
                                 stylingMode='contained'
                                 onClick={addRow}
-                                visible ={canCreate}
+                                visible={canCreate}
                             />
                         </TItems>
                         {/* Cursor - Replace take/apply with filter button */}
@@ -684,7 +685,7 @@ const handleTankChange = (e) => {
 
                     </Toolbar>
 
-                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
+                    <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true} defaultValue={new Date().toISOString()} />
                     <Column dataField="vehicleId" caption="Vehicle" minWidth={150}>
                         <Lookup
                             dataSource={vehicles}
@@ -693,7 +694,7 @@ const handleTankChange = (e) => {
                         />
 
                     </Column>
-                    <Column dataField="siteId" caption="Site"  minWidth={100} >
+                    <Column dataField="siteId" caption="Site" minWidth={100} >
                         <Lookup
                             dataSource={sites}
                             valueExpr="id"
@@ -707,7 +708,7 @@ const handleTankChange = (e) => {
                     </Column>
                     <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>
                     </Column>
-                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150}hidingPriority={3} >
+                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150} hidingPriority={3} >
                     </Column>
                     <Column dataField="driverId" caption="Driver" minWidth={180} hidingPriority={3}>
                         <Lookup
@@ -715,12 +716,12 @@ const handleTankChange = (e) => {
                             valueExpr="id"
                             displayExpr="fullName"
                         />
-                        </Column>
+                    </Column>
 
 
 
-                    <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3}/>
-                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={3}
+                    <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3} />
+                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120} hidingPriority={3}
                         cellRender={(cellData) => {
                             const user = fuelBy.find(u => u.id === cellData.value);
                             return user ? user.userName : cellData.value;
@@ -728,7 +729,7 @@ const handleTankChange = (e) => {
                         <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
                     </Column>
 
-                  <Column dataField="dateCreated" caption="Date Created"  dataType="Date"  defaultSortOrder="asc" cellRender={formatDateTime} />
+                    <Column dataField="dateCreated" caption="Date Created" dataType="Date" defaultSortOrder="asc" cellRender={formatDateTime} />
                 </DataGrid>
             </div>
 

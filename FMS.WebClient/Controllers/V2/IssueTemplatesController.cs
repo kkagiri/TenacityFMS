@@ -3,8 +3,12 @@ using FMS.Application.Features.IssueTracker.Commands.V2.IssueTemplates;
 using FMS.Application.Features.IssueTracker.DTOs.V2;
 using FMS.Application.Features.IssueTracker.Queries.V2.IssueTemplates;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.V2;
 
@@ -13,7 +17,8 @@ namespace FMS.WebClient.Controllers.V2;
 /// </summary>
 [ApiController]
 [Route("api/v1/issuetracker/templates")]
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.Admin.Issues)]
 public class IssueTemplatesController : ControllerBase
 {
     private readonly IMediator _mediator;

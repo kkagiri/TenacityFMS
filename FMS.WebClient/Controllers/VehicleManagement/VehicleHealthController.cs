@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.VehicleManagement
 {
@@ -20,6 +22,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [ApiController]
     [Route("api/v1/vehicles/health")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Vehicle.Read)]
     public class VehicleHealthController : ControllerBase
     {
         private readonly IVehicleHealthMonitorService _healthService;

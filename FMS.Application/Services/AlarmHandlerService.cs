@@ -2,7 +2,7 @@
  * File: AlarmHandlerService.cs
  * Purpose: Evaluates tank/device alarm conditions and triggers notifications/active alarms.
  * Dependencies: GpsdataContext, INotificationService, AlarmHandlerActiveAlarmIntegration, ILogger
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-02-06
  *
  * Key Functions:
  * - ProcessTankMeasurementAlarmsAsync(): Handles alarms from incoming measurements.
@@ -56,6 +56,8 @@ namespace FMS.Application.Services
         /// </summary>
         Task<FMSResponse<int>> EvaluateHandlersAsync(AlarmEvaluationEvent evt, CancellationToken cancellationToken = default);
     }
+
+    [Obsolete("Use ActiveAlarmService instead")]
 
     public class AlarmHandlerService : IAlarmHandlerService
     {
@@ -1097,42 +1099,122 @@ namespace FMS.Application.Services
 
         public Task<FMSResponse<List<AlarmHandlerTypeMetadataDto>>> GetAlarmHandlerTypesAsync(int? categoryId = null, CancellationToken cancellationToken = default)
         {
-            var list = new List<AlarmHandlerTypeMetadataDto> {
-            new () {
-            Type = "TankLevelBelowThreshold",
-            Label = "Tank Level Below Threshold",
-            Description = "Triggers when a tank level percentage is below a configured threshold.",
-            Fields = new () {
-            new () { Name = "threshold", Label = "Threshold", FieldType = "number", Unit = "%", Required = true, DefaultValue = 10 },
-            new () { Name = "hysteresis", Label = "Hysteresis", FieldType = "number", Unit = "%", Required = false, DefaultValue = 1 }
+            _ = categoryId;
+            _ = cancellationToken;
+
+            static string ToLabel(string type)
+            {
+                if (string.IsNullOrWhiteSpace(type))
+                {
+                    return type;
+                }
+
+                var chars = new List<char>(type.Length + 8);
+                for (var i = 0; i < type.Length; i++)
+                {
+                    var current = type[i];
+                    if (i > 0 && char.IsUpper(current) && (char.IsLower(type[i - 1]) || char.IsDigit(type[i - 1])))
+                    {
+                        chars.Add(' ');
+                    }
+                    chars.Add(current);
+                }
+
+                return new string(chars.ToArray());
             }
-            },
-            new () {
-            Type = "WaterDetected",
-            Label = "Water Detected",
-            Description = "Triggers when water height is above a threshold.",
-            Fields = new () {
-            new () { Name = "sustainedForMinutes", Label = "Sustained For (min)", FieldType = "number", Required = false, DefaultValue = 5 }
+
+            static AlarmHandlerTypeMetadataDto SimpleType(string type, string description)
+            {
+                return new AlarmHandlerTypeMetadataDto
+                {
+                    Type = type,
+                    Label = ToLabel(type),
+                    Description = description,
+                    Fields = new List<AlarmHandlerFieldMetadataDto>()
+                };
             }
-            },
-            new () {
-            Type = "DeviceOffline",
-            Label = "Device Offline",
-            Description = "Triggers when a device has been offline for a specified duration.",
-            Fields = new () {
-            new () { Name = "offlineDurationMinutes", Label = "Offline Duration (min)", FieldType = "number", Required = true, DefaultValue = 30 }
-            }
-            },
-            new () {
-            Type = MissingFuelFillAlarmType,
-            Label = "Fuel Fill Not Posted",
-            Description = "Triggers when no fuel fill record has been posted for a tank within the configured period.",
-            Fields = new () {
-            new () { Name = "missingForDays", Label = "Missing For (days)", FieldType = "number", Unit = "days", Required = true, DefaultValue = 1 },
-            new () { Name = "includeNeverPosted", Label = "Include Tanks With No History", FieldType = "boolean", Required = false, DefaultValue = true }
-            }
-            }
+
+            var list = new List<AlarmHandlerTypeMetadataDto>
+            {
+                new()
+                {
+                    Type = "TankLevelBelowThreshold",
+                    Label = "Tank Level Below Threshold",
+                    Description = "Triggers when tank percentage full falls below the configured threshold.",
+                    Fields = new List<AlarmHandlerFieldMetadataDto>
+                    {
+                        new() { Name = "threshold", Label = "Threshold", FieldType = "number", Unit = "%", Required = true, DefaultValue = 10 },
+                        new() { Name = "hysteresis", Label = "Hysteresis", FieldType = "number", Unit = "%", Required = false, DefaultValue = 1 }
+                    }
+                },
+                new()
+                {
+                    Type = "DeviceOffline",
+                    Label = "Device Offline",
+                    Description = "Triggers when a device remains offline for at least the configured duration.",
+                    Fields = new List<AlarmHandlerFieldMetadataDto>
+                    {
+                        new() { Name = "offlineDurationMinutes", Label = "Offline Duration (min)", FieldType = "number", Required = true, DefaultValue = 30 }
+                    }
+                },
+                new()
+                {
+                    Type = "WaterDetected",
+                    Label = "Water Detected",
+                    Description = "Triggers when water is present in tank readings.",
+                    Fields = new List<AlarmHandlerFieldMetadataDto>
+                    {
+                        new() { Name = "sustainedForMinutes", Label = "Sustained For (min)", FieldType = "number", Required = false, DefaultValue = 5 }
+                    }
+                },
+                new()
+                {
+                    Type = MissingFuelFillAlarmType,
+                    Label = "Fuel Fill Not Posted",
+                    Description = "Triggers when a fuel fill record is missing for a configured period.",
+                    Fields = new List<AlarmHandlerFieldMetadataDto>
+                    {
+                        new() { Name = "missingForDays", Label = "Missing For (days)", FieldType = "number", Unit = "days", Required = true, DefaultValue = 1 },
+                        new() { Name = "includeNeverPosted", Label = "Include Tanks With No History", FieldType = "boolean", Required = false, DefaultValue = true }
+                    }
+                },
+                SimpleType("DeviceDisconnection", "Device disconnected alarm generated by connectivity monitoring."),
+                SimpleType("StaleData", "No recent telemetry from the device or tank."),
+                SimpleType("DiscrepancyDetected", "Reconciliation discrepancy alarm."),
+                SimpleType("UnusualConsumption", "Consumption pattern outside expected bounds."),
+                SimpleType("CapacityLimit", "Tank capacity threshold reached."),
+                SimpleType("LowTankVolume", "Tank volume is below configured threshold."),
+                SimpleType("HighTankVolume", "Tank volume is above configured threshold."),
+                SimpleType("WaterDetection", "Alias alarm type for water detection events."),
+                SimpleType("TemperatureAlarm", "Tank temperature is outside expected range."),
+                SimpleType("TankSensorVariance", "Sensor variance detected for tank measurements."),
+                SimpleType("TankCriticalLowLevel", "Critical low product level alarm from probe status."),
+                SimpleType("TankLowLevel", "Low product level alarm from probe status."),
+                SimpleType("TankCriticalHighLevel", "Critical high product level alarm from probe status."),
+                SimpleType("TankHighLevel", "High product level alarm from probe status."),
+                SimpleType("TankHighWaterLevel", "High water level alarm from probe status."),
+                SimpleType("TankLeakage", "Tank leakage alarm from probe status."),
+                SimpleType("ProbeError", "Probe error alarm."),
+                SimpleType("ProbeOffline", "Probe offline alarm."),
+                SimpleType("PTSLowBattery", "PTS controller low battery alarm (code 1)."),
+                SimpleType("PTSHighTemperature", "PTS controller high temperature alarm (code 2)."),
+                SimpleType("PTSPowerDown", "PTS controller power down alarm (code 3)."),
+                SimpleType("PTSRestart", "PTS controller restart alarm (code 4)."),
+                SimpleType("PumpOffline", "Pump offline alarm (code 1)."),
+                SimpleType("PumpOverfilling", "Pump overfilling alarm (generic code 20)."),
+                SimpleType("PumpOfflineMode", "Pump offline mode filling alarm (generic code 30)."),
+                SimpleType("ReaderOffline", "Reader offline alarm (code 1)."),
+                SimpleType("ReaderError", "Reader error alarm (code 2)."),
+                SimpleType("PriceBoardOffline", "Price board offline alarm (code 1)."),
+                SimpleType("PriceBoardError", "Price board error alarm (code 2).")
             };
+
+            for (var nozzle = 1; nozzle <= 6; nozzle++)
+            {
+                list.Add(SimpleType($"PumpOverfillingNozzle{nozzle}", $"Pump overfilling alarm for nozzle {nozzle}."));
+                list.Add(SimpleType($"PumpOfflineModeNozzle{nozzle}", $"Pump offline mode filling alarm for nozzle {nozzle}."));
+            }
+
             return Task.FromResult(FMSResponse<List<AlarmHandlerTypeMetadataDto>>.Success(list, "Alarm handler types retrieved"));
         }
 

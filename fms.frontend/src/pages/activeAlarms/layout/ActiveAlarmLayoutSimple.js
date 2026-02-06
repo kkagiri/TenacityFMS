@@ -63,45 +63,10 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
       badge: null,
     },
     {
-      id: 'escalation',
-      title: 'Escalation',
-      icon: 'fa-light fa-arrow-up',
-      path: activeAlarmRoutes.escalation,
-      badge: null,
-    },
-    {
-      id: 'bulkActions',
-      title: 'Bulk Actions',
-      icon: 'fa-light fa-layer-group',
-      path: activeAlarmRoutes.bulkActions,
-      badge: null,
-    },
-    {
-      id: 'autoProcessing',
-      title: 'Auto-Processing',
-      icon: 'fa-light fa-robot',
-      path: activeAlarmRoutes.autoProcessing,
-      badge: null,
-    },
-    {
-      id: 'reports',
-      title: 'Reports',
-      icon: 'fa-light fa-file-chart-column',
-      path: activeAlarmRoutes.reports,
-      badge: null,
-    },
-    {
       id: 'settings',
       title: 'Settings',
       icon: 'fa-light fa-cog',
       path: activeAlarmRoutes.settings,
-      badge: null,
-    },
-    {
-      id: 'testGenerator',
-      title: 'Test Generator',
-      icon: 'fa-light fa-flask',
-      path: activeAlarmRoutes.testGenerator,
       badge: null,
     },
   ];
@@ -118,7 +83,7 @@ const ActiveAlarmLayout = ({ children, pageTitle, pageSubtitle }) => {
   return (
     <div className="active-alarm-layout">
       {/* Sidebar */}
-  <aside ref={sidebarRef} className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+      <aside ref={sidebarRef} className={`sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         <div className="sidebar-header">
           <div className="sidebar-title">
             <i className="fa-light fa-bell-exclamation"></i>

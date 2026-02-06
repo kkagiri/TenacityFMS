@@ -47,8 +47,8 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
 
   // Get permissions from hook
   const { hasPermission } = usePermissions();
-  const canUpdate = hasPermission("_Update_tankStock");
-  const canDelete = hasPermission("_Delete_tankStock");
+  const canUpdate = hasPermission("_Update_TankStock");
+  const canDelete = hasPermission("_Delete_TankStock");
 
   /**
    * Calculate row class based on variance threshold
@@ -512,9 +512,9 @@ const ComparisonDataGrid = ({ data, varianceThreshold, onRefresh }) => {
           onEdit={
             canUpdate
               ? () => {
-                  setSelectedRowForEdit(selectedRowForChart);
-                  setSelectedRowForChart(null);
-                }
+                setSelectedRowForEdit(selectedRowForChart);
+                setSelectedRowForChart(null);
+              }
               : null
           }
           isEditDisabled={!((selectedRowForChart.gpsEntryId || 0) > 0)}

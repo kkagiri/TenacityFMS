@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers.SystemManagement
 {
     /// <summary>
@@ -17,6 +20,7 @@ namespace FMS.WebClient.Controllers.SystemManagement
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.ATGAdmin)]
     public class LogManagementController : ControllerBase
     {
         private readonly ILogCleanupService _logCleanupService;

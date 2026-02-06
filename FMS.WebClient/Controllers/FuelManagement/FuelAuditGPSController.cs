@@ -12,12 +12,16 @@ using FMS.Application.Features.FuelAudit.Queries;
 using FMS.Application.Features.FuelAudit.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.FuelManagement
 {
@@ -28,7 +32,8 @@ namespace FMS.WebClient.Controllers.FuelManagement
     /// </summary>
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
     public class FuelAuditGPSController : ControllerBase
     {
         private readonly IFuelAuditGPSService _fuelAuditGPSService;

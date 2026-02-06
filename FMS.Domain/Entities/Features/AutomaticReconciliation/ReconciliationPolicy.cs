@@ -4,18 +4,20 @@ using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using FMS.Domain.Entities.enums;
 
-namespace FMS.Domain.Entities {
+namespace FMS.Domain.Entities
+{
     /// <summary>
     /// Represents a policy configuration for automated reconciliation
     /// </summary>
-    public class ReconciliationPolicy {
+    public class ReconciliationPolicy
+    {
         public int Id { get; set; }
 
         [Required]
-        [MaxLength (100)]
+        [MaxLength(100)]
         public string Name { get; set; } = null!;
 
-        [MaxLength (500)]
+        [MaxLength(500)]
         public string? Description { get; set; }
 
         public bool IsActive { get; set; } = true;
@@ -69,7 +71,7 @@ namespace FMS.Domain.Entities {
         /// User who created this policy
         /// </summary>
         [Required]
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string CreatedBy { get; set; } = null!;
 
         public DateTime CreatedOn { get; set; } = DateTime.UtcNow;
@@ -77,7 +79,7 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// User who last modified this policy
         /// </summary>
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string? ModifiedBy { get; set; }
 
         public DateTime? ModifiedOn { get; set; }
@@ -101,32 +103,40 @@ namespace FMS.Domain.Entities {
         public virtual User? ModifiedByNavigation { get; set; }
 
         // Primary navigation for policy executions
-        public virtual ICollection<ReconciliationPolicyExecution> PolicyExecutions { get; set; } = new List<ReconciliationPolicyExecution> ();
+        public virtual ICollection<ReconciliationPolicyExecution> PolicyExecutions { get; set; } = new List<ReconciliationPolicyExecution>();
 
-        // Navigation to discrepancies through policy executions (using ReconciliationDiscrepancy as primary entity)
-        // Note: ReconciliationDiscrepancy entities are linked via PolicyExecutionId, not directly to Policy
-        public virtual ICollection<ReconciliationDiscrepancy> Discrepancies { get; set; } = new List<ReconciliationDiscrepancy> ();
+        // Note: Discrepancies are accessed indirectly through PolicyExecutions → Discrepancies
+        // A direct ICollection<ReconciliationDiscrepancy> was removed here because it caused
+        // EF Core to create a shadow FK column "ReconciliationPolicyId" on the discrepancy table.
+        // To query discrepancies for a policy, use:
+        //   policy.PolicyExecutions.SelectMany(pe => pe.Discrepancies)
 
         //Cursor - Enhanced computed property for tank scope (from new version)
         [NotMapped]
-        public ReconciliationTankScope TankScope {
-            get {
-                var jsonToUse = !string.IsNullOrEmpty (TankScopeConfiguration) ?
+        public ReconciliationTankScope TankScope
+        {
+            get
+            {
+                var jsonToUse = !string.IsNullOrEmpty(TankScopeConfiguration) ?
                     TankScopeConfiguration :
                     null;
 
-                if (string.IsNullOrEmpty (jsonToUse))
+                if (string.IsNullOrEmpty(jsonToUse))
                     return null;
 
-                try {
-                    return System.Text.Json.JsonSerializer.Deserialize<ReconciliationTankScope> (jsonToUse);
-                } catch {
+                try
+                {
+                    return System.Text.Json.JsonSerializer.Deserialize<ReconciliationTankScope>(jsonToUse);
+                }
+                catch
+                {
                     return null;
                 }
             }
-            set {
+            set
+            {
                 var serialized = value != null ?
-                    System.Text.Json.JsonSerializer.Serialize (value) :
+                    System.Text.Json.JsonSerializer.Serialize(value) :
                     null;
 
                 TankScopeConfiguration = serialized; // Keep both for backward compatibility
@@ -135,10 +145,11 @@ namespace FMS.Domain.Entities {
     }
 
     //Cursor - Enhanced tank scope configuration class (from new version)
-    public class ReconciliationTankScope {
-        public List<int> SiteIds { get; set; } = new List<int> ();
-        public List<int> TankIds { get; set; } = new List<int> ();
-        public List<string> FuelTypes { get; set; } = new List<string> ();
+    public class ReconciliationTankScope
+    {
+        public List<int> SiteIds { get; set; } = new List<int>();
+        public List<int> TankIds { get; set; } = new List<int>();
+        public List<string> FuelTypes { get; set; } = new List<string>();
         public bool? HighPriorityOnly { get; set; }
         public decimal? MinCapacity { get; set; }
         public decimal? MaxCapacity { get; set; }

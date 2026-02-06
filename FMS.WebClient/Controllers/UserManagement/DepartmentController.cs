@@ -17,12 +17,15 @@ using FMS.Application.Features.UserManagement.Queries;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.UserManagement;
 
 [Route("api/v1/[controller]")]
 [ApiController]
 [Authorize]
+[RequirePermission(Permissions.Admin.Users)]
 public class DepartmentController : ControllerBase
 {
     private readonly IMediator _mediator;

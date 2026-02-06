@@ -36,8 +36,8 @@ const BatchReconciliationTool = () => {
   const loading = useSelector(selectLoading);
   const error = useSelector(selectError);
 
-  const canRead = hasPermission('_Read_tankStock');
-  const canUpdate = hasPermission('_Update_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
+  const canUpdate = hasPermission('_Update_TankStock');
 
   // Transform tanks for SelectBox
   const tanksDataSource = tanks.map(tank => ({

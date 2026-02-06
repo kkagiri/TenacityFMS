@@ -1,0 +1,215 @@
+/**
+ * File: AlarmDetails.scss
+ * Purpose: Styles for the AlarmDetails component — header, info cards, timeline, actions
+ * Last Modified: 2026-02-06
+ */
+
+.alarm-details {
+  /* ── Header ── */
+  .detail-header {
+    @apply tw-bg-white tw-rounded-lg tw-shadow tw-p-5 tw-mb-4;
+    border-left: 5px solid #6c757d;
+
+    .header-icon {
+      @apply tw-w-12 tw-h-12 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-text-2xl;
+      flex-shrink: 0;
+    }
+
+    .badge {
+      @apply tw-text-white tw-text-xs tw-font-semibold tw-px-2 tw-py-1 tw-rounded-full;
+      line-height: 1;
+    }
+  }
+
+  /* ── Action Buttons ── */
+  .action-btn {
+    @apply tw-px-3 tw-py-2 tw-rounded tw-text-sm tw-font-medium tw-border-0 tw-cursor-pointer tw-text-white;
+    @apply tw-flex tw-items-center tw-gap-1;
+    transition: opacity 0.15s;
+
+    &:hover { opacity: 0.85; }
+
+    &.acknowledge { background: #0d6efd; }
+    &.resolve { background: #28a745; }
+    &.suppress { background: #6c757d; }
+    &.escalate { background: #fd7e14; }
+  }
+
+  /* ── Body Grid ── */
+  .detail-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 16px;
+
+    @media (max-width: 900px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ── Cards ── */
+  .detail-card {
+    @apply tw-bg-white tw-rounded-lg tw-shadow tw-p-5 tw-mb-4;
+
+    .card-title {
+      @apply tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3 tw-pb-2 tw-border-b tw-border-gray-100;
+      display: flex;
+      align-items: center;
+    }
+  }
+
+  /* ── Info Grid ── */
+  .info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+
+    .info-label {
+      @apply tw-text-gray-500 tw-text-sm;
+    }
+
+    .info-value {
+      @apply tw-text-gray-800 tw-text-sm tw-font-medium;
+      text-align: right;
+      max-width: 60%;
+      word-break: break-word;
+    }
+  }
+
+  /* ── Threshold Grid ── */
+  .threshold-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+
+    .threshold-item {
+      @apply tw-bg-gray-50 tw-rounded-lg tw-p-3;
+      text-align: center;
+
+      .threshold-label {
+        @apply tw-text-gray-500 tw-text-xs tw-block tw-mb-1;
+      }
+
+      .threshold-value {
+        @apply tw-text-lg;
+      }
+    }
+  }
+
+  /* ── Additional Data ── */
+  .additional-data {
+    .data-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 6px 0;
+      border-bottom: 1px solid #f3f4f6;
+
+      &:last-child { border-bottom: none; }
+
+      .data-key {
+        @apply tw-text-gray-500 tw-text-xs tw-uppercase;
+        letter-spacing: 0.03em;
+      }
+
+      .data-value {
+        @apply tw-text-gray-800 tw-text-sm;
+        max-width: 55%;
+        text-align: right;
+        word-break: break-all;
+      }
+    }
+  }
+
+  /* ── Timeline ── */
+  .timeline {
+    position: relative;
+    padding-left: 28px;
+
+    &::before {
+      content: '';
+      position: absolute;
+      left: 13px;
+      top: 8px;
+      bottom: 8px;
+      width: 2px;
+      background: #e5e7eb;
+    }
+
+    .timeline-entry {
+      position: relative;
+      margin-bottom: 20px;
+
+      &:last-child { margin-bottom: 0; }
+
+      &.pending {
+        opacity: 0.5;
+      }
+
+      .timeline-dot {
+        position: absolute;
+        left: -28px;
+        top: 0;
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 11px;
+        z-index: 1;
+      }
+
+      .timeline-content {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        padding-top: 2px;
+
+        .timeline-label {
+          @apply tw-text-sm tw-font-semibold tw-text-gray-800;
+        }
+
+        .timeline-date {
+          @apply tw-text-xs tw-text-gray-500;
+        }
+
+        .timeline-ago {
+          @apply tw-text-xs tw-text-gray-400;
+        }
+
+        .timeline-detail {
+          @apply tw-text-xs tw-text-gray-500 tw-mt-1;
+        }
+      }
+    }
+  }
+
+  /* ── Quick Stats ── */
+  .quick-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    .stat-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+
+      .stat-label {
+        @apply tw-text-gray-500 tw-text-sm;
+      }
+
+      .stat-value {
+        @apply tw-text-gray-800 tw-text-sm tw-font-semibold;
+      }
+    }
+  }
+}

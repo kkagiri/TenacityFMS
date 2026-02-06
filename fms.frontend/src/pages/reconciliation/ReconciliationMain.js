@@ -18,7 +18,7 @@ const ReconciliationMain = () => {
   const { hasPermission } = usePermissions();
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
 
-  const canRead = hasPermission('_Read_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
 
   // Permission gate
   if (!canRead) {

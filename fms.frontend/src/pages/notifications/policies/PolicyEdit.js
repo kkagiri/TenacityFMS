@@ -2,7 +2,7 @@
  * File: PolicyEdit.js
  * Purpose: Edit notification policy details and ActiveAlarm filter settings.
  * Dependencies: react, react-router-dom, devextreme-react, notification services.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-06
  *
  * Key Functions:
  * - PolicyEdit(): Loads a policy and renders edit tabs.
@@ -35,6 +35,7 @@ import {
   notificationPriorityOptions as priorityOptions,
   notificationTypeOptions
 } from '../constants/notificationEnums';
+import PolicyTriggersManager from './PolicyTriggersManager';
 
 const parseActiveAlarmFilter = rawFilter => {
   if (!rawFilter || typeof rawFilter !== 'string') {
@@ -180,8 +181,16 @@ const PolicyEdit = () => {
     { id: 1, title: 'Active Alarm Filters', icon: 'shield-exclamation' },
     { id: 2, title: 'Notification Settings', icon: 'bell' },
     { id: 3, title: 'Recipients', icon: 'users' },
-    { id: 4, title: 'Templates', icon: 'edit' }
+    { id: 4, title: 'Templates', icon: 'edit' },
+    { id: 5, title: 'Policy Triggers', icon: 'sliders' }
   ];
+
+  useEffect(() => {
+    const query = new URLSearchParams(location.search);
+    if (query.get('tab')?.toLowerCase() === 'triggers') {
+      setActiveTab(5);
+    }
+  }, [location.search]);
 
   useEffect(() => {
     const loadPolicy = async () => {
@@ -703,6 +712,15 @@ const PolicyEdit = () => {
     );
   };
 
+  const renderTriggersTab = () => (
+    <div className="tw-p-6 policy-create-form notification-form">
+      <PolicyTriggersManager
+        policyId={Number(policy.id || id)}
+        categoryId={Number(policy.notificationCategoryId) || null}
+      />
+    </div>
+  );
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 0:
@@ -715,6 +733,8 @@ const PolicyEdit = () => {
         return renderRecipientsTab();
       case 4:
         return renderTemplatesTab();
+      case 5:
+        return renderTriggersTab();
       default:
         return renderBasicInfoTab();
     }

@@ -5,5 +5,5 @@ export { default as SideNavigationMenu } from './side-navigation-menu/SideNaviga
 export { AppDrawer } from './app-drawer';
 
 
-// Vehicle consumption components - using default export from vehicleConsumptionDetails
-export { default as VehicleConsumptionDetails } from '../pages/vehicles/vehicleConsumptionDetails';
+// Vehicle consumption components - using default export from VehicleConsumptionDetails
+export { default as VehicleConsumptionDetails } from '../pages/vehicles/consumption/VehicleConsumptionDetails';

@@ -1,18 +1,23 @@
 using FMS.Application.Common;
 using FMS.Domain.Entities.Reports;
 using FMS.Persistence.DataAccess;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.Reporting;
 
 /// <summary>
 /// API Controller for managing report items - provides CRUD operations for reports.
 /// </summary>
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("api/v1/[controller]")]
+[RequirePermission(Permissions.Report.VehicleConsumption)]
 public class ReportsController : ControllerBase
 {
     private readonly GpsdataContext _context;

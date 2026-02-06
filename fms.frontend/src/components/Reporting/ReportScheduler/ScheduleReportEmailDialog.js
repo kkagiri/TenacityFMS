@@ -42,7 +42,13 @@ const ScheduleReportEmailDialog = ({
 }) => {
   const selectedSiteIds = scheduleConfig?.siteIds || [];
   const selectedTankIds = scheduleConfig?.tankIds || [];
-  const selectedRecipients = scheduleConfig?.recipientIds || [];
+  const selectedRecipients = useMemo(
+    () =>
+      (Array.isArray(scheduleConfig?.recipientIds) ? scheduleConfig.recipientIds : [])
+        .filter((id) => id !== null && id !== undefined && id !== "")
+        .map((id) => String(id)),
+    [scheduleConfig?.recipientIds]
+  );
   const periodType = scheduleConfig?.periodType || "daily";
   const selectedDayOfWeekIds = useMemo(() => {
     const configuredDayIds = Array.isArray(scheduleConfig?.scheduleDayOfWeekIds)
@@ -66,6 +72,28 @@ const ScheduleReportEmailDialog = ({
     if (!selectedSiteIds.length) return tanks || [];
     return (tanks || []).filter((tank) => selectedSiteIds.includes(tank.siteId));
   }, [tanks, selectedSiteIds]);
+
+  const recipientOptions = useMemo(
+    () =>
+      (usersForFilter || [])
+        .map((user) => {
+          const rawId = user?.userId ?? user?.id;
+          if (rawId === null || rawId === undefined || rawId === "") {
+            return null;
+          }
+
+          return {
+            id: String(rawId),
+            name:
+              user?.userName ||
+              user?.username ||
+              user?.name ||
+              `User ${rawId}`,
+          };
+        })
+        .filter(Boolean),
+    [usersForFilter]
+  );
 
   // Only filter tank IDs when dialog is visible to prevent infinite loop
   useEffect(() => {
@@ -327,12 +355,16 @@ const ScheduleReportEmailDialog = ({
               Recipients
             </label>
             <TagBox
-              dataSource={usersForFilter || []}
-              displayExpr="userName"
-              valueExpr="userId"
+              dataSource={recipientOptions}
+              displayExpr="name"
+              valueExpr="id"
               value={selectedRecipients}
               onValueChanged={(e) =>
-                onScheduleConfigChange({ recipientIds: e.value })
+                onScheduleConfigChange({
+                  recipientIds: (Array.isArray(e.value) ? e.value : [])
+                    .filter((id) => id !== null && id !== undefined && id !== "")
+                    .map((id) => String(id)),
+                })
               }
               placeholder="Select users"
               searchEnabled={true}

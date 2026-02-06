@@ -9,6 +9,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers.FuelManagement
 {
     /// <summary>
@@ -25,6 +28,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
     [ApiController]
     [Route("api/v1/tankvolumedatacorrection")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankVolumeHistory.Read)]
     public class TankVolumeDataCorrectionController : ControllerBase
     {
         private readonly ITankVolumeHistoryValidationService _validationService;

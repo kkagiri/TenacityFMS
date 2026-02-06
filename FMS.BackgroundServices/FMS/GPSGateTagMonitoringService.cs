@@ -1,4 +1,15 @@
-﻿//Cursor
+﻿
+/**
+ * File: GPSGateTagMonitoringService.cs
+ * Purpose: Monitors vehicle GPS locations and updates GPSGate tags based on location mapping rules.
+ * Dependencies: IServiceScopeFactory, IConfiguration, IHostEnvironment, GpsdataContext
+ * Last Modified: 2026-02-06
+ *
+ * Key Functions:
+ * - LoadMappings(): Loads tag and location mapping data from JSON.
+ * - ExecuteAsync(CancellationToken): Runs daily tag monitoring and updates GPSGate tags.
+ * - ResolveMappingFilePath(): Resolves mapping file path across development and deployed environments.
+ */
 using System;
 using System.Linq;
 using System.Net.Http;
@@ -27,21 +38,24 @@ namespace FMS.BackgroundServices.FMS {
         private readonly ILogger<GPSGateVehicleLocationTagMonitoringService> _logger;
         private readonly IServiceScopeFactory _serviceScopeFactory;
         private readonly IConfiguration _configuration;
-        private readonly string _mappingFilePath = "FMS.BackgroundServices/FMS/GPSGATELocationMapping.json"; //Cursor
+        private readonly IHostEnvironment _hostEnvironment;
+        private readonly string _mappingFilePath;
         private Dictionary<string, int> _tagMappings;
         private Dictionary<string, string> _locationTagMappings;
 
-        public GPSGateVehicleLocationTagMonitoringService (ILogger<GPSGateVehicleLocationTagMonitoringService> logger, IServiceScopeFactory serviceScopeFactory, IConfiguration configuration) {
+        public GPSGateVehicleLocationTagMonitoringService (ILogger<GPSGateVehicleLocationTagMonitoringService> logger, IServiceScopeFactory serviceScopeFactory, IConfiguration configuration, IHostEnvironment hostEnvironment) {
             _logger = logger;
             _serviceScopeFactory = serviceScopeFactory;
             _configuration = configuration;
+            _hostEnvironment = hostEnvironment;
+            _mappingFilePath = ResolveMappingFilePath ();
             LoadMappings (); //Cursor
         }
 
         private void LoadMappings () //Cursor
         {
             if (!File.Exists (_mappingFilePath)) {
-                _logger.LogError ($"Mapping file not found: {_mappingFilePath}");
+                _logger.LogError ("Mapping file not found: {MappingFilePath}", _mappingFilePath);
                 _tagMappings = new Dictionary<string, int> ();
                 _locationTagMappings = new Dictionary<string, string> ();
                 return;
@@ -50,6 +64,38 @@ namespace FMS.BackgroundServices.FMS {
             dynamic mappings = JsonConvert.DeserializeObject (json);
             _tagMappings = JsonConvert.DeserializeObject<Dictionary<string, int>> (mappings.TagMappings.ToString ());
             _locationTagMappings = JsonConvert.DeserializeObject<Dictionary<string, string>> (mappings.LocationTagMappings.ToString ());
+        }
+
+        private string ResolveMappingFilePath () {
+            var configuredPath = _configuration["GPSGateTagMonitoring:MappingFilePath"];
+            if (!string.IsNullOrWhiteSpace (configuredPath)) {
+                var resolvedConfiguredPath = Path.IsPathRooted (configuredPath)
+                    ? configuredPath
+                    : Path.GetFullPath (Path.Combine (_hostEnvironment.ContentRootPath, configuredPath));
+
+                if (File.Exists (resolvedConfiguredPath)) {
+                    _logger.LogInformation ("Using configured tag mapping file path: {MappingFilePath}", resolvedConfiguredPath);
+                    return resolvedConfiguredPath;
+                }
+
+                _logger.LogWarning ("Configured tag mapping file not found: {MappingFilePath}", resolvedConfiguredPath);
+            }
+
+            var candidatePaths = new[] {
+                Path.Combine (_hostEnvironment.ContentRootPath, "FMS.BackgroundServices", "FMS", "GPSGATELocationMapping.json"),
+                Path.GetFullPath (Path.Combine (_hostEnvironment.ContentRootPath, "..", "FMS.BackgroundServices", "FMS", "GPSGATELocationMapping.json")),
+                Path.Combine (AppContext.BaseDirectory, "FMS.BackgroundServices", "FMS", "GPSGATELocationMapping.json"),
+                Path.Combine (AppContext.BaseDirectory, "GPSGATELocationMapping.json")
+            };
+
+            foreach (var candidatePath in candidatePaths) {
+                if (File.Exists (candidatePath)) {
+                    _logger.LogInformation ("Resolved tag mapping file path: {MappingFilePath}", candidatePath);
+                    return candidatePath;
+                }
+            }
+
+            return candidatePaths[0];
         }
 
         protected override async Task ExecuteAsync (CancellationToken stoppingToken) {

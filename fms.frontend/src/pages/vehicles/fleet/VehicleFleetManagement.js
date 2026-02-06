@@ -11,8 +11,8 @@ import { TextBox } from 'devextreme-react/text-box';
 import '../vehicles.scss';
 
 // Components
-import VehicleDataGrid from '../component/vehicleDataGrid';
-import VehicleAddForm from '../component/VehicleAddForm';
+import VehicleDataGrid from './VehicleDataGrid';
+import VehicleAddForm from './VehicleAddForm';
 
 // Actions
 import { getVehicleList } from '../../../redux/actions/vehicleActions';
@@ -332,7 +332,7 @@ const VehicleFleetManagement = () => {
         onHiding={() => setShowAddVehiclePopup(false)}
         dragEnabled={false}
         showCloseButton
-={true}
+        ={true}
         showTitle={true}
         title="Add New Vehicle"
         width={900}

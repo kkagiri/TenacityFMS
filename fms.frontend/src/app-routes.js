@@ -24,9 +24,9 @@ import AdminMain from "./pages/admin/AdminMain";
 // Import the new vehicle main entry point
 import VehicleMain from "./pages/vehicles/VehicleMain";
 // Import individual vehicle components
-import VehicleDashboard from "./pages/vehicles/vehicleDashboard";
-import MaintenanceAlertsPage from "./pages/vehicles/MaintenanceAlertsPage";
-import VehicleEdit from "./pages/vehicles/vehicleEdit";
+import VehicleDashboard from "./pages/vehicles/dashboard/VehicleDashboard";
+import MaintenanceAlertsPage from "./pages/vehicles/maintenance/MaintenanceAlertsPage";
+import VehicleDetails from "./pages/vehicles/details/VehicleDetails";
 // Import Issue Tracker components
 import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
 // Import Active Alarm components
@@ -98,7 +98,7 @@ const resolvedComponents = (pageName) => {
     case "vehicle-dashboard":
       return VehicleDashboard;
     case "vehicle-edit":
-      return VehicleEdit;
+      return VehicleDetails;
     case "maintenance-alerts":
       return MaintenanceAlertsPage;
     case "automated-reconciliation":

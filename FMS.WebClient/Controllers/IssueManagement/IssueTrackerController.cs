@@ -2,7 +2,7 @@
  * File: IssueTrackerController.cs
  * Purpose: Exposes issue tracking CRUD and assignment workflow APIs.
  * Dependencies: MediatR issue commands/queries, JWT claims.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-06
  *
  * Key Actions:
  * - PostIssueTracker(): Creates issue records.
@@ -14,34 +14,39 @@ using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Issues;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Priority;
 using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Status;
 using FMS.Application.Features.FMS.Issuetracker;
+using FMS.Application.Features.IssueTracker.Commands.Attachments;
 using FMS.Application.Features.IssueTracker.Commands.Issues;
 using FMS.Application.Features.IssueTracker.DTOs;
 using FMS.Application.Features.IssueTracker.Queries;
+using FMS.Application.Features.IssueTracker.Queries.Attachments;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Category;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Priority;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Status;
 using FMS.Domain.Entities;
+using FMS.Application.Common.Constants;
+using FMS.WebClient.Attributes;
+using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
-using ControllerBase = Microsoft.AspNetCore.Mvc.ControllerBase;
 
 namespace FMS.WebClient.Controllers
 {
     [ApiController]
     [Route("api/v1/issuetracker")]
-    public class IssueTrackerController(IMediator mediator) : ControllerBase
+    public class IssueTrackerController(IMediator mediator) : BaseApiController
     {
         private readonly IMediator _mediator = mediator;
 
         private string GetCurrentUserIdOrDefault()
         {
-            return User.FindFirstValue(ClaimTypes.NameIdentifier)
-                ?? User.FindFirstValue("sub")
-                ?? User.Identity?.Name
-                ?? string.Empty;
+            return TryGetCurrentUserId(out var userId)
+                ? userId
+                : string.Empty;
         }
 
         private string GetCurrentUserNameOrDefault()
@@ -55,6 +60,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get all issue tracker
         [HttpGet]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueTracker()
         {
             GetIssueListQuery query = new();
@@ -64,6 +70,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issue tracker by id
         [HttpGet("{id}")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueTrackerById(int id)
         {
             try
@@ -80,6 +87,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Create issue tracker
         [HttpPost]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> PostIssueTracker([FromBody] IssueTrackerDTO issueData)
         {
             if (issueData is null)
@@ -94,6 +102,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Update issue tracker
         [HttpPut("{id}")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> UpdateIssueTracker(int id, [FromBody] IssueTrackerDTO issueData)
         {
             if (issueData is null)
@@ -118,6 +127,7 @@ namespace FMS.WebClient.Controllers
         // Api: Quick action on issue (Mark Complete, Escalate Priority) with notifications
         [HttpPost("{id}/quick-action")]
         [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> PerformQuickAction(int id, [FromBody] QuickActionRequest request)
         {
             try
@@ -159,6 +169,7 @@ namespace FMS.WebClient.Controllers
         // Api: Assigned worker confirms or schedules issue assignment
         [HttpPost("{id}/assignment-response")]
         [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> RespondToIssueAssignment(int id, [FromBody] IssueAssignmentResponseRequestDTO request)
         {
             try
@@ -183,6 +194,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Delete issue tracker
         [HttpDelete("{id}")]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
         public async Task<IActionResult> DeleteIssueTracker(int id)
         {
             try
@@ -199,6 +211,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issues by vehicle ID
         [HttpGet("vehicle/{vehicleId}")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssuesByVehicle(int vehicleId)
         {
             try
@@ -216,6 +229,7 @@ namespace FMS.WebClient.Controllers
         // Api: Get user dashboard data - comprehensive issue statistics for logged-in user
         [HttpGet("user-dashboard")]
         [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetUserDashboard(
             [FromQuery] int? vehicleId = null,
             [FromQuery] int? siteId = null,
@@ -256,6 +270,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issue categories
         [HttpGet("categories")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueCategories()
         {
             try
@@ -272,6 +287,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issue priorities
         [HttpGet("priorities")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssuePriorities()
         {
             try
@@ -288,6 +304,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issue statuses
         [HttpGet("statuses")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueStatuses()
         {
             try
@@ -306,6 +323,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Create issue category
         [HttpPost("categories")]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> CreateIssueCategory([FromBody] Issuecategory categoryData)
         {
             try
@@ -327,6 +345,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Update issue category
         [HttpPut("categories/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> UpdateIssueCategory(int id, [FromBody] Issuecategory categoryData)
         {
             try
@@ -349,6 +368,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Delete issue category
         [HttpDelete("categories/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
         public async Task<IActionResult> DeleteIssueCategory(int id)
         {
             try
@@ -367,6 +387,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Create issue priority
         [HttpPost("priorities")]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> CreateIssuePriority([FromBody] Issuepriority priorityData)
         {
             try
@@ -388,6 +409,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Update issue priority
         [HttpPut("priorities/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> UpdateIssuePriority(int id, [FromBody] Issuepriority priorityData)
         {
             try
@@ -410,6 +432,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Delete issue priority
         [HttpDelete("priorities/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
         public async Task<IActionResult> DeleteIssuePriority(int id)
         {
             try
@@ -428,6 +451,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Create issue status
         [HttpPost("statuses")]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> CreateIssueStatus([FromBody] Issuestatus statusData)
         {
             try
@@ -449,6 +473,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Update issue status
         [HttpPut("statuses/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public async Task<IActionResult> UpdateIssueStatus(int id, [FromBody] Issuestatus statusData)
         {
             try
@@ -471,6 +496,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Delete issue status
         [HttpDelete("statuses/{id}")]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
         public async Task<IActionResult> DeleteIssueStatus(int id)
         {
             try
@@ -487,6 +513,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Get issue analytics
         [HttpGet("analytics")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public Task<IActionResult> GetIssueAnalytics()
         {
             try
@@ -513,6 +540,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Export issue report
         [HttpGet("reports/export")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public Task<IActionResult> ExportIssueReport()
         {
             try
@@ -536,6 +564,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Bulk assign issues
         [HttpPut("bulk/assign")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public Task<IActionResult> BulkAssignIssues([FromBody] BulkAssignRequest bulkData)
         {
             try
@@ -563,6 +592,7 @@ namespace FMS.WebClient.Controllers
 
         //Api: Bulk update issue status
         [HttpPut("bulk/status")]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
         public Task<IActionResult> BulkUpdateStatus([FromBody] BulkStatusUpdateRequest bulkData)
         {
             try
@@ -594,6 +624,7 @@ namespace FMS.WebClient.Controllers
         /// Get activity stream for an issue
         /// </summary>
         [HttpGet("{id}/activities")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueActivities(int id, [FromQuery] int? limit = null)
         {
             try
@@ -614,6 +645,7 @@ namespace FMS.WebClient.Controllers
         /// Get reminder for an issue
         /// </summary>
         [HttpGet("{id}/reminder")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetIssueReminder(int id)
         {
             try
@@ -633,6 +665,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpPost("{id}/reminder")]
         [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> CreateIssueReminder(int id, [FromBody] CreateIssueReminderDTO reminderData)
         {
             try
@@ -663,6 +696,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [Authorize]
         [HttpPost("{id}/follow")]
+        [RequirePermission(Permissions.IssueTracker.Create)]
         public async Task<IActionResult> FollowIssue(int id, [FromBody] FollowIssueRequestDTO? request = null)
         {
             try
@@ -697,6 +731,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [Authorize]
         [HttpDelete("{id}/follow")]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
         public async Task<IActionResult> UnfollowIssue(int id)
         {
             try
@@ -724,6 +759,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [Authorize]
         [HttpGet("{id}/is-following")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> IsFollowingIssue(int id)
         {
             try
@@ -750,6 +786,7 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [Authorize]
         [HttpGet("followed")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetFollowedIssues([FromQuery] int? limit = null)
         {
             try
@@ -777,6 +814,7 @@ namespace FMS.WebClient.Controllers
         /// Get issues linked by the same template or category
         /// </summary>
         [HttpGet("{id}/linked-issues")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
         public async Task<IActionResult> GetLinkedIssues(int id)
         {
             try
@@ -790,6 +828,176 @@ namespace FMS.WebClient.Controllers
                 return BadRequest(new { message = $"Error fetching linked issues for issue {id}: {ex.Message}" });
             }
         }
+
+        // ===== ATTACHMENT ENDPOINTS =====
+
+        /// <summary>
+        /// Upload an attachment to an issue (supports Installation, Calibration, General categories)
+        /// </summary>
+        [HttpPost("{id}/attachments")]
+        [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Create)]
+        public async Task<IActionResult> UploadAttachment(
+            int id,
+            [FromForm] IFormFile file,
+            [FromForm] string category = "General",
+            [FromForm] string? description = null)
+        {
+            try
+            {
+                if (file == null || file.Length == 0)
+                {
+                    return BadRequest(new { message = "No file provided." });
+                }
+
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                using var stream = file.OpenReadStream();
+
+                var command = new UploadIssueAttachmentCommand
+                {
+                    IssueId = id,
+                    FileName = file.FileName,
+                    ContentType = file.ContentType,
+                    FileSize = file.Length,
+                    FileStream = stream,
+                    AttachmentCategory = category,
+                    Description = description,
+                    UploadedByUserId = userId
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error uploading attachment for issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Get all attachments for an issue
+        /// </summary>
+        [HttpGet("{id}/attachments")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
+        public async Task<IActionResult> GetAttachments(int id)
+        {
+            try
+            {
+                var query = new GetIssueAttachmentsQuery(id);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching attachments for issue {id}: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Download/serve an attachment file
+        /// </summary>
+        [HttpGet("{id}/attachments/{attachmentId}/download")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
+        public async Task<IActionResult> DownloadAttachment(int id, int attachmentId,
+            [FromServices] IIssueAttachmentStorageService storageService,
+            [FromServices] FMS.Persistence.DataAccess.GpsdataContext dbContext)
+        {
+            try
+            {
+                var attachment = await dbContext.IssueAttachments
+                    .FirstOrDefaultAsync(a => a.Id == attachmentId && a.IssueId == id);
+
+                if (attachment == null)
+                {
+                    return NotFound(new { message = $"Attachment {attachmentId} not found for issue {id}." });
+                }
+
+                var fullPath = storageService.GetFullPath(attachment.FilePath);
+                if (!System.IO.File.Exists(fullPath))
+                {
+                    return NotFound(new { message = "Attachment file not found on server." });
+                }
+
+                var fileBytes = await System.IO.File.ReadAllBytesAsync(fullPath);
+                return File(fileBytes, attachment.ContentType, attachment.FileName);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error downloading attachment: {ex.Message}" });
+            }
+        }
+
+        /// <summary>
+        /// Delete an attachment from an issue
+        /// </summary>
+        [HttpDelete("{id}/attachments/{attachmentId}")]
+        [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Delete)]
+        public async Task<IActionResult> DeleteAttachment(int id, int attachmentId)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var command = new DeleteIssueAttachmentCommand(id, attachmentId, userId);
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error deleting attachment {attachmentId} from issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== CLOSE ISSUE (APPROVER ONLY) =====
+
+        /// <summary>
+        /// Close an issue. Requires approver permission (the closer cannot be the assignee).
+        /// </summary>
+        [HttpPost("{id}/close")]
+        [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Approve)]
+        public async Task<IActionResult> CloseIssue(int id, [FromBody] CloseIssueRequest? request = null)
+        {
+            try
+            {
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var command = new CloseIssueCommand
+                {
+                    IssueId = id,
+                    ClosedByUserId = userId,
+                    ClosingNotes = request?.Notes
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error closing issue {id}: {ex.Message}" });
+            }
+        }
+
+    }
+
+    // DTOs for close requests
+    public class CloseIssueRequest
+    {
+        public string? Notes { get; set; }
     }
 
     // DTOs for bulk operations

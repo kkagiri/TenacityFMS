@@ -25,9 +25,9 @@ import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportP
 import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 import PTSOfflineReport from "./pts/PTSOfflineReport";
 
-// Vehicle Consumption Report components
-import VehicleConsumptionReport from "./vehicleConsumption/VehicleConsumptionReport";
-import VehicleConsumptionDetails from "./vehicleConsumption/VehicleConsumptionDetails";
+// Vehicle Consumption Report components (moved to vehicles module)
+import VehicleConsumptionReport from "../vehicles/consumption/reports/VehicleConsumptionReport";
+import VehicleConsumptionReportDetails from "../vehicles/consumption/reports/VehicleConsumptionReportDetails";
 
 // JsReport components - Modern report engine
 import { JsReportDesigner, JsReportViewer, JsReportTemplateManager } from "./jsreport";
@@ -83,7 +83,7 @@ const ReportsMain = () => {
         />
         <Route
           path="vehicle-consumption/details/:vehicleId"
-          element={<VehicleConsumptionDetails />}
+          element={<VehicleConsumptionReportDetails />}
         />
 
         {/* PTS Reports Routes */}

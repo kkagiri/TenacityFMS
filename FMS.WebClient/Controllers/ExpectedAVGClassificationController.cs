@@ -4,43 +4,60 @@ using FMS.Application.Queries.Database.FMSQuery.ExpectedAvg;
 using MediatR;
 using Microsoft.AspNetCore.Mvc;
 
-namespace FMS.WebClient.Controllers {
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
+namespace FMS.WebClient.Controllers
+{
     [ApiController]
-    [Route ("api/v1/[controller]")]
-    public class ExpectedAVGClassificationController : ControllerBase {
+    [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.ExpectedAverage)]
+    public class ExpectedAVGClassificationController : ControllerBase
+    {
 
         private readonly IMediator _mediator;
 
-        public ExpectedAVGClassificationController (IMediator mediator) {
+        public ExpectedAVGClassificationController(IMediator mediator)
+        {
             _mediator = mediator;
         }
 
-        [HttpGet ("getlist")]
-        public async Task<IActionResult> GetExpectedAVGClassification () {
-            var query = new GetExpectAVGClassificationlist ();
-            var expectedAVGClassification = await _mediator.Send (query);
-            return Ok (expectedAVGClassification);
+        [HttpGet("getlist")]
+        public async Task<IActionResult> GetExpectedAVGClassification()
+        {
+            var query = new GetExpectAVGClassificationlist();
+            var expectedAVGClassification = await _mediator.Send(query);
+            return Ok(expectedAVGClassification);
         }
 
-        [HttpPost ("create")]
-        public async Task<IActionResult> CreateExpClassfication ([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto) {
-            if (!ModelState.IsValid) {
-                return BadRequest ();
+        [HttpPost("create")]
+        public async Task<IActionResult> CreateExpClassfication([FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
             }
-            var command = new ExptAVGClassificationCreateCmd {
+            var command = new ExptAVGClassificationCreateCmd
+            {
                 ExpctAVGClassficationDTO = expectedAVGClassificationDto
             };
-            var result = await _mediator.Send (command);
-            return Ok (result);
+            var result = await _mediator.Send(command);
+            return Ok(result);
         }
 
-        [HttpPut ("update/{id}")]
-        public async Task<IActionResult> UpdateExpectedAVGClassification (int id, [FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto) {
-            if (!ModelState.IsValid) {
-                return BadRequest ();
+        [HttpPut("update/{id}")]
+        public async Task<IActionResult> UpdateExpectedAVGClassification(int id, [FromBody] ExpectedAVGClassficationDTO expectedAVGClassificationDto)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest();
             }
 
-            var command = new ExpectedAVGClassificationUpdateCmd {
+            var command = new ExpectedAVGClassificationUpdateCmd
+            {
                 Id = id,
                 Name = expectedAVGClassificationDto.Name,
                 Description = expectedAVGClassificationDto.Description,
@@ -48,13 +65,14 @@ namespace FMS.WebClient.Controllers {
 
             };
 
-            var result = await _mediator.Send (command);
+            var result = await _mediator.Send(command);
 
-            if (result == 0) {
-                return NotFound ();
+            if (result == 0)
+            {
+                return NotFound();
             }
 
-            return Ok ();
+            return Ok();
         }
 
     }

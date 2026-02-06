@@ -25,11 +25,18 @@ using Microsoft.AspNetCore.SignalR;
 using FMS.Application.Communication.SignalR;
 using StackExchange.Redis;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+
 namespace FMS.WebClient.Controllers
 {
 
     [ApiController]
     [Route("api/v1/[controller]")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.Device)]
     public class PTSDeviceController : ControllerBase
     {
 

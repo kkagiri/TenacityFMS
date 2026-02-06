@@ -872,6 +872,133 @@ class IssueTrackerService {
       return [];
     }
   }
+
+  // ===== ATTACHMENT METHODS =====
+
+  /**
+   * Upload an attachment to an issue
+   * @param {number} issueId - Issue ID
+   * @param {File} file - The file to upload
+   * @param {string} category - "Installation" | "Calibration" | "General"
+   * @param {string} [description] - Optional description
+   * @returns {Promise} Uploaded attachment DTO
+   */
+  async uploadAttachment(issueId, file, category = 'General', description = null) {
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('category', category);
+      if (description) {
+        formData.append('description', description);
+      }
+
+      const response = await axiosInstance.post(
+        `${this.baseURL}/${issueId}/attachments`,
+        formData,
+        { headers: { 'Content-Type': 'multipart/form-data' } }
+      );
+
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data;
+      }
+      throw new Error(result.message || result.Message || 'Upload failed');
+    } catch (error) {
+      console.error(`Error uploading attachment for issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to upload attachment');
+    }
+  }
+
+  /**
+   * Get all attachments for an issue
+   * @param {number} issueId - Issue ID
+   * @returns {Promise<Array>} List of attachment DTOs
+   */
+  async getAttachments(issueId) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/attachments`);
+      const result = response.data;
+      if (result.isSuccess || result.IsSuccess) {
+        return result.data || result.Data || [];
+      }
+      return [];
+    } catch (error) {
+      console.error(`Error fetching attachments for issue ${issueId}:`, error);
+      return [];
+    }
+  }
+
+  /**
+   * Delete an attachment from an issue
+   * @param {number} issueId - Issue ID
+   * @param {number} attachmentId - Attachment ID
+   * @returns {Promise<boolean>} Success indicator
+   */
+  async deleteAttachment(issueId, attachmentId) {
+    try {
+      const response = await axiosInstance.delete(`${this.baseURL}/${issueId}/attachments/${attachmentId}`);
+      const result = response.data;
+      return result.isSuccess || result.IsSuccess || false;
+    } catch (error) {
+      console.error(`Error deleting attachment ${attachmentId} from issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to delete attachment');
+    }
+  }
+
+  /**
+   * Get the download URL for an attachment
+   * @param {number} issueId - Issue ID
+   * @param {number} attachmentId - Attachment ID
+   * @returns {string} Download URL path
+   */
+  getAttachmentDownloadUrl(issueId, attachmentId) {
+    return `/api/v1/issuetracker/${issueId}/attachments/${attachmentId}/download`;
+  }
+
+  // ===== CLOSE ISSUE (APPROVER ONLY) =====
+
+  /**
+   * Close an issue (requires approver permission - the closer cannot be the assignee)
+   * @param {number} issueId - Issue ID
+   * @param {string} [notes] - Optional closing notes from the approver
+   * @returns {Promise} Close result
+   */
+  async closeIssue(issueId, notes = null) {
+    try {
+      const payload = notes ? { notes } : {};
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/close`, payload);
+      const result = response.data;
+
+      if (result.isSuccess || result.IsSuccess) {
+        notify({
+          message: 'Issue closed successfully by approver.',
+          type: 'success',
+          displayTime: 3000,
+          position: { my: 'top center', at: 'top center', of: window, offset: '0 20' }
+        });
+        return result.data || result.Data;
+      }
+
+      throw new Error(result.message || result.Message || 'Close failed');
+    } catch (error) {
+      console.error(`Error closing issue ${issueId}:`, error);
+
+      // Surface the approver-specific error message to the user
+      const errorMsg = error?.response?.data?.message
+        || error?.response?.data?.Message
+        || error?.message
+        || 'Failed to close issue';
+
+      notify({
+        message: errorMsg,
+        type: 'error',
+        displayTime: 4000,
+        position: { my: 'top center', at: 'top center', of: window, offset: '0 20' }
+      });
+
+      throw error;
+    }
+  }
 }
 
 const issueTrackerService = new IssueTrackerService();

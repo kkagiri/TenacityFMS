@@ -18,6 +18,9 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using System.Security.Claims;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     /// <summary>
@@ -26,6 +29,8 @@ namespace FMS.WebClient.Controllers
     /// </summary>
     [ApiController]
     [Route("api/v1/fuel-comparison")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
     public class FuelComparisonController : ControllerBase
     {
         private readonly IMediator _mediator;

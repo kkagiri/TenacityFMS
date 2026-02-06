@@ -20,12 +20,15 @@ using System;
 using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.VehicleManagement;
 
 [ApiController]
 [Route("api/v1/vehicledocuments")]
 [Authorize]
+[RequirePermission(Permissions.Vehicle.Read)]
 public class VehicleDocumentsController : ControllerBase
 {
     private readonly IMediator _mediator;

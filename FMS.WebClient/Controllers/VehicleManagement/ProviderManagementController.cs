@@ -28,6 +28,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Claims;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 
 namespace FMS.WebClient.Controllers.VehicleManagement
@@ -39,6 +41,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     [ApiController]
     [Route("api/v1/providers")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Admin.Device)]
     public class ProviderManagementController(
         IMediator mediator,
         IVehicleTrackingService trackingService,

@@ -34,7 +34,7 @@ const CorrectionPlanning = () => {
   const error = useSelector(selectError);
   const selectedStrategy = useSelector(selectSelectedStrategy);
 
-  const canRead = hasPermission('_Read_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
 
   if (!canRead) {
     return (

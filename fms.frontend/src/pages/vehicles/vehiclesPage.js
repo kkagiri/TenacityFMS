@@ -1,5 +1,5 @@
 //Cursor - Updated to use the new Vehicle Dashboard
-import VehicleDashboard from './vehicleDashboard';
+import VehicleDashboard from './dashboard/VehicleDashboard';
 
 const VehiclePage = () => {
     return <VehicleDashboard />;

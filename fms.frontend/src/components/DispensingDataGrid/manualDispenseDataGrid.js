@@ -8,13 +8,13 @@ import DataGrid, {
 import Button from 'devextreme-react/button';
 import { Item as FItem } from 'devextreme-react/form';
 
-const ManualDispenseDataGrid = ({ 
-  fuelRefills, 
-  vehicles, 
-  employees, 
-  sites, 
-  tanks, 
-  fuelBy, 
+const ManualDispenseDataGrid = ({
+  fuelRefills,
+  vehicles,
+  employees,
+  sites,
+  tanks,
+  fuelBy,
   user,
   permissions,
   onSaving,
@@ -32,11 +32,11 @@ const ManualDispenseDataGrid = ({
   showAddButton = true // New prop to control "Add Fuel Refill" button visibility
 }) => {
   const gridRef = useRef(null);
-  const exportFormats = [ 'xlsx'];
+  const exportFormats = ['xlsx'];
 
-  const canEdit = allowEditing && permissions.includes('_editFuelRefill');
-  const canDelete = allowEditing && permissions.includes('_deleteFuelRefill');
-  const canCreate = allowEditing && permissions.includes('_createFuelRefill');
+  const canEdit = allowEditing && permissions.includes('_Edit_FuelRefill');
+  const canDelete = allowEditing && permissions.includes('_Delete_FuelRefill');
+  const canCreate = allowEditing && permissions.includes('_Create_FuelRefill');
 
   return (
     <DataGrid
@@ -109,49 +109,49 @@ const ManualDispenseDataGrid = ({
         <TItems name="columnChooserButton" />
       </Toolbar>
 
-      <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true}  defaultValue={new Date().toISOString()} />
-                    <Column dataField="vehicleId" caption="Vehicle" minWidth={150}>
-                        <Lookup
-                            dataSource={vehicles}
-                            valueExpr="vehicleId"
-                            displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
-                        />
+      <Column dataField="date" caption="Date" dataType="date" defaultSortOrder={'dsc'} fixed={true} defaultValue={new Date().toISOString()} />
+      <Column dataField="vehicleId" caption="Vehicle" minWidth={150}>
+        <Lookup
+          dataSource={vehicles}
+          valueExpr="vehicleId"
+          displayExpr="hyoungNo" // Adjust the field name based on your vehicle data
+        />
 
-                    </Column>
-                    <Column dataField="siteId" caption="Site"  minWidth={100} >
-                        <Lookup
-                            dataSource={sites}
-                            valueExpr="id"
-                            displayExpr="name"
-                        />
+      </Column>
+      <Column dataField="siteId" caption="Site" minWidth={100} >
+        <Lookup
+          dataSource={sites}
+          valueExpr="id"
+          displayExpr="name"
+        />
 
-                    </Column>
-               
+      </Column>
 
-                    <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" width={120}>       
-                    </Column>
-                    <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>       
-                    </Column>
-                    <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150}hidingPriority={3} >       
-                    </Column>
-                    <Column dataField="driverId" caption="Driver" minWidth={180} >
-                        <Lookup
-                            dataSource={employees}
-                            valueExpr="id"
-                            displayExpr="fullName"
-                        />
-                        </Column>
 
-                  
-               
-                    <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3}/>
-                    <Column dataField="fuelBy" caption="Fuel By" minWidth={120}  hidingPriority={2}
-                        cellRender={(cellData) => {
-                            const user = fuelBy.find(u => u.id === cellData.value);
-                            return user ? user.userName : cellData.value;
-                        }}>
-                        <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
-                    </Column>
+      <Column dataField="manualFuelrefilAmount" caption="Fuel Amount" dataType="number" width={120}>
+      </Column>
+      <Column dataField="previousMeterReading" caption="Previous Meter Readings" dataType="number" width={150} hidingPriority={3}>
+      </Column>
+      <Column dataField="currentMeterReading" caption="Current Meter Reading" dataType="number" width={150} hidingPriority={3} >
+      </Column>
+      <Column dataField="driverId" caption="Driver" minWidth={180} >
+        <Lookup
+          dataSource={employees}
+          valueExpr="id"
+          displayExpr="fullName"
+        />
+      </Column>
+
+
+
+      <Column dataField="comment" caption="Comment" minWidth={180} hidingPriority={3} />
+      <Column dataField="fuelBy" caption="Fuel By" minWidth={120} hidingPriority={2}
+        cellRender={(cellData) => {
+          const user = fuelBy.find(u => u.id === cellData.value);
+          return user ? user.userName : cellData.value;
+        }}>
+        <Lookup dataSource={fuelBy} valueExpr="id" displayExpr="userName" />
+      </Column>
     </DataGrid>
   );
 };

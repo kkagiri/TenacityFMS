@@ -531,6 +531,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<INotificationService, NotificationService>();
         // Issue Tracker Activity Service
         services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueActivityService, FMS.Application.Features.IssueTracker.Services.IssueActivityService>();
+        // Issue Tracker Attachment Storage Service
+        services.AddScoped<FMS.Application.Features.IssueTracker.Services.IIssueAttachmentStorageService, FMS.Application.Features.IssueTracker.Services.IssueAttachmentStorageService>();
         // Push notification service for mobile/web push
         services.AddScoped<FMS.Application.Features.Notification.Services.DeliveryChannel.IPushNotificationService, FMS.Application.Features.Notification.Services.DeliveryChannel.PushNotificationService>();
         // Real-time notification abstraction

@@ -1,3 +1,14 @@
+/**
+ * File: GPSGateProvider.cs
+ * Purpose: Implements IVehicleTrackingProvider for GPSGate APIs and provider-mapping lookups.
+ * Dependencies: IDbContextFactory<GpsdataContext>, HttpClient, ILogger<GPSGateProvider>
+ * Last Modified: 2026-02-06
+ *
+ * Key Functions:
+ * - GetVehicleLocationAsync(int): Resolves vehicle location and validation metadata from GPSGate.
+ * - GetAllVehicleLocationsAsync(bool, bool): Retrieves bulk GPS locations for mapped vehicles.
+ * - GetVehicleOdometerAsync(int): Retrieves odometer data for a mapped vehicle.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -28,7 +39,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
     )]
     public class GPSGateProvider : IVehicleTrackingProvider, IDisposable
     {
-        private readonly GpsdataContext _context;
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateProvider> _logger;
 
@@ -73,11 +84,11 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
         #endregion
 
         public GPSGateProvider(
-            GpsdataContext context,
+            IDbContextFactory<GpsdataContext> contextFactory,
             HttpClient httpClient,
             ILogger<GPSGateProvider> logger)
         {
-            _context = context ?? throw new ArgumentNullException(nameof(context));
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         }
@@ -280,8 +291,10 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             {
                 _logger.LogInformation("🔍 Getting location for vehicle {VehicleId} from GPSGate", vehicleId);
 
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Get vehicle info with provider mapping from database
-                var vehicle = await _context.Vehicles
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
                     .FirstOrDefaultAsync();
 
@@ -292,7 +305,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 }
 
                 // Get active provider mapping for this vehicle
-                var mapping = await _context.VehicleProviderMappings
+                var mapping = await context.VehicleProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .Include(m => m.ProviderConfiguration)
                     .FirstOrDefaultAsync();
@@ -444,8 +457,10 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                     "Getting history for vehicle {VehicleId} from {From} to {To}",
                     vehicleId, from, to);
 
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Get vehicle info from database
-                var vehicle = await _context.Vehicles
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
                     .FirstOrDefaultAsync();
 
@@ -646,8 +661,10 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 _logger.LogInformation("Getting all vehicle locations. OnlineOnly: {OnlineOnly}, GPSEnabledOnly: {GPSEnabledOnly}",
                     onlineOnly, gpsEnabledOnly);
 
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Get all GPS-enabled vehicles with active provider mappings
-                var vehiclesWithMappings = await _context.VehicleProviderMappings
+                var vehiclesWithMappings = await context.VehicleProviderMappings
                     .Where(m => m.IsActive && m.ExternalDeviceId != null)
                     .Include(m => m.Vehicle)
                     .Include(m => m.ProviderConfiguration)
@@ -751,7 +768,9 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
             {
                 _logger.LogInformation("Getting odometer for vehicle {VehicleId} from GPSGate", vehicleId);
 
-                var vehicle = await _context.Vehicles
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
+                var vehicle = await context.Vehicles
                     .Where(v => v.VehicleId == vehicleId && v.HasGPSInstalled == 1)
                     .FirstOrDefaultAsync();
 
@@ -761,7 +780,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 }
 
                 // Get active provider mapping
-                var mapping = await _context.VehicleProviderMappings
+                var mapping = await context.VehicleProviderMappings
                     .Where(m => m.VehicleId == vehicleId && m.IsActive)
                     .FirstOrDefaultAsync();
 
@@ -898,8 +917,10 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
 
                 _logger.LogInformation("Retrieved {Count} users from GPSGate", gpsUsers.Count);
 
+                await using var context = await _contextFactory.CreateDbContextAsync();
+
                 // Get all current vehicle-to-provider mappings
-                var mappings = await _context.VehicleProviderMappings
+                var mappings = await context.VehicleProviderMappings
                     .Include(m => m.ProviderConfiguration)
                     .Where(m => m.IsActive && m.ProviderConfiguration.Name == ProviderName)
                     .Include(m => m.Vehicle)

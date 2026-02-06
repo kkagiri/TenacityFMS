@@ -9,11 +9,15 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers;
 
 [Route("api/v1/[controller]")]
 [ApiController]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.FuelTag.Read)]
 public class FuelTagController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -25,19 +29,17 @@ public class FuelTagController : ControllerBase
 
     [HttpGet]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Read)]
     public async Task<IActionResult> GetFuelTags()
     {
-        return User.HasClaim("permissions", "_readFuelTag") ?
-            Ok(await _mediator.Send(new GetAllFuelTagsQuery())) :
-            Forbid();
+        return Ok(await _mediator.Send(new GetAllFuelTagsQuery()));
     }
 
     [HttpGet("{id}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Read)]
     public async Task<IActionResult> GetFuelTagById(int id)
     {
-        var hasPermission = User.HasClaim("permissions", "_readFuelTag");
-        if (!hasPermission) return Forbid();
         if (id <= 0) return BadRequest("Invalid ID");
 
         var result = await _mediator.Send(new GetFuelTagByIdQuery(id));
@@ -46,10 +48,9 @@ public class FuelTagController : ControllerBase
 
     [HttpGet("by-vehicle/{vehicleId}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Read)]
     public async Task<IActionResult> GetFuelTagsByVehicleId(int vehicleId)
     {
-        var hasPermission = User.HasClaim("permissions", "_readFuelTag");
-        if (!hasPermission) return Forbid();
         if (vehicleId <= 0) return BadRequest("Invalid Vehicle ID");
 
         var result = await _mediator.Send(new GetFuelTagsByVehicleIdQuery(vehicleId));
@@ -58,12 +59,11 @@ public class FuelTagController : ControllerBase
 
     [HttpGet("validate-vehicle/{vehicleId}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Read)]
     public async Task<IActionResult> ValidateVehicle(int vehicleId, [FromQuery] int siteId)
     {
         if (vehicleId <= 0) return BadRequest("Invalid Vehicle ID");
         if (siteId <= 0) return BadRequest("Invalid Site ID");
-        var hasPermission = User.HasClaim("permissions", "_readFuelTag");
-        if (!hasPermission) return Forbid();
 
         var result = await _mediator.Send(new ValidateVehicleQuery(vehicleId, siteId));
 
@@ -114,11 +114,9 @@ public class FuelTagController : ControllerBase
 
     [HttpPost]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Create)]
     public async Task<IActionResult> CreateFuelTag([FromBody] FuelTagDTO tagDTO)
     {
-        var hasPermission = User.HasClaim("permissions", "_CreateFuelTags");
-        if (!hasPermission) return Forbid();
-
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var response = await _mediator.Send(new CreateFuelTagCommand(tagDTO));
@@ -130,11 +128,9 @@ public class FuelTagController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Edit)]
     public async Task<IActionResult> UpdateTag(int id, [FromBody] FuelTagDTO fuelTagDTO)
     {
-        var hasPermission = User.HasClaim("permissions", "_EditFuelTags");
-        if (!hasPermission) return Forbid();
-
         if (!ModelState.IsValid) return BadRequest(ModelState);
         if (id != fuelTagDTO.Id) return BadRequest("ID mismatch");
 
@@ -144,22 +140,18 @@ public class FuelTagController : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Delete)]
     public async Task<IActionResult> DeleteTag(int id)
     {
-        var hasPermission = User.HasClaim("permissions", "_DeleteFuelTags");
-        if (!hasPermission) return Forbid();
-
         var result = await _mediator.Send(new DeleteFuelTagCommand(id));
         return result.Success ? Ok("Tag Deleted Successfully") : BadRequest(result.Message);
     }
 
     [HttpPost("assign-to-vehicle")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelTag.Edit)]
     public async Task<IActionResult> AssignTagToVehicle([FromBody] AssignFuelTagToVehicleDTO assignFuelTagDTO)
     {
-        var hasPermission = User.HasClaim("permissions", "_EditFuelTags");
-        if (!hasPermission) return Forbid();
-
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var result = await _mediator.Send(new AssignToVehicleFuelTagCommand(assignFuelTagDTO));

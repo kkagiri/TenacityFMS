@@ -42,7 +42,7 @@ const CorrectionHistory = () => {
     name: tank.name
   }));
 
-  const canRead = hasPermission('_Read_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
 
   if (!canRead) {
     return (

@@ -17,6 +17,7 @@ using FMS.Application.Features.Vehicle.Queries;
 using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.WebClient.Attributes; // For RequirePermission attribute
+using FMS.Application.Common.Constants;
 using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -84,7 +85,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetVehicleList([FromQuery] string? siteIds = null)
         {
             // Try to get from cache first, but don't let cache failures break the endpoint
@@ -148,7 +149,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetVehicleByID(int id)
         {
             // Try to get from cache first, but don't let cache failures break the endpoint
@@ -191,7 +192,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPost]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Create_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Create)]
         public async Task<IActionResult> CreateVehicle([FromBody] VehicleDTO vehicleDTO)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -209,7 +210,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPut]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Edit_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Edit)]
         public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -251,7 +252,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Edit_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Edit)]
         public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
@@ -288,7 +289,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpDelete("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [RequirePermission("_Delete_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Delete)]
         public async Task<IActionResult> DeleteVehicle(int id)
         {
             if (!TryGetCurrentUserId(out _)) return BadRequest("Invalid User ID");
@@ -318,7 +319,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/analytics")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetDashboardAnalytics()
         {
             // Try to get from cache first
@@ -345,7 +346,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/metrics")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetDashboardMetrics()
         {
             // Try to get from cache first
@@ -372,7 +373,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/status-distribution")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetVehicleStatusDistribution()
         {
             var cacheKey = "VehicleStatusDistribution";
@@ -397,7 +398,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/fleet-utilization")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetFleetUtilization([FromQuery] int days = 30)
         {
             var cacheKey = $"FleetUtilization_{days}";
@@ -422,7 +423,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/maintenance-alerts")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetMaintenanceAlerts()
         {
             var cacheKey = "VehicleMaintenanceAlerts";
@@ -447,7 +448,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/recent-activities")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetRecentActivities([FromQuery] int limit = 10)
         {
             var cacheKey = $"VehicleRecentActivities_{limit}";
@@ -472,7 +473,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("dashboard/performance-metrics")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> GetPerformanceMetrics([FromQuery] int days = 7)
         {
             var cacheKey = $"VehiclePerformanceMetrics_{days}";
@@ -517,7 +518,7 @@ namespace FMS.WebClient.Controllers
 
         // Vehicle Search Endpoints
         [HttpGet("search")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> SearchVehicles(
             [FromQuery] string searchTerm, [FromQuery] int? limit = 10, [FromQuery] string? vehicleType = null, [FromQuery] string? status = null, [FromQuery] string? manufacturer = null, [FromQuery] string? model = null, [FromQuery] bool? isActive = null)
         {
@@ -576,7 +577,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("quick-search")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> QuickSearchVehicles(
             [FromQuery] string searchTerm, [FromQuery] int limit = 10)
         {
@@ -638,7 +639,7 @@ namespace FMS.WebClient.Controllers
 
         // DEBUG: Temporary debug endpoint
         [HttpGet("debug-search")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> DebugSearchVehicles(
             [FromQuery] string searchTerm, [FromQuery] int limit = 10)
         {
@@ -660,7 +661,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("search-by-plate")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> SearchVehiclesByPlate([FromQuery] string plateNumber)
         {
             try
@@ -692,7 +693,7 @@ namespace FMS.WebClient.Controllers
         }
 
         [HttpGet("search-by-hyoung")]
-        [RequirePermission("_Read_Vehicle")]
+        [RequirePermission(Permissions.Vehicle.Read)]
         public async Task<IActionResult> SearchVehiclesByHyoungNo([FromQuery] string hyoungNo)
         {
             try

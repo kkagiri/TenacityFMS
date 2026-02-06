@@ -110,6 +110,9 @@ public partial class Issuetracker
     public virtual Devicetype? DeviceTypeNavigation { get; set; }
 
     public virtual ICollection<Issueassignmenttracker> Issueassignmenttrackers { get; set; } = new List<Issueassignmenttracker>();
+
+    public virtual ICollection<IssueAttachment> Attachments { get; set; } = new List<IssueAttachment>();
+
     [NotMapped]
 
     public virtual User OpenbyNavigation { get; set; } = null!;

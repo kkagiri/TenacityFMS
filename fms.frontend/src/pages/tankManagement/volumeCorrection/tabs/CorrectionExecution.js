@@ -67,8 +67,8 @@ const CorrectionExecution = () => {
     name: tank.name
   }));
 
-  const canRead = hasPermission('_Read_tankStock');
-  const canUpdate = hasPermission('_Update_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
+  const canUpdate = hasPermission('_Update_TankStock');
 
   // Auto-select recommended strategy from plan
   useEffect(() => {
@@ -254,7 +254,7 @@ const CorrectionExecution = () => {
   };
 
   const isProcessing = loading.correctRecalculate || loading.correctManual ||
-                      loading.correctSingle || loading.correctFromPoint;
+    loading.correctSingle || loading.correctFromPoint;
 
   const affectedBreaksForTank = breaks?.filter(b => b.tankId === strategyParams.tankId) || [];
 
@@ -681,10 +681,10 @@ const CorrectionExecution = () => {
               <h4>Correction Failed</h4>
               <p>
                 {error.correctRecalculate?.message ||
-                 error.correctManual?.message ||
-                 error.correctSingle?.message ||
-                 error.correctFromPoint?.message ||
-                 'An error occurred'}
+                  error.correctManual?.message ||
+                  error.correctSingle?.message ||
+                  error.correctFromPoint?.message ||
+                  'An error occurred'}
               </p>
             </div>
           </div>

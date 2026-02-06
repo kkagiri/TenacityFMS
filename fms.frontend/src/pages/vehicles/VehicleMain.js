@@ -2,22 +2,38 @@ import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
 import VehicleLayout from "./layout/VehicleLayout";
-import VehicleDashboard from "./vehicleDashboard";
 
-// Import vehicle feature pages
-import VehicleEdit from "./vehicleEdit";
-import VehicleDetails from "./VehicleDetails";
-import VehicleConsumptionDetails from "./vehicleConsumptionDetails";
-import VehicleFleetPage from "./VehicleFleetPage";
-import VehicleTrackingPage from "./VehicleTrackingPage";
-import VehicleConsumptionPage from "./VehicleConsumptionPage";
-import VehicleConsumptionComparisonPage from "./VehicleConsumptionComparisonPage";
-import MaintenanceAlertsPage from "./MaintenanceAlertsPage";
-import VehicleReportsPage from "./VehicleReportsPage";
-import VehicleSettingsPage from "./VehicleSettingsPage";
-import VehicleTransferListPage from "./VehicleTransferListPage";
-// Correct import path for vehicle documents list (was pointing to non-existent maintenance/documents folder)
-import VehicleDocumentsList from "./vehicledocuments/VehicleDocumentsList";
+// Dashboard
+import VehicleDashboard from "./dashboard/VehicleDashboard";
+
+// Fleet
+import VehicleFleetPage from "./fleet/VehicleFleetPage";
+
+// Details
+import VehicleDetails from "./details/VehicleDetails";
+
+// Consumption
+import VehicleConsumptionPage from "./consumption/VehicleConsumptionPage";
+import VehicleConsumptionDetails from "./consumption/VehicleConsumptionDetails";
+import VehicleConsumptionComparisonPage from "./consumption/comparison/VehicleConsumptionComparisonPage";
+
+// Tracking
+import VehicleTrackingPage from "./tracking/VehicleTrackingPage";
+
+// Maintenance
+import MaintenanceAlertsPage from "./maintenance/MaintenanceAlertsPage";
+
+// Documents
+import VehicleDocumentsList from "./documents/VehicleDocumentsList";
+
+// Transfers
+import VehicleTransferListPage from "./transfers/VehicleTransferListPage";
+
+// Reports
+import VehicleReportsPage from "./reports/VehicleReportsPage";
+
+// Settings
+import VehicleSettingsPage from "./settings/VehicleSettingsPage";
 
 const VehicleMain = () => {
   const location = useLocation();
@@ -44,7 +60,7 @@ const VehicleMain = () => {
 
         {/* Vehicle Management Routes */}
         <Route path=":id/details" element={<VehicleDetails />} />
-        <Route path=":id/edit" element={<VehicleEdit />} />
+        <Route path=":id/edit" element={<VehicleDetails />} />
         <Route
           path=":id/consumption/:consumptionId/details"
           element={<VehicleConsumptionDetails />}

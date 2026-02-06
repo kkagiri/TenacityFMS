@@ -2,6 +2,7 @@ using System;
 using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.CommonInterface;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 using Microsoft.Extensions.Logging;
@@ -11,6 +12,7 @@ namespace FMS.WebClient.Attributes
     /// <summary>
     /// Authorization filter that checks database permissions at runtime
     /// Works with [RequirePermission] attribute
+    /// Respects [AllowAnonymous] on individual actions
     /// </summary>
     public class PermissionAuthorizationFilter : IAsyncAuthorizationFilter
     {
@@ -42,6 +44,12 @@ namespace FMS.WebClient.Attributes
 
         public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
         {
+            // Respect [AllowAnonymous] on individual actions — skip permission check entirely
+            if (context.ActionDescriptor.EndpointMetadata.OfType<AllowAnonymousAttribute>().Any())
+            {
+                return;
+            }
+
             // Check if user is authenticated
             if (!context.HttpContext.User.Identity?.IsAuthenticated ?? true)
             {

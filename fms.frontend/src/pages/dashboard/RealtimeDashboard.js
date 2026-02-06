@@ -42,13 +42,13 @@ const RealtimeDashboard = () => {
 
   // Main dashboard hook
   const {
-  widgetInstances,
-  instancesLoading,
-  isEditMode,
-  widgetData,
-  widgetErrors,
-  widgetLoadingStates,
-  widgetStaleness,
+    widgetInstances,
+    instancesLoading,
+    isEditMode,
+    widgetData,
+    widgetErrors,
+    widgetLoadingStates,
+    widgetStaleness,
     loadWidgetInstances,
     setIsEditMode,
     canViewWidget
@@ -60,7 +60,7 @@ const RealtimeDashboard = () => {
 
   // Permission check for dashboard access
   useEffect(() => {
-    if (isAuthenticated && !hasPermission('_view_dashboard')) {
+    if (isAuthenticated && !hasPermission('_View_Dashboard')) {
       notify('Access denied: You do not have permission to view the dashboard', 'error', 5000);
       return;
     }
@@ -115,7 +115,7 @@ const RealtimeDashboard = () => {
     );
   }
 
-  if (!hasPermission('_view_dashboard')) {
+  if (!hasPermission('_View_Dashboard')) {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen">
         <div className="tw-text-center tw-text-red-600">
@@ -215,7 +215,7 @@ const RealtimeDashboard = () => {
         />
       )}
 
-  {/* Loading overlay */}
+      {/* Loading overlay */}
       {instancesLoading && (
         <div className="tw-fixed tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-50">
           <div className="tw-text-center">

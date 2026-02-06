@@ -34,8 +34,8 @@ const VolumeCorrectionMain = () => {
   const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
 
   // Check permissions - requires admin role
-  const canRead = hasPermission('_Read_tankStock');
-  const canUpdate = hasPermission('_Update_tankStock');
+  const canRead = hasPermission('_Read_TankStock');
+  const canUpdate = hasPermission('_Update_TankStock');
 
   // Permission gate
   if (!canRead) {

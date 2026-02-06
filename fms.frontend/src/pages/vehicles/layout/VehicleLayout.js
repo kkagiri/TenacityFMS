@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
-import VehicleSearchBar from '../component/VehicleSearchBar';
+import VehicleSearchBar from '../shared/VehicleSearchBar';
 import './VehicleLayout.scss';
 
 const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
@@ -135,7 +135,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   return (
     <div className="vehicle-layout">
       {/* Sidebar */}
-  <aside ref={sidebarRef} className={`vehicle-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+      <aside ref={sidebarRef} className={`vehicle-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         {/* Header */}
         <div className="sidebar-header">
           <div className="sidebar-brand">

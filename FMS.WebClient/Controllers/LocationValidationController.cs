@@ -4,18 +4,23 @@ using FMS.Application.Features.LocationValidation.DTOs;
 using FMS.Application.Features.LocationValidation.Queries;
 using FMS.Application.Features.LocationValidation.Services;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers;
 
 /// <summary>
 /// Controller for viewing location validation logs
 /// </summary>
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("api/v1/[controller]")]
+[RequirePermission(Permissions.Vehicle.Read)]
 public class LocationValidationController : ControllerBase
 {
     private readonly IMediator _mediator;

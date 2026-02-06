@@ -4,15 +4,20 @@ using FMS.Application.Common;
 using FMS.Application.Features.FuelImport.DTOs;
 using FMS.Application.Features.FuelImport.Queries;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.Reporting
 {
     [ApiController]
     [Route("api/v1/[controller]")]
-    [Authorize]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Report.VehicleConsumption)]
     public class FuelImportController : ControllerBase
     {
         private readonly IMediator _mediator;

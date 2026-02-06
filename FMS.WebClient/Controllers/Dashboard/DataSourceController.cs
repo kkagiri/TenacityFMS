@@ -12,6 +12,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.Dashboard
 {
@@ -23,6 +25,7 @@ namespace FMS.WebClient.Controllers.Dashboard
     [ApiController]
     [Route("api/v1/dashboard/data-sources")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Dashboard.View)]
     public class DataSourceController : ControllerBase
     {
         private readonly IDataSourceManager _dataSourceManager;

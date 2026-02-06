@@ -33,6 +33,9 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     /// <summary>
@@ -41,8 +44,7 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/notifications")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-
-    [Authorize]
+    [RequirePermission(Permissions.Admin.Users)]
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notificationService;

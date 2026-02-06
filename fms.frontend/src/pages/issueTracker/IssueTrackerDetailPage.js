@@ -36,6 +36,7 @@ import IssuePrintPopup from './components/IssuePrintPopup';
 import './styles/IssueTrackerDetailPage.scss';
 
 const TIMELINE_DAYS_WINDOW = 14;
+const ATTACHMENT_CATEGORIES = ['Installation', 'Calibration', 'General'];
 
 const parseDateSafe = (value) => {
   if (!value) {
@@ -152,6 +153,13 @@ const IssueTrackerDetailPage = () => {
   // Follow states
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
+
+  // Attachment states
+  const [attachments, setAttachments] = useState([]);
+  const [attachmentsLoading, setAttachmentsLoading] = useState(false);
+  const [uploadCategory, setUploadCategory] = useState('General');
+  const [isUploading, setIsUploading] = useState(false);
+  const [isClosing, setIsClosing] = useState(false);
 
   const initializeEditData = (issueData) => {
     if (!issueData) {
@@ -560,6 +568,102 @@ const IssueTrackerDetailPage = () => {
     }
   };
 
+  // ===== ATTACHMENT HANDLERS =====
+  const loadAttachments = useCallback(async () => {
+    if (!id) return;
+    setAttachmentsLoading(true);
+    try {
+      const data = await issueTrackerService.getAttachments(id);
+      setAttachments(Array.isArray(data) ? data : []);
+    } catch (err) {
+      console.error('Failed to load attachments:', err);
+    } finally {
+      setAttachmentsLoading(false);
+    }
+  }, [id]);
+
+  // Load attachments when issue loads
+  useEffect(() => {
+    if (issue) {
+      loadAttachments();
+    }
+  }, [issue, loadAttachments]);
+
+  const handleFileUpload = async (event) => {
+    const files = event.target.files;
+    if (!files || files.length === 0) return;
+
+    setIsUploading(true);
+    try {
+      for (let i = 0; i < files.length; i++) {
+        await issueTrackerService.uploadAttachment(id, files[i], uploadCategory);
+      }
+      notify({ message: `${files.length} file(s) uploaded successfully.`, type: 'success', displayTime: 2500 });
+      await loadAttachments();
+      refreshActivityStream();
+    } catch (err) {
+      notify({ message: err?.message || 'Failed to upload file(s).', type: 'error', displayTime: 3000 });
+    } finally {
+      setIsUploading(false);
+      event.target.value = '';
+    }
+  };
+
+  const handleDeleteAttachment = async (attachmentId, fileName) => {
+    if (!window.confirm(`Delete attachment "${fileName}"?`)) return;
+    try {
+      await issueTrackerService.deleteAttachment(id, attachmentId);
+      notify({ message: 'Attachment deleted.', type: 'success', displayTime: 2000 });
+      await loadAttachments();
+      refreshActivityStream();
+    } catch (err) {
+      notify({ message: 'Failed to delete attachment.', type: 'error', displayTime: 3000 });
+    }
+  };
+
+  // ===== CLOSE ISSUE (APPROVER) =====
+  const handleCloseIssue = async () => {
+    const notes = window.prompt('Enter closing/approval notes (optional):');
+    if (notes === null) return; // user cancelled
+
+    setIsClosing(true);
+    try {
+      await issueTrackerService.closeIssue(issue.id, notes || null);
+      const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
+      setIssue(refreshedIssue);
+      initializeEditData(refreshedIssue);
+      setIsEditMode(false);
+      refreshActivityStream();
+    } catch (_) {
+      // Error notification is handled inside issueTrackerService.closeIssue
+    } finally {
+      setIsClosing(false);
+    }
+  };
+
+  const formatFileSize = (bytes) => {
+    if (!bytes) return '0 B';
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(1024));
+    return `${(bytes / Math.pow(1024, i)).toFixed(1)} ${sizes[i]}`;
+  };
+
+  const getCategoryIcon = (cat) => {
+    switch ((cat || '').toLowerCase()) {
+      case 'installation': return 'fa-light fa-camera';
+      case 'calibration': return 'fa-light fa-ruler-combined';
+      default: return 'fa-light fa-file';
+    }
+  };
+
+  const getCategoryColor = (cat) => {
+    switch ((cat || '').toLowerCase()) {
+      case 'installation': return 'tw-bg-green-100 tw-text-green-700';
+      case 'calibration': return 'tw-bg-orange-100 tw-text-orange-700';
+      default: return 'tw-bg-gray-100 tw-text-gray-700';
+    }
+  };
+
   if (loading) {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
@@ -625,6 +729,17 @@ const IssueTrackerDetailPage = () => {
                 onClick={handleQuickMarkHighPriority}
                 disabled={isSaving || isAlreadyHigh}
               />
+              {!isAlreadyComplete && (
+                <Button
+                  text={isClosing ? 'Closing...' : 'Close Issue (Approver)'}
+                  icon="fa-light fa-lock"
+                  stylingMode="contained"
+                  type="danger"
+                  onClick={handleCloseIssue}
+                  disabled={isSaving || isClosing || isAlreadyComplete}
+                  hint="Only an approver (not the assignee) can close this issue"
+                />
+              )}
             </>
           )}
           <Button
@@ -974,6 +1089,107 @@ const IssueTrackerDetailPage = () => {
                 </span>
               </div>
               <LinkedIssuesGrid issueId={id} currentIssue={issue} />
+            </div>
+          </TabItem>
+
+          {/* Attachments Tab */}
+          <TabItem title={`Attachments (${attachments.length})`} icon="fa-light fa-paperclip">
+            <div className="tw-p-6">
+              <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
+                  <i className="fa-light fa-paperclip tw-mr-2 tw-text-teal-600"></i>
+                  Attachments
+                </h2>
+                <span className="tw-text-xs tw-text-gray-500">
+                  Installation photos, calibration docs, and general files
+                </span>
+              </div>
+
+              {/* Upload Section */}
+              <div className="tw-border tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4 tw-mb-6">
+                <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3">
+                  <div>
+                    <label htmlFor="attach-category" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                      Category
+                    </label>
+                    <select
+                      id="attach-category"
+                      className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
+                      value={uploadCategory}
+                      onChange={(e) => setUploadCategory(e.target.value)}
+                    >
+                      {ATTACHMENT_CATEGORIES.map((cat) => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="tw-flex-1">
+                    <label htmlFor="attach-file" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                      Select File(s)
+                    </label>
+                    <input
+                      id="attach-file"
+                      type="file"
+                      multiple
+                      accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
+                      className="tw-text-sm tw-text-gray-700"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                  </div>
+                  {isUploading && (
+                    <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-blue-600">
+                      <LoadIndicator height={20} width={20} />
+                      <span>Uploading...</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Attachment List */}
+              {attachmentsLoading ? (
+                <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+                  <LoadIndicator />
+                  <span className="tw-ml-2 tw-text-gray-500">Loading attachments...</span>
+                </div>
+              ) : attachments.length === 0 ? (
+                <p className="tw-text-sm tw-text-gray-500 tw-text-center tw-py-8">
+                  No attachments yet. Upload installation photos, calibration documents, or other files above.
+                </p>
+              ) : (
+                <div className="tw-space-y-2">
+                  {attachments.map((att) => (
+                    <div key={att.id} className="tw-flex tw-items-center tw-gap-3 tw-border tw-border-gray-200 tw-rounded tw-p-3 hover:tw-bg-gray-50">
+                      <div className={`tw-w-9 tw-h-9 tw-rounded-full tw-flex tw-items-center tw-justify-center ${getCategoryColor(att.attachmentCategory)}`}>
+                        <i className={getCategoryIcon(att.attachmentCategory)}></i>
+                      </div>
+                      <div className="tw-flex-1 tw-min-w-0">
+                        <p className="tw-font-medium tw-text-gray-800 tw-truncate">{att.fileName}</p>
+                        <p className="tw-text-xs tw-text-gray-500">
+                          {att.attachmentCategory} &middot; {formatFileSize(att.fileSize)} &middot;
+                          Uploaded by {att.uploadedByUserName || att.uploadedBy} &middot; {formatDateTime(att.uploadedAt)}
+                        </p>
+                      </div>
+                      <a
+                        href={issueTrackerService.getAttachmentDownloadUrl(id, att.id)}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-sm tw-flex tw-items-center tw-gap-1"
+                      >
+                        <i className="fa-light fa-download"></i>
+                        Download
+                      </a>
+                      <button
+                        type="button"
+                        className="tw-text-red-500 hover:tw-text-red-700 tw-text-sm"
+                        onClick={() => handleDeleteAttachment(att.id, att.fileName)}
+                      >
+                        <i className="fa-light fa-trash"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </TabItem>
         </TabPanel>

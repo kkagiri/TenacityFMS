@@ -46,9 +46,9 @@ const DispensingManager = () => {
 
   // Permission checks
   const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('_Create_tankStock');
-  const canUpdate = hasPermission('_Update_tankStock');
-  const canDelete = hasPermission('_Delete_tankStock');
+  const canCreate = hasPermission('_Create_TankStock');
+  const canUpdate = hasPermission('_Update_TankStock');
+  const canDelete = hasPermission('_Delete_TankStock');
 
   // Redux state
   const tanks = useSelector((state) => state.tank.tanks);

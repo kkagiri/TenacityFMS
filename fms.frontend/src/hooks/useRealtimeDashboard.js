@@ -83,8 +83,8 @@ export const useRealtimeDashboard = (options = {}) => {
       const result = await dashboardService.getWidgetInstances();
 
       if (result.success && result.data) {
-  setWidgetInstances(result.data);
-  widgetInstancesRef.current = result.data;
+        setWidgetInstances(result.data);
+        widgetInstancesRef.current = result.data;
 
         // Initialize loading states
         const loadingStates = {};
@@ -395,18 +395,18 @@ export const useRealtimeDashboard = (options = {}) => {
         return {
           widgetId: resolvedWidgetInstanceId,
           widgetInstanceId: resolvedWidgetInstanceId,
-            widgetType,
-            dataSource,
-            category,
-            mode: mode || metadata?.mode || 'cumulative',
-            timeRange,
-            aggregation,
-            updateType: updateType || 'initial',
-            protocolVersion,
-            timestamp: timestamp || new Date().toISOString(),
-            errors: errors || null,
-            metadata: metadata || {},
-            data: data || null
+          widgetType,
+          dataSource,
+          category,
+          mode: mode || metadata?.mode || 'cumulative',
+          timeRange,
+          aggregation,
+          updateType: updateType || 'initial',
+          protocolVersion,
+          timestamp: timestamp || new Date().toISOString(),
+          errors: errors || null,
+          metadata: metadata || {},
+          data: data || null
         };
       };
 
@@ -539,11 +539,11 @@ export const useRealtimeDashboard = (options = {}) => {
   const canViewWidget = useCallback((widgetName) => {
     // Map widget names to permissions
     const widgetPermissions = {
-      'quickActions': '_view_dashboard',
-      'stats': '_view_dashboard',
+      'quickActions': '_View_Dashboard',
+      'stats': '_View_Dashboard',
       'systemModules': 'Dashboard Module',
       'alarms': '_Read_ActiveAlarm',
-      'performance': '_view_dashboard',
+      'performance': '_View_Dashboard',
       'fuelManagement': 'FuelRefil',
       'tankStatus': 'TankStockModule'
     };
@@ -626,7 +626,7 @@ export const useRealtimeDashboard = (options = {}) => {
     widgetData,
     widgetErrors,
     widgetLoadingStates,
-  widgetStaleness,
+    widgetStaleness,
     realtimeData,
     widgetConfig,
     isEditMode,

@@ -136,14 +136,28 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     openbyUser?.UserName ?? request.IssueTrackerDto.Openby,
                     cancellationToken);
 
-                await SendAssignmentNotificationAsync(
-                    issueEntity,
-                    request.IssueTrackerDto,
-                    openbyUser,
-                    assignToUser,
-                    openbyUserId,
-                    assignToUserId,
-                    cancellationToken);
+                // Only send assignment notification for today's or future issues
+                // Past issues (field agents logging completed work) skip notification
+                var issueDate = issueEntity.OpenDate?.Date ?? DateTime.UtcNow.Date;
+                var today = DateTime.UtcNow.Date;
+
+                if (issueDate >= today)
+                {
+                    await SendAssignmentNotificationAsync(
+                        issueEntity,
+                        request.IssueTrackerDto,
+                        openbyUser,
+                        assignToUser,
+                        openbyUserId,
+                        assignToUserId,
+                        cancellationToken);
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "Skipping assignment notification for past issue {IssueId} (open date: {OpenDate})",
+                        issueEntity.Id, issueDate);
+                }
 
                 return issueEntity.Id;
             }

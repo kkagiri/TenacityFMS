@@ -131,8 +131,8 @@ const FuelingHeader = ({
 
   // Check if user has permission to access device settings
   const hasDeviceSettingsPermission =
-    userPermissions.includes("_readPtsdevice") ||
-    userPermissions.includes("_updatePtsdevice");
+    userPermissions.includes("_Read_PTSDevice") ||
+    userPermissions.includes("_Edit_PTSDevice");
 
   // Helper to determine if device is disconnected
   const isDeviceDisconnected = connectionStatus === "disconnected";
@@ -357,8 +357,8 @@ const FuelingHeader = ({
                   isDeviceDisconnected
                     ? "Cannot start new fueling while device is disconnected"
                     : noPumpsAvailable
-                    ? "No pumps available for this device"
-                    : "Start a new fueling process"
+                      ? "No pumps available for this device"
+                      : "Start a new fueling process"
                 }
                 className="fueling-header__action-btn fueling-header__action-btn--last fueling-header__action-btn--new"
               />
@@ -420,13 +420,12 @@ const FuelingHeader = ({
                             {tank.fillingPercentage || 0}%
                           </div>
                           <div
-                            className={`tw-w-2 tw-h-2 tw-rounded-full ${
-                              tank.fillingPercentage > 60
+                            className={`tw-w-2 tw-h-2 tw-rounded-full ${tank.fillingPercentage > 60
                                 ? "tw-bg-green-500"
                                 : tank.fillingPercentage > 30
-                                ? "tw-bg-yellow-500"
-                                : "tw-bg-red-500"
-                            }`}
+                                  ? "tw-bg-yellow-500"
+                                  : "tw-bg-red-500"
+                              }`}
                             title={`Tank ${tankService.getTankStatusColor(
                               tank.fillingPercentage
                             )} level`}
@@ -489,13 +488,12 @@ const FuelingHeader = ({
                           Status
                         </span>
                         <span
-                          className={`tw-text-sm tw-font-semibold ${
-                            selectedTank.fillingPercentage > 60
+                          className={`tw-text-sm tw-font-semibold ${selectedTank.fillingPercentage > 60
                               ? "tw-text-green-600"
                               : selectedTank.fillingPercentage > 30
-                              ? "tw-text-yellow-600"
-                              : "tw-text-red-600"
-                          }`}
+                                ? "tw-text-yellow-600"
+                                : "tw-text-red-600"
+                            }`}
                         >
                           {selectedTank.fillingPercentage || 0}%
                           {selectedTank.probeOnline && (
@@ -510,13 +508,12 @@ const FuelingHeader = ({
                     {/* Compact progress bar */}
                     <div className="tw-w-full tw-bg-gray-200 tw-rounded-full tw-h-1 tw-mt-2">
                       <div
-                        className={`tw-h-1 tw-rounded-full tw-transition-all ${
-                          selectedTank.fillingPercentage > 60
+                        className={`tw-h-1 tw-rounded-full tw-transition-all ${selectedTank.fillingPercentage > 60
                             ? "tw-bg-green-500"
                             : selectedTank.fillingPercentage > 30
-                            ? "tw-bg-yellow-500"
-                            : "tw-bg-red-500"
-                        }`}
+                              ? "tw-bg-yellow-500"
+                              : "tw-bg-red-500"
+                          }`}
                         style={{
                           width: `${Math.min(
                             selectedTank.fillingPercentage || 0,
@@ -561,9 +558,8 @@ const FuelingHeader = ({
 
             {/* System Status Icons */}
             <div
-              className={`system-status-icons ${
-                isSmall ? "tw-justify-start tw-flex-wrap" : ""
-              }`}
+              className={`system-status-icons ${isSmall ? "tw-justify-start tw-flex-wrap" : ""
+                }`}
             >
               <div
                 className="status-icon tw-text-center"
@@ -584,9 +580,8 @@ const FuelingHeader = ({
                 </span>
               </div>
               <div
-                className={`status-icon tw-text-center ${
-                  rawUploadStatus?.ptsPowerDownDetected ? "alert" : ""
-                }`}
+                className={`status-icon tw-text-center ${rawUploadStatus?.ptsPowerDownDetected ? "alert" : ""
+                  }`}
                 title="Power Status"
               >
                 <i className="fa-light fa-plug"></i>
@@ -595,9 +590,8 @@ const FuelingHeader = ({
                 </span>
               </div>
               <div
-                className={`status-icon tw-text-center ${
-                  rawUploadStatus?.sdMounted ? "" : "alert"
-                }`}
+                className={`status-icon tw-text-center ${rawUploadStatus?.sdMounted ? "" : "alert"
+                  }`}
                 title="Storage Status"
               >
                 <i className="fa-light fa-sd-card"></i>
@@ -613,8 +607,7 @@ const FuelingHeader = ({
                   title={systemAlerts
                     .map(
                       (alert) =>
-                        `${alert.type}${
-                          alert.message ? ` ${alert.message}` : ""
+                        `${alert.type}${alert.message ? ` ${alert.message}` : ""
                         } (${alert.count})`
                     )
                     .join(", ")}
@@ -633,41 +626,40 @@ const FuelingHeader = ({
                   connectionStatus === "connected"
                     ? "Device Connected"
                     : connectionStatus === "connecting"
-                    ? "Connecting to Device"
-                    : connectionStatus === "delayed"
-                    ? "Connection Delayed"
-                    : "Device Disconnected"
+                      ? "Connecting to Device"
+                      : connectionStatus === "delayed"
+                        ? "Connection Delayed"
+                        : "Device Disconnected"
                 }
               >
                 <i
-                  className={`fa-light ${
-                    connectionStatus === "connected"
+                  className={`fa-light ${connectionStatus === "connected"
                       ? "fa-signal"
                       : connectionStatus === "connecting"
-                      ? "fa-spinner fa-spin"
-                      : connectionStatus === "delayed"
-                      ? "fa-clock"
-                      : "fa-plug"
-                  }`}
+                        ? "fa-spinner fa-spin"
+                        : connectionStatus === "delayed"
+                          ? "fa-clock"
+                          : "fa-plug"
+                    }`}
                   style={{
                     color:
                       connectionStatus === "connected"
                         ? "#198754"
                         : connectionStatus === "connecting"
-                        ? "#6c757d"
-                        : connectionStatus === "delayed"
-                        ? "#ffc107"
-                        : "#dc3545",
+                          ? "#6c757d"
+                          : connectionStatus === "delayed"
+                            ? "#ffc107"
+                            : "#dc3545",
                   }}
                 ></i>
                 <span className="status-value tw-text-xs tw-mt-1">
                   {connectionStatus === "connected"
                     ? "OK"
                     : connectionStatus === "connecting"
-                    ? "..."
-                    : connectionStatus === "delayed"
-                    ? "Delay"
-                    : "Off"}
+                      ? "..."
+                      : connectionStatus === "delayed"
+                        ? "Delay"
+                        : "Off"}
                 </span>
               </div>
             </div>

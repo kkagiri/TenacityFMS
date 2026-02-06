@@ -22,6 +22,8 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers.VehicleManagement;
 
@@ -32,6 +34,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement;
 [ApiController]
 [Route("api/v1/vehicletransfers")]
 [Authorize]
+[RequirePermission(Permissions.Vehicle.Read)]
 public class VehicleTransferController : ControllerBase
 {
     private readonly IMediator _mediator;

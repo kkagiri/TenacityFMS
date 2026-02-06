@@ -51,9 +51,9 @@ const TankStockTable = () => {
 
   // Get permissions from hook
   const { hasPermission } = usePermissions();
-  const canCreate = hasPermission('_Create_tankStock');
-  const canUpdate = hasPermission('_Update_tankStock');
-  const canDelete = hasPermission('_Delete_tankStock');
+  const canCreate = hasPermission('_Create_TankStock');
+  const canUpdate = hasPermission('_Update_TankStock');
+  const canDelete = hasPermission('_Delete_TankStock');
 
   // Get lookup data from Redux store
   const sites = useSelector(state => state.site.sites || []);
@@ -318,168 +318,168 @@ const TankStockTable = () => {
             onRowUpdating={handleRowUpdating}
             onRowRemoving={handleRowRemoving}
           >
-          {/* Enable editing */}
-          <Editing
-            mode="popup"
-            allowAdding={canCreate}
-            allowUpdating={canUpdate}
-            allowDeleting={canDelete}
-            useIcons={true}
-          >
-            <Popup
-              title="Tank Stock Entry"
-              showTitle={true}
-              width={700}
-              height={600}
-            />
-            <Form>
-              <FormItem itemType="group" colCount={2} colSpan={2}>
-                <FormItem dataField="siteId">
-                  <RequiredRule message="Site is required" />
+            {/* Enable editing */}
+            <Editing
+              mode="popup"
+              allowAdding={canCreate}
+              allowUpdating={canUpdate}
+              allowDeleting={canDelete}
+              useIcons={true}
+            >
+              <Popup
+                title="Tank Stock Entry"
+                showTitle={true}
+                width={700}
+                height={600}
+              />
+              <Form>
+                <FormItem itemType="group" colCount={2} colSpan={2}>
+                  <FormItem dataField="siteId">
+                    <RequiredRule message="Site is required" />
+                  </FormItem>
+                  <FormItem dataField="tankId">
+                    <RequiredRule message="Tank is required" />
+                  </FormItem>
+                  <FormItem dataField="entryDate">
+                    <RequiredRule message="Entry Date is required" />
+                  </FormItem>
+                  <FormItem dataField="entryType">
+                    <RequiredRule message="Entry Type is required" />
+                  </FormItem>
+                  <FormItem dataField="manualOpeningLevel" />
+                  <FormItem dataField="manualClosingLevel" />
+                  <FormItem dataField="openingMeter" />
+                  <FormItem dataField="closingMeter" />
+                  <FormItem dataField="manualAmount" />
+                  <FormItem dataField="recordedBy">
+                    <RequiredRule message="Recorded By is required" />
+                  </FormItem>
+                  <FormItem dataField="comment" colSpan={2} editorType="dxTextArea" />
                 </FormItem>
-                <FormItem dataField="tankId">
-                  <RequiredRule message="Tank is required" />
-                </FormItem>
-                <FormItem dataField="entryDate">
-                  <RequiredRule message="Entry Date is required" />
-                </FormItem>
-                <FormItem dataField="entryType">
-                  <RequiredRule message="Entry Type is required" />
-                </FormItem>
-                <FormItem dataField="manualOpeningLevel" />
-                <FormItem dataField="manualClosingLevel" />
-                <FormItem dataField="openingMeter" />
-                <FormItem dataField="closingMeter" />
-                <FormItem dataField="manualAmount" />
-                <FormItem dataField="recordedBy">
-                  <RequiredRule message="Recorded By is required" />
-                </FormItem>
-                <FormItem dataField="comment" colSpan={2} editorType="dxTextArea" />
-              </FormItem>
-            </Form>
-          </Editing>
+              </Form>
+            </Editing>
 
-          <SearchPanel visible={true} width={240} placeholder="Search..." />
-          <FilterRow visible={true} />
-          <HeaderFilter visible={true} />
-          <Paging defaultPageSize={50} />
-          <Pager
-            visible={true}
-            allowedPageSizes={[20, 50, 100, 200]}
-            showPageSizeSelector={true}
-            showInfo={true}
-            showNavigationButtons={true}
-          />
-          <Export enabled={true} allowExportSelectedData={false} />
+            <SearchPanel visible={true} width={240} placeholder="Search..." />
+            <FilterRow visible={true} />
+            <HeaderFilter visible={true} />
+            <Paging defaultPageSize={50} />
+            <Pager
+              visible={true}
+              allowedPageSizes={[20, 50, 100, 200]}
+              showPageSizeSelector={true}
+              showInfo={true}
+              showNavigationButtons={true}
+            />
+            <Export enabled={true} allowExportSelectedData={false} />
 
-          {/* Columns - NO grouping */}
-          <Column
-            dataField="siteId"
-            caption="Site"
-            width={200}
-          >
-            <Lookup
-              dataSource={sites}
-              valueExpr="id"
-              displayExpr="name"
+            {/* Columns - NO grouping */}
+            <Column
+              dataField="siteId"
+              caption="Site"
+              width={200}
+            >
+              <Lookup
+                dataSource={sites}
+                valueExpr="id"
+                displayExpr="name"
+              />
+            </Column>
+            <Column
+              dataField="tankId"
+              caption="Tank"
+              width={150}
+            >
+              <Lookup
+                dataSource={tanks}
+                valueExpr="id"
+                displayExpr="name"
+              />
+            </Column>
+            <Column
+              dataField="entryDate"
+              caption="Entry Date"
+              dataType="date"
+              format="dd/MM/yyyy HH:mm"
+              width={150}
             />
-          </Column>
-          <Column
-            dataField="tankId"
-            caption="Tank"
-            width={150}
-          >
-            <Lookup
-              dataSource={tanks}
-              valueExpr="id"
-              displayExpr="name"
+            <Column
+              dataField="entryType"
+              caption="Entry Type"
+              width={150}
+            >
+              <Lookup
+                dataSource={entryTypeOptions}
+                valueExpr="value"
+                displayExpr="text"
+              />
+            </Column>
+            <Column
+              dataField="manualOpeningLevel"
+              caption="Opening Level"
+              dataType="number"
+              format="#,##0.00"
+              width={130}
             />
-          </Column>
-          <Column
-            dataField="entryDate"
-            caption="Entry Date"
-            dataType="date"
-            format="dd/MM/yyyy HH:mm"
-            width={150}
-          />
-          <Column
-            dataField="entryType"
-            caption="Entry Type"
-            width={150}
-          >
-            <Lookup
-              dataSource={entryTypeOptions}
-              valueExpr="value"
-              displayExpr="text"
+            <Column
+              dataField="manualClosingLevel"
+              caption="Closing Level"
+              dataType="number"
+              format="#,##0.00"
+              width={130}
             />
-          </Column>
-          <Column
-            dataField="manualOpeningLevel"
-            caption="Opening Level"
-            dataType="number"
-            format="#,##0.00"
-            width={130}
-          />
-          <Column
-            dataField="manualClosingLevel"
-            caption="Closing Level"
-            dataType="number"
-            format="#,##0.00"
-            width={130}
-          />
-          <Column
-            dataField="manualAmount"
-            caption="Amount"
-            dataType="number"
-            format="#,##0.00"
-            width={120}
-          />
-          <Column
-            dataField="openingMeter"
-            caption="Opening Meter"
-            dataType="number"
-            format="#,##0.00"
-            width={130}
-          />
-          <Column
-            dataField="closingMeter"
-            caption="Closing Meter"
-            dataType="number"
-            format="#,##0.00"
-            width={130}
-          />
-          <Column
-            dataField="recordedBy"
-            caption="Recorded By"
-            width={200}
-          >
-            <Lookup
-              dataSource={users}
-              valueExpr="id"
-              displayExpr={(item) => item ? `${item.firstName || ''} ${item.lastName || ''}`.trim() : ''}
+            <Column
+              dataField="manualAmount"
+              caption="Amount"
+              dataType="number"
+              format="#,##0.00"
+              width={120}
             />
-          </Column>
-          <Column
-            dataField="comment"
-            caption="Comment"
-            width={200}
-          />
+            <Column
+              dataField="openingMeter"
+              caption="Opening Meter"
+              dataType="number"
+              format="#,##0.00"
+              width={130}
+            />
+            <Column
+              dataField="closingMeter"
+              caption="Closing Meter"
+              dataType="number"
+              format="#,##0.00"
+              width={130}
+            />
+            <Column
+              dataField="recordedBy"
+              caption="Recorded By"
+              width={200}
+            >
+              <Lookup
+                dataSource={users}
+                valueExpr="id"
+                displayExpr={(item) => item ? `${item.firstName || ''} ${item.lastName || ''}`.trim() : ''}
+              />
+            </Column>
+            <Column
+              dataField="comment"
+              caption="Comment"
+              width={200}
+            />
 
-          <Summary>
-            <TotalItem
-              column="manualAmount"
-              summaryType="sum"
-              valueFormat="#,##0.00"
-              displayFormat="Total: {0}"
-            />
-          </Summary>
+            <Summary>
+              <TotalItem
+                column="manualAmount"
+                summaryType="sum"
+                valueFormat="#,##0.00"
+                displayFormat="Total: {0}"
+              />
+            </Summary>
 
-          <Toolbar>
-            {canCreate && <Item name="addRowButton" />}
-            <Item name="searchPanel" />
-            <Item name="exportButton" />
-          </Toolbar>
-        </DataGrid>
+            <Toolbar>
+              {canCreate && <Item name="addRowButton" />}
+              <Item name="searchPanel" />
+              <Item name="exportButton" />
+            </Toolbar>
+          </DataGrid>
         </div>
       )}
 

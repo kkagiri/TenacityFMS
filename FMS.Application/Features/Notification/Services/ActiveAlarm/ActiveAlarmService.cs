@@ -797,7 +797,7 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm
 
         private static int GetNotificationCategoryForAlarmType(string alarmType)
         {
-            // Map alarm types to notification categories
+            //ToDo Map alarm types to notification categories
             // These should match your WellKnownCategories
             return alarmType
             switch

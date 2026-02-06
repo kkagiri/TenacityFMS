@@ -22,6 +22,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
+
 namespace FMS.WebClient.Controllers
 {
     /// <summary>
@@ -30,6 +33,7 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.Report.VehicleConsumption)]
     public class ReportingController : ControllerBase
     {
         private readonly IMediator _mediator;

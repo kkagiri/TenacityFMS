@@ -14,14 +14,19 @@ using FMS.Application.Features.ErrorHandling.Dtos;
 using FMS.Application.Features.ErrorHandling.Queries;
 using FMS.WebClient.Controllers.Base;
 using MediatR;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+
+using FMS.WebClient.Attributes;
+using FMS.Application.Common.Constants;
 
 namespace FMS.Webclient.Contollers;
 
 [ApiController]
 [Route("api/v1/errors")]
-[Authorize]
+[Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+[RequirePermission(Permissions.Admin.Users)]
 public class ErrorManagementController : BaseApiController
 {
     private readonly IMediator _mediator;
