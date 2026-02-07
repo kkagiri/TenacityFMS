@@ -1,5 +1,6 @@
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services.ActiveAlarm;
+using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -44,8 +45,20 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                     _logger.LogError(ex, "Error occurred while processing maintenance alerts.");
                 }
 
-                // Run every 6 hours (4 times a day)
-                await Task.Delay(TimeSpan.FromHours(6), stoppingToken);
+                // Run at configurable interval (default: every 6 hours)
+                int checkIntervalHours;
+                try
+                {
+                    using var intervalScope = _scopeFactory.CreateScope();
+                    var alertConfig = intervalScope.ServiceProvider.GetRequiredService<IAlertConfigurationService>();
+                    checkIntervalHours = await alertConfig.GetIntAsync(
+                        AlertConfigurationConstants.VehicleMaintenanceDue, "checkIntervalHours", 6);
+                }
+                catch
+                {
+                    checkIntervalHours = 6;
+                }
+                await Task.Delay(TimeSpan.FromHours(checkIntervalHours), stoppingToken);
             }
 
             _logger.LogInformation("Vehicle Maintenance Notifier Service stopped.");
@@ -58,9 +71,20 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             using IServiceScope scope = _scopeFactory.CreateScope();
             GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
             IActiveAlarmService activeAlarmService = scope.ServiceProvider.GetRequiredService<IActiveAlarmService>();
+            IAlertConfigurationService alertConfig = scope.ServiceProvider.GetRequiredService<IAlertConfigurationService>();
+
+            // Check if vehicle maintenance alerts are enabled
+            bool isEnabled = await alertConfig.IsAlertEnabledAsync(AlertConfigurationConstants.VehicleMaintenanceDue);
+            if (!isEnabled)
+            {
+                _logger.LogDebug("Vehicle maintenance alerts are disabled. Skipping.");
+                return;
+            }
 
             DateTime now = DateTime.UtcNow;
-            DateTime warningThreshold = now.AddDays(7); // Alert 7 days before due
+            int warningDays = await alertConfig.GetIntAsync(
+                AlertConfigurationConstants.VehicleMaintenanceDue, "warningDaysBeforeDue", 7);
+            DateTime warningThreshold = now.AddDays(warningDays);
 
             try
             {

@@ -461,7 +461,7 @@ namespace FMS.BackgroundServices.TankReconciliation
 
             // Calculate totals from TankVolumeHistory
             var totalRefills = await context.TankVolumeHistories
-                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && td.ChangeReason == VolumeChangeReasonEnum.Dispensing)
+                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && (td.ChangeReason == VolumeChangeReasonEnum.Dispensing || td.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing))
                 .SumAsync(td => (decimal?)td.VolumeChange, cancellationToken) ?? 0;
 
             var totalDeliveries = await context.TankVolumeHistories

@@ -19,7 +19,8 @@ export const notificationRoutes = {
   recipients: `${NOTIFICATION_BASE_PATH}/recipients`,
   preferences: `${NOTIFICATION_BASE_PATH}/preferences`,
   history: `${NOTIFICATION_BASE_PATH}/history`,
-  testing: `${NOTIFICATION_BASE_PATH}/testing`
+  testing: `${NOTIFICATION_BASE_PATH}/testing`,
+  alertConfiguration: `${NOTIFICATION_BASE_PATH}/alert-configuration`
 };
 
 // Helper to check if current path matches a route

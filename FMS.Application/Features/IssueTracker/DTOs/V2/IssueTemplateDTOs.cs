@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FMS.Application.Features.IssueTracker.DTOs.V2;
 
@@ -24,6 +25,20 @@ public class IssueTemplateDTO
     // Auto-close config summary
     public bool HasAutoCloseConfig { get; set; }
     public bool AutoCloseEnabled { get; set; }
+
+    // Categories/Tags (many-to-many)
+    public List<int> CategoryIds { get; set; } = new List<int>();
+    public List<CategorySummaryDTO> Categories { get; set; } = new List<CategorySummaryDTO>();
+}
+
+/// <summary>
+/// Category summary for template response
+/// </summary>
+public class CategorySummaryDTO
+{
+    public int Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
 }
 
 /// <summary>
@@ -38,6 +53,7 @@ public class CreateIssueTemplateDTO
     public int? DefaultPriorityId { get; set; }
     public int? DefaultStatusId { get; set; }
     public bool IsActive { get; set; } = true;
+    public List<int> CategoryIds { get; set; } = new List<int>();
 }
 
 /// <summary>
@@ -53,4 +69,5 @@ public class UpdateIssueTemplateDTO
     public int? DefaultPriorityId { get; set; }
     public int? DefaultStatusId { get; set; }
     public bool IsActive { get; set; }
+    public List<int> CategoryIds { get; set; } = new List<int>();
 }

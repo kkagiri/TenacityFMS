@@ -30,14 +30,18 @@ namespace FMS.Application.Features.Notification.DTOs
         public string? Format { get; set; }
         public string? PeriodType { get; set; }
         public string? RequestedBy { get; set; }
+        public string? ReportDescription { get; set; }
 
         public string? ReportViewPath { get; set; }
         public string? ReportViewUrl { get; set; }
+        public List<int> SiteIds { get; set; } = new List<int>();
+        public List<int> TankIds { get; set; } = new List<int>();
 
         public string? TimeZone { get; set; }
         public string? ScheduleType { get; set; }
         public string? ScheduleTimeOfDay { get; set; }
         public string? ScheduleWeekOfMonth { get; set; }
+        public List<string> ScheduleWeeksOfMonth { get; set; } = new List<string>();
         public List<string> ScheduleDaysOfWeek { get; set; } = new List<string>();
         public DateTime? NextRunAtUtc { get; set; }
         public DateTime? LastProcessedAtUtc { get; set; }

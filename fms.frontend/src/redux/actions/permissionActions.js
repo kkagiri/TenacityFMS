@@ -1,8 +1,7 @@
 
-
 import axiosInstance from './../../api/axiosInstance';
 
-import { FETCH_PERMISSIONS_SUCCESS, FETCH_PERMISSIONS_FAILURE } from './types';
+import { FETCH_PERMISSIONS_SUCCESS, FETCH_PERMISSIONS_FAILURE, FETCH_MY_PERMISSIONS_REQUEST, FETCH_MY_PERMISSIONS_SUCCESS, FETCH_MY_PERMISSIONS_FAILURE } from './types';
 
 // export const FETCH_PERMISSIONS_SUCCESS = 'FETCH_PERMISSIONS_SUCCESS';
 // export const FETCH_PERMISSIONS_FAILURE = 'FETCH_PERMISSIONS_FAILURE';
@@ -10,17 +9,37 @@ export const SET_ROLE_PERMISSIONS = 'SET_ROLE_PERMISSIONS';
 export const FETCH_PERMISSION_BY_USER_ID_SUCCESS = 'FETCH_PERMISSION_BY_USER_ID_SUCCESS';
 export const FETCH_PERMISSION_BY_USER_ID_FAILURE = 'FETCH_PERMISSION_BY_USER_ID_FAILURE';
 
- 
+/**
+ * Fetches the current authenticated user's permissions via GET /Permission/me.
+ * This is the preferred way to load permissions after login.
+ * Permissions are stored in auth.myPermissions in Redux state.
+ */
+export const fetchMyPermissions = () => async (dispatch) => {
+    dispatch({ type: FETCH_MY_PERMISSIONS_REQUEST });
+    try {
+        const response = await axiosInstance.get('/Permission/me');
+        // Backend returns FMSResponse<IEnumerable<string>> with { data: [...] }
+        const permissions = response.data?.data || response.data?.Data || response.data || [];
+        dispatch({ type: FETCH_MY_PERMISSIONS_SUCCESS, payload: permissions });
+        return permissions;
+    } catch (error) {
+        console.error('Failed to fetch user permissions:', error);
+        dispatch({ type: FETCH_MY_PERMISSIONS_FAILURE, payload: error.message });
+        return [];
+    }
+};
+
+
 export const fetchPermissions = () => async (dispatch) => {
     try {
-      const response = await axiosInstance.get('/permission');
-      dispatch({ type: FETCH_PERMISSIONS_SUCCESS, payload: response.data });
+        const response = await axiosInstance.get('/permission');
+        dispatch({ type: FETCH_PERMISSIONS_SUCCESS, payload: response.data });
     } catch (error) {
-      dispatch({ type: FETCH_PERMISSIONS_FAILURE, payload: error.message });
+        dispatch({ type: FETCH_PERMISSIONS_FAILURE, payload: error.message });
     }
-  };
+};
 
-  export const fetchpermissionbyUserId = (userId) => async (dispatch) => {
+export const fetchpermissionbyUserId = (userId) => async (dispatch) => {
     try {
         const response = await axiosInstance.get(`/permission/user/${userId}`);
         dispatch({ type: 'FETCH_PERMISSION_BY_USER_ID_SUCCESS', payload: response.data });

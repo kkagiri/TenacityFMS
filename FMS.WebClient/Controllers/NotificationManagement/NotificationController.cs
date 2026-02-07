@@ -150,8 +150,11 @@ namespace FMS.WebClient.Controllers
                 Format = root.Value<string>("format"),
                 PeriodType = root.Value<string>("periodType"),
                 RequestedBy = root.Value<string>("requestedBy"),
+                ReportDescription = root.Value<string>("reportDescription"),
                 ReportViewPath = root.Value<string>("reportViewPath"),
                 ReportViewUrl = root.Value<string>("reportViewUrl"),
+                SiteIds = ParseIntList(root["siteIds"]),
+                TankIds = ParseIntList(root["tankIds"]),
                 EffectiveStartDate = root.Value<string>("effectiveStartDate"),
                 EffectiveEndDate = root.Value<string>("effectiveEndDate"),
                 SiteNames = ParseStringList(root["siteNames"], "All Sites"),
@@ -160,6 +163,7 @@ namespace FMS.WebClient.Controllers
                 ScheduleType = recurringSchedule?.Value<string>("scheduleType"),
                 ScheduleTimeOfDay = recurringSchedule?.Value<string>("timeOfDay"),
                 ScheduleWeekOfMonth = recurringSchedule?.Value<string>("weekOfMonth"),
+                ScheduleWeeksOfMonth = NormalizeScheduleWeeks(ParseStringList(recurringSchedule?["weeksOfMonth"], recurringSchedule?.Value<string>("weekOfMonth") ?? string.Empty)),
                 ScheduleDaysOfWeek = ParseStringList(recurringSchedule?["daysOfWeek"], recurringSchedule?.Value<string>("dayOfWeek") ?? "monday"),
                 NextRunAtUtc = recurringSchedule?.Value<DateTime?>("nextRunAtUtc"),
                 LastProcessedAtUtc = recurringSchedule?.Value<DateTime?>("lastProcessedAtUtc"),
@@ -222,6 +226,34 @@ namespace FMS.WebClient.Controllers
             return new List<string> { fallbackIfEmpty };
         }
 
+        private static List<int> ParseIntList(JToken? token)
+        {
+            if (token is JArray arrayToken && arrayToken.Count > 0)
+            {
+                return arrayToken
+                    .Select(value => int.TryParse(value?.ToString(), out var parsed) ? parsed : 0)
+                    .Where(value => value > 0)
+                    .Distinct()
+                    .ToList();
+            }
+
+            if (token is JValue scalarToken)
+            {
+                var scalarValue = scalarToken.ToString();
+                if (!string.IsNullOrWhiteSpace(scalarValue))
+                {
+                    return scalarValue
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(value => int.TryParse(value.Trim(), out var parsed) ? parsed : 0)
+                        .Where(value => value > 0)
+                        .Distinct()
+                        .ToList();
+                }
+            }
+
+            return new List<int>();
+        }
+
         private static List<string> NormalizeScheduleDays(IEnumerable<string>? values)
         {
             if (values == null)
@@ -240,6 +272,26 @@ namespace FMS.WebClient.Controllers
                     value == "friday" ||
                     value == "saturday" ||
                     value == "sunday")
+                .Distinct()
+                .ToList();
+        }
+
+        private static List<string> NormalizeScheduleWeeks(IEnumerable<string>? values)
+        {
+            if (values == null)
+            {
+                return new List<string>();
+            }
+
+            return values
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim().ToLowerInvariant())
+                .Where(value =>
+                    value == "first" ||
+                    value == "second" ||
+                    value == "third" ||
+                    value == "fourth" ||
+                    value == "last")
                 .Distinct()
                 .ToList();
         }
@@ -506,9 +558,21 @@ namespace FMS.WebClient.Controllers
                     recurringSchedule["timeOfDay"] = NormalizeScheduleTime(request.ScheduleTimeOfDay);
                 }
 
+                var normalizedWeeks = NormalizeScheduleWeeks(request.WeeksOfMonth);
+                if (normalizedWeeks.Any())
+                {
+                    recurringSchedule["weeksOfMonth"] = JArray.FromObject(normalizedWeeks);
+                    recurringSchedule["weekOfMonth"] = normalizedWeeks[0];
+                }
+
                 if (!string.IsNullOrWhiteSpace(request.WeekOfMonth))
                 {
-                    recurringSchedule["weekOfMonth"] = request.WeekOfMonth.Trim().ToLowerInvariant();
+                    var normalizedSingleWeek = NormalizeScheduleWeeks(new[] { request.WeekOfMonth });
+                    if (normalizedSingleWeek.Any())
+                    {
+                        recurringSchedule["weeksOfMonth"] = JArray.FromObject(normalizedSingleWeek);
+                        recurringSchedule["weekOfMonth"] = normalizedSingleWeek[0];
+                    }
                 }
 
                 if (!string.IsNullOrWhiteSpace(request.TimeZone))
@@ -527,6 +591,7 @@ namespace FMS.WebClient.Controllers
                     recurringSchedule["scheduleType"] != null ||
                     recurringSchedule["timeOfDay"] != null ||
                     recurringSchedule["weekOfMonth"] != null ||
+                    recurringSchedule["weeksOfMonth"] != null ||
                     recurringSchedule["timeZone"] != null;
 
                 if (hasRecurringConfig && recurringSchedule["enabled"] == null)

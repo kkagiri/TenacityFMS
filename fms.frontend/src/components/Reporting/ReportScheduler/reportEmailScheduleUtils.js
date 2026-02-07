@@ -95,6 +95,19 @@ export const buildReportNameWithPrefix = (reportName) => {
     : `${REPORT_NAME_PREFIX}${normalizedName}`;
 };
 
+const buildReportNameWithCustomPrefix = (reportName, reportNamePrefix) => {
+  const safePrefix = String(reportNamePrefix || REPORT_NAME_PREFIX);
+  const normalizedName = String(reportName || "").trim();
+
+  if (!normalizedName) {
+    return `${safePrefix}Scheduled Report`;
+  }
+
+  return normalizedName.startsWith(safePrefix)
+    ? normalizedName
+    : `${safePrefix}${normalizedName}`;
+};
+
 const normalizeIdList = (ids = []) =>
   (Array.isArray(ids) ? ids : [])
     .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0)
@@ -104,6 +117,8 @@ export const buildScheduledReportViewPath = ({
   reportWindow,
   siteIds = [],
   tankIds = [],
+  reportPath = "/reports/tank-volume-history",
+  extraParams = {},
   preferredFormat = "pdf",
 } = {}) => {
   const params = new URLSearchParams();
@@ -123,7 +138,19 @@ export const buildScheduledReportViewPath = ({
   params.set("autoApply", "1");
   params.set("source", "scheduled-email");
 
-  return `/reports/tank-volume-history?${params.toString()}`;
+  Object.entries(extraParams || {}).forEach(([key, value]) => {
+    if (value === undefined || value === null || String(value).trim() === "") {
+      return;
+    }
+    params.set(String(key), String(value));
+  });
+
+  const safeReportPath = String(reportPath || "/reports/tank-volume-history").trim();
+  const normalizedPath = safeReportPath.startsWith("/")
+    ? safeReportPath
+    : `/${safeReportPath}`;
+
+  return `${normalizedPath}?${params.toString()}`;
 };
 
 export const buildScheduledReportNotificationMessage = ({
@@ -150,6 +177,234 @@ export const buildScheduledReportActionText = ({ format } = {}) => {
   return "Click here to view report";
 };
 
+const normalizeRecipientIds = (recipientIds = []) =>
+  (Array.isArray(recipientIds) ? recipientIds : [])
+    .map((recipient) => {
+      if (recipient === null || recipient === undefined) return null;
+
+      if (typeof recipient === "object") {
+        return recipient.userId ?? recipient.UserId ?? recipient.id ?? null;
+      }
+
+      return recipient;
+    })
+    .map((id) => (id === null || id === undefined ? "" : String(id).trim()))
+    .filter((id) => id.length > 0);
+
+export const createReportScheduleNotificationRequest = ({
+  scheduleConfig = {},
+  reportDefinition = {},
+  sites = [],
+  tanks = [],
+  users = [],
+  requestedBy = "Unknown User",
+  reportNamePrefix = REPORT_NAME_PREFIX,
+  windowOrigin = "",
+  requireRecipients = true,
+} = {}) => {
+  const periodType = scheduleConfig?.periodType || "daily";
+  const scheduleDayOfWeekIds =
+    Array.isArray(scheduleConfig?.scheduleDayOfWeekIds) &&
+      scheduleConfig.scheduleDayOfWeekIds.length
+      ? scheduleConfig.scheduleDayOfWeekIds.filter(Boolean)
+      : [scheduleConfig?.scheduleDayOfWeek || "monday"];
+  const scheduleDayOfWeek = scheduleDayOfWeekIds[0] || "monday";
+  const scheduleWeekOfMonthIds = normalizeWeekIds(
+    Array.isArray(scheduleConfig?.scheduleWeekOfMonthIds) &&
+      scheduleConfig.scheduleWeekOfMonthIds.length
+      ? scheduleConfig.scheduleWeekOfMonthIds
+      : [scheduleConfig?.scheduleWeekOfMonth || "first"]
+  );
+  const scheduleWeekOfMonth = scheduleWeekOfMonthIds[0] || "first";
+  const scheduleTime = scheduleConfig?.scheduleTime || "08:00";
+  const reportFormat = scheduleConfig?.format || "pdf";
+  const selectedScheduleSiteIds = Array.isArray(scheduleConfig?.siteIds)
+    ? scheduleConfig.siteIds
+    : [];
+
+  const supportsTankFilter = reportDefinition?.supportsTankFilter !== false;
+  const selectedScheduleTankIds =
+    supportsTankFilter && Array.isArray(scheduleConfig?.tankIds)
+      ? scheduleConfig.tankIds
+      : [];
+
+  const recipientIds = normalizeRecipientIds(scheduleConfig?.recipientIds);
+  if (requireRecipients && !recipientIds.length) {
+    return {
+      success: false,
+      error: "Please select at least one recipient.",
+    };
+  }
+
+  if (
+    recipientIds.some(
+      (id) => id.toLowerCase() === "undefined" || id.toLowerCase() === "null"
+    )
+  ) {
+    return {
+      success: false,
+      error: "One or more selected recipients are invalid. Please reselect recipients.",
+    };
+  }
+
+  const nextRunDate = getNextRunDateTime({
+    periodType,
+    scheduleDayOfWeek,
+    scheduleDayOfWeekIds,
+    scheduleWeekOfMonthIds,
+    scheduleWeekOfMonth,
+    scheduleTime,
+  });
+
+  if (!nextRunDate) {
+    return {
+      success: false,
+      error: "Please provide a valid schedule day/week/time.",
+    };
+  }
+
+  const reportWindow = getEffectiveReportWindowForRun({
+    periodType,
+    runDate: nextRunDate,
+  });
+
+  if (!reportWindow) {
+    return {
+      success: false,
+      error: "Unable to resolve report period window.",
+    };
+  }
+
+  const siteNames = resolveEntityNames(sites, selectedScheduleSiteIds, {
+    emptyLabel: "All Sites",
+  });
+  const tankNames = resolveEntityNames(tanks, selectedScheduleTankIds, {
+    emptyLabel: "All Tanks",
+  });
+  const recipientNames = resolveEntityNames(users, recipientIds, {
+    idField: "id",
+    nameField: "name",
+    emptyLabel: "Selected users",
+  });
+
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+  const prefixedReportName = buildReportNameWithCustomPrefix(
+    scheduleConfig?.reportName || "",
+    reportDefinition?.reportNamePrefix || reportNamePrefix
+  );
+  const safeDescription =
+    String(scheduleConfig?.reportDescription || "").trim() ||
+    reportDefinition?.defaultDescription ||
+    "Scheduled report delivery.";
+
+  const reportViewPath = buildScheduledReportViewPath({
+    reportPath: reportDefinition?.reportPath || "/reports/tank-volume-history",
+    reportWindow,
+    siteIds: selectedScheduleSiteIds,
+    tankIds: selectedScheduleTankIds,
+    preferredFormat: reportFormat,
+    extraParams: reportDefinition?.extraParams || {},
+  });
+  const reportViewUrl = `${windowOrigin || ""}${reportViewPath}`;
+  const reportActionText = buildScheduledReportActionText({
+    format: reportFormat,
+  });
+  const plainNotificationMessage = buildScheduledReportNotificationMessage({
+    title: prefixedReportName,
+    format: reportFormat,
+  });
+
+  const reportSummaryHtml = buildScheduledReportSummaryHtml({
+    title: prefixedReportName,
+    description: safeDescription,
+    periodType,
+    reportWindow,
+    nextRunAt: nextRunDate,
+    format: reportFormat,
+    scheduleDayOfWeek,
+    scheduleDayOfWeekIds,
+    scheduleWeekOfMonthIds,
+    scheduleWeekOfMonth,
+    scheduleTime,
+    siteNames,
+    tankNames,
+    recipientNames,
+    requestedBy,
+    timeZone,
+    reportViewUrl,
+    reportActionText,
+  });
+
+  const reportType = reportDefinition?.reportType || "TransactionVolumeHistory";
+  const triggerSource =
+    reportDefinition?.triggerSource || `${reportType}ReportSchedule`;
+
+  const request = {
+    Type: reportDefinition?.notificationType ?? 2,
+    CategoryId: reportDefinition?.categoryId ?? 20,
+    Priority: reportDefinition?.priority ?? 1,
+    Title: prefixedReportName,
+    Message: plainNotificationMessage,
+    Data: {
+      schedulerVersion: 3,
+      reportType,
+      templateName: reportDefinition?.templateName || null,
+      periodType,
+      format: String(reportFormat).toUpperCase(),
+      reportName: prefixedReportName,
+      reportDescription: safeDescription,
+      effectiveStartDate: toIsoDate(reportWindow.startDate),
+      effectiveEndDate: toIsoDate(reportWindow.endDate),
+      windowMode:
+        periodType === "monthly" ? "runMonth" : "runDateMinusOneDay",
+      siteIds: selectedScheduleSiteIds,
+      tankIds: selectedScheduleTankIds,
+      siteNames,
+      tankNames,
+      recurringSchedule: {
+        enabled: true,
+        scheduleType: periodType === "monthly" ? "monthly" : "weekly",
+        daysOfWeek: scheduleDayOfWeekIds,
+        dayOfWeek: scheduleDayOfWeek,
+        weeksOfMonth: periodType === "monthly" ? scheduleWeekOfMonthIds : null,
+        weekOfMonth: periodType === "monthly" ? scheduleWeekOfMonth : null,
+        timeOfDay: scheduleTime,
+        timeZone,
+        nextRunAtUtc: nextRunDate.toISOString(),
+      },
+      requestedBy,
+      requestedAt: new Date().toISOString(),
+      timeZone,
+      reportViewPath,
+      reportViewUrl,
+      reportActionText,
+      EmailBodyHtml: reportSummaryHtml,
+      emailBodyHtml: reportSummaryHtml,
+      ...(reportDefinition?.dataOverrides || {}),
+    },
+    TriggerSource: triggerSource,
+    ScheduledAt: nextRunDate.toISOString(),
+    SiteId:
+      selectedScheduleSiteIds?.length === 1 ? selectedScheduleSiteIds[0] : null,
+    TankId:
+      selectedScheduleTankIds?.length === 1 ? selectedScheduleTankIds[0] : null,
+    Recipients: recipientIds.map((userId) => ({
+      UserId: String(userId),
+      DeliveryMethods: ["Email"],
+      ResolvedFrom: "Manual",
+    })),
+    DisableFallbackAllUsers: true,
+  };
+
+  return {
+    success: true,
+    request,
+    nextRunDate,
+    reportWindow,
+    recipientIds,
+  };
+};
+
 export const createDefaultReportScheduleConfig = ({
   siteIds = [],
   tankIds = [],
@@ -159,6 +414,7 @@ export const createDefaultReportScheduleConfig = ({
   scheduleDayOfWeek = "monday",
   scheduleDayOfWeekIds = null,
   scheduleWeekOfMonth = "first",
+  scheduleWeekOfMonthIds = null,
   scheduleTime = null,
   reportName = "Scheduled Report",
   reportDescription = "",
@@ -172,6 +428,11 @@ export const createDefaultReportScheduleConfig = ({
       ? scheduleDayOfWeekIds
       : [scheduleDayOfWeek]
   );
+  const normalizedWeeks = normalizeWeekIds(
+    Array.isArray(scheduleWeekOfMonthIds) && scheduleWeekOfMonthIds.length
+      ? scheduleWeekOfMonthIds
+      : [scheduleWeekOfMonth]
+  );
 
   return {
     siteIds: [...siteIds],
@@ -181,7 +442,8 @@ export const createDefaultReportScheduleConfig = ({
     format,
     scheduleDayOfWeekIds: normalizedDays,
     scheduleDayOfWeek: normalizedDays[0],
-    scheduleWeekOfMonth,
+    scheduleWeekOfMonthIds: normalizedWeeks,
+    scheduleWeekOfMonth: normalizedWeeks[0],
     scheduleTime: scheduleTime || toTimeString(nextHour),
     reportName,
     reportDescription,
@@ -216,6 +478,12 @@ function normalizeDayIds(dayIds = []) {
   return normalized.length ? [...new Set(normalized)] : ["monday"];
 }
 
+function normalizeWeekIds(weekIds = []) {
+  const validIds = new Set(WEEK_OF_MONTH_OPTIONS.map((week) => week.id));
+  const normalized = (weekIds || []).filter((weekId) => validIds.has(weekId));
+  return normalized.length ? [...new Set(normalized)] : ["first"];
+}
+
 const getNthWeekdayOfMonth = (year, monthIndex, targetDayIndex, weekOrder) => {
   if (weekOrder === -1) {
     const candidate = new Date(year, monthIndex + 1, 0);
@@ -237,6 +505,7 @@ export const getNextRunDateTime = ({
   periodType = "daily",
   scheduleDayOfWeek = "monday",
   scheduleDayOfWeekIds = null,
+  scheduleWeekOfMonthIds = null,
   scheduleWeekOfMonth = "first",
   scheduleTime = "08:00",
   fromDate = new Date(),
@@ -257,16 +526,24 @@ export const getNextRunDateTime = ({
   const targetDayIndexes = dayIds.map((dayId) => getDayIndex(dayId));
 
   if (periodType === "monthly") {
-    const weekOrder = getWeekOrder(scheduleWeekOfMonth);
+    const weekIds = normalizeWeekIds(
+      Array.isArray(scheduleWeekOfMonthIds) && scheduleWeekOfMonthIds.length
+        ? scheduleWeekOfMonthIds
+        : [scheduleWeekOfMonth]
+    );
+    const weekOrders = weekIds
+      .map((weekId) => getWeekOrder(weekId))
+      .filter((order, index, source) => source.indexOf(order) === index);
     const currentMonthCandidates = targetDayIndexes
-      .map((targetDayIndex) =>
-        getNthWeekdayOfMonth(
-          reference.getFullYear(),
-          reference.getMonth(),
-          targetDayIndex,
-          weekOrder
-        )
-      )
+      .flatMap((targetDayIndex) =>
+        weekOrders.map((weekOrder) =>
+          getNthWeekdayOfMonth(
+            reference.getFullYear(),
+            reference.getMonth(),
+            targetDayIndex,
+            weekOrder
+          )
+        ))
       .filter(Boolean)
       .map((date) => {
         const value = new Date(date);
@@ -282,14 +559,15 @@ export const getNextRunDateTime = ({
 
     const nextMonthBase = new Date(reference.getFullYear(), reference.getMonth() + 1, 1);
     const nextMonthCandidates = targetDayIndexes
-      .map((targetDayIndex) =>
-        getNthWeekdayOfMonth(
-          nextMonthBase.getFullYear(),
-          nextMonthBase.getMonth(),
-          targetDayIndex,
-          weekOrder
-        )
-      )
+      .flatMap((targetDayIndex) =>
+        weekOrders.map((weekOrder) =>
+          getNthWeekdayOfMonth(
+            nextMonthBase.getFullYear(),
+            nextMonthBase.getMonth(),
+            targetDayIndex,
+            weekOrder
+          )
+        ))
       .filter(Boolean)
       .map((date) => {
         const value = new Date(date);
@@ -382,6 +660,7 @@ export const buildScheduledReportSummaryHtml = ({
   format,
   scheduleDayOfWeek,
   scheduleDayOfWeekIds,
+  scheduleWeekOfMonthIds,
   scheduleWeekOfMonth,
   scheduleTime,
   siteNames = [],
@@ -412,10 +691,15 @@ export const buildScheduledReportSummaryHtml = ({
     : "Selected recipients";
   const reportLinkText = reportViewUrl || "";
   const actionText = reportActionText || buildScheduledReportActionText({ format });
-  const weekLabel =
-    periodType === "monthly"
-      ? WEEK_OF_MONTH_OPTIONS.find((week) => week.id === scheduleWeekOfMonth)?.name || "1st Week"
-      : "Weekly";
+  const selectedWeekIds = normalizeWeekIds(
+    Array.isArray(scheduleWeekOfMonthIds) && scheduleWeekOfMonthIds.length
+      ? scheduleWeekOfMonthIds
+      : [scheduleWeekOfMonth]
+  );
+  const weekLabel = selectedWeekIds
+    .map((weekId) => WEEK_OF_MONTH_OPTIONS.find((week) => week.id === weekId)?.name)
+    .filter(Boolean)
+    .join(", ");
   const dayIds = normalizeDayIds(
     Array.isArray(scheduleDayOfWeekIds) && scheduleDayOfWeekIds.length
       ? scheduleDayOfWeekIds

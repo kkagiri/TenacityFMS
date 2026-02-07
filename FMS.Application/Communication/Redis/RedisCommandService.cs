@@ -108,8 +108,8 @@ namespace FMS.Application.Communication.Redis
                         return;
                     }
 
-                    // Check if we've already processed this correlation ID (prevent duplicates)
-                    if (_processedCorrelationIds.ContainsKey(response.CorrelationId))
+                    // Atomically dedupe correlation IDs to avoid duplicate processing under concurrent callbacks.
+                    if (!_processedCorrelationIds.TryAdd(response.CorrelationId, DateTime.UtcNow))
                     {
                         _logger.LogWarning("Duplicate response detected for correlation ID: {CorrelationId}. Ignoring.", response.CorrelationId);
                         return;
@@ -122,8 +122,6 @@ namespace FMS.Application.Communication.Redis
                         if (setResult)
                         {
                             _logger.LogDebug("Successfully delivered response for correlation ID: {CorrelationId}", response.CorrelationId);
-                            // Mark as processed
-                            _processedCorrelationIds.TryAdd(response.CorrelationId, DateTime.UtcNow);
                         }
                         else
                         {
@@ -135,9 +133,6 @@ namespace FMS.Application.Communication.Redis
                     {
                         // Response arrived after timeout - this is a late arrival
                         _logger.LogWarning("Late response received for correlation ID: {CorrelationId}. Response arrived after timeout or command already completed.", response.CorrelationId);
-
-                        // Mark as processed to prevent future duplicates
-                        _processedCorrelationIds.TryAdd(response.CorrelationId, DateTime.UtcNow);
 
                         // For PumpAuthorizeConfirmation, we should still log the transaction details for diagnostics
                         if (response.ResponsePayload.HasValue)

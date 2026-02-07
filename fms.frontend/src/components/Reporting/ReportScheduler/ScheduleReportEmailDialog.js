@@ -1,8 +1,8 @@
 /**
  * File: ScheduleReportEmailDialog.js
- * Purpose: Reusable popup dialog for configuring recurring report email schedules
+ * Purpose: Reusable report email scheduler form that can render as popup or inline section
  * Dependencies: React, DevExtreme Popup/TagBox/DateBox/SelectBox/TextBox/TextArea/Button
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-07
  *
  * Key Components:
  * - ScheduleReportEmailDialog: Collects scope, cadence, report metadata, and recipients
@@ -32,6 +32,9 @@ import {
 const ScheduleReportEmailDialog = ({
   visible,
   onHiding,
+  isInline = false,
+  hideCancelButton = false,
+  cancelButtonText = "Cancel",
   sites,
   tanks,
   usersForFilter,
@@ -39,7 +42,16 @@ const ScheduleReportEmailDialog = ({
   onScheduleConfigChange,
   onSchedule,
   isScheduling,
+  title = "Schedule Report Email",
+  submitButtonText = "Schedule Email",
+  reportNamePrefix = REPORT_NAME_PREFIX,
+  reportTypeOptions = [],
+  selectedReportType = null,
+  onReportTypeChange = null,
+  formNotice = null,
+  onPreview = null,
 }) => {
+  const isFormVisible = isInline || !!visible;
   const selectedSiteIds = scheduleConfig?.siteIds || [];
   const selectedTankIds = scheduleConfig?.tankIds || [];
   const selectedRecipients = useMemo(
@@ -63,7 +75,19 @@ const ScheduleReportEmailDialog = ({
   }, [scheduleConfig]);
   const scheduleDayOfWeek =
     scheduleConfig?.scheduleDayOfWeek || selectedDayOfWeekIds[0] || "monday";
-  const scheduleWeekOfMonth = scheduleConfig?.scheduleWeekOfMonth || "first";
+  const selectedWeekOfMonthIds = useMemo(() => {
+    const configuredWeekIds = Array.isArray(scheduleConfig?.scheduleWeekOfMonthIds)
+      ? scheduleConfig.scheduleWeekOfMonthIds.filter(Boolean)
+      : [];
+
+    if (configuredWeekIds.length) {
+      return configuredWeekIds;
+    }
+
+    return [scheduleConfig?.scheduleWeekOfMonth || "first"];
+  }, [scheduleConfig]);
+  const scheduleWeekOfMonth =
+    scheduleConfig?.scheduleWeekOfMonth || selectedWeekOfMonthIds[0] || "first";
   const scheduleTime = scheduleConfig?.scheduleTime || "08:00";
   const reportName = scheduleConfig?.reportName || "";
   const reportDescription = scheduleConfig?.reportDescription || "";
@@ -97,7 +121,8 @@ const ScheduleReportEmailDialog = ({
 
   // Only filter tank IDs when dialog is visible to prevent infinite loop
   useEffect(() => {
-    if (!visible) return;
+    if (!isFormVisible) return;
+    if (selectedSiteIds.length && (!Array.isArray(tanks) || !tanks.length)) return;
 
     const validTankIds = filterTankIdsBySelectedSites({
       tankIds: selectedTankIds,
@@ -112,7 +137,7 @@ const ScheduleReportEmailDialog = ({
     if (hasChanged) {
       onScheduleConfigChange({ tankIds: validTankIds });
     }
-  }, [visible, selectedTankIds, selectedSiteIds, tanks, onScheduleConfigChange]);
+  }, [isFormVisible, selectedTankIds, selectedSiteIds, tanks, onScheduleConfigChange]);
 
   const nextRunDate = useMemo(
     () =>
@@ -120,6 +145,7 @@ const ScheduleReportEmailDialog = ({
         periodType,
         scheduleDayOfWeek,
         scheduleDayOfWeekIds: selectedDayOfWeekIds,
+        scheduleWeekOfMonthIds: selectedWeekOfMonthIds,
         scheduleWeekOfMonth,
         scheduleTime,
       }),
@@ -127,6 +153,7 @@ const ScheduleReportEmailDialog = ({
       periodType,
       scheduleDayOfWeek,
       selectedDayOfWeekIds,
+      selectedWeekOfMonthIds,
       scheduleWeekOfMonth,
       scheduleTime,
     ]
@@ -150,24 +177,34 @@ const ScheduleReportEmailDialog = ({
       ? nextRunDate.toLocaleString()
       : "N/A";
 
-  return (
-    <Popup
-      visible={visible}
-      onHiding={onHiding}
-      showTitle={true}
-      title="Schedule Report Email"
-      width={940}
-      height={700}
-      showCloseButton={true}
-      dragEnabled={true}
-      resizeEnabled={true}
-      className="schedule-report-popup"
+  const formBody = (
+    <div
+      className={`tw-flex tw-flex-col tw-gap-4 ${isInline ? "tw-p-0" : "tw-p-4"}`}
     >
-      <div className="tw-flex tw-flex-col tw-gap-4 tw-p-4">
         <div className="tw-rounded-md tw-border tw-border-slate-200 tw-bg-white tw-p-4">
           <div className="tw-mb-3 tw-text-sm tw-font-semibold tw-text-slate-800">
             1. Report Details
           </div>
+          {!!reportTypeOptions?.length && (
+            <div className="tw-mb-4">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                Report Type
+              </label>
+              <SelectBox
+                dataSource={reportTypeOptions}
+                valueExpr="id"
+                displayExpr="name"
+                value={selectedReportType}
+                onValueChanged={(e) => {
+                  if (typeof onReportTypeChange === "function") {
+                    onReportTypeChange(e.value);
+                  }
+                }}
+                width="100%"
+                disabled={isScheduling}
+              />
+            </div>
+          )}
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
@@ -175,7 +212,7 @@ const ScheduleReportEmailDialog = ({
               </label>
               <div className="tw-mb-1 tw-text-xs tw-text-gray-500">
                 Prefix is always:{" "}
-                <span className="tw-font-medium">{REPORT_NAME_PREFIX}</span>
+                <span className="tw-font-medium">{reportNamePrefix}</span>
               </div>
               <TextBox
                 value={reportName}
@@ -184,6 +221,7 @@ const ScheduleReportEmailDialog = ({
                 }
                 placeholder="e.g. Weekly Site Summary"
                 width="100%"
+                disabled={isScheduling}
               />
             </div>
 
@@ -197,7 +235,9 @@ const ScheduleReportEmailDialog = ({
                   onScheduleConfigChange({ reportDescription: e.value || "" })
                 }
                 placeholder="Describe what this scheduled report is for."
-                minHeight={90}
+                height={108}
+                autoResizeEnabled={false}
+                disabled={isScheduling}
               />
             </div>
           </div>
@@ -221,6 +261,7 @@ const ScheduleReportEmailDialog = ({
                   onScheduleConfigChange({ periodType: e.value })
                 }
                 width="100%"
+                disabled={isScheduling}
               />
             </div>
 
@@ -251,6 +292,7 @@ const ScheduleReportEmailDialog = ({
                 showSelectionControls={true}
                 applyValueMode="useButtons"
                 maxDisplayedTags={4}
+                disabled={isScheduling}
               />
             </div>
 
@@ -258,16 +300,30 @@ const ScheduleReportEmailDialog = ({
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
                 Week Selector
               </label>
-              <SelectBox
+              <TagBox
                 dataSource={WEEK_OF_MONTH_OPTIONS}
                 valueExpr="id"
                 displayExpr="name"
-                value={scheduleWeekOfMonth}
-                onValueChanged={(e) =>
-                  onScheduleConfigChange({ scheduleWeekOfMonth: e.value })
-                }
-                width="100%"
-                disabled={periodType !== "monthly"}
+                value={selectedWeekOfMonthIds}
+                onValueChanged={(e) => {
+                  const selectedValues = Array.isArray(e.value)
+                    ? e.value.filter(Boolean)
+                    : [];
+                  const normalizedWeekIds = selectedValues.length
+                    ? selectedValues
+                    : ["first"];
+
+                  onScheduleConfigChange({
+                    scheduleWeekOfMonthIds: normalizedWeekIds,
+                    scheduleWeekOfMonth: normalizedWeekIds[0],
+                  });
+                }}
+                placeholder="Select one or more weeks"
+                searchEnabled={true}
+                showSelectionControls={true}
+                applyValueMode="useButtons"
+                maxDisplayedTags={3}
+                disabled={periodType !== "monthly" || isScheduling}
               />
             </div>
 
@@ -285,6 +341,7 @@ const ScheduleReportEmailDialog = ({
                 }
                 displayFormat="HH:mm"
                 width="100%"
+                disabled={isScheduling}
               />
             </div>
 
@@ -299,6 +356,7 @@ const ScheduleReportEmailDialog = ({
                 value={scheduleConfig?.format || "pdf"}
                 onValueChanged={(e) => onScheduleConfigChange({ format: e.value })}
                 width="100%"
+                disabled={isScheduling}
               />
             </div>
           </div>
@@ -326,6 +384,7 @@ const ScheduleReportEmailDialog = ({
                 showSelectionControls={true}
                 applyValueMode="useButtons"
                 maxDisplayedTags={3}
+                disabled={isScheduling}
               />
             </div>
 
@@ -346,6 +405,7 @@ const ScheduleReportEmailDialog = ({
                 showSelectionControls={true}
                 applyValueMode="useButtons"
                 maxDisplayedTags={3}
+                disabled={isScheduling}
               />
             </div>
           </div>
@@ -370,9 +430,16 @@ const ScheduleReportEmailDialog = ({
               searchEnabled={true}
               showSelectionControls={true}
               applyValueMode="useButtons"
+              disabled={isScheduling}
             />
           </div>
         </div>
+
+        {formNotice && (
+          <div className="tw-rounded-md tw-border tw-border-amber-200 tw-bg-amber-50 tw-p-3 tw-text-sm tw-text-amber-900 tw-max-h-28 tw-overflow-auto">
+            {formNotice}
+          </div>
+        )}
 
         <div className="tw-rounded-md tw-border tw-border-blue-100 tw-bg-blue-50 tw-p-3 tw-text-sm tw-text-blue-900">
           <div className="tw-font-medium tw-mb-1">Schedule summary</div>
@@ -385,13 +452,23 @@ const ScheduleReportEmailDialog = ({
 
         <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
           <Button
-            text="Cancel"
-            icon="fa-light fa-times"
+            text="Preview"
+            icon="fa-light fa-eye"
             stylingMode="outlined"
-            onClick={onHiding}
+            onClick={onPreview}
+            disabled={isScheduling || typeof onPreview !== "function"}
           />
+          {!hideCancelButton && typeof onHiding === "function" && (
+            <Button
+              text={cancelButtonText}
+              icon="fa-light fa-times"
+              stylingMode="outlined"
+              onClick={onHiding}
+              disabled={isScheduling}
+            />
+          )}
           <Button
-            text={isScheduling ? "Scheduling..." : "Schedule Email"}
+            text={isScheduling ? "Saving..." : submitButtonText}
             icon="fa-light fa-envelope"
             type="default"
             stylingMode="contained"
@@ -400,6 +477,26 @@ const ScheduleReportEmailDialog = ({
           />
         </div>
       </div>
+  );
+
+  if (isInline) {
+    return formBody;
+  }
+
+  return (
+    <Popup
+      visible={visible}
+      onHiding={onHiding}
+      showTitle={true}
+      title={title}
+      width={940}
+      height={700}
+      showCloseButton={true}
+      dragEnabled={true}
+      resizeEnabled={true}
+      className="schedule-report-popup"
+    >
+      {formBody}
     </Popup>
   );
 };

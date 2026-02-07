@@ -85,6 +85,7 @@ public class GetIssueTemplatesByDeviceTypeQueryHandler : IRequestHandler<GetIssu
                 .Include(t => t.DefaultPriority)
                 .Include(t => t.DefaultStatus)
                 .Include(t => t.AutoCloseConfig)
+                .Include(t => t.Categories)
                 .Where(t => t.DeviceTypeId == request.DeviceTypeId);
 
             if (request.ActiveOnly)
@@ -110,7 +111,14 @@ public class GetIssueTemplatesByDeviceTypeQueryHandler : IRequestHandler<GetIssu
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
                     HasAutoCloseConfig = t.AutoCloseConfig != null,
-                    AutoCloseEnabled = t.AutoCloseConfig != null && t.AutoCloseConfig.IsEnabled
+                    AutoCloseEnabled = t.AutoCloseConfig != null && t.AutoCloseConfig.IsEnabled,
+                    CategoryIds = t.Categories.Select(c => c.Id).ToList(),
+                    Categories = t.Categories.Select(c => new CategorySummaryDTO
+                    {
+                        Id = c.Id,
+                        Name = c.Name ?? "",
+                        Description = c.Description
+                    }).ToList()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -144,6 +152,7 @@ public class GetIssueTemplateByIdQueryHandler : IRequestHandler<GetIssueTemplate
                 .Include(t => t.DefaultPriority)
                 .Include(t => t.DefaultStatus)
                 .Include(t => t.AutoCloseConfig)
+                .Include(t => t.Categories)
                 .Where(t => t.Id == request.Id)
                 .Select(t => new IssueTemplateDTO
                 {
@@ -161,7 +170,14 @@ public class GetIssueTemplateByIdQueryHandler : IRequestHandler<GetIssueTemplate
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
                     HasAutoCloseConfig = t.AutoCloseConfig != null,
-                    AutoCloseEnabled = t.AutoCloseConfig != null && t.AutoCloseConfig.IsEnabled
+                    AutoCloseEnabled = t.AutoCloseConfig != null && t.AutoCloseConfig.IsEnabled,
+                    CategoryIds = t.Categories.Select(c => c.Id).ToList(),
+                    Categories = t.Categories.Select(c => new CategorySummaryDTO
+                    {
+                        Id = c.Id,
+                        Name = c.Name ?? "",
+                        Description = c.Description
+                    }).ToList()
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 

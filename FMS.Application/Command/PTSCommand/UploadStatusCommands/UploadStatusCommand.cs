@@ -32,6 +32,7 @@ using FMS.PTS.WindowsService.Services.Pump;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
@@ -1213,6 +1214,38 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 if (isNewCompletion)
                 {
+                    // Skip Idle-based completion if this transaction was already saved by EOT auto-complete.
+                    var alreadySavedKey = $"autocompletion:saved:{deviceId}:{transactionId}";
+                    var alreadySaved = await _redisDb.KeyExistsAsync(alreadySavedKey);
+                    if (alreadySaved)
+                    {
+                        _logger.LogInformation(
+                            "[UploadStatus] **IDLE SKIP SAVED** - Transaction already saved. Skipping IdleStatus completion for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
+                            deviceId, pumpId, transactionId);
+                    }
+                    else
+                    {
+                        // Dedupe completion events with the same tx/volume/amount payload.
+                        // UploadStatus packets can overlap during reconnect windows and trigger the same completion twice.
+                        var completionFingerprint = string.Format(
+                            CultureInfo.InvariantCulture,
+                            "{0}:{1:0.###}:{2:0.###}",
+                            transactionId, volume, amount);
+                        var completionDedupeKey = $"device:{deviceId}:pump:{pumpId}:idle:completion:{completionFingerprint}";
+                        var dedupeRegistered = await _redisDb.StringSetAsync(
+                            completionDedupeKey,
+                            DateTime.UtcNow.ToString("o"),
+                            expiry: TimeSpan.FromMinutes(2),
+                            when: When.NotExists);
+
+                        if (!dedupeRegistered)
+                        {
+                            _logger.LogInformation(
+                                "[UploadStatus] **IDLE DEDUPE** - Skipping duplicate IdleStatus completion for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, Volume {Volume}, Amount {Amount}",
+                                deviceId, pumpId, transactionId, volume, amount);
+                        }
+                        else
+                        {
                     _logger.LogInformation("[UploadStatus] **NEW COMPLETION** - Processing transaction completion via IdleStatus for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
                         deviceId, pumpId, transactionId);
 
@@ -1438,6 +1471,54 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     {
                         _logger.LogWarning("[UploadStatus] **NO CONTEXT** - No Redis context found for IdleStatus completion {DeviceId}:{TransactionId} - transaction may be external or context expired",
                             deviceId, transactionId);
+
+                        // Best-effort fallback enrichment when transaction context is missing.
+                        try
+                        {
+                            var fallbackAuthState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                            if (fallbackAuthState?.NozzleId is > 0 && statusData["Nozzle"] == null)
+                            {
+                                statusData["Nozzle"] = fallbackAuthState.NozzleId;
+                            }
+
+                            if (!string.IsNullOrWhiteSpace(fallbackAuthState?.TagId) && statusData["Tag"] == null)
+                            {
+                                statusData["Tag"] = fallbackAuthState.TagId;
+                            }
+
+                            var lastStatusKey = $"device:{deviceId}:status";
+                            var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
+                            if (!lastStatusJson.IsNullOrEmpty)
+                            {
+                                var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
+                                if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
+                                    fuelGradesElement.ValueKind == JsonValueKind.Array)
+                                {
+                                    var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
+                                    if (fuelGrades.Count > 0)
+                                    {
+                                        var firstGrade = fuelGrades[0];
+                                        if (statusData["FuelGradeId"] == null &&
+                                            firstGrade.TryGetProperty("Id", out var gradeIdProp))
+                                        {
+                                            statusData["FuelGradeId"] = gradeIdProp.GetInt32();
+                                        }
+
+                                        if (statusData["FuelGradeName"] == null &&
+                                            firstGrade.TryGetProperty("Name", out var gradeNameProp))
+                                        {
+                                            statusData["FuelGradeName"] = gradeNameProp.GetString();
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        catch (Exception fallbackEx)
+                        {
+                            _logger.LogDebug(fallbackEx,
+                                "[UploadStatus] Fallback enrichment failed for IdleStatus completion {DeviceId}:{TransactionId}",
+                                deviceId, transactionId);
+                        }
                     }
 
                     // **PROCESS COMPLETION** - Trigger auto-completion service with enriched data
@@ -1455,6 +1536,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                                 deviceId, transactionId);
                         }
                     });
+                }
+                    }
                 }
 
                 // **UPDATE CACHE** - Store current IdleStatus data for next comparison
@@ -1625,17 +1708,20 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     {
                         //Cursor: **PREVENT DUPLICATE PROCESSING** - Check if this EndOfTransaction was already processed
                         var eotProcessedKey = $"device:{deviceId}:eot:transaction:{detectedTransactionId.Value}:processed";
-                        var alreadyProcessed = await _redisDb.StringGetAsync(eotProcessedKey);
+                        var processedAt = DateTime.UtcNow.ToString("o");
+                        var isFirstEotProcessing = await _redisDb.StringSetAsync(
+                            eotProcessedKey,
+                            processedAt,
+                            expiry: TimeSpan.FromMinutes(10),
+                            when: When.NotExists);
 
-                        if (!alreadyProcessed.IsNullOrEmpty)
+                        if (!isFirstEotProcessing)
                         {
+                            var alreadyProcessed = await _redisDb.StringGetAsync(eotProcessedKey);
                             _logger.LogInformation("[UploadStatus] **DUPLICATE PREVENTION** - EndOfTransaction {TransactionId} for Device {DeviceId} was already processed at {ProcessedTime}, skipping",
                                 detectedTransactionId.Value, deviceId, alreadyProcessed);
                             continue; // Skip this pump's EndOfTransaction processing
                         }
-
-                        // Mark as being processed to prevent duplicates
-                        await _redisDb.StringSetAsync(eotProcessedKey, DateTime.UtcNow.ToString("o"), TimeSpan.FromMinutes(10));
 
                         // Check if we have a matching transaction context in Redis for this transaction ID
                         var transactionKey = $"device:{deviceId}:transaction:{detectedTransactionId.Value}";

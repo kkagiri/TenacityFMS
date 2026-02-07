@@ -17,6 +17,7 @@ namespace FMS.Application.Features.Notification.DTOs
         public DateTime? ScheduledAtUtc { get; set; }
         public string? ScheduleType { get; set; }
         public List<string>? DaysOfWeek { get; set; }
+        public List<string>? WeeksOfMonth { get; set; }
         public string? WeekOfMonth { get; set; }
         public string? ScheduleTimeOfDay { get; set; }
         public string? TimeZone { get; set; }

@@ -2,7 +2,7 @@
  * File: FmsServiceCollectionExtensions.cs
  * Purpose: Centralized dependency injection registration for FMS WebClient.
  * Dependencies: ASP.NET Core DI, FMS services, background services, MediatR
- * Last Modified: 2026-01-15
+ * Last Modified: 2026-02-07
  *
  * Key Functions:
  * - AddFmsCore(): Registers core framework, infrastructure, and app services
@@ -447,6 +447,8 @@ public static class FmsServiceCollectionExtensions
 
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
+        services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
+        services.AddScoped<IScheduledReportDeliveryService, ScheduledReportDeliveryService>();
 
         // GPS Fetch Progress Service (SignalR)
         services.AddScoped<FMS.Application.Communication.SignalR.IGpsFetchProgressService, FMS.Application.Communication.SignalR.GpsFetchProgressService>();
@@ -544,6 +546,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IAlarmHandlerService, AlarmHandlerService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Integration.AlarmHandlerActiveAlarmIntegration>();
         services.AddSingleton<ICategoryMetadataProvider, InMemoryCategoryMetadataProvider>();
+        // Alert Configuration Service — cached, typed access to configurable alert thresholds
+        services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()
         services.AddScoped<FMS.Application.Services.Dashboard.IWidgetTemplateSeeder, FMS.Application.Services.Dashboard.WidgetTemplateSeeder>();
         services.AddScoped<IDataSourceManager, DataSourceManager>();

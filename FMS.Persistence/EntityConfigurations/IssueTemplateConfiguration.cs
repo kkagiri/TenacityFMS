@@ -95,6 +95,30 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey<Issueautocloseconfig>(c => c.IssueTemplateId)
                     .OnDelete(DeleteBehavior.Cascade)
                     .HasConstraintName("FK_issueautocloseconfig_issuetemplate");
+
+                // Many-to-Many: IssueTemplate <-> IssueCategory
+                builder.HasMany(e => e.Categories)
+                    .WithMany(c => c.IssueTemplates)
+                    .UsingEntity<Dictionary<string, object>>(
+                        "issuetemplate_categories",
+                        j => j.HasOne<Issuecategory>()
+                            .WithMany()
+                            .HasForeignKey("IssueCategoryID")
+                            .OnDelete(DeleteBehavior.Cascade)
+                            .HasConstraintName("FK_templatecat_category"),
+                        j => j.HasOne<Issuetemplate>()
+                            .WithMany()
+                            .HasForeignKey("IssueTemplateID")
+                            .OnDelete(DeleteBehavior.Cascade)
+                            .HasConstraintName("FK_templatecat_template"),
+                        j =>
+                        {
+                            j.HasKey("IssueTemplateID", "IssueCategoryID");
+                            j.ToTable("issuetemplate_categories");
+                            j.Property<DateTime>("CreatedAt")
+                                .HasColumnType("datetime")
+                                .HasDefaultValueSql("CURRENT_TIMESTAMP");
+                        });
             }
             catch (Exception ex)
             {

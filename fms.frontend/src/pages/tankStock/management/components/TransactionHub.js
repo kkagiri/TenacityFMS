@@ -68,16 +68,8 @@ import {
 } from "./transactionHub/transactionHistoryReportUtils";
 import {
   ScheduleReportEmailDialog,
-  buildScheduledReportActionText,
-  buildReportNameWithPrefix,
-  buildScheduledReportNotificationMessage,
-  buildScheduledReportSummaryHtml,
-  buildScheduledReportViewPath,
+  createReportScheduleNotificationRequest,
   createDefaultReportScheduleConfig,
-  getEffectiveReportWindowForRun,
-  getNextRunDateTime,
-  resolveEntityNames,
-  toIsoDate
 } from "../../../../components/Reporting/ReportScheduler";
 
 // Hooks
@@ -296,220 +288,57 @@ const TransactionHub = () => {
   }, [selectedSiteIds, selectedTankIds]);
 
   const handleScheduleReportEmail = useCallback(async () => {
-    const rawRecipientIds = Array.isArray(scheduleConfig?.recipientIds)
-      ? scheduleConfig.recipientIds
-      : [];
-    const recipientIds = rawRecipientIds
+    const normalizedRecipients = (usersForFilter || [])
       .map((recipient) => {
-        if (recipient === null || recipient === undefined) {
+        const rawId = recipient?.userId ?? recipient?.id;
+        if (rawId === null || rawId === undefined || rawId === "") {
           return null;
         }
 
-        if (typeof recipient === "object") {
-          return (
-            recipient.userId ??
-            recipient.UserId ??
-            recipient.id ??
-            null
-          );
-        }
-
-        return recipient;
+        return {
+          id: String(rawId),
+          name:
+            recipient?.userName ||
+            recipient?.username ||
+            recipient?.name ||
+            `User ${rawId}`,
+        };
       })
-      .map((id) => (id === null || id === undefined ? "" : String(id).trim()))
-      .filter((id) => id.length > 0);
-    const periodType = scheduleConfig?.periodType || "daily";
-    const scheduleDayOfWeekIds =
-      Array.isArray(scheduleConfig?.scheduleDayOfWeekIds) &&
-        scheduleConfig.scheduleDayOfWeekIds.length
-        ? scheduleConfig.scheduleDayOfWeekIds.filter(Boolean)
-        : [scheduleConfig?.scheduleDayOfWeek || "monday"];
-    const scheduleDayOfWeek = scheduleDayOfWeekIds[0] || "monday";
-    const scheduleWeekOfMonth = scheduleConfig?.scheduleWeekOfMonth || "first";
-    const scheduleTime = scheduleConfig?.scheduleTime || "08:00";
-    const reportFormat = scheduleConfig?.format || "pdf";
-    const selectedScheduleSiteIds = scheduleConfig?.siteIds || [];
-    const selectedScheduleTankIds = scheduleConfig?.tankIds || [];
-    const reportName = scheduleConfig?.reportName || "";
-    const reportDescription = scheduleConfig?.reportDescription || "";
+      .filter(Boolean);
 
-    if (!recipientIds.length) {
-      notify({
-        message: "Please select at least one recipient.",
-        type: "warning",
-        displayTime: 3000,
-        position: "top center"
-      });
-      return;
-    }
-
-    if (recipientIds.some((id) => id.toLowerCase() === "undefined" || id.toLowerCase() === "null")) {
-      notify({
-        message: "One or more selected recipients are invalid. Please reselect recipients.",
-        type: "warning",
-        displayTime: 3500,
-        position: "top center"
-      });
-      return;
-    }
-
-    const nextRunDate = getNextRunDateTime({
-      periodType,
-      scheduleDayOfWeek,
-      scheduleDayOfWeekIds,
-      scheduleWeekOfMonth,
-      scheduleTime
+    const requestBuildResult = createReportScheduleNotificationRequest({
+      scheduleConfig,
+      reportDefinition: {
+        reportType: "TransactionVolumeHistory",
+        templateName: reportTemplateName,
+        triggerSource: "TransactionVolumeHistoryReportSchedule",
+        reportPath: "/reports/tank-volume-history",
+        reportNamePrefix: "TankVolumeHistory - ",
+        defaultDescription: "Scheduled tank volume history report delivery.",
+        supportsTankFilter: true,
+      },
+      sites,
+      tanks,
+      users: normalizedRecipients,
+      requestedBy: user?.userName || user?.username || "Unknown User",
+      windowOrigin: window.location.origin,
     });
 
-    if (!nextRunDate) {
+    if (!requestBuildResult.success) {
       notify({
-        message: "Please provide a valid schedule day/week/time.",
+        message: requestBuildResult.error || "Unable to schedule report email.",
         type: "warning",
         displayTime: 3000,
-        position: "top center"
-      });
-      return;
-    }
-
-    const reportWindow = getEffectiveReportWindowForRun({
-      periodType,
-      runDate: nextRunDate
-    });
-
-    if (!reportWindow) {
-      notify({
-        message: "Unable to resolve report period window.",
-        type: "warning",
-        displayTime: 3000,
-        position: "top center"
+        position: "top center",
       });
       return;
     }
 
     setIsSchedulingReport(true);
     try {
-      const siteNames = resolveEntityNames(sites, selectedScheduleSiteIds, {
-        emptyLabel: "All Sites"
-      });
-      const tankNames = resolveEntityNames(tanks, selectedScheduleTankIds, {
-        emptyLabel: "All Tanks"
-      });
-      const normalizedRecipients = (usersForFilter || [])
-        .map((recipient) => {
-          const rawId = recipient?.userId ?? recipient?.id;
-          if (rawId === null || rawId === undefined || rawId === "") {
-            return null;
-          }
-
-          return {
-            id: String(rawId),
-            name:
-              recipient?.userName ||
-              recipient?.username ||
-              recipient?.name ||
-              `User ${rawId}`
-          };
-        })
-        .filter(Boolean);
-      const recipientNames = resolveEntityNames(normalizedRecipients, recipientIds, {
-        idField: "id",
-        nameField: "name",
-        emptyLabel: "Selected users"
-      });
-      const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
-      const requestedBy = user?.userName || user?.username || "Unknown User";
-      const prefixedReportName = buildReportNameWithPrefix(reportName);
-      const safeDescription =
-        String(reportDescription || "").trim() ||
-        "Scheduled tank volume history report delivery.";
-      const reportViewPath = buildScheduledReportViewPath({
-        reportWindow,
-        siteIds: selectedScheduleSiteIds,
-        tankIds: selectedScheduleTankIds,
-        preferredFormat: reportFormat
-      });
-      const reportViewUrl = `${window.location.origin}${reportViewPath}`;
-      const reportActionText = buildScheduledReportActionText({
-        format: reportFormat
-      });
-      const plainNotificationMessage = buildScheduledReportNotificationMessage({
-        title: prefixedReportName,
-        format: reportFormat
-      });
-
-      const reportSummaryHtml = buildScheduledReportSummaryHtml({
-        title: prefixedReportName,
-        description: safeDescription,
-        periodType,
-        reportWindow,
-        nextRunAt: nextRunDate,
-        format: reportFormat,
-        scheduleDayOfWeek,
-        scheduleDayOfWeekIds,
-        scheduleWeekOfMonth,
-        scheduleTime,
-        siteNames,
-        tankNames,
-        recipientNames,
-        requestedBy,
-        timeZone,
-        reportViewUrl,
-        reportActionText
-      });
-
-      const notificationRequest = {
-        Type: 2,
-        CategoryId: 20,
-        Priority: 1,
-        Title: prefixedReportName,
-        Message: plainNotificationMessage,
-        Data: {
-          schedulerVersion: 3,
-          reportType: "TransactionVolumeHistory",
-          templateName: reportTemplateName,
-          periodType,
-          format: reportFormat.toUpperCase(),
-          reportName: prefixedReportName,
-          reportDescription: safeDescription,
-          effectiveStartDate: toIsoDate(reportWindow.startDate),
-          effectiveEndDate: toIsoDate(reportWindow.endDate),
-          windowMode: periodType === "monthly" ? "runMonth" : "runDateMinusOneDay",
-          siteIds: selectedScheduleSiteIds,
-          tankIds: selectedScheduleTankIds,
-          siteNames,
-          tankNames,
-          recurringSchedule: {
-            enabled: true,
-            scheduleType: periodType === "monthly" ? "monthly" : "weekly",
-            daysOfWeek: scheduleDayOfWeekIds,
-            dayOfWeek: scheduleDayOfWeek,
-            weekOfMonth: periodType === "monthly" ? scheduleWeekOfMonth : null,
-            timeOfDay: scheduleTime,
-            timeZone,
-            nextRunAtUtc: nextRunDate.toISOString()
-          },
-          requestedBy,
-          requestedAt: new Date().toISOString(),
-          timeZone,
-          reportViewPath,
-          reportViewUrl,
-          reportActionText,
-          EmailBodyHtml: reportSummaryHtml,
-          emailBodyHtml: reportSummaryHtml
-        },
-        TriggerSource: "TransactionVolumeHistoryReportSchedule",
-        ScheduledAt: nextRunDate.toISOString(),
-        SiteId: selectedScheduleSiteIds?.length === 1 ? selectedScheduleSiteIds[0] : null,
-        TankId: selectedScheduleTankIds?.length === 1 ? selectedScheduleTankIds[0] : null,
-        Recipients: recipientIds.map((userId) => ({
-          UserId: String(userId),
-          DeliveryMethods: ["Email"],
-          ResolvedFrom: "Manual"
-        })),
-        DisableFallbackAllUsers: true
-      };
-
-      const scheduleResult = await reportingService.scheduleReportEmail(notificationRequest);
+      const scheduleResult = await reportingService.scheduleReportEmail(
+        requestBuildResult.request
+      );
       if (scheduleResult.success) {
         notify({
           message: "Report email scheduled successfully",
@@ -543,7 +372,7 @@ const TransactionHub = () => {
     sites,
     usersForFilter,
     user,
-    reportTemplateName
+    reportTemplateName,
   ]);
 
   // Handle row click to prevent errors with group rows

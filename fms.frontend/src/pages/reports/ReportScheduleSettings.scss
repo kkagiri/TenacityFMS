@@ -5,6 +5,20 @@
  * Last Modified: 2026-02-07
  */
 .scheduled-emails {
+  .scheduled-emails__workspace {
+    align-items: stretch;
+  }
+
+  .scheduled-emails__preview-shell {
+    min-height: 520px;
+  }
+
+  .scheduled-emails__preview-html {
+    min-height: 100%;
+    padding: 12px;
+    background: #ffffff;
+  }
+
   .scheduled-emails__grid {
     min-height: 420px;
   }

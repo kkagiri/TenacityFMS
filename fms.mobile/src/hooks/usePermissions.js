@@ -1,35 +1,38 @@
 /**
  * File: usePermissions.js
- * Purpose: Hook for checking user roles and permissions in mobile app
- * Uses JWT token to extract permissions (same pattern as web frontend)
- * Dependencies: Redux auth state, jwtUtils
- * Last Modified: 2026-01-16
+ * Purpose: Hook for checking user roles and permissions in mobile app.
+ *          Permissions are fetched from GET /Permission/me after login and stored in auth.myPermissions.
+ *          This replaces the old approach of decoding permissions from the JWT token.
+ * Dependencies: Redux auth state, jwtUtils (for role checks and user info only)
+ * Last Modified: 2026-02-07
  */
 
-import { useMemo } from "react";
+import { useMemo, useCallback } from "react";
 import { useSelector } from "react-redux";
 import {
-  getPermissionsFromToken,
-  hasPermission,
-  hasAnyPermission,
-  hasAllPermissions,
   hasRole as jwtHasRole,
   getUserInfoFromToken,
 } from "../utils/jwtUtils";
 
 /**
- * Custom hook for handling user permissions from JWT token
- * This mirrors the web usePermissions hook pattern
+ * Custom hook for handling user permissions from Redux state.
+ * Permissions are fetched via GET /Permission/me and stored in auth.myPermissions.
  */
 export const usePermissions = () => {
   const user = useSelector((state) => state.auth.user);
   const token = useSelector((state) => state.auth.token);
+  const myPermissions = useSelector((state) => state.auth.myPermissions);
+  const permissionsLoaded = useSelector((state) => state.auth.permissionsLoaded);
 
-  // Memoize permissions extraction to avoid recalculating on every render
+  // Permissions come from Redux (fetched from GET /Permission/me)
   const permissions = useMemo(() => {
-    if (!token) return [];
-    return getPermissionsFromToken(token);
-  }, [token]);
+    return myPermissions || [];
+  }, [myPermissions]);
+
+  // Build a lowercase Set for fast lookups
+  const permissionSet = useMemo(() => {
+    return new Set((permissions || []).map(p => p.toLowerCase()));
+  }, [permissions]);
 
   // Memoize user info extraction from token
   const tokenUserInfo = useMemo(() => {
@@ -37,26 +40,26 @@ export const usePermissions = () => {
     return getUserInfoFromToken(token);
   }, [token]);
 
-  // Permission checking functions
-  const checkPermission = (permission) => {
-    if (!token) return false;
-    return hasPermission(token, permission);
-  };
+  // Permission checking functions using Redux-stored permissions
+  const checkPermission = useCallback((permission) => {
+    if (!permission) return false;
+    return permissionSet.has(permission.toLowerCase());
+  }, [permissionSet]);
 
-  const checkAnyPermission = (requiredPermissions) => {
-    if (!token) return false;
-    return hasAnyPermission(token, requiredPermissions);
-  };
+  const checkAnyPermission = useCallback((requiredPermissions) => {
+    if (!requiredPermissions || requiredPermissions.length === 0) return false;
+    return requiredPermissions.some(perm => permissionSet.has(perm.toLowerCase()));
+  }, [permissionSet]);
 
-  const checkAllPermissions = (requiredPermissions) => {
-    if (!token) return false;
-    return hasAllPermissions(token, requiredPermissions);
-  };
+  const checkAllPermissions = useCallback((requiredPermissions) => {
+    if (!requiredPermissions || requiredPermissions.length === 0) return false;
+    return requiredPermissions.every(perm => permissionSet.has(perm.toLowerCase()));
+  }, [permissionSet]);
 
-  const checkRole = (role) => {
+  const checkRole = useCallback((role) => {
     if (!token) return false;
     return jwtHasRole(token, role);
-  };
+  }, [token]);
 
   // Check if user is admin (Admin or SuperAdmin role)
   const isAdmin = useMemo(() => {
@@ -90,9 +93,8 @@ export const usePermissions = () => {
 
   // Check if user can edit vehicles (has _Edit_Vehicle permission)
   const canEditVehicle = useMemo(() => {
-    if (!token) return false;
-    return hasPermission(token, "_Edit_Vehicle");
-  }, [token]);
+    return permissionSet.has('_edit_vehicle');
+  }, [permissionSet]);
 
   // Get combined user info (from token + redux state)
   const userInfo = useMemo(() => {
@@ -110,6 +112,7 @@ export const usePermissions = () => {
 
   return {
     permissions,
+    permissionsLoaded,
     userInfo,
     hasPermission: checkPermission,
     hasAnyPermission: checkAnyPermission,

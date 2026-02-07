@@ -5,6 +5,7 @@
  * Last Modified: 2026-02-03
  */
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -78,6 +79,21 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 statusName = status.Status;
             }
 
+            // Validate Categories if provided
+            List<Issuecategory> categories = new List<Issuecategory>();
+            if (request.Template.CategoryIds != null && request.Template.CategoryIds.Any())
+            {
+                categories = await _context.Issuecategories
+                    .Where(c => request.Template.CategoryIds.Contains(c.Id))
+                    .ToListAsync(cancellationToken);
+
+                if (categories.Count != request.Template.CategoryIds.Count)
+                {
+                    var missingIds = request.Template.CategoryIds.Except(categories.Select(c => c.Id));
+                    return FMSResponse<IssueTemplateDTO>.Failed($"Categories with IDs {string.Join(", ", missingIds)} not found.");
+                }
+            }
+
             var now = DateTime.UtcNow;
             Issuetemplate? entity = null;
 
@@ -106,6 +122,14 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 try
                 {
                     await _context.SaveChangesAsync(cancellationToken);
+
+                    // Assign categories to template
+                    if (categories.Any())
+                    {
+                        entity.Categories = categories;
+                        await _context.SaveChangesAsync(cancellationToken);
+                    }
+
                     break;
                 }
                 catch (DbUpdateException ex) when (attempt == 0 && IsDuplicateKeyException(ex))
@@ -135,7 +159,14 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 HasAutoCloseConfig = false,
-                AutoCloseEnabled = false
+                AutoCloseEnabled = false,
+                CategoryIds = categories.Select(c => c.Id).ToList(),
+                Categories = categories.Select(c => new CategorySummaryDTO
+                {
+                    Id = c.Id,
+                    Name = c.Name ?? string.Empty,
+                    Description = c.Description
+                }).ToList()
             };
 
             _logger.LogInformation("Created Issue Template {Id}: {Name} for Device Type {DeviceTypeId}",
@@ -188,6 +219,7 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
             var entity = await _context.Issuetemplates
                 .Include(t => t.DeviceType)
                 .Include(t => t.AutoCloseConfig)
+                .Include(t => t.Categories)
                 .FirstOrDefaultAsync(t => t.Id == request.Template.Id, cancellationToken);
 
             if (entity == null)
@@ -235,6 +267,27 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                     .FirstOrDefaultAsync(s => s.Id == request.Template.DefaultStatusId, cancellationToken))?.Status;
             }
 
+            // Update categories if provided
+            if (request.Template.CategoryIds != null)
+            {
+                var newCategories = await _context.Issuecategories
+                    .Where(c => request.Template.CategoryIds.Contains(c.Id))
+                    .ToListAsync(cancellationToken);
+
+                if (newCategories.Count != request.Template.CategoryIds.Count)
+                {
+                    var missingIds = request.Template.CategoryIds.Except(newCategories.Select(c => c.Id));
+                    return FMSResponse<IssueTemplateDTO>.Failed($"Categories with IDs {string.Join(", ", missingIds)} not found.");
+                }
+
+                // Clear existing and add new
+                entity.Categories.Clear();
+                foreach (var category in newCategories)
+                {
+                    entity.Categories.Add(category);
+                }
+            }
+
             entity.DeviceTypeId = request.Template.DeviceTypeId;
             entity.Name = request.Template.Name;
             entity.TitleTemplate = request.Template.TitleTemplate;
@@ -262,7 +315,14 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 HasAutoCloseConfig = entity.AutoCloseConfig != null,
-                AutoCloseEnabled = entity.AutoCloseConfig?.IsEnabled ?? false
+                AutoCloseEnabled = entity.AutoCloseConfig?.IsEnabled ?? false,
+                CategoryIds = entity.Categories.Select(c => c.Id).ToList(),
+                Categories = entity.Categories.Select(c => new CategorySummaryDTO
+                {
+                    Id = c.Id,
+                    Name = c.Name ?? string.Empty,
+                    Description = c.Description
+                }).ToList()
             };
 
             _logger.LogInformation("Updated Issue Template {Id}: {Name}", entity.Id, entity.Name);

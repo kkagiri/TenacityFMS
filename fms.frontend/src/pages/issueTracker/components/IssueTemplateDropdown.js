@@ -12,8 +12,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { SelectBox } from 'devextreme-react/select-box';
 import { Popup } from 'devextreme-react/popup';
+import { TagBox } from 'devextreme-react/tag-box';
 import notify from 'devextreme/ui/notify';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import { fetchIssueCategories } from '../../../redux/actions/issueTrackerActions';
 
 const ADD_TEMPLATE_OPTION_ID = '__add_new_template__';
 
@@ -45,6 +47,105 @@ const IssueTemplateDropdown = ({
   const [isCreatePopupVisible, setIsCreatePopupVisible] = useState(false);
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState(buildTemplateDraft());
+  const [categories, setCategories] = useState([]);
+  const [loadingCategories, setLoadingCategories] = useState(false);
+  const [isCategoryPopupVisible, setIsCategoryPopupVisible] = useState(false);
+  const [isCreatingCategory, setIsCreatingCategory] = useState(false);
+  const [newCategory, setNewCategory] = useState({ name: '', description: '' });
+
+  // Load categories on mount
+  useEffect(() => {
+    loadCategories();
+  }, []);
+
+  const loadCategories = async () => {
+    try {
+      setLoadingCategories(true);
+      const response = await fetch('/api/v1/issuetracker/categories');
+      const data = await response.json();
+      setCategories(Array.isArray(data) ? data : data?.data || []);
+    } catch (error) {
+      console.error('Error loading categories:', error);
+      setCategories([]);
+    } finally {
+      setLoadingCategories(false);
+    }
+  };
+
+  const openCategoryPopup = () => {
+    setNewCategory({ name: '', description: '' });
+    setIsCategoryPopupVisible(true);
+  };
+
+  const closeCategoryPopup = () => {
+    if (isCreatingCategory) return;
+    setIsCategoryPopupVisible(false);
+    setNewCategory({ name: '', description: '' });
+  };
+
+  const handleCreateCategory = async () => {
+    const normalizedName = newCategory.name.trim();
+
+    if (!normalizedName) {
+      notify({
+        message: 'Category name is required.',
+        type: 'warning',
+        displayTime: 2500
+      });
+      return;
+    }
+
+    try {
+      setIsCreatingCategory(true);
+
+      const response = await fetch('/api/v1/issuetracker/categories', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: normalizedName,
+          description: newCategory.description.trim() || null
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData?.message || 'Failed to create category');
+      }
+
+      const result = await response.json();
+      const createdCategoryId = result.id;
+
+      notify({
+        message: 'Category created successfully!',
+        type: 'success',
+        displayTime: 2000
+      });
+
+      // Reload categories
+      await loadCategories();
+
+      // Auto-select the new category
+      if (createdCategoryId) {
+        setTemplateDraft(prev => ({
+          ...prev,
+          categoryIds: [...(prev.categoryIds || []), createdCategoryId]
+        }));
+      }
+
+      closeCategoryPopup();
+    } catch (error) {
+      console.error('Error creating category:', error);
+      notify({
+        message: error.message || 'Failed to create category',
+        type: 'error',
+        displayTime: 3000
+      });
+    } finally {
+      setIsCreatingCategory(false);
+    }
+  };
 
   useEffect(() => {
     if (deviceTypeId) {
@@ -136,7 +237,8 @@ const IssueTemplateDropdown = ({
         descriptionTemplate: templateDraft.descriptionTemplate?.trim() || null,
         defaultPriorityId: templateDraft.defaultPriorityId ? Number(templateDraft.defaultPriorityId) : null,
         defaultStatusId: templateDraft.defaultStatusId ? Number(templateDraft.defaultStatusId) : null,
-        isActive: templateDraft.isActive
+        isActive: templateDraft.isActive,
+        categoryIds: templateDraft.categoryIds || []
       });
 
       const createdTemplate = normalizeTemplateResponse(createResponse);
@@ -344,6 +446,40 @@ const IssueTemplateDropdown = ({
           </div>
 
           <div>
+            <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700">
+                Categories / Tags
+              </label>
+              <button
+                type="button"
+                className="tw-text-xs tw-text-blue-600 hover:tw-text-blue-700 tw-flex tw-items-center tw-gap-1"
+                onClick={openCategoryPopup}
+                disabled={isCreatingTemplate || isCreatingCategory}
+              >
+                <i className="fa-light fa-plus tw-text-xs"></i>
+                Add Category
+              </button>
+            </div>
+            <TagBox
+              dataSource={categories}
+              displayExpr="name"
+              valueExpr="id"
+              placeholder="Select categories (e.g., Fuel Sensor, Disconnection, Hardware)"
+              searchEnabled={true}
+              showSelectionControls={true}
+              applyValueMode="useButtons"
+              value={templateDraft.categoryIds || []}
+              onValueChanged={(e) => setTemplateDraft(prev => ({ ...prev, categoryIds: e.value }))}
+              disabled={isCreatingTemplate || loadingCategories}
+              noDataText={loadingCategories ? 'Loading categories...' : 'No categories available'}
+            />
+            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+              <i className="fa-light fa-info-circle tw-mr-1"></i>
+              Select multiple categories to tag this template (e.g., Device Type, Issue Type, Component)
+            </p>
+          </div>
+
+          <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
               Default Priority
             </label>
@@ -418,6 +554,73 @@ const IssueTemplateDropdown = ({
           </div>
         </div>
       </Popup>
+
+      {/* Category Creation Popup */}
+      <Popup
+        visible={isCategoryPopupVisible}
+        onHiding={closeCategoryPopup}
+        showTitle={true}
+        title="Create New Category"
+        width={500}
+        height="auto"
+        dragEnabled={false}
+        hideOnOutsideClick={!isCreatingCategory}
+      >
+        <div className="tw-p-4 tw-space-y-4">
+          <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-text-blue-700">
+            <i className="fa-light fa-info-circle tw-mr-2"></i>
+            Create a new category tag to organize and classify issue templates (e.g., "Fuel Sensor", "Disconnection", "Hardware")
+          </div>
+
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Category Name <span className="tw-text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2"
+              placeholder="e.g., Fuel Sensor, Hardware, Network"
+              value={newCategory.name}
+              onChange={(e) => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+              disabled={isCreatingCategory}
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Description
+            </label>
+            <textarea
+              rows={3}
+              className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2"
+              placeholder="Optional description for this category"
+              value={newCategory.description}
+              onChange={(e) => setNewCategory(prev => ({ ...prev, description: e.target.value }))}
+              disabled={isCreatingCategory}
+            />
+          </div>
+
+          <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
+            <button
+              type="button"
+              className="tw-px-4 tw-py-2 tw-border tw-border-gray-300 tw-rounded tw-text-gray-700 hover:tw-bg-gray-50"
+              onClick={closeCategoryPopup}
+              disabled={isCreatingCategory}
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              className="tw-px-4 tw-py-2 tw-bg-blue-600 tw-text-white tw-rounded hover:tw-bg-blue-700 disabled:tw-opacity-60"
+              onClick={handleCreateCategory}
+              disabled={isCreatingCategory}
+            >
+              {isCreatingCategory ? 'Creating...' : 'Create Category'}
+            </button>
+          </div>
+        </div>
+      </Popup>
     </div>
   );
 };
@@ -429,7 +632,8 @@ const buildTemplateDraft = (baseTemplate = null) => ({
   descriptionTemplate: baseTemplate?.descriptionTemplate || '',
   defaultPriorityId: baseTemplate?.defaultPriorityId || null,
   defaultStatusId: baseTemplate?.defaultStatusId || null,
-  isActive: baseTemplate?.isActive ?? true
+  isActive: baseTemplate?.isActive ?? true,
+  categoryIds: baseTemplate?.categoryIds || []
 });
 
 /**

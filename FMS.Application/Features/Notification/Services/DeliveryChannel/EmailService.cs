@@ -1,4 +1,16 @@
+/**
+ * File: EmailService.cs
+ * Purpose: Sends SMTP email notifications with retry logic and optional file attachments.
+ * Dependencies: IConfiguration, ILogger, System.Net.Mail
+ * Last Modified: 2026-02-07
+ *
+ * Key Functions:
+ * - SendEmailAsync: Sends email with optional HTML body and attachments.
+ * - IsConfigurationValid: Validates SMTP/from-address settings before send attempts.
+ */
 using System;
+using System.Collections.Generic;
+using System.IO;
 using System.Net;
 using System.Net.Mail;
 using System.Threading;
@@ -23,7 +35,13 @@ namespace FMS.Application.Features.Notification.Services
             _emailSettings = GetEmailSettings();
         }
 
-        public async Task<bool> SendEmailAsync(string to, string subject, string body, bool isHtml = false, CancellationToken cancellationToken = default)
+        public async Task<bool> SendEmailAsync(
+            string to,
+            string subject,
+            string body,
+            bool isHtml = false,
+            CancellationToken cancellationToken = default,
+            IReadOnlyCollection<EmailAttachmentDto>? attachments = null)
         {
             if (!IsConfigurationValid())
             {
@@ -48,7 +66,7 @@ namespace FMS.Application.Features.Notification.Services
                     _logger.LogInformation("Attempting to send email to {To} (attempt {Attempt}/{MaxAttempts})", to, attempt, maxAttempts);
 
                     using var smtpClient = CreateSmtpClient();
-                    using var mailMessage = CreateMailMessage(to, subject, body, isHtml);
+                    using var mailMessage = CreateMailMessage(to, subject, body, isHtml, attachments);
 
                     await smtpClient.SendMailAsync(mailMessage, cancellationToken);
 
@@ -113,7 +131,12 @@ namespace FMS.Application.Features.Notification.Services
             return smtpClient;
         }
 
-        private MailMessage CreateMailMessage(string to, string subject, string body, bool isHtml)
+        private MailMessage CreateMailMessage(
+            string to,
+            string subject,
+            string body,
+            bool isHtml,
+            IReadOnlyCollection<EmailAttachmentDto>? attachments)
         {
             var fromAddress = new MailAddress(_emailSettings.FromAddress, _emailSettings.FromDisplayName ?? "FMS Notifications");
 
@@ -140,6 +163,28 @@ namespace FMS.Application.Features.Notification.Services
                     {
                         _logger.LogWarning(ex, "Invalid email address format: {Email}", trimmedRecipient);
                     }
+                }
+            }
+
+            if (attachments != null)
+            {
+                foreach (var attachment in attachments)
+                {
+                    if (attachment == null ||
+                        string.IsNullOrWhiteSpace(attachment.FileName) ||
+                        attachment.Content == null ||
+                        attachment.Content.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    var contentType = string.IsNullOrWhiteSpace(attachment.ContentType)
+                        ? "application/octet-stream"
+                        : attachment.ContentType;
+
+                    var attachmentStream = new MemoryStream(attachment.Content, writable: false);
+                    var mailAttachment = new Attachment(attachmentStream, attachment.FileName, contentType);
+                    mailMessage.Attachments.Add(mailAttachment);
                 }
             }
 

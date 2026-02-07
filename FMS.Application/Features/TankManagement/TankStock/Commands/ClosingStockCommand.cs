@@ -12,6 +12,7 @@ using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Integration;
+using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
@@ -37,8 +38,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         private readonly DiscrepancyDetectionService _discrepancyDetectionService;
         private readonly INotificationService _notificationService;
         private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
+        private readonly IAlertConfigurationService _alertConfig;
 
-        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, AlarmHandlerActiveAlarmIntegration activeAlarmIntegration)
+        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, AlarmHandlerActiveAlarmIntegration activeAlarmIntegration, IAlertConfigurationService alertConfig)
         {
             _context = context;
             _logger = logger;
@@ -48,6 +50,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             _discrepancyDetectionService = discrepancyDetectionService;
             _notificationService = notificationService;
             _activeAlarmIntegration = activeAlarmIntegration;
+            _alertConfig = alertConfig;
         }
 
         public async Task<FMSResponseMessage> Handle(ClosingStockCommand request, CancellationToken cancellationToken)
@@ -238,7 +241,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     .Where(tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == entryDate.Date)
                     .ToListAsync();
 
-                var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);
+                var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing || t.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing).Sum(t => t.VolumeChange);
                 var totalDeliveries = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Delivery).Sum(t => t.VolumeChange);
                 var totalTransfersIn = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum(t => t.VolumeChange);
                 var totalTransfersOut = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum(t => t.VolumeChange);
@@ -351,15 +354,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             // Determine variance type
             string varianceType = variance > 0 ? "GAIN" : variance < 0 ? "LOSS" : "BALANCED";
 
-            // Define significance thresholds (these could be configurable)
-            decimal significanceThresholdLiters = 50; // 50 liters threshold
-            decimal significanceThresholdPercentage = 5; // 5% threshold
+            // Load configurable thresholds from AlertConfigurationService
+            decimal significanceThresholdLiters = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankClosingStockDiscrepancy, "significanceThresholdLiters", 50m, cancellationToken);
+            decimal significanceThresholdPercentage = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankClosingStockDiscrepancy, "significanceThresholdPercent", 5m, cancellationToken);
+            decimal investigationThresholdLiters = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankClosingStockDiscrepancy, "investigationThresholdLiters", 100m, cancellationToken);
+            decimal investigationThresholdPercentage = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankClosingStockDiscrepancy, "investigationThresholdPercent", 10m, cancellationToken);
 
             bool isSignificantVariance = Math.Abs(variance) >= significanceThresholdLiters ||
                 Math.Abs(variancePercentage) >= significanceThresholdPercentage;
 
-            bool requiresInvestigation = Math.Abs(variance) >= 100 || // 100 liters threshold for investigation
-                Math.Abs(variancePercentage) >= 10; // 10% threshold for investigation
+            bool requiresInvestigation = Math.Abs(variance) >= investigationThresholdLiters ||
+                Math.Abs(variancePercentage) >= investigationThresholdPercentage;
 
             var result = new StockReconciliationResult
             {
@@ -482,6 +491,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             decimal absVarianceLiters = Math.Abs(varianceLiters);
             decimal absVariancePercentage = Math.Abs(variancePercentage);
 
+            // Uses same investigation thresholds from config (loaded in PerformReconciliationAnalysis)
+            // High = investigation level, Medium = significance level, Low = below both
             if (absVarianceLiters > 100 || absVariancePercentage > 10)
             {
                 return DiscrepancySeverity.High;
@@ -499,14 +510,22 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         {
             decimal absVariance = Math.Abs(varianceLiters);
 
-            // Base impact score (0-100 scale)
-            decimal impactScore = Math.Min(absVariance / 10, 100); // 10 liters = 1 point, max 100
+            // Load configurable business impact parameters (sync read from cached values)
+            decimal litersPerPoint = _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.BusinessImpactCalc, "litersPerPoint", 10m).GetAwaiter().GetResult();
+            decimal maxScore = _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.BusinessImpactCalc, "maxScore", 100m).GetAwaiter().GetResult();
+            decimal capacityWeightMultiplier = _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.BusinessImpactCalc, "capacityWeightMultiplier", 2m).GetAwaiter().GetResult();
+
+            // Base impact score
+            decimal impactScore = litersPerPoint > 0 ? Math.Min(absVariance / litersPerPoint, maxScore) : 0;
 
             // Adjust based on tank capacity if available
             if (tank.TankVolume > 0)
             {
                 decimal percentageOfCapacity = absVariance / tank.TankVolume * 100;
-                impactScore = Math.Max(impactScore, percentageOfCapacity * 2); // Weight capacity percentage higher
+                impactScore = Math.Max(impactScore, percentageOfCapacity * capacityWeightMultiplier);
             }
 
             return Math.Round(impactScore, 2);
@@ -603,9 +622,14 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var absVariance = Math.Abs(variance);
                 var variancePercentage = sensorVolume > 0 ? (absVariance / sensorVolume) * 100 : 0;
 
-                // Define thresholds for sensor vs manual variance
-                var varianceThresholdLiters = 5.0m; // 5 liters
-                var varianceThresholdPercentage = 2.0m; // 2%
+                // Load configurable sensor variance thresholds
+                var sensorEnabled = await _alertConfig.IsAlertEnabledAsync(AlertConfigurationConstants.TankSensorVariance, cancellationToken);
+                if (!sensorEnabled) return; // Sensor variance alerts are disabled
+
+                var varianceThresholdLiters = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankSensorVariance, "varianceThresholdLiters", 5.0m, cancellationToken);
+                var varianceThresholdPercentage = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankSensorVariance, "varianceThresholdPercent", 2.0m, cancellationToken);
 
                 var isSignificantVariance = absVariance > varianceThresholdLiters ||
                     variancePercentage > varianceThresholdPercentage;
@@ -613,7 +637,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 if (isSignificantVariance)
                 {
                     // Create discrepancy record for sensor vs manual variance
-                    var severity = DetermineSensorVarianceSeverity(absVariance, variancePercentage);
+                    var severity = await DetermineSensorVarianceSeverityAsync(absVariance, variancePercentage, cancellationToken);
 
                     var discrepancy = new ReconciliationDiscrepancy
                     {
@@ -672,16 +696,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         /// <summary>
         /// Determines severity for sensor vs manual variance
         /// </summary>
-        private DiscrepancySeverity DetermineSensorVarianceSeverity(decimal absVarianceLiters, decimal variancePercentage)
+        private async Task<DiscrepancySeverity> DetermineSensorVarianceSeverityAsync(decimal absVarianceLiters, decimal variancePercentage, CancellationToken cancellationToken = default)
         {
-            // Higher thresholds for sensor variance as sensors may have calibration differences
-            return (absVarianceLiters, variancePercentage) switch
-            {
-                ( >= 20.0m, _) or (_, >= 10.0m) => DiscrepancySeverity.Critical,
-                ( >= 10.0m, _) or (_, >= 5.0m) => DiscrepancySeverity.High,
-                ( >= 5.0m, _) or (_, >= 2.0m) => DiscrepancySeverity.Medium,
-                _ => DiscrepancySeverity.Low
-            };
+            // Load configurable severity bands from alert configuration
+            var criticalLiters = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankSensorVariance, "criticalLiters", 20.0m, cancellationToken);
+            var criticalPercent = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankSensorVariance, "criticalPercent", 10.0m, cancellationToken);
+            var highLiters = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankSensorVariance, "highLiters", 10.0m, cancellationToken);
+            var highPercent = await _alertConfig.GetDecimalAsync(
+                AlertConfigurationConstants.TankSensorVariance, "highPercent", 5.0m, cancellationToken);
+
+            if (absVarianceLiters >= criticalLiters || variancePercentage >= criticalPercent)
+                return DiscrepancySeverity.Critical;
+            if (absVarianceLiters >= highLiters || variancePercentage >= highPercent)
+                return DiscrepancySeverity.High;
+            // Medium uses the base threshold (already checked to be significant)
+            return DiscrepancySeverity.Medium;
         }
 
         /// <summary>

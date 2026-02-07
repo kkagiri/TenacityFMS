@@ -1,0 +1,28 @@
+// Alert Configuration Page Styles
+
+.alert-configuration-page {
+  max-width: 1400px;
+  margin: 0 auto;
+
+  // Override DevExtreme NumberBox in compact card layout
+  .dx-numberbox {
+    .dx-texteditor-input {
+      min-height: 32px;
+      padding: 4px 8px;
+      font-size: 0.875rem;
+    }
+  }
+
+  .dx-textbox {
+    .dx-texteditor-input {
+      min-height: 32px;
+      padding: 4px 8px;
+      font-size: 0.875rem;
+    }
+  }
+
+  // Switch alignment inside cards
+  .dx-switch {
+    margin-top: 2px;
+  }
+}

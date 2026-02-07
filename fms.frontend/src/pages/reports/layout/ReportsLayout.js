@@ -43,7 +43,7 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
     } else if (pathname.includes('/scheduled-emails')) {
       return {
         title: 'Scheduled Report Emails',
-        subtitle: 'Admin settings for delivery tracking, schedule changes, and cancellation'
+        subtitle: 'Admin settings for schedule setup, jsreport preview, delivery tracking, and cancellation'
       };
     } else if (pathname.includes('/consumption-refills')) {
       return {

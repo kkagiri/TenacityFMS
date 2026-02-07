@@ -149,6 +149,14 @@ class IssueTrackerV2Service {
   /**
    * Create new issue template
    * @param {Object} templateData - Template data
+   * @param {number} templateData.deviceTypeId - Device type ID
+   * @param {string} templateData.name - Template name
+   * @param {string} [templateData.titleTemplate] - Title template
+   * @param {string} [templateData.descriptionTemplate] - Description template
+   * @param {number} [templateData.defaultPriorityId] - Default priority ID
+   * @param {number} [templateData.defaultStatusId] - Default status ID
+   * @param {boolean} [templateData.isActive] - Is template active
+   * @param {number[]} [templateData.categoryIds] - Category/tag IDs
    * @returns {Promise} Created template
    */
   async createTemplate(templateData) {

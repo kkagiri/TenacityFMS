@@ -17,6 +17,7 @@ using System.Threading.Tasks;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services.ActiveAlarm;
+using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.Notifications;
@@ -37,15 +38,18 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm
         private readonly GpsdataContext _context;
         private readonly ILogger<ActiveAlarmService> _logger;
         private readonly INotificationService _notificationService;
+        private readonly IAlertConfigurationService _alertConfig;
 
         public ActiveAlarmService(
             GpsdataContext context,
             ILogger<ActiveAlarmService> logger,
-            INotificationService notificationService)
+            INotificationService notificationService,
+            IAlertConfigurationService alertConfig)
         {
             _context = context;
             _logger = logger;
             _notificationService = notificationService;
+            _alertConfig = alertConfig;
         }
 
         /// <summary>
@@ -522,13 +526,28 @@ namespace FMS.Application.Features.Notification.Services.ActiveAlarm
             try
             {
                 var now = DateTime.UtcNow;
-                var escalationThreshold = now.AddMinutes(-30); // Escalate after 30 minutes
+
+                // Load configurable escalation thresholds
+                var escalationMinutes = await _alertConfig.GetIntAsync(
+                    AlertConfigurationConstants.EscalationAutoEscalate, "unacknowledgedMinutes", 30, cancellationToken);
+                var reEscalationHours = await _alertConfig.GetIntAsync(
+                    AlertConfigurationConstants.EscalationAutoEscalate, "reEscalationCooldownHours", 2, cancellationToken);
+                var escalationEnabled = await _alertConfig.IsAlertEnabledAsync(
+                    AlertConfigurationConstants.EscalationAutoEscalate, cancellationToken);
+
+                if (!escalationEnabled)
+                {
+                    _logger.LogDebug("Auto-escalation is disabled via alert configuration");
+                    return 0;
+                }
+
+                var escalationThreshold = now.AddMinutes(-escalationMinutes);
 
                 var escalationAlarms = await _context.ActiveAlarms
                     .Where(a => a.State == "Active" &&
                         (a.Priority == "Critical" || a.Priority == "High") &&
                         a.TriggeredAt <= escalationThreshold &&
-                        (a.LastEscalatedAt == null || a.LastEscalatedAt <= now.AddHours(-2))) // Don't escalate more than once every 2 hours
+                        (a.LastEscalatedAt == null || a.LastEscalatedAt <= now.AddHours(-reEscalationHours)))
                     .ToListAsync(cancellationToken);
 
                 int escalatedCount = 0;

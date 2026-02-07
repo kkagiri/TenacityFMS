@@ -12,6 +12,7 @@ import UserPreferences from './preferences/UserPreferences';
 import NotificationHistory from './history/NotificationHistory';
 import TestingPanel from './testing/TestingPanel';
 import NotificationCategoriesTab from '../admin/notification-settings/NotificationCategoriesTab';
+import AlertConfiguration from './alert-configuration/AlertConfiguration';
 import { NOTIFICATION_BASE_PATH } from './utils/navigationHelper';
 
 const NotificationSystem = () => {
@@ -61,6 +62,8 @@ const NotificationSystem = () => {
         return <NotificationHistory />;
       case 'testing':
         return <TestingPanel />;
+      case 'alert-configuration':
+        return <AlertConfiguration />;
       default:
         return <Dashboard />;
     }

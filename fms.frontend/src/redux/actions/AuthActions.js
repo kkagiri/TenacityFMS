@@ -1,5 +1,6 @@
 import axiosInstance from './../../api/axiosInstance';
 import { fetchConfigurations } from './configurationActions';
+import { fetchMyPermissions } from './permissionActions';
 import store from '../../store'; // Import store to check fueling status
 import {
     LOGIN_SUCCESS,
@@ -40,6 +41,10 @@ export const loadUser = () => async (dispatch) => {
 
         console.log('✅ User data loaded successfully');
         dispatch({ type: USER_LOADED, payload: normalizedUser });
+
+        // Fetch user permissions from backend (not from JWT)
+        dispatch(fetchMyPermissions());
+
         return { success: true, user: normalizedUser };
     } catch (error) {
         console.error('❌ Load user error:', error);
@@ -110,6 +115,9 @@ export const signIn = (username, password) => async (dispatch) => {
             type: USER_LOADED,
             payload: user
         });
+
+        // Fetch user permissions from backend (not from JWT)
+        dispatch(fetchMyPermissions());
 
         // Load configurations after successful login
         try {

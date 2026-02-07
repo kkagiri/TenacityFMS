@@ -20,6 +20,7 @@ using FMS.Application.Features.ATG;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.AlarmHandlers;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.TankStockManagement;
@@ -66,17 +67,20 @@ namespace FMS.Application.Services
         private readonly ILogger<AlarmHandlerService> _logger;
         private readonly INotificationService _notificationService;
         private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
+        private readonly IAlertConfigurationService _alertConfig;
 
         public AlarmHandlerService(
             GpsdataContext context,
             ILogger<AlarmHandlerService> logger,
             INotificationService notificationService,
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration)
+            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration,
+            IAlertConfigurationService alertConfig)
         {
             _context = context;
             _logger = logger;
             _notificationService = notificationService;
             _activeAlarmIntegration = activeAlarmIntegration;
+            _alertConfig = alertConfig;
         }
 
         public async Task<FMSResponse> ProcessTankMeasurementAlarmsAsync(TankMeasurementDto tankMeasurement, string deviceId, CancellationToken cancellationToken = default)
@@ -349,7 +353,9 @@ namespace FMS.Application.Services
                 var errors = new List<string>();
 
                 // Check for tanks with stale data (no recent measurements)
-                var staleDataThreshold = DateTime.UtcNow.AddHours(-2); // No data for 2 hours
+                var staleDataHours = await _alertConfig.GetIntAsync(
+                    AlertConfigurationConstants.TankStaleData, "staleDataHours", 2);
+                var staleDataThreshold = DateTime.UtcNow.AddHours(-staleDataHours);
                 var tanksWithStaleData = await _context.Tanks
                     .Include(t => t.Site)
                     .Where(t => !_context.Tankmeasurements
@@ -411,8 +417,10 @@ namespace FMS.Application.Services
         {
             try
             {
-                // Check if tank has a low volume threshold configured - using 10% of tank volume as default since MinimumVolume doesn't exist
-                var lowVolumeThreshold = tank.TankVolume * 0.1m; // 10% of capacity as default //Cursor: Use TankVolume instead of Capacity and remove MinimumVolume
+                // Check if tank has a low volume threshold configured
+                var lowVolumePct = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankLowLevel, "lowLevelPercentage", 10m);
+                var lowVolumeThreshold = tank.TankVolume * (lowVolumePct / 100m);
 
                 return measurement.ProductVolume.HasValue && (decimal)measurement.ProductVolume <= lowVolumeThreshold; //Cursor: Add null check and cast
             }
@@ -427,8 +435,10 @@ namespace FMS.Application.Services
         {
             try
             {
-                // Check if tank is approaching capacity (95% full)
-                var highVolumeThreshold = tank.TankVolume * 0.95m; //Cursor: Use TankVolume instead of Capacity
+                // Check if tank is approaching capacity
+                var highVolumePct = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankHighLevel, "highLevelPercentage", 95m);
+                var highVolumeThreshold = tank.TankVolume * (highVolumePct / 100m);
 
                 return measurement.ProductVolume.HasValue && (decimal)measurement.ProductVolume >= highVolumeThreshold; //Cursor: Add null check and cast
             }
@@ -443,8 +453,9 @@ namespace FMS.Application.Services
         {
             try
             {
-                // Trigger if water height is above threshold (e.g., 5mm)
-                var waterThreshold = 5.0m; // 5mm
+                // Trigger if water height is above threshold
+                var waterThreshold = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankWaterDetection, "waterHeightThresholdMm", 5.0m);
 
                 return measurement.WaterHeight.HasValue && (decimal)measurement.WaterHeight > waterThreshold; //Cursor: Add null check and cast
             }
@@ -459,9 +470,11 @@ namespace FMS.Application.Services
         {
             try
             {
-                // Check for temperature outside normal range (e.g., -10°C to 50°C)
-                var minTemp = -10.0m;
-                var maxTemp = 50.0m;
+                // Check for temperature outside normal range
+                var minTemp = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankTemperature, "minTemperatureCelsius", -10.0m);
+                var maxTemp = await _alertConfig.GetDecimalAsync(
+                    AlertConfigurationConstants.TankTemperature, "maxTemperatureCelsius", 50.0m);
 
                 return measurement.Temperature.HasValue && ((decimal)measurement.Temperature < minTemp || (decimal)measurement.Temperature > maxTemp); //Cursor: Add null check and cast
             }

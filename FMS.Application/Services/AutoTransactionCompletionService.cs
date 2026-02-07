@@ -170,8 +170,27 @@ namespace FMS.Application.Services
 
         public async Task<bool> CompleteAndSaveTransactionAsync(string deviceId, int pump, int transaction, JObject finalData)
         {
+            var completionLockKey = $"autocompletion:save:lock:{deviceId}:{transaction}";
+            var completionLockValue = Guid.NewGuid().ToString("N");
+            var lockAcquired = false;
+
             try
             {
+                // Prevent duplicate inserts when multiple completion paths race on the same transaction.
+                lockAcquired = await _redisDb.StringSetAsync(
+                    completionLockKey,
+                    completionLockValue,
+                    expiry: TimeSpan.FromSeconds(45),
+                    when: When.NotExists);
+
+                if (!lockAcquired)
+                {
+                    _logger.LogWarning(
+                        "[AutoComplete] Save lock already held for {DeviceId}:{Transaction}. Skipping duplicate completion attempt.",
+                        deviceId, transaction);
+                    return true;
+                }
+
                 _logger.LogInformation("[AutoComplete] Starting automatic completion and save for {DeviceId}:{Transaction}",
                     deviceId, transaction);
 
@@ -265,6 +284,13 @@ namespace FMS.Application.Services
                     {
                         _logger.LogInformation("[AutoComplete] **SAVE VERIFIED** - Transaction {Transaction} successfully saved and can be retrieved from database",
                             transaction);
+
+                        // Mark transaction as saved to prevent subsequent IdleStatus duplicate processing.
+                        var savedMarkerKey = $"autocompletion:saved:{deviceId}:{transaction}";
+                        await _redisDb.StringSetAsync(
+                            savedMarkerKey,
+                            DateTime.UtcNow.ToString("o"),
+                            TimeSpan.FromDays(1));
 
                         // **CRITICAL FIX**: Process TankVolumeHistory for automated dispensing
                         // This was missing - causing transactions to be saved but NOT recorded in tank ledger
@@ -463,6 +489,33 @@ namespace FMS.Application.Services
                 _logger.LogError(ex, "[AutoComplete] **CRITICAL ERROR** completing and saving transaction {Transaction} for device {DeviceId} - Exception Type: {ExceptionType}, Message: {Message}",
                     transaction, deviceId, ex.GetType().Name, ex.Message);
                 return false;
+            }
+            finally
+            {
+                if (lockAcquired)
+                {
+                    await ReleaseCompletionLockAsync(completionLockKey, completionLockValue);
+                }
+            }
+        }
+
+        private async Task ReleaseCompletionLockAsync(string lockKey, string lockValue)
+        {
+            const string releaseLockScript =
+                "if redis.call('get', KEYS[1]) == ARGV[1] then " +
+                "return redis.call('del', KEYS[1]) " +
+                "else return 0 end";
+
+            try
+            {
+                await _redisDb.ScriptEvaluateAsync(
+                    releaseLockScript,
+                    new RedisKey[] { lockKey },
+                    new RedisValue[] { lockValue });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "[AutoComplete] Failed to release completion lock {LockKey}", lockKey);
             }
         }
 

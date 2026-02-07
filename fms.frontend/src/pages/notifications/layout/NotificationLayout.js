@@ -20,6 +20,7 @@ const NotificationLayout = ({ children }) => {
       { id: 'policies', text: 'Notification Rules', icon: 'fa-light fa-shield', path: notificationRoutes.policies },
       { id: 'categories', text: 'Categories', icon: 'fa-light fa-tags', path: notificationRoutes.categories },
       { id: 'recipients', text: 'Recipient Groups', icon: 'fa-light fa-users-gear', path: notificationRoutes.recipients },
+      { id: 'alert-configuration', text: 'Alert Thresholds', icon: 'fa-light fa-sliders', path: notificationRoutes.alertConfiguration },
       { id: 'history', text: 'History', icon: 'fa-light fa-clock-rotate-left', path: notificationRoutes.history },
       { id: 'email-config', text: 'Email Settings', icon: 'fa-light fa-envelope-open-text', path: notificationRoutes.emailConfig },
     ],

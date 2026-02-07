@@ -46,4 +46,8 @@ public partial class Issuetemplate
     public virtual Issuestatus? DefaultStatus { get; set; }
 
     public virtual Issueautocloseconfig? AutoCloseConfig { get; set; }
+    /// <summary>
+    /// Categories/Tags associated with this template (many-to-many)
+    /// </summary>
+    public virtual ICollection<Issuecategory> Categories { get; set; } = new List<Issuecategory>();
 }

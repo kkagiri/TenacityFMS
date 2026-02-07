@@ -2,7 +2,7 @@
  * File: NotificationService.cs
  * Purpose: Handles notification creation, routing, and delivery across channels.
  * Dependencies: GpsdataContext, ILogger, ISignalRNotificationService, INotificationRecipientResolver
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-07
  *
  * Key Functions:
  * - CreateNotificationAsync(): Creates a notification and dispatches it to recipients.
@@ -49,6 +49,7 @@ namespace FMS.Application.Features.Notification.Services
         private readonly INotificationChannelRegistry? _channelRegistry;
         private readonly IMapper _mapper;
         private readonly IPolicyRulesProcessor _policyRulesProcessor;
+        private readonly IScheduledReportDeliveryService? _scheduledReportDeliveryService;
 
         public NotificationService(
             IMapper mapper,
@@ -61,7 +62,8 @@ namespace FMS.Application.Features.Notification.Services
             INotificationRecipientResolver recipientResolver,
             ICategoryMetadataProvider? categoryMetadata = null,
             INotificationChannelRegistry? channelRegistry = null,
-            IPolicyRulesProcessor? policyRulesProcessor = null)
+            IPolicyRulesProcessor? policyRulesProcessor = null,
+            IScheduledReportDeliveryService? scheduledReportDeliveryService = null)
         {
             _mapper = mapper;
             _context = context;
@@ -74,6 +76,7 @@ namespace FMS.Application.Features.Notification.Services
             _categoryMetadata = categoryMetadata ?? new InMemoryCategoryMetadataProvider();
             _channelRegistry = channelRegistry;
             _policyRulesProcessor = policyRulesProcessor ?? new NullPolicyRulesProcessor();
+            _scheduledReportDeliveryService = scheduledReportDeliveryService;
         }
 
         // Simple null implementation that doesn't require a logger
@@ -464,7 +467,7 @@ namespace FMS.Application.Features.Notification.Services
                     dataJson,
                     out var scheduleType,
                     out var dayOfWeeks,
-                    out var weekOfMonthOrdinal,
+                    out var weekOfMonthOrdinals,
                     out var timeOfDay,
                     out var timeZoneId,
                     out parseError))
@@ -476,7 +479,7 @@ namespace FMS.Application.Features.Notification.Services
             {
                 var monthlyRunUtc = ComputeNextMonthlyRunUtc(
                     dayOfWeeks,
-                    weekOfMonthOrdinal ?? 1,
+                    weekOfMonthOrdinals,
                     timeOfDay,
                     timeZoneId,
                     referenceUtc);
@@ -504,14 +507,14 @@ namespace FMS.Application.Features.Notification.Services
             string? dataJson,
             out string scheduleType,
             out IReadOnlyCollection<DayOfWeek> dayOfWeeks,
-            out int? weekOfMonthOrdinal,
+            out IReadOnlyCollection<int> weekOfMonthOrdinals,
             out TimeSpan timeOfDay,
             out string? timeZoneId,
             out string? parseError)
         {
             scheduleType = "weekly";
             dayOfWeeks = new List<DayOfWeek> { DayOfWeek.Monday };
-            weekOfMonthOrdinal = null;
+            weekOfMonthOrdinals = new List<int> { 1 };
             timeOfDay = TimeSpan.FromHours(8);
             timeZoneId = "UTC";
             parseError = null;
@@ -555,11 +558,8 @@ namespace FMS.Application.Features.Notification.Services
 
                 if (string.Equals(scheduleType, "monthly", StringComparison.OrdinalIgnoreCase))
                 {
-                    var weekValue = recurringSchedule.Value<string>("weekOfMonth");
-                    weekOfMonthOrdinal = ParseWeekOfMonthOrdinal(weekValue);
-                    if (!weekOfMonthOrdinal.HasValue)
+                    if (!TryParseWeekOfMonthValues(recurringSchedule, out weekOfMonthOrdinals, out parseError))
                     {
-                        parseError = $"Invalid recurring weekOfMonth value '{weekValue}'";
                         return false;
                     }
                 }
@@ -616,6 +616,57 @@ namespace FMS.Application.Features.Notification.Services
             if (!dayOfWeeks.Any())
             {
                 parseError = "Recurring schedule requires at least one day of week";
+                return false;
+            }
+
+            return true;
+        }
+
+        private bool TryParseWeekOfMonthValues(
+            JObject recurringSchedule,
+            out IReadOnlyCollection<int> weekOfMonthOrdinals,
+            out string? parseError)
+        {
+            var parsedWeeks = new List<int>();
+            parseError = null;
+
+            if (recurringSchedule["weeksOfMonth"] is JArray weekArray && weekArray.Count > 0)
+            {
+                foreach (var weekToken in weekArray)
+                {
+                    var rawWeekValue = weekToken?.ToString();
+                    var parsedWeek = ParseWeekOfMonthOrdinal(rawWeekValue);
+                    if (!parsedWeek.HasValue)
+                    {
+                        parseError = $"Invalid recurring weeksOfMonth value '{rawWeekValue}'";
+                        weekOfMonthOrdinals = Array.Empty<int>();
+                        return false;
+                    }
+
+                    parsedWeeks.Add(parsedWeek.Value);
+                }
+            }
+            else
+            {
+                var weekValue = recurringSchedule.Value<string>("weekOfMonth");
+                var parsedWeek = ParseWeekOfMonthOrdinal(weekValue);
+                if (!parsedWeek.HasValue)
+                {
+                    parseError = $"Invalid recurring weekOfMonth value '{weekValue}'";
+                    weekOfMonthOrdinals = Array.Empty<int>();
+                    return false;
+                }
+
+                parsedWeeks.Add(parsedWeek.Value);
+            }
+
+            weekOfMonthOrdinals = parsedWeeks
+                .Distinct()
+                .ToList();
+
+            if (!weekOfMonthOrdinals.Any())
+            {
+                parseError = "Recurring schedule requires at least one week of month selector";
                 return false;
             }
 
@@ -781,6 +832,40 @@ namespace FMS.Application.Features.Notification.Services
             return TimeZoneInfo.ConvertTimeToUtc(
                 DateTime.SpecifyKind(candidateLocal, DateTimeKind.Unspecified),
                 timezone);
+        }
+
+        private DateTime? ComputeNextMonthlyRunUtc(
+            IReadOnlyCollection<DayOfWeek> dayOfWeeks,
+            IReadOnlyCollection<int> weekOfMonthOrdinals,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var safeWeekOrdinals = (weekOfMonthOrdinals ?? Array.Empty<int>())
+                .Where(value => value == -1 || (value >= 1 && value <= 4))
+                .Distinct()
+                .ToList();
+            if (!safeWeekOrdinals.Any())
+            {
+                safeWeekOrdinals.Add(1);
+            }
+
+            var candidates = safeWeekOrdinals
+                .SelectMany(weekOfMonthOrdinal =>
+                    dayOfWeeks
+                        .Distinct()
+                        .Select(dayOfWeek => ComputeNextMonthlyRunUtc(
+                            dayOfWeek,
+                            weekOfMonthOrdinal,
+                            timeOfDay,
+                            timeZoneId,
+                            referenceUtc)))
+                .Where(candidate => candidate.HasValue)
+                .Select(candidate => candidate.Value)
+                .OrderBy(candidate => candidate)
+                .ToList();
+
+            return candidates.Any() ? candidates[0] : null;
         }
 
         private DateTime? ComputeNextMonthlyRunUtc(
@@ -1327,6 +1412,23 @@ namespace FMS.Application.Features.Notification.Services
         {
             try
             {
+                if (IsScheduledReportNotification(notification) && _scheduledReportDeliveryService != null)
+                {
+                    var scheduledPayload = await _scheduledReportDeliveryService
+                        .BuildEmailPayloadAsync(notification, cancellationToken);
+
+                    if (scheduledPayload != null)
+                    {
+                        return await _emailService.SendEmailAsync(
+                            recipient.RecipientAddress,
+                            string.IsNullOrWhiteSpace(scheduledPayload.Subject) ? notification.Title : scheduledPayload.Subject,
+                            scheduledPayload.Body,
+                            isHtml: scheduledPayload.IsHtml,
+                            cancellationToken: cancellationToken,
+                            attachments: scheduledPayload.Attachments);
+                    }
+                }
+
                 var customEmailBody = TryGetCustomEmailBodyFromData(notification.Data);
                 if (!string.IsNullOrWhiteSpace(customEmailBody))
                 {
@@ -1335,7 +1437,7 @@ namespace FMS.Application.Features.Notification.Services
                         notification.Title,
                         customEmailBody,
                         isHtml: true,
-                        cancellationToken);
+                        cancellationToken: cancellationToken);
                 }
 
                 var policy = notification.NotificationPolicy;
@@ -1359,7 +1461,7 @@ namespace FMS.Application.Features.Notification.Services
                     notification.Title,
                     emailContent,
                     isHtml: true,
-                    cancellationToken);
+                    cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {
@@ -1387,6 +1489,36 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogDebug(ex, "Could not parse notification Data for custom email body");
                 return null;
+            }
+        }
+
+        private static bool IsScheduledReportNotification(Noti.Notification notification)
+        {
+            if (notification == null)
+            {
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(notification.TriggerSource) &&
+                notification.TriggerSource.Contains("ReportSchedule", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (string.IsNullOrWhiteSpace(notification.Data))
+            {
+                return false;
+            }
+
+            try
+            {
+                var dataObject = JObject.Parse(notification.Data);
+                var reportType = dataObject.Value<string>("reportType");
+                return !string.IsNullOrWhiteSpace(reportType);
+            }
+            catch
+            {
+                return false;
             }
         }
 

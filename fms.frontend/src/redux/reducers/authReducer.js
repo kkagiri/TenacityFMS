@@ -7,6 +7,9 @@ import {
     AUTH_REQUEST,
     AUTH_SUCCESS,
     AUTH_FAILURE,
+    FETCH_MY_PERMISSIONS_REQUEST,
+    FETCH_MY_PERMISSIONS_SUCCESS,
+    FETCH_MY_PERMISSIONS_FAILURE,
 } from '../actions/types';
 
 const initialState = {
@@ -15,6 +18,9 @@ const initialState = {
     loading: false,
     user: null,
     error: null,
+    myPermissions: [],         // Current user's permissions (from GET /Permission/me)
+    permissionsLoaded: false,  // Whether permissions have been fetched at least once
+    permissionsLoading: false, // Whether permissions are currently being fetched
 };
 
 const authReducer = (state = initialState, action) => {
@@ -45,6 +51,24 @@ const authReducer = (state = initialState, action) => {
                 token: payload.token,
                 error: null,
             };
+        case FETCH_MY_PERMISSIONS_REQUEST:
+            return {
+                ...state,
+                permissionsLoading: true,
+            };
+        case FETCH_MY_PERMISSIONS_SUCCESS:
+            return {
+                ...state,
+                myPermissions: payload,
+                permissionsLoaded: true,
+                permissionsLoading: false,
+            };
+        case FETCH_MY_PERMISSIONS_FAILURE:
+            return {
+                ...state,
+                permissionsLoading: false,
+                // Keep existing permissions if re-fetch fails
+            };
         case LOGIN_FAILURE:
         case AUTH_ERROR:
             localStorage.removeItem('token');
@@ -55,6 +79,9 @@ const authReducer = (state = initialState, action) => {
                 loading: false,
                 user: null,
                 error: payload,
+                myPermissions: [],
+                permissionsLoaded: false,
+                permissionsLoading: false,
             };
         case LOGOUT:
             localStorage.removeItem('token');
@@ -65,6 +92,9 @@ const authReducer = (state = initialState, action) => {
                 loading: false,
                 user: null,
                 error: null,
+                myPermissions: [],
+                permissionsLoaded: false,
+                permissionsLoading: false,
             };
         case AUTH_FAILURE:
             return {

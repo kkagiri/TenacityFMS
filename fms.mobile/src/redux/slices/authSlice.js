@@ -5,9 +5,11 @@ import ApiService from "../../services/apiService";
 // Async thunk for login
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
-  async (credentials, { rejectWithValue }) => {
+  async (credentials, { dispatch, rejectWithValue }) => {
     try {
       const response = await ApiService.login(credentials);
+      // After successful login, fetch permissions from API
+      dispatch(fetchMyPermissions());
       return response;
     } catch (error) {
       return rejectWithValue(error.message);
@@ -31,13 +33,15 @@ export const logoutUser = createAsyncThunk(
 // Async thunk for checking authentication status
 export const checkAuthStatus = createAsyncThunk(
   "auth/checkAuthStatus",
-  async (_, { rejectWithValue }) => {
+  async (_, { dispatch, rejectWithValue }) => {
     try {
       const token = await AsyncStorage.getItem("auth_token");
       const refreshToken = await AsyncStorage.getItem("refresh_token");
       const userData = await AsyncStorage.getItem("user_data");
 
       if (token && userData) {
+        // After restoring auth, fetch permissions from API
+        dispatch(fetchMyPermissions());
         return {
           token,
           refreshToken,
@@ -57,6 +61,25 @@ export const checkAuthStatus = createAsyncThunk(
   }
 );
 
+/**
+ * Fetches the current user's permissions from GET /Permission/me.
+ * Permissions are no longer embedded in the JWT token.
+ */
+export const fetchMyPermissions = createAsyncThunk(
+  "auth/fetchMyPermissions",
+  async (_, { rejectWithValue }) => {
+    try {
+      const response = await ApiService.api.get('/v1/Permission/me');
+      // Backend returns FMSResponse<IEnumerable<string>> with { data: [...] }
+      const permissions = response.data?.data || response.data?.Data || response.data || [];
+      return permissions;
+    } catch (error) {
+      console.warn('Failed to fetch user permissions:', error?.message);
+      return rejectWithValue(error.message);
+    }
+  }
+);
+
 const initialState = {
   user: null,
   token: null,
@@ -65,6 +88,8 @@ const initialState = {
   isLoading: false,
   error: null,
   masterTag: null,
+  myPermissions: [],         // Current user's permissions (from GET /Permission/me)
+  permissionsLoaded: false,  // Whether permissions have been fetched at least once
   preferences: {
     rememberLogin: false,
     biometricEnabled: false,
@@ -113,6 +138,8 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.myPermissions = [];
+        state.permissionsLoaded = false;
         state.error = action.payload;
       })
       // Logout cases
@@ -131,6 +158,8 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.myPermissions = [];
+        state.permissionsLoaded = false;
       })
       // Check auth status cases
       .addCase(checkAuthStatus.pending, (state) => {
@@ -150,6 +179,16 @@ const authSlice = createSlice({
         state.user = null;
         state.token = null;
         state.refreshToken = null;
+        state.myPermissions = [];
+        state.permissionsLoaded = false;
+      })
+      // Fetch my permissions cases
+      .addCase(fetchMyPermissions.fulfilled, (state, action) => {
+        state.myPermissions = action.payload;
+        state.permissionsLoaded = true;
+      })
+      .addCase(fetchMyPermissions.rejected, (state) => {
+        // Keep existing permissions if re-fetch fails
       });
   },
 });
