@@ -212,7 +212,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                 var dueDateText = issueDto.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
                 var assignedWorkerName = assignToUser?.UserName ?? "Assigned Worker";
                 var assignedWorkerEmail = assignToUser?.Email ?? "N/A";
-                var systemMessage = "You have been assigned this issue.";
+                var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
+                var systemMessage = $"You have been assigned this issue. Click here to view details.";
                 var emailBodyHtml = BuildAssignmentEmailHtmlMessage(
                     issueEntity.Id,
                     issueEntity.ProblemTitle,
@@ -232,12 +233,13 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     Type = NotificationType.Alert,
                     CategoryId = (int)WellKnownCategories.IssueTracker,
                     Priority = notificationPriority,
-                    Title = $"Issue Assigned: {issueEntity.ProblemTitle}",
+                    Title = $"Issue Assigned: {vehicleLabel}{issueEntity.ProblemTitle}",
                     Message = systemMessage,
                     Data = new
                     {
                         IssueId = issueEntity.Id,
                         IssueTitle = issueEntity.ProblemTitle,
+                        ActionUrl = issueUrl,
                         DueDate = issueDto.DueDate,
                         AssignedToUserId = assignToUserId,
                         AssignedToUserName = assignedWorkerName,

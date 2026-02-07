@@ -2,7 +2,7 @@
  * File: NotificationHistory.js
  * Purpose: Display notification delivery history with filters, retry actions, and trend chart.
  * Dependencies: react, devextreme-react, notificationsApi
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-07
  *
  * Key Functions/Components:
  * - loadAll: Loads notification rows and chart data.
@@ -61,13 +61,21 @@ const normalizeStatsToChartRows = (statsPayload) => {
 const resolveRecipientDisplay = (n) => {
   return (
     n.recipient ||
+    n.Recipient ||
     n.to ||
+    n.To ||
     n.userEmail ||
+    n.UserEmail ||
     n.recipientEmail ||
+    n.RecipientEmail ||
     n.siteName ||
+    n.SiteName ||
     n.vehicleName ||
+    n.VehicleName ||
     n.tankName ||
+    n.TankName ||
     n.ptsDeviceName ||
+    n.PtsDeviceName ||
     '-'
   );
 };
@@ -75,16 +83,22 @@ const resolveRecipientDisplay = (n) => {
 const resolveDeliveredAt = (n) => {
   return (
     n.deliveredAt ||
+    n.DeliveredAt ||
     n.readAt ||
+    n.ReadAt ||
     n.acknowledgedAt ||
+    n.AcknowledgedAt ||
     null
   );
 };
 
 const tryParseMetadata = (n) => {
   if (n.metadata && typeof n.metadata === 'object') return n.metadata;
+  if (n.Metadata && typeof n.Metadata === 'object') return n.Metadata;
   if (n.meta && typeof n.meta === 'object') return n.meta;
+  if (n.Meta && typeof n.Meta === 'object') return n.Meta;
   if (n.data && typeof n.data === 'object') return n.data;
+  if (n.Data && typeof n.Data === 'object') return n.Data;
   if (typeof n.data === 'string' && n.data.trim().startsWith('{')) {
     try {
       return JSON.parse(n.data);
@@ -92,7 +106,52 @@ const tryParseMetadata = (n) => {
       return null;
     }
   }
+  if (typeof n.Data === 'string' && n.Data.trim().startsWith('{')) {
+    try {
+      return JSON.parse(n.Data);
+    } catch {
+      return null;
+    }
+  }
   return null;
+};
+
+const stripHtmlTags = (value) => {
+  if (!value) return '';
+  return String(value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+};
+
+const resolveReportViewLink = (metadata) => {
+  if (!metadata || typeof metadata !== 'object') return null;
+
+  const rawLink = metadata.reportViewPath ||
+    metadata.reportViewUrl ||
+    metadata.ReportViewPath ||
+    metadata.ReportViewUrl ||
+    null;
+
+  if (!rawLink || typeof rawLink !== 'string') return null;
+
+  const normalized = rawLink.trim();
+  if (!normalized) return null;
+
+  return /^https?:\/\//i.test(normalized)
+    ? normalized
+    : (normalized.startsWith('/') ? normalized : `/${normalized}`);
+};
+
+const resolveReportActionText = (metadata) => {
+  if (!metadata || typeof metadata !== 'object') {
+    return 'Click here to view report';
+  }
+
+  const rawValue = metadata.reportActionText || metadata.ReportActionText;
+  if (!rawValue || typeof rawValue !== 'string') {
+    return 'Click here to view report';
+  }
+
+  const normalized = rawValue.trim();
+  return normalized || 'Click here to view report';
 };
 
 const resolveNotificationFromCell = (cellInfoOrRow, rows) => {
@@ -173,22 +232,37 @@ const NotificationHistory = () => {
         });
 
         const items = notifResult.isSuccess ? ensureArray(notifResult.data) : [];
-        const mappedItems = items.map((n) => ({
-          id: n.id ?? n.notificationId ?? n.Id,
-          type: (n.type || n.channel || 'system').toString().toLowerCase(),
-          subject: n.subject || n.title || 'Notification',
-          recipient: resolveRecipientDisplay(n),
-          status: (n.status || 'pending').toString().toLowerCase(),
-          sentAt: n.sentAt || n.createdAt || n.timestamp,
-          deliveredAt: resolveDeliveredAt(n),
-          template: n.templateName || n.template || '-',
-          policy: n.policyName || n.policy || '-',
-          priority: (n.priority || 'medium').toString().toLowerCase(),
-          retryCount: n.retryCount ?? 0,
-          errorMessage: n.errorMessage || n.error || null,
-          metadata: tryParseMetadata(n),
-          body: n.message || n.body || null,
-        }));
+        const mappedItems = items.map((n) => {
+          const metadata = tryParseMetadata(n);
+          const reportViewPath = resolveReportViewLink(metadata);
+          const reportActionText = resolveReportActionText(metadata);
+          const plainBody = stripHtmlTags(
+            n.message ||
+            n.Message ||
+            n.body ||
+            n.Body ||
+            ''
+          );
+
+          return ({
+            id: n.id ?? n.notificationId ?? n.Id,
+            type: (n.type || n.Type || n.channel || n.Channel || 'system').toString().toLowerCase(),
+            subject: n.subject || n.Subject || n.title || n.Title || 'Notification',
+            recipient: resolveRecipientDisplay(n),
+            status: (n.status || n.Status || 'pending').toString().toLowerCase(),
+            sentAt: n.sentAt || n.SentAt || n.createdAt || n.CreatedAt || n.timestamp || n.Timestamp,
+            deliveredAt: resolveDeliveredAt(n),
+            template: n.templateName || n.TemplateName || n.template || n.Template || '-',
+            policy: n.policyName || n.PolicyName || n.policy || n.Policy || '-',
+            priority: (n.priority || n.Priority || 'medium').toString().toLowerCase(),
+            retryCount: n.retryCount ?? n.RetryCount ?? 0,
+            errorMessage: n.errorMessage || n.ErrorMessage || n.error || n.Error || null,
+            metadata,
+            reportViewPath,
+            reportActionText,
+            body: reportViewPath ? 'Click here to view the report.' : (plainBody || null),
+          });
+        });
 
         if (!notifResult.isSuccess) {
           notify(notifResult.message || 'Failed to load notifications', 'error', 3000);
@@ -524,6 +598,20 @@ const NotificationHistory = () => {
                 <div className="tw-bg-white tw-border tw-p-3 tw-rounded tw-text-sm tw-text-gray-800">
                   {selectedNotification.body}
                 </div>
+              </div>
+            )}
+            {selectedNotification.reportViewPath && (
+              <div className="tw-mb-4">
+                <button
+                  type="button"
+                  className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-blue-700 tw-font-medium hover:tw-text-blue-800 tw-underline"
+                  onClick={() => {
+                    window.open(selectedNotification.reportViewPath, '_blank', 'noopener,noreferrer');
+                  }}
+                >
+                  <i className="fa-light fa-link"></i>
+                  {selectedNotification.reportActionText || 'Click here to view report'}
+                </button>
               </div>
             )}
 

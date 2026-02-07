@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useRef } from 'react';
-import { useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import notify from 'devextreme/ui/notify';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { createFuelingEvent } from '../../../../redux/actions/fuelingEventActions';
@@ -35,6 +35,13 @@ export const useFuelingEffects = ({
 }) => {
   const dispatch = useDispatch();
   const previousPumpStatuses = useRef({});
+  const monitoringPumpId =
+    state.transactionMonitoringData?.pumpId || state.activePumpForPopup?.id || null;
+  const currentFuelingContext = useSelector((reduxState) =>
+    ptsId && monitoringPumpId
+      ? reduxState.realtimeStatus?.deviceFuelingContexts?.[ptsId]?.[monitoringPumpId] || null
+      : null
+  );
 
   /**
    * Fetch sites when component mounts
@@ -118,12 +125,172 @@ export const useFuelingEffects = ({
   }, [ptsId, isLiveDataEnabled]);
 
   /**
+   * Open transaction monitoring automatically after authorization
+   * and keep legacy popup hidden while monitoring owns the flow.
+   */
+  useEffect(() => {
+    const monitoringTransactionId =
+      state.transactionMonitoringData?.transactionId || state.currentTransactionId;
+
+    if (!state.isAuthorized || !monitoringTransactionId) {
+      return;
+    }
+
+    if (!state.showTransactionMonitoring) {
+      state.setShowTransactionMonitoring(true);
+    }
+
+    if (state.showFuelingPopup) {
+      state.setShowFuelingPopup(false);
+    }
+
+    if (state.isFuelingPopupMinimized) {
+      state.setIsFuelingPopupMinimized(false);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    state.isAuthorized,
+    state.currentTransactionId,
+    state.transactionMonitoringData,
+    state.showTransactionMonitoring,
+    state.showFuelingPopup,
+    state.isFuelingPopupMinimized,
+  ]);
+
+  /**
+   * Keep monitoring context aligned with local operation mode and tank selection.
+   * This mirrors mobile behavior where monitor display remains informative even
+   * when backend context payload is delayed or partial.
+   */
+  useEffect(() => {
+    if (!ptsId || !state.showTransactionMonitoring || !monitoringPumpId) {
+      return;
+    }
+
+    const monitoringData = state.transactionMonitoringData || {};
+    const isTransferMode =
+      state.operationMode === "transfer" || monitoringData?.isTransfer === true;
+
+    const selectedTank = Array.isArray(state.availableTanks)
+      ? state.availableTanks.find(
+          (tank) => String(tank.id) === String(state.selectedTankId)
+        )
+      : null;
+
+    const sourceTankName = state.sourceTank?.name || state.sourceTank?.tankName || null;
+    const sourceTankId = state.sourceTank?.id || state.sourceTank?.tankId || null;
+    const destinationTankName = isTransferMode
+      ? selectedTank?.name || selectedTank?.tankName || null
+      : null;
+    const destinationTankId = isTransferMode
+      ? state.selectedTankId || monitoringData?.destinationTankId || null
+      : null;
+
+    const resolvedMode =
+      currentFuelingContext?.mode ||
+      (isTransferMode
+        ? "Transfer"
+        : state.operationMode === "vehicle"
+        ? "Vehicle"
+        : null) ||
+      "Vehicle";
+
+    const fallbackTankName = isTransferMode
+      ? sourceTankName
+      : selectedTank?.name || selectedTank?.tankName || null;
+
+    const nextContext = {
+      ...(currentFuelingContext || {}),
+      pumpId: monitoringPumpId,
+      mode: resolvedMode,
+      tankName: currentFuelingContext?.tankName || fallbackTankName || null,
+      sourceTankName: currentFuelingContext?.sourceTankName || sourceTankName || null,
+      sourceTankId: currentFuelingContext?.sourceTankId || sourceTankId || null,
+      destinationTankName:
+        currentFuelingContext?.destinationTankName || destinationTankName || null,
+      destinationTankId:
+        currentFuelingContext?.destinationTankId || destinationTankId || null,
+    };
+
+    const hasContextValue = Boolean(
+      nextContext.mode ||
+      nextContext.tankName ||
+      nextContext.sourceTankName ||
+      nextContext.destinationTankName
+    );
+
+    if (!hasContextValue) {
+      return;
+    }
+
+    const isChanged =
+      !currentFuelingContext ||
+      currentFuelingContext.mode !== nextContext.mode ||
+      currentFuelingContext.tankName !== nextContext.tankName ||
+      currentFuelingContext.sourceTankName !== nextContext.sourceTankName ||
+      currentFuelingContext.sourceTankId !== nextContext.sourceTankId ||
+      currentFuelingContext.destinationTankName !== nextContext.destinationTankName ||
+      currentFuelingContext.destinationTankId !== nextContext.destinationTankId;
+
+    if (!isChanged) {
+      return;
+    }
+
+    dispatch({
+      type: "UPDATE_FUELING_CONTEXTS",
+      payload: {
+        deviceId: ptsId,
+        fuelingContexts: [nextContext],
+      },
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    ptsId,
+    monitoringPumpId,
+    state.showTransactionMonitoring,
+    state.transactionMonitoringData,
+    state.operationMode,
+    state.availableTanks,
+    state.selectedTankId,
+    state.sourceTank,
+    currentFuelingContext,
+    dispatch,
+  ]);
+
+  /**
    * Update popup state based on Redux device pump status
    */
   useEffect(() => {
     const pumpDetails = state.activePumpForPopup
       ? getPumpDetails(state.activePumpForPopup.id)
       : null;
+    const isMonitoringVisible =
+      state.showTransactionMonitoring &&
+      Boolean(
+        state.transactionMonitoringData?.transactionId || state.currentTransactionId
+      );
+
+    if (isMonitoringVisible) {
+      if (state.showFuelingPopup) {
+        state.setShowFuelingPopup(false);
+      }
+
+      if (state.isFuelingPopupMinimized) {
+        state.setIsFuelingPopupMinimized(false);
+      }
+
+      if (
+        pumpDetails?.status === "endOfTransaction" ||
+        (pumpDetails?.status === "nozzleUp" &&
+          state.isAuthorized &&
+          !state.fuelingComplete)
+      ) {
+        state.setEotDetected(true);
+      }
+
+      // Mobile-aligned flow: do not auto-reset UI on idle while monitor is open.
+      return;
+    }
 
     if (pumpDetails?.status === "fueling") {
       if (!state.isFuelingPopupMinimized) {
@@ -242,8 +409,38 @@ export const useFuelingEffects = ({
     state.currentTransactionId,
     state.isFuelingPopupMinimized,
     state.eotDetected,
+    state.showTransactionMonitoring,
+    state.transactionMonitoringData,
+    state.isAuthorized,
+    state.fuelingComplete,
     getPumpDetails,
+    ptsId,
   ]); // Use specific state properties - setState functions are stable
+
+  /**
+   * Cleanup monitoring state when fueling session fully resets.
+   */
+  useEffect(() => {
+    const hasActiveFuelingSession =
+      Boolean(state.isAuthorized) ||
+      Boolean(state.currentTransactionId) ||
+      Boolean(state.activePumpForPopup?.id);
+
+    if (!hasActiveFuelingSession && state.showTransactionMonitoring) {
+      state.setShowTransactionMonitoring(false);
+    }
+
+    if (!hasActiveFuelingSession && state.transactionMonitoringData) {
+      state.setTransactionMonitoringData(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    state.isAuthorized,
+    state.currentTransactionId,
+    state.transactionMonitoringData,
+    state.activePumpForPopup,
+    state.showTransactionMonitoring,
+  ]);
 
   /**
    * Dispatch fueling events for FuelingEventsList

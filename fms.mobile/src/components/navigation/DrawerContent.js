@@ -1,3 +1,12 @@
+/**
+ * File: DrawerContent.js
+ * Purpose: Drawer menu content with role-based navigation items
+ * Dependencies: react, react-native, react-redux, @react-navigation/drawer
+ * Last Modified: 2026-02-07
+ *
+ * Key Functions/Components:
+ * - DrawerContent: Renders the drawer menu and handles navigation
+ */
 import React from "react";
 import {
   View,
@@ -87,19 +96,19 @@ const DrawerContent = ({ navigation, state }) => {
     // Admin-only menu items
     ...(isAdmin
       ? [
-          {
-            id: "locationSettings",
-            label: "Location Settings",
-            icon: "map-marker-alt",
-            screen: "LocationSettings",
-            description: "GPS & location validation",
-            adminOnly: true,
-          },
-          {
-            id: "divider3",
-            type: "divider",
-          },
-        ]
+        {
+          id: "locationSettings",
+          label: "Location Settings",
+          icon: "map-marker-alt",
+          screen: "LocationSettings",
+          description: "GPS & location validation",
+          adminOnly: true,
+        },
+        {
+          id: "divider3",
+          type: "divider",
+        },
+      ]
       : []),
     {
       id: "settings",

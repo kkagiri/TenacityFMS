@@ -1,3 +1,12 @@
+/**
+ * File: NotificationCenter.js
+ * Purpose: Bell popover for in-app notifications and report/action shortcuts
+ * Dependencies: react, react-redux, notification actions, DevExtreme button
+ * Last Modified: 2026-02-07
+ *
+ * Key Components:
+ * - NotificationCenter: Loads backend notifications and renders compact actionable list
+ */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -11,6 +20,84 @@ import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
 
 // Maximum notifications to show initially
 const MAX_VISIBLE_NOTIFICATIONS = 3;
+
+const stripHtmlTags = (value) => {
+  if (!value) return "";
+  return String(value).replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+};
+
+const tryParseNotificationData = (value) => {
+  if (!value) return null;
+  if (typeof value === "object") return value;
+
+  if (typeof value === "string") {
+    try {
+      return JSON.parse(value);
+    } catch {
+      return null;
+    }
+  }
+
+  return null;
+};
+
+const resolveBackendNotificationDbId = (notification) => {
+  if (!notification) return null;
+
+  const candidates = [
+    notification.notificationDbId,
+    notification.id,
+    notification.Id,
+  ];
+
+  for (const candidate of candidates) {
+    if (candidate === null || candidate === undefined || candidate === "") {
+      continue;
+    }
+
+    const parsed = Number(candidate);
+    if (Number.isInteger(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+
+  return null;
+};
+
+const resolveReportActionText = (data) => {
+  if (!data || typeof data !== "object") {
+    return "Click here to view report";
+  }
+
+  const value = data.reportActionText || data.ReportActionText;
+  if (!value || typeof value !== "string") {
+    return "Click here to view report";
+  }
+
+  const normalized = value.trim();
+  return normalized || "Click here to view report";
+};
+
+const resolveReportViewLink = (data) => {
+  if (!data || typeof data !== "object") return null;
+
+  const rawLink =
+    data.reportViewPath ||
+    data.reportViewUrl ||
+    data.ReportViewPath ||
+    data.ReportViewUrl ||
+    null;
+
+  if (!rawLink || typeof rawLink !== "string") return null;
+  const trimmedLink = rawLink.trim();
+  if (!trimmedLink) return null;
+
+  if (/^https?:\/\//i.test(trimmedLink)) {
+    return trimmedLink;
+  }
+
+  return trimmedLink.startsWith("/") ? trimmedLink : `/${trimmedLink}`;
+};
 
 // Error boundary component
 class NotificationErrorBoundary extends React.Component {
@@ -60,6 +147,19 @@ const NotificationCenter = () => {
   const isLoading = useRef(false);
   const popoverRef = useRef(null);
   const buttonRef = useRef(null);
+
+  const markBackendNotificationAsRead = useCallback((item) => {
+    if (!item?.isBackendNotification || item.isRead) {
+      return;
+    }
+
+    const notificationDbId = resolveBackendNotificationDbId(item);
+    if (!notificationDbId) {
+      return;
+    }
+
+    dispatch(markNotificationAsRead(notificationDbId));
+  }, [dispatch]);
 
   // Update mounted status on unmount
   useEffect(() => {
@@ -158,20 +258,48 @@ const NotificationCenter = () => {
     // Combine UI notifications and backend notifications
     const allNotifications = [
       ...notifications,
-      ...(backendNotifications || []).map((backendNotification) => ({
-        ...backendNotification,
-        id:
-          backendNotification.id ||
-          `backend-${backendNotification.notificationId}`,
-        type: backendNotification.type || "info",
-        title: backendNotification.title || "Notification",
-        message: backendNotification.message || backendNotification.content,
-        timestamp: new Date(
-          backendNotification.createdAt || backendNotification.timestamp
-        ).getTime(),
-        isBackendNotification: true,
-        isRead: backendNotification.isRead === true, // Strict boolean check
-      })),
+      ...(backendNotifications || []).map((backendNotification) => {
+        const parsedData = tryParseNotificationData(
+          backendNotification?.data ?? backendNotification?.Data
+        );
+        const backendDbId = resolveBackendNotificationDbId(backendNotification);
+        const reportLink = resolveReportViewLink(parsedData);
+        const rawMessage =
+          backendNotification?.message ||
+          backendNotification?.Message ||
+          backendNotification?.content ||
+          backendNotification?.Content;
+        const normalizedMessage = reportLink
+          ? "Click here to view the report."
+          : (stripHtmlTags(rawMessage) || "Notification");
+
+        return {
+          ...backendNotification,
+          id:
+            backendDbId ||
+            backendNotification?.notificationId ||
+            backendNotification?.NotificationId ||
+            `backend-${backendNotification?.title || backendNotification?.Title || "notification"}-${backendNotification?.createdAt || backendNotification?.CreatedAt || "unknown"}`,
+          notificationDbId: backendDbId,
+          type: String(
+            backendNotification?.type || backendNotification?.Type || "info"
+          ).toLowerCase(),
+          title: backendNotification?.title || backendNotification?.Title || "Notification",
+          message: normalizedMessage,
+          data: parsedData,
+          timestamp: new Date(
+            backendNotification?.createdAt ||
+              backendNotification?.CreatedAt ||
+              backendNotification?.timestamp ||
+              backendNotification?.Timestamp ||
+              Date.now()
+          ).getTime(),
+          isBackendNotification: true,
+          isRead:
+            backendNotification?.isRead === true ||
+            backendNotification?.IsRead === true,
+        };
+      }),
     ]; // Sort notifications by timestamp (latest first), with fallback sorting
     const sortedNotifications = allNotifications.sort((a, b) => {
       const timeA = a.timestamp || a.createdAt || 0;
@@ -284,6 +412,20 @@ const NotificationCenter = () => {
     return `${days} days ago`;
   };
 
+  const openReportLink = useCallback((reportLink) => {
+    if (!reportLink) return;
+
+    if (/^https?:\/\//i.test(reportLink)) {
+      window.open(reportLink, "_blank", "noopener,noreferrer");
+      return;
+    }
+
+    const normalizedPath = reportLink.startsWith("/")
+      ? reportLink
+      : `/${reportLink}`;
+    window.open(normalizedPath, "_blank", "noopener,noreferrer");
+  }, []);
+
   // Render import progress
   const renderImportProgress = () => {
     if (!importProgress || !importProgress.id) return null;
@@ -340,20 +482,19 @@ const NotificationCenter = () => {
             <span className="tw-truncate">{statusText}</span>
           </div>
           <div className="tw-text-xs tw-text-gray-600 tw-whitespace-nowrap tw-mr-2">
-            {processedRecords}/{totalRecords}    {percentage}%
+            {processedRecords}/{totalRecords}  {percentage}%
           </div>
         </div>
 
         {/* Progress bar */}
         <div className="tw-ml-8 tw-w-full tw-max-w-[230px] tw-bg-gray-200 tw-h-2 tw-mb-2 tw-rounded-full tw-overflow-hidden">
           <div
-            className={`tw-h-2 tw-rounded-full ${
-              statusText.includes("Failed")
+            className={`tw-h-2 tw-rounded-full ${statusText.includes("Failed")
                 ? "tw-bg-red-500"
                 : statusText === "Completed"
-                ? "tw-bg-green-500"
-                : "tw-bg-blue-500 progress-bar-animated"
-            }`}
+                  ? "tw-bg-green-500"
+                  : "tw-bg-blue-500 progress-bar-animated"
+              }`}
             style={{
               width: `${Math.max(percentage, 2)}%`,
               minWidth: percentage > 0 ? "8px" : "0",
@@ -364,12 +505,12 @@ const NotificationCenter = () => {
         {(importProgress.successCount > 0 ||
           importProgress.skippedCount > 0 ||
           importProgress.failureCount > 0) && (
-          <div className="tw-ml-8 tw-text-xs tw-text-gray-600 tw-mb-1">
-            {importProgress.successCount || 0} success,{" "}
-            {importProgress.skippedCount || 0} skipped,{" "}
-            {importProgress.failureCount || 0} failed
-          </div>
-        )}
+            <div className="tw-ml-8 tw-text-xs tw-text-gray-600 tw-mb-1">
+              {importProgress.successCount || 0} success,{" "}
+              {importProgress.skippedCount || 0} skipped,{" "}
+              {importProgress.failureCount || 0} failed
+            </div>
+          )}
 
         {/* Display additional info based on status */}
         {importProgress.failureCount > 0 && (
@@ -392,6 +533,25 @@ const NotificationCenter = () => {
     );
   };
 
+  // Handle notification click - navigate to action URL if available
+  const handleNotificationClick = useCallback((item) => {
+    if (!item) return;
+    const actionUrl = item.data?.ActionUrl || item.data?.actionUrl || item.data?.IssueUrl || item.data?.issueUrl;
+    if (actionUrl) {
+      // Mark as read if backend notification
+      markBackendNotificationAsRead(item);
+      // Navigate using relative path from the action URL
+      try {
+        const url = new URL(actionUrl);
+        window.location.href = url.pathname;
+      } catch {
+        // If not a full URL, treat as relative path
+        window.location.href = actionUrl;
+      }
+      setIsOpen(false);
+    }
+  }, [markBackendNotificationAsRead]);
+
   // Render notification item
   const renderNotificationItem = (item) => {
     if (!item || !item.id) return null;
@@ -406,6 +566,10 @@ const NotificationCenter = () => {
       isBackendNotification,
       isRead,
     } = item;
+    const hasActionUrl = !!(data?.ActionUrl || data?.actionUrl || data?.IssueUrl || data?.issueUrl);
+    const reportLink = resolveReportViewLink(data);
+    const reportActionText = resolveReportActionText(data);
+    const markReadId = resolveBackendNotificationDbId(item);
     const timeAgo = formatTimeAgo(timestamp || Date.now());
 
     // Determine icon based on notification type
@@ -451,9 +615,9 @@ const NotificationCenter = () => {
 
     return (
       <div
-        className={`notification-item tw-py-2 tw-px-2 tw-border-t tw-border-gray-200 ${
-          isBackendNotification && !isRead ? "tw-bg-blue-50" : ""
-        }`}
+        className={`notification-item tw-py-2 tw-px-2 tw-border-t tw-border-gray-200 ${isBackendNotification && !isRead ? "tw-bg-blue-50" : ""
+          } ${hasActionUrl ? "tw-cursor-pointer hover:tw-bg-gray-100" : ""}`}
+        onClick={hasActionUrl ? () => handleNotificationClick(item) : undefined}
       >
         <div className="tw-flex tw-gap-2">
           {/* Icon */}
@@ -464,18 +628,38 @@ const NotificationCenter = () => {
           <div className="tw-flex-1 tw-min-w-0">
             {title && (
               <div
-                className={`tw-text-sm tw-font-semibold tw-leading-tight ${
-                  isBackendNotification && !isRead
+                className={`tw-text-sm tw-font-semibold tw-leading-tight ${isBackendNotification && !isRead
                     ? "tw-text-gray-900"
                     : "tw-text-gray-800"
-                }`}
+                  }`}
               >
                 {title}
               </div>
             )}
             <div className="tw-text-xs tw-text-gray-600 tw-leading-snug tw-mt-0.5">
               {message || "Notification"}
+              {hasActionUrl && (
+                <span className="tw-text-blue-600 tw-font-medium tw-ml-1">
+                  View details ->
+                </span>
+              )}
             </div>
+            {reportLink && (
+              <div className="tw-mt-1">
+                <button
+                  type="button"
+                  className="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-text-blue-700 hover:tw-text-blue-800 tw-font-medium tw-underline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openReportLink(reportLink);
+                    markBackendNotificationAsRead(item);
+                  }}
+                >
+                  <i className="fa-light fa-link"></i>
+                  {reportActionText}
+                </button>
+              </div>
+            )}
             {/* Device ID */}
             {data?.deviceId && (
               <div className="tw-text-xs tw-text-blue-600 tw-mt-0.5">
@@ -494,16 +678,19 @@ const NotificationCenter = () => {
           </div>
           {/* Action button */}
           <div className="tw-flex-shrink-0 tw-flex tw-items-start">
-            {isBackendNotification && !isRead && (
+            {isBackendNotification && !isRead && markReadId && (
               <button
                 className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-blue-100 tw-text-blue-600 hover:tw-bg-blue-200 tw-rounded-full tw-border tw-border-blue-300 tw-text-xs"
-                onClick={() => dispatch(markNotificationAsRead(item.id))}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  markBackendNotificationAsRead(item);
+                }}
                 title="Mark as read"
               >
                 <i className="fa-solid fa-check"></i>
               </button>
             )}
-            {isBackendNotification && isRead && (
+            {isBackendNotification && isRead && markReadId && (
               <div
                 className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-green-100 tw-text-green-500 tw-rounded-full tw-border tw-border-green-200 tw-text-xs tw-opacity-60"
                 title="Read"
@@ -593,9 +780,8 @@ const NotificationCenter = () => {
                           {showAllNotifications ? "Show Less" : "Show More"}
                         </span>
                         <i
-                          className={`fa-solid fa-chevron-${
-                            showAllNotifications ? "up" : "down"
-                          } tw-text-blue-500 tw-ml-1 tw-text-xs`}
+                          className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
+                            } tw-text-blue-500 tw-ml-1 tw-text-xs`}
                         ></i>
                       </button>
                     </div>
@@ -617,3 +803,4 @@ const NotificationCenter = () => {
 };
 
 export default NotificationCenter;
+

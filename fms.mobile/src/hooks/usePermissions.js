@@ -60,9 +60,33 @@ export const usePermissions = () => {
 
   // Check if user is admin (Admin or SuperAdmin role)
   const isAdmin = useMemo(() => {
-    if (!token) return false;
-    return jwtHasRole(token, "Admin") || jwtHasRole(token, "SuperAdmin");
-  }, [token]);
+    if (token && (jwtHasRole(token, "Admin") || jwtHasRole(token, "SuperAdmin"))) {
+      return true;
+    }
+
+    const roleCandidates = [
+      user?.roleName,
+      user?.role,
+      ...(Array.isArray(user?.roles)
+        ? user.roles
+        : user?.roles
+          ? [user.roles]
+          : []),
+    ];
+
+    return roleCandidates.some((role) => {
+      if (!role || typeof role !== "string") return false;
+      const normalized = role.toLowerCase();
+      return (
+        normalized === "admin" ||
+        normalized === "superadmin" ||
+        normalized === "super admin" ||
+        normalized === "superadministrator" ||
+        normalized === "super administrator" ||
+        normalized === "administrator"
+      );
+    });
+  }, [token, user]);
 
   // Check if user can edit vehicles (has _Edit_Vehicle permission)
   const canEditVehicle = useMemo(() => {

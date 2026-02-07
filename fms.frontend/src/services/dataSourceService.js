@@ -1,5 +1,16 @@
+/**
+ * File: dataSourceService.js
+ * Purpose: Manage dashboard data source catalog, metadata, and streaming data access
+ * Dependencies: axiosInstance, dashboardFactory, dashboardSignalRService
+ * Last Modified: 2026-02-07
+ *
+ * Key Functions:
+ * - getAvailableDataSources(): Retrieves and caches source catalog entries
+ * - getDataSourceMetadata(): Retrieves and caches source metadata
+ * - normalizeConfigurationForSource(): Applies metadata defaults to widget configuration
+ */
 import axiosInstance from '../api/axiosInstance';
-import { dashboardApi } from '../api/dashboardFactory';
+import dashboardApiDefault, { dashboardApi as dashboardApiNamed } from '../api/dashboardFactory';
 import dashboardSignalRService from '../signalR/dashboardSignalRService';
 
 /**
@@ -352,6 +363,135 @@ class DataSourceService {
   }
 
   /**
+   * Normalize API payload from direct axios responses and helper methods
+   * @param {object} payload - Raw payload or axios response payload
+   * @returns {*} Normalized payload
+   */
+  extractPayload(payload) {
+    if (!payload) return payload;
+
+    if (payload.data !== undefined && payload.config !== undefined) {
+      return this.extractPayload(payload.data);
+    }
+
+    if (payload.data !== undefined) {
+      return this.extractPayload(payload.data);
+    }
+
+    if (payload.Data !== undefined) {
+      return this.extractPayload(payload.Data);
+    }
+
+    return payload;
+  }
+
+  /**
+   * Resolve a callable dashboard factory method from named/default exports
+   * @param {string} methodName - Method name on dashboard API object
+   * @returns {Function|null} Callable function or null when unavailable
+   */
+  resolveDashboardApiMethod(methodName) {
+    const clients = [dashboardApiNamed, dashboardApiDefault];
+
+    for (const client of clients) {
+      const method = client?.[methodName];
+      if (typeof method === 'function') {
+        return method.bind(client);
+      }
+    }
+
+    return null;
+  }
+
+  /**
+   * Normalize metadata to expected camelCase shape
+   * @param {object} metadata - Raw metadata payload
+   * @returns {object|null} Normalized metadata
+   */
+  normalizeMetadataShape(metadata) {
+    if (!metadata || typeof metadata !== 'object') {
+      return null;
+    }
+
+    return {
+      ...metadata,
+      supportedAggregations: metadata.supportedAggregations || metadata.SupportedAggregations || [],
+      supportedGranularities: metadata.supportedGranularities || metadata.SupportedGranularities || metadata.supportedGranularity || [],
+      supportedModes: metadata.supportedModes || metadata.SupportedModes || [],
+      supportedGroupBy: metadata.supportedGroupBy || metadata.SupportedGroupBy || [],
+      supportedUnits: metadata.supportedUnits || metadata.SupportedUnits || [],
+      recommendedUnits: metadata.recommendedUnits || metadata.RecommendedUnits || [],
+      compatibleWidgetTypes: metadata.compatibleWidgetTypes || metadata.CompatibleWidgetTypes || [],
+      defaultAggregation: metadata.defaultAggregation || metadata.DefaultAggregation,
+      defaultGranularity: metadata.defaultGranularity || metadata.DefaultGranularity,
+      defaultMode: metadata.defaultMode || metadata.DefaultMode,
+      category: metadata.category || metadata.Category,
+      displayName: metadata.displayName || metadata.DisplayName,
+      unit: metadata.unit || metadata.Unit,
+      requiresSiteFilter: metadata.requiresSiteFilter ?? metadata.RequiresSiteFilter ?? true,
+      requiresVehicleFilter: metadata.requiresVehicleFilter ?? metadata.RequiresVehicleFilter ?? false,
+      defaultConfiguration: metadata.defaultConfiguration || metadata.DefaultConfiguration || {},
+      recommendations: metadata.recommendations || metadata.Recommendations || {}
+    };
+  }
+
+  /**
+   * Normalize catalog payload into an item array
+   * @param {object|Array} payload - Raw catalog payload
+   * @returns {Array} Normalized catalog items
+   */
+  normalizeCatalogItems(payload) {
+    const normalized = this.extractPayload(payload);
+
+    if (Array.isArray(normalized)) {
+      return normalized;
+    }
+
+    if (Array.isArray(normalized?.Items)) {
+      return normalized.Items;
+    }
+
+    if (Array.isArray(normalized?.items)) {
+      return normalized.items;
+    }
+
+    return [];
+  }
+
+  /**
+   * Retrieve metadata with dashboard factory fallback to direct HTTP call
+   * @param {string} dataSource - Data source identifier
+   * @returns {Promise<object|null>} Metadata object
+   */
+  async fetchDataSourceMetadata(dataSource) {
+    const getMetadata = this.resolveDashboardApiMethod('getDataSourceMetadata');
+
+    if (getMetadata) {
+      const metadata = await getMetadata(dataSource);
+      return this.normalizeMetadataShape(metadata);
+    }
+
+    const response = await axiosInstance.get(`v1/dashboard/data-sources/${dataSource}/metadata`);
+    return this.normalizeMetadataShape(this.extractPayload(response));
+  }
+
+  /**
+   * Retrieve data sources with dashboard factory fallback to direct HTTP call
+   * @returns {Promise<Array>} Catalog item list
+   */
+  async fetchDataSourcesCatalog() {
+    const getDataSources = this.resolveDashboardApiMethod('getDataSources');
+
+    if (getDataSources) {
+      const result = await getDataSources();
+      return this.normalizeCatalogItems(result);
+    }
+
+    const response = await axiosInstance.get('v1/dashboard/data-sources');
+    return this.normalizeCatalogItems(response);
+  }
+
+  /**
    * Get metadata for a data source
    * @param {string} dataSource - Data source identifier
    * @returns {Promise<object>} Data source metadata
@@ -367,7 +507,7 @@ class DataSourceService {
     }
 
     try {
-      const metadata = await dashboardApi.getDataSourceMetadata(dataSource, { forceRefresh });
+      const metadata = await this.fetchDataSourceMetadata(dataSource);
       if (metadata) {
         this.metadataCache.set(cacheKey, { metadata, timestamp: Date.now() });
         return metadata;
@@ -453,7 +593,7 @@ class DataSourceService {
     }
 
     try {
-      const result = await dashboardApi.getDataSources({ forceRefresh });
+      const result = await this.fetchDataSourcesCatalog();
       // Ensure items is always an array
       const items = Array.isArray(result) ? result : [];
       this.catalogCache = { items, timestamp: Date.now() };

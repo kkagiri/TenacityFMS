@@ -1,9 +1,18 @@
+/**
+ * File: TankVolumeHistoryReport.js
+ * Purpose: Interactive tank volume history report page with filters and export-ready data grid
+ * Dependencies: react, react-router-dom, DevExtreme controls, ReportBuilder, reportingService
+ * Last Modified: 2026-02-07
+ *
+ * Key Components:
+ * - TankVolumeHistoryReport: Loads report configuration and applies URL/default filters for viewing
+ */
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ReportBuilder } from '../../components/Reporting';
 import { DateBox } from 'devextreme-react/date-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TagBox } from 'devextreme-react/tag-box';
-import { CheckBox } from 'devextreme-react/check-box';
 import { Button } from 'devextreme-react/button';
 import reportingService from '../../services/reportingService';
 import axios from '../../api/axiosInstance';
@@ -13,7 +22,16 @@ import './TankVolumeHistoryReport.scss';
 /**
  * Tank Volume History Report - Example implementation using ReportBuilder
  */
+const parseCsvIdList = (rawValue) => {
+  if (!rawValue) return [];
+  return String(rawValue)
+    .split(',')
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
+};
+
 const TankVolumeHistoryReport = () => {
+  const [searchParams] = useSearchParams();
   const [reportDefinition, setReportDefinition] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -38,6 +56,70 @@ const TankVolumeHistoryReport = () => {
 
   // Report filters (passed to ReportBuilder)
   const [reportFilters, setReportFilters] = useState(null);
+
+  // Apply deep-link filters when page is opened from scheduled-report notifications
+  useEffect(() => {
+    const shouldAutoApply = searchParams.get('autoApply') === '1';
+    if (!shouldAutoApply) {
+      return;
+    }
+
+    const parsedStartDate = searchParams.get('startDate')
+      ? new Date(searchParams.get('startDate'))
+      : null;
+    const parsedEndDate = searchParams.get('endDate')
+      ? new Date(searchParams.get('endDate'))
+      : null;
+    const parsedSiteIds = parseCsvIdList(searchParams.get('siteIds'));
+    const parsedTankIds = parseCsvIdList(searchParams.get('tankIds'));
+
+    if (parsedStartDate && !Number.isNaN(parsedStartDate.getTime())) {
+      setStartDate(parsedStartDate);
+    }
+
+    if (parsedEndDate && !Number.isNaN(parsedEndDate.getTime())) {
+      setEndDate(parsedEndDate);
+    }
+
+    if (parsedSiteIds.length) {
+      setSelectedSites(parsedSiteIds);
+    }
+
+    if (parsedTankIds.length) {
+      setSelectedTanks(parsedTankIds);
+    }
+
+    const defaultStartDate = new Date();
+    defaultStartDate.setDate(defaultStartDate.getDate() - 30);
+    const defaultEndDate = new Date();
+
+    const startForFilter =
+      parsedStartDate && !Number.isNaN(parsedStartDate.getTime())
+        ? parsedStartDate
+        : defaultStartDate;
+    const endForFilter =
+      parsedEndDate && !Number.isNaN(parsedEndDate.getTime())
+        ? parsedEndDate
+        : defaultEndDate;
+
+    const filters = {
+      startDate: startForFilter?.toISOString(),
+      endDate: endForFilter?.toISOString(),
+      take: 100,
+      includeVehicleNames: true,
+      useManualDispensing: false,
+    };
+
+    if (parsedSiteIds.length > 0) {
+      filters.siteId = parsedSiteIds[0];
+    }
+
+    if (parsedTankIds.length > 0) {
+      filters.tankId = parsedTankIds[0];
+    }
+
+    setReportFilters(filters);
+  }, [searchParams]);
 
   // Load report definition
   useEffect(() => {
@@ -324,20 +406,26 @@ const TankVolumeHistoryReport = () => {
 
           {/* Include Vehicle Names */}
           <div className="tw-flex tw-items-end">
-            <CheckBox
-              text="Include Vehicle Names"
-              value={includeVehicleNames}
-              onValueChanged={(e) => setIncludeVehicleNames(e.value)}
-            />
+            <label className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-700">
+              <input
+                type="checkbox"
+                checked={includeVehicleNames}
+                onChange={(e) => setIncludeVehicleNames(e.target.checked)}
+              />
+              <span>Include Vehicle Names</span>
+            </label>
           </div>
 
           {/* Use Manual Dispensing */}
           <div className="tw-flex tw-items-end">
-            <CheckBox
-              text="Use Manual Dispensing"
-              value={useManualDispensing}
-              onValueChanged={(e) => setUseManualDispensing(e.value)}
-            />
+            <label className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-700">
+              <input
+                type="checkbox"
+                checked={useManualDispensing}
+                onChange={(e) => setUseManualDispensing(e.target.checked)}
+              />
+              <span>Use Manual Dispensing</span>
+            </label>
           </div>
         </div>
       </div>

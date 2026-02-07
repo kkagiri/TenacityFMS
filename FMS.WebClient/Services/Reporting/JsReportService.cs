@@ -1,3 +1,14 @@
+/**
+ * File: JsReportService.cs
+ * Purpose: Render JsReport templates to PDF, Excel, and HTML using embedded jsreport.Local
+ * Dependencies: jsreport.Local, jsreport.Types, Newtonsoft.Json, ILogger
+ * Last Modified: 2026-02-07
+ *
+ * Key Functions:
+ * - RenderPdfAsync: Renders a named template to PDF with adaptive timeout for large payloads
+ * - RenderExcelAsync: Renders a named template to XLSX with adaptive timeout
+ * - RenderHtmlAsync: Renders a named template to HTML preview with adaptive timeout
+ */
 using jsreport.Local;
 using jsreport.Types;
 using Microsoft.Extensions.Logging;
@@ -6,6 +17,8 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Text;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 namespace FMS.WebClient.Services.Reporting
@@ -16,6 +29,10 @@ namespace FMS.WebClient.Services.Reporting
     /// </summary>
     public class JsReportService : IJsReportService, IAsyncDisposable
     {
+        private const int DefaultRenderTimeoutMs = 120000;
+        private const int LargePayloadRenderTimeoutMs = 300000;
+        private const int LargePayloadThresholdBytes = 750000;
+
         private readonly ILogger<JsReportService> _logger;
         private readonly ILocalUtilityReportingService _reportingService;
         private readonly string _templatesPath;
@@ -86,7 +103,8 @@ namespace FMS.WebClient.Services.Reporting
                             PrintBackground = true
                         }
                     },
-                    Data = data
+                    Data = data,
+                    Options = BuildRenderOptions(data)
                 });
 
                 using var ms = new MemoryStream();
@@ -95,7 +113,11 @@ namespace FMS.WebClient.Services.Reporting
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error rendering PDF for template {Template}", templateName);
+                _logger.LogError(
+                    ex,
+                    "Error rendering PDF for template {Template}. Payload size: {PayloadBytes} bytes",
+                    templateName,
+                    EstimatePayloadSizeBytes(data));
                 throw;
             }
         }
@@ -118,7 +140,8 @@ namespace FMS.WebClient.Services.Reporting
                         Engine = Engine.Handlebars,
                         Recipe = Recipe.HtmlToXlsx
                     },
-                    Data = data
+                    Data = data,
+                    Options = BuildRenderOptions(data)
                 });
 
                 using var ms = new MemoryStream();
@@ -150,7 +173,8 @@ namespace FMS.WebClient.Services.Reporting
                         Engine = Engine.Handlebars,
                         Recipe = Recipe.Html
                     },
-                    Data = data
+                    Data = data,
+                    Options = BuildRenderOptions(data)
                 });
 
                 using var reader = new StreamReader(report.Content);
@@ -184,7 +208,8 @@ namespace FMS.WebClient.Services.Reporting
                             PrintBackground = true
                         }
                     },
-                    Data = data
+                    Data = data,
+                    Options = BuildRenderOptions(data)
                 });
 
                 using var ms = new MemoryStream();
@@ -243,6 +268,48 @@ namespace FMS.WebClient.Services.Reporting
             if (_reportingService != null)
             {
                 await _reportingService.KillAsync();
+            }
+        }
+
+        private RenderOptions BuildRenderOptions(object data)
+        {
+            var payloadBytes = EstimatePayloadSizeBytes(data);
+            var timeoutMs = payloadBytes >= LargePayloadThresholdBytes
+                ? LargePayloadRenderTimeoutMs
+                : DefaultRenderTimeoutMs;
+
+            _logger.LogDebug(
+                "JsReport render payload size {PayloadBytes} bytes. Using timeout {TimeoutMs}ms",
+                payloadBytes,
+                timeoutMs);
+
+            return new RenderOptions
+            {
+                Timeout = timeoutMs
+            };
+        }
+
+        private int EstimatePayloadSizeBytes(object data)
+        {
+            if (data == null)
+            {
+                return 0;
+            }
+
+            try
+            {
+                if (data is JsonElement jsonElement)
+                {
+                    return Encoding.UTF8.GetByteCount(jsonElement.GetRawText());
+                }
+
+                var serialized = JsonConvert.SerializeObject(data);
+                return Encoding.UTF8.GetByteCount(serialized);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Failed to estimate JsReport payload size");
+                return 0;
             }
         }
 

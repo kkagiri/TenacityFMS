@@ -1,3 +1,14 @@
+/**
+ * File: WidgetConfigModal.js
+ * Purpose: Configure, create, and update dashboard widgets from the modal workflow
+ * Dependencies: React, Redux, DevExtreme popup/button, dashboardService, dataSourceService
+ * Last Modified: 2026-02-07
+ *
+ * Key Functions:
+ * - loadWidgetTemplates(): Fetches widget templates for add/edit flows
+ * - handleSave(): Creates or updates widget instances with normalized payloads
+ * - handlePreviewData(): Requests preview data for current widget configuration
+ */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import Popup from 'devextreme-react/popup';
@@ -331,6 +342,10 @@ export default function WidgetConfigModal({
 
     setIsSaving(true);
     try {
+      const editingTemplateId = formMode === 'edit'
+        ? (editingWidget?.templateId || editingWidget?.template?.id || null)
+        : null;
+
       // Build widget payload with enhanced widget support
       const widgetPayload = {
         customName: newWidget.customName.trim(),
@@ -350,29 +365,32 @@ export default function WidgetConfigModal({
       if (newWidget.templateId) {
         widgetPayload.templateId = newWidget.templateId;
       }
-      // Handle custom widgets - use existing template as base
+      // Handle custom widgets - template link is optional
       else if (newWidget.category && newWidget.visualizationType) {
-        // Find a template that matches the widget type or category to use as a base
-        const baseTemplate = widgetTemplates.find(t =>
+        const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
+
+        // Optional: find a related template for traceability, but do not block custom saves
+        const baseTemplate = templatesArray.find(t =>
           t.widgetType === newWidget.visualizationType ||
           t.category === newWidget.category
-        ) || widgetTemplates[0]; // Fallback to first template
+        ) || templatesArray[0]; // Fallback to first template
 
-        if (baseTemplate) {
-          widgetPayload.templateId = baseTemplate.id;
-          widgetPayload.visualizationType = newWidget.visualizationType;
+        const resolvedTemplateId = editingTemplateId || baseTemplate?.id;
 
-          // Override with custom settings
-          widgetPayload.settings = {
-            ...widgetPayload.settings,
-            isCustomWidget: true,
-            originalCategory: newWidget.category,
-            customWidgetType: newWidget.visualizationType,
-            baseTemplateId: baseTemplate.id
-          };
-        } else {
-          throw new Error('No templates available to use as base for custom widget');
+        if (resolvedTemplateId) {
+          widgetPayload.templateId = resolvedTemplateId;
         }
+
+        widgetPayload.visualizationType = newWidget.visualizationType;
+
+        // Explicit custom-widget markers required by backend create/update flows
+        widgetPayload.settings = {
+          ...widgetPayload.settings,
+          isCustomWidget: true,
+          originalCategory: newWidget.category,
+          customWidgetType: newWidget.visualizationType,
+          ...(baseTemplate?.id ? { baseTemplateId: baseTemplate.id } : {})
+        };
       }
 
       // Add metric/dataSource if specified

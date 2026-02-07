@@ -2,13 +2,16 @@
  * File: reportEmailScheduleUtils.js
  * Purpose: Shared helpers/constants for recurring report email scheduling
  * Dependencies: none
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-07
  *
  * Key Functions:
  * - createDefaultReportScheduleConfig: Builds default scheduler form state
  * - getNextRunDateTime: Resolves next run date/time from day/week/time selectors
  * - getEffectiveReportWindowForRun: Resolves report window from next run and period
  * - buildScheduledReportSummaryHtml: Creates summary HTML for notification message body
+ * - buildScheduledReportViewPath: Creates a report page link for notifications/emails
+ * - buildScheduledReportActionText: Creates action text for view/download links by format
+ * - buildScheduledReportNotificationMessage: Creates a plain-text in-app message
  */
 
 export const REPORT_NAME_PREFIX = "TankVolumeHistory - ";
@@ -19,6 +22,7 @@ export const REPORT_PERIOD_OPTIONS = [
 ];
 
 export const REPORT_FORMAT_OPTIONS = [
+  { id: "html", name: "HTML" },
   { id: "pdf", name: "PDF" },
   { id: "excel", name: "Excel" },
 ];
@@ -89,6 +93,61 @@ export const buildReportNameWithPrefix = (reportName) => {
   return normalizedName.startsWith(REPORT_NAME_PREFIX)
     ? normalizedName
     : `${REPORT_NAME_PREFIX}${normalizedName}`;
+};
+
+const normalizeIdList = (ids = []) =>
+  (Array.isArray(ids) ? ids : [])
+    .filter((id) => id !== null && id !== undefined && String(id).trim().length > 0)
+    .map((id) => String(id).trim());
+
+export const buildScheduledReportViewPath = ({
+  reportWindow,
+  siteIds = [],
+  tankIds = [],
+  preferredFormat = "pdf",
+} = {}) => {
+  const params = new URLSearchParams();
+  const startDate = toIsoDate(reportWindow?.startDate);
+  const endDate = toIsoDate(reportWindow?.endDate);
+
+  if (startDate) params.set("startDate", startDate);
+  if (endDate) params.set("endDate", endDate);
+
+  const normalizedSiteIds = normalizeIdList(siteIds);
+  if (normalizedSiteIds.length) params.set("siteIds", normalizedSiteIds.join(","));
+
+  const normalizedTankIds = normalizeIdList(tankIds);
+  if (normalizedTankIds.length) params.set("tankIds", normalizedTankIds.join(","));
+
+  params.set("preferredFormat", String(preferredFormat || "pdf").toLowerCase());
+  params.set("autoApply", "1");
+  params.set("source", "scheduled-email");
+
+  return `/reports/tank-volume-history?${params.toString()}`;
+};
+
+export const buildScheduledReportNotificationMessage = ({
+  title,
+  format,
+} = {}) => {
+  const safeTitle = title || `${REPORT_NAME_PREFIX}Scheduled Report`;
+  const normalizedFormat = String(format || "pdf").toUpperCase();
+  const actionText = buildScheduledReportActionText({ format }).toLowerCase();
+  return `${safeTitle} is scheduled. ${actionText} (${normalizedFormat}).`;
+};
+
+export const buildScheduledReportActionText = ({ format } = {}) => {
+  const normalizedFormat = String(format || "pdf").trim().toLowerCase();
+
+  if (normalizedFormat === "pdf") {
+    return "Click here to download PDF report";
+  }
+
+  if (normalizedFormat === "excel") {
+    return "Click here to download Excel report";
+  }
+
+  return "Click here to view report";
 };
 
 export const createDefaultReportScheduleConfig = ({
@@ -330,6 +389,8 @@ export const buildScheduledReportSummaryHtml = ({
   recipientNames = [],
   requestedBy,
   timeZone,
+  reportViewUrl,
+  reportActionText,
 }) => {
   const nextRun = nextRunAt ? new Date(nextRunAt) : null;
   const nextRunText =
@@ -349,6 +410,8 @@ export const buildScheduledReportSummaryHtml = ({
   const recipientText = recipientNames.length
     ? recipientNames.join(", ")
     : "Selected recipients";
+  const reportLinkText = reportViewUrl || "";
+  const actionText = reportActionText || buildScheduledReportActionText({ format });
   const weekLabel =
     periodType === "monthly"
       ? WEEK_OF_MONTH_OPTIONS.find((week) => week.id === scheduleWeekOfMonth)?.name || "1st Week"
@@ -378,6 +441,13 @@ export const buildScheduledReportSummaryHtml = ({
         <tr><td style="padding:6px 8px;border:1px solid #e5e7eb;"><strong>Recipients</strong></td><td style="padding:6px 8px;border:1px solid #e5e7eb;">${recipientText}</td></tr>
         <tr><td style="padding:6px 8px;border:1px solid #e5e7eb;"><strong>Requested by</strong></td><td style="padding:6px 8px;border:1px solid #e5e7eb;">${requestedBy || "Unknown User"} (${timeZone || "UTC"})</td></tr>
       </table>
+      ${reportLinkText
+      ? `<p style="margin:14px 0 0 0;">
+          <a href="${reportLinkText}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:8px 12px;background:#2563eb;color:#ffffff;text-decoration:none;border-radius:4px;">
+            ${actionText}
+          </a>
+        </p>`
+      : ""}
     </div>
   `;
 };

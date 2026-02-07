@@ -4,7 +4,7 @@
  *          chart views, manual refill workflows, and transaction maintenance actions.
  * Dependencies: react, react-redux, DevExtreme data grid and popup components, exceljs,
  *               Redux tank/site/user actions, custom services/hooks/components.
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-07
  *
  * Key Components:
  * - TransactionHub: Main container orchestrating transaction data loading, filtering,
@@ -68,8 +68,11 @@ import {
 } from "./transactionHub/transactionHistoryReportUtils";
 import {
   ScheduleReportEmailDialog,
+  buildScheduledReportActionText,
   buildReportNameWithPrefix,
+  buildScheduledReportNotificationMessage,
   buildScheduledReportSummaryHtml,
+  buildScheduledReportViewPath,
   createDefaultReportScheduleConfig,
   getEffectiveReportWindowForRun,
   getNextRunDateTime,
@@ -419,6 +422,20 @@ const TransactionHub = () => {
       const safeDescription =
         String(reportDescription || "").trim() ||
         "Scheduled tank volume history report delivery.";
+      const reportViewPath = buildScheduledReportViewPath({
+        reportWindow,
+        siteIds: selectedScheduleSiteIds,
+        tankIds: selectedScheduleTankIds,
+        preferredFormat: reportFormat
+      });
+      const reportViewUrl = `${window.location.origin}${reportViewPath}`;
+      const reportActionText = buildScheduledReportActionText({
+        format: reportFormat
+      });
+      const plainNotificationMessage = buildScheduledReportNotificationMessage({
+        title: prefixedReportName,
+        format: reportFormat
+      });
 
       const reportSummaryHtml = buildScheduledReportSummaryHtml({
         title: prefixedReportName,
@@ -435,7 +452,9 @@ const TransactionHub = () => {
         tankNames,
         recipientNames,
         requestedBy,
-        timeZone
+        timeZone,
+        reportViewUrl,
+        reportActionText
       });
 
       const notificationRequest = {
@@ -443,7 +462,7 @@ const TransactionHub = () => {
         CategoryId: 20,
         Priority: 1,
         Title: prefixedReportName,
-        Message: reportSummaryHtml,
+        Message: plainNotificationMessage,
         Data: {
           schedulerVersion: 3,
           reportType: "TransactionVolumeHistory",
@@ -471,7 +490,12 @@ const TransactionHub = () => {
           },
           requestedBy,
           requestedAt: new Date().toISOString(),
-          timeZone
+          timeZone,
+          reportViewPath,
+          reportViewUrl,
+          reportActionText,
+          EmailBodyHtml: reportSummaryHtml,
+          emailBodyHtml: reportSummaryHtml
         },
         TriggerSource: "TransactionVolumeHistoryReportSchedule",
         ScheduledAt: nextRunDate.toISOString(),

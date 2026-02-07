@@ -1217,6 +1217,7 @@ namespace FMS.Application.Features.Notification.Services
                         Id = n.Id,
                         NotificationId = n.NotificationId,
                         Type = n.Type,
+                        Data = n.Data,
                         Category = n.Category,
                         Priority = n.Priority,
                         Title = n.Title,

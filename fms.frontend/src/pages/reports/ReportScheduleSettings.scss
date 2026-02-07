@@ -1,0 +1,57 @@
+/**
+ * File: ReportScheduleSettings.scss
+ * Purpose: Styles for scheduled report email admin settings page.
+ * Dependencies: ReportScheduleSettings.js
+ * Last Modified: 2026-02-07
+ */
+.scheduled-emails {
+  .scheduled-emails__grid {
+    min-height: 420px;
+  }
+
+  .scheduled-emails__status {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .scheduled-emails__status--scheduled {
+    background: #e0f2fe;
+    color: #075985;
+  }
+
+  .scheduled-emails__status--sent {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  .scheduled-emails__status--cancelled {
+    background: #f3f4f6;
+    color: #374151;
+  }
+
+  .scheduled-emails__status--failed {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  .scheduled-emails__status--warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  .scheduled-emails__status--pending {
+    background: #e2e8f0;
+    color: #334155;
+  }
+
+  .scheduled-emails__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+}

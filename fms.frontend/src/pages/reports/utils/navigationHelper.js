@@ -16,6 +16,7 @@ export const reportsRoutes = {
   gallery: '/reports/gallery',
   tankVolumeHistory: '/reports/tank-volume-history',
   fuelImporter: '/reports/fuel-importer',
+  scheduledEmails: '/reports/scheduled-emails',
   consumptionRefills: '/reports/consumption-refills',
   vehicleConsumption: '/reports/vehicle-consumption',
   ptsOffline: '/reports/pts-offline',

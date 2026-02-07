@@ -36,7 +36,6 @@ namespace FMS.WebClient.Controllers.PTSController
     [ApiController]
     [Route("api/v1/[controller]")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Device)]
     public class PumpController : ControllerBase
     {
         private readonly IMediator _mediator;
@@ -70,6 +69,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Authorizes a pump for refueling
         /// </summary>
         [HttpPost("authorize")]
+        [RequirePermission(Permissions.PTSDevice.ManagePump)]
         public async Task<ActionResult<FMSResponse<PumpAuthorizeConfirmation>>> AuthorizePump([FromBody] PumpAuthorizeCommand command)
         {
             try
@@ -119,6 +119,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Authorizes a pump for tank-to-tank transfer (NOT vehicle fueling)
         /// </summary>
         [HttpPost("authorize-transfer")]
+        [RequirePermission(Permissions.PTSDevice.ManagePump)]
         public async Task<ActionResult<FMSResponse<PumpAuthorizeConfirmation>>> AuthorizeTransfer([FromBody] PumpAuthorizeTransferCommand command)
         {
             try
@@ -176,7 +177,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Gets the current state of a pump
         /// </summary>
         [HttpGet("{deviceId}/{pumpId}/state")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
         public async Task<ActionResult<string>> GetPumpState(string deviceId, int pumpId)
         {
             try
@@ -196,7 +197,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Stops an ongoing transaction
         /// </summary>
         [HttpPost("{deviceId}/{pumpId}/stop")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump)]
         public async Task<ActionResult> StopPump(string deviceId, int pumpId)
         {
             try
@@ -220,7 +221,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Gets device configuration for fueling process
         /// </summary>
         [HttpGet("{deviceId}/config")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
         public async Task<ActionResult<PtsDeviceConfigDto>> GetDeviceConfig(string deviceId)
         {
             try
@@ -245,7 +246,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Used by frontend to validate nozzle is up before authorizing
         /// </summary>
         [HttpGet("{deviceId}/{pumpId}/nozzle-state")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
         public async Task<ActionResult<FMSResponse<FMS.Application.Features.PTS.Queries.PumpNozzleStateDto>>> GetNozzleState(
             string deviceId,
             int pumpId)
@@ -274,7 +275,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Get detailed transaction information from PTS device
         /// </summary>
         [HttpGet("{deviceId}/{pumpId}/transaction/{transactionId}")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
         public async Task<ActionResult<FMSResponse<Pumptransaction>>> GetPumpTransactionInfo(
             string deviceId,
             int pumpId,
@@ -318,7 +319,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Diagnostic endpoint to check device status and connectivity
         /// </summary>
         [HttpGet("{deviceId}/diagnostics")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Admin.Device)]
         public async Task<ActionResult> GetDeviceDiagnostics(string deviceId)
         {
             try
@@ -370,7 +371,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Use when transactions are stuck and blocking new authorizations
         /// </summary>
         [HttpDelete("{deviceId}/stuck-transactions")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Admin.Device)]
         public async Task<ActionResult> ClearStuckTransactions(string deviceId, [FromQuery] int? pumpId = null)
         {
             try
@@ -457,7 +458,7 @@ namespace FMS.WebClient.Controllers.PTSController
         /// Diagnostic: List all active transactions in Redis for a device
         /// </summary>
         [HttpGet("{deviceId}/active-transactions")]
-        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.PTSDevice.ManagePump, Permissions.PTSDevice.Read)]
         public async Task<ActionResult> GetActiveTransactions(string deviceId)
         {
             try

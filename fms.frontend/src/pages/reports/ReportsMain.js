@@ -18,6 +18,7 @@ import ReportsLayout from "./layout/ReportsLayout";
 import ReportsDashboard from "./ReportsDashboard";
 import ReportGallery from "./ReportGallery";
 import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
+import ReportScheduleSettings from "./ReportScheduleSettings";
 
 // Import existing report components
 import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
@@ -65,6 +66,7 @@ const ReportsMain = () => {
         <Route path="fuel-importer" element={<FuelReportImporter />} />
         <Route path="fuel-importer/batch" element={<BatchImportPage />} />
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
+        <Route path="scheduled-emails" element={<ReportScheduleSettings />} />
 
         {/* Consumption Reports Routes */}
         <Route

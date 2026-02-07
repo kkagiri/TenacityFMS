@@ -18,15 +18,26 @@ const formatNumber = (value) => {
   });
 };
 
+const sanitizeText = (value, fallback = '-') => {
+  if (value === null || value === undefined) return fallback;
+
+  const normalized = String(value)
+    .replace(/[\u0000-\u001f\u007f]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized.length ? normalized : fallback;
+};
+
 const formatTimestamp = (value) => {
   if (!value) return '-';
   const date = new Date(value);
-  return isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+  return isNaN(date.getTime()) ? sanitizeText(value) : date.toLocaleString();
 };
 
 const resolveChangeReasonName = (changeReason) => {
   const reason = VolumeChangeReasonEnum.find((r) => r.id === changeReason);
-  return reason ? reason.name : String(changeReason ?? 'Unknown');
+  return sanitizeText(reason ? reason.name : String(changeReason ?? 'Unknown'), 'Unknown');
 };
 
 const formatDateRange = (startDate, endDate) => {
@@ -42,14 +53,17 @@ const formatDateRange = (startDate, endDate) => {
 const resolveSiteName = (sites, selectedSiteIds) => {
   if (!selectedSiteIds || selectedSiteIds.length === 0) return 'All Sites';
   if (selectedSiteIds.length === 1) {
-    return sites?.find((site) => site.id === selectedSiteIds[0])?.name || 'Unknown Site';
+    return sanitizeText(
+      sites?.find((site) => site.id === selectedSiteIds[0])?.name,
+      'Unknown Site'
+    );
   }
 
   return `Multiple Sites (${selectedSiteIds.length})`;
 };
 
 const resolveTankName = (tanks, tankId) => {
-  return tanks?.find((tank) => tank.id === tankId)?.name || `Tank ${tankId}`;
+  return sanitizeText(tanks?.find((tank) => tank.id === tankId)?.name, `Tank ${tankId}`);
 };
 
 export const buildTransactionVolumeHistoryFileName = (startDate, endDate) => {
@@ -108,8 +122,8 @@ export const buildTransactionVolumeHistoryReportData = ({
         changeReason: resolveChangeReasonName(tx.changeReason),
         volumeChange: formatNumber(tx.volumeChange),
         newVolume: formatNumber(tx.newVolume),
-        vehicleName: tx.vehicleName || '-',
-        recordedBy: tx.recordedByUserName || '-'
+        vehicleName: sanitizeText(tx.vehicleName, 'N/A'),
+        recordedBy: sanitizeText(tx.recordedByUserName, 'Unknown')
       }))
     };
   });
@@ -119,9 +133,9 @@ export const buildTransactionVolumeHistoryReportData = ({
   return {
     reportTitle: 'Transaction Volume History Report',
     generatedAt: new Date().toLocaleString(),
-    generatedBy: user?.userName || user?.username || 'Unknown User',
+    generatedBy: sanitizeText(user?.userName || user?.username, 'Unknown User'),
     dateRange: formatDateRange(headerStartDate, headerEndDate),
-    siteName: resolveSiteName(sites, selectedSiteIds),
+    siteName: sanitizeText(resolveSiteName(sites, selectedSiteIds), 'All Sites'),
     totalTransactions: filteredTransactions.length,
     tankReports
   };

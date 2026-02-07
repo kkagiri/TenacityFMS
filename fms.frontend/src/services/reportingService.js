@@ -2,7 +2,7 @@
  * File: reportingService.js
  * Purpose: Central reporting API client for DevExtreme and JsReport operations
  * Dependencies: axiosInstance
- * Last Modified: 2026-01-21
+ * Last Modified: 2026-02-07
  *
  * Key Functions:
  * - generateReport(): Generate DevExtreme reports
@@ -10,6 +10,9 @@
  * - renderJsReportPdf(): Render JsReport to PDF
  * - renderJsReportExcel(): Render JsReport to Excel
  * - scheduleReportEmail(): Schedule report delivery via notifications
+ * - getScheduledReportEmails(): Retrieve scheduled report email entries for admin settings
+ * - updateScheduledReportEmail(): Adjust next run and schedule timing metadata
+ * - cancelScheduledReportEmail(): Cancel a scheduled report email
  */
 import axiosInstance from '../api/axiosInstance';
 
@@ -472,6 +475,47 @@ class ReportingService {
   }
 
   /**
+   * Extract server-side error details from blob/json error responses
+   * @param {Object} error - Axios error
+   * @param {string} fallbackMessage - Fallback message when response is not parseable
+   * @returns {Promise<string>}
+   */
+  async extractReportErrorMessage(error, fallbackMessage = 'Failed to render report') {
+    const responseData = error?.response?.data;
+
+    if (responseData instanceof Blob) {
+      try {
+        const rawText = await responseData.text();
+        if (!rawText) {
+          return fallbackMessage;
+        }
+
+        try {
+          const parsed = JSON.parse(rawText);
+          return (
+            parsed?.message ||
+            parsed?.Message ||
+            parsed?.error ||
+            parsed?.Error ||
+            fallbackMessage
+          );
+        } catch {
+          return rawText.length > 500 ? `${rawText.slice(0, 500)}...` : rawText;
+        }
+      } catch {
+        return fallbackMessage;
+      }
+    }
+
+    return (
+      error?.response?.data?.message ||
+      error?.response?.data?.Message ||
+      error?.message ||
+      fallbackMessage
+    );
+  }
+
+  /**
    * Render a JsReport template to PDF
    * @param {string} templateName - Template name
    * @param {Object} data - Data to render
@@ -489,9 +533,13 @@ class ReportingService {
       };
     } catch (error) {
       console.error('Error rendering JsReport PDF:', error);
+      const message = await this.extractReportErrorMessage(
+        error,
+        'Failed to render PDF report'
+      );
       return {
         success: false,
-        error: error.response?.data?.message || error.message
+        error: message
       };
     }
   }
@@ -514,9 +562,13 @@ class ReportingService {
       };
     } catch (error) {
       console.error('Error rendering JsReport Excel:', error);
+      const message = await this.extractReportErrorMessage(
+        error,
+        'Failed to render Excel report'
+      );
       return {
         success: false,
-        error: error.response?.data?.message || error.message
+        error: message
       };
     }
   }
@@ -536,6 +588,82 @@ class ReportingService {
       };
     } catch (error) {
       console.error('Error scheduling report email:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Get scheduled report email records for admin settings.
+   * @param {Object} options
+   * @param {boolean} options.includeCompleted - Include sent/cancelled records
+   * @param {number} options.take - Max records to fetch
+   * @returns {Promise}
+   */
+  async getScheduledReportEmails({ includeCompleted = true, take = 200 } = {}) {
+    try {
+      const response = await axiosInstance.get('/notifications/scheduled-reports', {
+        params: { includeCompleted, take }
+      });
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data || [],
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error fetching scheduled report emails:', error);
+      return {
+        success: false,
+        data: [],
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Update schedule settings for a scheduled report email.
+   * @param {number} notificationId - Notification DB ID
+   * @param {Object} payload - Update request
+   * @returns {Promise}
+   */
+  async updateScheduledReportEmail(notificationId, payload) {
+    try {
+      const response = await axiosInstance.put(
+        `/notifications/scheduled-reports/${notificationId}`,
+        payload
+      );
+      return {
+        success: response.data?.success ?? true,
+        data: response.data?.data || null,
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error updating scheduled report email:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
+   * Cancel an existing scheduled report email.
+   * @param {number} notificationId - Notification DB ID
+   * @returns {Promise}
+   */
+  async cancelScheduledReportEmail(notificationId) {
+    try {
+      const response = await axiosInstance.delete(
+        `/notifications/scheduled-reports/${notificationId}`
+      );
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error cancelling scheduled report email:', error);
       return {
         success: false,
         error: error.response?.data?.message || error.message

@@ -2,7 +2,7 @@
  * File: NotificationController.cs
  * Purpose: Exposes notification management APIs for policies, preferences, history, and delivery actions.
  * Dependencies: INotificationService, IAlarmHandlerService, IMediator, AutoMapper, ASP.NET Core Identity
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-07
  *
  * Key Endpoints:
  * - CreateNotificationPolicy(): Creates a new policy using authenticated user context.
@@ -25,13 +25,17 @@ using FMS.Application.Features.Notification.Queries;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
+using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
@@ -52,6 +56,7 @@ namespace FMS.WebClient.Controllers
         private readonly IMediator _mediator;
         private readonly IMapper _mapper;
         private readonly FMS.Application.Features.Notification.Services.Groups.INotificationGroupService _groupService;
+        private readonly GpsdataContext _context;
         private readonly UserManager<User> _userManager;
         private readonly RoleManager<Role> _roleManager;
 
@@ -62,6 +67,7 @@ namespace FMS.WebClient.Controllers
             IMediator mediator,
             IMapper mapper,
             FMS.Application.Features.Notification.Services.Groups.INotificationGroupService groupService,
+            GpsdataContext context,
             UserManager<User> userManager,
             RoleManager<Role> roleManager)
         {
@@ -71,6 +77,7 @@ namespace FMS.WebClient.Controllers
             _mediator = mediator;
             _mapper = mapper;
             _groupService = groupService;
+            _context = context;
             _userManager = userManager;
             _roleManager = roleManager;
         }
@@ -98,6 +105,176 @@ namespace FMS.WebClient.Controllers
         private string GetCurrentUserIdOrDefault(string fallback = "System")
         {
             return TryGetCurrentUserId(out var userId) ? userId : fallback;
+        }
+
+        private ScheduledReportEmailDto MapScheduledReportEmail(FMS.Domain.Entities.Features.Notifications.Notification notification)
+        {
+            var root = ParseNotificationData(notification.Data);
+            var recurringSchedule = root["recurringSchedule"] as JObject;
+
+            var recipients = notification.Recipients?
+                .Select(r => new ScheduledReportRecipientDto
+                {
+                    UserId = r.UserId,
+                    UserName = r.User?.UserName ?? r.UserId,
+                    DeliveryMethod = r.DeliveryMethod,
+                    RecipientAddress = r.RecipientAddress,
+                    DeliveryStatus = string.IsNullOrWhiteSpace(r.DeliveryStatus) ? "Pending" : r.DeliveryStatus,
+                    SentAt = r.SentAt,
+                    DeliveredAt = r.DeliveredAt,
+                    DeliveryError = r.DeliveryError
+                })
+                .ToList() ?? new List<ScheduledReportRecipientDto>();
+
+            var deliveredCount = recipients.Count(r =>
+                string.Equals(r.DeliveryStatus, "Sent", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(r.DeliveryStatus, "Delivered", StringComparison.OrdinalIgnoreCase));
+            var failedCount = recipients.Count(r =>
+                string.Equals(r.DeliveryStatus, "Failed", StringComparison.OrdinalIgnoreCase));
+            var pendingCount = recipients.Count - deliveredCount - failedCount;
+
+            return new ScheduledReportEmailDto
+            {
+                Id = notification.Id,
+                NotificationId = notification.NotificationId,
+                Title = notification.Title,
+                Message = notification.Message,
+                TriggerSource = notification.TriggerSource,
+                Status = notification.Status,
+                Priority = notification.Priority,
+                CreatedAt = notification.CreatedAt,
+                ScheduledAt = notification.ScheduledAt,
+                SentAt = notification.SentAt,
+                ReportType = root.Value<string>("reportType"),
+                ReportTemplateName = root.Value<string>("templateName"),
+                Format = root.Value<string>("format"),
+                PeriodType = root.Value<string>("periodType"),
+                RequestedBy = root.Value<string>("requestedBy"),
+                ReportViewPath = root.Value<string>("reportViewPath"),
+                ReportViewUrl = root.Value<string>("reportViewUrl"),
+                EffectiveStartDate = root.Value<string>("effectiveStartDate"),
+                EffectiveEndDate = root.Value<string>("effectiveEndDate"),
+                SiteNames = ParseStringList(root["siteNames"], "All Sites"),
+                TankNames = ParseStringList(root["tankNames"], "All Tanks"),
+                TimeZone = recurringSchedule?.Value<string>("timeZone"),
+                ScheduleType = recurringSchedule?.Value<string>("scheduleType"),
+                ScheduleTimeOfDay = recurringSchedule?.Value<string>("timeOfDay"),
+                ScheduleWeekOfMonth = recurringSchedule?.Value<string>("weekOfMonth"),
+                ScheduleDaysOfWeek = ParseStringList(recurringSchedule?["daysOfWeek"], recurringSchedule?.Value<string>("dayOfWeek") ?? "monday"),
+                NextRunAtUtc = recurringSchedule?.Value<DateTime?>("nextRunAtUtc"),
+                LastProcessedAtUtc = recurringSchedule?.Value<DateTime?>("lastProcessedAtUtc"),
+                RecipientCount = recipients.Count,
+                DeliveredCount = deliveredCount,
+                FailedCount = failedCount,
+                PendingCount = pendingCount,
+                Recipients = recipients
+            };
+        }
+
+        private static JObject ParseNotificationData(string? dataJson)
+        {
+            if (string.IsNullOrWhiteSpace(dataJson))
+            {
+                return new JObject();
+            }
+
+            try
+            {
+                return JObject.Parse(dataJson);
+            }
+            catch
+            {
+                return new JObject();
+            }
+        }
+
+        private static List<string> ParseStringList(JToken? token, string fallbackIfEmpty)
+        {
+            if (token is JArray arrayToken)
+            {
+                var values = arrayToken
+                    .Select(value => value?.ToString())
+                    .Where(value => !string.IsNullOrWhiteSpace(value))
+                    .Select(value => value!.Trim())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                if (values.Count > 0)
+                {
+                    return values;
+                }
+            }
+
+            if (token is JValue scalarToken)
+            {
+                var scalarValue = scalarToken.ToString();
+                if (!string.IsNullOrWhiteSpace(scalarValue))
+                {
+                    return scalarValue
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(value => value.Trim())
+                        .Where(value => !string.IsNullOrWhiteSpace(value))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                }
+            }
+
+            return new List<string> { fallbackIfEmpty };
+        }
+
+        private static List<string> NormalizeScheduleDays(IEnumerable<string>? values)
+        {
+            if (values == null)
+            {
+                return new List<string>();
+            }
+
+            return values
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Select(value => value.Trim().ToLowerInvariant())
+                .Where(value =>
+                    value == "monday" ||
+                    value == "tuesday" ||
+                    value == "wednesday" ||
+                    value == "thursday" ||
+                    value == "friday" ||
+                    value == "saturday" ||
+                    value == "sunday")
+                .Distinct()
+                .ToList();
+        }
+
+        private static string NormalizeScheduleTime(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return "08:00";
+            }
+
+            var rawValue = value.Trim();
+            if (TimeSpan.TryParse(rawValue, out var parsedTime))
+            {
+                var hours = Math.Max(0, Math.Min(23, parsedTime.Hours));
+                var minutes = Math.Max(0, Math.Min(59, parsedTime.Minutes));
+                return $"{hours:D2}:{minutes:D2}";
+            }
+
+            return "08:00";
+        }
+
+        private static DateTime NormalizeToUtc(DateTime value)
+        {
+            if (value.Kind == DateTimeKind.Utc)
+            {
+                return value;
+            }
+
+            if (value.Kind == DateTimeKind.Local)
+            {
+                return value.ToUniversalTime();
+            }
+
+            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
         }
 
         /// <summary>
@@ -220,6 +397,232 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting notifications");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get scheduled report email notifications for administrative monitoring.
+        /// </summary>
+        [HttpGet("scheduled-reports")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetScheduledReportEmails(
+            [FromQuery] bool includeCompleted = true,
+            [FromQuery] int take = 200,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var safeTake = Math.Max(1, Math.Min(take, 500));
+
+                var query = _context.Notifications
+                    .Include(n => n.Recipients)
+                    .ThenInclude(r => r.User)
+                    .Where(n =>
+                        n.TriggerSource == "TransactionVolumeHistoryReportSchedule" ||
+                        (n.TriggerSource != null && n.TriggerSource.Contains("ReportSchedule")) ||
+                        (n.Data != null && n.Data.Contains("\"reportType\"")));
+
+                if (!includeCompleted)
+                {
+                    query = query.Where(n =>
+                        n.Status == "Scheduled" ||
+                        n.Status == "Pending" ||
+                        n.Status == "PartiallyFailed");
+                }
+
+                var notifications = await query
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Take(safeTake)
+                    .ToListAsync(cancellationToken);
+
+                var response = notifications
+                    .Select(MapScheduledReportEmail)
+                    .ToList();
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Retrieved {response.Count} scheduled report email records",
+                    data = response
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scheduled report emails");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update a scheduled report email timing/configuration.
+        /// </summary>
+        [HttpPut("scheduled-reports/{notificationId:int}")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> UpdateScheduledReportEmail(
+            int notificationId,
+            [FromBody] UpdateScheduledReportEmailRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new { success = false, message = "Request payload is required" });
+                }
+
+                var notification = await _context.Notifications
+                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+
+                if (notification == null)
+                {
+                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
+                }
+
+                if (string.Equals(notification.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    return BadRequest(new { success = false, message = "Cancelled schedules cannot be updated" });
+                }
+
+                var root = ParseNotificationData(notification.Data);
+                var recurringSchedule = root["recurringSchedule"] as JObject ?? new JObject();
+
+                var normalizedDays = NormalizeScheduleDays(request.DaysOfWeek);
+                if (normalizedDays.Any())
+                {
+                    recurringSchedule["daysOfWeek"] = JArray.FromObject(normalizedDays);
+                    recurringSchedule["dayOfWeek"] = normalizedDays[0];
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.ScheduleType))
+                {
+                    recurringSchedule["scheduleType"] = request.ScheduleType.Trim().ToLowerInvariant();
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.ScheduleTimeOfDay))
+                {
+                    recurringSchedule["timeOfDay"] = NormalizeScheduleTime(request.ScheduleTimeOfDay);
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.WeekOfMonth))
+                {
+                    recurringSchedule["weekOfMonth"] = request.WeekOfMonth.Trim().ToLowerInvariant();
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.TimeZone))
+                {
+                    recurringSchedule["timeZone"] = request.TimeZone.Trim();
+                }
+
+                if (request.Enabled.HasValue)
+                {
+                    recurringSchedule["enabled"] = request.Enabled.Value;
+                }
+
+                var hasRecurringConfig =
+                    recurringSchedule["daysOfWeek"] != null ||
+                    recurringSchedule["dayOfWeek"] != null ||
+                    recurringSchedule["scheduleType"] != null ||
+                    recurringSchedule["timeOfDay"] != null ||
+                    recurringSchedule["weekOfMonth"] != null ||
+                    recurringSchedule["timeZone"] != null;
+
+                if (hasRecurringConfig && recurringSchedule["enabled"] == null)
+                {
+                    recurringSchedule["enabled"] = true;
+                }
+
+                if (hasRecurringConfig)
+                {
+                    root["recurringSchedule"] = recurringSchedule;
+                }
+
+                var scheduledAtUtc = request.ScheduledAtUtc;
+                if (!scheduledAtUtc.HasValue)
+                {
+                    var dataNextRun = root["recurringSchedule"]?["nextRunAtUtc"]?.Value<DateTime?>();
+                    if (dataNextRun.HasValue)
+                    {
+                        scheduledAtUtc = NormalizeToUtc(dataNextRun.Value);
+                    }
+                }
+
+                if (!scheduledAtUtc.HasValue)
+                {
+                    return BadRequest(new { success = false, message = "ScheduledAtUtc is required to update schedule timing" });
+                }
+
+                var normalizedScheduledAtUtc = NormalizeToUtc(scheduledAtUtc.Value);
+                recurringSchedule["nextRunAtUtc"] = normalizedScheduledAtUtc.ToString("o");
+                recurringSchedule["lastUpdatedAtUtc"] = DateTime.UtcNow.ToString("o");
+                root["recurringSchedule"] = recurringSchedule;
+
+                notification.ScheduledAt = normalizedScheduledAtUtc;
+                notification.Status = "Scheduled";
+                notification.ErrorMessage = null;
+                notification.Data = root.ToString(Formatting.None);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = "Scheduled report email updated successfully",
+                    data = MapScheduledReportEmail(notification)
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating scheduled report email {NotificationId}", notificationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Cancel a scheduled report email notification.
+        /// </summary>
+        [HttpDelete("scheduled-reports/{notificationId:int}")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> CancelScheduledReportEmail(
+            int notificationId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var notification = await _context.Notifications
+                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+
+                if (notification == null)
+                {
+                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
+                }
+
+                if (string.Equals(notification.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
+                {
+                    return Ok(new { success = true, message = "Schedule already cancelled" });
+                }
+
+                var root = ParseNotificationData(notification.Data);
+                var recurringSchedule = root["recurringSchedule"] as JObject ?? new JObject();
+                recurringSchedule["enabled"] = false;
+                recurringSchedule["cancelledAtUtc"] = DateTime.UtcNow.ToString("o");
+                root["recurringSchedule"] = recurringSchedule;
+
+                notification.Status = "Cancelled";
+                notification.ScheduledAt = null;
+                notification.ErrorMessage = "Schedule cancelled by administrator";
+                notification.Data = root.ToString(Formatting.None);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                return Ok(new { success = true, message = "Scheduled report email cancelled successfully" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling scheduled report email {NotificationId}", notificationId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
         }

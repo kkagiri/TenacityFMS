@@ -11,12 +11,15 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './ReportsLayout.scss';
 
 const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { hasRole } = usePermissions();
+  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
 
   // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
   const pageInfo = useMemo(() => {
@@ -36,6 +39,11 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
       return {
         title: 'Fuel Data Import',
         subtitle: 'Import and process fuel report data from external sources'
+      };
+    } else if (pathname.includes('/scheduled-emails')) {
+      return {
+        title: 'Scheduled Report Emails',
+        subtitle: 'Admin settings for delivery tracking, schedule changes, and cancellation'
       };
     } else if (pathname.includes('/consumption-refills')) {
       return {
@@ -79,14 +87,27 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
     },
   ], []);
 
-  const dataManagementItems = useMemo(() => [
-    {
-      id: 'fuel-importer',
-      title: 'Fuel Data Import',
-      icon: 'fa-light fa-upload',
-      path: reportsRoutes.fuelImporter,
-    },
-  ], []);
+  const dataManagementItems = useMemo(() => {
+    const items = [
+      {
+        id: 'fuel-importer',
+        title: 'Fuel Data Import',
+        icon: 'fa-light fa-upload',
+        path: reportsRoutes.fuelImporter,
+      },
+    ];
+
+    if (isAdmin) {
+      items.push({
+        id: 'scheduled-emails',
+        title: 'Scheduled Emails',
+        icon: 'fa-light fa-envelope-open',
+        path: reportsRoutes.scheduledEmails,
+      });
+    }
+
+    return items;
+  }, [isAdmin]);
 
   const reportItems = useMemo(() => [
     {
