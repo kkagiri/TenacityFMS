@@ -17,33 +17,46 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        // Enable Serilog self-diagnostics to troubleshoot logging issues
-        var selfLogPath = Path.Combine(AppContext.BaseDirectory, "logs", "serilog-selflog.txt");
-        Directory.CreateDirectory(Path.GetDirectoryName(selfLogPath)!);
-        SelfLog.Enable(msg =>
-        {
-            File.AppendAllText(selfLogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {msg}{Environment.NewLine}");
-            Console.WriteLine($"[SERILOG SELFLOG] {msg}");
-        });
-
-        // Ensure log directories exist
+        // Ensure log directories exist FIRST (wrapped in try/catch for IIS permission safety)
         EnsureLogDirectoriesExist();
+
+        // Enable Serilog self-diagnostics - use C:\Logs path (writable) instead of app directory (read-only under IIS)
+        string? selfLogPath = null;
+        try
+        {
+            selfLogPath = Path.Combine("C:\\Logs\\FMS.Webclient", "serilog-selflog.txt");
+            SelfLog.Enable(msg =>
+            {
+                try
+                {
+                    File.AppendAllText(selfLogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {msg}{Environment.NewLine}");
+                }
+                catch { /* Silently ignore - self-log is best-effort */ }
+                Console.WriteLine($"[SERILOG SELFLOG] {msg}");
+            });
+        }
+        catch
+        {
+            // Self-log is optional - don't crash the app if it fails
+            SelfLog.Enable(Console.Error);
+        }
 
         // Bootstrap minimal logger for startup; full config after configuration loaded
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Debug() // Changed to Debug for more visibility
+            .MinimumLevel.Information()
             .Enrich.FromLogContext()
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 path: "C:\\Logs\\FMS.Webclient\\startup\\webclient-startup.log",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 5,
-                shared: true, // Allow multiple processes to write
+                shared: true,
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
         Log.Information("=== FMS.WebClient Starting ===");
-        Log.Information("Serilog self-log enabled at: {SelfLogPath}", selfLogPath);
+        if (selfLogPath != null)
+            Log.Information("Serilog self-log enabled at: {SelfLogPath}", selfLogPath);
 
         var builder = WebApplication.CreateBuilder(args);
 

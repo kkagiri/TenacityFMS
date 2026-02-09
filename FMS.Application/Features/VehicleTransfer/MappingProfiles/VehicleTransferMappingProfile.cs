@@ -1,3 +1,4 @@
+using System;
 using AutoMapper;
 using FMS.Application.Features.VehicleTransfer.DTOs;
 using FMS.Domain.Entities.Features.VehicleManagement;
@@ -16,7 +17,8 @@ public class VehicleTransferMappingProfile : Profile
             .ForMember(dest => dest.ToSiteName, opt => opt.MapFrom(src => src.ToSite != null ? src.ToSite.Name : null))
             .ForMember(dest => dest.DriverName, opt => opt.MapFrom(src =>
                 !string.IsNullOrEmpty(src.DriverName) ? src.DriverName :
-                (src.Driver != null ? src.Driver.FullName : null)));
+                (src.Driver != null ? src.Driver.FullName : null)))
+            .ForMember(dest => dest.DocumentUrl, opt => opt.MapFrom(src => NormalizeFileUrl(src.DocumentUrl)));
 
         // VehicleTransferCheckupItem -> VehicleTransferCheckupItemDTO
         CreateMap<VehicleTransferCheckupItem, VehicleTransferCheckupItemDTO>();
@@ -37,5 +39,29 @@ public class VehicleTransferMappingProfile : Profile
         CreateMap<CreateCheckupItemDTO, VehicleTransferCheckupItem>();
         CreateMap<CreateTyreDetailDTO, VehicleTransferTyreDetail>();
         CreateMap<CreateBatteryDetailDTO, VehicleTransferBatteryDetail>();
+    }
+
+    /// <summary>
+    /// Normalizes file URLs for backward compatibility.
+    /// Old records have "vehicle-transfers/abc.pdf", new records have "/api/v1/files/vehicle-transfers/abc.pdf".
+    /// Ensures all URLs are returned in the API-routable format.
+    /// </summary>
+    private static string NormalizeFileUrl(string url)
+    {
+        if (string.IsNullOrEmpty(url))
+            return url;
+
+        // Already in correct format
+        if (url.StartsWith("/api/v1/files/", StringComparison.OrdinalIgnoreCase))
+            return url;
+
+        // Strip leading slash if present
+        var normalized = url.TrimStart('/');
+
+        // Strip /uploads/ prefix if present (intermediate format)
+        if (normalized.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
+            normalized = normalized.Substring("uploads/".Length);
+
+        return $"/api/v1/files/{normalized}";
     }
 }

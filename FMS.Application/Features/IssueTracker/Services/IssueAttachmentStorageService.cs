@@ -2,15 +2,15 @@
  * File: IssueAttachmentStorageService.cs
  * Purpose: Local file system implementation for issue attachment storage
  * Dependencies: IConfiguration
- * Last Modified: 2026-02-06
+ * Last Modified: 2026-02-09
  *
  * Key Functions:
- * - SaveFileAsync: Stores file in {BasePath}/issues/{issueId}/{storedFileName}
+ * - SaveFileAsync: Stores file in {BasePath}/{issueId}/{storedFileName}
  * - DeleteFileAsync: Removes a stored file from disk
  * - GetFullPath: Resolves relative path to absolute path
  *
  * Configuration: Set "IssueTracker:AttachmentStoragePath" in appsettings.json
- *   Falls back to "{ContentRootPath}/uploads/issues" if not configured.
+ *   Default: C:\FMSData\uploads\issues (writable outside IIS deployment directory)
  */
 using System;
 using System.IO;
@@ -30,14 +30,24 @@ namespace FMS.Application.Features.IssueTracker.Services
         {
             _logger = logger;
 
+            // Use configured path, or default to C:\FMSData\uploads\issues
+            // DO NOT use AppDomain.CurrentDomain.BaseDirectory — under IIS that's the
+            // read-only deployment directory (C:\inetpub\wwwroot\...)
             _basePath = configuration["IssueTracker:AttachmentStoragePath"]
-                ?? Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "uploads", "issues");
+                ?? Path.Combine("C:\\", "FMSData", "uploads", "issues");
 
             // Ensure the base directory exists
-            if (!Directory.Exists(_basePath))
+            try
             {
-                Directory.CreateDirectory(_basePath);
-                _logger.LogInformation("Created attachment storage directory: {BasePath}", _basePath);
+                if (!Directory.Exists(_basePath))
+                {
+                    Directory.CreateDirectory(_basePath);
+                    _logger.LogInformation("Created attachment storage directory: {BasePath}", _basePath);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create attachment storage directory: {BasePath}. Uploads may fail.", _basePath);
             }
         }
 

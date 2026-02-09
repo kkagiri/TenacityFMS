@@ -11,6 +11,7 @@
  */
 
 using System;
+using System.IO;
 using System.Linq;
 using System.Text.Json;
 using System.Text.Json.Serialization;
@@ -27,6 +28,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using FMS.Application.Common;
+using FMS.Application.Configuration;
 using FMS.Application.CommonInterface; // For IPermissionAuthorizationService
 using FMS.Application.Features.GPSGate.DTOs;
 using FMS.Application.Features.GPSGate.Queries;
@@ -94,6 +96,9 @@ public static class FmsServiceCollectionExtensions
 {
     public static IServiceCollection AddFmsCore(this IServiceCollection services, IConfiguration configuration, IHostEnvironment env)
     {
+        // File storage configuration (external writable path for uploads)
+        services.Configure<FileStorageSettings>(configuration.GetSection(FileStorageSettings.SectionName));
+
         // Controllers & JSON
         services.AddControllers().AddJsonOptions(o =>
         {
@@ -139,7 +144,7 @@ public static class FmsServiceCollectionExtensions
         RegisterAutoMapper(services);
         RegisterHealthChecks(services);
         RegisterRedis(services);
-        RegisterCustom(services);
+        RegisterCustom(services, configuration);
         RegisterDistributedCache(services);
 
         // Register dashboard widget services (factories, coordinators)
@@ -415,7 +420,7 @@ public static class FmsServiceCollectionExtensions
         }
     }
 
-    private static void RegisterCustom(IServiceCollection services)
+    private static void RegisterCustom(IServiceCollection services, IConfiguration configuration)
     {
         // Moved bulk registration from original Program.cs (abbreviated to essentials to keep file lean)
         services.AddMemoryCache();
@@ -433,6 +438,21 @@ public static class FmsServiceCollectionExtensions
         services.AddSingleton<FMS.Application.Communication.SignalR.ConnectionMonitor>();
         services.AddScoped<ISystemUserService, SystemUserService>();
         services.AddScoped<IFileHandlingService, FileHandlingService>();
+
+        // Ensure file storage directory exists at startup
+        var fileStorageSettings = configuration.GetSection(FileStorageSettings.SectionName).Get<FileStorageSettings>() ?? new FileStorageSettings();
+        try
+        {
+            if (!Directory.Exists(fileStorageSettings.BasePath))
+            {
+                Directory.CreateDirectory(fileStorageSettings.BasePath);
+                Serilog.Log.Information("Created file storage directory: {Path}", fileStorageSettings.BasePath);
+            }
+        }
+        catch (Exception ex)
+        {
+            Serilog.Log.Warning(ex, "Could not create file storage directory: {Path}. File uploads may fail.", fileStorageSettings.BasePath);
+        }
 
         // GPSGate Services
         services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();

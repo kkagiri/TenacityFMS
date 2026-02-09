@@ -1,14 +1,18 @@
 using System.Diagnostics;
+using System.IO;
 using Serilog;
 using Serilog.Context;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.FileProviders;
+using Microsoft.Extensions.Options;
 using Microsoft.AspNetCore.Routing;
-using Microsoft.AspNetCore.Http; // For WebSocketOptions
-using FMS.Application.Communication.SignalR; // Hubs (DashboardHub, PTSHub, FrontEndHub)
-using FMS.WebClient.Util; // UseUserActivity extension (IApplicationBuilder)
+using Microsoft.AspNetCore.Http;
+using FMS.Application.Communication.SignalR;
+using FMS.Application.Configuration;
+using FMS.WebClient.Util;
 using DevExpress.AspNetCore;
 using DevExpress.XtraReports.Web.Extensions;
 using FMS.WebClient.Diagnostics;
@@ -94,6 +98,37 @@ public static class FmsApplicationBuilderExtensions
                 throw;
             }
         });
+
+        // Serve uploaded files from external storage (C:\FMSData\uploads) via static file middleware.
+        // This is a secondary serving path at /uploads/ for direct access (e.g., during development).
+        // Primary file access is through /api/v1/files/{path} (FileStorageController) which works
+        // with IIS ARR reverse proxy that only routes /api/* requests to the backend.
+        var fileStorageSettings = app.Services.GetService<IOptions<FileStorageSettings>>()?.Value;
+        if (fileStorageSettings != null && Directory.Exists(fileStorageSettings.BasePath))
+        {
+            app.UseStaticFiles(new StaticFileOptions
+            {
+                FileProvider = new PhysicalFileProvider(fileStorageSettings.BasePath),
+                RequestPath = "/uploads",
+                ServeUnknownFileTypes = false,
+                OnPrepareResponse = ctx =>
+                {
+                    // Require authentication for file access
+                    if (ctx.Context.User?.Identity?.IsAuthenticated != true)
+                    {
+                        ctx.Context.Response.StatusCode = 401;
+                        ctx.Context.Response.ContentLength = 0;
+                        ctx.Context.Response.Body = Stream.Null;
+                    }
+                }
+            });
+            Log.Information("File storage serving enabled at /uploads from {BasePath}", fileStorageSettings.BasePath);
+        }
+        else
+        {
+            Log.Warning("File storage path not available: {BasePath}. Uploaded files will not be served.",
+                fileStorageSettings?.BasePath ?? "(not configured)");
+        }
 
         // Enable WebSockets for SignalR
         var webSocketOptions = new WebSocketOptions
