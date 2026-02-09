@@ -586,6 +586,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IDataSourceManager, DataSourceManager>();
 
             // Register additional missing services from WebClient
+            services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
             services.AddScoped<IActiveAlarmService, ActiveAlarmService>();
             services.AddScoped<INotificationCategoryService, NotificationCategoryService>();
             services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
