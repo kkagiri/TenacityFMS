@@ -41,9 +41,15 @@ namespace FMS.WebClient.Services.Reporting
         {
             _logger = logger;
 
-            // Store templates in App_Data/ReportTemplates
+            // Store templates in App_Data/ReportTemplates with fallback to temp folder
             _templatesPath = Path.Combine(environment.ContentRootPath, "App_Data", "ReportTemplates");
-            Directory.CreateDirectory(_templatesPath);
+            
+            // Try to create directory, use fallback if access is denied
+            if (!EnsureTemplatesDirectory(ref _templatesPath))
+            {
+                _logger.LogWarning("Unable to create templates directory at {Path}. Using fallback location: {FallbackPath}", 
+                    _templatesPath, _templatesPath);
+            }
 
             // Configure embedded JsReport
             var localReporting = new LocalReporting()
@@ -64,15 +70,73 @@ namespace FMS.WebClient.Services.Reporting
             EnsureSampleTemplatesAsync().Wait();
         }
 
+        private bool EnsureTemplatesDirectory(ref string templatesPath)
+        {
+            try
+            {
+                if (!Directory.Exists(templatesPath))
+                {
+                    Directory.CreateDirectory(templatesPath);
+                    _logger.LogInformation("Created templates directory at: {Path}", templatesPath);
+                }
+                return true;
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, 
+                    "Access denied creating templates directory at {Path}. Attempting fallback location.", 
+                    templatesPath);
+                
+                // Fallback to temp folder
+                try
+                {
+                    var tempPath = Path.Combine(Path.GetTempPath(), "FMS_ReportTemplates");
+                    if (!Directory.Exists(tempPath))
+                    {
+                        Directory.CreateDirectory(tempPath);
+                    }
+                    templatesPath = tempPath;
+                    _logger.LogInformation("Using fallback templates directory: {Path}", tempPath);
+                    return true;
+                }
+                catch (Exception fallbackEx)
+                {
+                    _logger.LogError(fallbackEx, 
+                        "Failed to create fallback templates directory. Reports may not function correctly.");
+                    return false;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Unexpected error creating templates directory at {Path}", templatesPath);
+                return false;
+            }
+        }
+
         private async Task EnsureSampleTemplatesAsync()
         {
-            // Copy pump transaction template if it doesn't exist
-            var pumpTransactionTemplate = Path.Combine(_templatesPath, "pump-transaction-report.html");
-            if (!File.Exists(pumpTransactionTemplate))
+            try
             {
-                var sampleContent = GetPumpTransactionTemplate();
-                await File.WriteAllTextAsync(pumpTransactionTemplate, sampleContent);
-                _logger.LogInformation("Created sample pump-transaction-report template");
+                // Copy pump transaction template if it doesn't exist
+                var pumpTransactionTemplate = Path.Combine(_templatesPath, "pump-transaction-report.html");
+                if (!File.Exists(pumpTransactionTemplate))
+                {
+                    var sampleContent = GetPumpTransactionTemplate();
+                    await File.WriteAllTextAsync(pumpTransactionTemplate, sampleContent);
+                    _logger.LogInformation("Created sample pump-transaction-report template");
+                }
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogWarning(ex, 
+                    "Access denied when creating sample templates. Templates must be manually deployed to: {Path}", 
+                    _templatesPath);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, 
+                    "Error creating sample templates at {Path}. Templates may need manual deployment.", 
+                    _templatesPath);
             }
         }
 
@@ -235,32 +299,72 @@ namespace FMS.WebClient.Services.Reporting
 
         public async Task<string?> GetTemplateAsync(string templateName)
         {
-            var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
-            if (!File.Exists(filePath))
+            try
             {
-                return null;
-            }
+                var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
+                if (!File.Exists(filePath))
+                {
+                    _logger.LogWarning("Template not found: {Template} at {Path}", templateName, filePath);
+                    return null;
+                }
 
-            return await File.ReadAllTextAsync(filePath);
+                return await File.ReadAllTextAsync(filePath);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied reading template: {Template}", templateName);
+                throw;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading template: {Template}", templateName);
+                throw;
+            }
         }
 
         public async Task SaveTemplateAsync(string templateName, string content)
         {
-            var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
-            await File.WriteAllTextAsync(filePath, content);
-            _logger.LogInformation("Saved template: {Template}", templateName);
+            try
+            {
+                var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
+                await File.WriteAllTextAsync(filePath, content);
+                _logger.LogInformation("Saved template: {Template}", templateName);
+            }
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied saving template: {Template} to {Path}", templateName, _templatesPath);
+                throw new InvalidOperationException($"Unable to save template '{templateName}'. Check file system permissions.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving template: {Template}", templateName);
+                throw;
+            }
         }
 
         public Task<bool> DeleteTemplateAsync(string templateName)
         {
-            var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
-            if (File.Exists(filePath))
+            try
             {
-                File.Delete(filePath);
-                _logger.LogInformation("Deleted template: {Template}", templateName);
-                return Task.FromResult(true);
+                var filePath = Path.Combine(_templatesPath, $"{templateName}.html");
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                    _logger.LogInformation("Deleted template: {Template}", templateName);
+                    return Task.FromResult(true);
+                }
+                return Task.FromResult(false);
             }
-            return Task.FromResult(false);
+            catch (UnauthorizedAccessException ex)
+            {
+                _logger.LogError(ex, "Access denied deleting template: {Template}", templateName);
+                throw new InvalidOperationException($"Unable to delete template '{templateName}'. Check file system permissions.", ex);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting template: {Template}", templateName);
+                throw;
+            }
         }
 
         public async ValueTask DisposeAsync()
