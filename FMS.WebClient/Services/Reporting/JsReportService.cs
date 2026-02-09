@@ -43,11 +43,11 @@ namespace FMS.WebClient.Services.Reporting
 
             // Store templates in App_Data/ReportTemplates with fallback to temp folder
             _templatesPath = Path.Combine(environment.ContentRootPath, "App_Data", "ReportTemplates");
-            
+
             // Try to create directory, use fallback if access is denied
             if (!EnsureTemplatesDirectory(ref _templatesPath))
             {
-                _logger.LogWarning("Unable to create templates directory at {Path}. Using fallback location: {FallbackPath}", 
+                _logger.LogWarning("Unable to create templates directory at {Path}. Using fallback location: {FallbackPath}",
                     _templatesPath, _templatesPath);
             }
 
@@ -83,10 +83,10 @@ namespace FMS.WebClient.Services.Reporting
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogWarning(ex, 
-                    "Access denied creating templates directory at {Path}. Attempting fallback location.", 
+                _logger.LogWarning(ex,
+                    "Access denied creating templates directory at {Path}. Attempting fallback location.",
                     templatesPath);
-                
+
                 // Fallback to temp folder
                 try
                 {
@@ -101,7 +101,7 @@ namespace FMS.WebClient.Services.Reporting
                 }
                 catch (Exception fallbackEx)
                 {
-                    _logger.LogError(fallbackEx, 
+                    _logger.LogError(fallbackEx,
                         "Failed to create fallback templates directory. Reports may not function correctly.");
                     return false;
                 }
@@ -128,14 +128,14 @@ namespace FMS.WebClient.Services.Reporting
             }
             catch (UnauthorizedAccessException ex)
             {
-                _logger.LogWarning(ex, 
-                    "Access denied when creating sample templates. Templates must be manually deployed to: {Path}", 
+                _logger.LogWarning(ex,
+                    "Access denied when creating sample templates. Templates must be manually deployed to: {Path}",
                     _templatesPath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, 
-                    "Error creating sample templates at {Path}. Templates may need manual deployment.", 
+                _logger.LogError(ex,
+                    "Error creating sample templates at {Path}. Templates may need manual deployment.",
                     _templatesPath);
             }
         }
