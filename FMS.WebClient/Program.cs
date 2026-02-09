@@ -1,9 +1,11 @@
 using System;
+using System.IO;
 using System.Net;
 
 using FMS.Persistence.DataAccess;
 
 using Serilog;
+using Serilog.Debugging;
 using Microsoft.AspNetCore.HttpOverrides;
 
 using FMS.WebClient.Extensions; // Added for AddFms* and UseFmsPipeline extensions
@@ -15,17 +17,33 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
+        // Enable Serilog self-diagnostics to troubleshoot logging issues
+        var selfLogPath = Path.Combine(AppContext.BaseDirectory, "logs", "serilog-selflog.txt");
+        Directory.CreateDirectory(Path.GetDirectoryName(selfLogPath)!);
+        SelfLog.Enable(msg =>
+        {
+            File.AppendAllText(selfLogPath, $"{DateTime.Now:yyyy-MM-dd HH:mm:ss} - {msg}{Environment.NewLine}");
+            Console.WriteLine($"[SERILOG SELFLOG] {msg}");
+        });
+
+        // Ensure log directories exist
+        EnsureLogDirectoriesExist();
+
         // Bootstrap minimal logger for startup; full config after configuration loaded
         Log.Logger = new LoggerConfiguration()
-            .MinimumLevel.Information()
+            .MinimumLevel.Debug() // Changed to Debug for more visibility
             .Enrich.FromLogContext()
             .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 path: "C:\\Logs\\FMS.Webclient\\startup\\webclient-startup.log",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 5,
+                shared: true, // Allow multiple processes to write
                 outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
+
+        Log.Information("=== FMS.WebClient Starting ===");
+        Log.Information("Serilog self-log enabled at: {SelfLogPath}", selfLogPath);
 
         var builder = WebApplication.CreateBuilder(args);
 
@@ -346,6 +364,33 @@ public class Program
         {
             var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
             logger.LogError(ex, "Error seeding widget templates during startup");
+        }
+    }
+
+    /// <summary>
+    /// Ensures all required log directories exist with proper permissions
+    /// </summary>
+    private static void EnsureLogDirectoriesExist()
+    {
+        var logBasePath = "C:\\Logs\\FMS.Webclient";
+        var subDirectories = new[] { "app", "errors", "audit", "slow", "startup" };
+
+        try
+        {
+            foreach (var subDir in subDirectories)
+            {
+                var fullPath = Path.Combine(logBasePath, subDir);
+                if (!Directory.Exists(fullPath))
+                {
+                    Directory.CreateDirectory(fullPath);
+                    Console.WriteLine($"✓ Created log directory: {fullPath}");
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"⚠️ WARNING: Could not create log directories: {ex.Message}");
+            Console.WriteLine($"Logs will be written to application directory instead.");
         }
     }
 }

@@ -26,6 +26,37 @@ public static class FmsApplicationBuilderExtensions
             app.UseDeveloperExceptionPage();
         }
 
+        // Global exception handler - CRITICAL for logging unhandled exceptions
+        app.UseExceptionHandler(errorApp =>
+        {
+            errorApp.Run(async context =>
+            {
+                var exceptionHandlerPathFeature = context.Features.Get<Microsoft.AspNetCore.Diagnostics.IExceptionHandlerPathFeature>();
+                var exception = exceptionHandlerPathFeature?.Error;
+
+                if (exception != null)
+                {
+                    Log.Error(exception, "UNHANDLED EXCEPTION: {Method} {Path} - {Message}",
+                        context.Request.Method,
+                        context.Request.Path,
+                        exception.Message);
+                }
+
+                context.Response.StatusCode = 500;
+                context.Response.ContentType = "application/json";
+
+                var response = new
+                {
+                    success = false,
+                    message = "An internal server error occurred.",
+                    error = env.IsDevelopment() ? exception?.Message : null,
+                    stackTrace = env.IsDevelopment() ? exception?.StackTrace : null
+                };
+
+                await context.Response.WriteAsJsonAsync(response);
+            });
+        });
+
         // Correlation + structured request logging
         app.Use(async (context, next) =>
         {
@@ -40,11 +71,26 @@ public static class FmsApplicationBuilderExtensions
             try
             {
                 await next();
-                Log.Information("REQ {Method} {Path} -> {Status} {Elapsed}ms", context.Request.Method, context.Request.Path, context.Response.StatusCode, sw.ElapsedMilliseconds);
+
+                // Log successful and error responses
+                var level = context.Response.StatusCode >= 500 ? Serilog.Events.LogEventLevel.Error :
+                           context.Response.StatusCode >= 400 ? Serilog.Events.LogEventLevel.Warning :
+                           Serilog.Events.LogEventLevel.Information;
+
+                Log.Write(level, "REQ {Method} {Path} -> {Status} {Elapsed}ms",
+                    context.Request.Method,
+                    context.Request.Path,
+                    context.Response.StatusCode,
+                    sw.ElapsedMilliseconds);
             }
             catch (Exception ex)
             {
-                Log.Error(ex, "REQ {Method} {Path} failed after {Elapsed}ms", context.Request.Method, context.Request.Path, sw.ElapsedMilliseconds);
+                Log.Error(ex, "REQ {Method} {Path} failed after {Elapsed}ms - Exception: {ExceptionType} - {ErrorMessage}",
+                    context.Request.Method,
+                    context.Request.Path,
+                    sw.ElapsedMilliseconds,
+                    ex.GetType().Name,
+                    ex.Message);
                 throw;
             }
         });

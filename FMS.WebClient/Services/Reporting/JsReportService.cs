@@ -2,7 +2,7 @@
  * File: JsReportService.cs
  * Purpose: Render JsReport templates to PDF, Excel, and HTML using embedded jsreport.Local
  * Dependencies: jsreport.Local, jsreport.Types, Newtonsoft.Json, ILogger
- * Last Modified: 2026-02-07
+ * Last Modified: 2026-02-09
  *
  * Key Functions:
  * - RenderPdfAsync: Renders a named template to PDF with adaptive timeout for large payloads
@@ -11,6 +11,7 @@
  */
 using jsreport.Local;
 using jsreport.Types;
+using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using System;
@@ -41,22 +42,22 @@ namespace FMS.WebClient.Services.Reporting
         {
             _logger = logger;
 
-            // Store templates in App_Data/ReportTemplates with fallback to temp folder
-            _templatesPath = Path.Combine(environment.ContentRootPath, "App_Data", "ReportTemplates");
+            // ALWAYS use a writable location (C:\Logs or temp folder) to avoid IIS permission issues
+            // Do NOT use deployment directory (C:\inetpub\wwwroot) as it's read-only for app pools
+            _templatesPath = GetWritableTemplatesPath(environment);
 
-            // Try to create directory, use fallback if access is denied
-            if (!EnsureTemplatesDirectory(ref _templatesPath))
-            {
-                _logger.LogWarning("Unable to create templates directory at {Path}. Using fallback location: {FallbackPath}",
-                    _templatesPath, _templatesPath);
-            }
+            _logger.LogInformation("JsReport templates path: {Path}", _templatesPath);
 
-            // Configure embedded JsReport
+            // Configure embedded JsReport with temp directory
+            var jsReportTempPath = Path.Combine(Path.GetTempPath(), "FMS_JsReport_Temp");
+            Directory.CreateDirectory(jsReportTempPath);
+
             var localReporting = new LocalReporting()
                 .UseBinary(jsreport.Binary.JsReportBinary.GetBinary())
                 .Configure(cfg =>
                 {
                     cfg.TrustUserCode = true;
+                    cfg.TempDirectory = jsReportTempPath; // Use writable temp directory
                     cfg.FileSystemStore();
                     return cfg;
                 })
@@ -64,51 +65,64 @@ namespace FMS.WebClient.Services.Reporting
 
             _reportingService = localReporting.Create();
 
-            _logger.LogInformation("JsReport service initialized. Templates path: {Path}", _templatesPath);
+            _logger.LogInformation("JsReport service initialized successfully.");
+            _logger.LogInformation("  - Templates: {TemplatesPath}", _templatesPath);
+            _logger.LogInformation("  - Temp files: {TempPath}", jsReportTempPath);
 
             // Ensure sample templates exist
             EnsureSampleTemplatesAsync().Wait();
         }
 
-        private bool EnsureTemplatesDirectory(ref string templatesPath)
+        /// <summary>
+        /// Gets a writable templates path, avoiding IIS deployment directories
+        /// </summary>
+        private string GetWritableTemplatesPath(IWebHostEnvironment environment)
+        {
+            // Priority 1: C:\Logs\FMS.Webclient\ReportTemplates (consistent with other logs)
+            var logsPath = Path.Combine("C:\\Logs\\FMS.Webclient", "ReportTemplates");
+            if (TryCreateDirectory(logsPath))
+            {
+                return logsPath;
+            }
+
+            // Priority 2: User temp folder
+            var tempPath = Path.Combine(Path.GetTempPath(), "FMS_ReportTemplates");
+            if (TryCreateDirectory(tempPath))
+            {
+                return tempPath;
+            }
+
+            // Priority 3: ProgramData folder (system-wide, usually writable)
+            var programDataPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Hyoung", "FMS", "ReportTemplates");
+            if (TryCreateDirectory(programDataPath))
+            {
+                return programDataPath;
+            }
+
+            // Fallback: App_Data (may fail in IIS)
+            var appDataPath = Path.Combine(environment.ContentRootPath, "App_Data", "ReportTemplates");
+            TryCreateDirectory(appDataPath);
+            return appDataPath;
+        }
+
+        private bool TryCreateDirectory(string path)
         {
             try
             {
-                if (!Directory.Exists(templatesPath))
+                if (!Directory.Exists(path))
                 {
-                    Directory.CreateDirectory(templatesPath);
-                    _logger.LogInformation("Created templates directory at: {Path}", templatesPath);
+                    Directory.CreateDirectory(path);
                 }
+                // Test write access
+                var testFile = Path.Combine(path, ".write_test");
+                File.WriteAllText(testFile, "test");
+                File.Delete(testFile);
                 return true;
             }
-            catch (UnauthorizedAccessException ex)
+            catch
             {
-                _logger.LogWarning(ex,
-                    "Access denied creating templates directory at {Path}. Attempting fallback location.",
-                    templatesPath);
-
-                // Fallback to temp folder
-                try
-                {
-                    var tempPath = Path.Combine(Path.GetTempPath(), "FMS_ReportTemplates");
-                    if (!Directory.Exists(tempPath))
-                    {
-                        Directory.CreateDirectory(tempPath);
-                    }
-                    templatesPath = tempPath;
-                    _logger.LogInformation("Using fallback templates directory: {Path}", tempPath);
-                    return true;
-                }
-                catch (Exception fallbackEx)
-                {
-                    _logger.LogError(fallbackEx,
-                        "Failed to create fallback templates directory. Reports may not function correctly.");
-                    return false;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Unexpected error creating templates directory at {Path}", templatesPath);
                 return false;
             }
         }
@@ -123,19 +137,13 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     var sampleContent = GetPumpTransactionTemplate();
                     await File.WriteAllTextAsync(pumpTransactionTemplate, sampleContent);
-                    _logger.LogInformation("Created sample pump-transaction-report template");
+                    _logger.LogInformation("Created sample pump-transaction-report template at {Path}", pumpTransactionTemplate);
                 }
-            }
-            catch (UnauthorizedAccessException ex)
-            {
-                _logger.LogWarning(ex,
-                    "Access denied when creating sample templates. Templates must be manually deployed to: {Path}",
-                    _templatesPath);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex,
-                    "Error creating sample templates at {Path}. Templates may need manual deployment.",
+                _logger.LogWarning(ex,
+                    "Could not create sample templates at {Path}. Templates may need manual deployment.",
                     _templatesPath);
             }
         }
