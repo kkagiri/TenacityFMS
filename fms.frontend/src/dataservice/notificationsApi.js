@@ -2,7 +2,7 @@ import axiosInstance from "../api/axiosInstance";
 
 class NotificationsApi {
   constructor() {
-  this.basePath = "/notifications";
+    this.basePath = "/notifications";
   }
 
   // Get notifications for the current user with filters
@@ -122,7 +122,7 @@ class NotificationsApi {
             return { isSuccess: true, data: found, message: 'Policy retrieved from list fallback' };
           }
         }
-      } catch {}
+      } catch { }
       console.error('Error fetching policy:', error);
       return { isSuccess: false, data: null, message: error.response?.data?.message || 'Failed to fetch policy' };
     }
@@ -208,6 +208,40 @@ class NotificationsApi {
     } catch (error) {
       console.error("Error duplicating policy:", error);
       return { isSuccess: false, data: null, message: error.response?.data?.message || "Failed to duplicate policy" };
+    }
+  }
+
+  // Search users for recipient picker (pulls from FMS user management)
+  async searchUsers(query = '', take = 50) {
+    try {
+      const params = new URLSearchParams();
+      if (query) params.append('query', query);
+      params.append('take', String(take));
+      const response = await axiosInstance.get(`${this.basePath}/search/users?${params.toString()}`);
+      return {
+        isSuccess: response.data?.success !== false,
+        data: response.data?.data || [],
+        message: 'Users loaded',
+      };
+    } catch (error) {
+      return { isSuccess: false, data: [], message: error.response?.data?.message || 'Failed to search users' };
+    }
+  }
+
+  // Search roles for recipient picker (pulls from FMS role management)
+  async searchRoles(query = '', take = 50) {
+    try {
+      const params = new URLSearchParams();
+      if (query) params.append('query', query);
+      params.append('take', String(take));
+      const response = await axiosInstance.get(`${this.basePath}/search/roles?${params.toString()}`);
+      return {
+        isSuccess: response.data?.success !== false,
+        data: response.data?.data || [],
+        message: 'Roles loaded',
+      };
+    } catch (error) {
+      return { isSuccess: false, data: [], message: error.response?.data?.message || 'Failed to search roles' };
     }
   }
 }

@@ -94,6 +94,32 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
             => $"{ConfigCategoryPrefix}.{groupName.Replace(" ", "").Replace("&", "And")}";
 
         /// <summary>
+        /// Looks up the group name for a given alert type key.
+        /// Returns null if the alert type key is not found.
+        /// </summary>
+        public static string? GetGroupForAlertType(string alertTypeKey)
+        {
+            var allTypes = GetAllAlertTypes();
+            return allTypes.TryGetValue(alertTypeKey, out var def) ? def.Group : null;
+        }
+
+        /// <summary>
+        /// Looks up the display name for a given alert type key.
+        /// Returns null if the alert type key is not found.
+        /// </summary>
+        public static string? GetDisplayNameForAlertType(string alertTypeKey)
+        {
+            var allTypes = GetAllAlertTypes();
+            return allTypes.TryGetValue(alertTypeKey, out var def) ? def.DisplayName : null;
+        }
+
+        /// <summary>
+        /// Validates that an alert type key exists in the registry.
+        /// </summary>
+        public static bool IsValidAlertType(string alertTypeKey)
+            => GetAllAlertTypes().ContainsKey(alertTypeKey);
+
+        /// <summary>
         /// Returns alert group definitions for UI display
         /// </summary>
         public static List<AlertGroupDefinition> GetAlertGroups()

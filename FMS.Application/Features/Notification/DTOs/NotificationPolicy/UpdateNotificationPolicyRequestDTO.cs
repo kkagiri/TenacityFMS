@@ -7,10 +7,17 @@
  * Key Classes:
  * - UpdateNotificationPolicyRequestDTO: Carries mutable policy settings from API to application layer.
  */
-namespace FMS.Application.Features.Notification.DTOs {
-    public class UpdateNotificationPolicyRequestDTO {
+namespace FMS.Application.Features.Notification.DTOs
+{
+    public class UpdateNotificationPolicyRequestDTO
+    {
         public string Name { get; set; } = null!;
         public int NotificationCategoryId { get; set; }
+        /// <summary>
+        /// The alert type key from AlertConfigurationConstants (e.g. "TankLowLevel").
+        /// Links policy 1:1 with an alert type.
+        /// </summary>
+        public string? AlertTypeKey { get; set; }
         public string? NotificationType { get; set; }
         public string? Priority { get; set; }
         public bool EnableEmail { get; set; } = true;

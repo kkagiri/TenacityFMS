@@ -9,16 +9,30 @@
  */
 using System;
 
-namespace FMS.Application.Features.Notification.DTOs {
+namespace FMS.Application.Features.Notification.DTOs
+{
     /// <summary>
     /// Lightweight DTO for listing notification policies.
     /// </summary>
-    public class NotificationPolicyDto {
+    public class NotificationPolicyDto
+    {
         public int Id { get; set; }
         public string Name { get; set; } = null!;
         public string? Description { get; set; }
         public int NotificationCategoryId { get; set; }
         public string? CategoryName { get; set; }
+        /// <summary>
+        /// The alert type key (e.g. "TankLowLevel") — 1:1 link to AlertConfigurationConstants
+        /// </summary>
+        public string? AlertTypeKey { get; set; }
+        /// <summary>
+        /// The alert group derived from AlertTypeKey (e.g. "Tank Operations")
+        /// </summary>
+        public string? AlertGroup { get; set; }
+        /// <summary>
+        /// Human-readable display name of the alert type
+        /// </summary>
+        public string? AlertDisplayName { get; set; }
         public string NotificationType { get; set; } = null!;
         public string Priority { get; set; } = null!;
         public bool EnableEmail { get; set; }

@@ -13,6 +13,7 @@
  * - POST /api/v1/alert-configuration/seed — Seed all defaults (admin only)
  */
 
+using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.Commands.AlertConfiguration;
 using FMS.Application.Features.Notification.DTOs.AlertConfiguration;
@@ -95,6 +96,34 @@ namespace FMS.WebClient.Controllers
         {
             var result = await _mediator.Send(new SeedAlertConfigurationCommand());
             return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+        /// <summary>
+        /// Get enabled alert types as a flat list for policy trigger selection.
+        /// Returns key, displayName, group, and current threshold parameters.
+        /// </summary>
+        [HttpGet("enabled-types")]
+        public async Task<IActionResult> GetEnabledTypes()
+        {
+            var result = await _mediator.Send(new GetAlertConfigurationsQuery());
+            if (!result.IsSuccess) return BadRequest(result);
+
+            // Flatten all groups → only enabled alert types
+            var enabledTypes = (result.Data ?? new System.Collections.Generic.List<AlertTypeGroupDto>())
+                .SelectMany(g => g.AlertTypes.Where(a => a.Enabled).Select(a => new
+                {
+                    a.Key,
+                    a.DisplayName,
+                    a.Description,
+                    a.Group,
+                    ThresholdSummary = string.Join(", ",
+                        a.Parameters
+                            .Where(p => p.CurrentValue != null)
+                            .Select(p => $"{p.DisplayName}: {p.CurrentValue}{(p.Unit != null ? " " + p.Unit : "")}"))
+                }))
+                .ToList();
+
+            return Ok(new { isSuccess = true, data = enabledTypes, message = $"{enabledTypes.Count} enabled alert types" });
         }
     }
 

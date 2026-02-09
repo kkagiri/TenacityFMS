@@ -7,10 +7,17 @@
  * Key Classes:
  * - CreateNotificationPolicyRequestDTO: Carries policy settings from API to application layer.
  */
-namespace FMS.Application.Features.Notification.DTOs {
-    public class CreateNotificationPolicyRequestDTO {
+namespace FMS.Application.Features.Notification.DTOs
+{
+    public class CreateNotificationPolicyRequestDTO
+    {
         public string Name { get; set; } = null!;
         public int NotificationCategoryId { get; set; }
+        /// <summary>
+        /// The alert type key from AlertConfigurationConstants (e.g. "TankLowLevel").
+        /// Links policy 1:1 with an alert type. Used to auto-derive the category group.
+        /// </summary>
+        public string? AlertTypeKey { get; set; }
         public string? NotificationType { get; set; }
         public string? Priority { get; set; }
         public bool EnableEmail { get; set; } = true;

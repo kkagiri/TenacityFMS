@@ -24,6 +24,7 @@ import notify from 'devextreme/ui/notify';
 
 // Redux actions for state management (temporarily keeping these until full Redux migration)
 import { LOGIN_SUCCESS, USER_LOADED } from '../../redux/actions/types';
+import { fetchMyPermissions } from '../../redux/actions/permissionActions';
 
 import './LoginForm.scss';
 
@@ -80,6 +81,9 @@ const LoginForm = () => {
           payload: user
         });
 
+        // Fetch user permissions from backend (not from JWT)
+        dispatch(fetchMyPermissions());
+
         // Store navigation items if available
         if (navigationItems && navigationItems.length > 0) {
           // You can dispatch navigation action or store in local state
@@ -89,8 +93,8 @@ const LoginForm = () => {
         // Show success notification
         notify(`Welcome back, ${user.userName || user.username}!`, 'success', 2000);
 
-  console.log('✅ Sign in successful, navigating to home...');
-  navigate('/home', { replace: true });
+        console.log('✅ Sign in successful, navigating to home...');
+        navigate('/home', { replace: true });
 
       } else {
         // Handle authentication failure
@@ -204,9 +208,9 @@ const LoginForm = () => {
         <div className="tw-mt-4 tw-p-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded tw-text-xs">
           <div className="tw-font-medium tw-text-blue-800">Development Info:</div>
           <div className="tw-text-blue-600">
-            • Using AuthenticationService with v1 API<br/>
-            • FMSResponse format handling<br/>
-            • Enterprise error classification<br/>
+            • Using AuthenticationService with v1 API<br />
+            • FMSResponse format handling<br />
+            • Enterprise error classification<br />
             • Service health: {authService ? '✅ Ready' : '❌ Not initialized'}
           </div>
         </div>

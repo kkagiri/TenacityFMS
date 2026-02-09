@@ -19,6 +19,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Application.Infrastructure.Communication.SignalR; // Category metadata provider
 using AutoMapper;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
@@ -1937,6 +1938,10 @@ namespace FMS.Application.Features.Notification.Services
                     .ToListAsync(cancellationToken);
 
                 var dtoList = _mapper.Map<List<NotificationPolicyDto>>(policies);
+                foreach (var dto in dtoList)
+                {
+                    EnrichPolicyDtoWithAlertTypeInfo(dto, policies.FirstOrDefault(p => p.Id == dto.Id)?.TriggerConditions);
+                }
                 return FMSResponse<List<NotificationPolicyDto>>.Success(dtoList, "Notification policies retrieved successfully");
             }
             catch (Exception ex)
@@ -1965,6 +1970,7 @@ namespace FMS.Application.Features.Notification.Services
                 }
 
                 var dto = _mapper.Map<NotificationPolicyDto>(policy);
+                EnrichPolicyDtoWithAlertTypeInfo(dto, policy.TriggerConditions);
                 return FMSResponse<NotificationPolicyDto>.Success(dto, "Notification policy retrieved successfully");
             }
             catch (Exception ex)
@@ -1984,8 +1990,17 @@ namespace FMS.Application.Features.Notification.Services
                 if (string.IsNullOrWhiteSpace(request.Name))
                     validationErrors.Add("Policy name is required");
 
-                if (request.NotificationCategoryId <= 0)
-                    validationErrors.Add("Category is required");
+                // AlertTypeKey-based flow: derive category from alert type
+                string? alertTypeKey = request.AlertTypeKey;
+                if (!string.IsNullOrWhiteSpace(alertTypeKey))
+                {
+                    if (!AlertConfigurationConstants.IsValidAlertType(alertTypeKey))
+                        validationErrors.Add($"Invalid alert type key: {alertTypeKey}");
+                }
+                else if (request.NotificationCategoryId <= 0)
+                {
+                    validationErrors.Add("Either AlertTypeKey or Category is required");
+                }
 
                 if (!string.IsNullOrWhiteSpace(request.ActiveAlarmFilter))
                 {
@@ -2004,10 +2019,22 @@ namespace FMS.Application.Features.Notification.Services
                     return FMSResponse<int>.ValidationFailed(validationErrors);
                 }
 
+                // Auto-build ActiveAlarmFilter from AlertTypeKey if not explicitly provided
+                var activeAlarmFilter = request.ActiveAlarmFilter;
+                if (!string.IsNullOrWhiteSpace(alertTypeKey) && string.IsNullOrWhiteSpace(activeAlarmFilter))
+                {
+                    activeAlarmFilter = System.Text.Json.JsonSerializer.Serialize(new
+                    {
+                        source = "ActiveAlarm",
+                        eventType = "Created",
+                        alarmType = alertTypeKey
+                    });
+                }
+
                 var policy = new NotificationPolicy
                 {
                     Name = request.Name,
-                    NotificationCategoryId = request.NotificationCategoryId,
+                    NotificationCategoryId = request.NotificationCategoryId > 0 ? request.NotificationCategoryId : 1,
                     NotificationType = request.NotificationType ?? "Alert",
                     Priority = request.Priority ?? "Medium",
                     EnableEmail = request.EnableEmail,
@@ -2018,7 +2045,7 @@ namespace FMS.Application.Features.Notification.Services
                     CooldownMinutes = request.CooldownMinutes ?? 30,
                     TitleTemplate = request.TitleTemplate,
                     MessageTemplate = request.MessageTemplate,
-                    TriggerConditions = request.ActiveAlarmFilter,
+                    TriggerConditions = activeAlarmFilter,
                     RequireAcknowledgment = request.RequireAcknowledgment,
                     IsActive = true,
                     CreatedAt = DateTime.UtcNow,
@@ -2053,16 +2080,36 @@ namespace FMS.Application.Features.Notification.Services
                 {
                     validationErrors.Add("Policy name is required");
                 }
-                if (request == null || request.NotificationCategoryId <= 0)
+
+                // Accept AlertTypeKey OR NotificationCategoryId (AlertTypeKey takes precedence)
+                bool useAlertTypeKey = !string.IsNullOrWhiteSpace(request?.AlertTypeKey);
+                if (!useAlertTypeKey && (request == null || request.NotificationCategoryId <= 0))
                 {
-                    validationErrors.Add("Category is required");
+                    validationErrors.Add("AlertTypeKey or Category is required");
                 }
 
-                if (!string.IsNullOrWhiteSpace(request?.ActiveAlarmFilter))
+                if (useAlertTypeKey && !AlertConfigurationConstants.IsValidAlertType(request.AlertTypeKey))
+                {
+                    validationErrors.Add($"Invalid alert type key: {request.AlertTypeKey}");
+                }
+
+                // Build or validate active alarm filter
+                string activeAlarmFilter = request?.ActiveAlarmFilter;
+                if (useAlertTypeKey && string.IsNullOrWhiteSpace(activeAlarmFilter))
+                {
+                    var filterObj = new JObject
+                    {
+                        ["source"] = "ActiveAlarm",
+                        ["eventType"] = "Created",
+                        ["alarmType"] = request.AlertTypeKey
+                    };
+                    activeAlarmFilter = filterObj.ToString(Newtonsoft.Json.Formatting.None);
+                }
+                else if (!string.IsNullOrWhiteSpace(activeAlarmFilter))
                 {
                     try
                     {
-                        JObject.Parse(request.ActiveAlarmFilter);
+                        JObject.Parse(activeAlarmFilter);
                     }
                     catch
                     {
@@ -2084,7 +2131,7 @@ namespace FMS.Application.Features.Notification.Services
                 }
 
                 policy.Name = request.Name;
-                policy.NotificationCategoryId = request.NotificationCategoryId;
+                policy.NotificationCategoryId = useAlertTypeKey ? 1 : request.NotificationCategoryId;
                 policy.NotificationType = request.NotificationType ?? "Alert";
                 policy.Priority = request.Priority ?? "Medium";
                 policy.EnableEmail = request.EnableEmail;
@@ -2096,7 +2143,7 @@ namespace FMS.Application.Features.Notification.Services
                 policy.TitleTemplate = request.TitleTemplate;
                 policy.MessageTemplate = request.MessageTemplate;
                 policy.RequireAcknowledgment = request.RequireAcknowledgment;
-                policy.TriggerConditions = request.ActiveAlarmFilter;
+                policy.TriggerConditions = activeAlarmFilter;
                 policy.IsActive = request.IsActive;
                 policy.ModifiedAt = DateTime.UtcNow;
                 policy.ModifiedBy = string.IsNullOrWhiteSpace(request.ModifiedBy)
@@ -2191,6 +2238,29 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogError(ex, "Error sending test notification");
                 return FMSResponse.FailedResponse("Error sending test notification");
+            }
+        }
+
+        /// <summary>
+        /// Enriches a NotificationPolicyDto with AlertTypeKey, AlertGroup, and AlertDisplayName
+        /// by parsing the TriggerConditions JSON to extract the alarmType field.
+        /// </summary>
+        private void EnrichPolicyDtoWithAlertTypeInfo(NotificationPolicyDto dto, string? triggerConditions)
+        {
+            if (string.IsNullOrWhiteSpace(triggerConditions)) return;
+            try
+            {
+                var filter = JObject.Parse(triggerConditions);
+                var alarmType = filter.Value<string>("alarmType");
+                if (string.IsNullOrWhiteSpace(alarmType)) return;
+
+                dto.AlertTypeKey = alarmType;
+                dto.AlertGroup = AlertConfigurationConstants.GetGroupForAlertType(alarmType);
+                dto.AlertDisplayName = AlertConfigurationConstants.GetDisplayNameForAlertType(alarmType);
+            }
+            catch
+            {
+                // Non-standard JSON or missing field — leave fields null
             }
         }
     }

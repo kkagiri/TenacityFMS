@@ -147,6 +147,27 @@ const alertConfigurationApi = {
             };
         }
     },
+
+    /**
+     * Get only enabled alert types as a flat list (for policy trigger selection)
+     * @returns {Promise<{isSuccess: boolean, data: Array<{key, displayName, description, group, thresholdSummary}>, message: string}>}
+     */
+    async getEnabledAlertTypes() {
+        try {
+            const response = await axiosInstance.get(`${basePath}/enabled-types`);
+            return {
+                isSuccess: response.data?.isSuccess ?? true,
+                data: response.data?.data || [],
+                message: response.data?.message || 'Enabled alert types loaded',
+            };
+        } catch (error) {
+            return {
+                isSuccess: false,
+                data: [],
+                message: error.response?.data?.message || 'Failed to load enabled alert types',
+            };
+        }
+    },
 };
 
 export default alertConfigurationApi;

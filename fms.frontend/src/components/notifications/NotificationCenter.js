@@ -15,7 +15,6 @@ import {
 } from "../../redux/actions/notificationActions";
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
-import dashboardSignalRService from "../../signalR/dashboardSignalRService";
 import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
 
 // Maximum notifications to show initially
@@ -237,15 +236,10 @@ const NotificationCenter = () => {
 
     document.addEventListener("keydown", handleKeyDown);
 
-    // Ensure SignalR connection for live notifications
-    // Using dashboardSignalRService.start() - the connection is managed globally by SignalRConnectionManager
-    (async () => {
-      try {
-        await dashboardSignalRService.start();
-      } catch (e) {
-        console.error("Failed to initialize SignalR for NotificationCenter", e);
-      }
-    })();
+    // SignalR connection lifecycle is managed globally by SignalRConnectionManager
+    // based on the current route. Do NOT call dashboardSignalRService.start() here
+    // to avoid race conditions during login navigation (the HttpConnection start/stop overlap
+    // causes "Failed to start the HttpConnection before stop() was called").
 
     return () => {
       isMounted.current = false;
@@ -289,10 +283,10 @@ const NotificationCenter = () => {
           data: parsedData,
           timestamp: new Date(
             backendNotification?.createdAt ||
-              backendNotification?.CreatedAt ||
-              backendNotification?.timestamp ||
-              backendNotification?.Timestamp ||
-              Date.now()
+            backendNotification?.CreatedAt ||
+            backendNotification?.timestamp ||
+            backendNotification?.Timestamp ||
+            Date.now()
           ).getTime(),
           isBackendNotification: true,
           isRead:
@@ -490,10 +484,10 @@ const NotificationCenter = () => {
         <div className="tw-ml-8 tw-w-full tw-max-w-[230px] tw-bg-gray-200 tw-h-2 tw-mb-2 tw-rounded-full tw-overflow-hidden">
           <div
             className={`tw-h-2 tw-rounded-full ${statusText.includes("Failed")
-                ? "tw-bg-red-500"
-                : statusText === "Completed"
-                  ? "tw-bg-green-500"
-                  : "tw-bg-blue-500 progress-bar-animated"
+              ? "tw-bg-red-500"
+              : statusText === "Completed"
+                ? "tw-bg-green-500"
+                : "tw-bg-blue-500 progress-bar-animated"
               }`}
             style={{
               width: `${Math.max(percentage, 2)}%`,
@@ -629,8 +623,8 @@ const NotificationCenter = () => {
             {title && (
               <div
                 className={`tw-text-sm tw-font-semibold tw-leading-tight ${isBackendNotification && !isRead
-                    ? "tw-text-gray-900"
-                    : "tw-text-gray-800"
+                  ? "tw-text-gray-900"
+                  : "tw-text-gray-800"
                   }`}
               >
                 {title}

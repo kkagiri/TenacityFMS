@@ -34,12 +34,11 @@ const PolicyManagement = () => {
   const [policyToDelete, setPolicyToDelete] = useState(null);
 
   const categoryOptions = [
-    { value: 'all', text: 'All Categories' },
-    { value: 'Tank Monitoring', text: 'Tank Monitoring' },
-    { value: 'Maintenance', text: 'Maintenance' },
-    { value: 'Device Monitoring', text: 'Device Monitoring' },
-    { value: 'System Reports', text: 'System Reports' },
-    { value: 'Emergency', text: 'Emergency' }
+    { value: 'all', text: 'All Groups' },
+    { value: 'Tank Operations', text: 'Tank Operations' },
+    { value: 'PTS Device', text: 'PTS Device' },
+    { value: 'GPS & Vehicle', text: 'GPS & Vehicle' },
+    { value: 'System', text: 'System' }
   ];
 
   const statusOptions = [
@@ -58,7 +57,9 @@ const PolicyManagement = () => {
         id: p.id || p.policyId,
         name: p.name,
         description: p.description,
-        category: p.category || p.notificationCategory || p.categoryName,
+        alertTypeKey: p.alertTypeKey || null,
+        alertGroup: p.alertGroup || p.category || p.categoryName || 'Uncategorized',
+        alertDisplayName: p.alertDisplayName || p.alertTypeKey || null,
         priority: p.priority || p.severity || 'Medium',
         status: (p.isActive === false ? 'Inactive' : 'Active'),
         recipients: p.recipientCount ?? p.recipients?.length ?? 0,
@@ -91,7 +92,7 @@ const PolicyManagement = () => {
   };
 
   const handleEditPolicy = (policy) => {
-  navigate(notificationRoutes.policyEdit(policy.id));
+    navigate(notificationRoutes.policyEdit(policy.id));
   };
 
   const handleDeletePolicy = (policy) => {
@@ -188,7 +189,7 @@ const PolicyManagement = () => {
 
           <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
-              Category
+              Alert Group
             </label>
             <SelectBox
               value={filterCategory}
@@ -248,9 +249,28 @@ const PolicyManagement = () => {
           />
 
           <Column
-            dataField="category"
-            caption="Category"
-            width={140}
+            dataField="alertDisplayName"
+            caption="Alert Type"
+            width={160}
+            cellRender={({ data }) => (
+              <div>
+                <div className="tw-font-medium tw-text-gray-800">{data.alertDisplayName || '—'}</div>
+                {data.alertGroup && (
+                  <span className="tw-text-xs tw-text-gray-500">{data.alertGroup}</span>
+                )}
+              </div>
+            )}
+          />
+
+          <Column
+            dataField="alertGroup"
+            caption="Group"
+            width={130}
+            cellRender={({ data }) => (
+              <span className="tw-inline-block tw-text-xs tw-font-medium tw-bg-gray-100 tw-text-gray-600 tw-px-2 tw-py-0.5 tw-rounded">
+                {data.alertGroup}
+              </span>
+            )}
           />
 
           <Column
@@ -300,10 +320,9 @@ const PolicyManagement = () => {
             cellRender={({ data }) => (
               data.successRate !== null ? (
                 <div className="tw-flex tw-items-center">
-                  <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${
-                    data.successRate >= 95 ? 'tw-bg-green-400' :
-                    data.successRate >= 85 ? 'tw-bg-yellow-400' : 'tw-bg-red-400'
-                  }`}></div>
+                  <div className={`tw-w-2 tw-h-2 tw-rounded-full tw-mr-2 ${data.successRate >= 95 ? 'tw-bg-green-400' :
+                      data.successRate >= 85 ? 'tw-bg-yellow-400' : 'tw-bg-red-400'
+                    }`}></div>
                   {data.successRate}%
                 </div>
               ) : (
