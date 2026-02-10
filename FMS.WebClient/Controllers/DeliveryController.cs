@@ -51,6 +51,7 @@ namespace FMS.WebClient.Controllers
             return Guid.TryParse(userId, out _);
         }
 
+        [HttpPost]
         [HttpPost("Create")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
         [RequirePermission(Permissions.Delivery.Create)]

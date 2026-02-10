@@ -1,8 +1,10 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
@@ -20,6 +22,7 @@ namespace FMS.BackgroundServices.IssueTracker
         private readonly GpsdataContext _context;
         private readonly ILogger<OnlineChecker> _logger;
         private readonly IGPSService? _gpsService;
+        private Dictionary<int, VehicleLocationDTO>? _preFetchedLocations;
         private string _closeReason = string.Empty;
 
         public string CheckerType => "Online";
@@ -73,6 +76,15 @@ namespace FMS.BackgroundServices.IssueTracker
 
         public string GetCloseReason() => _closeReason;
 
+        /// <summary>
+        /// Sets pre-fetched bulk GPS location data to avoid per-vehicle API calls.
+        /// Call this before ShouldAutoCloseAsync to reuse a single bulk fetch for all issues.
+        /// </summary>
+        public void SetPreFetchedLocations(Dictionary<int, VehicleLocationDTO>? locations)
+        {
+            _preFetchedLocations = locations;
+        }
+
         private int GetOnlineThresholdMinutes(Issueautocloseconfig config)
         {
             // Default threshold
@@ -110,7 +122,23 @@ namespace FMS.BackgroundServices.IssueTracker
 
             var vehicleId = issue.RelatedEntityId.Value;
 
-            // Use GPS service to check actual online status
+            // Check pre-fetched bulk data first (avoids per-vehicle API calls)
+            if (_preFetchedLocations != null && _preFetchedLocations.TryGetValue(vehicleId, out var preFetchedLocation))
+            {
+                var minutesSinceLastSeen = (DateTime.UtcNow - preFetchedLocation.LastUpdated).TotalMinutes;
+
+                if (preFetchedLocation.IsOnline && minutesSinceLastSeen <= thresholdMinutes)
+                {
+                    _closeReason = $"Vehicle GPS came back online at {preFetchedLocation.LastUpdated:yyyy-MM-dd HH:mm:ss} UTC";
+                    _logger.LogInformation(
+                        "[OnlineChecker] Vehicle {VehicleId} is back online (last seen {MinutesAgo:F0} min ago, threshold: {Threshold} min) [bulk data]",
+                        vehicleId, minutesSinceLastSeen, thresholdMinutes);
+                    return true;
+                }
+                return false;
+            }
+
+            // Fallback: Use GPS service for individual check if no pre-fetched data
             if (_gpsService != null)
             {
                 try

@@ -87,7 +87,9 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
         }
 
         /// <summary>
-        /// Get all vehicle locations
+        /// Get all vehicle locations using efficient bulk API.
+        /// Delegates to GPSGateService which makes a single HTTP call to /usersstatus
+        /// instead of N individual GetVehicleLocationAsync calls (N HTTP + 2N DB queries).
         /// </summary>
         public async Task<FMSResponse<List<VehicleLocationDTO>>> GetAllVehicleLocationsAsync(
             bool onlineOnly = false,
@@ -95,95 +97,13 @@ namespace FMS.Infrastructure.VehicleTracking.Adapters
         {
             try
             {
-                _logger.LogDebug("Getting all vehicle locations (OnlineOnly: {OnlineOnly}, GPSEnabledOnly: {GPSEnabledOnly})",
+                _logger.LogDebug("Getting all vehicle locations via bulk API (OnlineOnly: {OnlineOnly}, GPSEnabledOnly: {GPSEnabledOnly})",
                     onlineOnly, gpsEnabledOnly);
 
-                // Get vehicles from database
-                var vehiclesQuery = _context.Vehicles.AsQueryable();
-
-                if (gpsEnabledOnly)
-                {
-                    vehiclesQuery = vehiclesQuery.Where(v => v.HasGPSInstalled == 1);
-                }
-
-                var vehicles = await vehiclesQuery
-                    .Select(v => new
-                    {
-                        v.VehicleId,
-                        v.HyoungNo,
-                        v.NumberPlate,
-                        v.HasGPSInstalled,
-                        v.DeviceId
-                    })
-                    .ToListAsync();
-
-                if (!vehicles.Any())
-                {
-                    _logger.LogInformation("No vehicles found matching criteria");
-                    return FMSResponse<List<VehicleLocationDTO>>.Success(new List<VehicleLocationDTO>());
-                }
-
-                // Get locations from tracking service
-                var vehicleIds = vehicles.Select(v => v.VehicleId);
-                var locations = await _trackingService.GetVehicleLocationsAsync(vehicleIds);
-
-                // Map to DTOs
-                var dtos = new List<VehicleLocationDTO>();
-
-                foreach (var vehicle in vehicles)
-                {
-                    if (locations.TryGetValue(vehicle.VehicleId, out var location))
-                    {
-                        var isOnline = IsLocationRecent(location.Timestamp);
-
-                        // Apply online filter if requested
-                        if (onlineOnly && !isOnline)
-                            continue;
-
-                        var dto = new VehicleLocationDTO
-                        {
-                            VehicleId = location.VehicleId,
-                            VehicleName = vehicle.HyoungNo ?? "Unknown",
-                            NumberPlate = vehicle.NumberPlate,
-                            Latitude = (decimal)location.Latitude,
-                            Longitude = (decimal)location.Longitude,
-                            LastUpdated = location.Timestamp,
-                            Speed = location.Speed.HasValue ? (decimal)location.Speed.Value : null,
-                            Heading = location.Heading.HasValue ? (decimal)location.Heading.Value : null,
-                            Altitude = location.Altitude.HasValue ? (decimal)location.Altitude.Value : null,
-                            IsOnline = isOnline,
-                            Address = location.Address,
-                            HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                            DeviceId = vehicle.DeviceId
-                        };
-
-                        dtos.Add(dto);
-                    }
-                    else
-                    {
-                        _logger.LogDebug("No location data for vehicle {VehicleId}", vehicle.VehicleId);
-
-                        // If not filtering for online only, include offline vehicles
-                        if (!onlineOnly)
-                        {
-                            dtos.Add(new VehicleLocationDTO
-                            {
-                                VehicleId = vehicle.VehicleId,
-                                VehicleName = vehicle.HyoungNo ?? "Unknown",
-                                NumberPlate = vehicle.NumberPlate,
-                                Latitude = 0,
-                                Longitude = 0,
-                                LastUpdated = DateTime.MinValue,
-                                IsOnline = false,
-                                HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                                DeviceId = vehicle.DeviceId
-                            });
-                        }
-                    }
-                }
-
-                _logger.LogInformation("Retrieved {Count} vehicle locations", dtos.Count);
-                return FMSResponse<List<VehicleLocationDTO>>.Success(dtos);
+                // Use GPSGateService's efficient bulk API (single HTTP call to /usersstatus)
+                // instead of N individual calls via tracking service.
+                // This reduces N HTTP calls + 2N DB queries down to 1 HTTP call + 2 DB queries.
+                return await _gpsGateService.GetAllVehicleLocationsAsync(onlineOnly, gpsEnabledOnly);
             }
             catch (Exception ex)
             {

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
@@ -172,6 +173,24 @@ namespace FMS.BackgroundServices.IssueTracker
                 _logger.LogDebug("[GPS Offline Monitor] Checking {Count} GPS-equipped vehicles for offline status (threshold: {Threshold} min)",
                     gpsVehicles.Count, offlineThresholdMinutes);
 
+                // BULK FETCH: Get all vehicle locations in a single GPSGate API call
+                // instead of calling GetVehicleLocationAsync per vehicle (N HTTP + 2N DB queries → 1 HTTP + 2 DB queries)
+                var allLocationsResponse = await gpsService.GetAllVehicleLocationsAsync(false, true);
+                var locationLookup = new Dictionary<int, VehicleLocationDTO>();
+                if (allLocationsResponse.IsSuccess && allLocationsResponse.Data != null)
+                {
+                    foreach (var loc in allLocationsResponse.Data)
+                    {
+                        locationLookup[loc.VehicleId] = loc;
+                    }
+                    _logger.LogDebug("[GPS Offline Monitor] Bulk-fetched {Count} vehicle locations", locationLookup.Count);
+                }
+                else
+                {
+                    _logger.LogWarning("[GPS Offline Monitor] Failed to bulk-fetch vehicle locations: {Message}. " +
+                        "All vehicles without cached data will be treated as offline.", allLocationsResponse.Message);
+                }
+
                 foreach (var mapping in gpsVehicles)
                 {
                     try
@@ -186,15 +205,12 @@ namespace FMS.BackgroundServices.IssueTracker
                         if (existingIssue)
                             continue;
 
-                        // Check GPS status via the GPS service
-                        var locationResponse = await gpsService.GetVehicleLocationAsync(vehicle.VehicleId);
-
+                        // Check GPS status from pre-fetched bulk data (no per-vehicle API calls)
                         bool isOffline = false;
                         string lastSeenInfo = "unknown";
 
-                        if (locationResponse.IsSuccess && locationResponse.Data != null)
+                        if (locationLookup.TryGetValue(vehicle.VehicleId, out var location))
                         {
-                            var location = locationResponse.Data;
                             var minutesSinceLastSeen = (DateTime.UtcNow - location.LastUpdated).TotalMinutes;
 
                             isOffline = !location.IsOnline || minutesSinceLastSeen >= offlineThresholdMinutes;

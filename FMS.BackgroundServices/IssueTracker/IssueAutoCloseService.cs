@@ -4,6 +4,8 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -98,6 +100,34 @@ namespace FMS.BackgroundServices.IssueTracker
 
                 _logger.LogInformation("Found {Count} issues eligible for auto-close check", autoCloseableIssues.Count);
 
+                // Pre-fetch bulk GPS locations for vehicle/GPS issues to avoid per-issue API calls
+                Dictionary<int, VehicleLocationDTO>? gpsLocationLookup = null;
+                var vehicleDeviceTypes = new[] { "vehicle", "gps", "gps device", "gps_device" };
+                var hasVehicleGpsIssues = autoCloseableIssues.Any(i =>
+                    i.IssueTemplate?.AutoCloseConfig?.CheckerType?.Equals("Online", StringComparison.OrdinalIgnoreCase) == true &&
+                    vehicleDeviceTypes.Contains(i.IssueTemplate?.DeviceType?.Name?.ToLowerInvariant()));
+
+                if (hasVehicleGpsIssues)
+                {
+                    var gpsService = scope.ServiceProvider.GetService<IGPSService>();
+                    if (gpsService != null)
+                    {
+                        try
+                        {
+                            var allLocations = await gpsService.GetAllVehicleLocationsAsync(false, true);
+                            if (allLocations.IsSuccess && allLocations.Data != null)
+                            {
+                                gpsLocationLookup = allLocations.Data.ToDictionary(l => l.VehicleId, l => l);
+                                _logger.LogDebug("[Auto-Close] Pre-fetched {Count} vehicle GPS locations for online checks", gpsLocationLookup.Count);
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogWarning(ex, "[Auto-Close] Failed to pre-fetch GPS locations, falling back to per-issue calls");
+                        }
+                    }
+                }
+
                 var closedCount = 0;
                 foreach (var issue in autoCloseableIssues)
                 {
@@ -111,6 +141,12 @@ namespace FMS.BackgroundServices.IssueTracker
                             _logger.LogWarning("Unknown checker type '{CheckerType}' for issue {IssueId}",
                                 config.CheckerType, issue.Id);
                             continue;
+                        }
+
+                        // Pass pre-fetched GPS data to OnlineChecker to avoid per-issue API calls
+                        if (checker is OnlineChecker onlineChecker && gpsLocationLookup != null)
+                        {
+                            onlineChecker.SetPreFetchedLocations(gpsLocationLookup);
                         }
 
                         var shouldClose = await checker.ShouldAutoCloseAsync(issue, config, cancellationToken);
