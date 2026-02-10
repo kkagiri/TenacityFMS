@@ -96,6 +96,25 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                         continue;
                     }
 
+                    // CRITICAL FIX: ClosingStock is a user-entered physical measurement (absolute value),
+                    // NOT a cumulative change. Like OpeningStock, its NewVolume must be preserved.
+                    // Without this fix, when dispensing entries are added retroactively between opening
+                    // and closing timestamps, the cascade recalculation overwrites the user's closing
+                    // stock value with: previousVolume + VolumeChange, which double-counts the dispensed
+                    // amount (e.g., 4063 + (-707) = 3356 instead of preserving user-entered 4063).
+                    if (record.ChangeReason == VolumeChangeReasonEnum.ClosingStock)
+                    {
+                        // ClosingStock: preserve the user-entered physical stock value
+                        // Update VolumeChange to reflect the correct difference from current baseVolume
+                        var preservedNewVolume = record.NewVolume ?? 0;
+                        record.VolumeChange = preservedNewVolume - baseVolume;
+                        baseVolume = preservedNewVolume;
+
+                        _logger.LogDebug("ClosingStock record ID {RecordId} - preserving user-entered value: {NewVolume}, recalculated VolumeChange: {VolumeChange}",
+                            record.Id, preservedNewVolume, record.VolumeChange);
+                        continue;
+                    }
+
                     // For all other entries: calculate NewVolume from previous volume + change
                     baseVolume += record.VolumeChange ?? 0;
 

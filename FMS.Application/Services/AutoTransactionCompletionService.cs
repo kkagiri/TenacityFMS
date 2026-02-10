@@ -300,7 +300,6 @@ namespace FMS.Application.Services
                         {
                             try
                             {
-                                var integrationService = scope.ServiceProvider.GetRequiredService<PumpTransactionIntegrationService>();
                                 var transferService = scope.ServiceProvider.GetRequiredService<IPumpTankTransferService>();
                                 var transferDate = verifyTransaction.DateTime.Date;
                                 var volume = verifyTransaction.Volume ?? 0;
@@ -318,27 +317,15 @@ namespace FMS.Application.Services
                                 }
                                 else
                                 {
-                                    // Source tank (dispensing OUT)
-                                    if (verifyTransaction.TankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
-                                    {
-                                        var sourceResult = await integrationService.ProcessPumpTransactionAsync(
-                                            verifyTransaction.TankId.Value,
-                                            verifyTransaction.Id,
-                                            verifyTransaction.DateTime,
-                                            verifyTransaction.Volume.Value,
-                                            userId,
-                                            default);
+                                    // **FIX**: Do NOT call ProcessPumpTransactionAsync for source tank in transfer mode.
+                                    // PumpTankTransferService.ProcessPumpTransferAsync already handles BOTH source
+                                    // (TransferOut) and destination (TransferIn) tank volume history entries.
+                                    // Previously this was creating an extra "AutomatedDispensing" (ChangeReason=7)
+                                    // entry on the source tank, causing triple deduction (-6300L instead of -2100L).
 
-                                        if (sourceResult.Success)
-                                        {
-                                            _logger.LogInformation(
-                                                "✅ SOURCE TANK LEDGER SAVED - Tank {TankId}, Volume -{Volume}L",
-                                                verifyTransaction.TankId.Value, verifyTransaction.Volume.Value);
-                                        }
-                                    }
-
-                                    // Destination tank (receiving IN) - CALL PumpTankTransferService
-                                    if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
+                                    // Process tank transfer via PumpTankTransferService (handles both source OUT and destination IN)
+                                    if (verifyTransaction.DestinationTankId.HasValue && verifyTransaction.TankId.HasValue
+                                        && verifyTransaction.Volume.HasValue && verifyTransaction.Volume.Value > 0)
                                     {
                                         var transferData = new JObject
                                         {
