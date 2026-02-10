@@ -4,6 +4,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -99,7 +100,7 @@ public class DeleteTankStockCommandHandler : IRequestHandler<DeleteTankStockComm
     /// then triggers recalculation from the earliest deleted timestamp.
     /// </summary>
     private async Task CascadeDeleteTankVolumeHistoryAsync(
-        Domain.Entities.Features.TankStockManagement.Tankstock tankStock,
+        Tankstock tankStock,
         string? userId,
         CancellationToken cancellationToken)
     {
