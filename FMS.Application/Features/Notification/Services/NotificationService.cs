@@ -1770,18 +1770,25 @@ namespace FMS.Application.Features.Notification.Services
                     _logger.LogWarning("IssueCategory not set on handler {HandlerId}; skipping issue creation", handler.Id);
                     return;
                 }
+                // Resolve valid user IDs for FK fields (AssignTo and Openby reference user.Id)
+                var systemUserId = await ResolveSystemUserIdForIssueAsync(cancellationToken);
+                var resolvedOpenby = await ResolveUserIdAsync(request.TriggeredBy, cancellationToken) ?? systemUserId;
+                var resolvedAssignTo = await ResolveUserIdAsync(handler.AssignIssueTo, cancellationToken)
+                    ?? await ResolveUserIdAsync(request.TriggeredBy, cancellationToken)
+                    ?? systemUserId;
+
                 var issue = new Issuetracker
                 {
                     IssueCategoryId = handler.IssueCategory.Value,
                     SiteId = request.SiteId ?? 1, // Default site if not specified
-                    Openby = request.TriggeredBy ?? SystemConstants.Defaults.SystemTriggeredBy,
+                    Openby = resolvedOpenby,
                     ProblemTitle = $"Alarm: {request.AlarmType}",
                     ProblemDescription = request.Message ?? $"Alarm triggered: {request.AlarmType}",
                     Status = 1, // Open
                     Priority = handler.IssuePriority ?? 1,
                     OpenDate = DateTime.UtcNow,
                     VehicleId = request.VehicleId ?? 1, // Default vehicle
-                    AssignTo = handler.AssignIssueTo ?? request.TriggeredBy ?? SystemConstants.Defaults.SystemTriggeredBy
+                    AssignTo = resolvedAssignTo
                 };
 
                 _context.Issuetrackers.Add(issue);
@@ -1793,6 +1800,49 @@ namespace FMS.Application.Features.Notification.Services
             {
                 _logger.LogError(ex, "Error creating issue tracker entry for alarm {AlarmType}", request.AlarmType);
             }
+        }
+
+        /// <summary>
+        /// Resolves a user identifier (could be user ID or username) to an actual user.Id for FK fields.
+        /// Returns null if the value is null/empty or no matching user is found.
+        /// </summary>
+        private async Task<string?> ResolveUserIdAsync(string? userIdOrName, CancellationToken cancellationToken)
+        {
+            if (string.IsNullOrEmpty(userIdOrName))
+                return null;
+
+            var userId = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == userIdOrName || u.UserName == userIdOrName)
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return userId;
+        }
+
+        /// <summary>
+        /// Resolves a valid system user ID from the database for auto-created issue FK fields.
+        /// </summary>
+        private async Task<string> ResolveSystemUserIdForIssueAsync(CancellationToken cancellationToken)
+        {
+            var systemUserId = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == SystemConstants.SystemUser.UserId
+                         || u.UserName == SystemConstants.SystemUser.UserName
+                         || u.UserName == "admin")
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (!string.IsNullOrEmpty(systemUserId))
+                return systemUserId;
+
+            // Fallback: use the first user in the database
+            var fallbackId = await _context.Users
+                .AsNoTracking()
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            return fallbackId ?? throw new InvalidOperationException("No users found in database for auto-issue creation.");
         }
 
         // Implement remaining interface methods...

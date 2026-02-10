@@ -28,6 +28,20 @@ public class GetIssueTemplatesQueryHandler : IRequestHandler<GetIssueTemplatesQu
     {
         try
         {
+            // Pre-load user names for DefaultAssignee resolution
+            var assigneeIds = await _context.Issuetemplates
+                .Where(t => t.DefaultAssignee != null)
+                .Select(t => t.DefaultAssignee!)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var userNameMap = assigneeIds.Any()
+                ? await _context.Users
+                    .AsNoTracking()
+                    .Where(u => assigneeIds.Contains(u.Id))
+                    .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Id, cancellationToken)
+                : new Dictionary<string, string>();
+
             var templates = await _context.Issuetemplates
                 .Include(t => t.DeviceType)
                 .Include(t => t.DefaultPriority)
@@ -48,12 +62,20 @@ public class GetIssueTemplatesQueryHandler : IRequestHandler<GetIssueTemplatesQu
                     DefaultStatusId = t.DefaultStatusId,
                     DefaultStatusName = t.DefaultStatus != null ? t.DefaultStatus.Status : null,
                     IsActive = t.IsActive,
+                    DefaultAssignee = t.DefaultAssignee,
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
                     HasAutoCloseConfig = t.AutoCloseConfig != null,
                     AutoCloseEnabled = t.AutoCloseConfig != null && t.AutoCloseConfig.IsEnabled
                 })
                 .ToListAsync(cancellationToken);
+
+            // Resolve assignee names post-query
+            foreach (var t in templates)
+            {
+                if (!string.IsNullOrEmpty(t.DefaultAssignee) && userNameMap.TryGetValue(t.DefaultAssignee, out var name))
+                    t.DefaultAssigneeName = name;
+            }
 
             return FMSResponse<List<IssueTemplateDTO>>.Success(templates);
         }
@@ -108,6 +130,7 @@ public class GetIssueTemplatesByDeviceTypeQueryHandler : IRequestHandler<GetIssu
                     DefaultStatusId = t.DefaultStatusId,
                     DefaultStatusName = t.DefaultStatus != null ? t.DefaultStatus.Status : null,
                     IsActive = t.IsActive,
+                    DefaultAssignee = t.DefaultAssignee,
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
                     HasAutoCloseConfig = t.AutoCloseConfig != null,
@@ -167,6 +190,7 @@ public class GetIssueTemplateByIdQueryHandler : IRequestHandler<GetIssueTemplate
                     DefaultStatusId = t.DefaultStatusId,
                     DefaultStatusName = t.DefaultStatus != null ? t.DefaultStatus.Status : null,
                     IsActive = t.IsActive,
+                    DefaultAssignee = t.DefaultAssignee,
                     CreatedAt = t.CreatedAt,
                     UpdatedAt = t.UpdatedAt,
                     HasAutoCloseConfig = t.AutoCloseConfig != null,
@@ -184,6 +208,16 @@ public class GetIssueTemplateByIdQueryHandler : IRequestHandler<GetIssueTemplate
             if (template == null)
             {
                 return FMSResponse<IssueTemplateDTO>.Failed($"Issue Template with ID {request.Id} not found.");
+            }
+
+            // Resolve assignee name
+            if (!string.IsNullOrEmpty(template.DefaultAssignee))
+            {
+                template.DefaultAssigneeName = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == template.DefaultAssignee)
+                    .Select(u => u.UserName)
+                    .FirstOrDefaultAsync(cancellationToken);
             }
 
             return FMSResponse<IssueTemplateDTO>.Success(template);

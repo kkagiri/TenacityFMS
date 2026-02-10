@@ -445,10 +445,10 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                             tankId, variance, variancePercentage);
 
                         // Send notification for discrepancy detection
-                        await SendDiscrepancyNotificationAsync(tank, variance, variancePercentage, varianceType, severity, cancellationToken);
+                        await SendDiscrepancyNotificationAsync(tank, variance, variancePercentage, varianceType, severity, result, cancellationToken);
 
                         // Create ActiveAlarm for significant stock discrepancy
-                        await CreateDiscrepancyActiveAlarmAsync(tank, variance, variancePercentage, varianceType, severity, discrepancy.Id, cancellationToken);
+                        await CreateDiscrepancyActiveAlarmAsync(tank, variance, variancePercentage, varianceType, severity, discrepancy.Id, result, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -559,7 +559,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         /// Sends notification when a discrepancy is detected during closing stock reconciliation
         /// </summary>
         private async Task SendDiscrepancyNotificationAsync(Tank tank, decimal variance, decimal variancePercentage,
-            string varianceType, DiscrepancySeverity severity, CancellationToken cancellationToken)
+            string varianceType, DiscrepancySeverity severity, StockReconciliationResult reconciliation, CancellationToken cancellationToken)
         {
             try
             {
@@ -573,14 +573,45 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
+                // Get site name for the notification
+                var site = await _context.Sites.FindAsync(tank.SiteId);
+                var siteName = site?.Name ?? $"Site {tank.SiteId}";
+
+                // Format the business date (local date, not UTC detection time)
+                var businessDate = reconciliation.Date.ToString("dd MMM yyyy");
+
+                // Build fuel day summary breakdown
+                var summaryLines = new System.Text.StringBuilder();
+                summaryLines.AppendLine($"📍 {siteName} | Tank {tank.Name} | {businessDate}");
+                summaryLines.AppendLine($"Opening Stock: {reconciliation.OpeningStock:N2}L");
+
+                // Only show non-zero transaction categories
+                if (reconciliation.TotalDispensing != 0)
+                    summaryLines.AppendLine($"  Dispensing: {reconciliation.TotalDispensing:N2}L");
+                if (reconciliation.TotalDeliveries != 0)
+                    summaryLines.AppendLine($"  Deliveries: +{reconciliation.TotalDeliveries:N2}L");
+                if (reconciliation.TotalTransfersIn != 0)
+                    summaryLines.AppendLine($"  Transfers In: +{reconciliation.TotalTransfersIn:N2}L");
+                if (reconciliation.TotalTransfersOut != 0)
+                    summaryLines.AppendLine($"  Transfers Out: {reconciliation.TotalTransfersOut:N2}L");
+
+                // Show if no transactions were recorded
+                if (reconciliation.TotalDispensing == 0 && reconciliation.TotalDeliveries == 0 &&
+                    reconciliation.TotalTransfersIn == 0 && reconciliation.TotalTransfersOut == 0)
+                    summaryLines.AppendLine("  ⚠️ No transactions recorded for this day");
+
+                summaryLines.AppendLine($"Expected Closing: {reconciliation.ExpectedClosingStock:N2}L");
+                summaryLines.AppendLine($"Actual Closing: {reconciliation.ActualClosingStock:N2}L");
+                summaryLines.AppendLine($"Variance: {variance:N2}L ({variancePercentage:F1}%) - {varianceType}");
+
                 // Create notification request
                 var notificationRequest = new CreateNotificationRequest
                 {
                     Type = NotificationType.Alert,
                     CategoryId = (int)WellKnownCategories.TankVariance,
                     Priority = NotificationPriority.High,
-                    Title = "Closing Stock Discrepancy Detected",
-                    Message = $"Tank {tank.Name} closing stock discrepancy: {variance:F2}L ({variancePercentage:F1}%) - {varianceType}",
+                    Title = $"Closing Stock Discrepancy - {siteName} | Tank {tank.Name} | {businessDate}",
+                    Message = summaryLines.ToString(),
                     TriggerSource = "ClosingStock",
                     TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
                     SiteId = tank.SiteId,
@@ -821,12 +852,42 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             string varianceType,
             DiscrepancySeverity severity,
             int discrepancyId,
+            StockReconciliationResult reconciliation,
             CancellationToken cancellationToken)
         {
             try
             {
+                // Get site name for the alarm message
+                var site = await _context.Sites.FindAsync(tank.SiteId);
+                var siteName = site?.Name ?? $"Site {tank.SiteId}";
+                var businessDate = reconciliation.Date.ToString("dd MMM yyyy");
+
                 string alarmType = $"TankStockDiscrepancy{varianceType}";
-                string message = $"Stock discrepancy detected in Tank {tank.Name}: {variance:F2}L ({variancePercentage:F1}%) - {varianceType}";
+
+                // Build detailed alarm message with fuel day summary
+                var msgBuilder = new System.Text.StringBuilder();
+                msgBuilder.Append($"{siteName} | Tank {tank.Name} | {businessDate}: ");
+                msgBuilder.Append($"{varianceType} of {Math.Abs(variance):N2}L ({Math.Abs(variancePercentage):F1}%). ");
+                msgBuilder.Append($"Opening: {reconciliation.OpeningStock:N2}L");
+
+                // Add non-zero transaction types
+                if (reconciliation.TotalDispensing != 0)
+                    msgBuilder.Append($", Dispensed: {reconciliation.TotalDispensing:N2}L");
+                if (reconciliation.TotalDeliveries != 0)
+                    msgBuilder.Append($", Deliveries: +{reconciliation.TotalDeliveries:N2}L");
+                if (reconciliation.TotalTransfersIn != 0)
+                    msgBuilder.Append($", TransfersIn: +{reconciliation.TotalTransfersIn:N2}L");
+                if (reconciliation.TotalTransfersOut != 0)
+                    msgBuilder.Append($", TransfersOut: {reconciliation.TotalTransfersOut:N2}L");
+
+                if (reconciliation.TotalDispensing == 0 && reconciliation.TotalDeliveries == 0 &&
+                    reconciliation.TotalTransfersIn == 0 && reconciliation.TotalTransfersOut == 0)
+                    msgBuilder.Append(", NO TRANSACTIONS RECORDED");
+
+                msgBuilder.Append($", Expected: {reconciliation.ExpectedClosingStock:N2}L");
+                msgBuilder.Append($", Actual: {reconciliation.ActualClosingStock:N2}L");
+
+                string message = msgBuilder.ToString();
                 string priority = severity
                 switch
                 {

@@ -34,6 +34,7 @@ import {
   fetchIssuePriorities,
   fetchIssueStatuses
 } from '../../../redux/actions/issueTrackerActions';
+import { fetchUsers } from '../../../redux/actions/userActions';
 import AutoCloseConfigPanel from './AutoCloseConfigPanel';
 
 /**
@@ -43,6 +44,7 @@ import AutoCloseConfigPanel from './AutoCloseConfigPanel';
 const IssueTemplatesSettingsPage = () => {
   const dispatch = useDispatch();
   const issueTrackerState = useSelector(state => state.issueTracker);
+  const userState = useSelector(state => state.user);
 
   const [templates, setTemplates] = useState([]);
   const [deviceTypes, setDeviceTypes] = useState([]);
@@ -52,6 +54,7 @@ const IssueTemplatesSettingsPage = () => {
   // Get priorities and statuses from Redux
   const priorities = issueTrackerState?.priorities || [];
   const statuses = issueTrackerState?.statuses || [];
+  const users = userState?.users || [];
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -74,6 +77,10 @@ const IssueTemplatesSettingsPage = () => {
       if (!statuses.length) {
         dispatch(fetchIssueStatuses());
       }
+      // Load users for assignee lookup
+      if (!users.length) {
+        dispatch(fetchUsers());
+      }
     } catch (error) {
       console.error('Error loading data:', error);
       notify({
@@ -84,7 +91,7 @@ const IssueTemplatesSettingsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [dispatch, priorities.length, statuses.length]);
+  }, [dispatch, priorities.length, statuses.length, users.length]);
 
   useEffect(() => {
     loadData();
@@ -101,7 +108,8 @@ const IssueTemplatesSettingsPage = () => {
         descriptionTemplate: e.data.descriptionTemplate || null,
         defaultPriorityId: e.data.defaultPriorityId || null,
         defaultStatusId: e.data.defaultStatusId || null,
-        isActive: e.data.isActive !== false
+        isActive: e.data.isActive !== false,
+        defaultAssignee: e.data.defaultAssignee || null
       };
 
       await issueTrackerV2Service.createTemplate(newTemplate);
@@ -127,7 +135,8 @@ const IssueTemplatesSettingsPage = () => {
         descriptionTemplate: updatedData.descriptionTemplate,
         defaultPriorityId: updatedData.defaultPriorityId,
         defaultStatusId: updatedData.defaultStatusId,
-        isActive: updatedData.isActive
+        isActive: updatedData.isActive,
+        defaultAssignee: updatedData.defaultAssignee || null
       });
       await loadData();
 
@@ -290,6 +299,17 @@ const IssueTemplatesSettingsPage = () => {
             dataSource={statuses}
             valueExpr="id"
             displayExpr={(item) => item ? (item.status || item.name || '') : ''}
+          />
+        </Column>
+        <Column dataField="defaultAssignee" caption="Default Assignee" width={180}>
+          <Lookup
+            dataSource={users.map(u => ({
+              id: u.id,
+              displayName: `${u.userName || u.username || u.id}${u.email ? ` (${u.email})` : ''}`
+            }))}
+            valueExpr="id"
+            displayExpr="displayName"
+            allowClearing={true}
           />
         </Column>
         <Column

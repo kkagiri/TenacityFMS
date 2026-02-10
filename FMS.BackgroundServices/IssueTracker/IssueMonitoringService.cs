@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Common.Constants;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
@@ -234,7 +235,7 @@ namespace FMS.BackgroundServices.IssueTracker
                                 .Replace("{thresholdMinutes}", offlineThresholdMinutes.ToString())
                                 .Replace("{lastSeen}", lastSeenInfo);
 
-                            var issue = CreateIssueFromTemplate(context, template, vehicle.VehicleId, "vehicle",
+                            var issue = await CreateIssueFromTemplateAsync(context, template, vehicle.VehicleId, "vehicle",
                                 title, description);
 
                             context.Issuetrackers.Add(issue);
@@ -288,7 +289,7 @@ namespace FMS.BackgroundServices.IssueTracker
                 if (existingIssue)
                     continue;
 
-                var issue = CreateIssueFromTemplate(context, template, 0, "pts",
+                var issue = await CreateIssueFromTemplateAsync(context, template, 0, "pts",
                     $"PTS Device {device.PtsName ?? device.Ptsid} - Offline",
                     $"PTS device '{device.PtsName ?? device.Ptsid}' has not reported since " +
                     $"{device.LastActivity?.ToString("yyyy-MM-dd HH:mm:ss") ?? "unknown"}. " +
@@ -330,7 +331,7 @@ namespace FMS.BackgroundServices.IssueTracker
                 .AnyAsync(cancellationToken);
         }
 
-        private Issuetracker CreateIssueFromTemplate(
+        private async Task<Issuetracker> CreateIssueFromTemplateAsync(
             GpsdataContext context,
             Issuetemplate template,
             int relatedEntityId,
@@ -341,6 +342,22 @@ namespace FMS.BackgroundServices.IssueTracker
             // Get a default site and category
             var defaultSiteId = 1; // Will need to be configured properly
             var defaultCategoryId = 1; // Will need to be configured properly
+
+            // Resolve a valid system user ID from the database
+            // AssignTo and Openby are FKs to user.Id - must use actual user IDs
+            var systemUserId = await ResolveSystemUserIdAsync(context);
+
+            // Resolve DefaultAssignee: it might be a username, so look up the actual user ID
+            string? assigneeUserId = null;
+            if (!string.IsNullOrEmpty(template.DefaultAssignee))
+            {
+                var assigneeUser = await context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == template.DefaultAssignee || u.UserName == template.DefaultAssignee)
+                    .Select(u => u.Id)
+                    .FirstOrDefaultAsync();
+                assigneeUserId = assigneeUser;
+            }
 
             return new Issuetracker
             {
@@ -357,14 +374,48 @@ namespace FMS.BackgroundServices.IssueTracker
                 RelatedEntityId = relatedEntityId,
                 RelatedEntityType = relatedEntityType,
                 AssignedTo = template.DefaultAssignee,
-                ReportedBy = "System", // Auto-created by system
-                Openby = "System",
-                AssignTo = template.DefaultAssignee ?? "Unassigned",
+                ReportedBy = "System", // Display-only field, not an FK
+                Openby = systemUserId,
+                AssignTo = assigneeUserId ?? systemUserId,
                 SiteId = defaultSiteId,
                 IssueCategoryId = defaultCategoryId,
                 VehicleId = relatedEntityType == "vehicle" ? relatedEntityId : 0
                 // Note: For PTS devices, store the device ID in RelatedEntityType description or use a separate field
             };
+        }
+
+        /// <summary>
+        /// Resolves a valid system user ID from the database for use in FK fields.
+        /// Tries the configured system user first, then falls back to the first available user.
+        /// </summary>
+        private async Task<string> ResolveSystemUserIdAsync(GpsdataContext context)
+        {
+            // Try the configured system user ID first
+            var systemUser = await context.Users
+                .AsNoTracking()
+                .Where(u => u.Id == SystemConstants.SystemUser.UserId
+                         || u.UserName == SystemConstants.SystemUser.UserName
+                         || u.UserName == "admin")
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (!string.IsNullOrEmpty(systemUser))
+                return systemUser;
+
+            // Fallback: use the first user in the database
+            var fallbackUserId = await context.Users
+                .AsNoTracking()
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync();
+
+            if (string.IsNullOrEmpty(fallbackUserId))
+            {
+                _logger.LogError("No users found in database. Cannot create auto-issues.");
+                throw new InvalidOperationException("No system user available for auto-issue creation.");
+            }
+
+            _logger.LogWarning("System user not found, using fallback user {UserId} for auto-issue creation", fallbackUserId);
+            return fallbackUserId;
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

@@ -94,6 +94,25 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 }
             }
 
+            // Validate DefaultAssignee if provided - must be a valid user ID
+            string? defaultAssigneeId = null;
+            string? defaultAssigneeName = null;
+            if (!string.IsNullOrEmpty(request.Template.DefaultAssignee))
+            {
+                var assigneeUser = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == request.Template.DefaultAssignee || u.UserName == request.Template.DefaultAssignee)
+                    .Select(u => new { u.Id, u.UserName })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (assigneeUser == null)
+                {
+                    return FMSResponse<IssueTemplateDTO>.Failed($"Default Assignee user '{request.Template.DefaultAssignee}' not found.");
+                }
+                defaultAssigneeId = assigneeUser.Id;
+                defaultAssigneeName = assigneeUser.UserName;
+            }
+
             var now = DateTime.UtcNow;
             Issuetemplate? entity = null;
 
@@ -113,6 +132,7 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                     DefaultPriorityId = request.Template.DefaultPriorityId,
                     DefaultStatusId = request.Template.DefaultStatusId,
                     IsActive = request.Template.IsActive,
+                    DefaultAssignee = defaultAssigneeId,
                     CreatedAt = now,
                     UpdatedAt = now
                 };
@@ -156,6 +176,8 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 DefaultStatusId = entity.DefaultStatusId,
                 DefaultStatusName = statusName,
                 IsActive = entity.IsActive,
+                DefaultAssignee = entity.DefaultAssignee,
+                DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 HasAutoCloseConfig = false,
@@ -288,6 +310,25 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 }
             }
 
+            // Validate DefaultAssignee if provided - must be a valid user ID
+            string? defaultAssigneeId = null;
+            string? defaultAssigneeName = null;
+            if (!string.IsNullOrEmpty(request.Template.DefaultAssignee))
+            {
+                var assigneeUser = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == request.Template.DefaultAssignee || u.UserName == request.Template.DefaultAssignee)
+                    .Select(u => new { u.Id, u.UserName })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (assigneeUser == null)
+                {
+                    return FMSResponse<IssueTemplateDTO>.Failed($"Default Assignee user '{request.Template.DefaultAssignee}' not found.");
+                }
+                defaultAssigneeId = assigneeUser.Id;
+                defaultAssigneeName = assigneeUser.UserName;
+            }
+
             entity.DeviceTypeId = request.Template.DeviceTypeId;
             entity.Name = request.Template.Name;
             entity.TitleTemplate = request.Template.TitleTemplate;
@@ -295,6 +336,7 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
             entity.DefaultPriorityId = request.Template.DefaultPriorityId;
             entity.DefaultStatusId = request.Template.DefaultStatusId;
             entity.IsActive = request.Template.IsActive;
+            entity.DefaultAssignee = defaultAssigneeId;
             entity.UpdatedAt = DateTime.UtcNow;
 
             await _context.SaveChangesAsync(cancellationToken);
@@ -312,6 +354,8 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 DefaultStatusId = entity.DefaultStatusId,
                 DefaultStatusName = statusName,
                 IsActive = entity.IsActive,
+                DefaultAssignee = entity.DefaultAssignee,
+                DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,
                 UpdatedAt = entity.UpdatedAt,
                 HasAutoCloseConfig = entity.AutoCloseConfig != null,

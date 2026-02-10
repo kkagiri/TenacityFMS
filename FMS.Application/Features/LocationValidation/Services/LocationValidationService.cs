@@ -868,6 +868,27 @@ public partial class LocationValidationService : ILocationValidationService
             // TODO: Inject INotificationService and create notification
             // For now, just log the issue. The notification service injection should be added.
 
+            // Resolve a valid system user ID from the database for FK fields
+            var systemUserId = await _context.Users
+                .AsNoTracking()
+                .Where(u => u.UserName == "system" || u.UserName == "admin")
+                .Select(u => u.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (string.IsNullOrEmpty(systemUserId))
+            {
+                systemUserId = await _context.Users
+                    .AsNoTracking()
+                    .Select(u => u.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
+            if (string.IsNullOrEmpty(systemUserId))
+            {
+                _logger.LogError("[LocationValidation] No users found in database. Cannot create stale device issue.");
+                return;
+            }
+
             // Create issue tracker record for device offline
             var issue = new Issuetracker
             {
@@ -881,8 +902,8 @@ public partial class LocationValidationService : ILocationValidationService
                 VehicleId = vehicleId,
                 SiteId = 1, // Default site
                 OpenDate = DateTime.UtcNow,
-                Openby = "LocationValidationService",
-                AssignTo = "System"
+                Openby = systemUserId,
+                AssignTo = systemUserId
             };
 
             _context.Issuetrackers.Add(issue);

@@ -19,6 +19,8 @@ public class IssueTemplateDTO
     public int? DefaultStatusId { get; set; }
     public string? DefaultStatusName { get; set; }
     public bool IsActive { get; set; }
+    public string? DefaultAssignee { get; set; }
+    public string? DefaultAssigneeName { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -53,6 +55,7 @@ public class CreateIssueTemplateDTO
     public int? DefaultPriorityId { get; set; }
     public int? DefaultStatusId { get; set; }
     public bool IsActive { get; set; } = true;
+    public string? DefaultAssignee { get; set; }
     public List<int> CategoryIds { get; set; } = new List<int>();
 }
 
@@ -69,5 +72,6 @@ public class UpdateIssueTemplateDTO
     public int? DefaultPriorityId { get; set; }
     public int? DefaultStatusId { get; set; }
     public bool IsActive { get; set; }
+    public string? DefaultAssignee { get; set; }
     public List<int> CategoryIds { get; set; } = new List<int>();
 }
