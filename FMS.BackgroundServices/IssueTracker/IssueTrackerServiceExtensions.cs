@@ -23,6 +23,7 @@ namespace FMS.BackgroundServices.IssueTracker
             services.AddTransient<StatusChecker>();
             services.AddTransient<TimeoutChecker>();
             services.AddTransient<ManualOnlyChecker>();
+            services.AddTransient<FuelActivityChecker>();
 
             // Register background services as hosted services
             services.AddHostedService<IssueAutoCloseService>();

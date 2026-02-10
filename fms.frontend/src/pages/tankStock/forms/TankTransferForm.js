@@ -2,7 +2,7 @@
  * File: TankTransferForm.js
  * Purpose: Coordinate tank-to-tank and site-to-site transfers leveraging shared site/tank datasets with validation safeguards.
  * Dependencies: React, Redux Toolkit, DevExtreme components, siteActions, tankActions, tankStockAction
- * Last Modified: 2025-11-27
+ * Last Modified: 2026-02-10
  *
  * Key Functions/Components:
  * - TankTransferForm: Handles transfer workflow including validation and submission
@@ -124,6 +124,27 @@ const TankTransferForm = ({
   const [showInfoNotice, setShowInfoNotice] = useState(true);
   const [showSourceTankInfo, setShowSourceTankInfo] = useState(false);
   const [showHistoricalNotice, setShowHistoricalNotice] = useState(true);
+
+  useEffect(() => {
+    if (formData.transferType !== "InterTank" || !formData.sourceSiteId) {
+      return;
+    }
+
+    setFormData((prevData) => {
+      const needsSiteSync = prevData.destinationSiteId !== prevData.sourceSiteId;
+      const needsTankReset = prevData.destinationTankId === prevData.sourceTankId;
+
+      if (!needsSiteSync && !needsTankReset) {
+        return prevData;
+      }
+
+      return {
+        ...prevData,
+        destinationSiteId: prevData.sourceSiteId,
+        destinationTankId: needsTankReset ? null : prevData.destinationTankId,
+      };
+    });
+  }, [formData.transferType, formData.sourceSiteId, formData.sourceTankId]);
 
   // Future records validation hook
   const {
@@ -413,6 +434,13 @@ const TankTransferForm = ({
     }));
   }, []);
 
+  const destinationTankItems =
+    formData.transferType === "InterTank"
+      ? filteredDestinationTanks.filter(
+        (tank) => tank.id !== formData.sourceTankId
+      )
+      : filteredDestinationTanks;
+
   const handleTransferTypeChange = useCallback(
     (e) => {
       const transferType = e.value;
@@ -591,8 +619,8 @@ const TankTransferForm = ({
                     <span className="tw-ml-1 tw-font-medium">
                       {formData.sourceTankCurrentStock != null
                         ? `${Number(
-                            formData.sourceTankCurrentStock
-                          ).toLocaleString()} L`
+                          formData.sourceTankCurrentStock
+                        ).toLocaleString()} L`
                         : "N/A"}
                     </span>
                   </div>
@@ -704,8 +732,8 @@ const TankTransferForm = ({
                 placeholder: !formData.sourceSiteId
                   ? "Select source site first"
                   : filteredSourceTanks.length === 0
-                  ? "No tanks available"
-                  : "Select source tank",
+                    ? "No tanks available"
+                    : "Select source tank",
                 searchEnabled: true,
                 showClearButton: true,
                 width: "100%",
@@ -726,9 +754,8 @@ const TankTransferForm = ({
             </SimpleItem>
 
             <SimpleItem
-              key={`destination-site-${formData.destinationSiteId || "empty"}-${
-                formData.transferType
-              }`}
+              key={`destination-site-${formData.destinationSiteId || "empty"}-${formData.transferType
+                }`}
               dataField="destinationSiteId"
               editorType="dxSelectBox"
               editorOptions={{
@@ -762,7 +789,7 @@ const TankTransferForm = ({
               dataField="destinationTankId"
               editorType="dxSelectBox"
               editorOptions={{
-                items: filteredDestinationTanks,
+                items: destinationTankItems,
                 displayExpr: "name",
                 valueExpr: "id",
                 value: formData.destinationTankId,

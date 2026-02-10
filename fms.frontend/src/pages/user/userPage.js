@@ -1,29 +1,33 @@
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+/**
+ * File: userPage.js
+ * Purpose: Admin user management page with filterable list/card views, permission-aware actions, and user/department management popups
+ * Dependencies: React, Redux, React Router, DevExtreme components, userActions, usePermissions
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - UserPage(): Renders user directory with search/filter controls and list/card display toggle
+ * - handleCreateUser(): Creates users from popup form
+ * - handleSaveDepartment(): Creates/updates departments from management popup
+ */
+import React, { useEffect, useState, useRef, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import DataGrid, {
     Column,
     Paging,
     Pager,
-    FilterRow,
-    HeaderFilter,
     SearchPanel,
-    Selection,
-    StateStoring,
-    Toolbar,
-    Item
+    Selection
 } from 'devextreme-react/data-grid';
 import Tabs, { Item as TabItem } from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
 import { TextBox } from 'devextreme-react/text-box';
 import { SelectBox } from 'devextreme-react/select-box';
 import Popup from 'devextreme-react/popup';
-import ScrollView from 'devextreme-react/scroll-view';
 import LoadPanel from 'devextreme-react/load-panel';
 import Form, {
     SimpleItem,
     GroupItem,
-    ButtonItem,
     RequiredRule
 } from 'devextreme-react/form';
 import notify from 'devextreme/ui/notify';
@@ -31,17 +35,13 @@ import {
     fetchUsers,
     createUser,
     updateUser,
-    softDeleteUser,
-    restoreUser,
-    fetchAllUserActivities,
-    fetchAllSites,
-    fetchUserSiteCounts, //Cursor
     fetchAllRoles,
     fetchAllDepartments,
     createDepartment,
     updateDepartment,
     deleteDepartment
 } from '../../redux/actions/userActions';
+import { usePermissions } from '../../hooks/usePermissions';
 import './userPage.scss';
 
 // Custom styles for tabs
@@ -56,22 +56,85 @@ const styles = {
     }
 }; //Cursor
 
+const getRoleName = (roleValue) => {
+    if (!roleValue) return null;
+    if (typeof roleValue === 'string') return roleValue;
+    if (typeof roleValue === 'object') {
+        return (
+            roleValue.name ||
+            roleValue.Name ||
+            roleValue.roleName ||
+            roleValue.RoleName ||
+            roleValue.value ||
+            roleValue.Value ||
+            null
+        );
+    }
+    return null;
+};
+
+const normalizeRoleKey = (roleValue) => {
+    const roleName = getRoleName(roleValue);
+    if (typeof roleName !== 'string') {
+        return null;
+    }
+
+    const trimmedRoleName = roleName.trim();
+    if (trimmedRoleName.length === 0) {
+        return null;
+    }
+
+    return trimmedRoleName.toLowerCase();
+};
+
+const extractRoleNames = (roleValue) => {
+    const roleName = getRoleName(roleValue);
+    if (typeof roleName !== 'string') {
+        return [];
+    }
+
+    return roleName
+        .split(',')
+        .map((item) => item.trim())
+        .filter((item) => item.length > 0);
+};
+
+const getPrimaryRoleName = (user) => {
+    const roleSources = [
+        ...(Array.isArray(user?.roles) ? user.roles : []),
+        ...(Array.isArray(user?.Roles) ? user.Roles : []),
+        user?.roleName,
+        user?.RoleName,
+        user?.role,
+        user?.Role
+    ];
+
+    for (const roleSource of roleSources) {
+        const roleNames = extractRoleNames(roleSource);
+        if (roleNames.length > 0) {
+            return roleNames[0];
+        }
+    }
+
+    return '';
+};
+
 const UserPage = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const users = useSelector((state) => state.user.users);
-    const allActivities = useSelector((state) => state.user.allActivities);
-    const allSites = useSelector((state) => state.user.allSites); //Cursor
     const allRoles = useSelector((state) => state.user.allRoles);
     const allDepartments = useSelector((state) => state.user.allDepartments);
+    const { hasPermission, hasRole } = usePermissions();
 
-    const [selectedTab, setSelectedTab] = useState(0);
     const [searchText, setSearchText] = useState('');
+    const [selectedRole, setSelectedRole] = useState('all');
+    const [selectedDepartment, setSelectedDepartment] = useState('all');
+    const [selectedStatus, setSelectedStatus] = useState('all');
+    const [viewMode, setViewMode] = useState('list');
     const [isCreatePopupVisible, setCreatePopupVisible] = useState(false);
     const [loadingVisible, setLoadingVisible] = useState(false);
     const [createUserLoading, setCreateUserLoading] = useState(false);
-    const [activeUsers, setActiveUsers] = useState([]);
-    const [userSiteCounts, setUserSiteCounts] = useState({}); //Cursor
     const [formDataState, setFormDataState] = useState({
         userName: '',
         email: '',
@@ -102,15 +165,10 @@ const UserPage = () => {
         departmentId: null
     });
 
-    const gridRef = useRef(null);
-    const activeGridRef = useRef(null); //Cursor
-
     const loadData = useCallback(async () => {
         setLoadingVisible(true);
         try {
             await dispatch(fetchUsers());
-            await dispatch(fetchAllUserActivities());
-            await dispatch(fetchAllSites()); //Cursor
             await dispatch(fetchAllRoles());
             await dispatch(fetchAllDepartments());
         } catch (error) {
@@ -124,74 +182,141 @@ const UserPage = () => {
         loadData();
     }, [loadData]);
 
-    useEffect(() => {
-        // Filter active users
-        if (users && users.length > 0) {
-            const filtered = users.filter(user => !user.isDeleted);
-            console.log(`Setting activeUsers: ${filtered.length} active users found`);
-            setActiveUsers(filtered);
-        }
+    const canManageUsers =
+        hasPermission('_Manage_Users') || hasRole('Admin') || hasRole('SuperAdmin');
+    const canAddUser = canManageUsers;
+    const canAddDepartment =
+        canManageUsers || hasPermission('_Create_Department');
+
+    const normalizedUsers = useMemo(() => {
+        return (users || []).map((user) => {
+            const roleSources = [
+                ...(Array.isArray(user.roles) ? user.roles : []),
+                ...(Array.isArray(user.Roles) ? user.Roles : []),
+                user.roleName,
+                user.RoleName,
+                user.role,
+                user.Role
+            ];
+
+            const roleLookup = new Map();
+
+            roleSources.forEach((roleSource) => {
+                extractRoleNames(roleSource).forEach((roleName) => {
+                    const roleKey = normalizeRoleKey(roleName);
+                    if (roleKey && !roleLookup.has(roleKey)) {
+                        roleLookup.set(roleKey, roleName);
+                    }
+                });
+            });
+
+            const roleNames = Array.from(roleLookup.values());
+            const roleKeys = Array.from(roleLookup.keys());
+
+            const roleDisplay = roleNames.length > 0 ? roleNames.join(', ') : 'Unassigned';
+            const departmentDisplay = user.departmentName || 'Unassigned';
+            const statusDisplay = user.isDeleted ? 'Inactive' : 'Active';
+
+            return {
+                ...user,
+                roleNames,
+                roleKeys,
+                roleDisplay,
+                departmentDisplay,
+                statusDisplay
+            };
+        });
     }, [users]);
 
-    // Calculate user site counts //Cursor
-    useEffect(() => {
-        const calculateSiteCounts = async () => {
-            if (users && users.length > 0) {
-                try {
-                    console.log('userPage: Starting to fetch user site counts...');
-                    const counts = await dispatch(fetchUserSiteCounts());
-                    console.log('userPage: Received site counts:', counts);
-                    setUserSiteCounts(counts);
-                    console.log('userPage: Set userSiteCounts state');
-                } catch (error) {
-                    console.error('Error fetching user site counts:', error);
-                    // Fallback to empty counts
-                    const emptyCounts = {};
-                    users.forEach(user => {
-                        emptyCounts[user.id] = 0;
-                    });
-                    setUserSiteCounts(emptyCounts);
-                    console.log('userPage: Set empty site counts as fallback');
+    const roleOptions = useMemo(() => {
+        const roleLookup = new Map();
+
+        if (Array.isArray(allRoles)) {
+            allRoles.forEach((role) => {
+                extractRoleNames(role).forEach((roleName) => {
+                    const roleKey = normalizeRoleKey(roleName);
+                    if (roleKey && !roleLookup.has(roleKey)) {
+                        roleLookup.set(roleKey, roleName);
+                    }
+                });
+            });
+        }
+
+        normalizedUsers.forEach((user) => {
+            (user.roleNames || []).forEach((roleName) => {
+                const roleKey = normalizeRoleKey(roleName);
+                if (roleKey && !roleLookup.has(roleKey)) {
+                    roleLookup.set(roleKey, roleName);
                 }
-            }
-        };
+            });
+        });
 
-        calculateSiteCounts();
-    }, [users, dispatch]);
+        return [
+            { value: 'all', text: 'All Roles' },
+            ...Array.from(roleLookup.entries()).map(([roleKey, roleName]) => ({
+                value: roleKey,
+                text: roleName
+            })),
+            { value: 'unassigned', text: 'Unassigned' }
+        ];
+    }, [allRoles, normalizedUsers]);
 
-    // Tab data
-    const tabData = [
-        { text: "All Users", icon: "fa-light fa-users" },
-        { text: "Active Users", icon: "fa-light fa-check-circle" }
-    ]; //Cursor
+    const createRoleOptions = useMemo(() => (
+        roleOptions
+            .filter((role) => role.value !== 'all' && role.value !== 'unassigned')
+            .map((role) => ({ value: role.text, text: role.text }))
+    ), [roleOptions]);
 
-    // Custom tab item renderer
-    const renderTabItem = (item) => {
-        return (
-            <div style={styles.tabItem}>
-                <i className={item.icon}></i>
-                <span>{item.text}</span>
-            </div>
-        );
-    }; //Cursor
+    const departmentOptions = useMemo(() => {
+        const items = (allDepartments || []).map((d) => ({
+            value: String(d.departmentId),
+            text: d.name
+        }));
+        return [{ value: 'all', text: 'All Departments' }, { value: 'none', text: 'Unassigned' }, ...items];
+    }, [allDepartments]);
+
+    const statusOptions = useMemo(() => ([
+        { value: 'all', text: 'All Status' },
+        { value: 'active', text: 'Active' },
+        { value: 'inactive', text: 'Inactive' }
+    ]), []);
+
+    const filteredUsers = useMemo(() => {
+        const query = searchText.trim().toLowerCase();
+
+        return normalizedUsers.filter((user) => {
+            const matchesSearch =
+                query.length === 0 ||
+                user.userName?.toLowerCase().includes(query) ||
+                user.email?.toLowerCase().includes(query);
+
+            const normalizedSelectedRole = normalizeRoleKey(selectedRole);
+
+            const matchesRole =
+                selectedRole === 'all' ||
+                (selectedRole === 'unassigned' && (!user.roleKeys || user.roleKeys.length === 0)) ||
+                (Array.isArray(user.roleKeys) && normalizedSelectedRole !== null && user.roleKeys.includes(normalizedSelectedRole));
+
+            const matchesDepartment =
+                selectedDepartment === 'all' ||
+                (selectedDepartment === 'none' && !user.departmentId) ||
+                String(user.departmentId) === selectedDepartment;
+
+            const matchesStatus =
+                selectedStatus === 'all' ||
+                (selectedStatus === 'active' && !user.isDeleted) ||
+                (selectedStatus === 'inactive' && user.isDeleted);
+
+            return matchesSearch && matchesRole && matchesDepartment && matchesStatus;
+        });
+    }, [normalizedUsers, searchText, selectedRole, selectedDepartment, selectedStatus]);
 
     const handleSearchChange = (e) => {
         setSearchText(e.value);
-        // Apply search to the currently active grid
-        const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
-        if (currentGrid && currentGrid.instance) {
-            currentGrid.instance.searchByText(e.value);
-        }
     };
 
     const handleClearSearch = () => {
         setSearchText('');
-        // Clear search from the currently active grid
-        const currentGrid = selectedTab === 0 ? gridRef.current : activeGridRef.current;
-        if (currentGrid && currentGrid.instance) {
-            currentGrid.instance.searchByText('');
-            currentGrid.instance.clearFilter();
-        }
     };
 
     const handleOpenCreatePopup = async () => {
@@ -275,53 +400,14 @@ const UserPage = () => {
         } finally {
             setCreateUserLoading(false);
         }
-    }; const handleViewDetails = (userId) => {
+    };
+
+    const handleViewDetails = (userId) => {
         navigate(`/admin/users/${userId}`);
-    };
-
-    const handleViewActivities = (userId) => {
-        navigate(`/admin/users/${userId}/activities`);
-    };
-
-    const handleManageSites = (userId) => {
-        navigate(`/admin/users/${userId}/sites`);
-    };
-
-    const handleStatusChange = async (user) => {
-        try {
-            if (user.isDeleted) {
-                await dispatch(restoreUser(user.id));
-                notify('User restored successfully', 'success', 3000);
-            } else {
-                await dispatch(softDeleteUser(user.id));
-                notify('User deactivated successfully', 'success', 3000);
-            }
-        } catch (error) {
-            notify(error.message, 'error', 3000);
-        }
     };
 
     const handleRowClick = (e) => {
         navigate(`/admin/users/${e.data.id}`);
-    };
-
-    // Handle tab change and ensure proper highlighting //Cursor
-    const handleTabChange = (e) => {
-        const newIndex = e.itemIndex;
-        console.log(`Tab clicked: ${newIndex}, switching from ${selectedTab}`);
-        setSelectedTab(newIndex);
-
-        // Clear search when switching tabs
-        setSearchText('');
-
-        // Apply search to newly selected grid after a brief delay
-        setTimeout(() => {
-            const currentGrid = newIndex === 0 ? gridRef.current : activeGridRef.current;
-            if (currentGrid && currentGrid.instance) {
-                currentGrid.instance.searchByText('');
-                currentGrid.instance.clearFilter();
-            }
-        }, 100);
     };
 
     const renderStatusCell = (data) => {
@@ -338,38 +424,8 @@ const UserPage = () => {
                     onClick={() => handleViewDetails(data.data.id)}
                     hint="View Details"
                 />
-                <Button
-                    icon="clock"
-                    stylingMode="text"
-                    onClick={() => handleViewActivities(data.data.id)}
-                    hint="View Activities"
-                />
-                <Button
-                    icon="map"
-                    stylingMode="text"
-                    onClick={() => handleManageSites(data.data.id)}
-                    hint="Manage Sites"
-                />
-                <Button
-                    icon={data.data.isDeleted ? "refresh" : "remove"}
-                    stylingMode="text"
-                    onClick={() => handleStatusChange(data.data)}
-                    hint={data.data.isDeleted ? "Restore User" : "Deactivate User"}
-                />
             </div>
         );
-    };
-
-    const renderActivityUserCell = (data) => {
-        const user = users.find(u => u.id === data.value);
-        return user ? user.userName : 'Unknown';
-    };
-
-    const renderSiteCountCell = (data) => {
-        const userId = data.data.id;
-        const count = userSiteCounts[userId] || 0; //Cursor
-        console.log(`renderSiteCountCell: userId=${userId}, count=${count}, userSiteCounts:`, userSiteCounts);
-        return <div className="site-badge">{count} sites</div>;
     };
 
     // Department management handlers
@@ -441,7 +497,7 @@ const UserPage = () => {
                     const updateData = {
                         userName: user.userName,
                         email: user.email,
-                        roleName: user.roleName || (Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : ''),
+                        roleName: getPrimaryRoleName(user),
                         departmentId: departmentFormData.departmentId
                     };
                     await dispatch(updateUser(userId, updateData));
@@ -456,7 +512,7 @@ const UserPage = () => {
                     const updateData = {
                         userName: user.userName,
                         email: user.email,
-                        roleName: user.roleName || (Array.isArray(user.roles) && user.roles.length > 0 ? user.roles[0] : ''),
+                        roleName: getPrimaryRoleName(user),
                         departmentId: null
                     };
                     await dispatch(updateUser(userId, updateData));
@@ -543,6 +599,10 @@ const UserPage = () => {
     };
 
     const renderDepartmentActions = (data) => {
+        if (!canAddDepartment) {
+            return null;
+        }
+
         return (
             <div className="tw-flex tw-gap-2">
                 <Button
@@ -566,20 +626,27 @@ const UserPage = () => {
             <div className="header-container">
                 <div className="title-container">
                     <h2>User Management</h2>
+                    <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
+                        Showing {filteredUsers.length} of {normalizedUsers.length} users
+                    </p>
                 </div>
                 <div className="actions-container">
-                    <Button
-                        text="Manage Departments"
-                        type="normal"
-                        icon="folder"
-                        onClick={() => setDepartmentPopupVisible(true)}
-                    />
-                    <Button
-                        text="Add User"
-                        type="default"
-                        icon="user"
-                        onClick={handleOpenCreatePopup}
-                    />
+                    {canAddDepartment && (
+                        <Button
+                            text="Add Department"
+                            type="normal"
+                            icon="folder"
+                            onClick={() => setDepartmentPopupVisible(true)}
+                        />
+                    )}
+                    {canAddUser && (
+                        <Button
+                            text="Add User"
+                            type="default"
+                            icon="user"
+                            onClick={handleOpenCreatePopup}
+                        />
+                    )}
                     <Button
                         icon="refresh"
                         stylingMode="text"
@@ -588,43 +655,98 @@ const UserPage = () => {
                 </div>
             </div>
 
-            <div className="search-container">
-                <div className="search-box-wrapper">
-                    <TextBox
-                        placeholder="Search users..."
-                        mode="search"
-                        value={searchText}
-                        onValueChanged={handleSearchChange}
-                        stylingMode="filled"
-                        width={400}
-                        buttons={[
-                            {
-                                name: 'clear',
-                                location: 'after',
-                                onClick: handleClearSearch,
-                                icon: 'close'
-                            }
-                        ]}
-                    />
+            <div className="user-toolbar-card tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
+                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 xl:tw-grid-cols-5 tw-gap-3">
+                    <div>
+                        <label className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-gray-500 tw-mb-1 tw-block">
+                            Search User
+                        </label>
+                        <TextBox
+                            placeholder="Search by username or email"
+                            mode="search"
+                            value={searchText}
+                            onValueChanged={handleSearchChange}
+                            stylingMode="filled"
+                            buttons={[
+                                {
+                                    name: 'clear',
+                                    location: 'after',
+                                    onClick: handleClearSearch,
+                                    icon: 'close'
+                                }
+                            ]}
+                        />
+                    </div>
+                    <div>
+                        <label className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-gray-500 tw-mb-1 tw-block">
+                            Role
+                        </label>
+                        <SelectBox
+                            dataSource={roleOptions}
+                            valueExpr="value"
+                            displayExpr="text"
+                            value={selectedRole}
+                            onValueChanged={(e) => setSelectedRole(e.value)}
+                            stylingMode="filled"
+                            searchEnabled={true}
+                        />
+                    </div>
+                    <div>
+                        <label className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-gray-500 tw-mb-1 tw-block">
+                            Department
+                        </label>
+                        <SelectBox
+                            dataSource={departmentOptions}
+                            valueExpr="value"
+                            displayExpr="text"
+                            value={selectedDepartment}
+                            onValueChanged={(e) => setSelectedDepartment(e.value)}
+                            stylingMode="filled"
+                            searchEnabled={true}
+                        />
+                    </div>
+                    <div>
+                        <label className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-gray-500 tw-mb-1 tw-block">
+                            Status
+                        </label>
+                        <SelectBox
+                            dataSource={statusOptions}
+                            valueExpr="value"
+                            displayExpr="text"
+                            value={selectedStatus}
+                            onValueChanged={(e) => setSelectedStatus(e.value)}
+                            stylingMode="filled"
+                        />
+                    </div>
+                    <div>
+                        <label className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-gray-500 tw-mb-1 tw-block">
+                            View
+                        </label>
+                        <div className="tw-flex tw-gap-2">
+                            <Button
+                                text="List"
+                                icon="fa-light fa-list"
+                                stylingMode={viewMode === 'list' ? 'contained' : 'outlined'}
+                                type={viewMode === 'list' ? 'default' : 'normal'}
+                                onClick={() => setViewMode('list')}
+                            />
+                            <Button
+                                text="Cards"
+                                icon="fa-light fa-table-cells"
+                                stylingMode={viewMode === 'cards' ? 'contained' : 'outlined'}
+                                type={viewMode === 'cards' ? 'default' : 'normal'}
+                                onClick={() => setViewMode('cards')}
+                            />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <div className="tabs-container">
-                <Tabs
-                    dataSource={tabData}
-                    selectedIndex={selectedTab}
-                    onItemClick={handleTabChange}
-                    width="100%"
-                    style={styles.tabs}
-                    itemRender={renderTabItem}
-                />
-            </div>
-
             <div className="grid-container">
-                {selectedTab === 0 && (
+                {viewMode === 'list' ? (
                     <DataGrid
-                        ref={gridRef}
-                        dataSource={users}
+                        dataSource={filteredUsers}
+                        keyExpr="id"
                         showBorders={true}
                         columnAutoWidth={true}
                         wordWrapEnabled={true}
@@ -633,11 +755,8 @@ const UserPage = () => {
                         loadPanel={{ enabled: loadingVisible }}
                         onRowClick={handleRowClick}
                     >
-                        <StateStoring enabled={true} type="localStorage" storageKey="usersGrid" />
                         <Selection mode="single" />
                         <SearchPanel visible={false} />
-                        <FilterRow visible={true} />
-                        <HeaderFilter visible={true} />
                         <Paging defaultPageSize={10} />
                         <Pager
                             showPageSizeSelector={true}
@@ -648,7 +767,7 @@ const UserPage = () => {
                         <Column dataField="userName" caption="Username" />
                         <Column dataField="email" caption="Email" />
                         <Column
-                            dataField="departmentName"
+                            dataField="departmentDisplay"
                             caption="Department"
                             allowFiltering={true}
                         />
@@ -659,109 +778,50 @@ const UserPage = () => {
                             dataType="boolean"
                         />
                         <Column
-                            dataField="recentActivity"
-                            caption="Recent Activity"
-                            calculateCellValue={(data) => {
-                                if (data.id && allActivities.length > 0) {
-                                    // Filter out monitoring GET requests //Cursor
-                                    const userActivities = allActivities.filter(a => {
-                                        const isMonitoringGet = a.action === 'GET' &&
-                                            (a.controller === 'User' || a.controller === 'UserActivities');
-                                        return a.userId === data.id && !isMonitoringGet;
-                                    });
-
-                                    if (userActivities.length) {
-                                        const recent = userActivities.sort((a, b) =>
-                                            new Date(b.timestamp) - new Date(a.timestamp)
-                                        )[0];
-                                        // Convert UTC to local time //Cursor
-                                        const localTime = new Date(recent.timestamp).toLocaleString();
-                                        return recent.action + ' - ' + localTime;
-                                    }
-                                }
-                                return 'No recent activity';
-                            }}
-                        />
-                        <Column
-                            dataField="siteCount"
-                            caption="Sites"
-                            cellRender={renderSiteCountCell}
-                        />
-                        <Column
                             type="buttons"
                             caption="Actions"
                             cellRender={renderActionCell}
-                            width={150}
+                            width={110}
                         />
                     </DataGrid>
-                )}
-
-                {selectedTab === 1 && (
-                    <DataGrid
-                        ref={activeGridRef}
-                        dataSource={activeUsers}
-                        showBorders={true}
-                        columnAutoWidth={true}
-                        wordWrapEnabled={true}
-                        rowAlternationEnabled={true}
-                        loadPanel={{ enabled: loadingVisible }}
-                        onRowClick={handleRowClick}
-                    >
-                        <StateStoring enabled={true} type="localStorage" storageKey="activeUsersGrid" />
-                        <Selection mode="single" />
-                        <SearchPanel visible={false} />
-                        <FilterRow visible={true} />
-                        <HeaderFilter visible={true} />
-                        <Paging defaultPageSize={10} />
-                        <Pager
-                            showPageSizeSelector={true}
-                            allowedPageSizes={[10, 20, 50]}
-                            showInfo={true}
-                        />
-
-                        <Column dataField="userName" caption="Username" />
-                        <Column dataField="email" caption="Email" />
-                        <Column
-                            dataField="departmentName"
-                            caption="Department"
-                            allowFiltering={true}
-                        />
-                        <Column
-                            dataField="recentActivity"
-                            caption="Recent Activity"
-                            calculateCellValue={(data) => {
-                                if (data.id && allActivities.length > 0) {
-                                    // Filter out monitoring GET requests //Cursor
-                                    const userActivities = allActivities.filter(a => {
-                                        const isMonitoringGet = a.action === 'GET' &&
-                                            (a.controller === 'User' || a.controller === 'UserActivities');
-                                        return a.userId === data.id && !isMonitoringGet;
-                                    });
-
-                                    if (userActivities.length) {
-                                        const recent = userActivities.sort((a, b) =>
-                                            new Date(b.timestamp) - new Date(a.timestamp)
-                                        )[0];
-                                        // Convert UTC to local time //Cursor
-                                        const localTime = new Date(recent.timestamp).toLocaleString();
-                                        return recent.action + ' - ' + localTime;
-                                    }
-                                }
-                                return 'No recent activity';
-                            }}
-                        />
-                        <Column
-                            dataField="siteCount"
-                            caption="Sites"
-                            cellRender={renderSiteCountCell}
-                        />
-                        <Column
-                            type="buttons"
-                            caption="Actions"
-                            cellRender={renderActionCell}
-                            width={150}
-                        />
-                    </DataGrid>
+                ) : (
+                    <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 xl:tw-grid-cols-3 tw-gap-4">
+                        {filteredUsers.map((user) => (
+                            <div
+                                key={user.id}
+                                className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-shadow-sm tw-flex tw-flex-col tw-gap-3"
+                            >
+                                <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                                    <div>
+                                        <h4 className="tw-text-base tw-font-semibold tw-text-gray-900 tw-m-0">
+                                            {user.userName}
+                                        </h4>
+                                        <p className="tw-text-sm tw-text-gray-600 tw-m-0">{user.email}</p>
+                                    </div>
+                                    <span className={`status-badge ${user.isDeleted ? 'inactive' : 'active'}`}>
+                                        {user.isDeleted ? 'Inactive' : 'Active'}
+                                    </span>
+                                </div>
+                                <div className="tw-text-sm tw-text-gray-700">
+                                    <span className="tw-font-semibold">Department:</span> {user.departmentDisplay}
+                                </div>
+                                <div className="tw-mt-auto">
+                                    <Button
+                                        text="View Details"
+                                        icon="fa-light fa-eye"
+                                        type="default"
+                                        stylingMode="outlined"
+                                        onClick={() => handleViewDetails(user.id)}
+                                    />
+                                </div>
+                            </div>
+                        ))}
+                        {filteredUsers.length === 0 && (
+                            <div className="tw-col-span-full tw-text-center tw-py-12 tw-text-gray-500">
+                                No users match the selected filters.
+                            </div>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -859,9 +919,9 @@ const UserPage = () => {
                                         editorType="dxSelectBox"
                                         editorOptions={{
                                             stylingMode: "filled",
-                                            dataSource: allRoles || [],
-                                            displayExpr: "name",
-                                            valueExpr: "name",
+                                            dataSource: createRoleOptions,
+                                            displayExpr: "text",
+                                            valueExpr: "value",
                                             searchEnabled: true,
                                             placeholder: "Select a role",
                                             width: "100%"
@@ -927,12 +987,14 @@ const UserPage = () => {
                         {!isDepartmentFormVisible ? (
                             <>
                                 <div className="tw-flex tw-items-center tw-gap-4 tw-mb-4">
-                                    <Button
-                                        text="Add Department"
-                                        type="default"
-                                        icon="plus"
-                                        onClick={() => handleOpenDepartmentForm()}
-                                    />
+                                    {canAddDepartment && (
+                                        <Button
+                                            text="Add Department"
+                                            type="default"
+                                            icon="plus"
+                                            onClick={() => handleOpenDepartmentForm()}
+                                        />
+                                    )}
                                 </div>
                                 <DataGrid
                                     dataSource={allDepartments || []}

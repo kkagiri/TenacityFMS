@@ -2,6 +2,7 @@ import axiosInstance from './../../api/axiosInstance';
 import { fetchConfigurations } from './configurationActions';
 import { fetchMyPermissions } from './permissionActions';
 import store from '../../store'; // Import store to check fueling status
+import { setSessionUserId, clearSessionUserId } from '../../utils/crossTabAuthSync';
 import {
     LOGIN_SUCCESS,
     LOGIN_FAILURE,
@@ -103,6 +104,9 @@ export const signIn = (username, password) => async (dispatch) => {
         localStorage.setItem('refreshToken', refreshToken);
 
         console.log('✅ Login successful - token, refresh token, and user data received');
+
+        // Mark which user is logged in (for cross-tab detection)
+        setSessionUserId(user.id || user.Id);
 
         // Dispatch success with both token and user
         dispatch({
@@ -251,10 +255,11 @@ export const logout = () => async (dispatch) => {
             // Don't fail logout if SignalR disconnect fails
         }
 
-        // 2. Clear authentication tokens (both access and refresh)
+        // 2. Clear authentication tokens and session marker (both access and refresh)
+        clearSessionUserId();
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
-        console.log('✅ Tokens removed (access and refresh)');
+        console.log('✅ Tokens and session marker removed');
 
         // 3. Clear user-specific localStorage data (but keep system preferences)
         const keysToRemove = [
@@ -308,6 +313,7 @@ export const logout = () => async (dispatch) => {
         console.error('🚨 Logout error:', error);
 
         // Even if logout fails, clear critical data
+        clearSessionUserId();
         localStorage.removeItem('token');
         localStorage.removeItem('refreshToken');
         dispatch({ type: LOGOUT });

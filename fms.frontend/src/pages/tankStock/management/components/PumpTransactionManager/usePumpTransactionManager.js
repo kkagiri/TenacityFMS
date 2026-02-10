@@ -19,7 +19,6 @@ import { fetchVehicleList } from "../../../../../redux/actions/vehicleActions";
 import { fetchPTSDeviceList } from "../../../../../redux/actions/ptsActions/ptsDeviceActions";
 import { fetchTanks } from "../../../../../redux/actions/tankActions";
 import { fetchSiteList } from "../../../../../redux/actions/siteActions";
-import { fetchUsers } from "../../../../../redux/actions/userActions";
 
 // Default grouping state
 const defaultGroupByState = {
@@ -100,7 +99,6 @@ const usePumpTransactionManager = () => {
     dispatch(fetchPTSDeviceList());
     dispatch(fetchTanks());
     dispatch(fetchSiteList());
-    dispatch(fetchUsers());
   }, [dispatch]);
 
   // Build unique filter options from loaded data

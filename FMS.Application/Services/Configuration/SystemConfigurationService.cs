@@ -483,6 +483,74 @@ namespace FMS.Application.Services.Configuration
         }
         #endregion
 
+        #region In-Tank Delivery Auto-Detection Configuration
+        public async Task<bool> GetItdAlertsEnabledAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_ALERTS_ENABLED_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_ALERTS_ENABLED,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdMinVolumeThresholdAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_MIN_VOLUME_THRESHOLD_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_MIN_VOLUME_THRESHOLD,
+                cancellationToken);
+        }
+
+        public async Task<bool> GetItdAutoCreateLedgerEntryAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_AUTO_CREATE_LEDGER_ENTRY_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_AUTO_CREATE_LEDGER_ENTRY,
+                cancellationToken);
+        }
+
+        public async Task<bool> GetItdAutoMatchManualDeliveryAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_AUTO_MATCH_MANUAL_DELIVERY_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_AUTO_MATCH_MANUAL_DELIVERY,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdMatchVolumeToleranceAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_MATCH_VOLUME_TOLERANCE_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_MATCH_VOLUME_TOLERANCE,
+                cancellationToken);
+        }
+
+        public async Task<int> GetItdMatchTimeWindowHoursAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_MATCH_TIME_WINDOW_HOURS_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_ITD_MATCH_TIME_WINDOW_HOURS,
+                cancellationToken);
+        }
+
+        public async Task<string> GetItdAlertPriorityAsync(CancellationToken cancellationToken = default)
+        {
+            string? dbValue = await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_ALERT_PRIORITY_KEY,
+                default);
+            return !string.IsNullOrEmpty(dbValue) ? dbValue : SystemConfigurationConstants.DEFAULT_ITD_ALERT_PRIORITY;
+        }
+
+        public async Task<int> GetItdAlertAutoResolveMinutesAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_ALERT_AUTO_RESOLVE_MINUTES_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES,
+                cancellationToken);
+        }
+        #endregion
+
         #region Generic Configuration Access
         /// <inheritdoc />
         public async Task<decimal> GetDecimalAsync(string key, decimal defaultValue, CancellationToken cancellationToken = default)

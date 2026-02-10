@@ -41,11 +41,19 @@ import { initializeAxiosInstance } from "./api/axiosInstance";
 import GlobalErrorBoundary from "./GlobalErrorBoundary";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import webPushNotificationService from "./services/webPushNotificationService";
+import { initCrossTabAuthSync, cleanupCrossTabAuthSync } from "./utils/crossTabAuthSync";
+import store from "./store";
 
 function App() {
   const dispatch = useDispatch();
   const { isAuthenticated, loading, user } = useSelector((state) => state.auth);
   const [isApiInitialized, setIsApiInitialized] = useState(false);
+
+  // Cross-tab auth sync: detect logout/login-as-different-user in other tabs
+  useEffect(() => {
+    initCrossTabAuthSync(store);
+    return () => cleanupCrossTabAuthSync();
+  }, []);
 
   useEffect(() => {
     const initialize = async () => {
@@ -133,14 +141,14 @@ export default function Root() {
   const screenSizeClass = useScreenSizeClass();
 
   return (
-        <GlobalErrorBoundary>
-    <AuthProvider>
-      <NavigationProvider>
-        <div className={`app ${screenSizeClass}`}>
-          <App />
-        </div>
-      </NavigationProvider>
-    </AuthProvider>
+    <GlobalErrorBoundary>
+      <AuthProvider>
+        <NavigationProvider>
+          <div className={`app ${screenSizeClass}`}>
+            <App />
+          </div>
+        </NavigationProvider>
+      </AuthProvider>
     </GlobalErrorBoundary>
   );
 }

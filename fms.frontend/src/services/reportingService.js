@@ -683,6 +683,29 @@ class ReportingService {
   }
 
   /**
+   * Permanently delete a scheduled report email.
+   * @param {number} notificationId - Notification DB ID
+   * @returns {Promise}
+   */
+  async deleteScheduledReportEmail(notificationId) {
+    try {
+      const response = await axiosInstance.delete(
+        `/notifications/scheduled-reports/${notificationId}/permanent`
+      );
+      return {
+        success: response.data?.success ?? true,
+        message: response.data?.message
+      };
+    } catch (error) {
+      console.error('Error deleting scheduled report email:', error);
+      return {
+        success: false,
+        error: error.response?.data?.message || error.message
+      };
+    }
+  }
+
+  /**
    * Generate Pump Transaction Report
    * @param {Object} filters - Report filters
    * @returns {Promise}

@@ -28,17 +28,23 @@ public class GetIssueTemplatesQueryHandler : IRequestHandler<GetIssueTemplatesQu
     {
         try
         {
-            // Pre-load user names for DefaultAssignee resolution
-            var assigneeIds = await _context.Issuetemplates
+            // Pre-load user names for DefaultAssignee resolution (supports comma-separated IDs)
+            var rawAssigneeValues = await _context.Issuetemplates
                 .Where(t => t.DefaultAssignee != null)
                 .Select(t => t.DefaultAssignee!)
                 .Distinct()
                 .ToListAsync(cancellationToken);
 
-            var userNameMap = assigneeIds.Any()
+            // Flatten comma-separated IDs into a single set
+            var allAssigneeIds = rawAssigneeValues
+                .SelectMany(v => v.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+                .Distinct()
+                .ToList();
+
+            var userNameMap = allAssigneeIds.Any()
                 ? await _context.Users
                     .AsNoTracking()
-                    .Where(u => assigneeIds.Contains(u.Id))
+                    .Where(u => allAssigneeIds.Contains(u.Id))
                     .ToDictionaryAsync(u => u.Id, u => u.UserName ?? u.Id, cancellationToken)
                 : new Dictionary<string, string>();
 
@@ -70,11 +76,19 @@ public class GetIssueTemplatesQueryHandler : IRequestHandler<GetIssueTemplatesQu
                 })
                 .ToListAsync(cancellationToken);
 
-            // Resolve assignee names post-query
+            // Resolve assignee names post-query (supports comma-separated IDs)
             foreach (var t in templates)
             {
-                if (!string.IsNullOrEmpty(t.DefaultAssignee) && userNameMap.TryGetValue(t.DefaultAssignee, out var name))
-                    t.DefaultAssigneeName = name;
+                if (!string.IsNullOrEmpty(t.DefaultAssignee))
+                {
+                    var ids = t.DefaultAssignee.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                    var names = ids
+                        .Where(id => userNameMap.ContainsKey(id))
+                        .Select(id => userNameMap[id])
+                        .ToList();
+                    if (names.Any())
+                        t.DefaultAssigneeName = string.Join(", ", names);
+                }
             }
 
             return FMSResponse<List<IssueTemplateDTO>>.Success(templates);
@@ -210,14 +224,17 @@ public class GetIssueTemplateByIdQueryHandler : IRequestHandler<GetIssueTemplate
                 return FMSResponse<IssueTemplateDTO>.Failed($"Issue Template with ID {request.Id} not found.");
             }
 
-            // Resolve assignee name
+            // Resolve assignee names (supports comma-separated IDs)
             if (!string.IsNullOrEmpty(template.DefaultAssignee))
             {
-                template.DefaultAssigneeName = await _context.Users
+                var ids = template.DefaultAssignee.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+                var names = await _context.Users
                     .AsNoTracking()
-                    .Where(u => u.Id == template.DefaultAssignee)
+                    .Where(u => ids.Contains(u.Id))
                     .Select(u => u.UserName)
-                    .FirstOrDefaultAsync(cancellationToken);
+                    .ToListAsync(cancellationToken);
+                if (names.Any())
+                    template.DefaultAssigneeName = string.Join(", ", names);
             }
 
             return FMSResponse<IssueTemplateDTO>.Success(template);

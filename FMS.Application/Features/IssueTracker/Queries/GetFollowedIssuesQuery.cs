@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.IssueTracker.DTOs;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -37,6 +38,8 @@ namespace FMS.Application.Features.IssueTracker.Queries
         {
             try
             {
+                await IssueFollowerSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken);
+
                 // Get followed issue IDs
                 var followedIssueIds = await _context.IssueFollowers
                     .Where(f => f.UserId == request.UserId)
@@ -84,7 +87,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error getting followed issues for user {UserId}", request.UserId);
-                return FMSResponse<List<FollowedIssueSummaryDTO>>.Failed("Failed to get followed issues");
+                return FMSResponse<List<FollowedIssueSummaryDTO>>.Failed($"Failed to get followed issues: {ex.Message}");
             }
         }
     }

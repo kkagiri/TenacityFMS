@@ -42,6 +42,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         {
             try
             {
+                await IssueFollowerSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken);
+
                 // Find existing follow
                 var existingFollow = await _context.IssueFollowers
                     .FirstOrDefaultAsync(f => f.IssueId == request.IssueId && f.UserId == request.UserId, cancellationToken);
@@ -69,7 +71,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error unfollowing issue {IssueId} by user {UserId}", request.IssueId, request.UserId);
-                return FMSResponse<bool>.Failed("Failed to unfollow issue");
+                return FMSResponse<bool>.Failed($"Failed to unfollow issue: {ex.Message}");
             }
         }
     }

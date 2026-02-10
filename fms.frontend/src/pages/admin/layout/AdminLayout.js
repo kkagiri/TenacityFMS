@@ -283,9 +283,8 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             }
           >
             <i
-              className={`fa-light ${
-                sidebarCollapsed ? "fa-angles-right" : "fa-angles-left"
-              }`}
+              className={`fa-light ${sidebarCollapsed ? "fa-angles-right" : "fa-angles-left"
+                }`}
             ></i>
           </button>
         </div>

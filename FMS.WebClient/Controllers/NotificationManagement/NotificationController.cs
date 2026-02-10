@@ -693,6 +693,50 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Permanently delete a scheduled report email notification and its recipients.
+        /// </summary>
+        [HttpDelete("scheduled-reports/{notificationId:int}/permanent")]
+        [Authorize(Roles = "Admin,SuperAdmin")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> DeleteScheduledReportEmail(
+            int notificationId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var notification = await _context.Notifications
+                    .Include(n => n.Recipients)
+                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
+
+                if (notification == null)
+                {
+                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
+                }
+
+                // Remove associated recipients first
+                if (notification.Recipients?.Any() == true)
+                {
+                    _context.NotificationRecipients.RemoveRange(notification.Recipients);
+                }
+
+                // Remove the notification itself
+                _context.Notifications.Remove(notification);
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation("Permanently deleted scheduled report email {NotificationId} (DB ID: {Id})",
+                    notification.NotificationId, notificationId);
+
+                return Ok(new { success = true, message = "Scheduled report email deleted permanently" });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error permanently deleting scheduled report email {NotificationId}", notificationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// Mark a notification as read
         /// </summary>
         /// <param name="notificationId">Notification ID</param>

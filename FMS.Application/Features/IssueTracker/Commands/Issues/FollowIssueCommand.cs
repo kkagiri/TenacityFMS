@@ -46,6 +46,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         {
             try
             {
+                await IssueFollowerSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken);
+
                 // Check if issue exists
                 var issue = await _context.Issuetrackers.FindAsync(new object[] { request.IssueId }, cancellationToken);
                 if (issue == null)
@@ -113,7 +115,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error following issue {IssueId} by user {UserId}", request.IssueId, request.UserId);
-                return FMSResponse<IssueFollowerDTO>.Failed("Failed to follow issue");
+                return FMSResponse<IssueFollowerDTO>.Failed($"Failed to follow issue: {ex.Message}");
             }
         }
     }

@@ -1,5 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
+using FMS.Domain.Entities;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
@@ -21,6 +24,7 @@ namespace FMS.BackgroundServices.IssueTracker
     /// <summary>
     /// Factory implementation for creating auto-close checkers.
     /// Resolves checkers from the service provider based on the checker type name.
+    /// Creates a DI scope per checker to properly resolve scoped services (e.g. GpsdataContext).
     /// </summary>
     public class AutoCloseCheckerFactory : IAutoCloseCheckerFactory
     {
@@ -46,7 +50,9 @@ namespace FMS.BackgroundServices.IssueTracker
                 { "DeviceStatus", typeof(StatusChecker) },
                 { "Timeout", typeof(TimeoutChecker) },
                 { "AutoTimeout", typeof(TimeoutChecker) },
-                { "ManualOnly", typeof(ManualOnlyChecker) }
+                { "ManualOnly", typeof(ManualOnlyChecker) },
+                { "FuelActivity", typeof(FuelActivityChecker) },
+                { "NoFuelActivity", typeof(FuelActivityChecker) }
             };
         }
 
@@ -62,7 +68,11 @@ namespace FMS.BackgroundServices.IssueTracker
             {
                 try
                 {
-                    return (IAutoCloseChecker)ActivatorUtilities.CreateInstance(_serviceProvider, type);
+                    // Create a DI scope so scoped services (e.g. GpsdataContext) can be resolved.
+                    // The ScopedAutoCloseChecker wrapper ensures the scope is disposed after use.
+                    var scope = _serviceProvider.CreateScope();
+                    var innerChecker = (IAutoCloseChecker)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
+                    return new ScopedAutoCloseChecker(innerChecker, scope);
                 }
                 catch (Exception ex)
                 {
@@ -74,5 +84,38 @@ namespace FMS.BackgroundServices.IssueTracker
             _logger.LogWarning("Unknown checker type: {CheckerType}", checkerType);
             return null;
         }
+    }
+
+    /// <summary>
+    /// Wrapper that delegates IAutoCloseChecker calls to an inner checker while
+    /// owning a DI scope. Disposing this wrapper disposes the scope and its scoped services.
+    /// </summary>
+    internal sealed class ScopedAutoCloseChecker : IAutoCloseChecker, IDisposable
+    {
+        private readonly IAutoCloseChecker _inner;
+        private readonly IServiceScope _scope;
+
+        public ScopedAutoCloseChecker(IAutoCloseChecker inner, IServiceScope scope)
+        {
+            _inner = inner;
+            _scope = scope;
+        }
+
+        /// <summary>
+        /// The underlying checker instance (for type checks like OnlineChecker).
+        /// </summary>
+        public IAutoCloseChecker InnerChecker => _inner;
+
+        public string CheckerType => _inner.CheckerType;
+
+        public Task<bool> ShouldAutoCloseAsync(
+            Issuetracker issue,
+            Issueautocloseconfig config,
+            CancellationToken cancellationToken)
+            => _inner.ShouldAutoCloseAsync(issue, config, cancellationToken);
+
+        public string GetCloseReason() => _inner.GetCloseReason();
+
+        public void Dispose() => _scope.Dispose();
     }
 }

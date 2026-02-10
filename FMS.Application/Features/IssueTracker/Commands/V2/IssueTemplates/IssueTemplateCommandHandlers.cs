@@ -94,23 +94,29 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 }
             }
 
-            // Validate DefaultAssignee if provided - must be a valid user ID
+            // Validate DefaultAssignee if provided - supports comma-separated user IDs for multiple assignees
             string? defaultAssigneeId = null;
             string? defaultAssigneeName = null;
             if (!string.IsNullOrEmpty(request.Template.DefaultAssignee))
             {
-                var assigneeUser = await _context.Users
-                    .AsNoTracking()
-                    .Where(u => u.Id == request.Template.DefaultAssignee || u.UserName == request.Template.DefaultAssignee)
-                    .Select(u => new { u.Id, u.UserName })
-                    .FirstOrDefaultAsync(cancellationToken);
+                var rawIds = request.Template.DefaultAssignee
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Distinct()
+                    .ToList();
 
-                if (assigneeUser == null)
+                var resolvedUsers = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => rawIds.Contains(u.Id) || rawIds.Contains(u.UserName))
+                    .Select(u => new { u.Id, u.UserName })
+                    .ToListAsync(cancellationToken);
+
+                if (resolvedUsers.Count == 0)
                 {
-                    return FMSResponse<IssueTemplateDTO>.Failed($"Default Assignee user '{request.Template.DefaultAssignee}' not found.");
+                    return FMSResponse<IssueTemplateDTO>.Failed($"No valid users found for Default Assignee(s): '{request.Template.DefaultAssignee}'.");
                 }
-                defaultAssigneeId = assigneeUser.Id;
-                defaultAssigneeName = assigneeUser.UserName;
+
+                defaultAssigneeId = string.Join(",", resolvedUsers.Select(u => u.Id));
+                defaultAssigneeName = string.Join(", ", resolvedUsers.Select(u => u.UserName));
             }
 
             var now = DateTime.UtcNow;
@@ -310,23 +316,29 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 }
             }
 
-            // Validate DefaultAssignee if provided - must be a valid user ID
+            // Validate DefaultAssignee if provided - supports comma-separated user IDs for multiple assignees
             string? defaultAssigneeId = null;
             string? defaultAssigneeName = null;
             if (!string.IsNullOrEmpty(request.Template.DefaultAssignee))
             {
-                var assigneeUser = await _context.Users
-                    .AsNoTracking()
-                    .Where(u => u.Id == request.Template.DefaultAssignee || u.UserName == request.Template.DefaultAssignee)
-                    .Select(u => new { u.Id, u.UserName })
-                    .FirstOrDefaultAsync(cancellationToken);
+                var rawIds = request.Template.DefaultAssignee
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Distinct()
+                    .ToList();
 
-                if (assigneeUser == null)
+                var resolvedUsers = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => rawIds.Contains(u.Id) || rawIds.Contains(u.UserName))
+                    .Select(u => new { u.Id, u.UserName })
+                    .ToListAsync(cancellationToken);
+
+                if (resolvedUsers.Count == 0)
                 {
-                    return FMSResponse<IssueTemplateDTO>.Failed($"Default Assignee user '{request.Template.DefaultAssignee}' not found.");
+                    return FMSResponse<IssueTemplateDTO>.Failed($"No valid users found for Default Assignee(s): '{request.Template.DefaultAssignee}'.");
                 }
-                defaultAssigneeId = assigneeUser.Id;
-                defaultAssigneeName = assigneeUser.UserName;
+
+                defaultAssigneeId = string.Join(",", resolvedUsers.Select(u => u.Id));
+                defaultAssigneeName = string.Join(", ", resolvedUsers.Select(u => u.UserName));
             }
 
             entity.DeviceTypeId = request.Template.DeviceTypeId;

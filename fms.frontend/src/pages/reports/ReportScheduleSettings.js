@@ -252,6 +252,33 @@ const ReportScheduleSettings = () => {
     },
     [loadSchedules]
   );
+  const handleDeleteSchedule = useCallback(
+    async (schedule) => {
+      if (!schedule?.id) return;
+      const shouldDelete = window.confirm(
+        `Permanently delete schedule '${schedule.title}'?\n\nThis action cannot be undone.`
+      );
+      if (!shouldDelete) return;
+      const result = await reportingService.deleteScheduledReportEmail(schedule.id);
+      if (result.success) {
+        notify({
+          message: "Schedule deleted permanently.",
+          type: "success",
+          displayTime: 2500,
+          position: "top center",
+        });
+        loadSchedules();
+        return;
+      }
+      notify({
+        message: result.error || "Failed to delete schedule.",
+        type: "error",
+        displayTime: 3000,
+        position: "top center",
+      });
+    },
+    [loadSchedules]
+  );
   const handleCreateSchedule = useCallback(async () => {
     const requestBuildResult = createReportScheduleNotificationRequest({
       scheduleConfig: createScheduleConfig,
@@ -320,12 +347,12 @@ const ReportScheduleSettings = () => {
     const periodType = adjustScheduleConfig?.periodType || "daily";
     const scheduleDayOfWeekIds =
       Array.isArray(adjustScheduleConfig?.scheduleDayOfWeekIds) &&
-      adjustScheduleConfig.scheduleDayOfWeekIds.length
+        adjustScheduleConfig.scheduleDayOfWeekIds.length
         ? adjustScheduleConfig.scheduleDayOfWeekIds.filter(Boolean)
         : [adjustScheduleConfig?.scheduleDayOfWeek || "monday"];
     const scheduleWeekOfMonthIds =
       Array.isArray(adjustScheduleConfig?.scheduleWeekOfMonthIds) &&
-      adjustScheduleConfig.scheduleWeekOfMonthIds.length
+        adjustScheduleConfig.scheduleWeekOfMonthIds.length
         ? adjustScheduleConfig.scheduleWeekOfMonthIds.filter(Boolean)
         : [adjustScheduleConfig?.scheduleWeekOfMonth || "first"];
     const scheduleWeekOfMonth = scheduleWeekOfMonthIds[0] || "first";
@@ -540,8 +567,8 @@ const ReportScheduleSettings = () => {
                   previewState.isDownloading
                     ? "Preparing..."
                     : `Download ${String(
-                        activeScheduleConfig?.format || "pdf"
-                      ).toUpperCase()}`
+                      activeScheduleConfig?.format || "pdf"
+                    ).toUpperCase()}`
                 }
                 icon="fa-light fa-download"
                 stylingMode="outlined"
@@ -587,6 +614,7 @@ const ReportScheduleSettings = () => {
         onOpenAdjust={openEditInline}
         onOpenRecipients={handleOpenRecipientsPopup}
         onCancelSchedule={handleCancelSchedule}
+        onDeleteSchedule={handleDeleteSchedule}
       />
       <RecipientDeliveryStatusPopup
         schedule={recipientPopupSchedule}

@@ -27,6 +27,8 @@ import TreeList, {
   Selection,
   SearchPanel,
   Paging,
+  Pager,
+  Scrolling,
 } from "devextreme-react/tree-list";
 import "./SystemConfigPage.scss";
 import {
@@ -395,7 +397,16 @@ const SystemConfigPage = () => {
             rootValue={null}
             noDataText="No configurations found. Create a new configuration to get started."
           >
+            <Scrolling mode="standard" useNative={true} />
             <Paging enabled={true} defaultPageSize={20} />
+            <Pager
+              visible={true}
+              showNavigationButtons={true}
+              showPageSizeSelector={true}
+              allowedPageSizes={[10, 20, 50, 100]}
+              showInfo={true}
+              infoText="Page {0} of {1} ({2} items)"
+            />
             <StateStoring
               enabled={true}
               type="sessionStorage"

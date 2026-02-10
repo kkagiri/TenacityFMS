@@ -49,12 +49,27 @@ export const DELETE_DEPARTMENT_SUCCESS = 'DELETE_DEPARTMENT_SUCCESS';
 // Action Creators
 export const fetchUsers = () => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/user`);
-        dispatch({ type: FETCH_USERS_SUCCESS, payload: response.data });
-        return response.data;
+        let response;
+        try {
+            response = await axiosInstance.get(`/user`);
+        } catch (primaryError) {
+            // Fallback for deployments where list endpoint is exposed as /user/getlist
+            response = await axiosInstance.get(`/user/getlist`);
+        }
+
+        const responseData = response?.data;
+        const users = Array.isArray(responseData)
+            ? responseData
+            : Array.isArray(responseData?.data)
+                ? responseData.data
+                : [];
+
+        dispatch({ type: FETCH_USERS_SUCCESS, payload: users });
+        return users;
     } catch (error) {
-        dispatch({ type: FETCH_USERS_FAILURE, payload: error.message });
-        throw new Error('Data loading error');
+        const errorMessage = error.response?.data?.message || error.message || 'Data loading error';
+        dispatch({ type: FETCH_USERS_FAILURE, payload: errorMessage });
+        throw new Error(errorMessage);
     }
 };
 
@@ -297,8 +312,16 @@ export const fetchUsersForFilter = () => async (dispatch) => {
 export const fetchAllRoles = () => async (dispatch) => {
     try {
         const response = await axiosInstance.get('/role/getlist');
-        dispatch({ type: FETCH_ALL_ROLES_SUCCESS, payload: response.data });
-        return response.data;
+
+        const responseData = response?.data;
+        const roles = Array.isArray(responseData)
+            ? responseData
+            : Array.isArray(responseData?.data)
+                ? responseData.data
+                : [];
+
+        dispatch({ type: FETCH_ALL_ROLES_SUCCESS, payload: roles });
+        return roles;
     } catch (error) {
         dispatch({ type: FETCH_ALL_ROLES_FAILURE, payload: error.message });
         throw new Error('Error loading roles');

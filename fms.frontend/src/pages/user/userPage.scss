@@ -1,3 +1,9 @@
+/*
+ * File: userPage.scss
+ * Purpose: Styles for admin user management page layout, filters, and badges
+ * Dependencies: DevExtreme base styles, Tailwind utility classes
+ * Last Modified: 2026-02-10
+ */
 .view-wrapper-user-page {
     height: 100%;
     display: flex;
@@ -45,6 +51,7 @@
         justify-content: space-between;
         align-items: center;
         margin-bottom: 10px;
+        gap: 12px;
 
         .title-container {
             h2 {
@@ -56,6 +63,7 @@
         .actions-container {
             display: flex;
             gap: 10px;
+            flex-wrap: wrap;
         }
     }
 
@@ -168,6 +176,15 @@
             &:last-child {
                 margin-bottom: 24px; // Extra space after last field (role selector)
             }
+        }
+    }
+}
+
+@media (max-width: 900px) {
+    .user-management-container {
+        .header-container {
+            flex-direction: column;
+            align-items: flex-start;
         }
     }
 }

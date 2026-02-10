@@ -15,6 +15,7 @@ namespace FMS.Domain.Entities.enums {
         Dispensing,
         AutomatedDispensing, // For automated PTS pump transactions
         Reconciliation,
-        AutomatedReconciliation // For automated policy-driven reconciliation
+        AutomatedReconciliation, // For automated policy-driven reconciliation
+        InTankDelivery // For PTS auto-detected in-tank deliveries
     }
 }

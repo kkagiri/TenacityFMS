@@ -42,6 +42,7 @@ const IssueTrackerMain = () => {
         <Route path="/reports" element={<IssueReportsPage />} />
         <Route path="/analytics" element={<IssueAnalyticsPage />} />
         <Route path="/settings" element={<IssueSettingsPage />} />
+        <Route path="/settings/*" element={<IssueSettingsPage />} />
         <Route path="/filters" element={<IssueFiltersPage />} />
         <Route path="/notifications" element={<IssueNotificationsPage />} />
 

@@ -2,7 +2,7 @@
  * File: IssueTicketsPage.js
  * Purpose: Issue ticket list page with filtering, export, and row-level actions
  * Dependencies: React, react-router-dom, DevExtreme DataGrid, issueTrackerService
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-10
  *
  * Key Functions/Components:
  * - IssueTicketsPage: Displays issue tickets and navigates to detail/edit screens
@@ -25,6 +25,8 @@ import DataGrid, {
   Sorting
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
+import { Popup } from 'devextreme-react/popup';
+import { TextArea } from 'devextreme-react/text-area';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import { Workbook } from 'exceljs';
@@ -43,6 +45,137 @@ const IssueTicketsPage = () => {
   const [statuses, setStatuses] = useState([]);
   const [loading, setLoading] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
+  const [closeMonitorPopupVisible, setCloseMonitorPopupVisible] = useState(false);
+  const [closeMonitorNotes, setCloseMonitorNotes] = useState('');
+  const [closingInProgress, setClosingInProgress] = useState(false);
+
+  const humanizeElapsedMinutes = useCallback((minutesValue) => {
+    const minutes = Number(minutesValue);
+    if (!Number.isFinite(minutes) || minutes < 0) {
+      return `${minutesValue} min ago`;
+    }
+
+    if (minutes < 60) {
+      const roundedMinutes = Math.floor(minutes);
+      return `${roundedMinutes} min ago`;
+    }
+
+    const hours = minutes / 60;
+    if (hours < 24) {
+      const roundedHours = Math.floor(hours);
+      return `${roundedHours} ${roundedHours === 1 ? 'hr' : 'hrs'} ago`;
+    }
+
+    const days = hours / 24;
+    if (days < 30) {
+      const roundedDays = Math.floor(days);
+      return `${roundedDays} ${roundedDays === 1 ? 'day' : 'days'} ago`;
+    }
+
+    const months = days / 30;
+    if (months < 12) {
+      const roundedMonths = Math.floor(months);
+      return `${roundedMonths} ${roundedMonths === 1 ? 'month' : 'months'} ago`;
+    }
+
+    const years = months / 12;
+    const roundedYears = Math.floor(years);
+    return `${roundedYears} ${roundedYears === 1 ? 'year' : 'years'} ago`;
+  }, []);
+
+  const parseLastSeenDetails = useCallback((description) => {
+    if (!description || typeof description !== 'string') {
+      return {
+        lastSeenAtUtc: null,
+        lastSeenMinutesAgo: null,
+        lastSeenDisplay: ''
+      };
+    }
+
+    const match = description.match(
+      /Last seen:\s*([0-9]{4}-[0-9]{2}-[0-9]{2}\s+[0-9]{2}:[0-9]{2}:[0-9]{2})\s*UTC(?:\s*\(([\d.]+)\s*(?:min|mins|minute|minutes)\s+ago\))?/i
+    );
+
+    if (!match) {
+      return {
+        lastSeenAtUtc: null,
+        lastSeenMinutesAgo: null,
+        lastSeenDisplay: ''
+      };
+    }
+
+    const utcText = match[1];
+    const parsedUtcDate = new Date(`${utcText.replace(' ', 'T')}Z`);
+    const isValidDate = !Number.isNaN(parsedUtcDate.getTime());
+
+    let lastSeenMinutesAgo = null;
+    if (match[2] !== undefined && match[2] !== null) {
+      const parsedMinutes = Number(match[2]);
+      if (Number.isFinite(parsedMinutes)) {
+        lastSeenMinutesAgo = parsedMinutes;
+      }
+    }
+
+    if (lastSeenMinutesAgo === null && isValidDate) {
+      lastSeenMinutesAgo = Math.max(
+        0,
+        Math.floor((Date.now() - parsedUtcDate.getTime()) / (1000 * 60))
+      );
+    }
+
+    return {
+      lastSeenAtUtc: isValidDate ? parsedUtcDate : null,
+      lastSeenMinutesAgo,
+      lastSeenDisplay: lastSeenMinutesAgo !== null ? humanizeElapsedMinutes(lastSeenMinutesAgo) : ''
+    };
+  }, [humanizeElapsedMinutes]);
+
+  const normalizeIssueRow = useCallback((issue) => {
+    const assignedToName =
+      issue.assignedToName ||
+      issue.assignToUserName ||
+      issue.assignTo ||
+      '';
+
+    const vehicleName =
+      issue.vehicleName ||
+      issue.vehicleHyoungNo ||
+      issue.vehicleNumber ||
+      issue.vehicleNo ||
+      '';
+
+    const rawDescription = issue.problemDescription || '';
+    const lastSeenDetails = parseLastSeenDetails(rawDescription);
+    const problemDescription = rawDescription.replace(
+      /(\d+(?:\.\d+)?)\s*(?:min|mins|minute|minutes)\s+ago/gi,
+      (match, minuteValue) => humanizeElapsedMinutes(minuteValue)
+    );
+
+    return {
+      ...issue,
+      assignedToName,
+      vehicleName,
+      problemDescription,
+      lastSeenAtUtc: lastSeenDetails.lastSeenAtUtc,
+      lastSeenMinutesAgo: lastSeenDetails.lastSeenMinutesAgo,
+      lastSeenDisplay: lastSeenDetails.lastSeenDisplay
+    };
+  }, [humanizeElapsedMinutes, parseLastSeenDetails]);
+
+  const formatDateTime = (cellData) => {
+    if (!cellData.value) return '';
+    const date = new Date(cellData.value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleString('en-GB', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit',
+      hour12: false
+    });
+  };
 
   // Load data on component mount
   const loadInitialData = useCallback(async () => {
@@ -57,11 +190,13 @@ const IssueTicketsPage = () => {
         issueTrackerService.getIssueStatuses()
       ]);
 
-      setIssues(issuesData || []);
+      const normalizedIssues = (issuesData || []).map(normalizeIssueRow);
+
+      setIssues(normalizedIssues);
       setCategories(categoriesData || []);
       setPriorities(prioritiesData || []);
       setStatuses(statusesData || []);
-      setTotalCount(issuesData?.length || 0);
+      setTotalCount(normalizedIssues.length || 0);
 
     } catch (error) {
       console.error('Error loading initial data:', error);
@@ -79,7 +214,7 @@ const IssueTicketsPage = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [normalizeIssueRow]);
 
   useEffect(() => {
     loadInitialData();
@@ -97,6 +232,64 @@ const IssueTicketsPage = () => {
   const handleCreateNew = () => {
     navigate('/issue-tracker/create');
   };
+
+  // ===== Close & Monitor =====
+  const getSelectedIssues = useCallback(() => {
+    if (!dataGridRef.current?.instance) return [];
+    return dataGridRef.current.instance.getSelectedRowsData();
+  }, []);
+
+  const handleOpenCloseMonitor = useCallback(() => {
+    const selected = getSelectedIssues();
+    if (selected.length === 0) {
+      notify({
+        message: 'Please select at least one issue to close.',
+        type: 'warning',
+        displayTime: 3000,
+        position: { my: 'top center', at: 'top center', of: window, offset: '0 20' }
+      });
+      return;
+    }
+    setCloseMonitorNotes('');
+    setCloseMonitorPopupVisible(true);
+  }, [getSelectedIssues]);
+
+  const handleConfirmCloseMonitor = useCallback(async () => {
+    const selected = getSelectedIssues();
+    if (selected.length === 0) return;
+
+    setClosingInProgress(true);
+    let successCount = 0;
+    let failCount = 0;
+
+    const monitorNote = (closeMonitorNotes || '').trim();
+    const notes = monitorNote
+      ? `[Close & Monitor] ${monitorNote}. Vehicle will continue to be monitored for fuel activity.`
+      : '[Close & Monitor] Issue closed. Vehicle will continue to be monitored — if fuel activity occurs while GPS is offline, a new issue will be created.';
+
+    for (const issue of selected) {
+      try {
+        await issueTrackerService.closeIssue(issue.id, notes);
+        successCount++;
+      } catch (err) {
+        failCount++;
+        console.error(`Failed to close issue ${issue.id}:`, err);
+      }
+    }
+
+    setClosingInProgress(false);
+    setCloseMonitorPopupVisible(false);
+
+    if (successCount > 0) {
+      notify({
+        message: `${successCount} issue(s) closed & set for monitoring.${failCount > 0 ? ` ${failCount} failed.` : ''}`,
+        type: failCount > 0 ? 'warning' : 'success',
+        displayTime: 4000,
+        position: { my: 'top center', at: 'top center', of: window, offset: '0 20' }
+      });
+      loadInitialData();
+    }
+  }, [getSelectedIssues, closeMonitorNotes, loadInitialData]);
 
   const handleExport = useCallback((e) => {
     const workbook = new Workbook();
@@ -297,6 +490,16 @@ const IssueTicketsPage = () => {
           <Toolbar>
             <ToolbarItem name="exportButton" />
             <ToolbarItem name="columnChooserButton" />
+            <ToolbarItem location="before">
+              <Button
+                text="Close & Monitor"
+                icon="fa-light fa-eye"
+                type="normal"
+                stylingMode="outlined"
+                onClick={handleOpenCloseMonitor}
+                hint="Close selected issues and continue monitoring vehicles for fuel activity"
+              />
+            </ToolbarItem>
             <ToolbarItem
               location="after"
               widget="dxButton"
@@ -329,6 +532,28 @@ const IssueTicketsPage = () => {
             caption="Description"
             minWidth={250}
             allowSorting={false}
+          />
+
+          <Column
+            dataField="lastSeenAtUtc"
+            caption="Last Seen (UTC)"
+            width={180}
+            dataType="datetime"
+            cellRender={formatDateTime}
+            allowSorting={true}
+            allowFiltering={true}
+          />
+
+          <Column
+            dataField="lastSeenMinutesAgo"
+            caption="Offline For"
+            width={140}
+            dataType="number"
+            allowSorting={true}
+            allowFiltering={true}
+            cellRender={(cellData) => (
+              <span>{cellData.data.lastSeenDisplay || ''}</span>
+            )}
           />
 
           <Column
@@ -420,6 +645,64 @@ const IssueTicketsPage = () => {
           />
         </DataGrid>
       </div>
+
+      {/* Close & Monitor Popup */}
+      <Popup
+        visible={closeMonitorPopupVisible}
+        onHiding={() => setCloseMonitorPopupVisible(false)}
+        title="Close & Monitor"
+        showCloseButton={true}
+        width={520}
+        height="auto"
+        maxHeight={420}
+        dragEnabled={false}
+      >
+        <div className="tw-p-4">
+          <div className="tw-flex tw-items-start tw-gap-3 tw-mb-4 tw-p-3 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200">
+            <i className="fa-light fa-info-circle tw-text-blue-500 tw-text-lg tw-mt-0.5"></i>
+            <p className="tw-text-sm tw-text-blue-800 tw-m-0">
+              Closing these issues will mark them as complete. The system will <strong>continue monitoring</strong> the
+              associated vehicles. If a vehicle has fuel activity (refill or pump transaction) while its GPS
+              device is offline, a new issue will automatically be created for investigation.
+            </p>
+          </div>
+
+          <div className="tw-mb-4">
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+              Closing Notes <span className="tw-text-gray-400">(optional)</span>
+            </label>
+            <TextArea
+              value={closeMonitorNotes}
+              onValueChanged={(e) => setCloseMonitorNotes(e.value)}
+              placeholder="Add any notes about why these issues are being closed..."
+              height={80}
+              maxLength={500}
+            />
+          </div>
+
+          <div className="tw-text-sm tw-text-gray-500 tw-mb-4">
+            <i className="fa-light fa-ticket tw-mr-1"></i>
+            {getSelectedIssues().length} issue(s) selected
+          </div>
+
+          <div className="tw-flex tw-justify-end tw-gap-3">
+            <Button
+              text="Cancel"
+              stylingMode="outlined"
+              onClick={() => setCloseMonitorPopupVisible(false)}
+              disabled={closingInProgress}
+            />
+            <Button
+              text={closingInProgress ? 'Closing...' : 'Close & Monitor'}
+              type="default"
+              stylingMode="contained"
+              icon={closingInProgress ? '' : 'fa-light fa-check'}
+              onClick={handleConfirmCloseMonitor}
+              disabled={closingInProgress}
+            />
+          </div>
+        </div>
+      </Popup>
     </div>
   );
 };

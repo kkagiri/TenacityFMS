@@ -242,6 +242,10 @@ class IssueTrackerV2Service {
    * @returns {Promise} Config for template
    */
   async getAutoCloseConfigByTemplate(templateId) {
+    if (templateId === undefined || templateId === null || `${templateId}`.trim() === '' || `${templateId}` === 'undefined') {
+      throw new Error('Template ID is required to fetch auto-close configuration');
+    }
+
     try {
       const response = await axiosInstance.get(`${this.autoCloseURL}/by-template/${templateId}`);
       return this.handleResponse(response);

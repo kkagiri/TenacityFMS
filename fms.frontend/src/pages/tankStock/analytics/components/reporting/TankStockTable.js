@@ -1,4 +1,13 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+/**
+ * File: TankStockTable.js
+ * Purpose: Manage tank stock records in a grid with resilient lookup loading and CRUD permissions
+ * Dependencies: React, Redux, DevExtreme DataGrid, tank stock APIs, StockFilterContext
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - TankStockTable(): Renders editable Tank Stock grid with lookup data and export support
+ */
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import DataGrid, {
   Column,
@@ -29,7 +38,7 @@ import saveAs from 'file-saver';
 import { useStockFilters } from '../../../shared/context/StockFilterContext';
 import { fetchSiteList } from '../../../../../redux/actions/siteActions';
 import { fetchTanks } from '../../../../../redux/actions/tankActions';
-import { fetchUsers } from '../../../../../redux/actions/userActions';
+import { fetchUsersForFilter } from '../../../../../redux/actions/userActions';
 import { usePermissions } from '../../../../../hooks/usePermissions';
 
 /**
@@ -59,12 +68,34 @@ const TankStockTable = () => {
   const sites = useSelector(state => state.site.sites || []);
   const tanks = useSelector(state => state.tank.tanks || []);
   const users = useSelector(state => state.user.users || []);
+  const usersForFilter = useSelector(state => state.user.usersForFilter || []);
+
+  const userLookupData = useMemo(() => {
+    if (usersForFilter.length > 0) {
+      return usersForFilter.map((u) => ({
+        userId: u.userId,
+        userName: u.userName
+      }));
+    }
+
+    return users.map((u) => ({
+      userId: u.id,
+      userName: `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.userName || u.username || `User ${u.id}`
+    }));
+  }, [usersForFilter, users]);
 
   // Load lookup data using Redux actions
-  const loadLookupData = useCallback(() => {
-    dispatch(fetchSiteList());
-    dispatch(fetchTanks());
-    dispatch(fetchUsers());
+  const loadLookupData = useCallback(async () => {
+    const lookupResults = await Promise.allSettled([
+      dispatch(fetchSiteList()),
+      dispatch(fetchTanks()),
+      dispatch(fetchUsersForFilter())
+    ]);
+
+    const failedCount = lookupResults.filter((r) => r.status === 'rejected').length;
+    if (failedCount > 0) {
+      console.warn(`TankStockTable: ${failedCount} lookup sources failed to load.`);
+    }
   }, [dispatch]);
 
   // Load tank stock data
@@ -454,9 +485,9 @@ const TankStockTable = () => {
               width={200}
             >
               <Lookup
-                dataSource={users}
-                valueExpr="id"
-                displayExpr={(item) => item ? `${item.firstName || ''} ${item.lastName || ''}`.trim() : ''}
+                dataSource={userLookupData}
+                valueExpr="userId"
+                displayExpr="userName"
               />
             </Column>
             <Column

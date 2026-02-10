@@ -1,0 +1,42 @@
+/**
+ * File: IssueActivityHeatmap.scss
+ * Purpose: Styles for the GitHub-style activity heatmap component
+ * Last Modified: 2026-02-10
+ */
+
+.activity-heatmap {
+  &__grid {
+    @apply tw-overflow-x-auto;
+
+    &::-webkit-scrollbar {
+      height: 6px;
+    }
+    &::-webkit-scrollbar-thumb {
+      @apply tw-bg-gray-300 tw-rounded-full;
+    }
+  }
+
+  &__tooltip {
+    @apply tw-px-3 tw-py-2 tw-text-xs tw-font-medium tw-text-white tw-rounded-md tw-shadow-lg tw-pointer-events-none;
+    background: rgba(36, 41, 47, 0.95);
+    white-space: nowrap;
+
+    &::after {
+      content: '';
+      @apply tw-absolute tw-left-1/2;
+      bottom: -4px;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 5px solid rgba(36, 41, 47, 0.95);
+    }
+  }
+
+  &__legend {
+    @apply tw-flex tw-items-center tw-gap-1;
+
+    &-label {
+      @apply tw-text-xs tw-text-gray-500;
+    }
+  }
+}

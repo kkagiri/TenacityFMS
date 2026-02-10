@@ -2,7 +2,7 @@
  * File: IssueActivityStream.js
  * Purpose: Activity stream component showing timeline of issue changes
  * Dependencies: React, issueTrackerService
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-10
  *
  * Key Components:
  * - IssueActivityStream: Displays chronological activity log with icons and timestamps
@@ -57,6 +57,8 @@ const getActivityIcon = (activityType) => {
         'PriorityChanged': { icon: 'fa-light fa-arrow-up', color: 'tw-text-orange-600', bg: 'tw-bg-orange-100' },
         'Assigned': { icon: 'fa-light fa-user-check', color: 'tw-text-indigo-600', bg: 'tw-bg-indigo-100' },
         'ReminderSet': { icon: 'fa-light fa-bell', color: 'tw-text-yellow-600', bg: 'tw-bg-yellow-100' },
+        'Followed': { icon: 'fa-light fa-bell-on', color: 'tw-text-blue-700', bg: 'tw-bg-blue-100' },
+        'Unfollowed': { icon: 'fa-light fa-bell-slash', color: 'tw-text-gray-700', bg: 'tw-bg-gray-100' },
         'TagsUpdated': { icon: 'fa-light fa-tags', color: 'tw-text-pink-600', bg: 'tw-bg-pink-100' },
         'Closed': { icon: 'fa-light fa-circle-check', color: 'tw-text-gray-600', bg: 'tw-bg-gray-100' },
         'Reopened': { icon: 'fa-light fa-rotate-left', color: 'tw-text-amber-600', bg: 'tw-bg-amber-100' }

@@ -32,6 +32,7 @@ const ScheduledEmailGrid = ({
   onOpenAdjust,
   onOpenRecipients,
   onCancelSchedule,
+  onDeleteSchedule,
 }) => {
   const renderStatusCell = useCallback(
     (cellInfo) => {
@@ -94,10 +95,19 @@ const ScheduledEmailGrid = ({
             onClick={() => onCancelSchedule(schedule)}
             disabled={isCancelled}
           />
+          {onDeleteSchedule && (
+            <Button
+              text="Delete"
+              icon="fa-light fa-trash"
+              stylingMode="text"
+              onClick={() => onDeleteSchedule(schedule)}
+              elementAttr={{ class: 'tw-text-red-500' }}
+            />
+          )}
         </div>
       );
     },
-    [onCancelSchedule, onOpenAdjust, onOpenRecipients]
+    [onCancelSchedule, onDeleteSchedule, onOpenAdjust, onOpenRecipients]
   );
 
   return (
@@ -129,7 +139,11 @@ const ScheduledEmailGrid = ({
         width={220}
         customizeText={(e) => REPORT_TYPE_LABELS[e.value] || e.value || "-"}
       />
-      <Column dataField="format" caption="Format" width={90} />
+      <Column
+        caption="Format"
+        width={90}
+        calculateCellValue={(row) => row.format || row.outputFormat || "-"}
+      />
       <Column
         dataField="status"
         caption="Status"
@@ -137,15 +151,25 @@ const ScheduledEmailGrid = ({
         width={130}
       />
       <Column
-        dataField="scheduledAt"
         caption="Next Run"
         width={190}
-        customizeText={(e) => formatLocalDateTime(e.value)}
+        calculateCellValue={(row) => {
+          const val = row.nextRunAtUtc || row.scheduledAt;
+          return val ? formatLocalDateTime(val) : "—";
+        }}
       />
-      <Column dataField="scheduleTimeOfDay" caption="Time" width={100} />
+      <Column
+        caption="Time"
+        width={100}
+        calculateCellValue={(row) => row.scheduleTimeOfDay || "—"}
+      />
       <Column dataField="scheduleType" caption="Schedule" width={110} />
       <Column dataField="timeZone" caption="Time Zone" width={180} />
-      <Column dataField="requestedBy" caption="Requested By" width={140} />
+      <Column
+        caption="Requested By"
+        width={140}
+        calculateCellValue={(row) => row.requestedBy || "—"}
+      />
       <Column
         caption="Delivery"
         minWidth={220}
@@ -154,7 +178,7 @@ const ScheduledEmailGrid = ({
       />
       <Column
         caption="Actions"
-        minWidth={260}
+        minWidth={300}
         cellRender={renderActionCell}
         allowSorting={false}
         allowFiltering={false}

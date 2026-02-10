@@ -2,7 +2,7 @@
  * File: CombinedIssueDashboard.js
  * Purpose: Unified Issue Tracker dashboard combining stats, filters, charts, and data grids
  * Dependencies: DevExtreme, issueTrackerService, Redux, StatCard
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-10
  *
  * Key Features:
  * - Consolidated statistics cards (Overview, Priority, User-specific, Performance)
@@ -12,7 +12,7 @@
  * - TabPanel with 3 data grids (Assigned, Opened by Me, Recently Closed)
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -56,6 +56,7 @@ import notify from 'devextreme/ui/notify';
 import issueTrackerService from '../../../services/issueTrackerService';
 import { StatCard } from './shared';
 import FollowedIssuesTicker from './FollowedIssuesTicker';
+import IssueActivityHeatmap from './IssueActivityHeatmap';
 import './CombinedIssueDashboard.scss';
 
 /**
@@ -77,6 +78,7 @@ const CombinedIssueDashboard = () => {
 
     // State for dashboard data
     const [dashboardData, setDashboardData] = useState(null);
+    const [allIssues, setAllIssues] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
 
@@ -85,7 +87,7 @@ const CombinedIssueDashboard = () => {
         vehicleId: null,
         siteId: null,
         categoryId: null,
-        weeksBack: 4,
+        weeksBack: null,
         startDate: null,
         endDate: null,
         // Quick filter states
@@ -135,18 +137,35 @@ const CombinedIssueDashboard = () => {
             setLoading(true);
             setError(null);
 
-            const response = await issueTrackerService.getUserDashboard(filters);
+            const dashboardFilters = {
+                vehicleId: filters.vehicleId,
+                siteId: filters.siteId,
+                categoryId: filters.categoryId,
+                weeksBack: filters.weeksBack,
+                startDate: filters.startDate,
+                endDate: filters.endDate
+            };
 
-            if (response.isSuccess) {
-                setDashboardData(response.data);
+            const [dashboardResponse, issuesResponse] = await Promise.all([
+                issueTrackerService.getUserDashboard(dashboardFilters),
+                issueTrackerService.getIssues()
+            ]);
+
+            if (dashboardResponse?.isSuccess) {
+                setDashboardData(dashboardResponse.data);
             } else {
-                setError(response.message || 'Failed to load dashboard data');
+                setError(dashboardResponse?.message || 'Failed to load dashboard data');
                 notify({
-                    message: response.message || 'Failed to load dashboard',
+                    message: dashboardResponse?.message || 'Failed to load dashboard',
                     type: 'error',
                     displayTime: 4000
                 });
             }
+
+            const normalizedIssues = Array.isArray(issuesResponse)
+                ? issuesResponse
+                : (Array.isArray(issuesResponse?.data) ? issuesResponse.data : []);
+            setAllIssues(normalizedIssues);
         } catch (err) {
             console.error('Error loading dashboard:', err);
             setError('Failed to load dashboard data');
@@ -165,7 +184,7 @@ const CombinedIssueDashboard = () => {
             vehicleId: null,
             siteId: null,
             categoryId: null,
-            weeksBack: 4,
+            weeksBack: null,
             startDate: null,
             endDate: null,
             priorityFilter: null,
@@ -227,6 +246,176 @@ const CombinedIssueDashboard = () => {
         );
     };
 
+    // Extract stats from dashboard data with safe defaults
+    // Using Number() to ensure numeric values and fallback to 0
+    // Field names match backend UserIssuesDashboardDto
+    const safeNumber = (val) => {
+        const num = Number(val);
+        return isNaN(num) ? 0 : num;
+    };
+
+    const normalizedAllIssues = useMemo(() => {
+        return Array.isArray(allIssues) ? allIssues : [];
+    }, [allIssues]);
+
+    const getIssueDate = (issue) => {
+        const value = issue?.openDate || issue?.createdDate || issue?.createdAt || issue?.dateCreated;
+        return value ? new Date(value) : null;
+    };
+
+    const getIssueDueDate = (issue) => {
+        return issue?.dueDate ? new Date(issue.dueDate) : null;
+    };
+
+    const getIssueClosingDate = (issue) => {
+        return issue?.closingDate ? new Date(issue.closingDate) : null;
+    };
+
+    const getIssueStatus = (issue) => {
+        return (issue?.statusName || issue?.status || '').toString().trim();
+    };
+
+    const getIssuePriority = (issue) => {
+        return (issue?.priorityName || issue?.priority || '').toString().trim();
+    };
+
+    const isSameDay = (dateA, dateB) => {
+        return (
+            dateA.getFullYear() === dateB.getFullYear() &&
+            dateA.getMonth() === dateB.getMonth() &&
+            dateA.getDate() === dateB.getDate()
+        );
+    };
+
+    const matchesIssueFilters = (issue) => {
+        if (!issue) return false;
+
+        const issueDate = getIssueDate(issue);
+        const issueDueDate = getIssueDueDate(issue);
+        const issueStatus = getIssueStatus(issue);
+        const issuePriority = getIssuePriority(issue);
+
+        if (filters.vehicleId && Number(issue.vehicleId) !== Number(filters.vehicleId)) {
+            return false;
+        }
+
+        if (filters.siteId && Number(issue.siteId) !== Number(filters.siteId)) {
+            return false;
+        }
+
+        if (filters.categoryId && Number(issue.issueCategoryId) !== Number(filters.categoryId)) {
+            return false;
+        }
+
+        if (filters.weeksBack && issueDate) {
+            const minDate = new Date();
+            minDate.setDate(minDate.getDate() - (Number(filters.weeksBack) * 7));
+            if (issueDate < minDate) {
+                return false;
+            }
+        }
+
+        if (filters.startDate && issueDate && issueDate < new Date(filters.startDate)) {
+            return false;
+        }
+
+        if (filters.endDate && issueDate && issueDate > new Date(filters.endDate)) {
+            return false;
+        }
+
+        if (filters.priorityFilter && issuePriority.toLowerCase() !== String(filters.priorityFilter).toLowerCase()) {
+            return false;
+        }
+
+        if (filters.statusFilter && issueStatus.toLowerCase() !== String(filters.statusFilter).toLowerCase()) {
+            return false;
+        }
+
+        if (filters.unassignedOnly) {
+            const hasAssignee = Boolean(issue?.assignToId) || Boolean(issue?.assignToUserName);
+            if (hasAssignee) {
+                return false;
+            }
+        }
+
+        if (filters.overdueOnly) {
+            const statusLower = issueStatus.toLowerCase();
+            const isClosed = statusLower === 'closed' || statusLower === 'resolved';
+            const isOverdue = issueDueDate && issueDueDate < new Date() && !isClosed;
+            if (!isOverdue) {
+                return false;
+            }
+        }
+
+        return true;
+    };
+
+    const filteredAllIssues = useMemo(() => {
+        return normalizedAllIssues.filter(matchesIssueFilters);
+    }, [normalizedAllIssues, filters]);
+
+    const stats = {
+        // Overview stats (aligned with tickets page dataset)
+        totalIssues: filteredAllIssues.length,
+        openCount: filteredAllIssues.filter((issue) => getIssueStatus(issue).toLowerCase() === 'open').length,
+        inProgressCount: filteredAllIssues.filter((issue) => getIssueStatus(issue).toLowerCase() === 'in progress').length,
+        resolvedToday: filteredAllIssues.filter((issue) => {
+            const status = getIssueStatus(issue).toLowerCase();
+            const closingDate = getIssueClosingDate(issue);
+            return (status === 'resolved' || status === 'closed') && closingDate && isSameDay(closingDate, new Date());
+        }).length,
+
+        // Priority & Alerts
+        criticalCount: filteredAllIssues.filter((issue) => getIssuePriority(issue).toLowerCase() === 'critical').length,
+        highCount: filteredAllIssues.filter((issue) => getIssuePriority(issue).toLowerCase() === 'high').length,
+        overdueIssues: filteredAllIssues.filter((issue) => {
+            const dueDate = getIssueDueDate(issue);
+            const status = getIssueStatus(issue).toLowerCase();
+            return dueDate && dueDate < new Date() && status !== 'closed' && status !== 'resolved';
+        }).length,
+        unassignedIssues: filteredAllIssues.filter((issue) => !issue?.assignToId && !issue?.assignToUserName).length,
+
+        // User-specific (Assigned to Me)
+        totalAssigned: safeNumber(dashboardData?.totalAssignedIssues),
+        closedByMe: safeNumber(dashboardData?.closedIssues),
+        awaitingResponse: 0, // Not available in backend
+
+        // Opened by Me
+        totalOpenedByMe: safeNumber(dashboardData?.totalOpenedByMe),
+        openedByMeOpen: safeNumber(dashboardData?.openedByMeOpen),
+        openedByMeResolved: 0, // Not distinguished from closed in backend
+        openedByMeClosed: safeNumber(dashboardData?.openedByMeClosed),
+
+        // Performance (not available in backend - would need enhancement)
+        averageResolutionTime: 0,
+        gpsGeneratedIssues: 0,
+        createdToday: filteredAllIssues.filter((issue) => {
+            const issueDate = getIssueDate(issue);
+            return issueDate ? isSameDay(issueDate, new Date()) : false;
+        }).length
+    };
+
+    // Get the data source based on selected tab
+    const getTabDataSource = () => {
+        switch (selectedTab) {
+            case 'assigned':
+                return (dashboardData?.assignedIssues || []).filter(matchesIssueFilters);
+            case 'opened':
+                return (dashboardData?.openedByMeIssues || []).filter(matchesIssueFilters);
+            case 'closed':
+                return (dashboardData?.recentlyClosedIssues || []).filter(matchesIssueFilters);
+            default:
+                return [];
+        }
+    };
+
+    // Tab configuration
+    const tabConfig = [
+        { id: 'assigned', label: 'Assigned to Me', icon: 'fa-light fa-user-check', count: stats.totalAssigned },
+        { id: 'opened', label: 'Opened by Me', icon: 'fa-light fa-user-pen', count: stats.totalOpenedByMe },
+        { id: 'closed', label: 'Recently Closed', icon: 'fa-light fa-check-circle', count: safeNumber((dashboardData?.recentlyClosedIssues || []).length) }
+    ];
+
     // Loading state
     if (loading && !dashboardData) {
         return (
@@ -247,68 +436,6 @@ const CombinedIssueDashboard = () => {
             </div>
         );
     }
-
-    // Extract stats from dashboard data with safe defaults
-    // Using Number() to ensure numeric values and fallback to 0
-    // Field names match backend UserIssuesDashboardDto
-    const safeNumber = (val) => {
-        const num = Number(val);
-        return isNaN(num) ? 0 : num;
-    };
-
-    const stats = {
-        // Overview stats (calculated from assigned issues)
-        // Note: totalIssues = totalAssignedIssues from backend
-        totalIssues: safeNumber(dashboardData?.totalAssignedIssues),
-        openCount: safeNumber(dashboardData?.openIssues),
-        inProgressCount: safeNumber(dashboardData?.inProgressIssues),
-        // resolvedToday not in backend - using closedIssues instead
-        resolvedToday: safeNumber(dashboardData?.closedIssues),
-
-        // Priority & Alerts
-        // Note: backend only has highPriorityIssues, not criticalIssues
-        criticalCount: 0, // Not available in backend - would need enhancement
-        highCount: safeNumber(dashboardData?.highPriorityIssues),
-        overdueIssues: safeNumber(dashboardData?.overdueIssues),
-        unassignedIssues: 0, // Not available in backend - would need enhancement
-
-        // User-specific (Assigned to Me)
-        totalAssigned: safeNumber(dashboardData?.totalAssignedIssues),
-        closedByMe: safeNumber(dashboardData?.closedIssues),
-        awaitingResponse: 0, // Not available in backend
-
-        // Opened by Me
-        totalOpenedByMe: safeNumber(dashboardData?.totalOpenedByMe),
-        openedByMeOpen: safeNumber(dashboardData?.openedByMeOpen),
-        openedByMeResolved: 0, // Not distinguished from closed in backend
-        openedByMeClosed: safeNumber(dashboardData?.openedByMeClosed),
-
-        // Performance (not available in backend - would need enhancement)
-        averageResolutionTime: 0,
-        gpsGeneratedIssues: 0,
-        createdToday: 0
-    };
-
-    // Get the data source based on selected tab
-    const getTabDataSource = () => {
-        switch (selectedTab) {
-            case 'assigned':
-                return dashboardData?.assignedIssues || [];
-            case 'opened':
-                return dashboardData?.openedByMeIssues || [];
-            case 'closed':
-                return dashboardData?.recentlyClosedIssues || [];
-            default:
-                return [];
-        }
-    };
-
-    // Tab configuration
-    const tabConfig = [
-        { id: 'assigned', label: 'Assigned to Me', icon: 'fa-light fa-user-check', count: stats.totalAssigned },
-        { id: 'opened', label: 'Opened by Me', icon: 'fa-light fa-user-pen', count: stats.totalOpenedByMe },
-        { id: 'closed', label: 'Recently Closed', icon: 'fa-light fa-check-circle', count: safeNumber((dashboardData?.recentlyClosedIssues || []).length) }
-    ];
 
     return (
         <div className="combined-issue-dashboard tw-p-6 tw-bg-gray-50 tw-min-h-screen">
@@ -424,6 +551,7 @@ const CombinedIssueDashboard = () => {
                         </label>
                         <SelectBox
                             dataSource={[
+                                { value: null, text: 'All Time' },
                                 { value: 1, text: 'Last Week' },
                                 { value: 2, text: 'Last 2 Weeks' },
                                 { value: 4, text: 'Last 4 Weeks' },
@@ -678,6 +806,17 @@ const CombinedIssueDashboard = () => {
                         subtitle="My issues closed"
                     />
                 </div>
+            </div>
+
+            {/* Activity Heatmap */}
+            <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-mb-6">
+                <IssueActivityHeatmap
+                    dates={allIssues.map((issue) => issue.openDate).filter(Boolean)}
+                    weeks={52}
+                    title={`${allIssues.length} issues in the last year`}
+                    colorScheme="green"
+                    showSummary={true}
+                />
             </div>
 
             {/* Charts Section */}

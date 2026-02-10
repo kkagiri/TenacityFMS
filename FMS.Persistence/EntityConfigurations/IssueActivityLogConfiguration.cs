@@ -2,7 +2,7 @@
  * File: IssueActivityLogConfiguration.cs
  * Purpose: EF Core configuration for IssueActivityLog entity
  * Dependencies: Microsoft.EntityFrameworkCore, FMS.Domain.Entities
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-10
  */
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -16,7 +16,7 @@ namespace FMS.Persistence.EntityConfigurations
         {
             builder.HasKey(e => e.Id).HasName("PRIMARY");
 
-            builder.ToTable("issue_activity_log");
+            builder.ToTable("issueactivitylogs");
 
             builder.HasIndex(e => e.IssueId, "ix_issue_activity_log_issue_id");
             builder.HasIndex(e => e.PerformedBy, "ix_issue_activity_log_performed_by");
@@ -26,65 +26,65 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int(11)")
-                .HasColumnName("Id");
+                .HasColumnName("id");
 
             builder.Property(e => e.IssueId)
                 .HasColumnType("int(11)")
-                .HasColumnName("IssueId")
+                .HasColumnName("issue_id")
                 .IsRequired();
 
             builder.Property(e => e.ActivityType)
                 .HasMaxLength(50)
-                .HasColumnName("ActivityType")
+                .HasColumnName("activity_type")
                 .IsRequired()
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.FieldName)
                 .HasMaxLength(100)
-                .HasColumnName("FieldName")
+                .HasColumnName("field_name")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.OldValue)
                 .HasMaxLength(500)
-                .HasColumnName("OldValue")
+                .HasColumnName("old_value")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.NewValue)
                 .HasMaxLength(500)
-                .HasColumnName("NewValue")
+                .HasColumnName("new_value")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.Description)
                 .HasMaxLength(500)
-                .HasColumnName("Description")
+                .HasColumnName("description")
                 .IsRequired()
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.PerformedBy)
                 .HasMaxLength(100)
-                .HasColumnName("PerformedBy")
+                .HasColumnName("performed_by")
                 .IsRequired()
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.PerformedByUserName)
                 .HasMaxLength(100)
-                .HasColumnName("PerformedByUserName")
+                .HasColumnName("performed_by_user_name")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.ActivityDate)
-                .HasColumnName("ActivityDate")
+                .HasColumnName("activity_date")
                 .IsRequired();
 
             builder.Property(e => e.Metadata)
                 .HasColumnType("longtext")
-                .HasColumnName("Metadata")
+                .HasColumnName("metadata")
                 .UseCollation("utf8_general_ci")
                 .HasCharSet("utf8");
 

@@ -1,3 +1,12 @@
+/**
+ * File: TankStockMain.js
+ * Purpose: Defines Tank Stock module routes and applies role-based route protection for admin-only pages
+ * Dependencies: react-router-dom, StockFilterProvider, TankStockLayout, withRoleProtection
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - TankStockMain(): Registers Tank Stock routes and secures admin-only feature routes
+ */
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { StockFilterProvider } from "./shared/context/StockFilterContext";
@@ -11,6 +20,13 @@ import ReconciliationMain from "../reconciliation/ReconciliationMain";
 import FuelDataComparisonMain from "./fueldatacomparison/FuelDataComparisonMain";
 import FuelAuditMain from "./fuelAudit/FuelAuditMain";
 import VolumeCorrectionMain from "../tankManagement/volumeCorrection/VolumeCorrectionMain";
+import withRoleProtection from "../../utils/withRoleProtection";
+
+const AdminStockAnalytics = withRoleProtection(StockAnalytics, ["Admin"]);
+const AdminReconciliationMain = withRoleProtection(ReconciliationMain, ["Admin"]);
+const AdminFuelDataComparisonMain = withRoleProtection(FuelDataComparisonMain, ["Admin"]);
+const AdminFuelAuditMain = withRoleProtection(FuelAuditMain, ["Admin"]);
+const AdminVolumeCorrectionMain = withRoleProtection(VolumeCorrectionMain, ["Admin"]);
 
 const TankStockMain = () => {
   return (
@@ -25,16 +41,16 @@ const TankStockMain = () => {
 
             <Route path="/settings" element={<TankStockSettings />} />
             {/* Feature routes with updated paths */}
-            <Route path="/stock-analytics" element={<StockAnalytics />} />
-            <Route path="/stock-management" element={<StockManagement />} />
-            <Route path="/reconciliation" element={<ReconciliationMain />} />
+            <Route path="/stock-analytics" element={<AdminStockAnalytics />} />
+            <Route path="/stock-management/*" element={<StockManagement />} />
+            <Route path="/reconciliation" element={<AdminReconciliationMain />} />
 
             <Route
               path="/fueldatacomparison/*"
-              element={<FuelDataComparisonMain />}
+              element={<AdminFuelDataComparisonMain />}
             />
-            <Route path="/fuel-audit/*" element={<FuelAuditMain />} />
-            <Route path="/volume-correction/*" element={<VolumeCorrectionMain />} />
+            <Route path="/fuel-audit/*" element={<AdminFuelAuditMain />} />
+            <Route path="/volume-correction/*" element={<AdminVolumeCorrectionMain />} />
             <Route path="/settings" element={<TankStockSettings />} />
 
             {/* Catch all - redirect to dashboard */}

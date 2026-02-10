@@ -1,0 +1,856 @@
+/**
+ * File: AlertConfigurationPage.js
+ * Purpose: Admin page for configuring vehicle monitoring alerts:
+ *   1. GPS Online Checking — offline threshold, auto-create/auto-close settings
+ *   2. Fuel Activity + GPS Offline — fuel window, GPS offline threshold
+ * Dependencies: React, DevExtreme, issueTrackerV2Service
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions:
+ * - loadData: Fetches templates, device types, auto-close configs, users
+ * - handleSave: Persists template + auto-close config changes
+ */
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { NumberBox } from 'devextreme-react/number-box';
+import { TagBox } from 'devextreme-react/tag-box';
+import { TextArea } from 'devextreme-react/text-area';
+import { Button } from 'devextreme-react/button';
+import LoadIndicator from 'devextreme-react/load-indicator';
+import notify from 'devextreme/ui/notify';
+import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import { fetchUsers } from '../../../redux/actions/userActions';
+import './AlertConfigurationPage.scss';
+
+// Device type names mapped to monitoring scenarios
+const GPS_DEVICE_TYPES = ['vehicle', 'gps', 'gps device', 'gps_device'];
+const FUEL_DEVICE_TYPES = ['fuel', 'fuel activity', 'fuel_activity', 'no_fuel'];
+
+/** Stable empty array to avoid new reference on each render */
+const EMPTY_ARRAY = [];
+
+/** Duration unit multipliers (to minutes) */
+const DURATION_UNITS = [
+    { key: 'minutes', label: 'Minutes', factor: 1 },
+    { key: 'hours', label: 'Hours', factor: 60 },
+    { key: 'days', label: 'Days', factor: 1440 },
+];
+
+/**
+ * Auto-detect the best unit for a given minutes value
+ */
+const detectBestUnit = (totalMinutes) => {
+    if (!totalMinutes || totalMinutes <= 0) return 'minutes';
+    if (totalMinutes % 1440 === 0) return 'days';
+    if (totalMinutes % 60 === 0) return 'hours';
+    return 'minutes';
+};
+
+/**
+ * Duration input with unit selector (minutes / hours / days).
+ * Stores & emits the value in minutes internally.
+ */
+const DurationInput = ({ totalMinutes, onChange, min = 1, max = 10080 }) => {
+    const [unit, setUnit] = React.useState(() => detectBestUnit(totalMinutes));
+
+    const unitObj = DURATION_UNITS.find((u) => u.key === unit) || DURATION_UNITS[0];
+    const displayValue = totalMinutes ? +(totalMinutes / unitObj.factor).toFixed(2) : '';
+
+    const handleValueChange = (e) => {
+        const raw = e.value;
+        if (raw == null) return;
+        const asMinutes = Math.round(raw * unitObj.factor);
+        onChange(Math.max(min, Math.min(max, asMinutes)));
+    };
+
+    const handleUnitChange = (newUnit) => {
+        setUnit(newUnit);
+    };
+
+    // Compute display-friendly min/max for the current unit
+    const displayMin = +(min / unitObj.factor).toFixed(2);
+    const displayMax = +(max / unitObj.factor).toFixed(2);
+
+    return (
+        <div>
+            <div className="tw-flex tw-items-stretch tw-gap-0">
+                <div className="tw-flex-1">
+                    <NumberBox
+                        value={displayValue || displayMin}
+                        onValueChanged={handleValueChange}
+                        min={displayMin}
+                        max={displayMax}
+                        showSpinButtons={true}
+                        step={unit === 'minutes' ? 5 : unit === 'hours' ? 0.5 : 0.5}
+                        format={unit === 'minutes' ? '#,##0' : '#,##0.##'}
+                    />
+                </div>
+                <div className="tw-flex tw-border tw-border-l-0 tw-rounded-r-md tw-overflow-hidden">
+                    {DURATION_UNITS.map((u) => (
+                        <button
+                            key={u.key}
+                            type="button"
+                            onClick={() => handleUnitChange(u.key)}
+                            className={`tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-transition-colors tw-border-l first:tw-border-l-0 ${unit === u.key
+                                    ? 'tw-bg-blue-500 tw-text-white'
+                                    : 'tw-bg-gray-50 tw-text-gray-600 hover:tw-bg-gray-100'
+                                }`}
+                        >
+                            {u.label}
+                        </button>
+                    ))}
+                </div>
+            </div>
+            <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                {totalMinutes ? (
+                    <>
+                        = {totalMinutes.toLocaleString()} min
+                        {totalMinutes >= 60 && <> ({(totalMinutes / 60).toFixed(1)} hrs)</>}
+                        {totalMinutes >= 1440 && <> ({(totalMinutes / 1440).toFixed(1)} days)</>}
+                    </>
+                ) : 'Set the offline threshold duration'}
+            </p>
+        </div>
+    );
+};
+
+/**
+ * Custom toggle switch component (replaces DevExtreme Switch)
+ */
+const ToggleSwitch = ({ checked, onChange, disabled = false, label = '' }) => (
+    <label className="toggle-switch" title={label}>
+        <input
+            type="checkbox"
+            checked={checked}
+            onChange={(e) => onChange(e.target.checked)}
+            disabled={disabled}
+        />
+        <span className="toggle-slider"></span>
+    </label>
+);
+
+/**
+ * Parse comma-separated user IDs from DefaultAssignee field
+ */
+const parseAssigneeIds = (value) => {
+    if (!value) return EMPTY_ARRAY;
+    return value.split(',').map((id) => id.trim()).filter(Boolean);
+};
+
+/**
+ * Serialize array of user IDs to comma-separated string
+ */
+const serializeAssigneeIds = (ids) => {
+    if (!ids || ids.length === 0) return null;
+    return ids.join(',');
+};
+
+const AlertConfigurationPage = () => {
+    const dispatch = useDispatch();
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [templates, setTemplates] = useState([]);
+    const [deviceTypes, setDeviceTypes] = useState([]);
+    const [autoCloseConfigs, setAutoCloseConfigs] = useState([]);
+
+    // GPS Offline monitoring config
+    const [gpsTemplate, setGpsTemplate] = useState(null);
+    const [gpsAutoClose, setGpsAutoClose] = useState(null);
+
+    // Fuel + Offline monitoring config
+    const [fuelTemplate, setFuelTemplate] = useState(null);
+    const [fuelAutoClose, setFuelAutoClose] = useState(null);
+
+    // Users for assignee dropdown - stable selector to avoid new reference
+    const users = useSelector((state) => state.user?.users || EMPTY_ARRAY);
+
+    // Memoize parsed assignee IDs so TagBox doesn't see new array references on each render
+    const gpsAssigneeIds = useMemo(
+        () => parseAssigneeIds(gpsTemplate?.defaultAssignee),
+        [gpsTemplate?.defaultAssignee]
+    );
+    const fuelAssigneeIds = useMemo(
+        () => parseAssigneeIds(fuelTemplate?.defaultAssignee),
+        [fuelTemplate?.defaultAssignee]
+    );
+
+    // Ref to track whether the component has finished initial load (suppresses onValueChanged during hydration)
+    const isHydrated = useRef(false);
+
+    // Memoize parsed checker config JSON to avoid new objects each render
+    const gpsCheckerConfig = useMemo(() => {
+        if (!gpsAutoClose?.checkerConfigJson) return {};
+        try { return JSON.parse(gpsAutoClose.checkerConfigJson); } catch { return {}; }
+    }, [gpsAutoClose?.checkerConfigJson]);
+
+    const fuelCheckerConfig = useMemo(() => {
+        if (!fuelAutoClose?.checkerConfigJson) return {};
+        try { return JSON.parse(fuelAutoClose.checkerConfigJson); } catch { return {}; }
+    }, [fuelAutoClose?.checkerConfigJson]);
+
+    // ===== Load Data =====
+    const loadData = useCallback(async () => {
+        isHydrated.current = false;
+        setLoading(true);
+        try {
+            const [templatesRes, deviceTypesRes, autoCloseRes] = await Promise.all([
+                issueTrackerV2Service.getTemplates(),
+                issueTrackerV2Service.getDeviceTypes(),
+                issueTrackerV2Service.getAutoCloseConfigs(),
+            ]);
+
+            const allTemplates = templatesRes?.data || templatesRes || [];
+            const allDeviceTypes = deviceTypesRes?.data || deviceTypesRes || [];
+            const allAutoClose = autoCloseRes?.data || autoCloseRes || [];
+
+            setTemplates(allTemplates);
+            setDeviceTypes(allDeviceTypes);
+            setAutoCloseConfigs(allAutoClose);
+
+            // Find GPS offline template
+            const gpsDeviceTypeIds = allDeviceTypes
+                .filter((dt) => GPS_DEVICE_TYPES.includes(dt.name?.toLowerCase()))
+                .map((dt) => dt.id);
+
+            const gpsTpl = allTemplates.find(
+                (t) => gpsDeviceTypeIds.includes(t.deviceTypeId) && t.canAutoCreate
+            ) || allTemplates.find((t) => gpsDeviceTypeIds.includes(t.deviceTypeId)) || null;
+
+            setGpsTemplate(gpsTpl ? { ...gpsTpl } : null);
+
+            if (gpsTpl) {
+                const gpsAc = allAutoClose.find((ac) => ac.issueTemplateId === gpsTpl.id) || null;
+                setGpsAutoClose(gpsAc ? { ...gpsAc } : null);
+            }
+
+            // Find Fuel + Offline template
+            const fuelDeviceTypeIds = allDeviceTypes
+                .filter((dt) => FUEL_DEVICE_TYPES.includes(dt.name?.toLowerCase()))
+                .map((dt) => dt.id);
+
+            const fuelTpl = allTemplates.find(
+                (t) => fuelDeviceTypeIds.includes(t.deviceTypeId) && t.canAutoCreate
+            ) || allTemplates.find((t) => fuelDeviceTypeIds.includes(t.deviceTypeId)) || null;
+
+            setFuelTemplate(fuelTpl ? { ...fuelTpl } : null);
+
+            if (fuelTpl) {
+                const fuelAc = allAutoClose.find((ac) => ac.issueTemplateId === fuelTpl.id) || null;
+                setFuelAutoClose(fuelAc ? { ...fuelAc } : null);
+            }
+        } catch (err) {
+            console.error('Failed to load alert configuration:', err);
+            notify({ message: 'Failed to load alert configuration', type: 'error', displayTime: 4000 });
+        } finally {
+            setLoading(false);
+            // Allow a tick for React to settle state before accepting onValueChanged events
+            setTimeout(() => { isHydrated.current = true; }, 0);
+        }
+    }, []);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    // Load users once on mount - separate effect to avoid infinite loop
+    useEffect(() => {
+        if (!users || users.length === 0) {
+            dispatch(fetchUsers());
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [dispatch]);
+
+    // ===== Save Handlers =====
+    const handleSaveGps = useCallback(async () => {
+        if (!gpsTemplate) {
+            notify({ message: 'No GPS monitoring template found. Create one in Issue Tracker Settings first.', type: 'warning', displayTime: 4000 });
+            return;
+        }
+        setSaving(true);
+        try {
+            await issueTrackerV2Service.updateTemplate(gpsTemplate.id, {
+                ...gpsTemplate,
+                deviceTypeId: gpsTemplate.deviceTypeId,
+                name: gpsTemplate.name,
+                offlineThresholdMinutes: gpsTemplate.offlineThresholdMinutes,
+                canAutoCreate: gpsTemplate.canAutoCreate,
+                titleTemplate: gpsTemplate.titleTemplate,
+                descriptionTemplate: gpsTemplate.descriptionTemplate,
+                defaultAssignee: gpsTemplate.defaultAssignee,
+                defaultPriorityId: gpsTemplate.defaultPriorityId,
+                isActive: gpsTemplate.isActive,
+            });
+
+            if (gpsAutoClose) {
+                if (gpsAutoClose.id) {
+                    await issueTrackerV2Service.updateAutoCloseConfig(gpsAutoClose.id, {
+                        ...gpsAutoClose,
+                        issueTemplateId: gpsTemplate.id,
+                    });
+                } else {
+                    await issueTrackerV2Service.createAutoCloseConfig({
+                        ...gpsAutoClose,
+                        issueTemplateId: gpsTemplate.id,
+                    });
+                }
+            }
+
+            notify({ message: 'GPS monitoring configuration saved', type: 'success', displayTime: 3000 });
+            await loadData();
+        } catch (err) {
+            console.error('Failed to save GPS config:', err);
+            notify({ message: 'Failed to save GPS configuration', type: 'error', displayTime: 4000 });
+        } finally {
+            setSaving(false);
+        }
+    }, [gpsTemplate, gpsAutoClose, loadData]);
+
+    const handleSaveFuel = useCallback(async () => {
+        if (!fuelTemplate) {
+            notify({ message: 'No Fuel monitoring template found. Create one in Issue Tracker Settings first.', type: 'warning', displayTime: 4000 });
+            return;
+        }
+        setSaving(true);
+        try {
+            await issueTrackerV2Service.updateTemplate(fuelTemplate.id, {
+                ...fuelTemplate,
+                deviceTypeId: fuelTemplate.deviceTypeId,
+                name: fuelTemplate.name,
+                offlineThresholdMinutes: fuelTemplate.offlineThresholdMinutes,
+                canAutoCreate: fuelTemplate.canAutoCreate,
+                titleTemplate: fuelTemplate.titleTemplate,
+                descriptionTemplate: fuelTemplate.descriptionTemplate,
+                defaultAssignee: fuelTemplate.defaultAssignee,
+                defaultPriorityId: fuelTemplate.defaultPriorityId,
+                isActive: fuelTemplate.isActive,
+            });
+
+            if (fuelAutoClose) {
+                if (fuelAutoClose.id) {
+                    await issueTrackerV2Service.updateAutoCloseConfig(fuelAutoClose.id, {
+                        ...fuelAutoClose,
+                        issueTemplateId: fuelTemplate.id,
+                    });
+                } else {
+                    await issueTrackerV2Service.createAutoCloseConfig({
+                        ...fuelAutoClose,
+                        issueTemplateId: fuelTemplate.id,
+                    });
+                }
+            }
+
+            notify({ message: 'Fuel activity monitoring configuration saved', type: 'success', displayTime: 3000 });
+            await loadData();
+        } catch (err) {
+            console.error('Failed to save fuel config:', err);
+            notify({ message: 'Failed to save fuel configuration', type: 'error', displayTime: 4000 });
+        } finally {
+            setSaving(false);
+        }
+    }, [fuelTemplate, fuelAutoClose, loadData]);
+
+    // ===== Field update helpers (guarded against no-op updates) =====
+    const updateGpsField = useCallback((field, value) => {
+        if (!isHydrated.current) return;
+        setGpsTemplate((prev) => {
+            if (!prev) return prev;
+            if (prev[field] === value) return prev; // no-op guard
+            return { ...prev, [field]: value };
+        });
+    }, []);
+
+    const updateGpsAutoClose = useCallback((field, value) => {
+        if (!isHydrated.current) return;
+        setGpsAutoClose((prev) => {
+            if (!prev) {
+                return { checkerType: 'Online', isEnabled: true, autoCloseWhenSatisfied: true, [field]: value };
+            }
+            if (prev[field] === value) return prev;
+            return { ...prev, [field]: value };
+        });
+    }, []);
+
+    const updateFuelField = useCallback((field, value) => {
+        if (!isHydrated.current) return;
+        setFuelTemplate((prev) => {
+            if (!prev) return prev;
+            if (prev[field] === value) return prev;
+            return { ...prev, [field]: value };
+        });
+    }, []);
+
+    const updateFuelAutoClose = useCallback((field, value) => {
+        if (!isHydrated.current) return;
+        setFuelAutoClose((prev) => {
+            if (!prev) {
+                return { checkerType: 'FuelActivity', isEnabled: true, autoCloseWhenSatisfied: true, [field]: value };
+            }
+            if (prev[field] === value) return prev;
+            return { ...prev, [field]: value };
+        });
+    }, []);
+
+    const parseCheckerConfigJson = useCallback((config) => {
+        if (!config?.checkerConfigJson) return {};
+        try {
+            return JSON.parse(config.checkerConfigJson);
+        } catch {
+            return {};
+        }
+    }, []);
+
+    const updateCheckerConfigField = useCallback((setter, config, field, value) => {
+        if (!isHydrated.current) return;
+        const existing = parseCheckerConfigJson(config);
+        if (existing[field] === value) return; // no-op guard
+        const updated = { ...existing, [field]: value };
+        setter('checkerConfigJson', JSON.stringify(updated));
+    }, [parseCheckerConfigJson]);
+
+    // ===== Auto-Setup: Create missing device type + template =====
+    const handleSetupGps = useCallback(async () => {
+        setSaving(true);
+        try {
+            // Find or create GPS Device type
+            let gpsDeviceTypeId = null;
+            const existingGpsDt = deviceTypes.find((dt) => GPS_DEVICE_TYPES.includes(dt.name?.toLowerCase()));
+            if (existingGpsDt) {
+                gpsDeviceTypeId = existingGpsDt.id;
+            } else {
+                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'GPS Device', description: 'Vehicle GPS tracking device', isMonitored: true });
+                gpsDeviceTypeId = dtRes?.data?.id || dtRes?.id;
+            }
+
+            if (!gpsDeviceTypeId) throw new Error('Failed to resolve GPS device type ID');
+
+            // Create the template
+            await issueTrackerV2Service.createTemplate({
+                deviceTypeId: gpsDeviceTypeId,
+                name: 'GPS Offline',
+                titleTemplate: 'GPS Offline - {vehicleName}',
+                descriptionTemplate: 'Vehicle GPS device has been offline. Last seen: {lastSeen}.',
+                canAutoCreate: true,
+                isActive: true,
+                offlineThresholdMinutes: 60,
+            });
+
+            notify({ message: 'GPS monitoring template created successfully', type: 'success', displayTime: 3000 });
+            await loadData();
+        } catch (err) {
+            console.error('Failed to setup GPS monitoring:', err);
+            notify({ message: 'Failed to create GPS monitoring template', type: 'error', displayTime: 4000 });
+        } finally {
+            setSaving(false);
+        }
+    }, [deviceTypes, loadData]);
+
+    const handleSetupFuel = useCallback(async () => {
+        setSaving(true);
+        try {
+            // Create a "fuel_activity" device type
+            let fuelDeviceTypeId = null;
+            const existingFuelDt = deviceTypes.find((dt) => FUEL_DEVICE_TYPES.includes(dt.name?.toLowerCase()));
+            if (existingFuelDt) {
+                fuelDeviceTypeId = existingFuelDt.id;
+            } else {
+                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'fuel_activity', description: 'Fuel activity + GPS offline monitoring', isMonitored: true });
+                fuelDeviceTypeId = dtRes?.data?.id || dtRes?.id;
+            }
+
+            if (!fuelDeviceTypeId) throw new Error('Failed to resolve fuel activity device type ID');
+
+            // Create the template
+            await issueTrackerV2Service.createTemplate({
+                deviceTypeId: fuelDeviceTypeId,
+                name: 'Fuel Activity While GPS Offline',
+                titleTemplate: 'Fuel Activity While GPS Offline - {vehicleName}',
+                descriptionTemplate: 'Vehicle {vehicleName} has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.',
+                canAutoCreate: true,
+                isActive: true,
+                offlineThresholdMinutes: 60,
+            });
+
+            notify({ message: 'Fuel activity monitoring template created successfully', type: 'success', displayTime: 3000 });
+            await loadData();
+        } catch (err) {
+            console.error('Failed to setup fuel monitoring:', err);
+            notify({ message: 'Failed to create fuel monitoring template', type: 'error', displayTime: 4000 });
+        } finally {
+            setSaving(false);
+        }
+    }, [deviceTypes, loadData]);
+
+    // ===== Render =====
+    if (loading) {
+        return (
+            <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
+                <LoadIndicator />
+            </div>
+        );
+    }
+
+    return (
+        <div className="alert-config-page tw-p-6 tw-max-w-5xl tw-mx-auto">
+            <div className="tw-mb-6">
+                <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-mb-1">
+                    <i className="fa-light fa-bell-exclamation tw-mr-2 tw-text-orange-500"></i>
+                    Alert Configuration
+                </h2>
+                <p className="tw-text-sm tw-text-gray-500">
+                    Configure vehicle monitoring alerts for GPS offline detection and fuel activity validation.
+                </p>
+            </div>
+
+            {/* ===== GPS Online Checking Card ===== */}
+            <div className="config-card tw-mb-6 tw-border tw-rounded-xl tw-bg-white tw-shadow-sm">
+                <div className="tw-flex tw-items-center tw-justify-between tw-px-6 tw-py-4 tw-border-b tw-bg-gradient-to-r tw-from-blue-50 tw-to-white tw-rounded-t-xl">
+                    <div className="tw-flex tw-items-center tw-gap-3">
+                        <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-blue-100 tw-flex tw-items-center tw-justify-center">
+                            <i className="fa-light fa-satellite-dish tw-text-blue-600 tw-text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-800">GPS Online Checking</h3>
+                            <p className="tw-text-xs tw-text-gray-500">Monitor vehicle GPS devices and create issues when they go offline</p>
+                        </div>
+                    </div>
+                    {gpsTemplate && (
+                        <ToggleSwitch
+                            checked={!!gpsTemplate.canAutoCreate}
+                            onChange={(val) => updateGpsField('canAutoCreate', val)}
+                            label="Enable GPS offline monitoring"
+                        />
+                    )}
+                </div>
+
+                {!gpsTemplate ? (
+                    <div className="tw-p-6 tw-text-center tw-text-gray-400">
+                        <i className="fa-light fa-satellite-dish tw-text-4xl tw-mb-3 tw-block"></i>
+                        <p className="tw-text-sm tw-mb-4">No GPS monitoring template configured yet.</p>
+                        <Button
+                            text={saving ? 'Creating...' : 'Setup GPS Monitoring'}
+                            type="default"
+                            stylingMode="contained"
+                            icon="fa-light fa-plus"
+                            onClick={handleSetupGps}
+                            disabled={saving}
+                        />
+                    </div>
+                ) : (
+                    <div className="tw-p-6">
+                        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
+                            {/* Offline Threshold */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-clock tw-mr-1 tw-text-gray-400"></i>
+                                    Offline Threshold
+                                </label>
+                                <DurationInput
+                                    totalMinutes={gpsTemplate.offlineThresholdMinutes || 60}
+                                    onChange={(mins) => updateGpsField('offlineThresholdMinutes', mins)}
+                                    min={5}
+                                    max={10080}
+                                />
+                            </div>
+
+                            {/* Default Assignees (multi-select) */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-users tw-mr-1 tw-text-gray-400"></i>
+                                    Default Assignees
+                                </label>
+                                <TagBox
+                                    dataSource={users}
+                                    displayExpr="userName"
+                                    valueExpr="id"
+                                    value={gpsAssigneeIds}
+                                    onValueChanged={(e) => updateGpsField('defaultAssignee', serializeAssigneeIds(e.value))}
+                                    placeholder="Select assignees..."
+                                    showClearButton={true}
+                                    searchEnabled={true}
+                                    multiline={true}
+                                    showSelectionControls={true}
+                                    applyValueMode="useButtons"
+                                    maxDisplayedTags={3}
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    First selected user will be the primary assignee for auto-created issues
+                                </p>
+                            </div>
+
+                            {/* Title Template */}
+                            <div className="md:tw-col-span-2">
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-heading tw-mr-1 tw-text-gray-400"></i>
+                                    Issue Title Template
+                                </label>
+                                <TextArea
+                                    value={gpsTemplate.titleTemplate || 'GPS Offline - {vehicleName}'}
+                                    onValueChanged={(e) => updateGpsField('titleTemplate', e.value)}
+                                    height={40}
+                                    placeholder="GPS Offline - {vehicleName}"
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Placeholders: {'{vehicleName}'}
+                                </p>
+                            </div>
+
+                            {/* Description Template */}
+                            <div className="md:tw-col-span-2">
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-align-left tw-mr-1 tw-text-gray-400"></i>
+                                    Issue Description Template
+                                </label>
+                                <TextArea
+                                    value={gpsTemplate.descriptionTemplate || 'Vehicle GPS device has been offline. Last seen: {lastSeen}.'}
+                                    onValueChanged={(e) => updateGpsField('descriptionTemplate', e.value)}
+                                    height={60}
+                                    placeholder="Vehicle GPS device has been offline. Last seen: {lastSeen}."
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Placeholders: {'{vehicleName}'}, {'{lastSeen}'}, {'{thresholdMinutes}'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Auto-Close Section */}
+                        <div className="tw-mt-6 tw-pt-4 tw-border-t">
+                            <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                <div>
+                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                                        <i className="fa-light fa-rotate tw-mr-1"></i> Auto-Close Settings
+                                    </h4>
+                                    <p className="tw-text-xs tw-text-gray-400">Automatically close issue when GPS comes back online</p>
+                                </div>
+                                <ToggleSwitch
+                                    checked={gpsAutoClose?.isEnabled ?? false}
+                                    onChange={(val) => updateGpsAutoClose('isEnabled', val)}
+                                />
+                            </div>
+                            {gpsAutoClose?.isEnabled && (
+                                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                                    <div>
+                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                            Online Threshold
+                                        </label>
+                                        <DurationInput
+                                            totalMinutes={gpsCheckerConfig.onlineThresholdMinutes || 15}
+                                            onChange={(mins) => updateCheckerConfigField(updateGpsAutoClose, gpsAutoClose, 'onlineThresholdMinutes', mins)}
+                                            min={1}
+                                            max={1440}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                            Check Interval (seconds)
+                                        </label>
+                                        <NumberBox
+                                            value={gpsAutoClose.checkIntervalSeconds || 600}
+                                            onValueChanged={(e) => updateGpsAutoClose('checkIntervalSeconds', e.value)}
+                                            min={60}
+                                            max={86400}
+                                            showSpinButtons={true}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="tw-flex tw-justify-end tw-mt-6">
+                            <Button
+                                text={saving ? 'Saving...' : 'Save GPS Configuration'}
+                                type="default"
+                                stylingMode="contained"
+                                icon="fa-light fa-floppy-disk"
+                                onClick={handleSaveGps}
+                                disabled={saving}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+
+            {/* ===== Fuel Activity + GPS Offline Card ===== */}
+            <div className="config-card tw-mb-6 tw-border tw-rounded-xl tw-bg-white tw-shadow-sm">
+                <div className="tw-flex tw-items-center tw-justify-between tw-px-6 tw-py-4 tw-border-b tw-bg-gradient-to-r tw-from-amber-50 tw-to-white tw-rounded-t-xl">
+                    <div className="tw-flex tw-items-center tw-gap-3">
+                        <div className="tw-w-10 tw-h-10 tw-rounded-lg tw-bg-amber-100 tw-flex tw-items-center tw-justify-center">
+                            <i className="fa-light fa-gas-pump tw-text-amber-600 tw-text-lg"></i>
+                        </div>
+                        <div>
+                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-800">Fuel Activity Validation</h3>
+                            <p className="tw-text-xs tw-text-gray-500">Create issues when a vehicle has fuel activity but GPS is offline (suspicious)</p>
+                        </div>
+                    </div>
+                    {fuelTemplate && (
+                        <ToggleSwitch
+                            checked={!!fuelTemplate.canAutoCreate}
+                            onChange={(val) => updateFuelField('canAutoCreate', val)}
+                            label="Enable fuel + GPS offline monitoring"
+                        />
+                    )}
+                </div>
+
+                {!fuelTemplate ? (
+                    <div className="tw-p-6 tw-text-center tw-text-gray-400">
+                        <i className="fa-light fa-gas-pump tw-text-4xl tw-mb-3 tw-block"></i>
+                        <p className="tw-text-sm tw-mb-4">No fuel activity monitoring template configured yet.</p>
+                        <Button
+                            text={saving ? 'Creating...' : 'Setup Fuel Activity Monitoring'}
+                            type="default"
+                            stylingMode="contained"
+                            icon="fa-light fa-plus"
+                            onClick={handleSetupFuel}
+                            disabled={saving}
+                        />
+                    </div>
+                ) : (
+                    <div className="tw-p-6">
+                        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
+                            {/* GPS Offline Threshold for fuel check */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-clock tw-mr-1 tw-text-gray-400"></i>
+                                    GPS Offline Threshold
+                                </label>
+                                <DurationInput
+                                    totalMinutes={fuelTemplate.offlineThresholdMinutes || 60}
+                                    onChange={(mins) => updateFuelField('offlineThresholdMinutes', mins)}
+                                    min={5}
+                                    max={10080}
+                                />
+                            </div>
+
+                            {/* Default Assignees (multi-select) */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-users tw-mr-1 tw-text-gray-400"></i>
+                                    Default Assignees
+                                </label>
+                                <TagBox
+                                    dataSource={users}
+                                    displayExpr="userName"
+                                    valueExpr="id"
+                                    value={fuelAssigneeIds}
+                                    onValueChanged={(e) => updateFuelField('defaultAssignee', serializeAssigneeIds(e.value))}
+                                    placeholder="Select assignees..."
+                                    showClearButton={true}
+                                    searchEnabled={true}
+                                    multiline={true}
+                                    showSelectionControls={true}
+                                    applyValueMode="useButtons"
+                                    maxDisplayedTags={3}
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    First selected user will be the primary assignee for auto-created issues
+                                </p>
+                            </div>
+
+                            {/* Info box explaining the logic */}
+                            <div className="md:tw-col-span-2 tw-p-3 tw-bg-amber-50 tw-rounded-lg tw-border tw-border-amber-200">
+                                <div className="tw-flex tw-items-start tw-gap-2">
+                                    <i className="fa-light fa-triangle-exclamation tw-text-amber-500 tw-mt-0.5"></i>
+                                    <div className="tw-text-xs tw-text-amber-800">
+                                        <strong>How it works:</strong> The system checks for vehicles that have fuel activity
+                                        (fuel refills or pump transactions) in the last <strong>3 days</strong> but whose
+                                        GPS device has been offline beyond the threshold above. This combination is suspicious
+                                        and may indicate GPS tampering or device failure.
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Title Template */}
+                            <div className="md:tw-col-span-2">
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-heading tw-mr-1 tw-text-gray-400"></i>
+                                    Issue Title Template
+                                </label>
+                                <TextArea
+                                    value={fuelTemplate.titleTemplate || 'Fuel Activity While GPS Offline - {vehicleName}'}
+                                    onValueChanged={(e) => updateFuelField('titleTemplate', e.value)}
+                                    height={40}
+                                    placeholder="Fuel Activity While GPS Offline - {vehicleName}"
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Placeholders: {'{vehicleName}'}
+                                </p>
+                            </div>
+
+                            {/* Description Template */}
+                            <div className="md:tw-col-span-2">
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-align-left tw-mr-1 tw-text-gray-400"></i>
+                                    Issue Description Template
+                                </label>
+                                <TextArea
+                                    value={fuelTemplate.descriptionTemplate || 'Vehicle {vehicleName} has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.'}
+                                    onValueChanged={(e) => updateFuelField('descriptionTemplate', e.value)}
+                                    height={80}
+                                    placeholder="Vehicle {vehicleName} has fuel activity..."
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Placeholders: {'{vehicleName}'}, {'{lastSeen}'}, {'{thresholdDays}'}, {'{thresholdMinutes}'}
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Auto-Close Section */}
+                        <div className="tw-mt-6 tw-pt-4 tw-border-t">
+                            <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+                                <div>
+                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                                        <i className="fa-light fa-rotate tw-mr-1"></i> Auto-Close Settings
+                                    </h4>
+                                    <p className="tw-text-xs tw-text-gray-400">Automatically close issue when GPS comes back online</p>
+                                </div>
+                                <ToggleSwitch
+                                    checked={fuelAutoClose?.isEnabled ?? false}
+                                    onChange={(val) => updateFuelAutoClose('isEnabled', val)}
+                                />
+                            </div>
+                            {fuelAutoClose?.isEnabled && (
+                                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                                    <div>
+                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                            Online Threshold
+                                        </label>
+                                        <DurationInput
+                                            totalMinutes={fuelCheckerConfig.onlineThresholdMinutes || 15}
+                                            onChange={(mins) => updateCheckerConfigField(updateFuelAutoClose, fuelAutoClose, 'onlineThresholdMinutes', mins)}
+                                            min={1}
+                                            max={1440}
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                            Check Interval (seconds)
+                                        </label>
+                                        <NumberBox
+                                            value={fuelAutoClose.checkIntervalSeconds || 600}
+                                            onValueChanged={(e) => updateFuelAutoClose('checkIntervalSeconds', e.value)}
+                                            min={60}
+                                            max={86400}
+                                            showSpinButtons={true}
+                                        />
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        <div className="tw-flex tw-justify-end tw-mt-6">
+                            <Button
+                                text={saving ? 'Saving...' : 'Save Fuel Configuration'}
+                                type="default"
+                                stylingMode="contained"
+                                icon="fa-light fa-floppy-disk"
+                                onClick={handleSaveFuel}
+                                disabled={saving}
+                            />
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
+
+export default AlertConfigurationPage;

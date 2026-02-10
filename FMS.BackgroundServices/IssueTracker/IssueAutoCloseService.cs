@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
@@ -143,20 +144,33 @@ namespace FMS.BackgroundServices.IssueTracker
                             continue;
                         }
 
-                        // Pass pre-fetched GPS data to OnlineChecker to avoid per-issue API calls
-                        if (checker is OnlineChecker onlineChecker && gpsLocationLookup != null)
+                        try
                         {
-                            onlineChecker.SetPreFetchedLocations(gpsLocationLookup);
+                            // Pass pre-fetched GPS data to OnlineChecker / FuelActivityChecker to avoid per-issue API calls
+                            var innerChecker = checker is ScopedAutoCloseChecker scoped ? scoped.InnerChecker : checker;
+                            if (innerChecker is OnlineChecker onlineChecker && gpsLocationLookup != null)
+                            {
+                                onlineChecker.SetPreFetchedLocations(gpsLocationLookup);
+                            }
+                            else if (innerChecker is FuelActivityChecker fuelChecker && gpsLocationLookup != null)
+                            {
+                                fuelChecker.SetPreFetchedLocations(gpsLocationLookup);
+                            }
+
+                            var shouldClose = await checker.ShouldAutoCloseAsync(issue, config, cancellationToken);
+
+                            if (shouldClose)
+                            {
+                                await CloseIssue(context, issue, checker.GetCloseReason(), scope.ServiceProvider, cancellationToken);
+                                closedCount++;
+                                _logger.LogInformation("Auto-closed issue {IssueId} - {Title} (Reason: {Reason})",
+                                    issue.Id, issue.ProblemTitle, checker.GetCloseReason());
+                            }
                         }
-
-                        var shouldClose = await checker.ShouldAutoCloseAsync(issue, config, cancellationToken);
-
-                        if (shouldClose)
+                        finally
                         {
-                            await CloseIssue(context, issue, checker.GetCloseReason(), cancellationToken);
-                            closedCount++;
-                            _logger.LogInformation("Auto-closed issue {IssueId} - {Title} (Reason: {Reason})",
-                                issue.Id, issue.ProblemTitle, checker.GetCloseReason());
+                            // Dispose the checker to release its DI scope and scoped services
+                            (checker as IDisposable)?.Dispose();
                         }
                     }
                     catch (Exception ex)
@@ -189,8 +203,20 @@ namespace FMS.BackgroundServices.IssueTracker
             return openStatuses;
         }
 
-        private async Task CloseIssue(GpsdataContext context, Issuetracker issue, string reason, CancellationToken cancellationToken)
+        private async Task CloseIssue(GpsdataContext context, Issuetracker issue, string reason,
+            IServiceProvider scopedProvider, CancellationToken cancellationToken)
         {
+            // Capture previous status for activity log
+            var previousStatusId = issue.Status;
+            string? previousStatusName = null;
+            if (previousStatusId.HasValue)
+            {
+                previousStatusName = await context.Issuestatuses
+                    .Where(s => s.Id == previousStatusId.Value)
+                    .Select(s => s.Status)
+                    .FirstOrDefaultAsync(cancellationToken);
+            }
+
             // Get the "Auto-Closed" status
             var autoClosedStatus = await context.Issuestatuses
                 .FirstOrDefaultAsync(s => s.Status == "Auto-Closed", cancellationToken);
@@ -205,6 +231,34 @@ namespace FMS.BackgroundServices.IssueTracker
             issue.LastModfield = DateTime.UtcNow;
 
             await context.SaveChangesAsync(cancellationToken);
+
+            // Log activity for the auto-close action
+            try
+            {
+                var activityService = scopedProvider.GetService<IIssueActivityService>();
+                if (activityService != null)
+                {
+                    await activityService.LogStatusChangeAsync(
+                        issue.Id,
+                        previousStatusName ?? "Open",
+                        "Auto-Closed",
+                        "system",
+                        "System",
+                        cancellationToken);
+
+                    await activityService.LogActivityAsync(
+                        issue.Id,
+                        "AutoClosed",
+                        $"Issue auto-closed. Reason: {reason}",
+                        "system",
+                        "System",
+                        cancellationToken: cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to log activity for auto-closed issue {IssueId}", issue.Id);
+            }
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

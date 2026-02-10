@@ -1,13 +1,13 @@
 /**
  * File: IssueTrackerDetailPage.js
  * Purpose: Displays detailed issue information with tabs for Activity Stream, Linked Issues,
- *          inline edit mode, vehicle timeline histogram, and print/share functionality
+ *          inline edit mode, vehicle activity heatmap, and print/share functionality
  * Dependencies: React, react-router-dom, DevExtreme chart/button/load-indicator/tabs, issueTrackerService
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-10
  *
  * Key Functions/Components:
  * - IssueTrackerDetailPage: Issue detail screen with tabbed interface
- * - Overview Tab: Issue details, timeline histogram, quick actions
+ * - Overview Tab: Issue details, activity heatmap, quick actions
  * - Activity Stream Tab: Chronological activity log with timeline display
  * - Linked Issues Tab: DataGrid of issues with same template/category
  * - Print/Share: Popup dialog for printing issue details with activity stream
@@ -16,26 +16,17 @@ import React, { useEffect, useMemo, useState, useCallback } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { Button } from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
-import TabPanel, { Item as TabItem } from 'devextreme-react/tab-panel';
-import {
-  Chart,
-  Series,
-  CommonSeriesSettings,
-  ArgumentAxis,
-  ValueAxis,
-  Tooltip,
-  Legend
-} from 'devextreme-react/chart';
+import Tabs from 'devextreme-react/tabs';
 import notify from 'devextreme/ui/notify';
 import issueTrackerService from '../../services/issueTrackerService';
 import IssuePriorityBadge from './components/IssuePriorityBadge';
 import IssueStatusIndicator from './components/IssueStatusIndicator';
 import IssueActivityStream from './components/IssueActivityStream';
+import IssueActivityHeatmap from './components/IssueActivityHeatmap';
 import LinkedIssuesGrid from './components/LinkedIssuesGrid';
 import IssuePrintPopup from './components/IssuePrintPopup';
 import './styles/IssueTrackerDetailPage.scss';
 
-const TIMELINE_DAYS_WINDOW = 14;
 const ATTACHMENT_CATEGORIES = ['Installation', 'Calibration', 'General'];
 
 const parseDateSafe = (value) => {
@@ -45,10 +36,6 @@ const parseDateSafe = (value) => {
 
   const parsedDate = new Date(value);
   return Number.isNaN(parsedDate.getTime()) ? null : parsedDate;
-};
-
-const toLocalDateKey = (date) => {
-  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
 };
 
 const formatDateTime = (value) => {
@@ -311,6 +298,11 @@ const IssueTrackerDetailPage = () => {
       refreshActivityStream();
     } catch (error) {
       console.error('Error toggling follow status:', error);
+      notify({
+        message: error?.message || 'Unable to update follow preference.',
+        type: 'error',
+        displayTime: 3000
+      });
     } finally {
       setIsFollowLoading(false);
     }
@@ -362,91 +354,9 @@ const IssueTrackerDetailPage = () => {
     }
   };
 
-  const timelineHistogramData = useMemo(() => {
-    if (!issue) {
-      return [];
-    }
-
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-
-    const buckets = [];
-    const bucketCountByDay = {};
-
-    for (let dayOffset = TIMELINE_DAYS_WINDOW - 1; dayOffset >= 0; dayOffset -= 1) {
-      const bucketDate = new Date(today);
-      bucketDate.setDate(today.getDate() - dayOffset);
-
-      const key = toLocalDateKey(bucketDate);
-      buckets.push({
-        key,
-        label: bucketDate.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }),
-        count: 0,
-        isCurrentIssueDay: false
-      });
-      bucketCountByDay[key] = 0;
-    }
-
-    vehicleIssues.forEach((vehicleIssue) => {
-      const openedDate = parseDateSafe(vehicleIssue.openDate);
-      if (!openedDate) {
-        return;
-      }
-
-      const dayKey = toLocalDateKey(openedDate);
-      if (Object.prototype.hasOwnProperty.call(bucketCountByDay, dayKey)) {
-        bucketCountByDay[dayKey] += 1;
-      }
-    });
-
-    const currentIssueOpenedDate = parseDateSafe(issue.openDate);
-    const currentIssueDayKey = currentIssueOpenedDate ? toLocalDateKey(currentIssueOpenedDate) : null;
-
-    return buckets.map((bucket) => ({
-      ...bucket,
-      count: bucketCountByDay[bucket.key] ?? 0,
-      isCurrentIssueDay: Boolean(currentIssueDayKey && currentIssueDayKey === bucket.key)
-    }));
-  }, [issue, vehicleIssues]);
-
-  const timelineEvents = useMemo(() => {
-    if (!issue) {
-      return [];
-    }
-
-    const events = [
-      {
-        label: 'Issue Opened',
-        value: issue.openDate,
-        icon: 'fa-light fa-circle-plus',
-        accentClass: 'tw-text-green-600'
-      },
-      {
-        label: 'Last Updated',
-        value: issue.lastModfield,
-        icon: 'fa-light fa-pen-to-square',
-        accentClass: 'tw-text-blue-600'
-      },
-      {
-        label: 'Due Date',
-        value: issue.dueDate,
-        icon: 'fa-light fa-calendar-clock',
-        accentClass: 'tw-text-orange-600'
-      },
-      {
-        label: 'Closed',
-        value: issue.closingDate,
-        icon: 'fa-light fa-circle-check',
-        accentClass: 'tw-text-gray-600'
-      }
-    ]
-      .filter((event) => Boolean(event.value))
-      .map((event) => ({ ...event, parsedDate: parseDateSafe(event.value) }))
-      .filter((event) => Boolean(event.parsedDate))
-      .sort((left, right) => left.parsedDate - right.parsedDate);
-
-    return events;
-  }, [issue]);
+  const heatmapDates = useMemo(() => {
+    return vehicleIssues.map((vi) => vi.openDate).filter(Boolean);
+  }, [vehicleIssues]);
 
   const priorityDisplay = issue?.priorityName || (issue?.priority !== null && issue?.priority !== undefined ? `Priority ${issue.priority}` : null);
   const statusDisplay = issue?.statusName || (issue?.status !== null && issue?.status !== undefined ? `Status ${issue.status}` : null);
@@ -489,9 +399,24 @@ const IssueTrackerDetailPage = () => {
   const isAlreadyComplete = Boolean(completeStatusOption && issue?.status === completeStatusOption.id);
   const isAlreadyHigh = Boolean(highPriorityOption && issue?.priority === highPriorityOption.id);
 
-  // Tab change handler
-  const handleTabChange = useCallback((e) => {
-    setSelectedTabIndex(e.component.option('selectedIndex'));
+  const tabItems = useMemo(() => ([
+    { key: 'overview', text: 'Overview', icon: 'fa-light fa-info-circle' },
+    { key: 'activity', text: 'Activity Stream', icon: 'fa-light fa-clock-rotate-left' },
+    { key: 'linked', text: 'Linked Issues', icon: 'fa-light fa-link' },
+    { key: 'attachments', text: `Attachments (${attachments.length})`, icon: 'fa-light fa-paperclip' }
+  ]), [attachments.length]);
+
+  const renderTabItem = useCallback((item) => (
+    <div className="issue-detail-tabs__item">
+      <i className={item.icon}></i>
+      <span>{item.text}</span>
+    </div>
+  ), []);
+
+  const handleTabSelectionChange = useCallback((e) => {
+    if (typeof e.itemIndex === 'number') {
+      setSelectedTabIndex(e.itemIndex);
+    }
   }, []);
 
   // Activity refresh callback
@@ -690,92 +615,120 @@ const IssueTrackerDetailPage = () => {
   }
 
   return (
-    <div className="tw-space-y-6">
-      <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-center lg:tw-justify-between tw-gap-3">
-        <div>
-          <p className="tw-text-sm tw-text-gray-500">Issue #{issue.id}</p>
-          <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">{issue.problemTitle || 'Untitled Issue'}</h1>
-        </div>
+    <div className="issue-tracker-detail-page tw-space-y-6">
+      <div className="issue-tracker-detail-page__header tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-start lg:tw-justify-between tw-gap-4">
+        <div className="issue-tracker-detail-page__title-group tw-space-y-3">
+          <div className="issue-tracker-detail-page__back-slot">
+            <Button
+              text="Back to Tickets"
+              icon="fa-light fa-arrow-left"
+              stylingMode="outlined"
+              type="default"
+              onClick={() => navigate('/issue-tracker/tickets')}
+              className="user-details__action-btn user-details__action-btn--first user-details__action-btn--last"
+            />
+          </div>
 
-        <div className="tw-flex tw-flex-wrap tw-gap-2">
-          {!isEditMode && (
-            <>
+          <div className="issue-tracker-detail-page__title-slot">
+            <p className="tw-text-sm tw-text-gray-500">Issue #{issue.id}</p>
+            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">{issue.problemTitle || 'Untitled Issue'}</h1>
+            <div className="issue-tracker-detail-page__follow-row">
               <Button
-                text={isFollowing ? 'Following' : 'Follow'}
                 icon={isFollowing ? 'fa-light fa-bell-on' : 'fa-light fa-bell'}
-                stylingMode={isFollowing ? 'contained' : 'outlined'}
-                type={isFollowing ? 'success' : 'default'}
+                stylingMode="outlined"
+                type="default"
                 onClick={handleToggleFollow}
                 disabled={isFollowLoading}
                 hint={isFollowing ? 'Click to unfollow and stop receiving notifications' : 'Follow this issue to receive activity notifications'}
+                className={`issue-tracker-detail-page__follow-icon ${isFollowing ? 'issue-tracker-detail-page__follow-icon--active' : ''}`}
+                elementAttr={{
+                  'aria-label': isFollowing ? 'Unfollow issue notifications' : 'Follow issue notifications'
+                }}
               />
+              <button
+                type="button"
+                onClick={handleToggleFollow}
+                disabled={isFollowLoading}
+                className={`issue-tracker-detail-page__follow-text ${isFollowing ? 'issue-tracker-detail-page__follow-text--active' : ''}`}
+              >
+                {isFollowing ? 'Receiving notifications on updates' : 'Receive notifications on updates'}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div className="issue-tracker-detail-page__actions-slot tw-flex tw-flex-wrap tw-gap-2 lg:tw-justify-end">
+          {!isEditMode && (
+            <div className="user-details__action-buttons">
               <Button
                 text="Print / Share"
                 icon="fa-light fa-print"
                 stylingMode="outlined"
+                type="default"
+                className="user-details__action-btn user-details__action-btn--first"
                 onClick={() => setShowPrintPopup(true)}
               />
               <Button
                 text={isAlreadyComplete ? 'Completed' : 'Mark as Complete'}
                 icon="fa-light fa-circle-check"
                 stylingMode="outlined"
+                type="default"
                 onClick={handleQuickMarkComplete}
                 disabled={isSaving || isAlreadyComplete}
+                className="user-details__action-btn"
               />
               <Button
                 text={isAlreadyHigh ? 'Priority: High' : 'Change to High'}
                 icon="fa-light fa-arrow-up"
                 stylingMode="outlined"
+                type="default"
                 onClick={handleQuickMarkHighPriority}
                 disabled={isSaving || isAlreadyHigh}
+                className="user-details__action-btn"
               />
               {!isAlreadyComplete && (
                 <Button
                   text={isClosing ? 'Closing...' : 'Close Issue (Approver)'}
                   icon="fa-light fa-lock"
-                  stylingMode="contained"
-                  type="danger"
+                  stylingMode="outlined"
+                  type="default"
                   onClick={handleCloseIssue}
                   disabled={isSaving || isClosing || isAlreadyComplete}
                   hint="Only an approver (not the assignee) can close this issue"
+                  className="user-details__action-btn"
                 />
               )}
-            </>
+              <Button
+                text="Edit Issue"
+                icon="fa-light fa-pen-to-square"
+                type="default"
+                stylingMode="outlined"
+                onClick={handleEnableEditMode}
+                className="user-details__action-btn user-details__action-btn--last"
+              />
+            </div>
           )}
-          <Button
-            text="Back to Tickets"
-            icon="fa-light fa-arrow-left"
-            stylingMode="outlined"
-            onClick={() => navigate('/issue-tracker/tickets')}
-          />
-          {isEditMode ? (
-            <>
+          {isEditMode && (
+            <div className="user-details__action-buttons">
               <Button
                 text="Cancel"
                 icon="fa-light fa-xmark"
                 stylingMode="outlined"
+                type="default"
                 onClick={handleCancelEdit}
                 disabled={isSaving}
+                className="user-details__action-btn user-details__action-btn--first"
               />
               <Button
                 text={isSaving ? 'Saving...' : 'Save Changes'}
                 icon="fa-light fa-floppy-disk"
                 type="default"
-                stylingMode="contained"
+                stylingMode="outlined"
                 onClick={handleSaveEdit}
                 disabled={isSaving}
-                className="tw-bg-blue-600 tw-text-white"
+                className="user-details__action-btn user-details__action-btn--last"
               />
-            </>
-          ) : (
-            <Button
-              text="Edit Issue"
-              icon="fa-light fa-pen-to-square"
-              type="default"
-              stylingMode="contained"
-              onClick={handleEnableEditMode}
-              className="tw-bg-blue-600 tw-text-white"
-            />
+            </div>
           )}
         </div>
       </div>
@@ -989,79 +942,37 @@ const IssueTrackerDetailPage = () => {
       </div>
 
       {/* Tabbed Content */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm">
-        <TabPanel
-          selectedIndex={selectedTabIndex}
-          onOptionChanged={handleTabChange}
-          animationEnabled={true}
-          swipeEnabled={false}
-          className="issue-detail-tabs"
-        >
-          {/* Overview Tab */}
-          <TabItem title="Overview" icon="fa-light fa-info-circle">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-overflow-hidden">
+        <div className="issue-detail-tabs">
+          <Tabs
+            dataSource={tabItems}
+            selectedIndex={selectedTabIndex}
+            onItemClick={handleTabSelectionChange}
+            itemRender={renderTabItem}
+            width="100%"
+            showNavButtons={true}
+            scrollingEnabled={true}
+          />
+        </div>
+
+        <div className="issue-detail-tabs__content">
+          {selectedTabIndex === 0 && (
             <div className="tw-p-6 tw-space-y-6">
-              {/* Vehicle Issue Timeline Histogram */}
+              {/* Vehicle Issue Activity Heatmap */}
               <div>
-                <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-mb-4">
-                  <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-                    <i className="fa-light fa-chart-column tw-mr-2 tw-text-blue-600"></i>
-                    Vehicle Issue Timeline Histogram (Last {TIMELINE_DAYS_WINDOW} Days)
-                  </h2>
-                  <span className="tw-text-xs tw-text-gray-500">
-                    Current issue open day is highlighted in orange
-                  </span>
-                </div>
-
-                <Chart dataSource={timelineHistogramData} height={300}>
-                  <CommonSeriesSettings argumentField="label" type="bar" />
-                  <Series
-                    valueField="count"
-                    name="Issues Opened"
-                    color="#60a5fa"
-                    customizePoint={(point) => (point.data.isCurrentIssueDay ? { color: '#f97316' } : null)}
-                  />
-                  <ArgumentAxis />
-                  <ValueAxis allowDecimals={false} />
-                  <Legend visible={false} />
-                  <Tooltip
-                    enabled={true}
-                    customizeTooltip={(pointInfo) => ({
-                      text: `${pointInfo.argument}: ${pointInfo.valueText} issue(s) opened`
-                    })}
-                  />
-                </Chart>
-              </div>
-
-              {/* Issue Timeline Events */}
-              <div>
-                <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-mb-4">
-                  <i className="fa-light fa-timeline tw-mr-2 tw-text-orange-600"></i>
-                  Issue Timeline
-                </h2>
-
-                {timelineEvents.length === 0 ? (
-                  <p className="tw-text-sm tw-text-gray-500">No timeline events are available yet.</p>
-                ) : (
-                  <div className="tw-space-y-3">
-                    {timelineEvents.map((event) => (
-                      <div key={`${event.label}-${event.value}`} className="tw-flex tw-items-start tw-gap-3 tw-border-b tw-border-gray-100 tw-pb-3">
-                        <div className={`tw-w-8 tw-h-8 tw-rounded-full tw-bg-gray-100 tw-flex tw-items-center tw-justify-center ${event.accentClass}`}>
-                          <i className={event.icon}></i>
-                        </div>
-                        <div>
-                          <p className="tw-font-medium tw-text-gray-800">{event.label}</p>
-                          <p className="tw-text-sm tw-text-gray-500">{formatDateTime(event.value)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                <IssueActivityHeatmap
+                  dates={heatmapDates}
+                  weeks={26}
+                  title={`Vehicle Issue Activity (${vehicleIssues.length} issues)`}
+                  highlightDate={issue?.openDate}
+                  colorScheme="blue"
+                  showSummary={true}
+                />
               </div>
             </div>
-          </TabItem>
+          )}
 
-          {/* Activity Stream Tab */}
-          <TabItem title="Activity Stream" icon="fa-light fa-clock-rotate-left">
+          {selectedTabIndex === 1 && (
             <div className="tw-p-6">
               <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
                 <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
@@ -1069,15 +980,14 @@ const IssueTrackerDetailPage = () => {
                   Activity Stream
                 </h2>
                 <span className="tw-text-xs tw-text-gray-500">
-                  All changes and updates to this issue
+                  Issue timeline and updates from backend activity log
                 </span>
               </div>
               <IssueActivityStream issueId={id} onRefresh={handleActivityRefreshCallback} />
             </div>
-          </TabItem>
+          )}
 
-          {/* Linked Issues Tab */}
-          <TabItem title="Linked Issues" icon="fa-light fa-link">
+          {selectedTabIndex === 2 && (
             <div className="tw-p-6">
               <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
                 <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
@@ -1090,10 +1000,9 @@ const IssueTrackerDetailPage = () => {
               </div>
               <LinkedIssuesGrid issueId={id} currentIssue={issue} />
             </div>
-          </TabItem>
+          )}
 
-          {/* Attachments Tab */}
-          <TabItem title={`Attachments (${attachments.length})`} icon="fa-light fa-paperclip">
+          {selectedTabIndex === 3 && (
             <div className="tw-p-6">
               <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
                 <h2 className="tw-text-lg tw-font-semibold tw-text-gray-900">
@@ -1191,8 +1100,8 @@ const IssueTrackerDetailPage = () => {
                 </div>
               )}
             </div>
-          </TabItem>
-        </TabPanel>
+          )}
+        </div>
       </div>
 
       {/* Print/Share Popup */}

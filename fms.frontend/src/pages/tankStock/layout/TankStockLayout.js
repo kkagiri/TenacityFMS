@@ -1,5 +1,15 @@
+/**
+ * File: TankStockLayout.js
+ * Purpose: Provides Tank Stock module shell layout and role-aware sidebar navigation
+ * Dependencies: react-router-dom, react-redux, tankStockRoutes, QuickActions, HeaderStockFilters
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - TankStockLayout(): Renders Tank Stock sidebar and content area with admin-only menu filtering
+ */
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import { tankStockRoutes, isActiveRoute } from '../utils/navigationHelper';
 import QuickActions from '../components/QuickActions';
 import HeaderStockFilters from '../shared/components/HeaderStockFilters';
@@ -9,6 +19,9 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { user } = useSelector((state) => state.auth);
+  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.roles].filter(Boolean);
+  const isAdmin = userRoles.some((role) => typeof role === 'string' && role.toLowerCase() === 'admin');
 
   // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
   const pageInfo = useMemo(() => {
@@ -95,6 +108,7 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-chart-bar',
       path: tankStockRoutes.stockAnalytics,
       badge: null,
+      adminOnly: true,
     },
     {
       id: 'stockManagement',
@@ -109,6 +123,7 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-code-compare',
       path: tankStockRoutes.fuelDataComparison,
       badge: null,
+      adminOnly: true,
     },
     {
       id: 'fuelAudit',
@@ -116,6 +131,7 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-clipboard-check',
       path: tankStockRoutes.fuelAudit,
       badge: null,
+      adminOnly: true,
     },
     {
       id: 'reconciliationControl',
@@ -123,6 +139,7 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-circle-check',
       path: tankStockRoutes.reconciliationControl,
       badge: null,
+      adminOnly: true,
     },
     {
       id: 'volumeCorrection',
@@ -130,8 +147,14 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       icon: 'fa-light fa-wand-magic-sparkles',
       path: tankStockRoutes.volumeCorrection,
       badge: null,
+      adminOnly: true,
     }
   ], []);
+
+  const visibleNavigationItems = useMemo(
+    () => navigationItems.filter((item) => !item.adminOnly || isAdmin),
+    [navigationItems, isAdmin]
+  );
 
   // 🚀 OPTIMIZATION: Memoize configuration items
   const configurationItems = useMemo(() => [
@@ -178,7 +201,7 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         <div className="sidebar-content">
           <div className="nav-group">
             <nav className="nav-menu">
-              {navigationItems.map((item) => {
+              {visibleNavigationItems.map((item) => {
                 const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div

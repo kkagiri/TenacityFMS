@@ -156,13 +156,54 @@ namespace FMS.Persistence.EntityConfigurations
                                    .HasColumnType("int(11)")
                                    .IsRequired();
 
+                            // New detection fields
+                            builder.Property(i => i.TankId)
+                                   .HasColumnName("TankId");
+
+                            builder.Property(i => i.SiteId)
+                                   .HasColumnName("SiteId");
+
+                            builder.Property(i => i.Status)
+                                   .HasColumnName("Status")
+                                   .HasMaxLength(50)
+                                   .HasDefaultValue("Detected");
+
+                            builder.Property(i => i.MatchedDeliveryId)
+                                   .HasColumnName("MatchedDeliveryId");
+
+                            builder.Property(i => i.IsProcessed)
+                                   .HasColumnName("IsProcessed")
+                                   .HasDefaultValue(false);
+
+                            builder.Property(i => i.DetectedAt)
+                                   .HasColumnName("DetectedAt");
+
                             // Configure the foreign key relationship with Ptsdevice.
                             // The constraint name in the DB is "fk_psTID" and it references "ptsdevice(PTSId)".
                             builder.HasOne(i => i.Pts)
-                                   .WithMany(p => p.Intankdeliveries)  // Change to .WithMany(p => p.Intankdeliveries) if Ptsdevice has a collection navigation.
+                                   .WithMany(p => p.Intankdeliveries)
                                    .HasForeignKey(i => i.Ptsid)
                                    .OnDelete(DeleteBehavior.ClientSetNull)
                                    .HasConstraintName("fk_psTID");
+
+                            // FK to Tank
+                            builder.HasOne(i => i.TankNavigation)
+                                   .WithMany()
+                                   .HasForeignKey(i => i.TankId)
+                                   .HasConstraintName("fk_itd_tankId")
+                                   .OnDelete(DeleteBehavior.SetNull);
+
+                            // FK to Delivery (matched manual delivery)
+                            builder.HasOne(i => i.MatchedDelivery)
+                                   .WithMany()
+                                   .HasForeignKey(i => i.MatchedDeliveryId)
+                                   .HasConstraintName("fk_itd_matchedDeliveryId")
+                                   .OnDelete(DeleteBehavior.SetNull);
+
+                            builder.HasIndex(i => i.TankId).HasDatabaseName("IX_intankdelivery_TankId");
+                            builder.HasIndex(i => i.SiteId).HasDatabaseName("IX_intankdelivery_SiteId");
+                            builder.HasIndex(i => i.Status).HasDatabaseName("IX_intankdelivery_Status");
+                            builder.HasIndex(i => i.DetectedAt).HasDatabaseName("IX_intankdelivery_DetectedAt");
                      }
 
 

@@ -1,4 +1,14 @@
-import React, { useCallback, useEffect } from "react";
+/**
+ * File: userdatalist.js
+ * Purpose: Renders the role user selection grid and keeps selected user IDs in Redux state.
+ * Dependencies: react, react-redux, devextreme-react/data-grid
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - UserDataList: Displays users and manages stable multi-select behavior.
+ */
+
+import React, { useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import {
   DataGrid,
@@ -12,32 +22,66 @@ const UserDataList = () => {
   const allUsers = useSelector((state) => state.role.allUsers);
   const selectedUsers = useSelector((state) => state.role.selectedUsers);
 
-  // Debug: Log the data to verify
-  console.log("allUsers:", allUsers);
-  console.log("selectedUsers:", selectedUsers);
+  const normalizedUsers = useMemo(() => {
+    if (!Array.isArray(allUsers)) {
+      return [];
+    }
+
+    return allUsers.map((user) => ({
+      ...user,
+      id: String(user?.id ?? user?.Id ?? user?.userId ?? ""),
+    }));
+  }, [allUsers]);
+
+  const normalizedSelectedUsers = useMemo(() => {
+    if (!Array.isArray(selectedUsers)) {
+      return [];
+    }
+
+    return selectedUsers.map((userId) => String(userId));
+  }, [selectedUsers]);
+
+  const userIdLookup = useMemo(() => {
+    const idLookup = new Map();
+
+    normalizedUsers.forEach((user) => {
+      const normalizedId = String(user?.id ?? "");
+      const rawId = user?.Id ?? user?.userId ?? user?.id;
+      idLookup.set(normalizedId, rawId);
+    });
+
+    return idLookup;
+  }, [normalizedUsers]);
 
   const handleSelectionChanged = useCallback(
     ({ selectedRowKeys }) => {
-      console.log("selectedRowKeys from DataGrid:", selectedRowKeys); // Debug
-      dispatch({ type: "SET_SELECTED_USERS", payload: selectedRowKeys });
+      dispatch({
+        type: "SET_SELECTED_USERS",
+        payload: selectedRowKeys.map((userId) => {
+          const normalizedId = String(userId);
+          return userIdLookup.has(normalizedId)
+            ? userIdLookup.get(normalizedId)
+            : userId;
+        }),
+      });
     },
-    [dispatch]
+    [dispatch, userIdLookup]
   );
 
   return (
     <div>
       <DataGrid
-        dataSource={allUsers}
+        dataSource={normalizedUsers}
         showBorders={true}
         showColumnLines={true}
         showRowLines={true}
         allowColumnResizing={true}
         showColumnHeaders={true}
-        selectedRowKeys={selectedUsers}
+        selectedRowKeys={normalizedSelectedUsers}
         onSelectionChanged={handleSelectionChanged}
         keyExpr="id"
       >
-        <Selection mode="multiple" />
+        <Selection mode="multiple" showCheckBoxesMode="always" selectByClick={false} />
         <SearchPanel showSearchButton={true} />
         <Column
           dataField="id"

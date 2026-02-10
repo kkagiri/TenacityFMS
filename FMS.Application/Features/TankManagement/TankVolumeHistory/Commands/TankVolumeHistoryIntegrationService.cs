@@ -180,6 +180,34 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
         }
 
         /// <summary>
+        /// Process an in-tank delivery (PTS auto-detected) that affects tank volume
+        /// </summary>
+        public async Task<FMSResponseMessage> ProcessInTankDeliveryChangeAsync(
+            int tankId,
+            DateTime timestamp,
+            decimal volumeChange,
+            int inTankDeliveryId,
+            ActionType actionType,
+            string recordedBy,
+            decimal? newPhysicalStockValue = null,
+            string? physicalStockSource = null,
+            CancellationToken cancellationToken = default)
+        {
+            return await ProcessChangeAsync(
+                tankId,
+                timestamp,
+                Math.Abs(volumeChange), // Deliveries are positive (fuel added)
+                VolumeChangeReasonEnum.InTankDelivery,
+                recordedBy,
+                inTankDeliveryId,
+                "InTankDelivery",
+                actionType,
+                newPhysicalStockValue,
+                physicalStockSource,
+                cancellationToken);
+        }
+
+        /// <summary>
         /// Process a manual adjustment to tank volume
         /// </summary>
         public async Task<FMSResponseMessage> ProcessAdjustmentChangeAsync(

@@ -14,6 +14,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import DataGrid, {
     Column,
     Paging,
@@ -29,6 +30,7 @@ import axiosInstance from '../../../api/axiosInstance';
 import reportingService from '../../../services/reportingService';
 import { usePermissions } from '../../../hooks/usePermissions';
 import ReportScheduleForm from './ReportScheduleForm';
+import { buildNotificationRequestFromForm, buildUpdatePayloadFromForm } from './reportScheduleFormUtils';
 import RecipientDeliveryStatusPopup from '../components/RecipientDeliveryStatusPopup';
 import './ReportScheduleManager.scss';
 
@@ -40,10 +42,27 @@ const STATUS_CLASSES = {
     failed: 'tw-bg-red-100 tw-text-red-800',
 };
 
+const REPORT_TYPE_LABELS = {
+    'device-offline': 'Device Offline',
+    'tank-volume-history': 'Tank Volume History',
+    'consumption-by-refills': 'Consumption by Refills',
+    'vehicle-consumption': 'Vehicle Consumption',
+    'pump-transaction': 'Pump Transaction',
+    'fuel-refill': 'Fuel Refill',
+    'delivery': 'Delivery',
+    'pts-device': 'PTS Device',
+    TransactionVolumeHistory: 'Tank Volume History',
+    ConsumptionByRefill: 'Consumption by Refills',
+    VehicleConsumption: 'Vehicle Consumption',
+    PTSDeviceOffline: 'PTS Device Offline',
+};
+
 const ReportScheduleManager = () => {
     const [searchParams] = useSearchParams();
     const { hasRole } = usePermissions();
     const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+    const authUser = useSelector((state) => state.auth?.user || null);
+    const currentUserName = authUser?.userName || authUser?.username || 'Unknown';
 
     const [schedules, setSchedules] = useState([]);
     const [recipients, setRecipients] = useState([]);
@@ -106,28 +125,18 @@ const ReportScheduleManager = () => {
         async (formData) => {
             setLoading(true);
             try {
-                const request = {
-                    reportType: formData.reportSourceId,
-                    scheduleName: formData.scheduleName,
-                    description: formData.description,
-                    recipients: formData.recipientEmails,
-                    frequency: formData.frequency,
-                    outputFormat: formData.outputFormat,
-                    scheduledAt: formData.scheduledAt instanceof Date
-                        ? formData.scheduledAt.toISOString()
-                        : formData.scheduledAt,
-                    repeatCount: formData.repeatCount,
-                    filters: formData.filters,
-                    scheduleConfig: JSON.stringify({
-                        periodType: formData.frequency,
-                        scheduleDayOfWeekIds: formData.scheduleDayOfWeekIds || ['monday'],
-                        scheduleWeekOfMonthIds: formData.scheduleWeekOfMonthIds || ['first'],
-                        scheduleTime: formData.scheduleTime || '08:00',
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                    }),
-                };
+                const buildResult = buildNotificationRequestFromForm(
+                    formData,
+                    recipients,
+                    currentUserName
+                );
+                if (!buildResult.success) {
+                    notify({ message: buildResult.error || 'Invalid schedule data', type: 'warning' });
+                    setLoading(false);
+                    return;
+                }
 
-                const result = await reportingService.scheduleReportEmail(request);
+                const result = await reportingService.scheduleReportEmail(buildResult.request);
                 if (result.success) {
                     notify({ message: 'Schedule created successfully', type: 'success' });
                     setShowFormPopup(false);
@@ -141,7 +150,7 @@ const ReportScheduleManager = () => {
                 setLoading(false);
             }
         },
-        [loadSchedules]
+        [loadSchedules, recipients, currentUserName]
     );
 
     const handleUpdate = useCallback(
@@ -149,28 +158,8 @@ const ReportScheduleManager = () => {
             if (!editTarget) return;
             setLoading(true);
             try {
-                const payload = {
-                    scheduleName: formData.scheduleName,
-                    description: formData.description,
-                    recipients: formData.recipientEmails,
-                    frequency: formData.frequency,
-                    outputFormat: formData.outputFormat,
-                    scheduledAt: formData.scheduledAt instanceof Date
-                        ? formData.scheduledAt.toISOString()
-                        : formData.scheduledAt,
-                    repeatCount: formData.repeatCount,
-                    filters: formData.filters,
-                    reportType: formData.reportSourceId,
-                    scheduleConfig: JSON.stringify({
-                        periodType: formData.frequency,
-                        scheduleDayOfWeekIds: formData.scheduleDayOfWeekIds || ['monday'],
-                        scheduleWeekOfMonthIds: formData.scheduleWeekOfMonthIds || ['first'],
-                        scheduleTime: formData.scheduleTime || '08:00',
-                        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
-                    }),
-                };
-
-                const scheduleId = editTarget.notificationId || editTarget.id;
+                const payload = buildUpdatePayloadFromForm(formData, recipients, currentUserName);
+                const scheduleId = editTarget.id;
                 const result = await reportingService.updateScheduledReportEmail(scheduleId, payload);
                 if (result.success) {
                     notify({ message: 'Schedule updated successfully', type: 'success' });
@@ -186,7 +175,7 @@ const ReportScheduleManager = () => {
                 setLoading(false);
             }
         },
-        [editTarget, loadSchedules]
+        [editTarget, loadSchedules, recipients, currentUserName]
     );
 
     const handleFormSubmit = useCallback(
@@ -221,7 +210,7 @@ const ReportScheduleManager = () => {
             parsedFilters = schedule.filters;
         }
 
-        // Parse scheduleConfig JSON (period & timing)
+        // Parse scheduleConfig JSON (period & timing) — fallback to top-level DTO fields
         let parsedConfig = {};
         if (typeof schedule.scheduleConfig === 'string') {
             try { parsedConfig = JSON.parse(schedule.scheduleConfig); } catch { /* ignore */ }
@@ -229,21 +218,32 @@ const ReportScheduleManager = () => {
             parsedConfig = schedule.scheduleConfig;
         }
 
+        // Use top-level DTO fields if scheduleConfig is empty (API returns structured DTO)
+        const scheduleDayOfWeekIds = parsedConfig.scheduleDayOfWeekIds
+            || (Array.isArray(schedule.scheduleDaysOfWeek) && schedule.scheduleDaysOfWeek.length ? schedule.scheduleDaysOfWeek : null)
+            || ['monday'];
+        const scheduleWeekOfMonthIds = parsedConfig.scheduleWeekOfMonthIds
+            || (Array.isArray(schedule.scheduleWeeksOfMonth) && schedule.scheduleWeeksOfMonth.length ? schedule.scheduleWeeksOfMonth : null)
+            || ['first'];
+        const scheduleTime = parsedConfig.scheduleTime || schedule.scheduleTimeOfDay || '08:00';
+
         setEditTarget({
             ...schedule,
             formValues: {
                 reportSourceId: schedule.reportType || schedule.reportSourceId || '',
-                scheduleName: schedule.scheduleName || schedule.title || '',
-                description: schedule.description || '',
+                scheduleName: schedule.title || schedule.scheduleName || '',
+                description: schedule.reportDescription || schedule.description || '',
                 recipientEmails: parsedRecipients,
-                frequency: schedule.frequency || schedule.scheduleType || 'once',
-                outputFormat: schedule.outputFormat || schedule.format || 'pdf',
-                scheduledAt: schedule.scheduledAt ? new Date(schedule.scheduledAt) : new Date(),
+                frequency: schedule.scheduleType || schedule.frequency || 'once',
+                outputFormat: (schedule.format || schedule.outputFormat || 'pdf').toLowerCase(),
+                scheduledAt: schedule.nextRunAtUtc ? new Date(schedule.nextRunAtUtc)
+                    : schedule.scheduledAt ? new Date(schedule.scheduledAt)
+                        : new Date(),
                 repeatCount: schedule.repeatCount || 1,
                 filters: parsedFilters,
-                scheduleDayOfWeekIds: parsedConfig.scheduleDayOfWeekIds || ['monday'],
-                scheduleWeekOfMonthIds: parsedConfig.scheduleWeekOfMonthIds || ['first'],
-                scheduleTime: parsedConfig.scheduleTime || '08:00',
+                scheduleDayOfWeekIds,
+                scheduleWeekOfMonthIds,
+                scheduleTime,
             },
         });
         setShowFormPopup(true);
@@ -251,12 +251,10 @@ const ReportScheduleManager = () => {
 
     const handleCancel = useCallback(
         async (schedule) => {
-            if (!window.confirm(`Cancel schedule "${schedule.scheduleName || schedule.id}"?`)) return;
+            if (!window.confirm(`Cancel schedule "${schedule.title || schedule.scheduleName || schedule.id}"?`)) return;
             setLoading(true);
             try {
-                const result = await reportingService.cancelScheduledReportEmail(
-                    schedule.notificationId || schedule.id
-                );
+                const result = await reportingService.cancelScheduledReportEmail(schedule.id);
                 if (result.success) {
                     notify({ message: 'Schedule cancelled', type: 'success' });
                     await loadSchedules();
@@ -265,6 +263,27 @@ const ReportScheduleManager = () => {
                 }
             } catch (err) {
                 notify({ message: 'Failed to cancel schedule', type: 'error' });
+            } finally {
+                setLoading(false);
+            }
+        },
+        [loadSchedules]
+    );
+
+    const handleDelete = useCallback(
+        async (schedule) => {
+            if (!window.confirm(`Permanently delete schedule "${schedule.title || schedule.scheduleName || schedule.id}"?\n\nThis action cannot be undone.`)) return;
+            setLoading(true);
+            try {
+                const result = await reportingService.deleteScheduledReportEmail(schedule.id);
+                if (result.success) {
+                    notify({ message: 'Schedule deleted permanently', type: 'success' });
+                    await loadSchedules();
+                } else {
+                    notify({ message: result.error || 'Failed to delete', type: 'error' });
+                }
+            } catch (err) {
+                notify({ message: 'Failed to delete schedule', type: 'error' });
             } finally {
                 setLoading(false);
             }
@@ -310,10 +329,17 @@ const ReportScheduleManager = () => {
                         onClick={() => handleCancel(schedule)}
                         disabled={!isEditable}
                     />
+                    <Button
+                        icon="fa-light fa-trash"
+                        hint="Delete Schedule Permanently"
+                        stylingMode="text"
+                        onClick={() => handleDelete(schedule)}
+                        elementAttr={{ class: 'tw-text-red-500' }}
+                    />
                 </div>
             );
         },
-        [handleCancel, handleEdit]
+        [handleCancel, handleDelete, handleEdit]
     );
 
     const renderDeliveryStats = useCallback((cellInfo) => {
@@ -404,10 +430,31 @@ const ReportScheduleManager = () => {
                 <Paging defaultPageSize={15} />
                 <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30, 50]} showInfo={true} />
 
-                <Column dataField="scheduleName" caption="Schedule Name" />
-                <Column dataField="reportType" caption="Report Source" width={180} />
-                <Column dataField="frequency" caption="Frequency" width={100} />
-                <Column dataField="outputFormat" caption="Format" width={80} />
+                <Column
+                    caption="Schedule Name"
+                    calculateCellValue={(row) => row.title || row.scheduleName || '—'}
+                />
+                <Column
+                    caption="Report Source"
+                    width={180}
+                    calculateCellValue={(row) => {
+                        const rt = row.reportType || '';
+                        return REPORT_TYPE_LABELS[rt] || rt || '—';
+                    }}
+                />
+                <Column
+                    caption="Frequency"
+                    width={100}
+                    calculateCellValue={(row) => {
+                        const val = row.scheduleType || row.frequency || '';
+                        return val ? val.charAt(0).toUpperCase() + val.slice(1) : '—';
+                    }}
+                />
+                <Column
+                    caption="Format"
+                    width={80}
+                    calculateCellValue={(row) => row.format || row.outputFormat || '—'}
+                />
                 <Column
                     dataField="status"
                     caption="Status"
@@ -415,10 +462,19 @@ const ReportScheduleManager = () => {
                     cellRender={renderStatus}
                 />
                 <Column
-                    dataField="scheduledAt"
                     caption="Next Run"
                     width={170}
-                    calculateCellValue={(row) => formatDateTime(row.scheduledAt || row.nextRunAt)}
+                    calculateCellValue={(row) => formatDateTime(row.nextRunAtUtc || row.scheduledAt)}
+                />
+                <Column
+                    caption="Time"
+                    width={90}
+                    calculateCellValue={(row) => row.scheduleTimeOfDay || '—'}
+                />
+                <Column
+                    caption="Requested By"
+                    width={130}
+                    calculateCellValue={(row) => row.requestedBy || '—'}
                 />
                 <Column
                     caption="Delivery"
@@ -427,7 +483,7 @@ const ReportScheduleManager = () => {
                     allowSorting={false}
                     allowFiltering={false}
                 />
-                <Column caption="Actions" width={120} cellRender={renderActions} alignment="center" />
+                <Column caption="Actions" width={160} cellRender={renderActions} alignment="center" />
             </DataGrid>
 
             {/* Create/Edit Popup */}

@@ -296,5 +296,58 @@ namespace FMS.Application.Configuration
         public const bool DEFAULT_PTS_ENABLE_FUEL_CAPACITY_VALIDATION = true;
         public const bool DEFAULT_PTS_ENABLE_GPS_FUEL_LEVEL_CHECK = true;
         #endregion
+
+        #region In-Tank Delivery Auto-Detection Configuration Keys
+        /// <summary>
+        /// Whether ITD auto-detection alerts are enabled
+        /// </summary>
+        public const string DB_CONFIG_ITD_ALERTS_ENABLED_KEY = "ITD.AutoDetection.AlertsEnabled";
+
+        /// <summary>
+        /// Minimum absolute volume change (liters) to trigger an alert
+        /// </summary>
+        public const string DB_CONFIG_ITD_MIN_VOLUME_THRESHOLD_KEY = "ITD.AutoDetection.MinVolumeThreshold";
+
+        /// <summary>
+        /// Whether to automatically create a TankVolumeHistory ledger entry for detected ITDs
+        /// </summary>
+        public const string DB_CONFIG_ITD_AUTO_CREATE_LEDGER_ENTRY_KEY = "ITD.AutoDetection.AutoCreateLedgerEntry";
+
+        /// <summary>
+        /// Whether to attempt matching detected ITDs with manual delivery entries
+        /// </summary>
+        public const string DB_CONFIG_ITD_AUTO_MATCH_MANUAL_DELIVERY_KEY = "ITD.AutoDetection.AutoMatchManualDelivery";
+
+        /// <summary>
+        /// Volume tolerance percentage for matching ITDs with manual deliveries (e.g., 0.10 = 10%)
+        /// </summary>
+        public const string DB_CONFIG_ITD_MATCH_VOLUME_TOLERANCE_KEY = "ITD.AutoDetection.MatchVolumeTolerance";
+
+        /// <summary>
+        /// Time window in hours for matching ITDs with manual deliveries
+        /// </summary>
+        public const string DB_CONFIG_ITD_MATCH_TIME_WINDOW_HOURS_KEY = "ITD.AutoDetection.MatchTimeWindowHours";
+
+        /// <summary>
+        /// Alert priority for ITD notifications: Low, Medium, High, Critical
+        /// </summary>
+        public const string DB_CONFIG_ITD_ALERT_PRIORITY_KEY = "ITD.AutoDetection.AlertPriority";
+
+        /// <summary>
+        /// Auto-resolve alert after N minutes (0 = no auto-resolve)
+        /// </summary>
+        public const string DB_CONFIG_ITD_ALERT_AUTO_RESOLVE_MINUTES_KEY = "ITD.AutoDetection.AlertAutoResolveMinutes";
+        #endregion
+
+        #region In-Tank Delivery Auto-Detection Default Values
+        public const bool DEFAULT_ITD_ALERTS_ENABLED = true;
+        public const decimal DEFAULT_ITD_MIN_VOLUME_THRESHOLD = 50.0m; // liters
+        public const bool DEFAULT_ITD_AUTO_CREATE_LEDGER_ENTRY = true;
+        public const bool DEFAULT_ITD_AUTO_MATCH_MANUAL_DELIVERY = true;
+        public const decimal DEFAULT_ITD_MATCH_VOLUME_TOLERANCE = 0.10m; // 10%
+        public const int DEFAULT_ITD_MATCH_TIME_WINDOW_HOURS = 24;
+        public const string DEFAULT_ITD_ALERT_PRIORITY = "Medium";
+        public const int DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES = 0; // No auto-resolve
+        #endregion
     }
 }

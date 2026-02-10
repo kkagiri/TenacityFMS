@@ -60,7 +60,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue(30);
 
                 builder.Property(e => e.DefaultAssignee)
-                    .HasMaxLength(100);
+                    .HasMaxLength(1000);
 
                 builder.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")

@@ -5,7 +5,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.PTS;
+using FMS.Application.Features.TankManagement.Deliveries.Services;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -25,12 +27,15 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.InTankDeliveryComm
     public class CreateInTankDeliveryCommandHandler : IRequestHandler<CreateInTankDeliveryCommand, FMSResponse> {
         private readonly GpsdataContext _context;
         private readonly ILogger<CreateInTankDeliveryCommandHandler> _logger;
+        private readonly IInTankDeliveryDetectionService _detectionService;
 
         public CreateInTankDeliveryCommandHandler (
             GpsdataContext context,
-            ILogger<CreateInTankDeliveryCommandHandler> logger) {
+            ILogger<CreateInTankDeliveryCommandHandler> logger,
+            IInTankDeliveryDetectionService detectionService) {
             _context = context;
             _logger = logger;
+            _detectionService = detectionService;
         }
 
         public async Task<FMSResponse> Handle (CreateInTankDeliveryCommand request, CancellationToken cancellationToken) {
@@ -68,9 +73,15 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.InTankDeliveryComm
 
                 var deliveryDto = request.InTankDeliveryDto;
 
-                //Cursor: Try to find the actual Tank entity to link
+                //Cursor: Try to find the actual Tank entity to link (by PtsId + probe number first, then fallback)
                 var tank = await _context.Tanks
-                    .FirstOrDefaultAsync (t => t.PtsId == request.DeviceId, cancellationToken);
+                    .FirstOrDefaultAsync (t => t.PtsId == request.DeviceId && t.ProbeNumber == deliveryDto.Tank, cancellationToken);
+
+                // Fallback: match by PtsId only if single tank
+                if (tank == null) {
+                    tank = await _context.Tanks
+                        .FirstOrDefaultAsync (t => t.PtsId == request.DeviceId, cancellationToken);
+                }
 
                 if (tank != null) {
                     deliveryDto.TankId = tank.Id;
@@ -90,6 +101,8 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.InTankDeliveryComm
                     PacketId = deliveryDto.PacketId,
                     Ptsid = deliveryDto.PtsId,
                     ConfigurationId = deliveryDto.ConfigurationId,
+                    TankId = tank?.Id,
+                    SiteId = tank?.SiteId,
 
                     // Start values
                     StartDateTime = deliveryDto.StartValues?.DateTime,
@@ -125,8 +138,21 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.InTankDeliveryComm
                 _context.Intankdeliveries.Add (inTankDelivery);
                 await _context.SaveChangesAsync (cancellationToken);
 
-                _logger.LogInformation ("In-tank delivery created successfully for device {DeviceId}, tank {Tank}, packet {PacketId}",
-                    request.DeviceId, deliveryDto.Tank, deliveryDto.PacketId);
+                _logger.LogInformation ("In-tank delivery created: DeliveryId={DeliveryId}, Device={DeviceId}, Tank={Tank}, Packet={PacketId}",
+                    inTankDelivery.DeliveryId, request.DeviceId, deliveryDto.Tank, deliveryDto.PacketId);
+
+                // === AUTO-DETECTION PROCESSING ===
+                // Fire-and-forget to avoid blocking the PTS response
+                _ = Task.Run (async () => {
+                    try {
+                        await _detectionService.ProcessDetectedDeliveryAsync (
+                            inTankDelivery, tank, CancellationToken.None);
+                    } catch (Exception ex) {
+                        _logger.LogError (ex,
+                            "Non-critical: ITD auto-detection failed for DeliveryId {DeliveryId}",
+                            inTankDelivery.DeliveryId);
+                    }
+                });
 
                 return FMSResponse.SuccessResponse ("In-tank delivery processed successfully");
             } catch (Exception ex) {

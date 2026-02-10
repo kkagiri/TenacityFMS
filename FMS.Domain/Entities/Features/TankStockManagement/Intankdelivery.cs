@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using FMS.Domain.Entities.Features.TankStockManagement;
 
 namespace FMS.Domain.Entities;
 
@@ -69,5 +70,26 @@ public partial class Intankdelivery
 
     public int PacketId { get; set; }
 
+    /// <summary>FK to Tank table (resolved from PtsId + probe number)</summary>
+    public int? TankId { get; set; }
+
+    /// <summary>FK to Site table (resolved from Tank)</summary>
+    public int? SiteId { get; set; }
+
+    /// <summary>Detection status: Detected, BelowThreshold, Matched, Unmatched, Confirmed, Rejected</summary>
+    public string? Status { get; set; }
+
+    /// <summary>FK to manual Delivery if this ITD was matched to one</summary>
+    public int? MatchedDeliveryId { get; set; }
+
+    /// <summary>Whether a TankVolumeHistory ledger entry was created</summary>
+    public bool IsProcessed { get; set; }
+
+    /// <summary>When the system received and processed this record</summary>
+    public DateTime? DetectedAt { get; set; }
+
+    // Navigation properties
     public virtual Ptsdevice Pts { get; set; } = null!;
+    public virtual Tank? TankNavigation { get; set; }
+    public virtual Delivery? MatchedDelivery { get; set; }
 }

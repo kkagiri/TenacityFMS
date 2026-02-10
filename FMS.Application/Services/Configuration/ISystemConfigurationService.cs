@@ -226,6 +226,48 @@ namespace FMS.Application.Services.Configuration
         Task<bool> GetPtsEnableGPSFuelLevelCheckAsync(CancellationToken cancellationToken = default);
         #endregion
 
+        #region In-Tank Delivery Auto-Detection Configuration
+        /// <summary>
+        /// Gets whether ITD auto-detection alerts are enabled
+        /// </summary>
+        Task<bool> GetItdAlertsEnabledAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets minimum volume threshold (liters) to trigger ITD alert
+        /// </summary>
+        Task<decimal> GetItdMinVolumeThresholdAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets whether to auto-create TankVolumeHistory ledger entries for detected ITDs
+        /// </summary>
+        Task<bool> GetItdAutoCreateLedgerEntryAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets whether to auto-match ITDs with manual delivery entries
+        /// </summary>
+        Task<bool> GetItdAutoMatchManualDeliveryAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets volume tolerance for matching ITDs with manual deliveries (e.g., 0.10 = 10%)
+        /// </summary>
+        Task<decimal> GetItdMatchVolumeToleranceAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets time window in hours for matching ITDs with manual deliveries
+        /// </summary>
+        Task<int> GetItdMatchTimeWindowHoursAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets alert priority for ITD notifications
+        /// </summary>
+        Task<string> GetItdAlertPriorityAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets auto-resolve minutes for ITD alerts (0 = no auto-resolve)
+        /// </summary>
+        Task<int> GetItdAlertAutoResolveMinutesAsync(CancellationToken cancellationToken = default);
+        #endregion
+
         #region Generic Configuration Access
         /// <summary>
         /// Gets a decimal configuration value by key with a default fallback.

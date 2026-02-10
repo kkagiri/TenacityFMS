@@ -2,7 +2,7 @@
  * File: LinkedIssuesGrid.js
  * Purpose: DataGrid component showing issues with the same template/category
  * Dependencies: React, DevExtreme DataGrid, issueTrackerService
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-10
  *
  * Key Components:
  * - LinkedIssuesGrid: Displays related issues in a data grid with navigation
@@ -13,26 +13,48 @@ import LoadIndicator from 'devextreme-react/load-indicator';
 import { useNavigate } from 'react-router-dom';
 import issueTrackerService from '../../../services/issueTrackerService';
 
+const normalizeLinkedIssue = (issue) => {
+    const statusDisplay = issue?.statusName
+        || issue?.statusLabel
+        || issue?.statusText
+        || (typeof issue?.status === 'number' ? `Status ${issue.status}` : issue?.status)
+        || 'Unknown';
+
+    const priorityDisplay = issue?.priorityName
+        || issue?.priorityLabel
+        || issue?.priorityText
+        || (typeof issue?.priority === 'number' ? `Priority ${issue.priority}` : issue?.priority)
+        || 'Unknown';
+
+    return {
+        ...issue,
+        titleDisplay: issue?.problemTitle || issue?.title || `Issue #${issue?.id ?? '-'}`,
+        statusDisplay,
+        priorityDisplay,
+        assigneeDisplay: issue?.assignToUserName || issue?.assigneeName || 'Unassigned'
+    };
+};
+
 const getStatusBadgeClass = (status) => {
     const statusMap = {
-        'Open': 'tw-bg-blue-100 tw-text-blue-800',
-        'In Progress': 'tw-bg-yellow-100 tw-text-yellow-800',
-        'Resolved': 'tw-bg-green-100 tw-text-green-800',
-        'Closed': 'tw-bg-gray-100 tw-text-gray-800',
-        'Pending': 'tw-bg-orange-100 tw-text-orange-800',
-        'Rejected': 'tw-bg-red-100 tw-text-red-800'
+        'open': 'tw-bg-blue-100 tw-text-blue-800',
+        'in progress': 'tw-bg-yellow-100 tw-text-yellow-800',
+        'resolved': 'tw-bg-green-100 tw-text-green-800',
+        'closed': 'tw-bg-gray-100 tw-text-gray-800',
+        'pending': 'tw-bg-orange-100 tw-text-orange-800',
+        'rejected': 'tw-bg-red-100 tw-text-red-800'
     };
-    return statusMap[status] || 'tw-bg-gray-100 tw-text-gray-600';
+    return statusMap[(status || '').toString().toLowerCase()] || 'tw-bg-gray-100 tw-text-gray-600';
 };
 
 const getPriorityBadgeClass = (priority) => {
     const priorityMap = {
-        'Critical': 'tw-bg-red-100 tw-text-red-800',
-        'High': 'tw-bg-orange-100 tw-text-orange-800',
-        'Medium': 'tw-bg-yellow-100 tw-text-yellow-800',
-        'Low': 'tw-bg-green-100 tw-text-green-800'
+        'critical': 'tw-bg-red-100 tw-text-red-800',
+        'high': 'tw-bg-orange-100 tw-text-orange-800',
+        'medium': 'tw-bg-yellow-100 tw-text-yellow-800',
+        'low': 'tw-bg-green-100 tw-text-green-800'
     };
-    return priorityMap[priority] || 'tw-bg-gray-100 tw-text-gray-600';
+    return priorityMap[(priority || '').toString().toLowerCase()] || 'tw-bg-gray-100 tw-text-gray-600';
 };
 
 const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
@@ -47,7 +69,9 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
             setLoading(true);
             const data = await issueTrackerService.getLinkedIssues(issueId);
             // Filter out the current issue from linked issues
-            const filtered = (data || []).filter(issue => issue.id !== parseInt(issueId));
+            const filtered = (data || [])
+                .filter(issue => issue.id !== Number(issueId))
+                .map(normalizeLinkedIssue);
             setLinkedIssues(filtered);
         } catch (error) {
             console.error('Failed to load linked issues:', error);
@@ -63,7 +87,7 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
 
     const handleRowClick = (e) => {
         if (e.data?.id) {
-            navigate(`/issues/detail/${e.data.id}`);
+            navigate(`/issue-tracker/details/${e.data.id}`);
         }
     };
 
@@ -120,6 +144,7 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
             </p>
             <DataGrid
                 dataSource={linkedIssues}
+                keyExpr="id"
                 showBorders={true}
                 rowAlternationEnabled={true}
                 hoverStateEnabled={true}
@@ -133,10 +158,10 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
                 <Pager showPageSizeSelector={true} allowedPageSizes={[5, 10, 20]} showInfo={true} />
 
                 <Column dataField="id" caption="ID" width={70} alignment="center" />
-                <Column dataField="title" caption="Title" minWidth={200} />
-                <Column dataField="status" caption="Status" width={120} cellRender={statusCellRender} />
-                <Column dataField="priority" caption="Priority" width={100} cellRender={priorityCellRender} />
-                <Column dataField="assigneeName" caption="Assignee" width={150} />
+                <Column dataField="titleDisplay" caption="Title" minWidth={220} />
+                <Column dataField="statusDisplay" caption="Status" width={140} cellRender={statusCellRender} />
+                <Column dataField="priorityDisplay" caption="Priority" width={130} cellRender={priorityCellRender} />
+                <Column dataField="assigneeDisplay" caption="Assignee" width={180} />
                 <Column dataField="dueDate" caption="Due Date" width={120} cellRender={dateCellRender} />
             </DataGrid>
         </div>

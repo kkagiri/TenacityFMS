@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { DataGrid, Column, Editing, RequiredRule } from 'devextreme-react/data-grid';
 import Tabs from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
@@ -14,9 +15,23 @@ import {
 import issueTrackerService from '../../../services/issueTrackerService';
 import DeviceTypesSettingsPage from './DeviceTypesSettingsPage';
 import IssueTemplatesSettingsPage from './IssueTemplatesSettingsPage';
+import AlertConfigurationPage from '../../admin/alertConfiguration/AlertConfigurationPage';
+
+const SETTINGS_BASE_PATH = '/issue-tracker/settings';
+
+const TAB_CONFIG = [
+  { key: 'categories', text: 'Categories', icon: 'fa-light fa-tags', path: 'categories' },
+  { key: 'priorities', text: 'Priorities', icon: 'fa-light fa-exclamation-triangle', path: 'priorities' },
+  { key: 'statuses', text: 'Statuses', icon: 'fa-light fa-list-check', path: 'statuses' },
+  { key: 'device-types', text: 'Device Types', icon: 'fa-light fa-microchip', path: 'device-types' },
+  { key: 'templates', text: 'Templates', icon: 'fa-light fa-file-lines', path: 'templates' },
+  { key: 'alert-config', text: 'Alert Config', icon: 'fa-light fa-bell-exclamation', path: 'alert-config' },
+];
 
 const IssueSettingsPage = () => {
   const dispatch = useDispatch();
+  const location = useLocation();
+  const navigate = useNavigate();
   const issueTrackerState = useSelector(state => state.issueTracker);
 
   // Create immutable copies to prevent mutations
@@ -27,18 +42,41 @@ const IssueSettingsPage = () => {
     loading: { ...issueTrackerState.loading }
   }), [issueTrackerState]);
 
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
-  // Tab data configuration - use useMemo to prevent recreation and ensure fresh counts
-  const tabData = React.useMemo(() => [
-    { text: "Categories", icon: "fa-light fa-tags", count: categories?.length || 0 },
-    { text: "Priorities", icon: "fa-light fa-exclamation-triangle", count: priorities?.length || 0 },
-    { text: "Statuses", icon: "fa-light fa-list-check", count: statuses?.length || 0 },
-    { text: "Device Types", icon: "fa-light fa-microchip", count: null },
-    { text: "Templates", icon: "fa-light fa-file-lines", count: null }
-  ], [categories?.length, priorities?.length, statuses?.length]);
+  // Tab data with counts
+  const tabData = useMemo(() => TAB_CONFIG.map((tab) => {
+    let count = null;
+    if (tab.key === 'categories') count = categories?.length || 0;
+    if (tab.key === 'priorities') count = priorities?.length || 0;
+    if (tab.key === 'statuses') count = statuses?.length || 0;
+    return { ...tab, count };
+  }), [categories?.length, priorities?.length, statuses?.length]);
+
+  // Derive active tab from URL
+  const activeTabIndex = useMemo(() => {
+    const matchIndex = tabData.findIndex(
+      (tab) => location.pathname === `${SETTINGS_BASE_PATH}/${tab.path}`
+    );
+    return matchIndex >= 0 ? matchIndex : 0;
+  }, [location.pathname, tabData]);
+
+  const activeTab = tabData[activeTabIndex];
+
+  // Redirect to first tab if base path or invalid path
+  useEffect(() => {
+    const isBasePath =
+      location.pathname === SETTINGS_BASE_PATH ||
+      location.pathname === `${SETTINGS_BASE_PATH}/`;
+
+    const isValidTabPath = tabData.some(
+      (tab) => location.pathname === `${SETTINGS_BASE_PATH}/${tab.path}`
+    );
+
+    if (isBasePath || !isValidTabPath) {
+      navigate(`${SETTINGS_BASE_PATH}/${tabData[0].path}`, { replace: true });
+    }
+  }, [location.pathname, navigate, tabData]);
 
   // Custom tab item renderer
   const renderTabItem = (item) => {
@@ -55,11 +93,13 @@ const IssueSettingsPage = () => {
     );
   };
 
-  // Handle tab change and lazy loading
+  // Handle tab change via URL navigation
   const handleTabSelectionChange = (e) => {
     const newIndex = e.itemIndex;
-    setActiveTabIndex(newIndex);
-    setLoadedTabs(prev => new Set([...prev, newIndex]));
+    const selectedTab = tabData[newIndex];
+    if (selectedTab) {
+      navigate(`${SETTINGS_BASE_PATH}/${selectedTab.path}`);
+    }
   };
 
   const loadData = useCallback(async () => {
@@ -317,9 +357,9 @@ const IssueSettingsPage = () => {
 
   // Render content based on active tab
   const renderContent = () => {
-    switch (activeTabIndex) {
-      case 0:
-        return loadedTabs.has(0) && (
+    switch (activeTab?.key) {
+      case 'categories':
+        return (
           <DataGrid
             dataSource={categories}
             keyExpr="id"
@@ -361,8 +401,8 @@ const IssueSettingsPage = () => {
           </DataGrid>
         );
 
-      case 1:
-        return loadedTabs.has(1) && (
+      case 'priorities':
+        return (
           <DataGrid
             dataSource={priorities}
             keyExpr="id"
@@ -403,8 +443,8 @@ const IssueSettingsPage = () => {
           </DataGrid>
         );
 
-      case 2:
-        return loadedTabs.has(2) && (
+      case 'statuses':
+        return (
           <DataGrid
             dataSource={statuses}
             keyExpr="id"
@@ -445,13 +485,17 @@ const IssueSettingsPage = () => {
           </DataGrid>
         );
 
-      case 3:
+      case 'device-types':
         // Device Types (V2)
-        return loadedTabs.has(3) && <DeviceTypesSettingsPage />;
+        return <DeviceTypesSettingsPage />;
 
-      case 4:
+      case 'templates':
         // Issue Templates (V2)
-        return loadedTabs.has(4) && <IssueTemplatesSettingsPage />;
+        return <IssueTemplatesSettingsPage />;
+
+      case 'alert-config':
+        // Alert Configuration
+        return <AlertConfigurationPage />;
 
       default:
         return null;
@@ -484,7 +528,7 @@ const IssueSettingsPage = () => {
                 <div>
                   <h2 className="tw-text-2xl tw-font-semibold">Issue Tracker Configuration</h2>
                   <p className="tw-text-blue-100 tw-mt-1">
-                    Manage categories, priorities, statuses, device types, and issue templates
+                    Manage categories, priorities, statuses, device types, templates, and alert configuration
                   </p>
                 </div>
                 <Button
@@ -512,10 +556,10 @@ const IssueSettingsPage = () => {
             <div className="tw-p-6">
               <div className="tw-mb-4">
                 <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">
-                  Manage Issue {tabData[activeTabIndex]?.text}
+                  Manage Issue {activeTab?.text}
                 </h3>
                 <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-                  Use the DataGrid controls to add, edit, or delete {tabData[activeTabIndex]?.text.toLowerCase()}.
+                  Use the DataGrid controls to add, edit, or delete {activeTab?.text?.toLowerCase()}.
                   Click the "Add" button in the toolbar to create new entries.
                 </p>
               </div>

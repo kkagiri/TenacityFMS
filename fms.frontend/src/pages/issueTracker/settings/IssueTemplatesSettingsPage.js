@@ -189,10 +189,22 @@ const IssueTemplatesSettingsPage = () => {
 
   // Master-detail component for auto-close config
   const renderMasterDetail = (e) => {
+    const rowData = e?.data?.data || e?.data || {};
+    const templateId = rowData?.id;
+    const templateName = rowData?.name;
+
+    if (templateId === undefined || templateId === null) {
+      return (
+        <div className="tw-p-4 tw-text-sm tw-text-red-600">
+          Unable to load auto-close settings for this row. Template ID is missing.
+        </div>
+      );
+    }
+
     return (
       <AutoCloseConfigPanel
-        templateId={e.data.id}
-        templateName={e.data.name}
+        templateId={templateId}
+        templateName={templateName}
         onConfigSaved={loadData}
       />
     );

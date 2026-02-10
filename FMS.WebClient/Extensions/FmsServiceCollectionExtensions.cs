@@ -43,6 +43,7 @@ using FMS.Application.Services.Dashboard;
 using FMS.Application.Services.Dashboard.Extensions; // Dashboard widget services
 using FMS.Application.Services;
 using FMS.Application.Features.TankManagement.Services;
+using FMS.Application.Features.TankManagement.Deliveries.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
 using FMS.BackgroundServices.FMS;
@@ -578,6 +579,7 @@ public static class FmsServiceCollectionExtensions
         // Tank Management Services
         services.AddScoped<InventoryCostingService>();
         services.AddScoped<FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand.TankVolumeHistoryIntegrationService>();
+        services.AddScoped<IInTankDeliveryDetectionService, InTankDeliveryDetectionService>();
         services.AddScoped<TankStockFutureRecordsService>();
         services.AddScoped<OpeningStockValidationService>();
         services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();

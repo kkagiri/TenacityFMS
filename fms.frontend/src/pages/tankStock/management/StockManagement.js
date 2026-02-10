@@ -1,10 +1,16 @@
-import React, { useState, useCallback } from 'react';
-import { useSelector } from 'react-redux';
+/**
+ * File: StockManagement.js
+ * Purpose: Hosts Tank Stock management tabs with URL-based navigation and role-aware visibility
+ * Dependencies: React, react-router-dom, usePermissions, Tank Stock management components
+ * Last Modified: 2026-02-10
+ *
+ * Key Functions/Components:
+ * - StockManagement(): Renders URL-driven tabs under /tankstock/stock-management/<tab>
+ */
+import React, { useState, useMemo, useEffect } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { useStockFilters } from '../shared/context/StockFilterContext';
 import { useStockData } from '../shared/hooks/useStockDataOptimized';
-import ReconciliationWorkflow from './components/ReconciliationWorkflow';
-import AdjustmentCenter from './components/AdjustmentCenter';
-import ConfigurationPanel from './components/ConfigurationPanel';
 import PumpTransactionManager from './components/PumpTransactionManager';
 import TransactionHub from './components/TransactionHub';
 import DispensingManager from './components/DispensingManager';
@@ -13,15 +19,20 @@ import DeliveryManager from './components/DeliveryManager';
 import TankStockTable from '../analytics/components/reporting/TankStockTable';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Tabs from 'devextreme-react/tabs';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './StockManagement.scss';
+
+const STOCK_MANAGEMENT_BASE_PATH = '/tankstock/stock-management';
 
 //Cursor - Stock Management Page - Main container with shared filters from TankStockLayout
 const StockManagement = () => {
-  const sites = useSelector((state) => state.site.sites);
-  const user = useSelector((state) => state.auth.user);
+  const location = useLocation();
+  const navigate = useNavigate();
 
   // Get filters from shared context (provided by TankStockLayout)
-  const { dateRange, singleSiteId } = useStockFilters();
+  const { dateRange } = useStockFilters();
+  const { hasRole } = usePermissions();
+  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
 
   const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');
@@ -29,27 +40,51 @@ const StockManagement = () => {
   });
 
   // Set default tab to Transaction Hub (index 0)
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const [loadedTabs, setLoadedTabs] = useState(new Set([0]));
-
   //Cursor - Use shared hook for data management
-  const {
-    isLoading,
-    reconciliationData,
-    adjustments,
-    systemConfig,
-    refreshData
-  } = useStockData(selectedSite, dateRange);
+  const { isLoading } = useStockData(selectedSite, dateRange);
 
   //Cursor - Tab data
-  const tabData = [
-    { text: "Transaction Hub", icon: "fa-light fa-exchange-alt" },
-    { text: "Delivery Management", icon: "fa-light fa-truck-container" },
-    { text: "Pump Transactions", icon: "fa-light fa-gas-pump" },
-    { text: "Dispensing Volumes", icon: "fa-light fa-tint" },
-    { text: "Bulk Import", icon: "fa-light fa-file-upload" },
-    { text: "Tank Stock Table", icon: "fa-light fa-table" },
-  ];
+  const allTabData = useMemo(() => [
+    { key: 'transactionHub', text: "Transaction Hub", icon: "fa-light fa-exchange-alt", path: 'transaction-hub' },
+    { key: 'deliveryManagement', text: "Delivery Management", icon: "fa-light fa-truck-container", path: 'delivery-management' },
+    { key: 'pumpTransactions', text: "Pump Transactions", icon: "fa-light fa-gas-pump", path: 'pump-transactions' },
+    { key: 'dispensingVolumes', text: "Dispensing Volumes", icon: "fa-light fa-tint", path: 'dispensing-volumes', adminOnly: true },
+    { key: 'bulkImport', text: "Bulk Import", icon: "fa-light fa-file-upload", path: 'bulk-import', adminOnly: true },
+    { key: 'tankStockTable', text: "Tank Stock Table", icon: "fa-light fa-table", path: 'tank-stock-table', adminOnly: true },
+  ], []);
+
+  const tabData = useMemo(
+    () => allTabData.filter((tab) => !tab.adminOnly || isAdmin),
+    [allTabData, isAdmin]
+  );
+
+  const activeTabIndex = useMemo(() => {
+    const matchIndex = tabData.findIndex(
+      (tab) => location.pathname === `${STOCK_MANAGEMENT_BASE_PATH}/${tab.path}`
+    );
+    return matchIndex >= 0 ? matchIndex : 0;
+  }, [location.pathname, tabData]);
+
+  const activeTab = tabData[activeTabIndex];
+
+  // Redirect invalid or base URL paths to first visible tab.
+  useEffect(() => {
+    if (tabData.length === 0) {
+      return;
+    }
+
+    const isBasePath =
+      location.pathname === STOCK_MANAGEMENT_BASE_PATH ||
+      location.pathname === `${STOCK_MANAGEMENT_BASE_PATH}/`;
+
+    const isValidTabPath = tabData.some(
+      (tab) => location.pathname === `${STOCK_MANAGEMENT_BASE_PATH}/${tab.path}`
+    );
+
+    if (isBasePath || !isValidTabPath) {
+      navigate(`${STOCK_MANAGEMENT_BASE_PATH}/${tabData[0].path}`, { replace: true });
+    }
+  }, [location.pathname, navigate, tabData]);
 
   //Cursor - Custom tab item renderer
   const renderTabItem = (item) => {
@@ -61,48 +96,46 @@ const StockManagement = () => {
     );
   };
 
-  const handleTransactionUpdate = useCallback(async () => {
-    await refreshData();
-  }, [refreshData]);
-
-  //Cursor - Handle tab change and lazy loading
+  //Cursor - Handle tab change via URL navigation
   const handleTabSelectionChange = (e) => {
     const newIndex = e.itemIndex;
-    setActiveTabIndex(newIndex);
-    setLoadedTabs(prev => new Set([...prev, newIndex]));
+    const selectedTab = tabData[newIndex];
+    if (selectedTab) {
+      navigate(`${STOCK_MANAGEMENT_BASE_PATH}/${selectedTab.path}`);
+    }
   };
 
   //Cursor - Render content based on active tab
   const renderContent = () => {
-    switch (activeTabIndex) {
-      case 0:
-        return loadedTabs.has(0) && (
+    switch (activeTab?.key) {
+      case 'transactionHub':
+        return (
           <TransactionHub
             selectedSite={selectedSite}
             dateRange={dateRange}
           />
         );
-      case 1:
-        return loadedTabs.has(1) && (
+      case 'deliveryManagement':
+        return (
           <DeliveryManager />
         );
-      case 2:
-        return loadedTabs.has(2) && (
+      case 'pumpTransactions':
+        return (
           <PumpTransactionManager
             selectedSite={selectedSite}
             dateRange={dateRange}
           />
         );
-      case 3:
-        return loadedTabs.has(3) && (
+      case 'dispensingVolumes':
+        return (
           <DispensingManager />
         );
-      case 4:
-        return loadedTabs.has(4) && (
+      case 'bulkImport':
+        return (
           <BulkImportManager />
         );
-      case 5:
-        return loadedTabs.has(5) && (
+      case 'tankStockTable':
+        return (
           <div className="tw-mt-4">
             <TankStockTable />
           </div>

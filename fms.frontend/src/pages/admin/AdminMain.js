@@ -38,7 +38,6 @@ import LogManagementPage from "./logManagement/LogManagementPage";
 import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
-
 const AdminMain = () => {
   const location = useLocation();
 

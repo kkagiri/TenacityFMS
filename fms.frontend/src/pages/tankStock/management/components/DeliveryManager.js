@@ -50,7 +50,7 @@ import {
 import { fetchTanks } from '../../../../redux/actions/tankActions';
 import { fetchSiteList } from '../../../../redux/actions/siteActions';
 import { fetchSuppliers } from '../../../../redux/actions/SupplierActions';
-// import { usePermissions } from '../../../../hooks/usePermissions'; // Removed - permissions disabled
+import { usePermissions } from '../../../../hooks/usePermissions';
 import DeliveryForm from './forms/DeliveryForm';
 import './DeliveryManager.scss';
 
@@ -61,12 +61,13 @@ const DeliveryManager = () => {
   // Get shared filters from header (site, tank, dates)
   const { startDate, endDate, selectedSiteIds, selectedTankIds } = useStockFilters();
 
-  // Permission checks disabled - accessible to all users
-  // const { hasPermission } = usePermissions();
-  const canReadDelivery = true; // hasPermission('_Read_Delivery');
-  const canCreateDelivery = true; // hasPermission('_Create_Delivery');
-  const canUpdateDelivery = true; // hasPermission('_Update_Delivery');
-  const canDeleteDelivery = true; // hasPermission('_Delete_Delivery');
+  // Delivery edit/delete is restricted to admin roles
+  const { hasRole } = usePermissions();
+  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+  const canReadDelivery = true;
+  const canCreateDelivery = true;
+  const canUpdateDelivery = isAdmin;
+  const canDeleteDelivery = isAdmin;
 
   // Redux state
   const tanks = useSelector((state) => state.tank.tanks);
@@ -522,6 +523,7 @@ const DeliveryManager = () => {
           cellRender={renderActionButtons}
           fixed={true}
           fixedPosition="right"
+          visible={canUpdateDelivery || canDeleteDelivery}
         />
 
         <Summary>

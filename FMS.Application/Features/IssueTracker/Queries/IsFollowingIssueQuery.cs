@@ -8,6 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.IssueTracker.DTOs;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -32,15 +33,30 @@ namespace FMS.Application.Features.IssueTracker.Queries
         public async Task<FMSResponse<IsFollowingResponseDTO>> Handle(
             IsFollowingIssueQuery request, CancellationToken cancellationToken)
         {
-            var follower = await _context.IssueFollowers
-                .FirstOrDefaultAsync(f => f.IssueId == request.IssueId && f.UserId == request.UserId, cancellationToken);
-
-            return FMSResponse<IsFollowingResponseDTO>.Success(new IsFollowingResponseDTO
+            try
             {
-                IsFollowing = follower != null,
-                FollowerId = follower?.Id,
-                FollowedDate = follower?.FollowedDate
-            });
+                await IssueFollowerSchemaGuard.EnsureTableExistsAsync(_context, cancellationToken);
+
+                var follower = await _context.IssueFollowers
+                    .FirstOrDefaultAsync(f => f.IssueId == request.IssueId && f.UserId == request.UserId, cancellationToken);
+
+                return FMSResponse<IsFollowingResponseDTO>.Success(new IsFollowingResponseDTO
+                {
+                    IsFollowing = follower != null,
+                    FollowerId = follower?.Id,
+                    FollowedDate = follower?.FollowedDate
+                });
+            }
+            catch (System.Exception ex)
+            {
+                _logger.LogError(ex, "Error checking follow status for issue {IssueId} and user {UserId}", request.IssueId, request.UserId);
+                return FMSResponse<IsFollowingResponseDTO>.Success(new IsFollowingResponseDTO
+                {
+                    IsFollowing = false,
+                    FollowerId = null,
+                    FollowedDate = null
+                });
+            }
         }
     }
 }
