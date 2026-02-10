@@ -97,7 +97,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         (x.IsDeleted == null || x.IsDeleted == false))
                     .FirstOrDefaultAsync(cancellationToken);
 
-                if (existingOpeningStock != null)
+                // Handle the case where the tankstock row exists but its opening was previously deleted
+                // (ManualOpeningLevel was cleared when the Opening TVH record was deleted via TransactionHub
+                // while the Closing TVH still referenced this row). In this case, we re-populate the
+                // existing row instead of blocking with a duplicate error.
+                if (existingOpeningStock != null && existingOpeningStock.ManualOpeningLevel.HasValue && existingOpeningStock.ManualOpeningLevel.Value > 0)
                 {
                     var tankName = tank.Name ?? $"Tank {request.TankId}";
                     return new FMSResponseMessage(false,
@@ -105,6 +109,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         "Only one opening stock per tank per day is allowed. " +
                         "Use Update operation to modify existing entry.");
                 }
+
+                // If the tankstock row exists but ManualOpeningLevel is null/zero, we'll reuse and update it
+                bool reusingExistingTankStock = existingOpeningStock != null;
 
                 // Clean up any soft-deleted TankStock entries for this tank on this date
                 // This handles the case where unique constraint doesn't respect IsDeleted flag
@@ -132,20 +139,42 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     .ThenByDescending(x => x.Id)  // Secondary sort for deterministic ordering
                     .FirstOrDefaultAsync(cancellationToken);
 
-                var stockTaking = new Tankstock
-                {
-                    TankId = request.TankId,
-                    EntryDate = entryDate.AddMinutes(5), // Always 00:05:00 UTC on the entry date
-                    EntryType = VolumeChangeReasonEnum.OpeningStock,
-                    ManualOpeningLevel = request.OpeningStock,
-                    OpeningMeter = request.OpeningMeter, // Save opening meter reading
-                    RecordedBy = request.RecordedBy,
-                    SiteId = tank.SiteId
-                };
-                _context.Tankstocks.Add(stockTaking);
+                Tankstock stockTaking;
 
-                // Save only the Tankstock entry first to get the ID
-                await _context.SaveChangesAsync(cancellationToken);
+                if (reusingExistingTankStock)
+                {
+                    // Reuse the existing tankstock row — its opening was previously deleted
+                    // but the row was kept alive for the closing TVH record
+                    stockTaking = existingOpeningStock;
+                    stockTaking.ManualOpeningLevel = request.OpeningStock;
+                    stockTaking.OpeningMeter = request.OpeningMeter;
+                    stockTaking.RecordedBy = request.RecordedBy;
+                    // Regenerate ActiveEntryKey in case it was cleared
+                    stockTaking.ActiveEntryKey = $"{request.TankId}-{entryDate:yyyy-MM-dd}";
+
+                    _logger.LogInformation(
+                        "Reusing existing tankstock row {EntryId} for tank {TankId} on {Date} — re-populating ManualOpeningLevel",
+                        stockTaking.EntryId, request.TankId, entryDate.ToString("yyyy-MM-dd"));
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
+                else
+                {
+                    stockTaking = new Tankstock
+                    {
+                        TankId = request.TankId,
+                        EntryDate = entryDate.AddMinutes(5), // Always 00:05:00 UTC on the entry date
+                        EntryType = VolumeChangeReasonEnum.OpeningStock,
+                        ManualOpeningLevel = request.OpeningStock,
+                        OpeningMeter = request.OpeningMeter, // Save opening meter reading
+                        RecordedBy = request.RecordedBy,
+                        SiteId = tank.SiteId
+                    };
+                    _context.Tankstocks.Add(stockTaking);
+
+                    // Save only the Tankstock entry first to get the ID
+                    await _context.SaveChangesAsync(cancellationToken);
+                }
 
                 // Opening stock is a BASELINE RESET - VolumeChange must ALWAYS be 0
                 // This is because opening stock represents the starting point for the day,
