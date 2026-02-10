@@ -1,0 +1,22 @@
+/**
+ * File: index.js
+ * Purpose: Barrel exports for all report source definitions
+ * Last Modified: 2026-02-09
+ */
+
+export { default as vehicleConsumption } from './vehicleConsumption';
+export { default as fuelRefill } from './fuelRefill';
+export { default as pumpTransaction } from './pumpTransaction';
+export { default as delivery } from './delivery';
+export { default as deviceOffline } from './deviceOffline';
+export { default as ptsDevice } from './ptsDevice';
+export { default as tankVolumeHistory } from './tankVolumeHistory';
+export { default as consumptionByRefills } from './consumptionByRefills';
+
+export {
+    getReportSource,
+    getAllReportSources,
+    getReportSourcesByCategory,
+    getCategories,
+    registerReportSource,
+} from './reportSourceRegistry';

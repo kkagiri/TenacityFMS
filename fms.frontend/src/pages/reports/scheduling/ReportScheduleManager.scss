@@ -1,0 +1,13 @@
+/**
+ * File: ReportScheduleManager.scss
+ * Purpose: Styles for the Report Schedule Manager
+ * Last Modified: 2026-02-09
+ */
+
+.report-schedule-manager {
+  @apply tw-p-4;
+
+  .dx-datagrid {
+    @apply tw-rounded-lg tw-shadow-sm;
+  }
+}

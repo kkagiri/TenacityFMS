@@ -13,5 +13,6 @@ namespace FMS.Persistence.DataAccess
         public virtual DbSet<ReportTemplate> ReportTemplates { get; set; }
         public virtual DbSet<ReportExecutionHistory> ReportExecutionHistories { get; set; }
         public virtual DbSet<ReportCategory> ReportCategories { get; set; }
+        public virtual DbSet<ReportSchedule> ReportSchedules { get; set; }
     }
 }

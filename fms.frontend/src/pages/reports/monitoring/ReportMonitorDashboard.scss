@@ -1,0 +1,17 @@
+/**
+ * File: ReportMonitorDashboard.scss
+ * Purpose: Styles for the Report Monitor Dashboard
+ * Last Modified: 2026-02-09
+ */
+
+.report-monitor-dashboard {
+  @apply tw-p-4;
+
+  .dx-datagrid {
+    @apply tw-rounded-lg tw-shadow-sm;
+  }
+
+  .dx-datagrid-rowsview .dx-row {
+    cursor: pointer;
+  }
+}

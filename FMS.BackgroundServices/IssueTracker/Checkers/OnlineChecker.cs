@@ -3,6 +3,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -18,14 +19,16 @@ namespace FMS.BackgroundServices.IssueTracker
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<OnlineChecker> _logger;
+        private readonly IGPSService? _gpsService;
         private string _closeReason = string.Empty;
 
         public string CheckerType => "Online";
 
-        public OnlineChecker(GpsdataContext context, ILogger<OnlineChecker> logger)
+        public OnlineChecker(GpsdataContext context, ILogger<OnlineChecker> logger, IGPSService? gpsService = null)
         {
             _context = context;
             _logger = logger;
+            _gpsService = gpsService;
         }
 
         public async Task<bool> ShouldAutoCloseAsync(
@@ -52,6 +55,8 @@ namespace FMS.BackgroundServices.IssueTracker
 
                     case "vehicle":
                     case "gps":
+                    case "gps device":
+                    case "gps_device":
                         return await CheckVehicleOnlineAsync(issue, thresholdMinutes, cancellationToken);
 
                     default:
@@ -103,8 +108,42 @@ namespace FMS.BackgroundServices.IssueTracker
                 return false;
             }
 
+            var vehicleId = issue.RelatedEntityId.Value;
+
+            // Use GPS service to check actual online status
+            if (_gpsService != null)
+            {
+                try
+                {
+                    var locationResponse = await _gpsService.GetVehicleLocationAsync(vehicleId);
+
+                    if (locationResponse.IsSuccess && locationResponse.Data != null)
+                    {
+                        var location = locationResponse.Data;
+                        var minutesSinceLastSeen = (DateTime.UtcNow - location.LastUpdated).TotalMinutes;
+
+                        // Vehicle is online if IsOnline flag is true AND was seen within threshold
+                        if (location.IsOnline && minutesSinceLastSeen <= thresholdMinutes)
+                        {
+                            _closeReason = $"Vehicle GPS came back online at {location.LastUpdated:yyyy-MM-dd HH:mm:ss} UTC";
+                            _logger.LogInformation(
+                                "[OnlineChecker] Vehicle {VehicleId} is back online (last seen {MinutesAgo:F0} min ago, threshold: {Threshold} min)",
+                                vehicleId, minutesSinceLastSeen, thresholdMinutes);
+                            return true;
+                        }
+                    }
+
+                    return false;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "[OnlineChecker] Error checking GPS status for vehicle {VehicleId}, falling back to IsActive check", vehicleId);
+                }
+            }
+
+            // Fallback: check if the vehicle is marked as active in DB
             var vehicle = await _context.Vehicles
-                .Where(v => v.VehicleId == issue.RelatedEntityId.Value)
+                .Where(v => v.VehicleId == vehicleId)
                 .FirstOrDefaultAsync(cancellationToken);
 
             if (vehicle == null)
@@ -113,10 +152,9 @@ namespace FMS.BackgroundServices.IssueTracker
                 return false;
             }
 
-            // Check if the vehicle is active - if it's active, it's "online"
             if (vehicle.IsActive.HasValue && vehicle.IsActive.Value == 1)
             {
-                _closeReason = "Vehicle is now marked as active";
+                _closeReason = "Vehicle is now marked as active (GPS service unavailable for live check)";
                 return true;
             }
 

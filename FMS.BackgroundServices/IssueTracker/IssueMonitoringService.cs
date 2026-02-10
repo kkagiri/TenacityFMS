@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -96,7 +97,9 @@ namespace FMS.BackgroundServices.IssueTracker
                         {
                             case "vehicle":
                             case "gps":
-                                issuesCreated += await MonitorVehiclesAsync(context, template, cancellationToken);
+                            case "gps device":
+                            case "gps_device":
+                                issuesCreated += await MonitorVehicleGpsOfflineAsync(context, template, scope.ServiceProvider, cancellationToken);
                                 break;
 
                             case "pts":
@@ -130,41 +133,117 @@ namespace FMS.BackgroundServices.IssueTracker
             }
         }
 
-        private async Task<int> MonitorVehiclesAsync(
+        /// <summary>
+        /// Monitors vehicles with GPS provider mappings and creates issues
+        /// when GPS devices are offline beyond the configured threshold.
+        /// Uses the IGPSService to check actual GPS online/offline status.
+        /// </summary>
+        private async Task<int> MonitorVehicleGpsOfflineAsync(
             GpsdataContext context,
             Issuetemplate template,
+            IServiceProvider scopedProvider,
             CancellationToken cancellationToken)
         {
             var issuesCreated = 0;
+            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? 60;
 
-            // Find inactive vehicles (Vehicle doesn't have LastCommTime, so we check IsActive status)
-            var inactiveVehicles = await context.Vehicles
-                .Where(v => v.IsActive.HasValue && v.IsActive.Value == 0) // Inactive vehicles
-                .Take(100) // Limit for performance
-                .ToListAsync(cancellationToken);
-
-            foreach (var vehicle in inactiveVehicles)
+            // Resolve the GPS service - if not available, we can't check GPS status
+            var gpsService = scopedProvider.GetService<IGPSService>();
+            if (gpsService == null)
             {
-                var existingIssue = await HasOpenIssueForDevice(
-                    context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken);
-
-                if (existingIssue)
-                    continue;
-
-                var issue = CreateIssueFromTemplate(context, template, vehicle.VehicleId, "vehicle",
-                    $"Vehicle {vehicle.HyoungNo ?? vehicle.NumberPlate} - Inactive",
-                    $"Vehicle '{vehicle.HyoungNo ?? vehicle.NumberPlate}' has been marked as inactive. " +
-                    $"Please investigate and resolve.");
-
-                context.Issuetrackers.Add(issue);
-                issuesCreated++;
-
-                _logger.LogInformation("Auto-created issue for inactive vehicle: {VehicleId}", vehicle.HyoungNo);
+                _logger.LogWarning("[GPS Offline Monitor] IGPSService not available, skipping GPS offline monitoring");
+                return 0;
             }
 
-            if (issuesCreated > 0)
+            try
             {
-                await context.SaveChangesAsync(cancellationToken);
+                // Get all vehicles that have a GPS provider mapping (i.e. they have GPS installed)
+                var gpsVehicles = await context.VehicleProviderMappings
+                    .Include(m => m.Vehicle)
+                    .Where(m => m.IsActive && m.Vehicle != null && m.Vehicle.IsActive.HasValue && m.Vehicle.IsActive.Value == 1)
+                    .ToListAsync(cancellationToken);
+
+                if (!gpsVehicles.Any())
+                {
+                    _logger.LogDebug("[GPS Offline Monitor] No vehicles with active GPS mappings found");
+                    return 0;
+                }
+
+                _logger.LogDebug("[GPS Offline Monitor] Checking {Count} GPS-equipped vehicles for offline status (threshold: {Threshold} min)",
+                    gpsVehicles.Count, offlineThresholdMinutes);
+
+                foreach (var mapping in gpsVehicles)
+                {
+                    try
+                    {
+                        var vehicle = mapping.Vehicle!;
+                        var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
+
+                        // Skip if there's already an open issue for this vehicle+template
+                        var existingIssue = await HasOpenIssueForDevice(
+                            context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken);
+
+                        if (existingIssue)
+                            continue;
+
+                        // Check GPS status via the GPS service
+                        var locationResponse = await gpsService.GetVehicleLocationAsync(vehicle.VehicleId);
+
+                        bool isOffline = false;
+                        string lastSeenInfo = "unknown";
+
+                        if (locationResponse.IsSuccess && locationResponse.Data != null)
+                        {
+                            var location = locationResponse.Data;
+                            var minutesSinceLastSeen = (DateTime.UtcNow - location.LastUpdated).TotalMinutes;
+
+                            isOffline = !location.IsOnline || minutesSinceLastSeen >= offlineThresholdMinutes;
+                            lastSeenInfo = $"{location.LastUpdated:yyyy-MM-dd HH:mm:ss} UTC ({(int)minutesSinceLastSeen} min ago)";
+                        }
+                        else
+                        {
+                            // No location data at all = offline
+                            isOffline = true;
+                            lastSeenInfo = "no location data available";
+                        }
+
+                        if (isOffline)
+                        {
+                            // Build title/description from template placeholders
+                            var title = (template.TitleTemplate ?? "GPS Offline - {vehicleName}")
+                                .Replace("{vehicleName}", vehicleName);
+
+                            var description = (template.DescriptionTemplate ?? "Vehicle GPS device has been offline. Last seen: {lastSeen}.")
+                                .Replace("{vehicleName}", vehicleName)
+                                .Replace("{thresholdMinutes}", offlineThresholdMinutes.ToString())
+                                .Replace("{lastSeen}", lastSeenInfo);
+
+                            var issue = CreateIssueFromTemplate(context, template, vehicle.VehicleId, "vehicle",
+                                title, description);
+
+                            context.Issuetrackers.Add(issue);
+                            issuesCreated++;
+
+                            _logger.LogInformation(
+                                "[GPS Offline Monitor] Auto-created issue for vehicle {VehicleNo} (ID: {VehicleId}) - last seen: {LastSeen}",
+                                vehicleName, vehicle.VehicleId, lastSeenInfo);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "[GPS Offline Monitor] Error checking GPS status for vehicle {VehicleId}",
+                            mapping.VehicleId);
+                    }
+                }
+
+                if (issuesCreated > 0)
+                {
+                    await context.SaveChangesAsync(cancellationToken);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "[GPS Offline Monitor] Error in GPS offline monitoring");
             }
 
             return issuesCreated;

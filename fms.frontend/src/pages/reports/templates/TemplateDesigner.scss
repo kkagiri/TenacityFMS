@@ -1,0 +1,42 @@
+/**
+ * File: TemplateDesigner.scss
+ * Purpose: Styles for the Template Designer page (Monaco editor + preview split pane)
+ * Last Modified: 2026-02-09
+ */
+
+.template-designer {
+  @apply tw-h-full tw-flex tw-flex-col tw-bg-gray-100;
+
+  .designer-header {
+    @apply tw-flex tw-justify-between tw-items-center tw-p-3 tw-bg-white tw-border-b tw-border-gray-200;
+  }
+
+  .designer-content {
+    @apply tw-flex tw-flex-1 tw-gap-2 tw-p-2 tw-overflow-hidden;
+    min-height: 0;
+
+    .editor-pane,
+    .preview-pane {
+      @apply tw-flex-1 tw-flex tw-flex-col tw-bg-white tw-rounded-lg tw-shadow-sm tw-overflow-hidden;
+      min-width: 0;
+
+      .pane-header {
+        @apply tw-px-4 tw-py-2 tw-bg-gray-700 tw-text-white tw-text-sm tw-font-medium tw-flex tw-items-center;
+      }
+    }
+
+    .editor-container {
+      @apply tw-flex-1 tw-overflow-hidden;
+      min-height: 0;
+    }
+
+    .preview-container {
+      @apply tw-flex-1 tw-overflow-hidden;
+      min-height: 0;
+
+      iframe {
+        min-height: 400px;
+      }
+    }
+  }
+}

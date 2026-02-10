@@ -28,7 +28,7 @@ import './RealtimeDashboard.scss';
  * RealtimeDashboard Component
  */
 const RealtimeDashboard = () => {
-  const { hasPermission } = usePermissions();
+  const { hasPermission, permissionsLoaded } = usePermissions();
 
   // Redux state
   const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
@@ -58,13 +58,12 @@ const RealtimeDashboard = () => {
     autoLoad: true
   });
 
-  // Permission check for dashboard access
+  // Permission check for dashboard access (only after permissions are loaded)
   useEffect(() => {
-    if (isAuthenticated && !hasPermission('_View_Dashboard')) {
+    if (isAuthenticated && permissionsLoaded && !hasPermission('_View_Dashboard')) {
       notify('Access denied: You do not have permission to view the dashboard', 'error', 5000);
-      return;
     }
-  }, [isAuthenticated, hasPermission]);
+  }, [isAuthenticated, permissionsLoaded, hasPermission]);
 
   /**
    * Handle layout changes from grid
@@ -111,6 +110,17 @@ const RealtimeDashboard = () => {
     return (
       <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen">
         <div className="tw-text-center tw-text-gray-500 tw-text-lg">Please sign in to access the dashboard</div>
+      </div>
+    );
+  }
+
+  if (!permissionsLoaded) {
+    return (
+      <div className="tw-flex tw-items-center tw-justify-center tw-min-h-screen">
+        <div className="tw-text-center">
+          <div className="tw-animate-spin tw-rounded-full tw-h-10 tw-w-10 tw-border-b-2 tw-border-blue-600 tw-mx-auto tw-mb-4"></div>
+          <p className="tw-text-gray-500">Loading permissions...</p>
+        </div>
       </div>
     );
   }

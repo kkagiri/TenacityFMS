@@ -1,3 +1,13 @@
+/**
+ * File: GetTankVolumeHistoryFilteredQuery.cs
+ * Purpose: Retrieves filtered tank volume history rows with optional vehicle/GPS enrichment.
+ * Dependencies: EF Core, AutoMapper, MediatR, TankVolumeHistoryDTO
+ * Last Modified: 2026-02-09
+ *
+ * Key Behaviors:
+ * - Supports sensor mode and manual-dispensing mode.
+ * - Enriches DTOs with site, tank, transfer, and transaction display fields.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -49,7 +59,10 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
             try
             {
                 // Set default date range if not provided (last 1 day)
-                var endDate = request.EndDate ?? DateTime.UtcNow;
+                var requestedEndDate = request.EndDate ?? DateTime.UtcNow;
+                var endDate = requestedEndDate.TimeOfDay == TimeSpan.Zero
+                    ? requestedEndDate.Date.AddDays(1).AddTicks(-1)
+                    : requestedEndDate;
                 var startDate = request.StartDate ?? endDate.AddDays(-1);
 
                 List<TankVolumeHistoryDTO> result;
@@ -204,12 +217,14 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 {
                     Id = tankStock.EntryId, // Use TankStock ID
                     TankId = tankStock.TankId,
+                    TankName = tankStock.Tank?.Name ?? "Unknown",
                     Site = tankStock.Tank?.Site?.Name ?? "Unknown",
                     SiteId = tankStock.Tank?.SiteId,
                     Timestamp = tankStock.EntryDate,
                     VolumeChange = tankStock.ManualAmount ?? 0, // Use ManualAmount for manual dispensing
                     NewVolume = null, // TankStock doesn't track NewVolume for dispensing
                     ChangeReason = VolumeChangeReasonEnum.Dispensing,
+                    ChangeReasonDisplay = VolumeChangeReasonEnum.Dispensing.ToString(),
                     ReferenceId = null,
                     RecordedBy = tankStock.RecordedBy ?? "Unknown",
                     RecordedByUserName = tankStock.RecordedBy ?? "Unknown",
@@ -508,8 +523,10 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 var dto = _mapper.Map<TankVolumeHistoryDTO>(history);
 
                 // Set site information
+                dto.TankName = history.Tank?.Name ?? "Unknown";
                 dto.Site = history.Tank?.Site?.Name ?? "Unknown";
                 dto.SiteId = history.Tank?.SiteId;
+                dto.ChangeReasonDisplay = history.ChangeReason.ToString();
 
                 // Set recorded by user name
                 dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";

@@ -2,7 +2,7 @@
  * File: navigationHelper.js
  * Purpose: Navigation helper functions for reports routes
  * Dependencies: None
- * Last Modified: 2026-01-17
+ * Last Modified: 2026-02-09
  *
  * Key Functions:
  * - getReportsRoute(): Builds report paths
@@ -12,11 +12,34 @@
 // Navigation helper functions for reports routes
 
 export const reportsRoutes = {
+  // Main
   dashboard: '/reports',
-  gallery: '/reports/gallery',
-  tankVolumeHistory: '/reports/tank-volume-history',
+
+  // Report Engine
+  engine: '/reports/engine',
+  engineSource: (sourceId) => `/reports/engine/${sourceId}`,
+
+  // Templates
+  templates: '/reports/templates',
+  templateDesigner: (name) => `/reports/templates/designer/${name}`,
+
+  // Scheduling
+  scheduling: '/reports/scheduling',
+  scheduleNew: '/reports/scheduling/new',
+
+  // Monitoring
+  monitoring: '/reports/monitoring',
+
+  // Data Management
   fuelImporter: '/reports/fuel-importer',
   scheduledEmails: '/reports/scheduled-emails',
+
+  // Report List (grid view of all sources)
+  list: '/reports/list',
+
+  // Legacy — kept for backward compatibility
+  gallery: '/reports/gallery',
+  tankVolumeHistory: '/reports/tank-volume-history',
   consumptionRefills: '/reports/consumption-refills',
   vehicleConsumption: '/reports/vehicle-consumption',
   ptsOffline: '/reports/pts-offline',

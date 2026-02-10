@@ -1,0 +1,41 @@
+/**
+ * File: ReportEngine.scss
+ * Purpose: Styles for the Report Engine component
+ * Last Modified: 2026-02-09
+ */
+
+.report-engine {
+  @apply tw-h-full tw-flex tw-flex-col tw-bg-gray-100;
+
+  .engine-header {
+    @apply tw-flex tw-justify-between tw-items-center tw-p-4 tw-bg-white tw-border-b tw-border-gray-200;
+  }
+
+  .engine-content {
+    @apply tw-flex tw-flex-1 tw-gap-4 tw-p-4 tw-overflow-hidden;
+    min-height: 0;
+
+    .engine-sidebar {
+      @apply tw-w-80 tw-bg-white tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-overflow-y-auto;
+      flex-shrink: 0;
+
+      .sidebar-section {
+        @apply tw-border-b tw-border-gray-100;
+
+        &:last-child {
+          @apply tw-border-b-0;
+        }
+
+        .section-header {
+          @apply tw-px-4 tw-py-2.5 tw-bg-gray-50 tw-text-sm tw-font-semibold tw-text-gray-600 tw-flex tw-items-center tw-uppercase tw-tracking-wide;
+          font-size: 0.7rem;
+        }
+      }
+    }
+
+    .engine-output {
+      @apply tw-flex-1 tw-flex tw-flex-col tw-overflow-hidden;
+      min-width: 0;
+    }
+  }
+}

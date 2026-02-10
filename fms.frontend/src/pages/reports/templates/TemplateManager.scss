@@ -1,0 +1,13 @@
+/**
+ * File: TemplateManager.scss
+ * Purpose: Styles for the Template Manager page
+ * Last Modified: 2026-02-09
+ */
+
+.template-manager {
+  @apply tw-p-4;
+
+  .dx-datagrid {
+    @apply tw-rounded-lg tw-shadow-sm;
+  }
+}

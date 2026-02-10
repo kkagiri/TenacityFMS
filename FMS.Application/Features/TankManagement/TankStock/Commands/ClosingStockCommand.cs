@@ -99,15 +99,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     }
                 }
 
-                var existingClosingStock = await _context.TankVolumeHistories
-                    .Where(x => x.TankId == request.TankId &&
-                        x.Timestamp.Date == entryDate &&
-                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
-                        (x.IsDeleted != true))
-                    .SingleOrDefaultAsync(cancellationToken);
-
-                if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
-
+                // Find opening stock FIRST so we can define the business day range
+                // Opening stock lookup uses .Date which works because opening timestamp always
+                // shares the same UTC calendar date as entryDate
                 var openingStock = await _context.TankVolumeHistories.Where(x => x.TankId == request.TankId &&
                         x.Timestamp.Date == entryDate.Date && x.ChangeReason == VolumeChangeReasonEnum.OpeningStock &&
                         (x.IsDeleted != true))
@@ -115,7 +109,26 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                 if (openingStock == null) return new FMSResponseMessage(false, $"Cannot record closing stock for this date if no Opening stock not found for TankID {request.TankId} is not Found");
 
-                // NEW VALIDATION: Check chronological order - opening must not be in the future
+                // FIX: Define business day boundaries based on actual opening stock timestamp.
+                // The business day spans from opening (e.g. 21:05 UTC = 00:05 local) to closing
+                // (e.g. 20:55 UTC next day = 23:55 local), crossing the UTC midnight boundary.
+                // Using .Date == entryDate.Date missed transactions on the next UTC calendar day.
+                var businessDayStart = openingStock.Timestamp;
+                var closingStockTimestamp = openingStock.Timestamp.AddHours(23).AddMinutes(50);
+                var businessDayEnd = openingStock.Timestamp.AddDays(1); // generous upper bound for queries
+
+                // Check for existing closing stock using timestamp range instead of .Date equality
+                var existingClosingStock = await _context.TankVolumeHistories
+                    .Where(x => x.TankId == request.TankId &&
+                        x.Timestamp >= businessDayStart &&
+                        x.Timestamp <= businessDayEnd &&
+                        x.ChangeReason == VolumeChangeReasonEnum.ClosingStock &&
+                        (x.IsDeleted != true))
+                    .SingleOrDefaultAsync(cancellationToken);
+
+                if (existingClosingStock != null) return new FMSResponseMessage(false, "A closing stock entry already exists for today. You cannot create multiple closing stocks for the same day.");
+
+                // VALIDATION: Check chronological order - opening must not be in the future
                 if (openingStock.Timestamp > DateTime.UtcNow)
                 {
                     return new FMSResponseMessage(false,
@@ -123,10 +136,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         "Transaction timestamps cannot be in the future.");
                 }
 
-                // NEW VALIDATION: Check that all transactions for this day are AFTER opening stock
+                // VALIDATION: Check that all transactions for this business day are AFTER opening stock
+                // FIX: Use timestamp range instead of .Date equality
                 var transactionsBeforeOpening = await _context.TankVolumeHistories
                     .Where(tvh => tvh.TankId == request.TankId &&
-                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.Timestamp >= businessDayStart &&
+                                  tvh.Timestamp < businessDayEnd &&
                                   tvh.ChangeReason != VolumeChangeReasonEnum.OpeningStock &&
                                   tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
                                   tvh.Timestamp < openingStock.Timestamp &&
@@ -144,20 +159,24 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         "Please correct the timestamps - Opening stock MUST come before all other transactions.");
                 }
 
-                // NEW VALIDATION: Check that closing stock timestamp is reasonable and after all transactions
+                // VALIDATION: Check that closing stock timestamp is reasonable and after all transactions
+                // FIX: Use timestamp range instead of .Date equality
                 var latestTransactionBeforeClosing = await _context.TankVolumeHistories
                     .Where(tvh => tvh.TankId == request.TankId &&
-                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.Timestamp >= businessDayStart &&
+                                  tvh.Timestamp < businessDayEnd &&
                                   tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
                                   (tvh.IsDeleted != true))
                     .OrderByDescending(tvh => tvh.Timestamp)
                     .ThenByDescending(tvh => tvh.Id)
                     .FirstOrDefaultAsync(cancellationToken);
 
-                // NEW VALIDATION: Validate closing stock reflects transactions
+                // VALIDATION: Validate closing stock reflects transactions
+                // FIX: Use timestamp range instead of .Date equality
                 var allTransactionsForDay = await _context.TankVolumeHistories
                     .Where(tvh => tvh.TankId == request.TankId &&
-                                  tvh.Timestamp.Date == entryDate.Date &&
+                                  tvh.Timestamp > businessDayStart &&
+                                  tvh.Timestamp < closingStockTimestamp &&
                                   tvh.ChangeReason != VolumeChangeReasonEnum.OpeningStock &&
                                   tvh.ChangeReason != VolumeChangeReasonEnum.ClosingStock &&
                                   (tvh.IsDeleted != true))
@@ -236,9 +255,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 // Keep EntryType as OpeningStock (primary type) - the row represents the whole day
                 // Don't change: existingTankStock.EntryType = VolumeChangeReasonEnum.ClosingStock;
 
-                // Get all transactions for the day
+                // Get all transactions for the business day using timestamp range
+                // FIX: Use timestamp range instead of .Date equality to capture cross-UTC-midnight transactions
                 var transactions = await _context.TankVolumeHistories
-                    .Where(tvh => tvh.TankId == request.TankId && tvh.Timestamp.Date == entryDate.Date)
+                    .Where(tvh => tvh.TankId == request.TankId &&
+                                  tvh.Timestamp >= businessDayStart &&
+                                  tvh.Timestamp <= businessDayEnd &&
+                                  (tvh.IsDeleted != true))
                     .ToListAsync();
 
                 var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing || t.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing).Sum(t => t.VolumeChange);
@@ -252,14 +275,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 // Save changes to get the updated entry
                 await _context.SaveChangesAsync(cancellationToken);
 
-                // FIX: Get the most recent transaction BEFORE the closing stock timestamp (23:55:00)
-                // The closing stock time is entryDate + 23:55:00
-                var closingStockTime = entryDate.AddHours(23).AddMinutes(55);
+                // FIX: Use the closing stock timestamp derived from opening stock (which preserves
+                // the actual timezone offset) instead of entryDate.AddHours(23).AddMinutes(55) which
+                // computed the wrong UTC time when entryDate.Date stripped the timezone offset.
+                // closingStockTimestamp is already defined above as openingStock.Timestamp.AddHours(23).AddMinutes(50)
 
-                // Get the most recent transaction before this closing stock to calculate volume change
+                // Get the most recent transaction before closing stock to calculate volume change
                 var previousTransaction = await _context.TankVolumeHistories
                     .Where(tvh => tvh.TankId == request.TankId &&
-                                   tvh.Timestamp < closingStockTime &&  // FIX: Use closing stock time, not entry date
+                                   tvh.Timestamp < closingStockTimestamp &&
                                    (tvh.IsDeleted != true))
                     .OrderByDescending(tvh => tvh.Timestamp)
                     .ThenByDescending(tvh => tvh.Id)
@@ -282,7 +306,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 //Cursor - Use TankVolumeHistoryIntegrationService which will handle tank updates atomically
                 var volumeUpdateResult = await _tankVolumeHistoryService.ProcessTankStockChangeAsync(
                     tankId: request.TankId,
-                    timestamp: entryDate.AddHours(23).AddMinutes(55), // Always 23:55:00 UTC on the entry date
+                    timestamp: closingStockTimestamp, // FIX: Use opening-stock-derived timestamp instead of entryDate-based
                     volumeChange: volumeChange,
                     stockId: existingTankStock.EntryId,  // Use existing entry ID
                     isOpening: false, // This is a closing stock

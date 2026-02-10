@@ -1,4 +1,14 @@
-﻿using System;
+/**
+ * File: TankVolumeHistoryDTO.cs
+ * Purpose: DTO for tank volume history transactions used by API and reporting flows.
+ * Dependencies: VolumeChangeReasonEnum
+ * Last Modified: 2026-02-09
+ *
+ * Key Properties:
+ * - TankName: Resolved tank display name for report rendering.
+ * - ChangeReasonDisplay: Human-readable transaction type label.
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -11,10 +21,12 @@ namespace FMS.Application.Features.FMS.TankVolumeHistory
     {
         public int Id { get; set; }
         public int? TankId { get; set; }
+        public string? TankName { get; set; } = null;
         public DateTime Timestamp { get; set; }
         public decimal? VolumeChange { get; set; }
         public decimal? NewVolume { get; set; }
         public VolumeChangeReasonEnum ChangeReason { get; set; }
+        public string? ChangeReasonDisplay { get; set; } = null;
         public string? RecordedBy { get; set; } = null;
         public string? RecordedByUserName { get; set; } = null;
         public string? VehicleName { get; set; }

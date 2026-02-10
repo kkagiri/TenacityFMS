@@ -1,134 +1,131 @@
-import React from 'react';
+/**
+ * File: ReportsDashboard.js
+ * Purpose: Reports landing page — source catalog, quick actions for scheduling
+ *          & monitoring, and data-management shortcuts.
+ * Dependencies: React, react-router-dom, report source registry
+ * Last Modified: 2026-02-09
+ *
+ * Key Components:
+ * - ReportsDashboard: Dynamic source catalog + quick-access cards
+ */
+
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { getAllReportSources, getCategories, getReportSourcesByCategory } from './sources';
+import { reportsRoutes } from './utils/navigationHelper';
 import './ReportsDashboard.scss';
 
 const ReportsDashboard = () => {
   const navigate = useNavigate();
 
+  const categories = useMemo(() => getCategories(), []);
+
   return (
     <div className="reports-dashboard">
+      {/* Header */}
       <div className="dashboard-header">
         <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">Reports Overview</h2>
-        <p className="tw-text-gray-600">Access and generate various fuel management reports</p>
+        <p className="tw-text-gray-600">
+          Select a report source to generate, schedule, or preview reports via JSReport.
+        </p>
       </div>
 
-      <div className="dashboard-stats">
-        <div className="stat-card">
+      {/* Quick Action Cards */}
+      <div className="tw-grid tw-grid-cols-4 tw-gap-4 tw-mb-8">
+        <div
+          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+          onClick={() => navigate(reportsRoutes.engine)}
+        >
           <div className="stat-icon">
-            <i className="fa-light fa-chart-bar tw-text-blue-500"></i>
+            <i className="fa-light fa-play tw-text-blue-500"></i>
           </div>
           <div className="stat-content">
-            <h3 className="stat-title">Consumption Reports</h3>
-            <p className="stat-description">Vehicle fuel consumption analysis</p>
-            <div className="stat-actions">
-              <button className="btn btn-primary" onClick={() => navigate('/reports/consumption-refills')}>
-                View Reports
-              </button>
-            </div>
+            <h3 className="stat-title">Run Report</h3>
+            <p className="stat-description">Generate a report from any source</p>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+          onClick={() => navigate(reportsRoutes.templates)}
+        >
           <div className="stat-icon">
-            <i className="fa-light fa-upload tw-text-green-500"></i>
+            <i className="fa-light fa-file-code tw-text-purple-500"></i>
           </div>
           <div className="stat-content">
-            <h3 className="stat-title">Data Import</h3>
-            <p className="stat-description">Import fuel report data from external sources</p>
-            <div className="stat-actions">
-              <button className="btn btn-secondary" onClick={() => navigate('/reports/fuel-importer')}>
-                Import Data
-              </button>
-            </div>
+            <h3 className="stat-title">Templates</h3>
+            <p className="stat-description">Manage Handlebars report templates</p>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+          onClick={() => navigate(reportsRoutes.scheduling)}
+        >
           <div className="stat-icon">
-            <i className="fa-light fa-chart-line tw-text-purple-500"></i>
+            <i className="fa-light fa-calendar-clock tw-text-green-500"></i>
           </div>
           <div className="stat-content">
-            <h3 className="stat-title">Analytics</h3>
-            <p className="stat-description">Advanced fuel usage analytics and trends</p>
-            <div className="stat-actions">
-              <button className="btn btn-outline" disabled>
-                Coming Soon
-              </button>
-            </div>
+            <h3 className="stat-title">Scheduling</h3>
+            <p className="stat-description">Schedule and automate report delivery</p>
           </div>
         </div>
 
-        <div className="stat-card">
+        <div
+          className="stat-card tw-cursor-pointer hover:tw-shadow-md tw-transition-shadow"
+          onClick={() => navigate(reportsRoutes.monitoring)}
+        >
           <div className="stat-icon">
-            <i className="fa-light fa-file-export tw-text-orange-500"></i>
+            <i className="fa-light fa-monitor-waveform tw-text-orange-500"></i>
           </div>
           <div className="stat-content">
-            <h3 className="stat-title">Export Reports</h3>
-            <p className="stat-description">Export reports to PDF, Excel, or HTML formats</p>
-            <div className="stat-actions">
-              <button className="btn btn-primary" onClick={() => navigate('/reports/viewer')}>
-                Generate Report
-              </button>
-            </div>
+            <h3 className="stat-title">Monitoring</h3>
+            <p className="stat-description">Track execution history & errors</p>
           </div>
         </div>
       </div>
 
-      {/* JsReport Section */}
-      <div className="jsreport-section tw-mt-8">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">
-          <i className="fa-light fa-file-code tw-mr-2 tw-text-blue-500"></i>
-          Report Builder (JsReport)
-        </h3>
-        <div className="tw-grid tw-grid-cols-3 tw-gap-4">
-          <div
-            className="jsreport-card tw-cursor-pointer"
-            onClick={() => navigate('/reports/viewer')}
-          >
-            <i className="fa-light fa-eye tw-text-3xl tw-text-green-500 tw-mb-2"></i>
-            <h4 className="tw-font-semibold tw-text-gray-800">Report Viewer</h4>
-            <p className="tw-text-sm tw-text-gray-500">Generate and preview reports with filters</p>
-          </div>
-          <div
-            className="jsreport-card tw-cursor-pointer"
-            onClick={() => navigate('/reports/designer')}
-          >
-            <i className="fa-light fa-edit tw-text-3xl tw-text-blue-500 tw-mb-2"></i>
-            <h4 className="tw-font-semibold tw-text-gray-800">Template Designer</h4>
-            <p className="tw-text-sm tw-text-gray-500">Create and edit Handlebars templates</p>
-          </div>
-          <div
-            className="jsreport-card tw-cursor-pointer"
-            onClick={() => navigate('/reports/templates')}
-          >
-            <i className="fa-light fa-folder-open tw-text-3xl tw-text-purple-500 tw-mb-2"></i>
-            <h4 className="tw-font-semibold tw-text-gray-800">Template Manager</h4>
-            <p className="tw-text-sm tw-text-gray-500">Manage all report templates</p>
-          </div>
-        </div>
-      </div>
+      {/* Report Source Catalog by Category */}
+      {categories.map((category) => {
+        const sources = getReportSourcesByCategory(category);
+        if (sources.length === 0) return null;
 
-      <div className="recent-activity">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Quick Access</h3>
+        return (
+          <div key={category} className="tw-mb-6">
+            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-3">
+              {category}
+            </h3>
+            <div className="tw-grid tw-grid-cols-3 tw-gap-4">
+              {sources.map((source) => (
+                <div
+                  key={source.id}
+                  className="jsreport-card tw-cursor-pointer"
+                  onClick={() => navigate(reportsRoutes.engineSource(source.id))}
+                >
+                  <i className={`${source.icon || 'fa-light fa-file-chart-column'} tw-text-3xl tw-text-blue-500 tw-mb-2`}></i>
+                  <h4 className="tw-font-semibold tw-text-gray-800">{source.name}</h4>
+                  <p className="tw-text-sm tw-text-gray-500">{source.description}</p>
+                  <div className="tw-mt-2 tw-flex tw-gap-1">
+                    {(source.supportedFormats || []).map((fmt) => (
+                      <span
+                        key={fmt}
+                        className="tw-px-1.5 tw-py-0.5 tw-bg-gray-100 tw-text-gray-500 tw-rounded tw-text-[10px] tw-uppercase"
+                      >
+                        {fmt}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })}
+
+      {/* Data Management Quick Access */}
+      <div className="recent-activity tw-mt-6">
+        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Data Management</h3>
         <div className="activity-list">
-          <div className="activity-item">
-            <div className="activity-icon">
-              <i className="fa-light fa-gas-pump tw-text-blue-400"></i>
-            </div>
-            <div className="activity-content">
-              <h4>Fuel Consumption by Vehicle</h4>
-              <p className="tw-text-sm tw-text-gray-600">View detailed consumption patterns for each vehicle</p>
-            </div>
-            <div className="activity-actions">
-              <button
-                className="btn btn-sm btn-outline"
-                onClick={() => navigate('/reports/consumption-refills')}
-              >
-                View Report
-              </button>
-            </div>
-          </div>
-
           <div className="activity-item">
             <div className="activity-icon">
               <i className="fa-light fa-upload tw-text-green-400"></i>
@@ -140,7 +137,7 @@ const ReportsDashboard = () => {
             <div className="activity-actions">
               <button
                 className="btn btn-sm btn-outline"
-                onClick={() => navigate('/reports/fuel-importer')}
+                onClick={() => navigate(reportsRoutes.fuelImporter)}
               >
                 Import Now
               </button>

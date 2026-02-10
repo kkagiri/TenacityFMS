@@ -196,12 +196,23 @@ class ReportingService {
   /**
    * Fetch data directly from a data source endpoint
    * @param {string} endpoint - API endpoint
-   * @param {Object} params - Query parameters
+   * @param {Object} params - Query parameters (supports arrays for ASP.NET Core repeated key binding)
    * @returns {Promise}
    */
   async fetchReportData(endpoint, params = {}) {
     try {
-      const response = await axiosInstance.get(endpoint, { params });
+      // Build URLSearchParams to handle arrays with repeated keys (ASP.NET Core binding)
+      const searchParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (Array.isArray(value)) {
+          value.forEach(v => searchParams.append(key, v));
+        } else if (value !== null && value !== undefined && value !== '') {
+          searchParams.append(key, value);
+        }
+      });
+      const queryString = searchParams.toString();
+      const url = queryString ? `${endpoint}?${queryString}` : endpoint;
+      const response = await axiosInstance.get(url);
       return { success: true, data: response.data };
     } catch (error) {
       console.error('Error fetching report data:', error);

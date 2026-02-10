@@ -1,3 +1,13 @@
+/**
+ * File: FuelRefilDTO.cs
+ * Purpose: Transport fuel refill data between API and application layers.
+ * Dependencies: System
+ * Last Modified: 2026-02-09
+ *
+ * Key Properties:
+ * - SiteName: Human-readable site name for reporting/UI payloads.
+ * - IsKmPerLiter: Vehicle consumption unit mode (true = Km/L, false = L/Hr).
+ */
 using System;
 
 namespace FMS.Application.Features.FMS.FuelRefil {
@@ -16,6 +26,8 @@ namespace FMS.Application.Features.FMS.FuelRefil {
         public decimal? CurrentMeterReading { get; set; }
 
         public int SiteId { get; set; }
+        public string? SiteName { get; set; }
+        public bool IsKmPerLiter { get; set; }
 
         public string? Comment { get; set; }
         public string? TagId { get; set; } = null!;

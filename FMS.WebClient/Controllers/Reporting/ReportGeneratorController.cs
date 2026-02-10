@@ -1,3 +1,14 @@
+/**
+ * File: ReportGeneratorController.cs
+ * Purpose: Manages JSReport template CRUD and report rendering (HTML/PDF/Excel).
+ * Dependencies: MediatR, IJsReportService, FMSResponse
+ * Last Modified: 2026-02-09
+ *
+ * Key Actions:
+ * - PreviewHtml(): Renders template to HTML for in-app preview
+ * - RenderPdf(): Renders template to PDF
+ * - RenderExcel(): Renders template to Excel
+ */
 using FMS.Application.Common;
 using FMS.Application.Features.TankManagement.PumpTransaction;
 using FMS.WebClient.Services.Reporting;
@@ -5,9 +16,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading.Tasks;
 
 using FMS.WebClient.Attributes;
@@ -105,7 +118,8 @@ namespace FMS.WebClient.Controllers.Reporting
         {
             try
             {
-                var pdfBytes = await _reportService.RenderPdfAsync(templateName, data);
+                var normalizedData = NormalizeRenderData(data);
+                var pdfBytes = await _reportService.RenderPdfAsync(templateName, normalizedData);
                 return File(pdfBytes, "application/pdf", $"{templateName}.pdf");
             }
             catch (FileNotFoundException)
@@ -127,7 +141,8 @@ namespace FMS.WebClient.Controllers.Reporting
         {
             try
             {
-                var excelBytes = await _reportService.RenderExcelAsync(templateName, data);
+                var normalizedData = NormalizeRenderData(data);
+                var excelBytes = await _reportService.RenderExcelAsync(templateName, normalizedData);
                 return File(excelBytes, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                     $"{templateName}.xlsx");
             }
@@ -150,7 +165,8 @@ namespace FMS.WebClient.Controllers.Reporting
         {
             try
             {
-                var html = await _reportService.RenderHtmlAsync(templateName, data);
+                var normalizedData = NormalizeRenderData(data);
+                var html = await _reportService.RenderHtmlAsync(templateName, normalizedData);
                 return Content(html, "text/html");
             }
             catch (FileNotFoundException)
@@ -172,7 +188,8 @@ namespace FMS.WebClient.Controllers.Reporting
         {
             try
             {
-                var pdfBytes = await _reportService.RenderInlinePdfAsync(request.Template, request.Data);
+                var normalizedData = NormalizeRenderData(request.Data);
+                var pdfBytes = await _reportService.RenderInlinePdfAsync(request.Template, normalizedData);
                 return File(pdfBytes, "application/pdf", "report.pdf");
             }
             catch (Exception ex)
@@ -183,6 +200,27 @@ namespace FMS.WebClient.Controllers.Reporting
         }
 
         #endregion
+
+        private object NormalizeRenderData(object? data)
+        {
+            if (data == null)
+            {
+                return new { };
+            }
+
+            if (data is JsonElement jsonElement)
+            {
+                var rawJson = jsonElement.GetRawText();
+                if (string.IsNullOrWhiteSpace(rawJson))
+                {
+                    return new { };
+                }
+
+                return JsonConvert.DeserializeObject<object>(rawJson) ?? new { };
+            }
+
+            return data;
+        }
 
         #region Pump Transaction Report
 

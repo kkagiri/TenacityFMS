@@ -1,101 +1,88 @@
 /**
  * File: ReportsMain.js
- * Purpose: Define routes for the Reports module
+ * Purpose: Define routes for the Reports module — JSReport-first architecture
  * Dependencies: react-router-dom, ReportsLayout, report pages
- * Last Modified: 2026-01-19
+ * Last Modified: 2026-02-09
  *
  * Key Components:
  * - ReportsMain: Routes and layout wrapper for reports
  *
  * Report System:
- * - JsReport: Modern report engine with Handlebars templates
- * - DevExtreme: Legacy reports (gallery, tank volume history)
+ * - Report Engine: Central orchestrator with source-based parameter forms
+ * - Templates: JSReport Handlebars template management & design
+ * - Scheduling: Schedule report delivery (who, when, how often)
+ * - Monitoring: Track report execution history & performance
+ *
+ * Legacy routes are kept for backward compatibility but redirect to engine.
  */
 
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import ReportsLayout from "./layout/ReportsLayout";
 import ReportsDashboard from "./ReportsDashboard";
-import ReportGallery from "./ReportGallery";
-import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
-import ReportScheduleSettings from "./ReportScheduleSettings";
+import ReportListPage from "./ReportListPage";
 
-// Import existing report components
+// ──── NEW JSReport-first Modules ────
+import { ReportEngine } from "./engine";
+import { TemplateManager, TemplateDesigner } from "./templates";
+import { ReportScheduleManager } from "./scheduling";
+import { ReportMonitorDashboard } from "./monitoring";
+
+// ──── Data Import (unchanged) ────
 import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
 import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportPage";
+
+// ──── Legacy / Kept-for-now routes ────
+import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
+import ReportGallery from "./ReportGallery";
 import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 import PTSOfflineReport from "./pts/PTSOfflineReport";
-
-// Vehicle Consumption Report components (moved to vehicles module)
 import VehicleConsumptionReport from "../vehicles/consumption/reports/VehicleConsumptionReport";
 import VehicleConsumptionReportDetails from "../vehicles/consumption/reports/VehicleConsumptionReportDetails";
-
-// JsReport components - Modern report engine
-import { JsReportDesigner, JsReportViewer, JsReportTemplateManager } from "./jsreport";
-
-// Legacy Report Designer redirect (deprecated - use JsReport instead)
-import ReportDesignerRedirect from "./ReportDesignerRedirect";
 
 const ReportsMain = () => {
   return (
     <ReportsLayout>
       <Routes>
-        {/* Default dashboard route */}
+        {/* ── Dashboard ── */}
         <Route index element={<ReportsDashboard />} />
         <Route path="dashboard" element={<ReportsDashboard />} />
 
-        {/* DevExtreme Reports (Legacy) */}
-        <Route path="gallery" element={<ReportGallery />} />
-        <Route
-          path="tank-volume-history"
-          element={<TankVolumeHistoryReport />}
-        />
+        {/* ── Report List (grid view of all sources) ── */}
+        <Route path="list" element={<ReportListPage />} />
 
-        {/* JsReport - Modern Report Engine */}
-        <Route path="templates" element={<JsReportTemplateManager />} />
-        <Route path="viewer" element={<JsReportViewer />} />
-        <Route path="viewer/:reportType" element={<JsReportViewer />} />
-        <Route path="designer" element={<JsReportDesigner />} />
-        <Route path="designer/:templateName" element={<JsReportDesigner />} />
+        {/* ── Report Engine (new) ── */}
+        <Route path="engine" element={<ReportEngine />} />
+        <Route path="engine/:sourceId" element={<ReportEngine />} />
 
-        {/* Legacy Report Designer Routes - redirects to standalone ASP.NET Core app */}
-        <Route path="legacy-designer" element={<ReportDesignerRedirect />} />
-        <Route path="legacy-designer/:reportName" element={<ReportDesignerRedirect />} />
+        {/* ── Template Management (new) ── */}
+        <Route path="templates" element={<TemplateManager />} />
+        <Route path="templates/designer/:templateName" element={<TemplateDesigner />} />
 
-        {/* Data Import Routes */}
+        {/* ── Scheduling (new) ── */}
+        <Route path="scheduling" element={<ReportScheduleManager />} />
+        <Route path="scheduling/new" element={<ReportScheduleManager />} />
+
+        {/* ── Monitoring (new) ── */}
+        <Route path="monitoring" element={<ReportMonitorDashboard />} />
+
+        {/* ── Data Import (unchanged) ── */}
         <Route path="fuel-importer" element={<FuelReportImporter />} />
         <Route path="fuel-importer/batch" element={<BatchImportPage />} />
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
-        <Route path="scheduled-emails" element={<ReportScheduleSettings />} />
+        <Route path="scheduled-emails" element={<Navigate to="/reports/scheduling" replace />} />
 
-        {/* Consumption Reports Routes */}
-        <Route
-          path="consumption-refills"
-          element={<ConsumptionBasedOnRefills />}
-        />
-        <Route
-          path="consumption-refills/*"
-          element={<ConsumptionBasedOnRefills />}
-        />
-
-        {/* Vehicle Consumption Report Routes */}
-        <Route
-          path="vehicle-consumption"
-          element={<VehicleConsumptionReport />}
-        />
-        <Route
-          path="vehicle-consumption/details/:vehicleId"
-          element={<VehicleConsumptionReportDetails />}
-        />
-
-        {/* PTS Reports Routes */}
+        {/* ── Legacy routes (kept for backward compat) ── */}
+        <Route path="gallery" element={<ReportGallery />} />
+        <Route path="tank-volume-history" element={<TankVolumeHistoryReport />} />
+        <Route path="consumption-refills" element={<ConsumptionBasedOnRefills />} />
+        <Route path="consumption-refills/*" element={<ConsumptionBasedOnRefills />} />
+        <Route path="vehicle-consumption" element={<VehicleConsumptionReport />} />
+        <Route path="vehicle-consumption/details/:vehicleId" element={<VehicleConsumptionReportDetails />} />
         <Route path="pts-offline" element={<PTSOfflineReport />} />
 
-        {/* Fallback route */}
-        <Route
-          path="*"
-          element={<Navigate to="/reports/dashboard" replace />}
-        />
+        {/* Fallback */}
+        <Route path="*" element={<Navigate to="/reports/dashboard" replace />} />
       </Routes>
     </ReportsLayout>
   );

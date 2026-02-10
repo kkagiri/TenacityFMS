@@ -1,8 +1,8 @@
 /**
  * File: ReportsLayout.js
- * Purpose: Layout and navigation for the Reports module
+ * Purpose: Layout and navigation for the Reports module — JSReport-first architecture
  * Dependencies: react-router-dom, reports navigation helpers, ReportsLayout.scss
- * Last Modified: 2026-01-17
+ * Last Modified: 2026-02-09
  *
  * Key Components:
  * - ReportsLayout: Sidebar + header wrapper for reports pages
@@ -12,6 +12,7 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
 import { usePermissions } from '../../../hooks/usePermissions';
+import { getAllReportSources } from '../sources';
 import './ReportsLayout.scss';
 
 const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
@@ -21,69 +22,94 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
   const { hasRole } = usePermissions();
   const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
 
-  // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
+  // Page info from path
   const pageInfo = useMemo(() => {
     const pathname = location.pathname;
 
-    if (pathname.includes('/gallery')) {
-      return {
-        title: 'Report Gallery',
-        subtitle: 'Browse and access all available reports'
-      };
-    } else if (pathname.includes('/tank-volume-history')) {
-      return {
-        title: 'Tank Volume History Report',
-        subtitle: 'Detailed tank volume changes with filtering and grouping'
-      };
+    if (pathname.includes('/list')) {
+      return { title: 'Report List', subtitle: 'Browse all available reports in a searchable grid' };
+    } else if (pathname.includes('/engine')) {
+      return { title: 'Report Engine', subtitle: 'Run and preview reports from any source' };
+    } else if (pathname.includes('/templates/designer')) {
+      return { title: 'Template Designer', subtitle: 'Edit Handlebars templates with live preview' };
+    } else if (pathname.includes('/templates')) {
+      return { title: 'Template Manager', subtitle: 'Manage JSReport templates' };
+    } else if (pathname.includes('/scheduling')) {
+      return { title: 'Report Scheduling', subtitle: 'Schedule report delivery to recipients' };
+    } else if (pathname.includes('/monitoring')) {
+      return { title: 'Report Monitoring', subtitle: 'Track execution history and performance' };
     } else if (pathname.includes('/fuel-importer')) {
-      return {
-        title: 'Fuel Data Import',
-        subtitle: 'Import and process fuel report data from external sources'
-      };
-    } else if (pathname.includes('/scheduled-emails')) {
-      return {
-        title: 'Scheduled Report Emails',
-        subtitle: 'Admin settings for schedule setup, jsreport preview, delivery tracking, and cancellation'
-      };
+      return { title: 'Fuel Data Import', subtitle: 'Import and process fuel report data from external sources' };
+    } else if (pathname.includes('/gallery')) {
+      return { title: 'Report Gallery', subtitle: 'Browse and access all available reports' };
     } else if (pathname.includes('/consumption-refills')) {
-      return {
-        title: 'Consumption by Refills',
-        subtitle: 'Analyze vehicle fuel consumption based on refill data'
-      };
-    } else if (pathname.includes('/vehicle-consumption/details')) {
-      return {
-        title: 'Vehicle Consumption Details',
-        subtitle: 'Detailed consumption analysis for a specific vehicle'
-      };
+      return { title: 'Consumption by Refills', subtitle: 'Analyze vehicle fuel consumption based on refill data' };
     } else if (pathname.includes('/vehicle-consumption')) {
-      return {
-        title: 'Vehicle Consumption Report',
-        subtitle: 'Analyze consumption by site, vehicle type and model'
-      };
+      return { title: 'Vehicle Consumption Report', subtitle: 'Analyze consumption by site, vehicle type and model' };
     } else if (pathname.includes('/pts-offline')) {
-      return {
-        title: 'PTS Offline Report',
-        subtitle: 'Historical offline events with duration tracking'
-      };
+      return { title: 'PTS Offline Report', subtitle: 'Historical offline events with duration tracking' };
+    } else if (pathname.includes('/tank-volume-history')) {
+      return { title: 'Tank Volume History Report', subtitle: 'Detailed tank volume changes' };
     } else {
-      return {
-        title: 'Reports Dashboard',
-        subtitle: 'Access and generate fuel management reports'
-      };
+      return { title: 'Reports Dashboard', subtitle: 'Access and generate fuel management reports' };
     }
   }, [location.pathname]);
 
   const finalTitle = pageTitle || pageInfo.title;
   const finalSubtitle = pageSubtitle || pageInfo.subtitle;
 
-  // 🚀 OPTIMIZATION: Memoize navigation items to prevent recreation on every render
+  // ── Navigation Items ──
+
   const mainNavigationItems = useMemo(() => [
     {
       id: 'dashboard',
       title: 'Dashboard',
       icon: 'fa-light fa-chart-line',
       path: reportsRoutes.dashboard,
-      badge: null,
+    },
+    {
+      id: 'report-list',
+      title: 'All Reports',
+      icon: 'fa-light fa-list',
+      path: reportsRoutes.list,
+    },
+  ], []);
+
+  // Report Engine — one entry per registered source
+  const reportEngineItems = useMemo(() => {
+    const sources = getAllReportSources();
+    return sources.map((src) => ({
+      id: `engine-${src.id}`,
+      title: src.name,
+      icon: src.icon || 'fa-light fa-file-chart-column',
+      path: reportsRoutes.engineSource(src.id),
+    }));
+  }, []);
+
+  const templateItems = useMemo(() => [
+    {
+      id: 'template-manager',
+      title: 'Template Manager',
+      icon: 'fa-light fa-folder-open',
+      path: reportsRoutes.templates,
+    },
+  ], []);
+
+  const schedulingItems = useMemo(() => [
+    {
+      id: 'schedule-manager',
+      title: 'Report Schedules',
+      icon: 'fa-light fa-calendar-clock',
+      path: reportsRoutes.scheduling,
+    },
+  ], []);
+
+  const monitoringItems = useMemo(() => [
+    {
+      id: 'monitor-dashboard',
+      title: 'Execution Monitor',
+      icon: 'fa-light fa-monitor-waveform',
+      path: reportsRoutes.monitoring,
     },
   ], []);
 
@@ -99,48 +125,15 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
 
     if (isAdmin) {
       items.push({
-        id: 'scheduled-emails',
+        id: 'scheduling',
         title: 'Scheduled Emails',
         icon: 'fa-light fa-envelope-open',
-        path: reportsRoutes.scheduledEmails,
+        path: reportsRoutes.scheduling,
       });
     }
 
     return items;
   }, [isAdmin]);
-
-  const reportItems = useMemo(() => [
-    {
-      id: 'gallery',
-      title: 'Report Gallery',
-      icon: 'fa-light fa-th',
-      path: reportsRoutes.gallery,
-    },
-    {
-      id: 'tank-volume-history',
-      title: 'Tank Volume History',
-      icon: 'fa-light fa-gas-pump',
-      path: reportsRoutes.tankVolumeHistory,
-    },
-    {
-      id: 'consumption-refills',
-      title: 'Consumption by Refills',
-      icon: 'fa-light fa-chart-bar',
-      path: reportsRoutes.consumptionRefills,
-    },
-    {
-      id: 'vehicle-consumption',
-      title: 'Vehicle Consumption',
-      icon: 'fa-light fa-truck-fast',
-      path: reportsRoutes.vehicleConsumption,
-    },
-    {
-      id: 'pts-offline',
-      title: 'PTS Offline Devices',
-      icon: 'fa-light fa-plug-circle-xmark',
-      path: reportsRoutes.ptsOffline,
-    },
-  ], []);
 
   const handleNavigation = (path, event) => {
     if (event) {
@@ -195,9 +188,6 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
                       <i className={item.icon}></i>
                       {!sidebarCollapsed && <span>{item.title}</span>}
                     </div>
-                    {!sidebarCollapsed && item.badge && (
-                      <span className="nav-badge">{item.badge}</span>
-                    )}
                   </div>
                 );
               })}
@@ -206,11 +196,11 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
 
           <div className="nav-separator"></div>
 
-          {/* Data Management Group */}
+          {/* Report Engine Group */}
           <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Data Management</div>}
+            {!sidebarCollapsed && <div className="group-label">Report Engine</div>}
             <nav className="nav-menu">
-              {dataManagementItems.map((item) => {
+              {reportEngineItems.map((item) => {
                 const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div
@@ -236,11 +226,101 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
 
           <div className="nav-separator"></div>
 
-          {/* Reports Group */}
+          {/* Templates Group */}
           <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Reports</div>}
+            {!sidebarCollapsed && <div className="group-label">Templates</div>}
             <nav className="nav-menu">
-              {reportItems.map((item) => {
+              {templateItems.map((item) => {
+                const isActive = isActiveRoute(location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={(e) => handleNavigation(item.path, e)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Scheduling Group */}
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Scheduling</div>}
+            <nav className="nav-menu">
+              {schedulingItems.map((item) => {
+                const isActive = isActiveRoute(location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={(e) => handleNavigation(item.path, e)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Monitoring Group */}
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Monitoring</div>}
+            <nav className="nav-menu">
+              {monitoringItems.map((item) => {
+                const isActive = isActiveRoute(location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={(e) => handleNavigation(item.path, e)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                    role="button"
+                    tabIndex={0}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter') handleNavigation(item.path, e);
+                    }}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Data Management Group */}
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Data Management</div>}
+            <nav className="nav-menu">
+              {dataManagementItems.map((item) => {
                 const isActive = isActiveRoute(location.pathname, item.path);
                 return (
                   <div

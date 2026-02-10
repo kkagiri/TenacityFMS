@@ -262,5 +262,133 @@ namespace FMS.WebClient.Controllers
                 return StatusCode(500, "Error retrieving report categories");
             }
         }
+
+        // ========== Execution History Endpoints ==========
+
+        /// <summary>
+        /// Get report execution history with optional date-range filter
+        /// </summary>
+        [HttpGet("execution-history")]
+        public async Task<IActionResult> GetExecutionHistory(
+            [FromQuery] DateTime? dateFrom = null,
+            [FromQuery] DateTime? dateTo = null)
+        {
+            try
+            {
+                var query = new GetExecutionHistoryQuery
+                {
+                    DateFrom = dateFrom,
+                    DateTo = dateTo
+                };
+
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting execution history");
+                return StatusCode(500, "Error retrieving execution history");
+            }
+        }
+
+        /// <summary>
+        /// Log a report execution event
+        /// </summary>
+        [HttpPost("execution-log")]
+        public async Task<IActionResult> LogExecution([FromBody] LogReportExecutionCommand command)
+        {
+            try
+            {
+                if (!TryGetCurrentUserId(out var userId))
+                    return Unauthorized();
+
+                command.ExecutedBy = userId;
+                command.IpAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                command.UserAgent = Request.Headers["User-Agent"].ToString();
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error logging report execution");
+                return StatusCode(500, "Error logging report execution");
+            }
+        }
+
+        // ========== Schedule Endpoints ==========
+
+        /// <summary>
+        /// Get all report schedules with optional status filter
+        /// </summary>
+        [HttpGet("schedules")]
+        public async Task<IActionResult> GetSchedules([FromQuery] string? status = null)
+        {
+            try
+            {
+                var query = new GetReportSchedulesQuery { Status = status };
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting report schedules");
+                return StatusCode(500, "Error retrieving report schedules");
+            }
+        }
+
+        /// <summary>
+        /// Create a new report schedule
+        /// </summary>
+        [HttpPost("schedules")]
+        public async Task<IActionResult> CreateSchedule([FromBody] CreateReportScheduleDTO schedule)
+        {
+            try
+            {
+                if (!TryGetCurrentUserId(out var userId))
+                    return Unauthorized();
+
+                var command = new CreateReportScheduleCommand
+                {
+                    Schedule = schedule,
+                    UserId = userId
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating report schedule");
+                return StatusCode(500, "Error creating report schedule");
+            }
+        }
+
+        /// <summary>
+        /// Cancel (soft-delete) a report schedule
+        /// </summary>
+        [HttpDelete("schedules/{id}")]
+        public async Task<IActionResult> CancelSchedule(long id)
+        {
+            try
+            {
+                if (!TryGetCurrentUserId(out var userId))
+                    return Unauthorized();
+
+                var command = new CancelReportScheduleCommand
+                {
+                    ReportScheduleId = id,
+                    UserId = userId
+                };
+
+                var result = await _mediator.Send(command);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling report schedule {ScheduleId}", id);
+                return StatusCode(500, "Error cancelling report schedule");
+            }
+        }
     }
 }

@@ -129,22 +129,33 @@ namespace FMS.WebClient.Services.Reporting
 
         private async Task EnsureSampleTemplatesAsync()
         {
-            try
+            var templates = new Dictionary<string, Func<string>>
             {
-                // Copy pump transaction template if it doesn't exist
-                var pumpTransactionTemplate = Path.Combine(_templatesPath, "pump-transaction-report.html");
-                if (!File.Exists(pumpTransactionTemplate))
+                ["pump-transaction-report"] = GetPumpTransactionTemplate,
+                ["vehicle-consumption-report"] = GetVehicleConsumptionTemplate,
+                ["fuel-refill-report"] = GetFuelRefillTemplate,
+                ["fuel-delivery-report"] = GetFuelDeliveryTemplate,
+                ["device-offline-report"] = GetDeviceOfflineTemplate,
+                ["pts-device-status-report"] = GetPtsDeviceStatusTemplate,
+                ["tank-volume-history-report"] = GetTankVolumeHistoryTemplate,
+                ["consumption-by-refills-report"] = GetConsumptionByRefillsTemplate,
+            };
+
+            foreach (var (name, generator) in templates)
+            {
+                try
                 {
-                    var sampleContent = GetPumpTransactionTemplate();
-                    await File.WriteAllTextAsync(pumpTransactionTemplate, sampleContent);
-                    _logger.LogInformation("Created sample pump-transaction-report template at {Path}", pumpTransactionTemplate);
+                    var filePath = Path.Combine(_templatesPath, $"{name}.html");
+                    if (!File.Exists(filePath))
+                    {
+                        await File.WriteAllTextAsync(filePath, generator());
+                        _logger.LogInformation("Created sample {Template} template at {Path}", name, filePath);
+                    }
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "Could not create sample templates at {Path}. Templates may need manual deployment.",
-                    _templatesPath);
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Could not create template {Template} at {Path}", name, _templatesPath);
+                }
             }
         }
 
@@ -165,15 +176,7 @@ namespace FMS.WebClient.Services.Reporting
                         Content = templateContent,
                         Engine = Engine.Handlebars,
                         Recipe = Recipe.ChromePdf,
-                        Chrome = new Chrome
-                        {
-                            MarginTop = "20px",
-                            MarginBottom = "20px",
-                            MarginLeft = "20px",
-                            MarginRight = "20px",
-                            Format = "A4",
-                            PrintBackground = true
-                        }
+                        Chrome = BuildPdfChromeOptions()
                     },
                     Data = data,
                     Options = BuildRenderOptions(data)
@@ -270,15 +273,7 @@ namespace FMS.WebClient.Services.Reporting
                         Content = htmlTemplate,
                         Engine = Engine.Handlebars,
                         Recipe = Recipe.ChromePdf,
-                        Chrome = new Chrome
-                        {
-                            MarginTop = "20px",
-                            MarginBottom = "20px",
-                            MarginLeft = "20px",
-                            MarginRight = "20px",
-                            Format = "A4",
-                            PrintBackground = true
-                        }
+                        Chrome = BuildPdfChromeOptions()
                     },
                     Data = data,
                     Options = BuildRenderOptions(data)
@@ -398,6 +393,24 @@ namespace FMS.WebClient.Services.Reporting
             return new RenderOptions
             {
                 Timeout = timeoutMs
+            };
+        }
+
+        private Chrome BuildPdfChromeOptions()
+        {
+            return new Chrome
+            {
+                MarginTop = "20px",
+                MarginBottom = "45px",
+                MarginLeft = "20px",
+                MarginRight = "20px",
+                Format = "A4",
+                PrintBackground = true,
+                DisplayHeaderFooter = true,
+                HeaderTemplate = "<div></div>",
+                FooterTemplate = @"<div style=""width:100%; padding:0 16px; font-size:9px; color:#6c757d; text-align:right;"">
+                    Page <span class=""pageNumber""></span> of <span class=""totalPages""></span>
+                </div>"
             };
         }
 
@@ -626,5 +639,350 @@ namespace FMS.WebClient.Services.Reporting
 </body>
 </html>";
         }
+
+        #region Auto-generated Report Templates
+
+        private static string BuildGenericReportTemplate(string title, string color, string icon,
+            string summarySection, string tableSection, string emptyMessage)
+        {
+            return $@"<!DOCTYPE html>
+<html>
+<head>
+    <title>{title}</title>
+    <style>
+        * {{ box-sizing: border-box; }}
+        body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #333; }}
+        .report-header {{ display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid {color}; padding-bottom: 15px; margin-bottom: 20px; }}
+        .report-title h1 {{ margin: 0; font-size: 24px; color: {color}; }}
+        .report-title p {{ margin: 5px 0 0 0; color: #666; }}
+        .report-meta {{ text-align: right; font-size: 11px; color: #666; }}
+        .report-meta p {{ margin: 3px 0; }}
+        .filter-summary {{ background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 12px 16px; margin-bottom: 20px; font-size: 11px; }}
+        .filter-summary h3 {{ margin: 0 0 8px 0; font-size: 13px; color: #495057; }}
+        .filter-summary .filter-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }}
+        .filter-summary .filter-item {{ display: flex; gap: 4px; }}
+        .filter-summary .filter-label {{ font-weight: 600; color: #495057; }}
+        .filter-summary .filter-value {{ color: #6c757d; }}
+        .summary-section {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }}
+        .summary-card {{ border-radius: 8px; padding: 15px; color: white; text-align: center; }}
+        .summary-card .value {{ font-size: 22px; font-weight: 700; margin-bottom: 5px; }}
+        .summary-card .label {{ font-size: 11px; opacity: 0.9; }}
+        .card-primary {{ background: linear-gradient(135deg, {color} 0%, #667eea 100%); }}
+        .card-success {{ background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }}
+        .card-warning {{ background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }}
+        .card-info    {{ background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%); }}
+        .data-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }}
+        .data-table thead th {{ background: #343a40; color: white; padding: 10px 8px; text-align: left; font-weight: 600; }}
+        .data-table tbody td {{ padding: 8px; border-bottom: 1px solid #dee2e6; }}
+        .data-table tbody tr:nth-child(even) {{ background: #f8f9fa; }}
+        .text-right {{ text-align: right; }}
+        .text-center {{ text-align: center; }}
+        .text-muted {{ color: #6c757d; }}
+        .text-success {{ color: #28a745; }}
+        .text-danger {{ color: #dc3545; }}
+        .font-bold {{ font-weight: 600; }}
+        .report-footer {{ margin-top: 30px; padding-top: 15px; border-top: 2px solid #dee2e6; display: flex; justify-content: space-between; font-size: 10px; color: #6c757d; }}
+    </style>
+</head>
+<body>
+    <div class=""report-header"">
+        <div class=""report-title"">
+            <h1>{title}</h1>
+            <p>{{{{reportTitle}}}}</p>
+        </div>
+        <div class=""report-meta"">
+            <p><strong>Generated:</strong> {{{{generatedAt}}}}</p>
+            <p><strong>Period:</strong> {{{{dateFrom}}}} - {{{{dateTo}}}}</p>
+        </div>
+    </div>
+
+    <div class=""filter-summary"">
+        <h3>Report Parameters</h3>
+        <div class=""filter-grid"">
+            {{{{#if dateFrom}}}}<div class=""filter-item""><span class=""filter-label"">From:</span><span class=""filter-value"">{{{{dateFrom}}}}</span></div>{{{{/if}}}}
+            {{{{#if dateTo}}}}<div class=""filter-item""><span class=""filter-label"">To:</span><span class=""filter-value"">{{{{dateTo}}}}</span></div>{{{{/if}}}}
+            {{{{#if startDate}}}}<div class=""filter-item""><span class=""filter-label"">Start:</span><span class=""filter-value"">{{{{startDate}}}}</span></div>{{{{/if}}}}
+            {{{{#if endDate}}}}<div class=""filter-item""><span class=""filter-label"">End:</span><span class=""filter-value"">{{{{endDate}}}}</span></div>{{{{/if}}}}
+            {{{{#if siteId}}}}<div class=""filter-item""><span class=""filter-label"">Site:</span><span class=""filter-value"">{{{{siteId}}}}</span></div>{{{{/if}}}}
+            {{{{#if siteName}}}}<div class=""filter-item""><span class=""filter-label"">Site:</span><span class=""filter-value"">{{{{siteName}}}}</span></div>{{{{/if}}}}
+            {{{{#if tankId}}}}<div class=""filter-item""><span class=""filter-label"">Tank:</span><span class=""filter-value"">{{{{tankId}}}}</span></div>{{{{/if}}}}
+            {{{{#if tankName}}}}<div class=""filter-item""><span class=""filter-label"">Tank:</span><span class=""filter-value"">{{{{tankName}}}}</span></div>{{{{/if}}}}
+            {{{{#if vehicleId}}}}<div class=""filter-item""><span class=""filter-label"">Vehicle:</span><span class=""filter-value"">{{{{vehicleId}}}}</span></div>{{{{/if}}}}
+            {{{{#if deviceId}}}}<div class=""filter-item""><span class=""filter-label"">Device:</span><span class=""filter-value"">{{{{deviceId}}}}</span></div>{{{{/if}}}}
+        </div>
+    </div>
+
+{summarySection}
+{tableSection}
+
+    {{{{#unless records}}}}{{{{#unless items}}}}{{{{#unless transactions}}}}{{{{#unless data}}}}
+    <div style=""text-align:center; padding:40px; color:#6c757d;"">
+        <p>{emptyMessage}</p>
+    </div>
+    {{{{/unless}}}}{{{{/unless}}}}{{{{/unless}}}}{{{{/unless}}}}
+
+    <div class=""report-footer"">
+        <div><p><strong>FMS Fleet Management System</strong></p></div>
+        <div style=""text-align:right;""><p>Report ID: {{{{reportId}}}}</p></div>
+    </div>
+</body>
+</html>";
+        }
+
+        private string GetVehicleConsumptionTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Vehicle Consumption Report", "#4776E6", "truck",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalCost}}</div><div class=""label"">Total Cost</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg L/100km</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">L/100km</th><th class=""text-right"">Cost</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td class=""font-bold"">{{vehicleName}}</td>
+                <td>{{numberPlate}}</td>
+                <td>{{vehicleType}}</td>
+                <td>{{siteName}}</td>
+                <td class=""text-right text-success font-bold"">{{volume}}</td>
+                <td class=""text-right"">{{distance}}</td>
+                <td class=""text-right font-bold"">{{consumption}}</td>
+                <td class=""text-right"">{{cost}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No vehicle consumption data found for the selected criteria.");
+        }
+
+        private string GetFuelRefillTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Fuel Refill Report", "#11998e", "gas-pump",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalRefills}}</div><div class=""label"">Total Refills</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.fuelAverage}} {{summary.fuelAverageUnit}}</div><div class=""label"">Fuel Average</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.uniqueVehicles}}</div><div class=""label"">Vehicles</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Date/Time (Local)</th><th>Vehicle</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Fuel Average</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td>{{dateTime}}</td>
+                <td class=""font-bold"">{{vehicleName}}</td>
+                <td>{{siteName}}</td>
+                <td class=""text-right text-success font-bold"">{{volume}}</td>
+                <td class=""text-right"">{{fuelAverage}} {{fuelAverageUnit}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No fuel refill records found for the selected criteria.");
+        }
+
+        private string GetFuelDeliveryTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Fuel Delivery Report", "#ee0979", "truck-loading",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalDeliveries}}</div><div class=""label"">Deliveries</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Volume Delivered</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalCost}}</div><div class=""label"">Total Cost</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.uniqueTanks}}</div><div class=""label"">Tanks</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Date</th><th>Supplier</th><th>Tank</th><th>Fuel Grade</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Cost</th><th>Site</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td>{{deliveryDate}}</td>
+                <td class=""font-bold"">{{supplierName}}</td>
+                <td>{{tankName}}</td>
+                <td>{{fuelGradeName}}</td>
+                <td class=""text-right text-success font-bold"">{{volume}}</td>
+                <td class=""text-right"">{{cost}}</td>
+                <td>{{siteName}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No fuel delivery records found for the selected criteria.");
+        }
+
+        private string GetDeviceOfflineTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Device Offline Report", "#dc3545", "plug-circle-xmark",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalEvents}}</div><div class=""label"">Offline Events</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDowntime}}</div><div class=""label"">Total Downtime</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.affectedDevices}}</div><div class=""label"">Devices Affected</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.avgDuration}}</div><div class=""label"">Avg Duration</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Device</th><th>Site</th><th>Went Offline</th><th>Came Online</th><th class=""text-right"">Duration</th><th>Status</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td class=""font-bold"">{{deviceName}}</td>
+                <td>{{siteName}}</td>
+                <td>{{offlineAt}}</td>
+                <td>{{onlineAt}}</td>
+                <td class=""text-right font-bold"">{{duration}}</td>
+                <td>{{#if isOnline}}<span class=""text-success"">Online</span>{{else}}<span class=""text-danger"">Offline</span>{{/if}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No offline events found for the selected criteria.");
+        }
+
+        private string GetPtsDeviceStatusTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "PTS Device Status Report", "#6f42c1", "server",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalDevices}}</div><div class=""label"">Total Devices</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.onlineCount}}</div><div class=""label"">Online</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.offlineCount}}</div><div class=""label"">Offline</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.uptimePercent}}%</div><div class=""label"">Uptime</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Device</th><th>Site</th><th>IP Address</th><th>Status</th><th>Last Seen</th><th class=""text-right"">Uptime %</th><th>Firmware</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td class=""font-bold"">{{deviceName}}</td>
+                <td>{{siteName}}</td>
+                <td class=""text-muted"">{{ipAddress}}</td>
+                <td>{{#if isOnline}}<span class=""text-success font-bold"">Online</span>{{else}}<span class=""text-danger font-bold"">Offline</span>{{/if}}</td>
+                <td>{{lastSeenAt}}</td>
+                <td class=""text-right"">{{uptimePercent}}%</td>
+                <td class=""text-muted"">{{firmwareVersion}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No PTS device data found for the selected criteria.");
+        }
+
+        private string GetTankVolumeHistoryTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Tank Volume History Report", "#fd7e14", "chart-area",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalTransactions}}</div><div class=""label"">Transactions</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalDelivered}} L</div><div class=""label"">Deliveries + Transfer In</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalConsumed}} L</div><div class=""label"">Dispensed + Transfer Out</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.tanksMonitored}}</div><div class=""label"">Tanks</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Date</th><th>Time</th><th>Site</th><th>Tank</th><th>Transaction Type</th><th>Vehicle</th><th>Vehicle Type</th><th>Transfer Tank</th><th>Transfer Site</th><th class=""text-right"">Volume Change (L)</th><th class=""text-right"">New Volume (L)</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td>{{date}}</td>
+                <td>{{time}}</td>
+                <td>{{siteName}}</td>
+                <td class=""font-bold"">{{tankName}}</td>
+                <td>
+                    {{#if isOpeningOrClosing}}
+                        <span style=""background:#fff3cd; padding:2px 6px; border-radius:3px;"">{{transactionType}}</span>
+                    {{else}}
+                        {{#if isDelivery}}
+                            <span style=""background:#d4edda; padding:2px 6px; border-radius:3px;"">{{transactionType}}</span>
+                        {{else}}
+                            {{#if isDispensing}}
+                                <span style=""background:#f8d7da; padding:2px 6px; border-radius:3px;"">{{transactionType}}</span>
+                            {{else}}
+                                {{transactionType}}
+                            {{/if}}
+                        {{/if}}
+                    {{/if}}
+                </td>
+                <td>{{vehicleName}}</td>
+                <td>{{vehicleType}}</td>
+                <td>{{transferTankName}}</td>
+                <td>{{transferTankSite}}</td>
+                <td class=""text-right {{#if isNegativeVolume}}text-danger{{else}}text-success{{/if}} font-bold"">{{volumeChange}}</td>
+                <td class=""text-right"">{{newVolume}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No tank volume history data found for the selected criteria.");
+        }
+
+        private string GetConsumptionByRefillsTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Consumption by Refills Report", "#20c997", "chart-bar",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalFuel}} L</div><div class=""label"">Total Fuel</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDistance}} km</div><div class=""label"">Total Distance</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg L/100km</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th><th class=""text-right"">Refills</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">L/100km</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td class=""font-bold"">{{vehicleName}}</td>
+                <td>{{numberPlate}}</td>
+                <td>{{siteName}}</td>
+                <td class=""text-center"">{{refillCount}}</td>
+                <td class=""text-right text-success font-bold"">{{totalVolume}}</td>
+                <td class=""text-right"">{{totalDistance}}</td>
+                <td class=""text-right font-bold"">{{consumption}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No consumption data found for the selected criteria.");
+        }
+
+        #endregion
     }
 }
