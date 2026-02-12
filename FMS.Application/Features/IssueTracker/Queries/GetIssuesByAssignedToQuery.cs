@@ -11,6 +11,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
+
 public record GetIssuesByAssignedToQuery(string AssignedToId) : IRequest<List<Issuetracker>>;
 
 public class GetIssuesByAssignedToQueryHandler : IRequestHandler<GetIssuesByAssignedToQuery, List<Issuetracker>>
@@ -29,7 +30,15 @@ public class GetIssuesByAssignedToQueryHandler : IRequestHandler<GetIssuesByAssi
     {
         try
         {
-            var issues = await _context.Issuetrackers.Where(i => i.AssignTo == request.AssignedToId).ToListAsync(cancellationToken);
+            var issueIdsFromTracker = await _context.Issueassignmenttrackers
+                .Where(a => a.AssignedTo == request.AssignedToId)
+                .Select(a => a.Issue)
+                .Distinct()
+                .ToListAsync(cancellationToken);
+
+            var issues = await _context.Issuetrackers
+                .Where(i => i.AssignTo == request.AssignedToId || issueIdsFromTracker.Contains(i.Id))
+                .ToListAsync(cancellationToken);
             return issues;
         }
         catch (Exception ex)

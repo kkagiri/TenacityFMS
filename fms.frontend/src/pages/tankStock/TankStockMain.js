@@ -15,6 +15,7 @@ import TankStockLayout from "./layout/TankStockLayout";
 import EnhancedTankStockDashboard from "./dashboard/EnhancedTankStockDashboard";
 import StockAnalytics from "./analytics/StockAnalytics";
 import StockManagement from "./management/StockManagement";
+import AutomaticTankStockMain from "./automatic/AutomaticTankStockMain";
 import TankStockSettings from "./settings/TankStockSettings";
 import ReconciliationMain from "../reconciliation/ReconciliationMain";
 import FuelDataComparisonMain from "./fueldatacomparison/FuelDataComparisonMain";
@@ -43,6 +44,7 @@ const TankStockMain = () => {
             {/* Feature routes with updated paths */}
             <Route path="/stock-analytics" element={<AdminStockAnalytics />} />
             <Route path="/stock-management/*" element={<StockManagement />} />
+            <Route path="/automatic-tank-stock/*" element={<AutomaticTankStockMain />} />
             <Route path="/reconciliation" element={<AdminReconciliationMain />} />
 
             <Route

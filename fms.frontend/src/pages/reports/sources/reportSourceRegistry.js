@@ -4,7 +4,7 @@
  *          its API endpoint, parameter schema, default template, icon, category,
  *          permissions, and output formats.
  * Dependencies: Individual source definition modules
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  *
  * Key Functions:
  * - getReportSource(sourceId): Get a single source definition
@@ -21,6 +21,7 @@ import deviceOffline from './deviceOffline';
 import ptsDevice from './ptsDevice';
 import tankVolumeHistory from './tankVolumeHistory';
 import consumptionByRefills from './consumptionByRefills';
+import issueTracker from './issueTracker';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -52,6 +53,7 @@ const builtInSources = [
     ptsDevice,
     tankVolumeHistory,
     consumptionByRefills,
+    issueTracker,
 ];
 
 builtInSources.forEach((source) => {

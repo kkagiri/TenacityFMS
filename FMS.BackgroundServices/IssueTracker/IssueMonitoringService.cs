@@ -12,6 +12,7 @@ using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -19,6 +20,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
+using SystemConfigurationConstants = global::FMS.Application.Configuration.SystemConfiguration;
 
 namespace FMS.BackgroundServices.IssueTracker
 {
@@ -29,6 +31,15 @@ namespace FMS.BackgroundServices.IssueTracker
     /// </summary>
     public class IssueMonitoringService : BackgroundService
     {
+        private sealed class MonitoringSettings
+        {
+            public bool IsEnabled { get; set; } = true;
+            public int VehicleOfflineThresholdMinutes { get; set; } = 60;
+            public int PtsOfflineThresholdMinutes { get; set; } = 30;
+            public int FuelActivityWindowMinutes { get; set; } = 4320;
+            public int DefaultIssueCategoryId { get; set; } = 1;
+        }
+
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<IssueMonitoringService> _logger;
         private readonly TimeSpan _monitoringInterval = TimeSpan.FromMinutes(10); // Default monitoring interval
@@ -76,6 +87,14 @@ namespace FMS.BackgroundServices.IssueTracker
         {
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+            var systemConfig = scope.ServiceProvider.GetService<ISystemConfigurationService>();
+            var monitoringSettings = await GetMonitoringSettingsAsync(systemConfig, cancellationToken);
+
+            if (!monitoringSettings.IsEnabled)
+            {
+                _logger.LogDebug("Issue monitoring is disabled via system configuration");
+                return;
+            }
 
             try
             {
@@ -108,7 +127,7 @@ namespace FMS.BackgroundServices.IssueTracker
                             case "gps":
                             case "gps device":
                             case "gps_device":
-                                issuesCreated += await MonitorVehicleGpsOfflineAsync(context, template, scope.ServiceProvider, cancellationToken);
+                                issuesCreated += await MonitorVehicleGpsOfflineAsync(context, template, scope.ServiceProvider, monitoringSettings, cancellationToken);
                                 break;
 
                             case "fuel":
@@ -117,7 +136,7 @@ namespace FMS.BackgroundServices.IssueTracker
                             case "fuelsensor":
                             case "no_fuel":
                                 // Check vehicles that have fuel activity (refill/pump tx) but GPS is offline → suspicious
-                                issuesCreated += await MonitorVehicleFuelWhileOfflineAsync(context, template, scope.ServiceProvider, cancellationToken);
+                                issuesCreated += await MonitorVehicleFuelWhileOfflineAsync(context, template, scope.ServiceProvider, monitoringSettings, cancellationToken);
                                 break;
 
                             case "pts":
@@ -126,7 +145,7 @@ namespace FMS.BackgroundServices.IssueTracker
                             case "tankmonitor":
                             case "atg":
                                 // All PTS/ATG/Tank devices use Ptsdevices table
-                                issuesCreated += await MonitorPTSDevicesAsync(context, template, scope.ServiceProvider, cancellationToken);
+                                issuesCreated += await MonitorPTSDevicesAsync(context, template, scope.ServiceProvider, monitoringSettings, cancellationToken);
                                 break;
 
                             default:
@@ -160,11 +179,12 @@ namespace FMS.BackgroundServices.IssueTracker
             GpsdataContext context,
             Issuetemplate template,
             IServiceProvider scopedProvider,
+            MonitoringSettings settings,
             CancellationToken cancellationToken)
         {
             var issuesCreated = 0;
             var createdIssues = new List<Issuetracker>();
-            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? 60;
+            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? settings.VehicleOfflineThresholdMinutes;
 
             // Resolve the GPS service - if not available, we can't check GPS status
             var gpsService = scopedProvider.GetService<IGPSService>();
@@ -243,6 +263,12 @@ namespace FMS.BackgroundServices.IssueTracker
 
                         if (isOffline)
                         {
+                            var resolvedSiteId = await ResolveIssueSiteIdForVehicleAsync(
+                                context,
+                                vehicle.VehicleId,
+                                vehicle.WorkingSiteId,
+                                cancellationToken);
+
                             // Build title/description from template placeholders
                             var title = (template.TitleTemplate ?? "GPS Offline - {vehicleName}")
                                 .Replace("{vehicleName}", vehicleName);
@@ -253,7 +279,7 @@ namespace FMS.BackgroundServices.IssueTracker
                                 .Replace("{lastSeen}", lastSeenInfo);
 
                             var issue = await CreateIssueFromTemplateAsync(context, template, vehicle.VehicleId, "vehicle",
-                                title, description);
+                                title, description, settings, resolvedSiteId);
 
                             context.Issuetrackers.Add(issue);
                             createdIssues.Add(issue);
@@ -298,14 +324,15 @@ namespace FMS.BackgroundServices.IssueTracker
             GpsdataContext context,
             Issuetemplate template,
             IServiceProvider scopedProvider,
+            MonitoringSettings settings,
             CancellationToken cancellationToken)
         {
             var issuesCreated = 0;
             var createdIssues = new List<Issuetracker>();
             // OfflineThresholdMinutes: how long GPS must be offline to be considered "offline"
-            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? 60;
+            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? settings.VehicleOfflineThresholdMinutes;
             // Use a fuel activity window — look for fuel activity in the last 3 days
-            var fuelActivityWindowMinutes = 4320; // 3 days
+            var fuelActivityWindowMinutes = settings.FuelActivityWindowMinutes;
             var cutoffDate = DateTime.UtcNow.AddMinutes(-fuelActivityWindowMinutes);
             var thresholdDays = fuelActivityWindowMinutes / 1440.0;
 
@@ -423,6 +450,11 @@ namespace FMS.BackgroundServices.IssueTracker
                             continue;
 
                         var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
+                        var resolvedSiteId = await ResolveIssueSiteIdForVehicleAsync(
+                            context,
+                            vehicle.VehicleId,
+                            vehicle.WorkingSiteId,
+                            cancellationToken);
 
                         var title = (template.TitleTemplate ?? "Fuel Activity While GPS Offline - {vehicleName}")
                             .Replace("{vehicleName}", vehicleName);
@@ -436,7 +468,7 @@ namespace FMS.BackgroundServices.IssueTracker
 
                         var issue = await CreateIssueFromTemplateAsync(
                             context, template, vehicle.VehicleId, "vehicle",
-                            title, description);
+                            title, description, settings, resolvedSiteId);
 
                         context.Issuetrackers.Add(issue);
                         createdIssues.Add(issue);
@@ -474,11 +506,12 @@ namespace FMS.BackgroundServices.IssueTracker
             GpsdataContext context,
             Issuetemplate template,
             IServiceProvider scopedProvider,
+            MonitoringSettings settings,
             CancellationToken cancellationToken)
         {
             var issuesCreated = 0;
             var createdIssues = new List<Issuetracker>();
-            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? 30;
+            var offlineThresholdMinutes = template.OfflineThresholdMinutes ?? settings.PtsOfflineThresholdMinutes;
             var cutoffTime = DateTime.UtcNow.AddMinutes(-offlineThresholdMinutes);
 
             // Find offline PTS devices using LastActivity
@@ -499,7 +532,9 @@ namespace FMS.BackgroundServices.IssueTracker
                     $"PTS Device {device.PtsName ?? device.Ptsid} - Offline",
                     $"PTS device '{device.PtsName ?? device.Ptsid}' has not reported since " +
                     $"{device.LastActivity?.ToString("yyyy-MM-dd HH:mm:ss") ?? "unknown"}. " +
-                    $"Offline threshold: {offlineThresholdMinutes} minutes. Device ID: {device.Ptsid}");
+                    $"Offline threshold: {offlineThresholdMinutes} minutes. Device ID: {device.Ptsid}",
+                    settings,
+                    device.Site.HasValue && device.Site.Value > 0 ? device.Site.Value : null);
 
                 context.Issuetrackers.Add(issue);
                 createdIssues.Add(issue);
@@ -547,11 +582,13 @@ namespace FMS.BackgroundServices.IssueTracker
             int relatedEntityId,
             string relatedEntityType,
             string title,
-            string description)
+            string description,
+            MonitoringSettings settings,
+            int? resolvedSiteId = null)
         {
             // Get a default site and category
-            var defaultSiteId = 1; // Will need to be configured properly
-            var defaultCategoryId = 1; // Will need to be configured properly
+            var defaultSiteId = resolvedSiteId ?? 0;
+            var defaultCategoryId = settings.DefaultIssueCategoryId > 0 ? settings.DefaultIssueCategoryId : 1;
 
             // Resolve a valid system user ID from the database
             // AssignTo and Openby are FKs to user.Id - must use actual user IDs
@@ -600,6 +637,93 @@ namespace FMS.BackgroundServices.IssueTracker
                 VehicleId = relatedEntityType == "vehicle" ? relatedEntityId : 0
                 // Note: For PTS devices, store the device ID in RelatedEntityType description or use a separate field
             };
+        }
+
+        private async Task<int?> ResolveIssueSiteIdForVehicleAsync(
+            GpsdataContext context,
+            int vehicleId,
+            int? workingSiteId,
+            CancellationToken cancellationToken)
+        {
+            if (workingSiteId.HasValue && workingSiteId.Value > 0)
+            {
+                return workingSiteId.Value;
+            }
+
+            var latestFuelRefillSiteId = await context.FuelRefills
+                .AsNoTracking()
+                .Where(fr => fr.VehicleId == vehicleId && !fr.IsDeleted)
+                .OrderByDescending(fr => fr.Date ?? fr.DateCreated)
+                .Select(fr => (int?)fr.SiteId)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (latestFuelRefillSiteId.HasValue && latestFuelRefillSiteId.Value > 0)
+            {
+                return latestFuelRefillSiteId.Value;
+            }
+
+            var latestPumpTransactionSiteId = await (
+                from pt in context.Pumptransactions.AsNoTracking()
+                join t in context.Tanks.AsNoTracking() on pt.TankId equals t.Id
+                where pt.VehicleId.HasValue
+                   && pt.VehicleId.Value == vehicleId
+                   && !pt.IsTransferMode
+                orderby pt.DateTime descending
+                select (int?)t.SiteId
+            ).FirstOrDefaultAsync(cancellationToken);
+
+            if (latestPumpTransactionSiteId.HasValue && latestPumpTransactionSiteId.Value > 0)
+            {
+                return latestPumpTransactionSiteId.Value;
+            }
+
+            return null;
+        }
+
+        private async Task<MonitoringSettings> GetMonitoringSettingsAsync(
+            ISystemConfigurationService? systemConfig,
+            CancellationToken cancellationToken)
+        {
+            var settings = new MonitoringSettings();
+
+            if (systemConfig == null)
+            {
+                return settings;
+            }
+
+            try
+            {
+                settings.IsEnabled = await systemConfig.GetBoolAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_ENABLED_KEY,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_ENABLED,
+                    cancellationToken);
+
+                settings.VehicleOfflineThresholdMinutes = await systemConfig.GetIntAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_VEHICLE_OFFLINE_THRESHOLD_MINUTES_KEY,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_VEHICLE_OFFLINE_THRESHOLD_MINUTES,
+                    cancellationToken);
+
+                settings.PtsOfflineThresholdMinutes = await systemConfig.GetIntAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_PTS_OFFLINE_THRESHOLD_MINUTES_KEY,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_PTS_OFFLINE_THRESHOLD_MINUTES,
+                    cancellationToken);
+
+                settings.FuelActivityWindowMinutes = await systemConfig.GetIntAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_FUEL_ACTIVITY_WINDOW_MINUTES_KEY,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_FUEL_ACTIVITY_WINDOW_MINUTES,
+                    cancellationToken);
+
+                settings.DefaultIssueCategoryId = await systemConfig.GetIntAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID_KEY,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID,
+                    cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load issue monitoring system configuration; using defaults");
+            }
+
+            return settings;
         }
 
         /// <summary>
@@ -724,12 +848,33 @@ namespace FMS.BackgroundServices.IssueTracker
                         .FirstOrDefaultAsync(cancellationToken);
                 }
 
+                // Build site name
+                string? siteName = null;
+                if (issue.SiteId > 0)
+                {
+                    siteName = await context.Sites
+                        .Where(s => s.Id == issue.SiteId)
+                        .Select(s => s.Name)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+
                 var frontendBaseUrl = configuration?.GetValue<string>("FrontendBaseUrl")
                     ?? configuration?.GetValue<string>("AppSettings:FrontendBaseUrl")
                     ?? "http://localhost:3000";
                 var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
                 var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
                 var primaryAssignee = assignedUsers.First();
+
+                // Build rich HTML email with clickable links
+                var emailBodyHtml = BuildAutoCreatedIssueEmailHtml(
+                    issue.Id,
+                    issue.ProblemTitle ?? "Untitled Issue",
+                    vehicleName,
+                    siteName,
+                    primaryAssignee.UserName ?? "User",
+                    primaryAssignee.Email ?? "",
+                    string.Join(", ", assignedUsers.Select(u => u.UserName)),
+                    issueUrl);
 
                 // Build recipients list — one per assigned user
                 var recipients = assignedUsers.Select(u => new NotificationRecipientDto
@@ -755,7 +900,8 @@ namespace FMS.BackgroundServices.IssueTracker
                         AssignedToUserId = primaryAssignee.Id,
                         AssignedToUserName = primaryAssignee.UserName,
                         AssignedToEmail = primaryAssignee.Email,
-                        IsAutoCreated = true
+                        IsAutoCreated = true,
+                        EmailBodyHtml = emailBodyHtml
                     },
                     TriggerSource = "IssueAutoCreation",
                     TriggeredBy = "System",
@@ -784,6 +930,81 @@ namespace FMS.BackgroundServices.IssueTracker
             {
                 _logger.LogWarning(ex, "Failed to send notification for auto-created issue {IssueId}", issue.Id);
             }
+        }
+
+        private static string BuildAutoCreatedIssueEmailHtml(
+            int issueId,
+            string issueTitle,
+            string? vehicleName,
+            string? siteName,
+            string assignedToName,
+            string assignedToEmail,
+            string allAssigneeNames,
+            string issueUrl)
+        {
+            var safeTitle = System.Net.WebUtility.HtmlEncode(issueTitle);
+            var safeVehicle = System.Net.WebUtility.HtmlEncode(vehicleName ?? "Not specified");
+            var safeSite = System.Net.WebUtility.HtmlEncode(siteName ?? "Not specified");
+            var safeAssignee = System.Net.WebUtility.HtmlEncode(assignedToName);
+            var safeEmail = System.Net.WebUtility.HtmlEncode(assignedToEmail);
+            var safeAllAssignees = System.Net.WebUtility.HtmlEncode(allAssigneeNames);
+            var safeUrl = System.Net.WebUtility.HtmlEncode(issueUrl);
+
+            return $@"
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;"">
+  <!-- Header -->
+  <tr>
+    <td style=""padding:24px 24px 16px;background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);border-radius:12px 12px 0 0;"">
+      <div style=""font-size:11px;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;"">
+        <span style=""display:inline-block;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;"">&#9888; Auto-Created Issue</span>
+      </div>
+      <div style=""font-size:22px;color:#ffffff;font-weight:700;line-height:1.3;"">Issue #{issueId}: {safeTitle}</div>
+    </td>
+  </tr>
+  <!-- Body -->
+  <tr>
+    <td style=""background:#ffffff;border:1px solid #e5e7eb;border-top:none;padding:0;"">
+      <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;"">
+        <tr>
+          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
+            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128100; Assigned To</div>
+            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeAssignee}</div>
+            <div style=""font-size:13px;color:#6b7280;"">{safeEmail}</div>
+          </td>
+          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
+            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128101; All Assignees</div>
+            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeAllAssignees}</div>
+          </td>
+        </tr>
+        <tr>
+          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
+            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128663; Vehicle</div>
+            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeVehicle}</div>
+          </td>
+          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
+            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128205; Site/Location</div>
+            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeSite}</div>
+          </td>
+        </tr>
+      </table>
+      <!-- Action Button -->
+      <div style=""padding:24px;text-align:center;"">
+        <a href=""{safeUrl}"" style=""display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#2563eb 0%,#3b82f6 100%);color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;box-shadow:0 4px 6px rgba(37,99,235,0.25);"">
+          View Issue Details &rarr;
+        </a>
+      </div>
+    </td>
+  </tr>
+  <!-- Footer -->
+  <tr>
+    <td style=""padding:16px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;"">
+      <p style=""margin:0;font-size:12px;color:#6b7280;"">
+        This issue was <strong>automatically created</strong> by the <strong>Hyoung FMS Monitoring System</strong>.<br/>
+        Please do not reply directly to this email.
+      </p>
+    </td>
+  </tr>
+</table>";
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)

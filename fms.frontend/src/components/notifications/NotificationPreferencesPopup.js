@@ -6,6 +6,23 @@ import notificationPreferencesApi from "../../dataservice/notificationPreference
 import notify from 'devextreme/ui/notify';
 import "./NotificationPreferencesPopup.scss";
 
+// Hook to detect mobile viewport
+const useIsMobile = (breakpoint = 640) => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+};
+
 /**
  * NotificationPreferencesPopup - A popup version of user notification preferences
  * Shown when user clicks the cog icon in the NotificationCenter bell popup
@@ -16,6 +33,7 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
   const [initialLoading, setInitialLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
+  const isMobile = useIsMobile();
 
   const user = useSelector((state) => state.auth?.user);
   const userId = (user && (user.id || user.Id)) || localStorage.getItem('userId') || '';
@@ -196,76 +214,140 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
     return (
       <div className="preferences-popup-content">
         <div className="preferences-table-container">
-          <table className="preferences-table">
-            <thead>
-              <tr>
-                <th className="tw-text-left tw-w-48">Category</th>
-                <th className="tw-text-center tw-w-20">Enabled</th>
-                <th className="tw-text-left tw-w-40">Delivery Methods</th>
-                <th className="tw-text-left tw-w-28">Priority</th>
-              </tr>
-            </thead>
-            <tbody>
+          {isMobile ? (
+            /* Mobile: card layout */
+            <div className="preferences-card-list">
               {categories.map(category => {
                 const pref = preferences.find(p => p.notificationCategoryId === category.id) || createDefaultPreference(category);
                 return (
-                  <tr key={category.id}>
-                    <td>
+                  <div key={category.id} className="preferences-card">
+                    <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
                       <div className="tw-flex tw-items-center tw-gap-2">
                         <i className={`${category.iconClass || 'fa-light fa-bell'} tw-text-blue-500`}></i>
-                        <span className="tw-font-medium">{category.name}</span>
+                        <span className="tw-font-medium tw-text-sm">{category.name}</span>
                       </div>
-                    </td>
-                    <td className="tw-text-center">
-                      <input
-                        type="checkbox"
-                        checked={pref.isEnabled}
-                        onChange={(e) => handlePreferenceChange(category.id, 'isEnabled', e.target.checked)}
-                        className="tw-w-4 tw-h-4 tw-cursor-pointer"
-                      />
-                    </td>
-                    <td>
-                      <div className="tw-flex tw-gap-1 tw-flex-wrap">
-                        {deliveryMethodOptions.map(method => (
-                          <button
-                            key={method.id}
-                            type="button"
-                            onClick={() => {
-                              const current = pref.deliveryMethods || [];
-                              const updated = current.includes(method.id)
-                                ? current.filter(m => m !== method.id)
-                                : [...current, method.id];
-                              handlePreferenceChange(category.id, 'deliveryMethods', updated.length > 0 ? updated : ["System"]);
-                            }}
-                            className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${
-                              (pref.deliveryMethods || []).includes(method.id)
-                                ? 'tw-bg-blue-100 tw-border-blue-300 tw-text-blue-700'
-                                : 'tw-bg-gray-50 tw-border-gray-200 tw-text-gray-500 hover:tw-bg-gray-100'
-                            }`}
-                            title={method.name}
-                          >
-                            <i className={`${method.icon} tw-mr-1`}></i>
-                            {method.name}
-                          </button>
-                        ))}
-                      </div>
-                    </td>
-                    <td>
+                      <label className="tw-flex tw-items-center tw-gap-1.5 tw-cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={pref.isEnabled}
+                          onChange={(e) => handlePreferenceChange(category.id, 'isEnabled', e.target.checked)}
+                          className="tw-w-4 tw-h-4 tw-cursor-pointer"
+                        />
+                        <span className="tw-text-xs tw-text-gray-500">Enabled</span>
+                      </label>
+                    </div>
+                    <div className="tw-flex tw-gap-1.5 tw-flex-wrap tw-mb-2">
+                      {deliveryMethodOptions.map(method => (
+                        <button
+                          key={method.id}
+                          type="button"
+                          onClick={() => {
+                            const current = pref.deliveryMethods || [];
+                            const updated = current.includes(method.id)
+                              ? current.filter(m => m !== method.id)
+                              : [...current, method.id];
+                            handlePreferenceChange(category.id, 'deliveryMethods', updated.length > 0 ? updated : ["System"]);
+                          }}
+                          className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${
+                            (pref.deliveryMethods || []).includes(method.id)
+                              ? 'tw-bg-blue-100 tw-border-blue-300 tw-text-blue-700'
+                              : 'tw-bg-gray-50 tw-border-gray-200 tw-text-gray-500'
+                          }`}
+                        >
+                          <i className={`${method.icon} tw-mr-1`}></i>
+                          {method.name}
+                        </button>
+                      ))}
+                    </div>
+                    <div className="tw-flex tw-items-center tw-gap-2">
+                      <span className="tw-text-xs tw-text-gray-500">Priority:</span>
                       <select
                         value={pref.priority}
                         onChange={(e) => handlePreferenceChange(category.id, 'priority', e.target.value)}
-                        className="tw-px-2 tw-py-1 tw-text-sm tw-rounded tw-border tw-border-gray-300 tw-bg-white"
+                        className="tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-border-gray-300 tw-bg-white tw-flex-1"
                       >
                         {priorityOptions.map(opt => (
                           <option key={opt.id} value={opt.id}>{opt.name}</option>
                         ))}
                       </select>
-                    </td>
-                  </tr>
+                    </div>
+                  </div>
                 );
               })}
-            </tbody>
-          </table>
+            </div>
+          ) : (
+            /* Desktop: table layout */
+            <table className="preferences-table">
+              <thead>
+                <tr>
+                  <th className="tw-text-left tw-w-48">Category</th>
+                  <th className="tw-text-center tw-w-20">Enabled</th>
+                  <th className="tw-text-left tw-w-40">Delivery Methods</th>
+                  <th className="tw-text-left tw-w-28">Priority</th>
+                </tr>
+              </thead>
+              <tbody>
+                {categories.map(category => {
+                  const pref = preferences.find(p => p.notificationCategoryId === category.id) || createDefaultPreference(category);
+                  return (
+                    <tr key={category.id}>
+                      <td>
+                        <div className="tw-flex tw-items-center tw-gap-2">
+                          <i className={`${category.iconClass || 'fa-light fa-bell'} tw-text-blue-500`}></i>
+                          <span className="tw-font-medium">{category.name}</span>
+                        </div>
+                      </td>
+                      <td className="tw-text-center">
+                        <input
+                          type="checkbox"
+                          checked={pref.isEnabled}
+                          onChange={(e) => handlePreferenceChange(category.id, 'isEnabled', e.target.checked)}
+                          className="tw-w-4 tw-h-4 tw-cursor-pointer"
+                        />
+                      </td>
+                      <td>
+                        <div className="tw-flex tw-gap-1 tw-flex-wrap">
+                          {deliveryMethodOptions.map(method => (
+                            <button
+                              key={method.id}
+                              type="button"
+                              onClick={() => {
+                                const current = pref.deliveryMethods || [];
+                                const updated = current.includes(method.id)
+                                  ? current.filter(m => m !== method.id)
+                                  : [...current, method.id];
+                                handlePreferenceChange(category.id, 'deliveryMethods', updated.length > 0 ? updated : ["System"]);
+                              }}
+                              className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${
+                                (pref.deliveryMethods || []).includes(method.id)
+                                  ? 'tw-bg-blue-100 tw-border-blue-300 tw-text-blue-700'
+                                  : 'tw-bg-gray-50 tw-border-gray-200 tw-text-gray-500 hover:tw-bg-gray-100'
+                              }`}
+                              title={method.name}
+                            >
+                              <i className={`${method.icon} tw-mr-1`}></i>
+                              {method.name}
+                            </button>
+                          ))}
+                        </div>
+                      </td>
+                      <td>
+                        <select
+                          value={pref.priority}
+                          onChange={(e) => handlePreferenceChange(category.id, 'priority', e.target.value)}
+                          className="tw-px-2 tw-py-1 tw-text-sm tw-rounded tw-border tw-border-gray-300 tw-bg-white"
+                        >
+                          {priorityOptions.map(opt => (
+                            <option key={opt.id} value={opt.id}>{opt.name}</option>
+                          ))}
+                        </select>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
         </div>
       </div>
     );
@@ -275,23 +357,24 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
     <Popup
       visible={visible}
       onHiding={onHiding}
-      dragEnabled={true}
-      showCloseButton={true}
+      dragEnabled={!isMobile}
+      showCloseButton={false}
       showTitle={false}
-      width={700}
-      height={500}
+      fullScreen={isMobile}
+      width={isMobile ? '100%' : 700}
+      height={isMobile ? '100%' : 500}
       className="notification-preferences-popup"
     >
       <div className="tw-h-full tw-flex tw-flex-col">
         {/* Header with title and action buttons */}
-        <div className="tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3 tw-border-b tw-border-gray-200 tw-bg-gray-50">
+        <div className={`tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3 tw-border-b tw-border-gray-200 tw-bg-gray-50 tw-flex-shrink-0 ${isMobile ? 'tw-flex-wrap tw-gap-2' : ''}`}>
           <div className="tw-flex tw-items-center tw-gap-2">
             <i className="fa-light fa-user-cog tw-text-blue-600"></i>
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-m-0">My Notification Preferences</h3>
+            <h3 className={`tw-font-semibold tw-text-gray-900 tw-m-0 ${isMobile ? 'tw-text-base' : 'tw-text-lg'}`}>My Notification Preferences</h3>
           </div>
           <div className="tw-flex tw-items-center tw-gap-2">
             <Button
-              text="Reset to Defaults"
+              text="Reset"
               stylingMode="outlined"
               type="normal"
               onClick={handleReset}
@@ -304,15 +387,14 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
               onClick={handleSave}
               disabled={saving || !hasChanges}
             />
-            <Button
-              icon="close"
-              stylingMode="text"
-              type="icon"
+            <button
+              type="button"
+              className="tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-gray-200 hover:tw-bg-gray-300 tw-text-gray-600 tw-border-0 tw-cursor-pointer"
               onClick={onHiding}
-              title="Close"
+              aria-label="Close"
             >
-              <i className="fa-light fa-xmark tw-text-lg"></i>
-            </Button>
+              <i className="fa-solid fa-xmark tw-text-base"></i>
+            </button>
           </div>
         </div>
 

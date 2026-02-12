@@ -201,7 +201,7 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
       <DataGrid
         ref={dataGridRef}
         dataSource={data}
-        keyExpr="id"
+        keyExpr="rowKey"
         showBorders={true}
         columnAutoWidth={false}
         rowAlternationEnabled={true}

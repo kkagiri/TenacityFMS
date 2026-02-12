@@ -1,11 +1,11 @@
 /**
- * File: IssueTicketsPage.js
+ * File: IssueTicketListPage.js
  * Purpose: Issue ticket list page with filtering, export, and row-level actions
  * Dependencies: React, react-router-dom, DevExtreme DataGrid, issueTrackerService
- * Last Modified: 2026-02-10
+ * Last Modified: 2026-02-12
  *
  * Key Functions/Components:
- * - IssueTicketsPage: Displays issue tickets and navigates to detail/edit screens
+ * - IssueTicketListPage: Displays issue tickets and navigates to detail/edit screens
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -33,10 +33,13 @@ import { Workbook } from 'exceljs';
 import { exportDataGrid } from 'devextreme/excel_exporter';
 import saveAs from 'file-saver';
 import issueTrackerService from '../../../services/issueTrackerService';
+import { usePermissions } from '../../../hooks/usePermissions';
 
-const IssueTicketsPage = () => {
+const IssueTicketListPage = () => {
   const navigate = useNavigate();
   const dataGridRef = useRef(null);
+  const { hasRole, hasPermission } = usePermissions();
+  const canDeleteIssue = hasRole('Admin') || hasPermission('_Delete_Issues');
 
   // State management
   const [issues, setIssues] = useState([]);
@@ -48,6 +51,7 @@ const IssueTicketsPage = () => {
   const [closeMonitorPopupVisible, setCloseMonitorPopupVisible] = useState(false);
   const [closeMonitorNotes, setCloseMonitorNotes] = useState('');
   const [closingInProgress, setClosingInProgress] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const humanizeElapsedMinutes = useCallback((minutesValue) => {
     const minutes = Number(minutesValue);
@@ -291,6 +295,49 @@ const IssueTicketsPage = () => {
     }
   }, [getSelectedIssues, closeMonitorNotes, loadInitialData]);
 
+  // ===== Delete Handlers =====
+  const handleDeleteSingleIssue = useCallback(async (issueId) => {
+    if (!canDeleteIssue || !issueId) return;
+    if (!window.confirm(`Delete issue #${issueId}? This action cannot be undone.`)) return;
+
+    try {
+      setIsDeleting(true);
+      await issueTrackerService.deleteIssue(issueId);
+      loadInitialData();
+    } catch (err) {
+      console.error('Delete issue failed:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [canDeleteIssue, loadInitialData]);
+
+  const handleBulkDelete = useCallback(async () => {
+    if (!canDeleteIssue) return;
+    const selected = getSelectedIssues();
+    if (selected.length === 0) {
+      notify({
+        message: 'Please select at least one issue to delete.',
+        type: 'warning',
+        displayTime: 3000,
+        position: { my: 'top center', at: 'top center', of: window, offset: '0 20' }
+      });
+      return;
+    }
+
+    if (!window.confirm(`Delete ${selected.length} selected issue(s)? This action cannot be undone.`)) return;
+
+    try {
+      setIsDeleting(true);
+      const issueIds = selected.map((i) => i.id);
+      await issueTrackerService.bulkDeleteIssues(issueIds);
+      loadInitialData();
+    } catch (err) {
+      console.error('Bulk delete failed:', err);
+    } finally {
+      setIsDeleting(false);
+    }
+  }, [canDeleteIssue, getSelectedIssues, loadInitialData]);
+
   const handleExport = useCallback((e) => {
     const workbook = new Workbook();
     const worksheet = workbook.addWorksheet('Issues');
@@ -397,6 +444,19 @@ const IssueTicketsPage = () => {
           navigate(`/issue-tracker/details/${cellData.data.id}`);
         }}
       />
+      {canDeleteIssue && (
+        <Button
+          icon="fa-light fa-trash"
+          hint="Delete Issue"
+          stylingMode="text"
+          type="danger"
+          disabled={isDeleting}
+          onClick={(e) => {
+            e.event.stopPropagation();
+            handleDeleteSingleIssue(cellData.data.id);
+          }}
+        />
+      )}
     </div>
   );
 
@@ -500,6 +560,19 @@ const IssueTicketsPage = () => {
                 hint="Close selected issues and continue monitoring vehicles for fuel activity"
               />
             </ToolbarItem>
+            {canDeleteIssue && (
+              <ToolbarItem location="before">
+                <Button
+                  text={isDeleting ? 'Deleting...' : 'Delete Selected'}
+                  icon="fa-light fa-trash"
+                  type="danger"
+                  stylingMode="outlined"
+                  onClick={handleBulkDelete}
+                  disabled={isDeleting}
+                  hint="Delete selected issues (admin only)"
+                />
+              </ToolbarItem>
+            )}
             <ToolbarItem
               location="after"
               widget="dxButton"
@@ -707,4 +780,4 @@ const IssueTicketsPage = () => {
   );
 };
 
-export default IssueTicketsPage;
+export default IssueTicketListPage;

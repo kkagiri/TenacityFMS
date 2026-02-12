@@ -3,13 +3,13 @@
  * Purpose: Dynamic filter/parameter form that renders controls based on a report source's
  *          parameter schema. Supports date, lookup (TagBox multi-select), number, and text types.
  * Dependencies: React, DevExtreme (DateBox, TagBox, NumberBox, TextBox), Redux lookups
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  *
  * Key Components:
  * - ReportParameterForm: Renders parameter controls from source definition
  */
 
-import React, { useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DateBox } from 'devextreme-react/date-box';
 import { TagBox } from 'devextreme-react/tag-box';
@@ -21,6 +21,8 @@ import { fetchVehicleTypes } from '../../../redux/actions/vehicleTypeActions';
 import { fetchTanks } from '../../../redux/actions/tankActions';
 import { fetchPTSDeviceList } from '../../../redux/actions/ptsActions/ptsDeviceActions';
 import { fetchSuppliers } from '../../../redux/actions/SupplierActions';
+import { fetchIssueCategories, fetchIssueStatuses } from '../../../redux/actions/issueTrackerActions';
+import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
 
 /**
  * Maps lookupSource keys to Redux state selectors and dispatch actions.
@@ -104,10 +106,41 @@ const LOOKUP_CONFIG = {
         },
         fetchAction: fetchSuppliers,
     },
+    issueCategories: {
+        selector: (state) => {
+            const raw = state.issueTracker?.categories || [];
+            return (Array.isArray(raw) ? raw : []).map((c) => ({
+                id: c.id || c.issueCategoryId,
+                name: c.name || c.categoryName || `Category ${c.id || c.issueCategoryId}`,
+            }));
+        },
+        fetchAction: fetchIssueCategories,
+    },
+    issueStatuses: {
+        selector: (state) => {
+            const raw = state.issueTracker?.statuses || [];
+            return (Array.isArray(raw) ? raw : []).map((s) => ({
+                id: s.id || s.statusId || s.status,
+                name: s.status || s.name || `Status ${s.id || s.statusId || s.status}`,
+            }));
+        },
+        fetchAction: fetchIssueStatuses,
+    },
+    issueTemplates: {
+        selector: () => [],
+        fetcher: async () => {
+            const templates = await issueTrackerV2Service.getTemplates();
+            return (Array.isArray(templates) ? templates : []).map((t) => ({
+                id: t.id || t.issueTemplateId,
+                name: t.name || t.templateName || `Template ${t.id || t.issueTemplateId}`,
+            }));
+        },
+    },
 };
 
 const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) => {
     const dispatch = useDispatch();
+    const [asyncLookupData, setAsyncLookupData] = useState({});
 
     // Collect unique lookup sources needed
     const neededLookups = useMemo(() => {
@@ -122,12 +155,43 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) 
 
     // Dispatch fetch actions for lookup data
     useEffect(() => {
+        let isMounted = true;
+
         neededLookups.forEach((key) => {
             const config = LOOKUP_CONFIG[key];
             if (config?.fetchAction) {
                 dispatch(config.fetchAction());
             }
         });
+
+        const loadAsyncLookups = async () => {
+            const loaded = {};
+
+            for (const key of neededLookups) {
+                const config = LOOKUP_CONFIG[key];
+                if (typeof config?.fetcher !== 'function') {
+                    continue;
+                }
+
+                try {
+                    const data = await config.fetcher();
+                    loaded[key] = Array.isArray(data) ? data : [];
+                } catch (error) {
+                    // Keep form usable even when optional lookup data fails to load.
+                    loaded[key] = [];
+                }
+            }
+
+            if (isMounted) {
+                setAsyncLookupData((prev) => ({ ...prev, ...loaded }));
+            }
+        };
+
+        loadAsyncLookups();
+
+        return () => {
+            isMounted = false;
+        };
     }, [dispatch, neededLookups]);
 
     // Build lookup data object from Redux state (single useSelector call to avoid hook ordering issues)
@@ -154,7 +218,7 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) 
      */
     const getFilteredLookupData = useCallback(
         (param) => {
-            let data = lookupData[param.lookupSource] || [];
+            let data = asyncLookupData[param.lookupSource] || lookupData[param.lookupSource] || [];
 
             if (param.dependsOn && filters[param.dependsOn]) {
                 const depValue = filters[param.dependsOn];
@@ -168,7 +232,7 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) 
 
             return data;
         },
-        [lookupData, filters]
+        [asyncLookupData, lookupData, filters]
     );
 
     const renderControl = useCallback(

@@ -1,3 +1,12 @@
+/**
+ * File: IssueSettingsPage.js
+ * Purpose: Main settings workspace for Issue Tracker configuration tabs
+ * Dependencies: React, Redux, DevExtreme, issue tracker settings components
+ * Last Modified: 2026-02-12
+ *
+ * Key Functions:
+ * - IssueSettingsPage: Hosts category/priority/status/template and system settings tabs
+ */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -16,6 +25,7 @@ import issueTrackerService from '../../../services/issueTrackerService';
 import DeviceTypesSettingsPage from './DeviceTypesSettingsPage';
 import IssueTemplatesSettingsPage from './IssueTemplatesSettingsPage';
 import AlertConfigurationPage from '../../admin/alertConfiguration/AlertConfigurationPage';
+import IssueMonitoringSystemConfigTab from './IssueMonitoringSystemConfigTab';
 
 const SETTINGS_BASE_PATH = '/issue-tracker/settings';
 
@@ -26,6 +36,7 @@ const TAB_CONFIG = [
   { key: 'device-types', text: 'Device Types', icon: 'fa-light fa-microchip', path: 'device-types' },
   { key: 'templates', text: 'Templates', icon: 'fa-light fa-file-lines', path: 'templates' },
   { key: 'alert-config', text: 'Alert Config', icon: 'fa-light fa-bell-exclamation', path: 'alert-config' },
+  { key: 'system-config', text: 'System Config', icon: 'fa-light fa-sliders', path: 'system-config' },
 ];
 
 const IssueSettingsPage = () => {
@@ -497,6 +508,10 @@ const IssueSettingsPage = () => {
         // Alert Configuration
         return <AlertConfigurationPage />;
 
+      case 'system-config':
+        // Issue Monitoring System Configuration
+        return <IssueMonitoringSystemConfigTab />;
+
       default:
         return null;
     }
@@ -528,7 +543,7 @@ const IssueSettingsPage = () => {
                 <div>
                   <h2 className="tw-text-2xl tw-font-semibold">Issue Tracker Configuration</h2>
                   <p className="tw-text-blue-100 tw-mt-1">
-                    Manage categories, priorities, statuses, device types, templates, and alert configuration
+                    Manage categories, priorities, statuses, device types, templates, alert rules, and issue monitoring system settings
                   </p>
                 </div>
                 <Button
@@ -559,8 +574,9 @@ const IssueSettingsPage = () => {
                   Manage Issue {activeTab?.text}
                 </h3>
                 <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-                  Use the DataGrid controls to add, edit, or delete {activeTab?.text?.toLowerCase()}.
-                  Click the "Add" button in the toolbar to create new entries.
+                  {activeTab?.key === 'system-config'
+                    ? 'Update runtime monitoring keys that control automatic issue generation behavior.'
+                    : 'Use the DataGrid controls to add, edit, or delete configuration entries. Click the "Add" button in the toolbar to create new entries.'}
                 </p>
               </div>
               {renderContent()}

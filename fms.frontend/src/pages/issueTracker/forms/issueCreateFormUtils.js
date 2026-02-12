@@ -28,6 +28,7 @@ export const createInitialFormState = (openByUserName, openStatus) => ({
   siteId: null,
   vehicleId: null,
   assignTo: '',
+  assignToUsers: [],
   openBy: openByUserName || 'System',
   statusId: openStatus?.id ?? null,
   statusName: openStatus?.status || openStatus?.name || 'Open',

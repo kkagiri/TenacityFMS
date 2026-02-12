@@ -1,7 +1,7 @@
 /**
  * File: index.js
  * Purpose: Barrel exports for all report source definitions
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  */
 
 export { default as vehicleConsumption } from './vehicleConsumption';
@@ -12,6 +12,7 @@ export { default as deviceOffline } from './deviceOffline';
 export { default as ptsDevice } from './ptsDevice';
 export { default as tankVolumeHistory } from './tankVolumeHistory';
 export { default as consumptionByRefills } from './consumptionByRefills';
+export { default as issueTracker } from './issueTracker';
 
 export {
     getReportSource,

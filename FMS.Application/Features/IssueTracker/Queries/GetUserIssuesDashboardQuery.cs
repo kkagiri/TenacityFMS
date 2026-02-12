@@ -159,9 +159,15 @@ namespace FMS.Application.Features.IssueTracker.Queries
                     .Select(s => s.Id)
                     .ToList();
 
+                var assignedIssueIds = await _context.Issueassignmenttrackers
+                    .Where(a => a.AssignedTo == request.UserId)
+                    .Select(a => a.Issue)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+
                 // Build base query for assigned issues
                 var assignedQuery = _context.Issuetrackers
-                    .Where(i => i.AssignTo == request.UserId);
+                    .Where(i => i.AssignTo == request.UserId || assignedIssueIds.Contains(i.Id));
 
                 // Build base query for issues opened by user
                 var openedByMeQuery = _context.Issuetrackers

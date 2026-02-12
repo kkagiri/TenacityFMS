@@ -2,7 +2,7 @@
  * File: reportDataBuilder.js
  * Purpose: Normalize source API responses into template-ready JSReport payloads.
  * Dependencies: None
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  *
  * Key Functions:
  * - buildJsReportPayload(): Builds a unified payload for JSReport templates.
@@ -563,7 +563,70 @@ const mapTankVolumeHistory = (rawRecords, container) => {
     };
 };
 
-const transformBySource = (sourceId, rawRecords, container) => {
+const mapIssueTracker = (rawRecords, container, queryParams) => {
+    const pageNumber = numberOrZero(getValue(container, ['pageNumber'])) || numberOrZero(queryParams?.pageNumber) || 1;
+    const pageSize = numberOrZero(getValue(container, ['pageSize'])) || numberOrZero(queryParams?.pageSize) || rawRecords.length || 1;
+    const baseRowIndex = Math.max(0, (pageNumber - 1) * pageSize);
+
+    const mapped = rawRecords.map((record, index) => {
+        const issueId = numberOrZero(getValue(record, ['id', 'issueId']));
+        const siteId = numberOrZero(getValue(record, ['siteId']));
+        const vehicleId = numberOrZero(getValue(record, ['vehicleId']));
+        const vehicleHyoungNo = getValue(record, ['vehicleHyoungNo', 'vehicleName']);
+        const vehicleNumber = getValue(record, ['vehicleNumber', 'numberPlate']);
+
+        const resolvedVehicle =
+            normalizeText(vehicleHyoungNo, '') ||
+            normalizeText(vehicleNumber, '') ||
+            (vehicleId > 0 ? `Vehicle #${vehicleId}` : '-');
+
+        return {
+            rowNumber: baseRowIndex + index + 1,
+            issueId: issueId || '-',
+            openDate: formatUtcDateTimeToLocal(getValue(record, ['openDate'])),
+            dueDate: formatUtcDateTimeToLocal(getValue(record, ['dueDate'])),
+            closingDate: formatUtcDateTimeToLocal(getValue(record, ['closingDate'])),
+            siteName: normalizeText(getValue(record, ['siteName']) || (siteId > 0 ? `Site #${siteId}` : '-')),
+            vehicleName: resolvedVehicle,
+            issueTemplateName: normalizeText(getValue(record, ['templateName', 'issueTemplateName']), '-'),
+            statusName: normalizeText(getValue(record, ['statusName']), '-'),
+            categoryName: normalizeText(getValue(record, ['categoryName']), '-'),
+            priorityName: normalizeText(getValue(record, ['priorityName']), '-'),
+            problemTitle: normalizeText(getValue(record, ['problemTitle']), '-'),
+            problemDescription: normalizeText(getValue(record, ['problemDescription']), ''),
+            assignedTo: normalizeText(getValue(record, ['assignToUserName', 'assignedToUserName']), '-'),
+            openedBy: normalizeText(getValue(record, ['openbyUserName', 'openedByUserName']), '-'),
+            isAutoCreated: Boolean(getValue(record, ['isAutoCreated'])),
+            canAutoClose: Boolean(getValue(record, ['canAutoClose'])),
+        };
+    });
+
+    const totalIssues = numberOrZero(getValue(container, ['totalRecords'])) || mapped.length;
+    const closedIssues = numberOrZero(getValue(container, ['closedIssues'])) ||
+        mapped.filter((row) => /closed|resolved|complete/i.test(row.statusName)).length;
+    const openIssues = numberOrZero(getValue(container, ['openIssues'])) ||
+        Math.max(0, totalIssues - closedIssues);
+    const autoCreatedIssues = numberOrZero(getValue(container, ['autoCreatedIssues'])) ||
+        mapped.filter((row) => row.isAutoCreated).length;
+    const totalPages = numberOrZero(getValue(container, ['totalPages'])) ||
+        Math.ceil(totalIssues / Math.max(pageSize, 1));
+
+    return {
+        records: mapped,
+        summary: {
+            totalRecords: totalIssues,
+            totalIssues,
+            openIssues,
+            closedIssues,
+            autoCreatedIssues,
+            pageNumber,
+            pageSize,
+            totalPages,
+        },
+    };
+};
+
+const transformBySource = (sourceId, rawRecords, container, queryParams) => {
     switch (sourceId) {
         case 'fuel-refill':
             return mapFuelRefill(rawRecords);
@@ -579,6 +642,8 @@ const transformBySource = (sourceId, rawRecords, container) => {
             return mapPtsDevice(rawRecords);
         case 'tank-volume-history':
             return mapTankVolumeHistory(rawRecords, container);
+        case 'issue-tracker':
+            return mapIssueTracker(rawRecords, container, queryParams);
         default:
             return {
                 records: mapDefaultRecords(rawRecords),
@@ -602,7 +667,7 @@ const buildReportIdentity = (sourceName) => {
 
 export const buildJsReportPayload = ({ sourceId, sourceName, apiResponse, queryParams = {} }) => {
     const { records: rawRecords, container } = unwrapApiRecords(apiResponse);
-    const transformed = transformBySource(sourceId, rawRecords, container);
+    const transformed = transformBySource(sourceId, rawRecords, container, queryParams);
     const records = transformed.records || [];
     const identity = buildReportIdentity(sourceName);
     const dateAliases = buildDateAliases(queryParams, container);

@@ -958,10 +958,10 @@ namespace FMS.WebClient.Controllers
             }
         }
 
-        // ===== CLOSE ISSUE (APPROVER ONLY) =====
+        // ===== CLOSE ISSUE =====
 
         /// <summary>
-        /// Close an issue. Requires approver permission (the closer cannot be the assignee).
+        /// Close an issue. Requires Approve permission.
         /// </summary>
         [HttpPost("{id}/close")]
         [Authorize]

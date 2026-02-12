@@ -17,7 +17,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         public int IssueId { get; set; }
 
         /// <summary>
-        /// User ID of the person approving/closing (must NOT be the assignee)
+        /// User ID of the person closing the issue (must have Approve permission)
         /// </summary>
         public string ClosedByUserId { get; set; } = null!;
 

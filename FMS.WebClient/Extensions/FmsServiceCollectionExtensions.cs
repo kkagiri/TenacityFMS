@@ -49,6 +49,7 @@ using FMS.Application.Features.TankManagement.DailyTankReconciliation.Queries;
 using FMS.BackgroundServices.FMS;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
+using FMS.WebClient.Services.SignalR;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
@@ -534,6 +535,9 @@ public static class FmsServiceCollectionExtensions
         // DEAD CODE: OdometerSyncBackgroundService temporarily disabled (2026-01-28)
         // services.AddHostedService<FMS.BackgroundServices.VehicleMaintenance.OdometerSyncBackgroundService>();
         services.AddHostedService<FMS.BackgroundServices.Dashboard.LiveDataBroadcastService>();
+
+        // Tank measurement real-time broadcast (FrontEndHub)
+        services.AddHostedService<TankMeasurementBroadcastService>();
 
         // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
         services.AddHostedService<GPSGateVehicleLocationTagMonitoringService>();

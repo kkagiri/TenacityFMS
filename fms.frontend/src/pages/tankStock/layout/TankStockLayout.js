@@ -34,6 +34,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
         showFilters: true,
         showUserFilter: false // Can be true for specific tabs
       };
+    } else if (pathname.includes('/automatic-tank-stock')) {
+      return {
+        title: 'Automatic Tank Stock',
+        subtitle: 'PTS-driven pump transactions and in-tank deliveries',
+        showFilters: true,
+        showUserFilter: false
+      };
     } else if (pathname.includes('/stock-analytics')) {
       return {
         title: 'Stock Analytics',
@@ -115,6 +122,13 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
       title: 'Stock Management',
       icon: 'fa-light fa-tank-water',
       path: tankStockRoutes.stockManagement,
+      badge: null,
+    },
+    {
+      id: 'automaticTankStock',
+      title: 'Automatic Tank Stock',
+      icon: 'fa-light fa-satellite-dish',
+      path: tankStockRoutes.automaticTankStock,
       badge: null,
     },
     {

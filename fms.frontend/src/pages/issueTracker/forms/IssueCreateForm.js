@@ -36,6 +36,20 @@ import {
 import issueTrackerService from '../../../services/issueTrackerService';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
 
+const pad2 = (value) => String(value).padStart(2, '0');
+const toDateTimeLocalValue = (value) => {
+  if (!(value instanceof Date) || Number.isNaN(value.getTime())) {
+    return '';
+  }
+
+  const year = value.getFullYear();
+  const month = pad2(value.getMonth() + 1);
+  const day = pad2(value.getDate());
+  const hours = pad2(value.getHours());
+  const minutes = pad2(value.getMinutes());
+  return `${year}-${month}-${day}T${hours}:${minutes}`;
+};
+
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -339,9 +353,9 @@ const IssueCreateForm = ({ onSubmit = null }) => {
     hasDescription: descriptionLength >= 15,
     hasLocation: Boolean(formData.siteId),
     hasVehicle: Boolean(formData.vehicleId),
-    hasAssignedTo: Boolean(formData.assignTo),
+    hasAssignedTo: Array.isArray(formData.assignToUsers) && formData.assignToUsers.length > 0,
     hasStatus: Boolean(formData.statusId)
-  }), [categoryIds.length, descriptionLength, formData.assignTo, formData.deviceTypeId, formData.issueTemplateId, formData.siteId, formData.statusId, formData.vehicleId, titleLength]);
+  }), [categoryIds.length, descriptionLength, formData.assignToUsers, formData.deviceTypeId, formData.issueTemplateId, formData.siteId, formData.statusId, formData.vehicleId, titleLength]);
 
   const isReadyToSubmit = (
     validationState.hasDeviceType &&
@@ -412,7 +426,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
       Vehicle: formData.vehicleId,
       Device: null,
       DeviceType: formData.deviceTypeId,
-      AssignTo: formData.assignTo
+      AssignTo: (formData.assignToUsers || []).join(',')
     };
 
     try {
@@ -783,10 +797,10 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
           <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Assign To <span className="tw-text-red-500">*</span>
+              Assign To (Multiple) <span className="tw-text-red-500">*</span>
             </label>
-            <SelectBox
-              value={formData.assignTo}
+            <TagBox
+              value={formData.assignToUsers || []}
               dataSource={users.map(user => ({
                 id: user.id,
                 userName: getUserName(user),
@@ -795,13 +809,19 @@ const IssueCreateForm = ({ onSubmit = null }) => {
               }))}
               displayExpr="displayName"
               valueExpr="userName"
-              placeholder="Select user..."
+              placeholder="Select one or more users..."
               searchEnabled={true}
               searchExpr={['userName', 'email']}
-              onValueChanged={(e) => handleFieldChange('assignTo', e.value)}
+              showSelectionControls={true}
+              applyValueMode="useButtons"
+              onValueChanged={(e) => {
+                const selectedUsers = e.value || [];
+                handleFieldChange('assignToUsers', selectedUsers);
+                handleFieldChange('assignTo', selectedUsers[0] || '');
+              }}
             />
             {attemptedSubmit && !validationState.hasAssignedTo && (
-              <p className="tw-text-xs tw-text-red-500 tw-mt-1">Assignee is required</p>
+              <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one assignee is required</p>
             )}
           </div>
         </div>
@@ -813,7 +833,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             Timeline
           </h2>
 
-          <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 tw-gap-4 tw-mb-4">
+          <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-mb-4">
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Opened By</label>
               <input
@@ -832,6 +852,20 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                 readOnly
                 className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
               />
+            </div>
+
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Open Date</label>
+              <input
+                type="datetime-local"
+                value={toDateTimeLocalValue(formData.openDate)}
+                onChange={(e) => {
+                  const nextValue = e.target.value ? new Date(e.target.value) : null;
+                  handleFieldChange('openDate', nextValue);
+                }}
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+              />
+              <p className="tw-text-xs tw-text-gray-400 tw-mt-1">This sets the issue creation time used in reports and timelines.</p>
             </div>
 
             <div>

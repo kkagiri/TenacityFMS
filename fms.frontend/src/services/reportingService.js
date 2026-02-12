@@ -2,7 +2,7 @@
  * File: reportingService.js
  * Purpose: Central reporting API client for DevExtreme and JsReport operations
  * Dependencies: axiosInstance
- * Last Modified: 2026-02-07
+ * Last Modified: 2026-02-12
  *
  * Key Functions:
  * - generateReport(): Generate DevExtreme reports
@@ -712,11 +712,18 @@ class ReportingService {
    */
   async generatePumpTransactionReport(filters) {
     try {
+      const format = (filters.format || 'pdf').toLowerCase();
       const response = await axiosInstance.post('/ReportGenerator/pump-transactions', filters, {
-        responseType: 'blob'
+        responseType: format === 'html' ? 'text' : 'blob'
       });
 
-      const format = filters.format || 'pdf';
+      if (format === 'html') {
+        return {
+          success: true,
+          html: typeof response.data === 'string' ? response.data : ''
+        };
+      }
+
       const extension = format === 'excel' ? 'xlsx' : format;
       const contentType = format === 'excel'
         ? 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
@@ -730,9 +737,13 @@ class ReportingService {
       };
     } catch (error) {
       console.error('Error generating pump transaction report:', error);
+      const message = await this.extractReportErrorMessage(
+        error,
+        'Failed to generate pump transaction report'
+      );
       return {
         success: false,
-        error: error.response?.data?.message || error.message
+        error: message
       };
     }
   }

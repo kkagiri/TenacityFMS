@@ -153,6 +153,11 @@ const TransactionHistoryScreen = ({ navigation }) => {
     processedOnly: null,
   });
 
+  const normalizeId = (value) => {
+    if (value === null || value === undefined || value === "") return null;
+    return String(value);
+  };
+
   // Build filter options from loaded transaction data
   const filterOptions = useMemo(() => {
     if (!transactions || transactions.length === 0) {
@@ -219,29 +224,39 @@ const TransactionHistoryScreen = ({ navigation }) => {
 
     // Filter by vehicle
     if (clientFilters.vehicleId) {
+      const selectedVehicleId = normalizeId(clientFilters.vehicleId);
       filtered = filtered.filter(
-        (t) => t.vehicleId === clientFilters.vehicleId
+        (t) => normalizeId(t.vehicleId) === selectedVehicleId
       );
     }
 
     // Filter by PTS device
     if (clientFilters.ptsId) {
-      filtered = filtered.filter((t) => t.ptsId === clientFilters.ptsId);
+      const selectedPtsId = normalizeId(clientFilters.ptsId);
+      filtered = filtered.filter((t) => normalizeId(t.ptsId) === selectedPtsId);
     }
 
     // Filter by tank
     if (clientFilters.tankId) {
-      filtered = filtered.filter((t) => t.tankId === clientFilters.tankId);
+      const selectedTankId = normalizeId(clientFilters.tankId);
+      filtered = filtered.filter((t) => normalizeId(t.tankId) === selectedTankId);
     }
 
     // Filter by site
     if (clientFilters.siteId) {
-      filtered = filtered.filter((t) => t.siteId === clientFilters.siteId);
+      const selectedSiteId = normalizeId(clientFilters.siteId);
+      filtered = filtered.filter((t) => normalizeId(t.siteId) === selectedSiteId);
     }
 
     // Filter by user (fueledBy)
     if (clientFilters.userId) {
-      filtered = filtered.filter((t) => t.fueledBy === clientFilters.userId);
+      const selectedUserId = normalizeId(clientFilters.userId);
+      filtered = filtered.filter(
+        (t) =>
+          normalizeId(t.fueledBy) === selectedUserId ||
+          normalizeId(t.fueledByUserId) === selectedUserId ||
+          normalizeId(t.userId) === selectedUserId
+      );
     }
 
     // Filter by processing status
@@ -265,6 +280,33 @@ const TransactionHistoryScreen = ({ navigation }) => {
       clientFilters.processedOnly !== null
     );
   }, [clientFilters]);
+
+  const summaryMetrics = useMemo(() => {
+    const serverTotalTransactions = Number(
+      summary?.totalTransactions ?? summary?.transactionCount ?? transactions.length ?? 0
+    );
+    const serverTotalVolume = Number(summary?.totalVolume ?? 0);
+
+    const filteredCount = filteredTransactions.length;
+    const filteredVolume = filteredTransactions.reduce(
+      (sum, item) => sum + Number(item?.volume || 0),
+      0
+    );
+
+    if (hasActiveClientFilters) {
+      return {
+        count: filteredCount,
+        volume: filteredVolume,
+        totalLoaded: transactions.length,
+      };
+    }
+
+    return {
+      count: serverTotalTransactions,
+      volume: serverTotalVolume,
+      totalLoaded: transactions.length,
+    };
+  }, [filteredTransactions, hasActiveClientFilters, summary, transactions.length]);
 
   // Reset client filters
   const handleClearClientFilters = () => {
@@ -852,14 +894,6 @@ const TransactionHistoryScreen = ({ navigation }) => {
   };
 
   const renderSummaryCard = () => {
-    // Calculate filtered summary (inline, not useMemo since we can't use hooks inside render functions)
-    const filtered = filteredTransactions || [];
-    const filteredCount = filtered.length;
-    const filteredVolume = filtered.reduce(
-      (sum, t) => sum + (t.volume || 0),
-      0
-    );
-
     // Get current date range from filters
     const startDateDisplay = formatDisplayDate(filters.startDate);
     const endDateDisplay = formatDisplayDate(filters.endDate);
@@ -890,11 +924,11 @@ const TransactionHistoryScreen = ({ navigation }) => {
                 : "Total Transactions"}
             </Text>
             <Text style={styles.summaryValue}>
-              {filteredCount}
+              {summaryMetrics.count}
               {hasActiveClientFilters && (
                 <Text style={styles.summarySubValue}>
                   {" "}
-                  / {transactions.length}
+                  / {summaryMetrics.totalLoaded}
                 </Text>
               )}
             </Text>
@@ -904,7 +938,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
               {hasActiveClientFilters ? "Filtered Volume" : "Total Volume"}
             </Text>
             <Text style={styles.summaryValue}>
-              {formatVolume(filteredVolume)}
+              {formatVolume(summaryMetrics.volume)}
             </Text>
           </View>
         </View>

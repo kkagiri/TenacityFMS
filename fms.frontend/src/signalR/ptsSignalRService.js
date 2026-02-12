@@ -585,6 +585,17 @@ class PTSSignalRService {
       }
     });
 
+    // Tank measurement updates (broadcast from backend PTSHub)
+    registerEvent(
+      "TankMeasurementUpdate",
+      (data) => {
+        if (data) {
+          this.notifyListeners("tankMeasurementUpdate", data);
+        }
+      },
+      0
+    );
+
     // Fueling events
     registerEvent("FuelingEvent", (data) => {
       if (data?.deviceId) {

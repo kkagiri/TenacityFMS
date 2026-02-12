@@ -57,12 +57,11 @@ namespace FMS.Persistence.EntityConfigurations
                 .HasColumnName("notify_by_push")
                 .HasDefaultValue(true);
 
-            // Relationships
-            builder.HasOne(e => e.Issue)
-                .WithMany()
-                .HasForeignKey(e => e.IssueId)
-                .OnDelete(DeleteBehavior.Cascade)
-                .HasConstraintName("fk_issue_follower_issue");
+            // Navigation properties are [NotMapped] on the entity,
+            // so we must Ignore them explicitly to avoid conflict,
+            // and define the FK constraint at the column level only.
+            builder.Ignore(e => e.Issue);
+            builder.Ignore(e => e.User);
         }
     }
 }

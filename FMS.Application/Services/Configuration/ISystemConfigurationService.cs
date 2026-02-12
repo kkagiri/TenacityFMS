@@ -268,6 +268,11 @@ namespace FMS.Application.Services.Configuration
         Task<int> GetItdAlertAutoResolveMinutesAsync(CancellationToken cancellationToken = default);
         #endregion
 
+        #region Tank Measurement Configuration
+        Task<int> GetTankMeasurementRetentionDaysAsync(CancellationToken cancellationToken = default);
+        Task<int> GetTankMeasurementSignalRPushIntervalSecondsAsync(CancellationToken cancellationToken = default);
+        #endregion
+
         #region Generic Configuration Access
         /// <summary>
         /// Gets a decimal configuration value by key with a default fallback.

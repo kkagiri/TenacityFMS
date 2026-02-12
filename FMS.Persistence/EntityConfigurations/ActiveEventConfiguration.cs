@@ -127,6 +127,11 @@ namespace FMS.Persistence.EntityConfigurations
             // does not yet have an ActiveEventId FK column. This prevents EF from
             // creating a shadow property that fails at query time.
             builder.Ignore(e => e.IssueTrackers);
+
+            // Ignore Notifications navigation for now — the notification table
+            // does not yet have an ActiveEventId FK column in current deployments.
+            // Without this, EF creates a shadow FK and generates INSERTs that fail.
+            builder.Ignore(e => e.Notifications);
         }
     }
 }

@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -28,15 +29,26 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     /// </summary>
     public class GPSGateLocationService : IGPSGateLocationService
     {
+        private sealed class StalePositionLogState
+        {
+            public DateTime LastLoggedAtUtc { get; set; }
+            public int SuppressedCount { get; set; }
+        }
+
         private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateLocationService> _logger;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
 
+        // Per-vehicle stale-position warning throttling state (shared across service instances)
+        private static readonly ConcurrentDictionary<int, StalePositionLogState> StalePositionLogStates = new();
+
         // Configuration thresholds
         private static readonly TimeSpan InvalidGpsActivityThreshold = TimeSpan.FromHours(2);
         private static readonly TimeSpan StaleDeviceThreshold = TimeSpan.FromDays(30); // 1 month
         private static readonly TimeSpan StalePositionThreshold = TimeSpan.FromHours(24); // Position older than 24 hours is stale
+        private static readonly TimeSpan StalePositionLogThrottleWindow = TimeSpan.FromMinutes(30);
+        private static readonly TimeSpan StalePositionLogStateRetention = TimeSpan.FromHours(12);
 
         public GPSGateLocationService(
             IDbContextFactory<GpsdataContext> contextFactory,
@@ -192,7 +204,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     deviceActivity,
                     positionTimestamp,
                     vehicleId,
-                    gpsGateUserId);
+                    gpsGateUserId,
+                    "SingleVehicleLocation");
 
                 // Step 9: Build the location DTO
                 var locationDto = new VehicleLocationDTO
@@ -259,7 +272,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             DateTime? deviceActivity,
             DateTime? positionTimestamp,
             int vehicleId,
-            int gpsGateUserId)
+            int gpsGateUserId,
+            string validationSource)
         {
             var now = DateTime.UtcNow;
 
@@ -271,10 +285,21 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 var positionAge = now - positionTimestamp.Value;
                 if (positionAge > StalePositionThreshold)
                 {
-                    _logger.LogWarning(
-                        "⚠️ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS POSITION IS STALE - Position timestamp: {PositionTime} ({Age} old). " +
-                        "GPS device may be offline or malfunctioning. FUELING ALLOWED (treated as faulty GPS) but logged for review.",
-                        vehicleId, gpsGateUserId, positionTimestamp.Value, FormatTimeSpan(positionAge));
+                    if (ShouldLogStalePositionWarning(vehicleId, now, out var suppressedSinceLastWarning))
+                    {
+                        _logger.LogWarning(
+                            "⚠️ [{Source}] Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS POSITION IS STALE - Position timestamp: {PositionTime} ({Age} old). " +
+                            "GPS device may be offline or malfunctioning. FUELING ALLOWED (treated as faulty GPS) but logged for review. " +
+                            "SuppressedDuplicatesSinceLastWarning: {SuppressedCount}",
+                            validationSource,
+                            vehicleId,
+                            gpsGateUserId,
+                            positionTimestamp.Value,
+                            FormatTimeSpan(positionAge),
+                            suppressedSinceLastWarning);
+
+                        CleanupExpiredStalePositionLogStates(now);
+                    }
 
                     return (GPSValidationStatus.StalePositionBypassed,
                         $"GPS position is stale ({FormatTimeSpan(positionAge)} old, at {positionTimestamp.Value:yyyy-MM-dd HH:mm:ss} UTC). " +
@@ -284,7 +309,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             else
             {
                 // No position timestamp available - this is suspicious
-                _logger.LogWarning("Vehicle {VehicleId} (GPSGate {GpsUserId}): No position timestamp available - cannot verify position freshness",
+                _logger.LogDebug("Vehicle {VehicleId} (GPSGate {GpsUserId}): No position timestamp available - cannot verify position freshness",
                     vehicleId, gpsGateUserId);
             }
 
@@ -299,7 +324,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 else
                 {
                     // GPS invalid and no activity timestamp - can't trust it
-                    _logger.LogWarning("Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS invalid with no device activity timestamp",
+                    _logger.LogDebug("Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS invalid with no device activity timestamp",
                         vehicleId, gpsGateUserId);
                     return (GPSValidationStatus.InvalidAndStale, "GPS position is invalid and device activity time is unknown");
                 }
@@ -312,7 +337,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 // GPS is valid - check if device is stale (older than 1 month)
                 if (timeSinceActivity > StaleDeviceThreshold)
                 {
-                    _logger.LogWarning(
+                    _logger.LogDebug(
                         "⚠️ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is VALID but device activity is STALE ({Days} days old). " +
                         "BLOCKING FUELING and requiring notification.",
                         vehicleId, gpsGateUserId, timeSinceActivity.TotalDays);
@@ -342,7 +367,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 }
                 else
                 {
-                    _logger.LogWarning(
+                    _logger.LogDebug(
                         "❌ Vehicle {VehicleId} (GPSGate {GpsUserId}): GPS is INVALID and device activity is too old ({Hours} hours). " +
                         "BLOCKING FUELING.",
                         vehicleId, gpsGateUserId, timeSinceActivity.TotalHours);
@@ -479,7 +504,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             deviceActivity,
                             positionTimestamp,
                             vehicle.VehicleId,
-                            int.TryParse(mapping?.ExternalDeviceId, out int gpsId) ? gpsId : 0);
+                            int.TryParse(mapping?.ExternalDeviceId, out int gpsId) ? gpsId : 0,
+                            "BulkVehicleLocations");
 
                         var location = new VehicleLocationDTO
                         {
@@ -933,6 +959,50 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             else
             {
                 return $"{(int)timeSpan.TotalSeconds} seconds";
+            }
+        }
+
+        private static bool ShouldLogStalePositionWarning(int vehicleId, DateTime nowUtc, out int suppressedSinceLastWarning)
+        {
+            var state = StalePositionLogStates.GetOrAdd(vehicleId, _ => new StalePositionLogState
+            {
+                LastLoggedAtUtc = DateTime.MinValue,
+                SuppressedCount = 0
+            });
+
+            lock (state)
+            {
+                if (state.LastLoggedAtUtc == DateTime.MinValue || nowUtc - state.LastLoggedAtUtc >= StalePositionLogThrottleWindow)
+                {
+                    suppressedSinceLastWarning = state.SuppressedCount;
+                    state.LastLoggedAtUtc = nowUtc;
+                    state.SuppressedCount = 0;
+                    return true;
+                }
+
+                state.SuppressedCount++;
+                suppressedSinceLastWarning = state.SuppressedCount;
+                return false;
+            }
+        }
+
+        private static void CleanupExpiredStalePositionLogStates(DateTime nowUtc)
+        {
+            foreach (var kvp in StalePositionLogStates)
+            {
+                var state = kvp.Value;
+                var shouldRemove = false;
+
+                lock (state)
+                {
+                    shouldRemove = nowUtc - state.LastLoggedAtUtc > StalePositionLogStateRetention
+                                   && state.SuppressedCount == 0;
+                }
+
+                if (shouldRemove)
+                {
+                    StalePositionLogStates.TryRemove(kvp.Key, out _);
+                }
             }
         }
 

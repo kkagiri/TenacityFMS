@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Features.FMS.Issuetracker;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -33,7 +36,7 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
 
             // Resolve usernames to user IDs before mapping
             string? openbyUserId = null;
-            string? assignToUserId = null;
+            var assignToUsers = new List<User> ();
 
             // Find user by username for Openby field
             if (!string.IsNullOrEmpty (request.IssueTracker.Openby)) {
@@ -46,16 +49,30 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
                 }
             }
 
-            // Find user by username for AssignTo field
-            if (!string.IsNullOrEmpty (request.IssueTracker.AssignTo)) {
-                var assignToUser = await _context.Users
-                    .FirstOrDefaultAsync (u => u.UserName == request.IssueTracker.AssignTo, cancellationToken);
-                if (assignToUser != null) {
-                    assignToUserId = assignToUser.Id;
-                } else {
-                    throw new Exception ($"User '{request.IssueTracker.AssignTo}' not found");
+            // Find users by username(s) for AssignTo field
+            var requestedAssignees = ParseAssignees (request.IssueTracker.AssignTo);
+            if (requestedAssignees.Count > 0) {
+                assignToUsers = await _context.Users
+                    .Where (u => requestedAssignees.Contains (u.UserName))
+                    .ToListAsync (cancellationToken);
+
+                var foundUserNames = assignToUsers
+                    .Select (u => u.UserName)
+                    .Where (userName => !string.IsNullOrWhiteSpace (userName))
+                    .ToHashSet (StringComparer.OrdinalIgnoreCase);
+
+                var missingAssignees = requestedAssignees
+                    .Where (assignee => !foundUserNames.Contains (assignee))
+                    .ToList ();
+
+                if (missingAssignees.Count > 0) {
+                    throw new Exception ($"Assignee(s) not found: {string.Join (", ", missingAssignees)}");
                 }
             }
+
+            var primaryAssigneeId = assignToUsers.Count > 0
+                ? assignToUsers[0].Id
+                : null;
 
             // Manually map DTO to Entity with resolved user IDs
             entity.IssueCategoryId = request.IssueTracker.IssueCategory;
@@ -76,9 +93,17 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
             entity.DeviceType = request.IssueTracker.DeviceType;
             entity.CanAutoClose = request.IssueTracker.CanAutoClose ?? entity.CanAutoClose;
             entity.IsAutoCreated = request.IssueTracker.IsAutoCreated ?? entity.IsAutoCreated;
-            entity.AssignTo = assignToUserId ?? entity.AssignTo;
+            entity.AssignTo = primaryAssigneeId ?? entity.AssignTo;
 
             await _context.SaveChangesAsync (cancellationToken);
+
+            if (assignToUsers.Count > 0) {
+                await PersistIssueAssigneesAsync (
+                    entity.Id,
+                    openbyUserId ?? entity.Openby,
+                    assignToUsers,
+                    cancellationToken);
+            }
 
             _logger.LogInformation ("Issue with ID: {Id} updated", entity.Id);
 
@@ -87,5 +112,56 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
             _logger.LogError ("An error occured while updating issue with ID: {Id}", request.IssueTracker.Id);
             throw new Exception (ex.Message);
         }
+    }
+
+    private async Task PersistIssueAssigneesAsync (
+        int issueId,
+        string assignedFromUserId,
+        List<User> assignees,
+        CancellationToken cancellationToken) {
+        var existingRows = await _context.Issueassignmenttrackers
+            .Where (row => row.Issue == issueId)
+            .ToListAsync (cancellationToken);
+
+        if (existingRows.Count > 0) {
+            _context.Issueassignmenttrackers.RemoveRange (existingRows);
+            await _context.SaveChangesAsync (cancellationToken);
+        }
+
+        var startId = await _context.Issueassignmenttrackers
+            .Select (row => (int?) row.Id)
+            .MaxAsync (cancellationToken) ?? 0;
+
+        var nextId = startId;
+        var rows = assignees
+            .Where (user => !string.IsNullOrWhiteSpace (user.Id))
+            .Select (user => new Issueassignmenttracker {
+                Id = ++nextId,
+                Issue = issueId,
+                AssignedFrom = assignedFromUserId,
+                AssignedTo = user.Id,
+                AssignedDate = DateTime.UtcNow
+            })
+            .ToList ();
+
+        if (rows.Count == 0) {
+            return;
+        }
+
+        await _context.Issueassignmenttrackers.AddRangeAsync (rows, cancellationToken);
+        await _context.SaveChangesAsync (cancellationToken);
+    }
+
+    private static List<string> ParseAssignees (string? assignToValue) {
+        if (string.IsNullOrWhiteSpace (assignToValue)) {
+            return new List<string> ();
+        }
+
+        return assignToValue
+            .Split (new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+            .Select (userName => userName.Trim ())
+            .Where (userName => !string.IsNullOrWhiteSpace (userName))
+            .Distinct (StringComparer.OrdinalIgnoreCase)
+            .ToList ();
     }
 }

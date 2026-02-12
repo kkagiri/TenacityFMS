@@ -42,6 +42,8 @@ namespace FMS.Application.Features.FMS.Issuetracker
         public string AssignToId { get; set; } = string.Empty;
         public string AssignToUserName { get; set; } = string.Empty;
         public string AssignToEmail { get; set; } = string.Empty;
+        public string AssignToIds { get; set; } = string.Empty;
+        public string AssignToUserNames { get; set; } = string.Empty;
 
         // Device information (optional)
         public int? DeviceId { get; set; }
@@ -53,5 +55,9 @@ namespace FMS.Application.Features.FMS.Issuetracker
         public string? TemplateName { get; set; }
         public bool CanAutoClose { get; set; }
         public bool IsAutoCreated { get; set; }
+
+        // Notes fields
+        public string? CompletionNotes { get; set; }
+        public string? ClosingNotes { get; set; }
     }
 }

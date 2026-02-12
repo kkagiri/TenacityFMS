@@ -18,6 +18,7 @@ import { Button } from 'devextreme-react/button';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Tabs from 'devextreme-react/tabs';
 import notify from 'devextreme/ui/notify';
+import { saveAs } from 'file-saver';
 import issueTrackerService from '../../services/issueTrackerService';
 import IssuePriorityBadge from './components/IssuePriorityBadge';
 import IssueStatusIndicator from './components/IssueStatusIndicator';
@@ -25,9 +26,13 @@ import IssueActivityStream from './components/IssueActivityStream';
 import IssueActivityHeatmap from './components/IssueActivityHeatmap';
 import LinkedIssuesGrid from './components/LinkedIssuesGrid';
 import IssuePrintPopup from './components/IssuePrintPopup';
+import IssueActionPopup from './components/IssueActionPopup';
+import { normalizeIssueDisplay } from './utils/issueDisplayUtils';
+import { usePermissions } from '../../hooks/usePermissions';
 import './styles/IssueTrackerDetailPage.scss';
 
 const ATTACHMENT_CATEGORIES = ['Installation', 'Calibration', 'General'];
+const ISSUE_DELETE_PERMISSION = '_Delete_Issues';
 
 const parseDateSafe = (value) => {
   if (!value) {
@@ -121,6 +126,8 @@ const normalizeLookupResponse = (response) => {
 const IssueTrackerDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { hasRole, hasPermission } = usePermissions();
+  const canDeleteIssue = hasRole('Admin') || hasPermission(ISSUE_DELETE_PERMISSION);
 
   const [loading, setLoading] = useState(true);
   const [issue, setIssue] = useState(null);
@@ -141,12 +148,19 @@ const IssueTrackerDetailPage = () => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [isFollowLoading, setIsFollowLoading] = useState(false);
 
+  // Action popup states
+  const [showCompletePopup, setShowCompletePopup] = useState(false);
+  const [showClosePopup, setShowClosePopup] = useState(false);
+
   // Attachment states
   const [attachments, setAttachments] = useState([]);
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [uploadCategory, setUploadCategory] = useState('General');
   const [isUploading, setIsUploading] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
+  const [downloadingAttachmentId, setDownloadingAttachmentId] = useState(null);
+
+  const displayIssue = useMemo(() => normalizeIssueDisplay(issue), [issue]);
 
   const initializeEditData = (issueData) => {
     if (!issueData) {
@@ -229,9 +243,9 @@ const IssueTrackerDetailPage = () => {
       return;
     }
 
-    if (!editData.problemTitle.trim() || !editData.problemDescription.trim()) {
+    if (!editData.problemTitle.trim()) {
       notify({
-        message: 'Title and description are required.',
+        message: 'Title is required.',
         type: 'warning',
         displayTime: 3000
       });
@@ -431,7 +445,7 @@ const IssueTrackerDetailPage = () => {
     }
   }, [activityRefreshFn]);
 
-  const handleQuickMarkComplete = async () => {
+  const handleQuickMarkComplete = async (notes) => {
     if (!completeStatusOption) {
       notify({
         message: 'No complete/closed status configured.',
@@ -444,11 +458,12 @@ const IssueTrackerDetailPage = () => {
     try {
       setIsSaving(true);
       // Use new quick action API that sends notification to issue opener
-      await issueTrackerService.markIssueComplete(issue.id);
+      await issueTrackerService.markIssueComplete(issue.id, notes || null);
       const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
       setIssue(refreshedIssue);
       initializeEditData(refreshedIssue);
       setIsEditMode(false);
+      setShowCompletePopup(false);
       refreshActivityStream();
     } catch (error) {
       console.error(`Error marking issue ${issue.id} as complete:`, error);
@@ -546,11 +561,23 @@ const IssueTrackerDetailPage = () => {
     }
   };
 
-  // ===== CLOSE ISSUE (APPROVER) =====
-  const handleCloseIssue = async () => {
-    const notes = window.prompt('Enter closing/approval notes (optional):');
-    if (notes === null) return; // user cancelled
+  const handleDownloadAttachment = async (attachment) => {
+    if (!attachment?.id) return;
 
+    try {
+      setDownloadingAttachmentId(attachment.id);
+      const result = await issueTrackerService.downloadAttachment(id, attachment.id);
+      const fileName = result?.fileName || attachment.fileName || `attachment-${attachment.id}`;
+      saveAs(result.blob, fileName);
+    } catch (err) {
+      notify({ message: err?.message || 'Failed to download attachment.', type: 'error', displayTime: 3000 });
+    } finally {
+      setDownloadingAttachmentId(null);
+    }
+  };
+
+  // ===== CLOSE ISSUE =====
+  const handleCloseIssue = async (notes) => {
     setIsClosing(true);
     try {
       await issueTrackerService.closeIssue(issue.id, notes || null);
@@ -558,11 +585,37 @@ const IssueTrackerDetailPage = () => {
       setIssue(refreshedIssue);
       initializeEditData(refreshedIssue);
       setIsEditMode(false);
+      setShowClosePopup(false);
       refreshActivityStream();
     } catch (_) {
       // Error notification is handled inside issueTrackerService.closeIssue
     } finally {
       setIsClosing(false);
+    }
+  };
+
+  const handleDeleteIssue = async () => {
+    if (!issue?.id) {
+      return;
+    }
+
+    const shouldDelete = window.confirm(`Are you sure you want to delete issue #${issue.id}? This action cannot be undone.`);
+    if (!shouldDelete) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      await issueTrackerService.deleteIssue(issue.id);
+      navigate('/issue-tracker/tickets');
+    } catch (error) {
+      notify({
+        message: error?.message || 'Unable to delete issue.',
+        type: 'error',
+        displayTime: 3000
+      });
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -631,7 +684,7 @@ const IssueTrackerDetailPage = () => {
 
           <div className="issue-tracker-detail-page__title-slot">
             <p className="tw-text-sm tw-text-gray-500">Issue #{issue.id}</p>
-            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">{issue.problemTitle || 'Untitled Issue'}</h1>
+            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">{displayIssue?.problemTitle || issue.problemTitle || 'Untitled Issue'}</h1>
             <div className="issue-tracker-detail-page__follow-row">
               <Button
                 icon={isFollowing ? 'fa-light fa-bell-on' : 'fa-light fa-bell'}
@@ -673,7 +726,7 @@ const IssueTrackerDetailPage = () => {
                 icon="fa-light fa-circle-check"
                 stylingMode="outlined"
                 type="default"
-                onClick={handleQuickMarkComplete}
+                onClick={() => setShowCompletePopup(true)}
                 disabled={isSaving || isAlreadyComplete}
                 className="user-details__action-btn"
               />
@@ -688,13 +741,13 @@ const IssueTrackerDetailPage = () => {
               />
               {!isAlreadyComplete && (
                 <Button
-                  text={isClosing ? 'Closing...' : 'Close Issue (Approver)'}
+                  text={isClosing ? 'Closing...' : 'Close Issue'}
                   icon="fa-light fa-lock"
                   stylingMode="outlined"
                   type="default"
-                  onClick={handleCloseIssue}
+                  onClick={() => setShowClosePopup(true)}
                   disabled={isSaving || isClosing || isAlreadyComplete}
-                  hint="Only an approver (not the assignee) can close this issue"
+                  hint="Close this issue with approval notes"
                   className="user-details__action-btn"
                 />
               )}
@@ -704,8 +757,21 @@ const IssueTrackerDetailPage = () => {
                 type="default"
                 stylingMode="outlined"
                 onClick={handleEnableEditMode}
-                className="user-details__action-btn user-details__action-btn--last"
+                disabled={isAlreadyComplete}
+                hint={isAlreadyComplete ? 'This issue is closed and cannot be edited' : 'Edit issue details'}
+                className={`user-details__action-btn ${canDeleteIssue ? '' : 'user-details__action-btn--last'}`}
               />
+              {canDeleteIssue && (
+                <Button
+                  text={isSaving ? 'Deleting...' : 'Delete Issue'}
+                  icon="fa-light fa-trash"
+                  type="danger"
+                  stylingMode="outlined"
+                  onClick={handleDeleteIssue}
+                  disabled={isSaving}
+                  className="user-details__action-btn user-details__action-btn--last"
+                />
+              )}
             </div>
           )}
           {isEditMode && (
@@ -835,22 +901,24 @@ const IssueTrackerDetailPage = () => {
               <label htmlFor="issue-description" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
                 Description
               </label>
-              <textarea
-                id="issue-description"
-                rows={5}
-                className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-text-gray-800 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200 focus:tw-border-blue-500 tw-whitespace-pre-wrap"
-                value={editData.problemDescription}
-                onChange={(event) => handleEditFieldChange('problemDescription', event.target.value)}
-              />
+              <div
+                className="tw-w-full tw-border tw-border-gray-200 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 tw-bg-gray-50 tw-whitespace-pre-wrap tw-min-h-[80px]"
+              >
+                {editData.problemDescription || 'No description provided.'}
+              </div>
+              <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                <i className="fa-light fa-lock tw-mr-1"></i>
+                Description cannot be edited after creation
+              </p>
             </div>
           </div>
         ) : (
           <>
             <h2 className="tw-text-xl tw-font-semibold tw-text-gray-900 tw-mb-3">
-              {issue.problemTitle || 'Untitled Issue'}
+              {displayIssue?.problemTitle || issue.problemTitle || 'Untitled Issue'}
             </h2>
             <p className="tw-text-gray-700 tw-leading-relaxed tw-whitespace-pre-wrap">
-              {issue.problemDescription || 'No description provided.'}
+              {displayIssue?.problemDescription || issue.problemDescription || 'No description provided.'}
             </p>
           </>
         )}
@@ -939,6 +1007,26 @@ const IssueTrackerDetailPage = () => {
             <p className="tw-text-xs tw-text-gray-500">Due Date</p>
             <p className="tw-font-medium tw-text-gray-800">{formatDateTime(issue.dueDate)}</p>
           </div>
+
+          {issue.completionNotes && (
+            <div className="tw-col-span-1 md:tw-col-span-2 xl:tw-col-span-3 tw-bg-green-50 tw-border tw-border-green-200 tw-rounded tw-p-3">
+              <p className="tw-text-xs tw-text-green-600 tw-font-semibold tw-uppercase tw-mb-1">
+                <i className="fa-light fa-circle-check tw-mr-1"></i>
+                Completion Notes
+              </p>
+              <p className="tw-text-sm tw-text-gray-800 tw-whitespace-pre-wrap">{issue.completionNotes}</p>
+            </div>
+          )}
+
+          {issue.closingNotes && (
+            <div className="tw-col-span-1 md:tw-col-span-2 xl:tw-col-span-3 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded tw-p-3">
+              <p className="tw-text-xs tw-text-amber-600 tw-font-semibold tw-uppercase tw-mb-1">
+                <i className="fa-light fa-lock tw-mr-1"></i>
+                Closing Notes
+              </p>
+              <p className="tw-text-sm tw-text-gray-800 tw-whitespace-pre-wrap">{issue.closingNotes}</p>
+            </div>
+          )}
         </div>
       </div>
 
@@ -1080,15 +1168,25 @@ const IssueTrackerDetailPage = () => {
                           Uploaded by {att.uploadedByUserName || att.uploadedBy} &middot; {formatDateTime(att.uploadedAt)}
                         </p>
                       </div>
-                      <a
-                        href={issueTrackerService.getAttachmentDownloadUrl(id, att.id)}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-sm tw-flex tw-items-center tw-gap-1"
+                      <button
+                        type="button"
+                        className="tw-text-blue-600 hover:tw-text-blue-800 tw-text-sm tw-flex tw-items-center tw-gap-2 disabled:tw-opacity-60"
+                        onClick={() => handleDownloadAttachment(att)}
+                        disabled={downloadingAttachmentId === att.id}
+                        title="Download attachment"
                       >
-                        <i className="fa-light fa-download"></i>
-                        Download
-                      </a>
+                        {downloadingAttachmentId === att.id ? (
+                          <>
+                            <LoadIndicator height={16} width={16} />
+                            <span>Downloading...</span>
+                          </>
+                        ) : (
+                          <>
+                            <i className="fa-light fa-download"></i>
+                            <span>Download</span>
+                          </>
+                        )}
+                      </button>
                       <button
                         type="button"
                         className="tw-text-red-500 hover:tw-text-red-700 tw-text-sm"
@@ -1105,14 +1203,46 @@ const IssueTrackerDetailPage = () => {
         </div>
       </div>
 
+      {/* Mark as Complete Popup */}
+      <IssueActionPopup
+        visible={showCompletePopup}
+        onHide={() => setShowCompletePopup(false)}
+        onConfirm={handleQuickMarkComplete}
+        title="Mark Issue as Complete"
+        subtitle="This will update the status and notify the issue opener."
+        confirmText="Mark Complete"
+        confirmIcon="fa-light fa-circle-check"
+        confirmType="success"
+        placeholder="Enter completion notes — these will be saved to the activity log and sent to the issue opener..."
+        isProcessing={isSaving}
+        icon="fa-light fa-circle-check"
+        iconColor="tw-text-green-600"
+      />
+
+      {/* Close Issue Popup */}
+      <IssueActionPopup
+        visible={showClosePopup}
+        onHide={() => setShowClosePopup(false)}
+        onConfirm={handleCloseIssue}
+        title="Close Issue"
+        subtitle="Add closing notes before marking this issue as closed."
+        confirmText="Close Issue"
+        confirmIcon="fa-light fa-lock"
+        confirmType="default"
+        placeholder="Enter closing / approval notes..."
+        isProcessing={isClosing}
+        icon="fa-light fa-lock"
+        iconColor="tw-text-amber-600"
+      />
+
       {/* Print/Share Popup */}
       <IssuePrintPopup
         visible={showPrintPopup}
         onHide={() => setShowPrintPopup(false)}
         issue={{
           id: issue.id,
-          title: issue.problemTitle,
-          description: issue.problemDescription,
+          title: displayIssue?.problemTitle || issue.problemTitle,
+          description: displayIssue?.problemDescription || issue.problemDescription,
           status: issue.statusName || `Status ${issue.status}`,
           priority: issue.priorityName || `Priority ${issue.priority}`,
           assigneeName: issue.assignToUserName,

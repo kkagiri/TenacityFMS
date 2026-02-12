@@ -19,12 +19,34 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
   const [saving, setSaving] = useState(false);
   const [hasConfig, setHasConfig] = useState(false);
 
+  const normalizeCheckerType = useCallback((checkerType) => {
+    if (!checkerType) return checkerType;
+
+    const checkerTypeMap = {
+      Online: 'OnlineChecker',
+      online: 'OnlineChecker',
+      OnlineChecker: 'OnlineChecker',
+      AlarmCleared: 'AlarmCleared',
+      alarmcleared: 'AlarmCleared',
+      StatusCheck: 'StatusChecker',
+      StatusChecker: 'StatusChecker',
+      statuschecker: 'StatusChecker',
+      ActiveEvent: 'AlarmCleared',
+      TimeBasedExpiry: 'Custom',
+      ManualOnly: 'Custom',
+      Custom: 'Custom',
+      custom: 'Custom'
+    };
+
+    return checkerTypeMap[checkerType] || checkerType;
+  }, []);
+
   // Checker type options
   const checkerTypes = [
-    { id: 'ActiveEvent', name: 'Active Event Resolution' },
-    { id: 'StatusCheck', name: 'Status Check API' },
-    { id: 'TimeBasedExpiry', name: 'Time-Based Expiry' },
-    { id: 'ManualOnly', name: 'Manual Close Only' }
+    { id: 'OnlineChecker', name: 'Online Checker' },
+    { id: 'AlarmCleared', name: 'Alarm Cleared' },
+    { id: 'StatusChecker', name: 'Status Checker' },
+    { id: 'Custom', name: 'Custom' }
   ];
 
   // Load existing config for template
@@ -34,14 +56,17 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
       const data = await issueTrackerV2Service.getAutoCloseConfigByTemplate(templateId);
 
       if (data) {
-        setConfig(data);
+        setConfig({
+          ...data,
+          checkerType: normalizeCheckerType(data.checkerType)
+        });
         setHasConfig(true);
       } else {
         // Initialize with defaults
         setConfig({
           issueTemplateId: templateId,
           isEnabled: false,
-          checkerType: 'ActiveEvent',
+          checkerType: 'OnlineChecker',
           checkIntervalSeconds: 300,
           checkerConfigJson: '{}',
           autoCloseWhenSatisfied: true
@@ -53,7 +78,7 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
       setConfig({
         issueTemplateId: templateId,
         isEnabled: false,
-        checkerType: 'ActiveEvent',
+        checkerType: 'OnlineChecker',
         checkIntervalSeconds: 300,
         checkerConfigJson: '{}',
         autoCloseWhenSatisfied: true
@@ -135,28 +160,22 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
   // Get config template based on checker type
   const getConfigTemplate = (checkerType) => {
     switch (checkerType) {
-      case 'ActiveEvent':
+      case 'OnlineChecker':
         return JSON.stringify({
-          eventTypeField: 'eventType',
-          resolutionCheckEndpoint: '/api/v1/active-events/check-resolved',
-          matchFields: ['deviceId', 'eventType']
+          onlineThresholdMinutes: 30
         }, null, 2);
-      case 'StatusCheck':
+      case 'AlarmCleared':
         return JSON.stringify({
-          apiEndpoint: '/api/v1/status/check',
-          successCondition: 'response.status === "healthy"',
-          timeoutSeconds: 30
+          alarmClearedRequired: true
         }, null, 2);
-      case 'TimeBasedExpiry':
+      case 'StatusChecker':
         return JSON.stringify({
-          expiryHours: 72,
-          warningHours: 48,
-          autoCloseStatus: 'Expired'
+          requiredStatus: 'Healthy',
+          source: 'DeviceApi'
         }, null, 2);
-      case 'ManualOnly':
+      case 'Custom':
         return JSON.stringify({
-          requiresApproval: false,
-          allowedRoles: ['Admin', 'Manager']
+          rule: 'return true;'
         }, null, 2);
       default:
         return '{}';

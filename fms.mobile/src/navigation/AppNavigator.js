@@ -1,8 +1,17 @@
-//Cursor - Main navigation for FMS Mobile
+/**
+ * File: AppNavigator.js
+ * Purpose: Main navigation for FMS Mobile - Stack-based navigation (no drawer)
+ * Dependencies: react-navigation, react-redux, screens
+ * Last Modified: 2026-02-12
+ *
+ * Key Components:
+ * - TabNavigator: Bottom tab with Home, Fueling, Transaction History, Settings
+ * - MainStackNavigator: All app screens accessible from Home
+ * - AppNavigator: Root navigator with auth check
+ */
 import React from "react";
 import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
-import { createDrawerNavigator } from "@react-navigation/drawer";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 // Import screens
@@ -25,59 +34,35 @@ import LocationSettingsScreen from "../screens/LocationSettingsScreen";
 import IssueListScreen from "../screens/IssueListScreen";
 import IssueDetailScreen from "../screens/IssueDetailScreen";
 
-// Import custom drawer
-import DrawerContent from "../components/navigation/DrawerContent";
-
-// Import components
 import { useSelector } from "react-redux";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
-const Drawer = createDrawerNavigator();
 
-// Import TouchableOpacity for menu button
-import { TouchableOpacity } from "react-native";
-import { useNavigation, DrawerActions } from "@react-navigation/native";
-
-// Header Left Menu Button Component
-const MenuButton = () => {
-  const navigation = useNavigation();
-  return (
-    <TouchableOpacity
-      style={{ marginLeft: 15, padding: 5 }}
-      onPress={() => navigation.dispatch(DrawerActions.openDrawer())}
-    >
-      <Icon name="bars" size={20} color="white" />
-    </TouchableOpacity>
-  );
-};
-
-// Main Tab Navigator
+// Main Tab Navigator - Home, Fueling, Transaction History, Settings
 const TabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-
           switch (route.name) {
             case "Home":
               iconName = "home";
               break;
-            case "Devices":
+            case "Fueling":
               iconName = "gas-pump";
               break;
             case "History":
               iconName = "history";
               break;
-            case "Settings":
+            case "SettingsTab":
               iconName = "cog";
               break;
             default:
               iconName = "question";
           }
-
-          return <Icon name={iconName} size={size} color={color} />;
+          return <Icon name={iconName} size={Math.round(size * 1.2)} color={color} />;
         },
         tabBarActiveTintColor: "#2563eb",
         tabBarInactiveTintColor: "#6b7280",
@@ -89,6 +74,13 @@ const TabNavigator = () => {
           paddingBottom: 8,
           paddingTop: 8,
         },
+        tabBarLabelStyle: {
+          fontSize: 12,
+          fontWeight: "600",
+        },
+        tabBarItemStyle: {
+          paddingHorizontal: 2,
+        },
         headerStyle: {
           backgroundColor: "#1f2937",
         },
@@ -96,34 +88,34 @@ const TabNavigator = () => {
         headerTitleStyle: {
           fontWeight: "bold",
         },
-        headerLeft: () => <MenuButton />,
+        headerShown: false,
       })}
     >
       <Tab.Screen
         name="Home"
         component={HomeScreen}
-        options={{ title: "FMS Home" }}
+        options={{ tabBarLabel: "FMS Home" }}
       />
       <Tab.Screen
-        name="Devices"
+        name="Fueling"
         component={DeviceListScreen}
-        options={{ title: "FMS Devices" }}
+        options={{ tabBarLabel: "Fueling" }}
       />
       <Tab.Screen
         name="History"
         component={TransactionHistoryScreen}
-        options={{ title: "Transaction History" }}
+        options={{ tabBarLabel: "Transaction History" }}
       />
       <Tab.Screen
-        name="Settings"
+        name="SettingsTab"
         component={SettingsScreen}
-        options={{ title: "Settings" }}
+        options={{ tabBarLabel: "Settings" }}
       />
     </Tab.Navigator>
   );
 };
 
-// Stack Navigator for screens that need to be accessed from drawer
+// Main Stack Navigator - all screens accessible from Home quick actions
 const MainStackNavigator = () => {
   return (
     <Stack.Navigator
@@ -151,6 +143,14 @@ const MainStackNavigator = () => {
         }}
       />
       <Stack.Screen
+        name="Devices"
+        component={DeviceListScreen}
+        options={{
+          title: "FMS Devices",
+          headerBackTitleVisible: false,
+        }}
+      />
+      <Stack.Screen
         name="ManageStocks"
         component={ManageStocksScreen}
         options={{
@@ -174,15 +174,24 @@ const MainStackNavigator = () => {
         component={TankTransactionHubScreen}
         options={{
           title: "Transaction Hub",
-          headerShown: false, // Screen has its own header
+          headerShown: false,
         }}
       />
+      <Stack.Screen
+        name="TankStock"
+        component={SiteOverviewScreen}
+        options={{
+          title: "Tank Stock",
+          headerShown: false,
+        }}
+      />
+      {/* Keep SiteOverview as alias for backward compatibility */}
       <Stack.Screen
         name="SiteOverview"
         component={SiteOverviewScreen}
         options={{
-          title: "Site Overview",
-          headerShown: false, // Screen has its own header
+          title: "Tank Stock",
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -190,7 +199,7 @@ const MainStackNavigator = () => {
         component={VehicleDetailsScreen}
         options={{
           title: "Vehicle Details",
-          headerShown: false, // Screen has its own header
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -222,7 +231,7 @@ const MainStackNavigator = () => {
         component={NotificationCenterScreen}
         options={{
           title: "Notifications",
-          headerShown: false, // Screen has its own header
+          headerShown: false,
         }}
       />
       <Stack.Screen
@@ -230,7 +239,15 @@ const MainStackNavigator = () => {
         component={LocationSettingsScreen}
         options={{
           title: "Location Settings",
-          headerShown: false, // Screen has its own header
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="Settings"
+        component={SettingsScreen}
+        options={{
+          title: "Settings",
+          headerBackTitleVisible: false,
         }}
       />
       <Stack.Screen
@@ -253,26 +270,7 @@ const MainStackNavigator = () => {
   );
 };
 
-// Drawer Navigator
-const DrawerNavigator = () => {
-  return (
-    <Drawer.Navigator
-      drawerContent={(props) => <DrawerContent {...props} />}
-      screenOptions={{
-        headerShown: false,
-        drawerStyle: {
-          width: 300,
-        },
-        drawerType: "front",
-        overlayColor: "rgba(0, 0, 0, 0.5)",
-      }}
-    >
-      <Drawer.Screen name="Main" component={MainStackNavigator} />
-    </Drawer.Navigator>
-  );
-};
-
-// Main App Navigator
+// Main App Navigator - no drawer, direct to stack
 const AppNavigator = () => {
   const isAuthenticated = useSelector((state) => state.auth.isAuthenticated);
 
@@ -296,8 +294,8 @@ const AppNavigator = () => {
         />
       ) : (
         <Stack.Screen
-          name="DrawerNav"
-          component={DrawerNavigator}
+          name="MainStack"
+          component={MainStackNavigator}
           options={{ headerShown: false }}
         />
       )}
