@@ -1,9 +1,8 @@
 /**
  * File: UnifiedTankReconciliationService.cs
  * Purpose: Combined background service for all tank monitoring and reconciliation operations.
- * Dependencies: GpsdataContext, IAlarmHandlerService, AlarmHandlerActiveAlarmIntegration,
- *               TankStockReconciliationService, AutomatedReconciliationService, ILogger
- * Last Modified: 2026-01-24
+ * Dependencies: GpsdataContext, TankStockReconciliationService, AutomatedReconciliationService, ILogger
+ * Last Modified: 2026-02-02
  *
  * Consolidates:
  * - TankMonitoringService (tank level monitoring, stale data detection)
@@ -26,9 +25,7 @@ using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.TankManagement.Services;
-using FMS.Application.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.TankStockManagement;
@@ -168,8 +165,6 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-                var alarmHandlerService = scope.ServiceProvider.GetRequiredService<IAlarmHandlerService>();
-                var activeAlarmIntegration = scope.ServiceProvider.GetRequiredService<AlarmHandlerActiveAlarmIntegration>();
 
                 var tanks = await context.Tanks
                     .Include(t => t.Site)
@@ -178,7 +173,7 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 foreach (var tank in tanks)
                 {
-                    await CheckSingleTankAsync(context, activeAlarmIntegration, tank, cancellationToken);
+                    await CheckSingleTankAsync(context, tank, cancellationToken);
                 }
 
                 _logger.LogDebug("Completed tank level monitoring for {TankCount} tanks", tanks.Count);
@@ -191,7 +186,6 @@ namespace FMS.BackgroundServices.TankReconciliation
 
         private async Task CheckSingleTankAsync(
             GpsdataContext context,
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration,
             Tank tank,
             CancellationToken cancellationToken)
         {
@@ -214,16 +208,13 @@ namespace FMS.BackgroundServices.TankReconciliation
                 {
                     _logger.LogWarning("Tank {TankId} measurement is {Hours:F1} hours old", tank.Id, measurementAge.TotalHours);
 
-                    await activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
-                        0, "StaleDataAlarm",
-                        $"Tank {tank.Name} has stale data - last measurement {measurementAge.TotalHours:F1} hours ago",
-                        "Medium", tank.SiteId, tank.Id, tank.PtsId, "UnifiedTankReconciliation-System",
-                        new { LastMeasurementTime = latestMeasurement.DateTime, HoursOld = measurementAge.TotalHours },
-                        cancellationToken);
+                    // TODO: Wire EventExpressionEngine.ProcessAsync() for stale data events
+                    _logger.LogInformation("Stale data event detected for Tank {TankId}: last measurement {Hours:F1} hours ago",
+                        tank.Id, measurementAge.TotalHours);
                 }
 
                 // Check for low/high volume alarms
-                await CheckVolumeAlarmsAsync(tank, latestMeasurement, activeAlarmIntegration, cancellationToken);
+                await CheckVolumeAlarmsAsync(tank, latestMeasurement, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -234,7 +225,6 @@ namespace FMS.BackgroundServices.TankReconciliation
         private async Task CheckVolumeAlarmsAsync(
             Tank tank,
             Tankmeasurement measurement,
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration,
             CancellationToken cancellationToken)
         {
             try
@@ -246,22 +236,16 @@ namespace FMS.BackgroundServices.TankReconciliation
                 // Check for low volume alarm (below 10%)
                 if (fillPercentage < 10)
                 {
-                    await activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
-                        0, "LowVolumeAlarm",
-                        $"Tank {tank.Name} is at {fillPercentage:F1}% capacity ({currentVolume:N0}L of {tankCapacity:N0}L)",
-                        "High", tank.SiteId, tank.Id, tank.PtsId, "UnifiedTankReconciliation-System",
-                        new { CurrentVolume = currentVolume, TankCapacity = tankCapacity, FillPercentage = fillPercentage },
-                        cancellationToken);
+                    // TODO: Wire EventExpressionEngine.ProcessAsync() for low volume events
+                    _logger.LogWarning("Tank {TankId} ({TankName}) low volume: {FillPct:F1}% ({Volume:N0}L of {Capacity:N0}L)",
+                        tank.Id, tank.Name, fillPercentage, currentVolume, tankCapacity);
                 }
                 // Check for high volume alarm (above 95%)
                 else if (fillPercentage > 95)
                 {
-                    await activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
-                        0, "HighVolumeAlarm",
-                        $"Tank {tank.Name} is at {fillPercentage:F1}% capacity ({currentVolume:N0}L of {tankCapacity:N0}L)",
-                        "Medium", tank.SiteId, tank.Id, tank.PtsId, "UnifiedTankReconciliation-System",
-                        new { CurrentVolume = currentVolume, TankCapacity = tankCapacity, FillPercentage = fillPercentage },
-                        cancellationToken);
+                    // TODO: Wire EventExpressionEngine.ProcessAsync() for high volume events
+                    _logger.LogWarning("Tank {TankId} ({TankName}) high volume: {FillPct:F1}% ({Volume:N0}L of {Capacity:N0}L)",
+                        tank.Id, tank.Name, fillPercentage, currentVolume, tankCapacity);
                 }
             }
             catch (Exception ex)
@@ -374,7 +358,6 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-                var activeAlarmIntegration = scope.ServiceProvider.GetRequiredService<AlarmHandlerActiveAlarmIntegration>();
 
                 var tanks = await context.Tanks
                     .Include(t => t.Site)
@@ -399,7 +382,11 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 var duration = DateTime.UtcNow - startTime;
 
-                await CreateReconciliationAlarmAsync(activeAlarmIntegration, reconciliationDate, processedTanks, failedTanks, duration, "DailyAggregation", cancellationToken);
+                if (failedTanks > 0)
+                {
+                    _logger.LogWarning("Daily aggregation completed with {FailedTanks} failures. {ProcessedTanks} tanks processed for {Date}. Duration: {Duration}",
+                        failedTanks, processedTanks, reconciliationDate, duration);
+                }
 
                 _logger.LogInformation("Daily aggregation completed: {Processed} tanks processed, {Failed} failed, Duration: {Duration}",
                     processedTanks, failedTanks, duration);
@@ -674,35 +661,9 @@ namespace FMS.BackgroundServices.TankReconciliation
 
         #endregion
 
-        #region Alarm Helpers
+        #region Helpers
 
-        private async Task CreateReconciliationAlarmAsync(
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration,
-            DateTime reconciliationDate,
-            int processedTanks,
-            int failedTanks,
-            TimeSpan duration,
-            string operation,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var severity = failedTanks > 0 ? "Medium" : "Low";
-                var message = failedTanks > 0
-                    ? $"{operation} completed with {failedTanks} failures. {processedTanks} tanks processed for {reconciliationDate:yyyy-MM-dd}. Duration: {duration.TotalSeconds:F1}s"
-                    : $"{operation} completed successfully. {processedTanks} tanks processed for {reconciliationDate:yyyy-MM-dd}. Duration: {duration.TotalSeconds:F1}s";
-
-                await activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
-                    0, $"{operation}Completed", message, severity,
-                    null, null, null, "UnifiedTankReconciliation-System",
-                    new { ReconciliationDate = reconciliationDate, ProcessedTanks = processedTanks, FailedTanks = failedTanks, DurationSeconds = duration.TotalSeconds },
-                    cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to create reconciliation alarm notification");
-            }
-        }
+        // Placeholder for future EventExpressionEngine integration
 
         #endregion
 

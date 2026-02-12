@@ -202,13 +202,14 @@ export default function Content() {
           element={React.createElement(resolvedComponents("task management"))}
         />
 
+        {/* Event Expressions Management */}
         <Route
-          path="/active-alarms"
-          element={React.createElement(resolvedComponents("active-alarms"))}
+          path="/event-expressions"
+          element={React.createElement(resolvedComponents("event-expressions"))}
         />
         <Route
-          path="/active-alarms/*"
-          element={React.createElement(resolvedComponents("active-alarms"))}
+          path="/event-expressions/*"
+          element={React.createElement(resolvedComponents("event-expressions"))}
         />
 
         {/* Home/Dashboard route - maps to the dashboard component */}

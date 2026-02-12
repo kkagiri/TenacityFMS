@@ -46,11 +46,11 @@ const QUICK_ACTIONS = [
     color: 'orange'
   },
   {
-    id: 'alarms',
-    label: 'Active Alarms',
+    id: 'events',
+    label: 'Active Events',
     icon: 'fa-exclamation-triangle',
-    route: '/alarms',
-    permission: '_Read_ActiveAlarm',
+    route: '/event-expressions',
+    permission: '_Read_EventExpression',
     color: 'red'
   },
   {

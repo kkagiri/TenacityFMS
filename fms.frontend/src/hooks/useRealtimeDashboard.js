@@ -542,7 +542,7 @@ export const useRealtimeDashboard = (options = {}) => {
       'quickActions': '_View_Dashboard',
       'stats': '_View_Dashboard',
       'systemModules': 'Dashboard Module',
-      'alarms': '_Read_ActiveAlarm',
+      'events': '_Read_EventExpression',
       'performance': '_View_Dashboard',
       'fuelManagement': 'FuelRefil',
       'tankStatus': 'TankStockModule'

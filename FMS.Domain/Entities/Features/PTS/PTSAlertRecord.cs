@@ -2,11 +2,13 @@
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace FMS.Domain.Entities {
+namespace FMS.Domain.Entities
+{
     /// <summary>
     /// Entity to store PTS alert records from UploadAlertRecord packets
     /// </summary>
-    public class PTSAlertRecord {
+    public class PTSAlertRecord
+    {
         [Key]
         public int Id { get; set; }
 
@@ -14,14 +16,14 @@ namespace FMS.Domain.Entities {
         /// PTS device ID that sent the alert
         /// </summary>
         [Required]
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string PtsId { get; set; } = null!;
 
         /// <summary>
         /// Type of device that triggered the alert (PTS, Pump, Probe, PriceBoard, Reader)
         /// </summary>
         [Required]
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string DeviceType { get; set; } = null!;
 
         /// <summary>
@@ -38,7 +40,7 @@ namespace FMS.Domain.Entities {
         /// Alert state (Started, Finished, Detected)
         /// </summary>
         [Required]
-        [MaxLength (20)]
+        [MaxLength(20)]
         public string State { get; set; } = null!;
 
         /// <summary>
@@ -49,7 +51,7 @@ namespace FMS.Domain.Entities {
         /// <summary>
         /// Configuration ID from PTS
         /// </summary>
-        [MaxLength (50)]
+        [MaxLength(50)]
         public string? ConfigurationId { get; set; }
 
         /// <summary>
@@ -62,9 +64,5 @@ namespace FMS.Domain.Entities {
         /// </summary>
         public DateTime ProcessedAt { get; set; } = DateTime.UtcNow;
 
-        /// <summary>
-        /// Navigation property to the associated alarm
-        /// </summary>
-        public virtual Alarm? Alarm { get; set; }
     }
 }

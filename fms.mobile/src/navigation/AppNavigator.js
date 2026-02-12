@@ -22,6 +22,8 @@ import TankDeliveryScreen from "../screens/TankDeliveryScreen";
 import TankTransferScreen from "../screens/TankTransferScreen";
 import NotificationCenterScreen from "../screens/NotificationCenterScreen";
 import LocationSettingsScreen from "../screens/LocationSettingsScreen";
+import IssueListScreen from "../screens/IssueListScreen";
+import IssueDetailScreen from "../screens/IssueDetailScreen";
 
 // Import custom drawer
 import DrawerContent from "../components/navigation/DrawerContent";
@@ -229,6 +231,22 @@ const MainStackNavigator = () => {
         options={{
           title: "Location Settings",
           headerShown: false, // Screen has its own header
+        }}
+      />
+      <Stack.Screen
+        name="IssueList"
+        component={IssueListScreen}
+        options={{
+          title: "Issue Tracker",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="IssueDetail"
+        component={IssueDetailScreen}
+        options={{
+          title: "Issue Details",
+          headerShown: false,
         }}
       />
     </Stack.Navigator>

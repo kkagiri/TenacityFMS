@@ -1,11 +1,9 @@
 using System;
-using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.BackgroundServices.IssueTracker
@@ -28,60 +26,22 @@ namespace FMS.BackgroundServices.IssueTracker
             _logger = logger;
         }
 
-        public async Task<bool> ShouldAutoCloseAsync(
+        public Task<bool> ShouldAutoCloseAsync(
             Issuetracker issue,
             Issueautocloseconfig config,
             CancellationToken cancellationToken)
         {
-            try
+            // TODO: Wire to EventExpressionEngine ActiveEvents table
+            // Old implementation queried the deleted ActiveAlarms DbSet.
+            // Rework to query ActiveEvents once EventExpressionEngine is fully integrated.
+            if (issue.ActiveAlarmId.HasValue)
             {
-                // Check if issue is linked to an ActiveAlarm via ActiveAlarmId field
-                if (!issue.ActiveAlarmId.HasValue)
-                {
-                    _logger.LogDebug("Issue {IssueId} is not linked to an ActiveAlarm", issue.Id);
-                    return false;
-                }
-
-                var alarm = await _context.ActiveAlarms
-                    .Where(a => a.Id == issue.ActiveAlarmId.Value)
-                    .FirstOrDefaultAsync(cancellationToken);
-
-                // Parse config for additional options
-                var closeIfDeleted = GetConfigBool(config, "closeIfAlarmDeleted", false);
-                var closeOnAcknowledge = GetConfigBool(config, "closeOnAlarmAcknowledge", false);
-
-                if (alarm == null)
-                {
-                    // Alarm was deleted - could mean it was cleared
-                    _closeReason = "Linked ActiveAlarm was removed from the system";
-                    return closeIfDeleted;
-                }
-
-                // Check if alarm is no longer active (State is "Resolved" or similar)
-                var resolvedStates = new[] { "Resolved", "Cleared", "Closed" };
-                if (resolvedStates.Contains(alarm.State, StringComparer.OrdinalIgnoreCase))
-                {
-                    _closeReason = $"Linked ActiveAlarm was resolved at {alarm.ResolvedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "unknown time"}";
-                    return true;
-                }
-
-                // Check if alarm was acknowledged and config allows closing on acknowledgment
-                if (closeOnAcknowledge)
-                {
-                    if (alarm.AcknowledgedAt.HasValue)
-                    {
-                        _closeReason = $"Linked ActiveAlarm was acknowledged at {alarm.AcknowledgedAt.Value.ToString("yyyy-MM-dd HH:mm:ss")}";
-                        return true;
-                    }
-                }
-
-                return false;
+                _logger.LogDebug(
+                    "Issue {IssueId} linked to ActiveAlarmId {AlarmId} - alarm cleared check skipped (pending EventEngine migration)",
+                    issue.Id, issue.ActiveAlarmId.Value);
             }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error checking alarm cleared status for issue {IssueId}", issue.Id);
-                return false;
-            }
+
+            return Task.FromResult(false);
         }
 
         public string GetCloseReason() => _closeReason;

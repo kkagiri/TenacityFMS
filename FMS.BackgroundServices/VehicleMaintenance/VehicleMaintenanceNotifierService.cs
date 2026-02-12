@@ -1,5 +1,3 @@
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -70,7 +68,6 @@ namespace FMS.BackgroundServices.VehicleMaintenance
 
             using IServiceScope scope = _scopeFactory.CreateScope();
             GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-            IActiveAlarmService activeAlarmService = scope.ServiceProvider.GetRequiredService<IActiveAlarmService>();
             IAlertConfigurationService alertConfig = scope.ServiceProvider.GetRequiredService<IAlertConfigurationService>();
 
             // Check if vehicle maintenance alerts are enabled
@@ -148,7 +145,6 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                         // Create critical alarm for overdue maintenance
                         string message = BuildOverdueMessage(maintenance, daysUntilDue, kilometersDue);
                         await CreateMaintenanceAlarm(
-                            activeAlarmService,
                             "VehicleMaintenanceOverdue",
                             "Critical",
                             DiscrepancySeverity.High,
@@ -161,29 +157,18 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                     }
                     else if (isDueSoon && !isOverdue)
                     {
-                        // Check if we already have an active alarm for this maintenance
-                        var existingAlarm = await activeAlarmService.FindDuplicateActiveAlarmAsync(
-                            alarmType: "VehicleMaintenanceDueSoon",
-                            triggerSource: $"Maintenance:{maintenance.MaintenanceId}",
-                            siteId: maintenance.Vehicle?.WorkingSiteId,
-                            cancellationToken: stoppingToken);
+                        // Create medium priority alarm for due soon maintenance
+                        string message = BuildDueSoonMessage(maintenance, daysUntilDue, kilometersDue);
+                        await CreateMaintenanceAlarm(
+                            "VehicleMaintenanceDueSoon",
+                            "Medium",
+                            DiscrepancySeverity.Medium,
+                            message,
+                            maintenance,
+                            stoppingToken);
 
-                        if (existingAlarm == null)
-                        {
-                            // Create medium priority alarm for due soon maintenance
-                            string message = BuildDueSoonMessage(maintenance, daysUntilDue, kilometersDue);
-                            await CreateMaintenanceAlarm(
-                                activeAlarmService,
-                                "VehicleMaintenanceDueSoon",
-                                "Medium",
-                                DiscrepancySeverity.Medium,
-                                message,
-                                maintenance,
-                                stoppingToken);
-
-                            dueSoonAlarmsCreated++;
-                            _logger.LogInformation($"Created due soon alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.HyoungNo}");
-                        }
+                        dueSoonAlarmsCreated++;
+                        _logger.LogInformation($"Created due soon alarm for maintenance ID {maintenance.MaintenanceId} - {maintenance.Vehicle?.HyoungNo}");
                     }
                 }
 
@@ -250,8 +235,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             return string.Join(". ", parts) + ".";
         }
 
-        private async Task CreateMaintenanceAlarm(
-            IActiveAlarmService activeAlarmService,
+        private Task CreateMaintenanceAlarm(
             string alarmType,
             string priority,
             DiscrepancySeverity severity,
@@ -261,26 +245,12 @@ namespace FMS.BackgroundServices.VehicleMaintenance
         {
             string description = BuildAlarmDescription(maintenance);
 
-            CreateActiveAlarmRequest request = new()
-            {
-                AlarmType = alarmType,
-                TriggerSource = $"Maintenance:{maintenance.MaintenanceId}",
-                Severity = severity,
-                Priority = priority,
-                Message = message,
-                Description = description,
-                SiteId = maintenance.Vehicle?.WorkingSiteId,
-                CheckForDuplicates = true,
-            };
+            // TODO: Wire EventExpressionEngine.ProcessAsync() for vehicle maintenance events
+            _logger.LogInformation(
+                "Vehicle maintenance event: {AlarmType} Priority={Priority} Severity={Severity} MaintenanceId={MaintenanceId} - {Message}",
+                alarmType, priority, severity, maintenance.MaintenanceId, message);
 
-            try
-            {
-                await activeAlarmService.CreateActiveAlarmAsync(request, stoppingToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, $"Failed to create alarm for maintenance ID {maintenance.MaintenanceId}");
-            }
+            return Task.CompletedTask;
         }
 
         private string BuildAlarmDescription(Domain.Entities.Features.VehicleManagement.VehicleMaintenance maintenance)

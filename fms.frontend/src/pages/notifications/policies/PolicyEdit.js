@@ -1,12 +1,11 @@
 /**
  * File: PolicyEdit.js
- * Purpose: Edit notification policy details and ActiveAlarm filter settings.
+ * Purpose: Edit notification policy details.
  * Dependencies: react, react-router-dom, devextreme-react, notification services.
  * Last Modified: 2026-02-06
  *
  * Key Functions:
  * - PolicyEdit(): Loads a policy and renders edit tabs.
- * - renderActiveAlarmFiltersTab(): Displays ActiveAlarm filter configuration.
  * - savePolicy(): Persists edited policy settings to backend.
  */
 
@@ -36,40 +35,6 @@ import {
   notificationTypeOptions
 } from '../constants/notificationEnums';
 import PolicyTriggersManager from './PolicyTriggersManager';
-
-const parseActiveAlarmFilter = rawFilter => {
-  if (!rawFilter || typeof rawFilter !== 'string') {
-    return {
-      eventType: 'Created',
-      alarmType: '',
-      minimumSeverity: '',
-      siteId: '',
-      tankId: '',
-      ptsDeviceId: ''
-    };
-  }
-
-  try {
-    const parsed = JSON.parse(rawFilter);
-    return {
-      eventType: parsed.eventType || 'Created',
-      alarmType: parsed.alarmType || '',
-      minimumSeverity: parsed.minimumSeverity || '',
-      siteId: parsed.siteId ?? '',
-      tankId: parsed.tankId ?? '',
-      ptsDeviceId: parsed.ptsDeviceId || ''
-    };
-  } catch {
-    return {
-      eventType: 'Created',
-      alarmType: '',
-      minimumSeverity: '',
-      siteId: '',
-      tankId: '',
-      ptsDeviceId: ''
-    };
-  }
-};
 
 const PolicyEdit = () => {
   const params = useParams();
@@ -117,16 +82,6 @@ const PolicyEdit = () => {
     createdBy: '',
     modifiedAt: null,
     modifiedBy: '',
-    activeAlarmFilter: null
-  });
-
-  const [activeAlarmFilter, setActiveAlarmFilter] = useState({
-    eventType: 'Created',
-    alarmType: '',
-    minimumSeverity: '',
-    siteId: '',
-    tankId: '',
-    ptsDeviceId: ''
   });
 
   const [allGroups, setAllGroups] = useState([]);
@@ -160,29 +115,12 @@ const PolicyEdit = () => {
     { value: 'support@company.com', text: 'Technical Support' }
   ];
 
-  const activeAlarmEventOptions = [
-    { value: 'Created', text: 'Created' },
-    { value: 'Acknowledged', text: 'Acknowledged' },
-    { value: 'Resolved', text: 'Resolved' },
-    { value: 'Escalated', text: 'Escalated' },
-    { value: 'AutoResolved', text: 'Auto Resolved' }
-  ];
-
-  const severityOptions = [
-    { value: '', text: 'Any Severity' },
-    { value: 'Low', text: 'Low' },
-    { value: 'Medium', text: 'Medium' },
-    { value: 'High', text: 'High' },
-    { value: 'Critical', text: 'Critical' }
-  ];
-
   const tabs = [
     { id: 0, title: 'Basic Information', icon: 'info' },
-    { id: 1, title: 'Active Alarm Filters', icon: 'shield-exclamation' },
-    { id: 2, title: 'Notification Settings', icon: 'bell' },
-    { id: 3, title: 'Recipients', icon: 'users' },
-    { id: 4, title: 'Templates', icon: 'edit' },
-    { id: 5, title: 'Policy Triggers', icon: 'sliders' }
+    { id: 1, title: 'Notification Settings', icon: 'bell' },
+    { id: 2, title: 'Recipients', icon: 'users' },
+    { id: 3, title: 'Templates', icon: 'edit' },
+    { id: 4, title: 'Policy Triggers', icon: 'sliders' }
   ];
 
   useEffect(() => {
@@ -230,10 +168,8 @@ const PolicyEdit = () => {
           createdBy: p.createdBy || p.CreatedBy || '',
           modifiedAt: p.modifiedAt || p.ModifiedAt || null,
           modifiedBy: p.modifiedBy || p.ModifiedBy || '',
-          activeAlarmFilter: p.activeAlarmFilter || null
         }));
 
-        setActiveAlarmFilter(parseActiveAlarmFilter(p.activeAlarmFilter));
         setNotFound(false);
       } catch (error) {
         console.error('Error loading policy:', error);
@@ -259,35 +195,6 @@ const PolicyEdit = () => {
 
   const handlePolicyChange = (field, value) => {
     setPolicy(prev => ({ ...prev, [field]: value }));
-  };
-
-  const updateActiveAlarmFilter = (field, value) => {
-    setActiveAlarmFilter(prev => ({ ...prev, [field]: value }));
-  };
-
-  const buildActiveAlarmFilterPayload = () => {
-    const payload = {
-      source: 'ActiveAlarm',
-      eventType: activeAlarmFilter.eventType || 'Created'
-    };
-
-    if (activeAlarmFilter.alarmType?.trim()) {
-      payload.alarmType = activeAlarmFilter.alarmType.trim();
-    }
-    if (activeAlarmFilter.minimumSeverity) {
-      payload.minimumSeverity = activeAlarmFilter.minimumSeverity;
-    }
-    if (activeAlarmFilter.siteId !== '' && !Number.isNaN(Number(activeAlarmFilter.siteId))) {
-      payload.siteId = Number(activeAlarmFilter.siteId);
-    }
-    if (activeAlarmFilter.tankId !== '' && !Number.isNaN(Number(activeAlarmFilter.tankId))) {
-      payload.tankId = Number(activeAlarmFilter.tankId);
-    }
-    if (activeAlarmFilter.ptsDeviceId?.trim()) {
-      payload.ptsDeviceId = activeAlarmFilter.ptsDeviceId.trim();
-    }
-
-    return JSON.stringify(payload);
   };
 
   const validateForm = () => {
@@ -329,7 +236,6 @@ const PolicyEdit = () => {
         titleTemplate: policy.titleTemplate || null,
         messageTemplate: policy.messageTemplate || null,
         requireAcknowledgment: !!policy.requireAcknowledgment,
-        activeAlarmFilter: buildActiveAlarmFilterPayload(),
         isActive: !!policy.isActive
       };
 
@@ -415,87 +321,6 @@ const PolicyEdit = () => {
           <CheckBox text="Activate policy" value={policy.isActive} onValueChanged={e => handlePolicyChange('isActive', e.value)} />
         </div>
       </ValidationGroup>
-    </div>
-  );
-
-  const renderActiveAlarmFiltersTab = () => (
-    <div className="tw-p-6 policy-create-form notification-form">
-      <div className="tw-mb-6">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">Active Alarm Filters</h3>
-        <p className="tw-text-sm tw-text-gray-600 tw-mt-1">These filters determine which ActiveAlarm events this policy should apply to.</p>
-      </div>
-
-      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6">
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Alarm Event</label>
-          <SelectBox
-            value={activeAlarmFilter.eventType}
-            dataSource={activeAlarmEventOptions}
-            valueExpr="value"
-            displayExpr="text"
-            onValueChanged={e => updateActiveAlarmFilter('eventType', e.value)}
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Minimum Severity</label>
-          <SelectBox
-            value={activeAlarmFilter.minimumSeverity}
-            dataSource={severityOptions}
-            valueExpr="value"
-            displayExpr="text"
-            onValueChanged={e => updateActiveAlarmFilter('minimumSeverity', e.value)}
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Alarm Type (optional)</label>
-          <TextBox
-            value={activeAlarmFilter.alarmType}
-            onValueChanged={e => updateActiveAlarmFilter('alarmType', e.value)}
-            placeholder="e.g. TankStockDiscrepancy"
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Site Id (optional)</label>
-          <NumberBox
-            value={activeAlarmFilter.siteId === '' ? null : Number(activeAlarmFilter.siteId)}
-            onValueChanged={e => updateActiveAlarmFilter('siteId', e.value ?? '')}
-            min={1}
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Tank Id (optional)</label>
-          <NumberBox
-            value={activeAlarmFilter.tankId === '' ? null : Number(activeAlarmFilter.tankId)}
-            onValueChanged={e => updateActiveAlarmFilter('tankId', e.value ?? '')}
-            min={1}
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-
-        <div className="tw-space-y-1">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">PTS Device Id (optional)</label>
-          <TextBox
-            value={activeAlarmFilter.ptsDeviceId}
-            onValueChanged={e => updateActiveAlarmFilter('ptsDeviceId', e.value)}
-            placeholder="PTS-DEVICE-01"
-            height={40}
-            stylingMode="outlined"
-          />
-        </div>
-      </div>
     </div>
   );
 
@@ -694,15 +519,15 @@ const PolicyEdit = () => {
               <div className="tw-font-semibold tw-text-gray-900 tw-mb-2">
                 {policy.titleTemplate
                   ? policy.titleTemplate.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
-                      return mockValues[`{{${variable}}}`] || match;
-                    })
+                    return mockValues[`{{${variable}}}`] || match;
+                  })
                   : 'Title will appear here'}
               </div>
               <p className="tw-text-gray-700 tw-text-sm tw-whitespace-pre-line">
                 {policy.messageTemplate
                   ? policy.messageTemplate.replace(/\{\{(\w+)\}\}/g, (match, variable) => {
-                      return mockValues[`{{${variable}}}`] || match;
-                    })
+                    return mockValues[`{{${variable}}}`] || match;
+                  })
                   : 'Message content will appear here'}
               </p>
             </div>
@@ -726,14 +551,12 @@ const PolicyEdit = () => {
       case 0:
         return renderBasicInfoTab();
       case 1:
-        return renderActiveAlarmFiltersTab();
-      case 2:
         return renderNotificationSettingsTab();
-      case 3:
+      case 2:
         return renderRecipientsTab();
-      case 4:
+      case 3:
         return renderTemplatesTab();
-      case 5:
+      case 4:
         return renderTriggersTab();
       default:
         return renderBasicInfoTab();
@@ -785,9 +608,8 @@ const PolicyEdit = () => {
               <span>
                 Status:{' '}
                 <span
-                  className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-medium ${
-                    policy.isActive ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'
-                  }`}
+                  className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[10px] tw-font-medium ${policy.isActive ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-red-100 tw-text-red-800'
+                    }`}
                 >
                   {policy.isActive ? 'Active' : 'Inactive'}
                 </span>

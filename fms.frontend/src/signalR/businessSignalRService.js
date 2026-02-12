@@ -563,55 +563,6 @@ class BusinessSignalRService {
       0
     );
 
-    // Active Alarm Events
-    registerEvent(
-      "ActiveAlarmCreated",
-      (data) => {
-        if (data) {
-          this.notifyListeners("activeAlarmCreated", data);
-          if (store) {
-            store.dispatch({
-              type: "ACTIVE_ALARM_CREATED",
-              payload: data,
-            });
-          }
-        }
-      },
-      0
-    ); // No debounce for alarm creation
-
-    registerEvent(
-      "ActiveAlarmUpdated",
-      (data) => {
-        if (data) {
-          this.notifyListeners("activeAlarmUpdated", data);
-          if (store) {
-            store.dispatch({
-              type: "ACTIVE_ALARM_UPDATED",
-              payload: data,
-            });
-          }
-        }
-      },
-      0
-    ); // No debounce for alarm updates
-
-    registerEvent(
-      "ActiveAlarmStateChanged",
-      (data) => {
-        if (data) {
-          this.notifyListeners("activeAlarmStateChanged", data);
-          if (store) {
-            store.dispatch({
-              type: "ACTIVE_ALARM_STATE_CHANGED",
-              payload: data,
-            });
-          }
-        }
-      },
-      0
-    );
-
     // Notification Events
     registerEvent(
       "NotificationCreated",
@@ -681,34 +632,6 @@ class BusinessSignalRService {
       },
       0
     ); // No debounce for system notifications
-
-    // Alarm Test Broadcast
-    registerEvent(
-      "AlarmTestBroadcast",
-      (data) => {
-        if (data) {
-          this.notifyListeners("alarmTestBroadcast", data);
-        }
-      },
-      0
-    );
-
-    // Alarm Statistics
-    registerEvent(
-      "AlarmStatisticsUpdate",
-      (data) => {
-        if (data) {
-          this.notifyListeners("alarmStatisticsUpdate", data);
-          if (store) {
-            store.dispatch({
-              type: "UPDATE_ALARM_STATISTICS",
-              payload: data,
-            });
-          }
-        }
-      },
-      2000
-    );
 
     // Bulk Provider Assignment Progress
     registerEvent(
@@ -787,30 +710,6 @@ class BusinessSignalRService {
     } catch (error) {
       console.error(
         "[Business SignalR] Failed to request tank data update:",
-        error
-      );
-      return false;
-    }
-  }
-
-  /**
-   * Request alarm statistics
-   */
-  async requestAlarmStatistics() {
-    if (!this.connection || !this.isConnected) {
-      console.warn("[Business SignalR] Not connected, cannot request data");
-      return false;
-    }
-
-    try {
-      const ok = await this.invokeSafe("RequestAlarmStatistics");
-      if (ok) {
-        console.log("[Business SignalR] Requested alarm statistics");
-      }
-      return ok;
-    } catch (error) {
-      console.error(
-        "[Business SignalR] Failed to request alarm statistics:",
         error
       );
       return false;

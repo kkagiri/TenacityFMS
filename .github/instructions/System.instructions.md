@@ -882,3 +882,69 @@ padding: 10px 20px;
 }
 }
 **Remember: You are a helpful assistant that follows these rules strictly. When in doubt, ask the user for clarification rather than making assumptions.**
+
+---
+
+## Event Expression Engine (Replaces Old Alarm/ActiveAlarm System)
+
+> **⚠️ The old `AlarmHandler`, `ActiveAlarm`, `Alarm` system is DELETED. Do NOT reference or recreate any of those entities, services, or files.**
+
+### Architecture
+- **Old system** (deleted): `AlarmHandler` → `AlarmHandlerExecution` → `ActiveAlarm` → `ActiveAlarmEscalationHistory`
+- **New system**: `EventExpression` → `EventExpressionExecution` → `ActiveEvent`
+
+### Backend Structure
+```
+FMS.Application/Features/EventExpressionEngine/
+├── Commands/           # CreateEventExpression, Update, Delete, ProcessEvent, AcknowledgeActiveEvent, ResolveActiveEvent
+├── Queries/            # GetEventExpressions, GetById, GetExecutions, GetActiveEvents, GetEventTypes
+├── DTOs/               # EventExpressionDto, ActiveEventDto, EventExpressionExecutionDto, CreateEventExpressionDto, etc.
+├── Services/           # IEventExpressionEngine + EventExpressionEngine (core processing)
+└── Validators/         # CreateEventExpressionValidator, UpdateEventExpressionValidator
+```
+
+### Key Backend Service
+```csharp
+// IEventExpressionEngine.ProcessAsync() — call this wherever events need evaluation
+await _eventExpressionEngine.ProcessAsync(new FMSEvent {
+    EventType = "TankStockDiscrepancy",  // or DeviceOffline, FuelTheft, etc.
+    SiteId = siteId,
+    TankId = tankId,
+    Severity = "High",
+    Data = new Dictionary<string, object> { ["variance"] = 50.5 }
+});
+```
+
+### Database Tables (MySQL 5.5)
+- `event_expressions` — replaces `alarm_handler`
+- `event_expression_executions` — replaces `alarm_handler_execution`
+- `active_events` — replaces `activealarms`
+- Migration SQL: `Documentation/Features/NotificationAndAlarm/EventExpressionEngine/database/migration.sql`
+
+### Frontend Structure
+```
+fms.frontend/src/
+├── pages/eventExpressions/
+│   ├── EventExpressionsMain.js       # Entry point with sub-routing
+│   └── components/
+│       ├── EventExpressionList.js    # DataGrid listing
+│       ├── EventExpressionForm.js    # Create/Edit form
+│       └── ExecutionHistory.js       # Execution history viewer
+├── dataservice/
+│   ├── eventExpressionApi.js         # API service at /api/v1/event-expressions
+│   └── activeEventApi.js             # API service at /api/v1/active-events
+└── redux/slices/
+    └── eventExpressionSlice.js       # Redux slice
+```
+
+### Frontend Route
+- URL: `/event-expressions` (Content.js + app-routes.js)
+- AppDrawer: "Events" module at `/event-expressions`
+- Permission: `_Read_EventExpression`
+
+### Controller Endpoints
+- `EventExpressionsController` — CRUD + `/types` + `/{id}/executions`
+- `ActiveEventsController` — List, Acknowledge, Resolve, Dashboard stats
+
+### Wiring Guide
+See: `documentation/features/eventengine/event-expression-wiring/V1/implementation/README.md` for all 15 TODO locations where `IEventExpressionEngine.ProcessAsync()` needs to be called.

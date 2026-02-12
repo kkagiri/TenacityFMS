@@ -46,7 +46,5 @@ public partial class Tankmeasurement
 
     public int? TankId { get; set; }
 
-    public virtual ICollection<Alarm> Alarms { get; set; } = new List<Alarm>();
-
     public virtual Tank? TankNavigation { get; set; }
 }

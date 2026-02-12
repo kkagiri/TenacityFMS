@@ -165,16 +165,6 @@ const PolicyCreate = () => {
   };
 
   const buildPayload = () => {
-    // Build activeAlarmFilter JSON from selections
-    const filterObj = {
-      source: 'ActiveAlarm',
-      eventType: triggerFilter.eventType || 'Created',
-      alarmType: policy.alertTypeKey,
-    };
-    if (triggerFilter.minimumSeverity) {
-      filterObj.minimumSeverity = triggerFilter.minimumSeverity;
-    }
-
     return {
       name: policy.name,
       alertTypeKey: policy.alertTypeKey,
@@ -190,7 +180,6 @@ const PolicyCreate = () => {
       titleTemplate: policy.titleTemplate || `Alert: {{alarmType}} - {{severity}}`,
       messageTemplate: policy.messageTemplate || `{{alarmType}} triggered at {{siteName}} with severity {{severity}}`,
       requireAcknowledgment: policy.requireAcknowledgment,
-      activeAlarmFilter: JSON.stringify(filterObj),
       description: policy.description,
     };
   };

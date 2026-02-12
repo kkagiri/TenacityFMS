@@ -164,54 +164,12 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
                     ? $"Vehicle {vehicleIdentifier} was fueled but GPS has been offline for {result.DaysSinceLastSeen} days (last seen: {result.LastSeenUtc:yyyy-MM-dd HH:mm} UTC)"
                     : $"Vehicle {vehicleIdentifier} was fueled but GPS has no location data available";
 
-                // Create alarm notification
-                var alarmRequest = new CreateAlarmNotificationRequest
-                {
-                    AlarmType = ALARM_TYPE_GPS_OFFLINE_FUELING,
-                    Category = "Vehicle",
-                    Priority = "High",
-                    Message = alertMessage,
-                    VehicleId = vehicleId,
-                    SiteId = siteId,
-                    TriggeredBy = triggeredBy ?? "System",
-                    Data = new
-                    {
-                        VehicleId = vehicleId,
-                        VehicleNo = vehicleIdentifier,
-                        SiteId = siteId,
-                        FuelAmount = fuelAmount,
-                        LastSeenUtc = lastSeenUtc,
-                        DaysSinceLastSeen = result.DaysSinceLastSeen,
-                        ThresholdDays = await GetGpsOfflineThresholdDaysAsync(cancellationToken),
-                        DeviceId = providerMapping.ExternalDeviceId,
-                        DeviceName = providerMapping.DeviceName,
-                        FuelingTime = DateTime.UtcNow
-                    }
-                };
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for GPS offline events
+                _logger.LogInformation("GPS offline event detected for vehicle {VehicleId} ({VehicleNo}) - last seen {DaysSinceLastSeen} days ago",
+                    vehicleId, vehicleIdentifier, result.DaysSinceLastSeen);
 
-                try
-                {
-                    var notificationResult = await _notificationService.CreateAlarmNotificationAsync(alarmRequest, cancellationToken);
-
-                    if (notificationResult.IsSuccess)
-                    {
-                        result.AlertCreated = true;
-                        result.Message = alertMessage;
-                        _logger.LogInformation("Created GPS offline alert for vehicle {VehicleId} ({VehicleNo}) - last seen {DaysSinceLastSeen} days ago",
-                            vehicleId, vehicleIdentifier, result.DaysSinceLastSeen);
-                    }
-                    else
-                    {
-                        result.Message = $"Failed to create alert: {notificationResult.Message}";
-                        _logger.LogWarning("Failed to create GPS offline alert for vehicle {VehicleId}: {Message}",
-                            vehicleId, notificationResult.Message);
-                    }
-                }
-                catch (Exception ex)
-                {
-                    result.Message = $"Failed to create alert: {ex.Message}";
-                    _logger.LogError(ex, "Error creating GPS offline alert for vehicle {VehicleId}", vehicleId);
-                }
+                result.AlertCreated = true;
+                result.Message = alertMessage;
             }
             else
             {

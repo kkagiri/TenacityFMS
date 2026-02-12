@@ -16,8 +16,6 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
@@ -33,20 +31,17 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<InTankDeliveryDetectionService> _logger;
-        private readonly IActiveAlarmService _activeAlarmService;
         private readonly TankVolumeHistoryIntegrationService _volumeHistoryService;
         private readonly ISystemConfigurationService _configService;
 
         public InTankDeliveryDetectionService(
             GpsdataContext context,
             ILogger<InTankDeliveryDetectionService> logger,
-            IActiveAlarmService activeAlarmService,
             TankVolumeHistoryIntegrationService volumeHistoryService,
             ISystemConfigurationService configService)
         {
             _context = context;
             _logger = logger;
-            _activeAlarmService = activeAlarmService;
             _volumeHistoryService = volumeHistoryService;
             _configService = configService;
         }
@@ -210,55 +205,17 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
         {
             try
             {
-                var priority = await _configService.GetItdAlertPriorityAsync(cancellationToken);
-                var autoResolveMinutes = await _configService.GetItdAlertAutoResolveMinutesAsync(cancellationToken);
-
                 var tankName = tank?.Name ?? $"Probe #{delivery.Tank}";
                 var fuelGrade = delivery.FuelGradeName ?? $"Grade {delivery.FuelGradeId}";
 
-                var request = new CreateActiveAlarmRequest
-                {
-                    AlarmType = "InTankDeliveryDetected",
-                    TriggerSource = "Hardware",
-                    Message = $"In-tank delivery detected: {absoluteVolume:F1}L of {fuelGrade} in {tankName}",
-                    Description = $"PTS device {delivery.Ptsid} detected an in-tank delivery of {absoluteVolume:F1}L " +
-                                  $"in {tankName}. Start: {delivery.StartDateTime:yyyy-MM-dd HH:mm}, " +
-                                  $"End: {delivery.EndDateTime:yyyy-MM-dd HH:mm}. " +
-                                  $"Volume change from {delivery.StartProductVolume:F1}L to {delivery.EndProductVolume:F1}L.",
-                    Severity = DiscrepancySeverity.Medium,
-                    Priority = priority,
-                    SiteId = tank?.SiteId,
-                    TankId = tank?.Id,
-                    PtsDeviceId = delivery.Ptsid,
-                    ActualValue = absoluteVolume,
-                    Unit = "Liters",
-                    CheckForDuplicates = true,
-                    CreateNotification = true,
-                    SuppressNotifications = false,
-                    AutoResolveMinutes = autoResolveMinutes,
-                    AdditionalData = System.Text.Json.JsonSerializer.Serialize(new
-                    {
-                        deliveryId = delivery.DeliveryId,
-                        packetId = delivery.PacketId,
-                        fuelGrade,
-                        startVolume = delivery.StartProductVolume,
-                        endVolume = delivery.EndProductVolume,
-                        absoluteVolume,
-                        startDateTime = delivery.StartDateTime,
-                        endDateTime = delivery.EndDateTime,
-                        pumpsDispensedVolume = delivery.PumpsDispensedVolume
-                    })
-                };
-
-                var alarmResult = await _activeAlarmService.CreateActiveAlarmAsync(request);
-
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for in-tank delivery events
                 _logger.LogInformation(
-                    "ITD alert created for DeliveryId {DeliveryId}: {AlarmResult}",
-                    delivery.DeliveryId, alarmResult?.Message ?? "OK");
+                    "ITD event detected for DeliveryId {DeliveryId}: Tank={Tank}, Volume={Volume}L, FuelGrade={FuelGrade}",
+                    delivery.DeliveryId, tankName, absoluteVolume, fuelGrade);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create ITD alert for DeliveryId {DeliveryId}", delivery.DeliveryId);
+                _logger.LogError(ex, "Failed to process ITD event for DeliveryId {DeliveryId}", delivery.DeliveryId);
             }
         }
 

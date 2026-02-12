@@ -9,9 +9,7 @@ using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.ATG;
 using FMS.Application.Handlers.Interface;
-using FMS.Application.Services; //Cursor - Add FMSResponse import
 using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon;
@@ -29,25 +27,17 @@ namespace FMS.Application.Handlers
     {
         private readonly ILogger<UploadAlertRecordHandler> _logger;
         private readonly GpsdataContext _context;
-        private readonly IAlarmHandlerService _alarmHandlerService;
-        private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
         private readonly IDatabase _redisDb;
 
         public UploadAlertRecordHandler(
             ILogger<UploadAlertRecordHandler> logger,
             GpsdataContext context,
-            IAlarmHandlerService alarmHandlerService,
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration,
             IConnectionMultiplexer redisConnection)
         {
             _logger = logger ??
                 throw new ArgumentNullException(nameof(logger));
             _context = context ??
                 throw new ArgumentNullException(nameof(context));
-            _alarmHandlerService = alarmHandlerService ??
-                throw new ArgumentNullException(nameof(alarmHandlerService));
-            _activeAlarmIntegration = activeAlarmIntegration ??
-                throw new ArgumentNullException(nameof(activeAlarmIntegration));
             _redisDb = redisConnection?.GetDatabase() ??
                 throw new ArgumentNullException(nameof(redisConnection));
         }
@@ -164,30 +154,10 @@ namespace FMS.Application.Handlers
                 if (validationErrors.Any())
                     return FMSResponse.ValidationFailed(validationErrors);
 
-                //Cursor: Find or create alarm record
+                //Cursor: Determine alarm type for alert record
                 var alarmType = GetAlarmTypeFromAlert(alertDto);
-                var alarm = await _context.Alarms.FirstOrDefaultAsync(a => a.Name == alarmType);
 
-                if (alarm == null)
-                {
-                    //Cursor: Create new alarm type
-                    alarm = new Alarm
-                    {
-                        Name = alarmType,
-                        Description = GetAlarmDescription(alertDto)
-                        // Category = alertDto.DeviceType, //Cursor: Property doesn't exist on Alarm entity
-                        // Severity = GetAlarmSeverity(alertDto), //Cursor: Property doesn't exist on Alarm entity
-                        // IsActive = true, //Cursor: Property doesn't exist on Alarm entity
-                        // CreatedAt = DateTime.UtcNow //Cursor: Property doesn't exist on Alarm entity
-                    };
-
-                    _context.Alarms.Add(alarm);
-                    await _context.SaveChangesAsync();
-
-                    _logger.LogInformation("Created new alarm type: {AlarmType}", alarmType);
-                }
-
-                //Cursor: Store alert record in database
+                //Cursor: Store alert record in database (AlarmId left null since Alarm table is removed)
                 var alertRecord = new PTSAlertRecord
                 {
                     PtsId = alertDto.PtsId,
@@ -197,7 +167,7 @@ namespace FMS.Application.Handlers
                     State = alertDto.State,
                     DateTime = alertDto.DateTime,
                     ConfigurationId = alertDto.ConfigurationId,
-                    AlarmId = alarm.Id,
+                    AlarmId = null,
                     ProcessedAt = DateTime.UtcNow
                 };
 
@@ -207,11 +177,11 @@ namespace FMS.Application.Handlers
                 //Cursor: Process alarm notifications based on state
                 if (alertDto.State == "Started" || alertDto.State == "Detected")
                 {
-                    await ProcessAlarmNotificationAsync(deviceId, alertDto, alarm);
+                    await ProcessAlarmNotificationAsync(deviceId, alertDto, alarmType);
                 }
 
                 //Cursor: Store alert in Redis for real-time monitoring
-                await StoreAlertInRedisAsync(deviceId, alertDto, alarm);
+                await StoreAlertInRedisAsync(deviceId, alertDto, alarmType);
 
                 _logger.LogInformation("Processed alert record: Device {DeviceId}, Type {DeviceType}, Code {Code}, State {State}",
                     deviceId, alertDto.DeviceType, alertDto.Code, alertDto.State);
@@ -225,7 +195,7 @@ namespace FMS.Application.Handlers
             }
         }
 
-        private async Task ProcessAlarmNotificationAsync(string deviceId, AlertRecordDto alertDto, Alarm alarm)
+        private async Task ProcessAlarmNotificationAsync(string deviceId, AlertRecordDto alertDto, string alarmType)
         {
             try
             {
@@ -256,58 +226,38 @@ namespace FMS.Application.Handlers
                     _logger.LogWarning(ex, "Non-critical: Failed to load device/tank context for alert");
                 }
 
-                var alarmRequest = new CreateAlarmNotificationRequest
-                {
-                    AlarmType = alarm.Name,
-                    AlarmId = alarm.Id,
-                    Category = alertDto.DeviceType,
-                    Message = GetAlarmMessage(alertDto),
-                    Priority = GetAlarmPriority(alertDto),
-                    TriggeredBy = "System",
-                    SiteId = tank?.SiteId ?? device?.Site, //Cursor on changes to code - Get SiteId from tank or device
-                    PtsDeviceId = device?.Ptsid, //Cursor on changes to code - Use PtsDeviceId
-                    TankId = tank?.Id,
-                    Data = new
-                    {
-                        AlertCode = alertDto.Code,
-                        DeviceType = alertDto.DeviceType,
-                        DeviceNumber = alertDto.DeviceNumber,
-                        State = alertDto.State,
-                        ConfigurationId = alertDto.ConfigurationId,
-                        PtsId = alertDto.PtsId
-                    }
-                };
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for PTS alert events — alarm context logged below
+                _logger.LogDebug("PTS alert context: DeviceType={DeviceType}, Code={Code}, State={State}, Site={SiteId}",
+                    alertDto.DeviceType, alertDto.Code, alertDto.State, tank?.SiteId ?? device?.Site);
 
                 // Check if we should process this alarm based on state and deduplication logic
-                bool shouldProcessAlarm = await ShouldProcessAlarmAsync(deviceId, alertDto, alarm);
+                bool shouldProcessAlarm = await ShouldProcessAlarmAsync(deviceId, alertDto, alarmType);
 
                 if (!shouldProcessAlarm)
                 {
                     _logger.LogDebug("Skipping alarm processing for {DeviceId} {AlarmType} - duplicate or within cooldown",
-                        deviceId, alarm.Name);
+                        deviceId, alarmType);
                     return;
                 }
-
-                // Handle ActiveAlarm creation/update with deduplication
-                await HandleActiveAlarmAsync(deviceId, alertDto, alarm, device, tank);
 
                 // Only process alarm handlers for "Started" or "Detected" states
                 if (alertDto.State == "Started" || alertDto.State == "Detected")
                 {
                     //Cursor: Process specific alarm types
+                    // TODO: Wire EventExpressionEngine.ProcessAsync() for PTS alert events
                     switch (alertDto.DeviceType.ToUpper())
                     {
                         case "PUMP":
-                            await _alarmHandlerService.ProcessPumpAlarmAsync(alarmRequest);
+                            _logger.LogDebug("Pump alarm received for device {DeviceId}", deviceId);
                             break;
                         case "PROBE":
-                            await _alarmHandlerService.ProcessTankAlarmAsync(alarmRequest);
+                            _logger.LogDebug("Tank alarm received for device {DeviceId}", deviceId);
                             break;
                         case "PTS":
-                            await _alarmHandlerService.ProcessDeviceAlarmAsync(alarmRequest);
+                            _logger.LogDebug("Device alarm received for device {DeviceId}", deviceId);
                             break;
                         default:
-                            await _alarmHandlerService.ProcessGenericAlarmAsync(alarmRequest);
+                            _logger.LogDebug("Generic alarm received for device {DeviceId}", deviceId);
                             break;
                     }
                 }
@@ -319,28 +269,25 @@ namespace FMS.Application.Handlers
             }
         }
 
-        private async Task<bool> ShouldProcessAlarmAsync(string deviceId, AlertRecordDto alertDto, Alarm alarm)
+        private async Task<bool> ShouldProcessAlarmAsync(string deviceId, AlertRecordDto alertDto, string alarmType)
         {
             try
             {
-                // Always process "Resolved", "Stopped", or "Cleared" states to close active alarms
                 if (alertDto.State == "Resolved" || alertDto.State == "Stopped" || alertDto.State == "Cleared")
                 {
                     return true;
                 }
 
-                // For "Started" or "Detected" states, check for recent duplicates using Redis cooldown
-                var cooldownKey = $"alarm_cooldown:{deviceId}:{alarm.Name}:{alertDto.Code}";
+                var cooldownKey = $"alarm_cooldown:{deviceId}:{alarmType}:{alertDto.Code}";
                 var cooldownExists = await _redisDb.KeyExistsAsync(cooldownKey);
 
                 if (cooldownExists)
                 {
                     _logger.LogDebug("Alarm {AlarmType} for device {DeviceId} is in cooldown period",
-                        alarm.Name, deviceId);
+                        alarmType, deviceId);
                     return false;
                 }
 
-                // Set cooldown for 5 minutes to prevent duplicate processing
                 await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(5));
 
                 return true;
@@ -348,215 +295,11 @@ namespace FMS.Application.Handlers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error checking alarm processing conditions for device {DeviceId}", deviceId);
-                // Default to processing the alarm if check fails
                 return true;
             }
         }
 
-        private async Task HandleActiveAlarmAsync(string deviceId, AlertRecordDto alertDto, Alarm alarm, Ptsdevice device, Tank tank)
-        {
-            try
-            {
-                // Create unique alarm identifier for deduplication
-                var alarmIdentifier = CreateAlarmIdentifier(deviceId, alertDto, alarm);
-
-                // Check if there's an existing active alarm for this identifier
-                var existingActiveAlarm = await FindExistingActiveAlarmAsync(alarmIdentifier, deviceId, alarm.Id, tank?.Id);
-
-                if (alertDto.State == "Started" || alertDto.State == "Detected")
-                {
-                    if (existingActiveAlarm != null && existingActiveAlarm.State != "Resolved")
-                    {
-                        // Update existing alarm timestamp and data
-                        await UpdateExistingActiveAlarmAsync(existingActiveAlarm, alertDto);
-                        _logger.LogDebug("Updated existing ActiveAlarm {ActiveAlarmId} for {AlarmType}",
-                            existingActiveAlarm.Id, alarm.Name);
-                    }
-                    else
-                    {
-                        // Create new ActiveAlarm record
-                        await CreateNewActiveAlarmAsync(deviceId, alertDto, alarm, device, tank);
-                    }
-                }
-                else if (alertDto.State == "Resolved" || alertDto.State == "Stopped" || alertDto.State == "Cleared")
-                {
-                    if (existingActiveAlarm != null && existingActiveAlarm.State != "Resolved")
-                    {
-                        // Resolve the existing alarm
-                        await ResolveActiveAlarmAsync(existingActiveAlarm, alertDto);
-                        _logger.LogInformation("Resolved ActiveAlarm {ActiveAlarmId} for {AlarmType}",
-                            existingActiveAlarm.Id, alarm.Name);
-                    }
-                }
-                else if (alertDto.State == "Finished")
-                {
-                    if (existingActiveAlarm != null && existingActiveAlarm.State != "Resolved")
-                    {
-                        // Resolve the existing alarm
-                        await ResolveActiveAlarmAsync(existingActiveAlarm, alertDto);
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error handling ActiveAlarm for device {DeviceId}, alarm {AlarmType}",
-                    deviceId, alarm.Name);
-            }
-        }
-
-        private string CreateAlarmIdentifier(string deviceId, AlertRecordDto alertDto, Alarm alarm)
-        {
-            // Create unique identifier based on device, alarm type, and specific alert code
-            return $"{deviceId}:{alarm.Name}:{alertDto.Code}:{alertDto.DeviceNumber}";
-        }
-
-        private async Task<Domain.Entities.ActiveAlarm> FindExistingActiveAlarmAsync(string alarmIdentifier, string deviceId, int alarmId, int? tankId)
-        {
-            // Look for existing active alarm using multiple criteria
-            var query = _context.ActiveAlarms
-                .Where(aa => aa.AlarmHandlerId == alarmId && aa.PtsDeviceId == deviceId && aa.State != "Resolved");
-
-            if (tankId.HasValue)
-            {
-                query = query.Where(aa => aa.TankId == tankId);
-            }
-
-            // Also check by alarm identifier stored in additional data
-            var existingAlarm = await query
-                .Where(aa => aa.AdditionalData != null && aa.AdditionalData.Contains(alarmIdentifier))
-                .OrderByDescending(aa => aa.TriggeredAt)
-                .FirstOrDefaultAsync();
-
-            return existingAlarm;
-        }
-
-        private async Task UpdateExistingActiveAlarmAsync(Domain.Entities.ActiveAlarm existingAlarm, AlertRecordDto alertDto)
-        {
-            // Update timestamp to show latest occurrence
-            existingAlarm.TriggeredAt = DateTime.UtcNow;
-
-            // Update severity and priority based on latest alert
-            var severity = GetAlarmSeverity(alertDto);
-            var priority = GetAlarmPriority(alertDto);
-
-            existingAlarm.Severity = severity
-            switch
-            {
-                "Critical" => FMS.Domain.Entities.enums.DiscrepancySeverity.Critical,
-                "High" => FMS.Domain.Entities.enums.DiscrepancySeverity.High,
-                "Medium" => FMS.Domain.Entities.enums.DiscrepancySeverity.Medium,
-                "Low" => FMS.Domain.Entities.enums.DiscrepancySeverity.Low,
-                _ => FMS.Domain.Entities.enums.DiscrepancySeverity.Medium
-            };
-
-            existingAlarm.Priority = priority;
-            existingAlarm.Message = GetAlarmMessage(alertDto);
-
-            // Check if we should escalate based on repeated occurrences
-            var timeSinceTriggered = DateTime.UtcNow - existingAlarm.TriggeredAt;
-            if (timeSinceTriggered.TotalMinutes > 15 && existingAlarm.EscalationLevel < 3)
-            {
-                existingAlarm.EscalationLevel++;
-                existingAlarm.LastEscalatedAt = DateTime.UtcNow;
-            }
-
-            // Update additional data with latest alert information and occurrence tracking
-            var existingData = string.IsNullOrEmpty(existingAlarm.AdditionalData) ?
-                new { OccurrenceCount = 0 } :
-                JsonSerializer.Deserialize<dynamic>(existingAlarm.AdditionalData);
-
-            var updatedData = new
-            {
-                LatestAlert = new
-                {
-                    alertDto.Code,
-                    alertDto.DeviceType,
-                    alertDto.DeviceNumber,
-                    alertDto.State,
-                    alertDto.ConfigurationId,
-                    ProcessedAt = DateTime.UtcNow,
-                    Severity = severity,
-                    Priority = priority
-                },
-                OccurrenceCount = (existingData?.OccurrenceCount ?? 0) + 1,
-                LastUpdate = DateTime.UtcNow,
-                EscalationLevel = existingAlarm.EscalationLevel,
-                TotalMinutesActive = (int)timeSinceTriggered.TotalMinutes
-            };
-
-            existingAlarm.AdditionalData = JsonSerializer.Serialize(updatedData);
-
-            await _context.SaveChangesAsync();
-        }
-        private async Task CreateNewActiveAlarmAsync(string deviceId, AlertRecordDto alertDto, Alarm alarm, Ptsdevice device, Tank tank)
-        {
-            var activeAlarmRequest = new CreateAlarmNotificationRequest
-            {
-                AlarmType = alarm.Name,
-                AlarmId = alarm.Id,
-                Category = alertDto.DeviceType,
-                Message = GetAlarmMessage(alertDto),
-                Priority = GetAlarmPriority(alertDto),
-                TriggeredBy = "PTS",
-                SiteId = tank?.SiteId ?? device?.Site ?? 1,
-                PtsDeviceId = device?.Ptsid,
-                TankId = tank?.Id,
-                Data = new
-                {
-                    AlarmIdentifier = CreateAlarmIdentifier(deviceId, alertDto, alarm),
-                    AlertCode = alertDto.Code,
-                    alertDto.DeviceType,
-                    alertDto.DeviceNumber,
-                    alertDto.State,
-                    alertDto.ConfigurationId,
-                    alertDto.PtsId,
-                    ProcessedAt = DateTime.UtcNow
-                }
-            };
-
-            var activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromAlarmHandler(
-                activeAlarmRequest,
-                alarm.Id,
-                CancellationToken.None);
-
-            if (activeAlarm != null)
-            {
-                _logger.LogInformation("Created new ActiveAlarm {ActiveAlarmId} for PTS alert {DeviceType} code {Code}",
-                    activeAlarm.Id, alertDto.DeviceType, alertDto.Code);
-            }
-            else
-            {
-                _logger.LogWarning("Failed to create ActiveAlarm for PTS alert {DeviceType} code {Code}",
-                    alertDto.DeviceType, alertDto.Code);
-            }
-        }
-
-        private async Task ResolveActiveAlarmAsync(Domain.Entities.ActiveAlarm existingAlarm, AlertRecordDto alertDto)
-        {
-            existingAlarm.State = "Resolved";
-            existingAlarm.ResolvedAt = DateTime.UtcNow;
-            existingAlarm.ResolvedBy = "PTS_AutoResolved";
-            existingAlarm.ResolutionNotes = $"Automatically resolved by PTS alert state: {alertDto.State}";
-
-            // Update additional data with resolution information
-            var resolutionData = new
-            {
-                ResolvedByAlert = new
-                {
-                    alertDto.Code,
-                    alertDto.DeviceType,
-                    alertDto.State,
-                    ProcessedAt = DateTime.UtcNow
-                },
-                AutoResolved = true
-            };
-
-            existingAlarm.AdditionalData = JsonSerializer.Serialize(resolutionData);
-
-            await _context.SaveChangesAsync();
-        }
-
-        private async Task StoreAlertInRedisAsync(string deviceId, AlertRecordDto alertDto, Alarm alarm)
+        private async Task StoreAlertInRedisAsync(string deviceId, AlertRecordDto alertDto, string alarmType)
         {
             try
             {
@@ -569,18 +312,16 @@ namespace FMS.Application.Handlers
                     DeviceNumber = alertDto.DeviceNumber,
                     State = alertDto.State,
                     DateTime = alertDto.DateTime,
-                    AlarmType = alarm.Name,
-                    // Severity = alarm.Severity, //Cursor: Property doesn't exist on Alarm entity
+                    AlarmType = alarmType,
                     ProcessedAt = DateTime.UtcNow
                 };
 
                 var alertJson = JsonSerializer.Serialize(alertData);
                 await _redisDb.StringSetAsync(alertKey, alertJson, TimeSpan.FromHours(24));
 
-                //Cursor: Also store in device alerts list
                 var deviceAlertsKey = $"device:{deviceId}:alerts";
                 await _redisDb.ListLeftPushAsync(deviceAlertsKey, alertJson);
-                await _redisDb.ListTrimAsync(deviceAlertsKey, 0, 99); // Keep last 100 alerts
+                await _redisDb.ListTrimAsync(deviceAlertsKey, 0, 99);
                 await _redisDb.KeyExpireAsync(deviceAlertsKey, TimeSpan.FromDays(7));
 
                 _logger.LogDebug("Stored alert in Redis: {AlertKey}", alertKey);

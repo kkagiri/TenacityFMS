@@ -33,8 +33,7 @@ const ROUTE_PATTERNS = {
     /^\/tank-stock/,
     /^\/notifications/,
     /^\/issue-tracker/,
-    /^\/active-alarms/,
-    /^\/alarms/,
+    /^\/event-expressions/,
     /^\/stock/,
     /^\/delivery/,
     /^\/consumption/,
@@ -42,7 +41,7 @@ const ROUTE_PATTERNS = {
     /\/tankstock$/,
     /\/notifications$/,
     /\/issue-tracker$/,
-    /\/active-alarms$/,
+    /\/event-expressions$/,
     /^\/reports\/fuel-importer/, // Fuel importer needs SignalR for async import progress
     /\/fuel-importer$/,
   ],
@@ -109,8 +108,7 @@ class SignalRConnectionManager {
 
     if (isAuthPage || !hasToken) {
       console.log(
-        `[SignalRManager] ⏭️ Skipping SignalR - ${
-          isAuthPage ? "auth page" : "no token"
+        `[SignalRManager] ⏭️ Skipping SignalR - ${isAuthPage ? "auth page" : "no token"
         }`
       );
       // Stop all active services if user is logging out
@@ -134,13 +132,11 @@ class SignalRConnectionManager {
 
     console.log(`[SignalRManager] 📊 Service Analysis:`);
     console.log(
-      `  Currently Active: [${
-        Array.from(this.activeServices).join(", ") || "none"
+      `  Currently Active: [${Array.from(this.activeServices).join(", ") || "none"
       }]`
     );
     console.log(
-      `  Required for route: [${
-        Array.from(requiredServices).join(", ") || "none"
+      `  Required for route: [${Array.from(requiredServices).join(", ") || "none"
       }]`
     );
 
@@ -275,8 +271,7 @@ class SignalRConnectionManager {
     }
 
     console.log(
-      `[SignalRManager] ✅ Required services: [${
-        Array.from(services).join(", ") || "none"
+      `[SignalRManager] ✅ Required services: [${Array.from(services).join(", ") || "none"
       }]`
     );
     return services;
@@ -425,7 +420,7 @@ class SignalRConnectionManager {
           // Request business initial data (if needed)
           if (businessSignalRService.getConnectionStatus()) {
             // You can add initial data requests here if needed
-            // await businessSignalRService.requestAlarmStatistics();
+            // await businessSignalRService.requestEventStatistics();
           }
           break;
         case "vehicleTracking":

@@ -1,0 +1,22 @@
+/**
+ * File: ExecutionHistory.scss
+ * Purpose: Styles for the Execution History page
+ * Dependencies: Tailwind CSS (tw- prefix)
+ * Last Modified: 2026-02-06
+ */
+
+.execution-history {
+  .dx-datagrid {
+    border: none;
+
+    .dx-datagrid-headers {
+      @apply tw-bg-gray-50;
+    }
+
+    .dx-row {
+      &.dx-row-alt {
+        @apply tw-bg-gray-50;
+      }
+    }
+  }
+}

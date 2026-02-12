@@ -11,7 +11,6 @@ using FMS.Application.Features.FMS.TankStock;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.TankStock;
@@ -37,10 +36,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly DiscrepancyDetectionService _discrepancyDetectionService;
         private readonly INotificationService _notificationService;
-        private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration;
         private readonly IAlertConfigurationService _alertConfig;
 
-        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, AlarmHandlerActiveAlarmIntegration activeAlarmIntegration, IAlertConfigurationService alertConfig)
+        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, IAlertConfigurationService alertConfig)
         {
             _context = context;
             _logger = logger;
@@ -49,7 +47,6 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             _futureRecordsService = futureRecordsService;
             _discrepancyDetectionService = discrepancyDetectionService;
             _notificationService = notificationService;
-            _activeAlarmIntegration = activeAlarmIntegration;
             _alertConfig = alertConfig;
         }
 
@@ -898,33 +895,12 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
-                ActiveAlarm? activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromDiscrepancy(
-                    discrepancyId: discrepancyId,
-                    alarmType: alarmType,
-                    message: message,
-                    severity: severity,
-                    siteId: tank.SiteId,
-                    tankId: tank.Id,
-                    thresholdValue: null, // No specific threshold for stock discrepancy
-                    actualValue: Math.Abs(variance),
-                    unit: "L",
-                    triggeredBy: "ClosingStock-System",
-                    cancellationToken: cancellationToken);
-
-                if (activeAlarm != null)
-                {
-                    _logger.LogInformation("Created ActiveAlarm {AlarmId} for stock discrepancy in Tank {TankId}",
-                        activeAlarm.Id, tank.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to create ActiveAlarm for stock discrepancy in Tank {TankId}", tank.Id);
-                }
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for stock discrepancy events
+                _logger.LogInformation("Stock discrepancy detected in Tank {TankId}: {Message}", tank.Id, message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create ActiveAlarm for stock discrepancy in Tank {TankId}", tank.Id);
-                // Don't throw - ActiveAlarm creation failure shouldn't prevent closing stock creation
+                _logger.LogError(ex, "Failed to process stock discrepancy event for Tank {TankId}", tank.Id);
             }
         }
 
@@ -956,33 +932,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
-                ActiveAlarm? activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromDiscrepancy(
-                    discrepancyId: discrepancyId,
-                    alarmType: alarmType,
-                    message: message,
-                    severity: severity,
-                    siteId: tank.SiteId,
-                    tankId: tank.Id,
-                    thresholdValue: sensorVolume,
-                    actualValue: manualVolume,
-                    unit: "L",
-                    triggeredBy: recordedBy,
-                    cancellationToken: cancellationToken);
-
-                if (activeAlarm != null)
-                {
-                    _logger.LogInformation("Created ActiveAlarm {AlarmId} for sensor variance in Tank {TankId}",
-                        activeAlarm.Id, tank.Id);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to create ActiveAlarm for sensor variance in Tank {TankId}", tank.Id);
-                }
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for sensor variance events
+                _logger.LogInformation("Sensor variance detected in Tank {TankId}: Manual {ManualVolume}L vs Sensor {SensorVolume}L",
+                    tank.Id, manualVolume, sensorVolume);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to create ActiveAlarm for sensor variance in Tank {TankId}", tank.Id);
-                // Don't throw - ActiveAlarm creation failure shouldn't prevent closing stock creation
+                _logger.LogError(ex, "Failed to process sensor variance event for Tank {TankId}", tank.Id);
             }
         }
 

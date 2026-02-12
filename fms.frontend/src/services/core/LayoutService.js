@@ -237,7 +237,7 @@ export class LayoutService extends BaseService {
       { i: 'quickActions', x: 0, y: 0, w: Math.min(4, cols), h: 3 },
       { i: 'stats', x: Math.min(4, cols - 4), y: 0, w: Math.min(4, cols), h: 3 },
       { i: 'systemModules', x: Math.min(8, cols - 4), y: 0, w: Math.min(4, cols), h: 3 },
-      { i: 'alarms', x: 0, y: 3, w: Math.min(6, cols), h: 4 },
+      { i: 'events', x: 0, y: 3, w: Math.min(6, cols), h: 4 },
       { i: 'performance', x: Math.min(6, cols - 6), y: 3, w: Math.min(6, cols), h: 4 },
       { i: 'fuelManagement', x: 0, y: 7, w: Math.min(8, cols), h: 5 },
       { i: 'tankStatus', x: Math.min(8, cols - 4), y: 7, w: Math.min(4, cols), h: 5 }

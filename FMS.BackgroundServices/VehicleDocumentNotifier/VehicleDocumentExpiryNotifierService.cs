@@ -1,5 +1,3 @@
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using FMS.Persistence.DataAccess;
@@ -51,7 +49,6 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
 
         IServiceScope scope = _scopeFactory.CreateScope();
         GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
-        IActiveAlarmService activeAlarmService = scope.ServiceProvider.GetRequiredService<IActiveAlarmService>();
 
         DateTime expiringSoonDate = DateTime.UtcNow.Date.AddDays(30);
         List<VehicleDocument> documentsToNotify = await context.VehicleDocuments
@@ -75,21 +72,9 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                 }
 
 
-                CreateActiveAlarmRequest request = new CreateActiveAlarmRequest
-                {
-                    AlarmType = alarmType,
-                    TriggerSource = "System",
-                    Severity = Domain.Entities.enums.DiscrepancySeverity.Medium,
-                    Priority = priority,
-                    Message = message,
-                    Description = $"Document: {doc.DocumentNumber}, Expires on: {doc.ExpiryDate:yyyy-MM-dd}",
-                    SiteId = doc.Vehicle.WorkingSiteId,
-                    CheckForDuplicates = true,
-                };
-
-                await activeAlarmService.CreateActiveAlarmAsync(request, stoppingToken);
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for vehicle document expiry events
                 _logger.LogInformation(
-                    $"Created alarm for document ID {doc.Id} expiring in {daysUntilExpiry} days.");
+                    "Vehicle document expiry event: {AlarmType} - {Message}", alarmType, message);
             }
         }
 

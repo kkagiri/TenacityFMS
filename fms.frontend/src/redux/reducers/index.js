@@ -37,7 +37,6 @@ import configurationReducer from "./configurationReducer";
 import systemConfigReducer from "./systemConfigReducer";
 import vehicleDashboardReducer from "./vehicleDashboardReducer";
 import issueTrackerReducer from "./issueTrackerReducer";
-import activeAlarmReducer from "./activeAlarmReducer";
 import dashboardPreferencesReducer from "./dashboardPreferencesReducer";
 import dashboardLayoutReducer from "./dashboardLayoutReducer";
 import vehicleDocumentReducer from "./vehicleDocumentReducer";
@@ -50,6 +49,7 @@ import fuelAuditReducer from "../slices/fuelAuditSlice";
 import consumptionSummaryReducer from "./consumptionSummaryReducer";
 import expectedFuelAverageReducer from "../slices/expectedFuelAverageSlice";
 import locationValidationReducer from "../slices/locationValidationSlice";
+import eventExpressionReducer from "../slices/eventExpressionSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -92,7 +92,6 @@ const rootReducer = combineReducers({
   systemConfig: systemConfigReducer,
   vehicleDashboard: vehicleDashboardReducer,
   issueTracker: issueTrackerReducer,
-  activeAlarm: activeAlarmReducer,
   dashboardPreferences: dashboardPreferencesReducer,
   dashboard: dashboardLayoutReducer,
   provider: providerReducer,
@@ -104,6 +103,7 @@ const rootReducer = combineReducers({
   consumptionSummary: consumptionSummaryReducer,
   expectedFuelAverage: expectedFuelAverageReducer,
   locationValidation: locationValidationReducer,
+  eventExpressions: eventExpressionReducer,
 });
 
 export default rootReducer;

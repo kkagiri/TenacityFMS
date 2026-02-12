@@ -29,8 +29,8 @@ import MaintenanceAlertsPage from "./pages/vehicles/maintenance/MaintenanceAlert
 import VehicleDetails from "./pages/vehicles/details/VehicleDetails";
 // Import Issue Tracker components
 import IssueTrackerMain from "./pages/issueTracker/IssueTrackerMain";
-// Import Active Alarm components
-import ActiveAlarmMain from "./pages/activeAlarms/ActiveAlarmMain";
+// Import Event Expressions management
+import EventExpressionsMain from "./pages/eventExpressions";
 // Import Reports main entry point
 import ReportsMain from "./pages/reports/ReportsMain";
 // Import Provider Management main entry point (Phase 7)
@@ -59,8 +59,8 @@ const resolvedComponents = (pageName) => {
       return ReportsMain;
     case "maintenance":
       return MaintenanceMain;
-    case "active-alarms":
-      return ActiveAlarmMain;
+    case "event-expressions":
+      return EventExpressionsMain;
     case "issue-tracker":
     case "issue tracker":
       return IssueTrackerMain;

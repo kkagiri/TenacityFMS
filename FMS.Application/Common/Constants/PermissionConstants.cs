@@ -366,6 +366,18 @@ namespace FMS.Application.Common.Constants
         // ============================================================
 
         /// <summary>
+        /// [NEW] Event Expression Engine permissions.
+        /// Temporarily falls back to _Manage_ATG until DB migration adds these.
+        /// </summary>
+        public static class EventExpression
+        {
+            public const string Read = "_Manage_ATG";
+            public const string Create = "_Manage_ATG";
+            public const string Edit = "_Manage_ATG";
+            public const string Delete = "_Manage_ATG";
+        }
+
+        /// <summary>
         /// [NEW] Notification management permissions.
         /// Requires DB migration before use.
         /// </summary>

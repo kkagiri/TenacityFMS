@@ -1,0 +1,26 @@
+/**
+ * File: EventExpressionForm.scss
+ * Purpose: Styles for the Event Expression create/edit form
+ * Dependencies: Tailwind CSS (tw- prefix)
+ * Last Modified: 2026-02-06
+ */
+
+.event-expression-form {
+  .dx-texteditor {
+    border-radius: 6px;
+  }
+
+  .dx-selectbox {
+    border-radius: 6px;
+  }
+
+  .dx-textarea {
+    border-radius: 6px;
+  }
+
+  .dx-switch {
+    .dx-switch-on {
+      @apply tw-bg-blue-500;
+    }
+  }
+}

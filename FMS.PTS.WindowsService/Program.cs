@@ -47,10 +47,8 @@ using FMS.Application.Communication.SignalR;
 using FMS.Application.Communication.Tracker;
 using FMS.Application.Communication.webSocket;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.Channels;
-using FMS.Application.Features.Notification.Services.Integration;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Features.PTSService.Services;
@@ -483,8 +481,6 @@ namespace FMS.PTS.WindowsService
 
             //Cursor: Register missing configuration and alarm services
             services.AddScoped<ISystemConfigurationService, SystemConfigurationService>(); //Cursor
-            // IAlarmHandlerService is obsolete but still used by some handlers - keep registration
-            services.AddScoped<FMS.Application.Services.IAlarmHandlerService, FMS.Application.Services.AlarmHandlerService>();
             services.AddScoped<PumpTransactionIntegrationService>(); //Cursor
             services.AddScoped<AutomatedReconciliationService>(); //Cursor
             services.AddScoped<DiscrepancyDetectionService>(); //Cursor on changes to code
@@ -571,7 +567,6 @@ namespace FMS.PTS.WindowsService
             // Register the missing services from the exception
             services.AddScoped<IServiceControlService, ServiceControlService>();
             services.AddScoped<IWidgetFactoryService, WidgetFactoryService>();
-            services.AddScoped<AlarmHandlerActiveAlarmIntegration>();
             services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
 
             // Register widget factory dependencies
@@ -587,7 +582,6 @@ namespace FMS.PTS.WindowsService
 
             // Register additional missing services from WebClient
             services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
-            services.AddScoped<IActiveAlarmService, ActiveAlarmService>();
             services.AddScoped<INotificationCategoryService, NotificationCategoryService>();
             services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
             services.AddSingleton<ICategoryMetadataProvider, InMemoryCategoryMetadataProvider>();

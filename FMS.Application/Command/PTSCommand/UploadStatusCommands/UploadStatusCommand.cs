@@ -17,8 +17,6 @@ using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock; //Cursor: Add for tank transfer service
-using FMS.Application.Features.Notification.Services.Integration;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.PTS;
@@ -80,8 +78,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
         private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
         private readonly ISystemConfigurationService _systemConfigurationService;
-        private readonly AlarmHandlerActiveAlarmIntegration _activeAlarmIntegration; // For probe alarm processing
-        private readonly IActiveAlarmService _activeAlarmService; // For system-based alarms
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -98,9 +94,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
             IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
             ISystemConfigurationService systemConfigurationService,
-            IServiceScopeFactory serviceScopeFactory, // For background task scoping
-            AlarmHandlerActiveAlarmIntegration activeAlarmIntegration, // For probe alarm processing
-            IActiveAlarmService activeAlarmService) // For system-based alarms
+            IServiceScopeFactory serviceScopeFactory) // For background task scoping
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -117,8 +111,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
             _systemConfigurationService = systemConfigurationService;
             _serviceScopeFactory = serviceScopeFactory; // For background task scoping
-            _activeAlarmIntegration = activeAlarmIntegration; // For probe alarm processing
-            _activeAlarmService = activeAlarmService; // For system-based alarms
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -653,8 +645,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         }
 
         /// <summary>
-        /// Creates an ActiveAlarm for a probe if not already in cooldown period.
-        /// Uses Redis to track 5-minute cooldown windows to prevent alarm spam.
+        /// Logs probe alarm event for future EventExpressionEngine wiring.
+        /// Uses Redis to track 5-minute cooldown windows to prevent event spam.
         /// </summary>
         private async Task CreateProbeAlarmIfNotInCooldownAsync(
             string deviceId,
@@ -670,7 +662,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         {
             try
             {
-                // Check Redis cooldown (5 minutes to prevent alarm spam from 8-second uploads)
+                // Check Redis cooldown (5 minutes to prevent event spam from 8-second uploads)
                 var cooldownKey = $"probe_alarm_cooldown:{deviceId}:{alarmType}:{probeId}";
                 var cooldownExists = await _redisDb.KeyExistsAsync(cooldownKey);
 
@@ -681,58 +673,17 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     return;
                 }
 
-                // Find the tank linked to this probe
-                var tank = linkedTanks.FirstOrDefault(t => t.ProbeNumber == probeId)
-                    ?? (linkedTanks.Count == 1 ? linkedTanks.First() : null);
-
-                // Get measurement data for the probe
-                var measurement = measurements?.FirstOrDefault(m => m.ProbeNumber == probeId);
-
                 // Set cooldown in Redis (5 minutes)
                 await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(5));
 
-                // Create ActiveAlarm via AlarmHandlerActiveAlarmIntegration
-                var additionalData = new Dictionary<string, object>
-                {
-                    { "ProbeId", probeId },
-                    { "DeviceId", deviceId },
-                    { "TriggerSource", "UploadStatus" }
-                };
-
-                if (measurement != null)
-                {
-                    if (measurement.ProductVolume.HasValue)
-                        additionalData["ProductVolume"] = measurement.ProductVolume.Value;
-                    if (measurement.ProductHeight.HasValue)
-                        additionalData["ProductHeight"] = measurement.ProductHeight.Value;
-                    if (measurement.WaterHeight.HasValue)
-                        additionalData["WaterHeight"] = measurement.WaterHeight.Value;
-                    if (measurement.Temperature.HasValue)
-                        additionalData["Temperature"] = measurement.Temperature.Value;
-                }
-
-                var activeAlarm = await _activeAlarmIntegration.CreateActiveAlarmFromPTSAlert(
-                    alertRecordId: 0, // No alert record, this is from UploadStatus
-                    alarmType: alarmType,
-                    message: $"{message} - Tank: {tank?.Name ?? "Unknown"}, Probe: {probeId}",
-                    priority: priority,
-                    siteId: tank?.SiteId ?? device?.Site,
-                    tankId: tank?.Id,
-                    ptsDeviceId: deviceId,
-                    triggeredBy: "PTS-UploadStatus",
-                    additionalData: additionalData,
-                    cancellationToken: cancellationToken);
-
-                if (activeAlarm != null)
-                {
-                    _logger.LogInformation(
-                        "[UploadStatus] Created ActiveAlarm {AlarmId} of type {AlarmType} for device {DeviceId} probe {ProbeId}",
-                        activeAlarm.Id, alarmType, deviceId, probeId);
-                }
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for probe alarm events
+                _logger.LogInformation(
+                    "[UploadStatus] Probe alarm event {AlarmType} for device {DeviceId} probe {ProbeId}: {Message}",
+                    alarmType, deviceId, probeId, message);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[UploadStatus] Error creating probe alarm {AlarmType} for device {DeviceId} probe {ProbeId}",
+                _logger.LogError(ex, "[UploadStatus] Error processing probe alarm event {AlarmType} for device {DeviceId} probe {ProbeId}",
                     alarmType, deviceId, probeId);
             }
         }
@@ -929,8 +880,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         }
 
         /// <summary>
-        /// Creates an ActiveAlarm for system-based tank level monitoring.
-        /// Uses 15-minute cooldown to prevent alarm spam while still being responsive.
+        /// Logs system-level tank alarm event for future EventExpressionEngine wiring.
+        /// Uses 15-minute cooldown to prevent event spam while still being responsive.
         /// </summary>
         private async Task CreateSystemLevelAlarmAsync(
             Tank tank,
@@ -943,8 +894,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         {
             try
             {
-                // Use 15-minute cooldown for system alarms (longer than 5-minute PTS cooldown)
-                // This allows for operator response time while avoiding spam
+                // Use 15-minute cooldown for system alarms
                 var cooldownKey = $"system_tank_alarm:{tank.Id}:{alarmType}";
                 var cooldownExists = await _redisDb.KeyExistsAsync(cooldownKey);
 
@@ -957,60 +907,14 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 // Set cooldown in Redis (15 minutes)
                 await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(15));
 
-                var additionalData = new Dictionary<string, object>
-                {
-                    { "TankId", tank.Id },
-                    { "TankName", tank.Name },
-                    { "TankCapacity", tank.TankVolume },
-                    { "CurrentVolume", currentVolume },
-                    { "PercentageFull", percentageFull },
-                    { "TriggerSource", "System" },
-                    { "PtsId", tank.PtsId ?? "N/A" },
-                    { "ProbeNumber", tank.ProbeNumber ?? 0 },
-                    { "PtsTankId", tank.PtsTankId ?? 0 }
-                };
-
-                var activeAlarmRequest = new CreateActiveAlarmRequest
-                {
-                    AlarmType = alarmType,
-                    TriggerSource = "System",
-                    Message = message,
-                    Description = $"System-monitored tank level alarm. Tank: {tank.Name}, " +
-                                  $"Current: {currentVolume:N0}L ({percentageFull:F1}%), " +
-                                  $"Capacity: {tank.TankVolume:N0}L. " +
-                                  $"PTS Device: {tank.PtsId ?? "Not linked"}, Probe: {tank.ProbeNumber?.ToString() ?? "N/A"}",
-                    Severity = severity,
-                    Priority = priority,
-                    SiteId = tank.SiteId,
-                    TankId = tank.Id,
-                    PtsDeviceId = tank.PtsId,
-                    ThresholdValue = alarmType.Contains("Low")
-                        ? (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalLowLevelPercent" : "Tank.LowLevelPercent", alarmType.Contains("Critical") ? 10m : 20m))
-                        : (await _systemConfigurationService.GetDecimalAsync(alarmType.Contains("Critical") ? "Tank.CriticalHighLevelPercent" : "Tank.HighLevelPercent", alarmType.Contains("Critical") ? 95m : 90m)),
-                    ActualValue = percentageFull,
-                    Unit = "%",
-                    AdditionalData = additionalData,
-                    CheckForDuplicates = true,
-                    CreateNotification = true,
-                    SuppressNotifications = false,
-                    AutoResolveMinutes = 0, // System level alarms require manual resolution or next check
-                    TriggeredBy = "FMS-System"
-                };
-
-                var activeAlarm = await _activeAlarmService.CreateActiveAlarmAsync(
-                    activeAlarmRequest,
-                    CancellationToken.None);
-
-                if (activeAlarm != null)
-                {
-                    _logger.LogWarning(
-                        "[UploadStatus] Created system ActiveAlarm {AlarmId} of type {AlarmType} for tank {TankId} ({TankName}): {PercentageFull:F1}% full",
-                        activeAlarm.Id, alarmType, tank.Id, tank.Name, percentageFull);
-                }
+                // TODO: Wire EventExpressionEngine.ProcessAsync() for system tank level events
+                _logger.LogWarning(
+                    "[UploadStatus] System tank level event {AlarmType} for tank {TankId} ({TankName}): {PercentageFull:F1}% full, {CurrentVolume:N0}L",
+                    alarmType, tank.Id, tank.Name, percentageFull, currentVolume);
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "[UploadStatus] Error creating system level alarm {AlarmType} for tank {TankId}", alarmType, tank.Id);
+                _logger.LogError(ex, "[UploadStatus] Error processing system level event {AlarmType} for tank {TankId}", alarmType, tank.Id);
             }
         }
 
@@ -1246,253 +1150,253 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         }
                         else
                         {
-                    _logger.LogInformation("[UploadStatus] **NEW COMPLETION** - Processing transaction completion via IdleStatus for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
-                        deviceId, pumpId, transactionId);
+                            _logger.LogInformation("[UploadStatus] **NEW COMPLETION** - Processing transaction completion via IdleStatus for Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}",
+                                deviceId, pumpId, transactionId);
 
-                    // **CRITICAL FIX** - Get Redis context data to enrich the completion data //Cursor
-                    var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
-                    var contextJson = await _redisDb.StringGetAsync(transactionKey);
+                            // **CRITICAL FIX** - Get Redis context data to enrich the completion data //Cursor
+                            var transactionKey = $"device:{deviceId}:transaction:{transactionId}";
+                            var contextJson = await _redisDb.StringGetAsync(transactionKey);
 
-                    // **TRIGGER COMPLETION** - Create enriched EndOfTransaction data with Redis context
-                    var statusData = new JObject
-                    {
-                        ["Pump"] = pumpId,
-                        ["Transaction"] = transactionId,
-                        ["Volume"] = volume,
-                        ["Amount"] = amount,
-                        ["DateTime"] = DateTime.UtcNow,
-                        ["DetectedVia"] = "IdleStatus",
-                        ["CompletionSource"] = "LastTransactionData"
-                    };
-
-                    // **ENRICH WITH REDIS CONTEXT** - Add authorization data if available //Cursor
-                    if (!contextJson.IsNullOrEmpty)
-                    {
-
-
-                        try
-                        {
-                            var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
-
-                            // **CHECK FOR TRANSFER MODE** - Detect if this is a tank transfer (NOT vehicle fueling) //Cursor
-                            var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp)
-                                && transferProp.ValueKind != JsonValueKind.Null
-                                && transferProp.GetBoolean();
-
-                            if (isTransferMode)
+                            // **TRIGGER COMPLETION** - Create enriched EndOfTransaction data with Redis context
+                            var statusData = new JObject
                             {
-                                // **FIX: Handle nullable properties safely - check ValueKind before calling GetInt32/GetString
-                                var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp)
-                                    && sourceProp.ValueKind != JsonValueKind.Null
-                                    ? sourceProp.GetInt32()
-                                    : (int?)null;
-                                var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp)
-                                    && destProp.ValueKind != JsonValueKind.Null
-                                    ? destProp.GetInt32()
-                                    : (int?)null;
-                                var transferReason = context.TryGetProperty("Reason", out var reasonProp)
-                                    && reasonProp.ValueKind != JsonValueKind.Null
-                                    ? reasonProp.GetString()
-                                    : "Pump transfer";
-                                var userId = context.TryGetProperty("UserId", out var userProp)
-                                    && userProp.ValueKind != JsonValueKind.Null
-                                    ? userProp.GetString()
-                                    : "System";
-                                var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp)
-                                    && nozzleProp.ValueKind != JsonValueKind.Null
-                                    ? nozzleProp.GetInt32()
-                                    : (int?)null;
-                                var fuelGradeId = context.TryGetProperty("FuelGradeId", out var fgIdProp)
-                                    && fgIdProp.ValueKind != JsonValueKind.Null
-                                    ? fgIdProp.GetInt32()
-                                    : (int?)null;
-                                var fuelGradeName = context.TryGetProperty("FuelGradeName", out var fgNameProp)
-                                    && fgNameProp.ValueKind != JsonValueKind.Null
-                                    ? fgNameProp.GetString()
-                                    : null;
+                                ["Pump"] = pumpId,
+                                ["Transaction"] = transactionId,
+                                ["Volume"] = volume,
+                                ["Amount"] = amount,
+                                ["DateTime"] = DateTime.UtcNow,
+                                ["DetectedVia"] = "IdleStatus",
+                                ["CompletionSource"] = "LastTransactionData"
+                            };
 
-                                _logger.LogInformation(
-                                    "[UploadStatus] **TRANSFER MODE DETECTED via IdleStatus** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
-                                    sourceTankId, destinationTankId, volume, transactionId);
+                            // **ENRICH WITH REDIS CONTEXT** - Add authorization data if available //Cursor
+                            if (!contextJson.IsNullOrEmpty)
+                            {
 
-                                // **FIX**: Do NOT call ProcessPumpTransferAsync here - AutoTransactionCompletionService
-                                // handles BOTH the pump transaction record AND the tank transfer via ProcessEndOfTransactionAsync.
-                                // Previously this was calling ProcessPumpTransferAsync directly AND then also via
-                                // AutoTransactionCompletionService, causing duplicate TankTransfer records.
 
-                                // Create pump transaction for audit trail - AutoCompletion handles transfer too
-                                var transferStatusData = new JObject
+                                try
                                 {
-                                    ["Pump"] = pumpId,
-                                    ["Transaction"] = transactionId,
-                                    ["Volume"] = volume,
-                                    ["Amount"] = amount,
-                                    ["DateTime"] = DateTime.UtcNow,
-                                    ["TankId"] = sourceTankId,  // Source tank for transfers
-                                    ["DestinationTankId"] = destinationTankId,
-                                    ["IsTransferMode"] = true,
-                                    ["VehicleId"] = (int?)null, // Explicitly null for transfers
-                                    ["Tag"] = (string?)null,    // Explicitly null for transfers
-                                    ["UserId"] = userId,
-                                    ["Nozzle"] = nozzleId,
-                                    ["FuelGradeId"] = fuelGradeId,
-                                    ["FuelGradeName"] = fuelGradeName,
-                                    ["DetectedVia"] = "IdleStatus",
-                                    ["CompletionSource"] = "LastTransactionData"
-                                };
+                                    var context = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(contextJson);
 
-                                // Create pump transaction and process transfer via AutoCompletionService (single responsibility)
-                                _ = Task.Run(async () =>
-                                {
+                                    // **CHECK FOR TRANSFER MODE** - Detect if this is a tank transfer (NOT vehicle fueling) //Cursor
+                                    var isTransferMode = context.TryGetProperty("IsTransferMode", out var transferProp)
+                                        && transferProp.ValueKind != JsonValueKind.Null
+                                        && transferProp.GetBoolean();
+
+                                    if (isTransferMode)
+                                    {
+                                        // **FIX: Handle nullable properties safely - check ValueKind before calling GetInt32/GetString
+                                        var sourceTankId = context.TryGetProperty("SourceTankId", out var sourceProp)
+                                            && sourceProp.ValueKind != JsonValueKind.Null
+                                            ? sourceProp.GetInt32()
+                                            : (int?)null;
+                                        var destinationTankId = context.TryGetProperty("DestinationTankId", out var destProp)
+                                            && destProp.ValueKind != JsonValueKind.Null
+                                            ? destProp.GetInt32()
+                                            : (int?)null;
+                                        var transferReason = context.TryGetProperty("Reason", out var reasonProp)
+                                            && reasonProp.ValueKind != JsonValueKind.Null
+                                            ? reasonProp.GetString()
+                                            : "Pump transfer";
+                                        var userId = context.TryGetProperty("UserId", out var userProp)
+                                            && userProp.ValueKind != JsonValueKind.Null
+                                            ? userProp.GetString()
+                                            : "System";
+                                        var nozzleId = context.TryGetProperty("Nozzle", out var nozzleProp)
+                                            && nozzleProp.ValueKind != JsonValueKind.Null
+                                            ? nozzleProp.GetInt32()
+                                            : (int?)null;
+                                        var fuelGradeId = context.TryGetProperty("FuelGradeId", out var fgIdProp)
+                                            && fgIdProp.ValueKind != JsonValueKind.Null
+                                            ? fgIdProp.GetInt32()
+                                            : (int?)null;
+                                        var fuelGradeName = context.TryGetProperty("FuelGradeName", out var fgNameProp)
+                                            && fgNameProp.ValueKind != JsonValueKind.Null
+                                            ? fgNameProp.GetString()
+                                            : null;
+
+                                        _logger.LogInformation(
+                                            "[UploadStatus] **TRANSFER MODE DETECTED via IdleStatus** - Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, Transaction: {TxId}",
+                                            sourceTankId, destinationTankId, volume, transactionId);
+
+                                        // **FIX**: Do NOT call ProcessPumpTransferAsync here - AutoTransactionCompletionService
+                                        // handles BOTH the pump transaction record AND the tank transfer via ProcessEndOfTransactionAsync.
+                                        // Previously this was calling ProcessPumpTransferAsync directly AND then also via
+                                        // AutoTransactionCompletionService, causing duplicate TankTransfer records.
+
+                                        // Create pump transaction for audit trail - AutoCompletion handles transfer too
+                                        var transferStatusData = new JObject
+                                        {
+                                            ["Pump"] = pumpId,
+                                            ["Transaction"] = transactionId,
+                                            ["Volume"] = volume,
+                                            ["Amount"] = amount,
+                                            ["DateTime"] = DateTime.UtcNow,
+                                            ["TankId"] = sourceTankId,  // Source tank for transfers
+                                            ["DestinationTankId"] = destinationTankId,
+                                            ["IsTransferMode"] = true,
+                                            ["VehicleId"] = (int?)null, // Explicitly null for transfers
+                                            ["Tag"] = (string?)null,    // Explicitly null for transfers
+                                            ["UserId"] = userId,
+                                            ["Nozzle"] = nozzleId,
+                                            ["FuelGradeId"] = fuelGradeId,
+                                            ["FuelGradeName"] = fuelGradeName,
+                                            ["DetectedVia"] = "IdleStatus",
+                                            ["CompletionSource"] = "LastTransactionData"
+                                        };
+
+                                        // Create pump transaction and process transfer via AutoCompletionService (single responsibility)
+                                        _ = Task.Run(async () =>
+                                        {
+                                            try
+                                            {
+                                                await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                                    deviceId, pumpId, transactionId, transferStatusData);
+                                                _logger.LogInformation("[UploadStatus] **TRANSFER PUMP TRANSACTION + TRANSFER CREATED via IdleStatus** ✅ - {DeviceId}:{Transaction}",
+                                                    deviceId, transactionId);
+                                            }
+                                            catch (Exception ex)
+                                            {
+                                                _logger.LogError(ex, "[UploadStatus] **TRANSFER PUMP TRANSACTION FAILED via IdleStatus** - {DeviceId}:{Transaction}",
+                                                    deviceId, transactionId);
+                                            }
+                                        });
+
+                                        // Skip vehicle fueling processing - this is a transfer
+                                        return;
+                                    }
+
+                                    // **VEHICLE FUELING PATH** (existing logic)
+                                    // Extract authorization context data
+                                    var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
+                                    var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
+                                    var autoCloseTransaction = context.TryGetProperty("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean() : false;
+                                    var connectionType = context.TryGetProperty("ConnectionType", out var connProp) ? connProp.GetString() : "Unknown";
+
+                                    // Get tag information from authorization state
+                                    var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                                    var tagId = authState?.TagId;
+                                    var vehicleNozzleId = authState?.NozzleId; //Cursor: Add nozzle from authorization state
+
+                                    // **ADD CONTEXT TO STATUS DATA** //Cursor
+                                    statusData["TankId"] = tankId;
+                                    statusData["VehicleId"] = vehicleId;
+                                    statusData["Tag"] = tagId;
+                                    statusData["Nozzle"] = vehicleNozzleId; //Cursor: Add nozzle to completion data
+                                    statusData["ConnectionType"] = connectionType;
+                                    statusData["AutoCloseTransaction"] = autoCloseTransaction;
+
+                                    // **TRY TO ADD FUEL GRADE INFO** - Get from last known device status //Cursor
                                     try
                                     {
-                                        await _autoCompletionService.ProcessEndOfTransactionAsync(
-                                            deviceId, pumpId, transactionId, transferStatusData);
-                                        _logger.LogInformation("[UploadStatus] **TRANSFER PUMP TRANSACTION + TRANSFER CREATED via IdleStatus** ✅ - {DeviceId}:{Transaction}",
-                                            deviceId, transactionId);
-                                    }
-                                    catch (Exception ex)
-                                    {
-                                        _logger.LogError(ex, "[UploadStatus] **TRANSFER PUMP TRANSACTION FAILED via IdleStatus** - {DeviceId}:{Transaction}",
-                                            deviceId, transactionId);
-                                    }
-                                });
-
-                                // Skip vehicle fueling processing - this is a transfer
-                                return;
-                            }
-
-                            // **VEHICLE FUELING PATH** (existing logic)
-                            // Extract authorization context data
-                            var tankId = context.TryGetProperty("TankId", out var tankProp) ? tankProp.GetInt32() : (int?)null;
-                            var vehicleId = context.TryGetProperty("VehicleId", out var vehicleProp) ? vehicleProp.GetInt32() : (int?)null;
-                            var autoCloseTransaction = context.TryGetProperty("AutoCloseTransaction", out var autoProp) ? autoProp.GetBoolean() : false;
-                            var connectionType = context.TryGetProperty("ConnectionType", out var connProp) ? connProp.GetString() : "Unknown";
-
-                            // Get tag information from authorization state
-                            var authState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
-                            var tagId = authState?.TagId;
-                            var vehicleNozzleId = authState?.NozzleId; //Cursor: Add nozzle from authorization state
-
-                            // **ADD CONTEXT TO STATUS DATA** //Cursor
-                            statusData["TankId"] = tankId;
-                            statusData["VehicleId"] = vehicleId;
-                            statusData["Tag"] = tagId;
-                            statusData["Nozzle"] = vehicleNozzleId; //Cursor: Add nozzle to completion data
-                            statusData["ConnectionType"] = connectionType;
-                            statusData["AutoCloseTransaction"] = autoCloseTransaction;
-
-                            // **TRY TO ADD FUEL GRADE INFO** - Get from last known device status //Cursor
-                            try
-                            {
-                                var lastStatusKey = $"device:{deviceId}:status";
-                                var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
-                                if (!lastStatusJson.IsNullOrEmpty)
-                                {
-                                    var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
-                                    if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
-                                        fuelGradesElement.ValueKind == JsonValueKind.Array)
-                                    {
-                                        var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
-                                        // Use first fuel grade if available (most common case)
-                                        if (fuelGrades.Count > 0)
+                                        var lastStatusKey = $"device:{deviceId}:status";
+                                        var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
+                                        if (!lastStatusJson.IsNullOrEmpty)
                                         {
-                                            var firstGrade = fuelGrades[0];
-                                            if (firstGrade.TryGetProperty("Id", out var gradeIdProp))
+                                            var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
+                                            if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
+                                                fuelGradesElement.ValueKind == JsonValueKind.Array)
                                             {
-                                                statusData["FuelGradeId"] = gradeIdProp.GetInt32();
+                                                var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
+                                                // Use first fuel grade if available (most common case)
+                                                if (fuelGrades.Count > 0)
+                                                {
+                                                    var firstGrade = fuelGrades[0];
+                                                    if (firstGrade.TryGetProperty("Id", out var gradeIdProp))
+                                                    {
+                                                        statusData["FuelGradeId"] = gradeIdProp.GetInt32();
+                                                    }
+                                                    if (firstGrade.TryGetProperty("Name", out var gradeNameProp))
+                                                    {
+                                                        statusData["FuelGradeName"] = gradeNameProp.GetString();
+                                                    }
+                                                }
                                             }
-                                            if (firstGrade.TryGetProperty("Name", out var gradeNameProp))
+                                        }
+                                    }
+                                    catch (Exception fgEx)
+                                    {
+                                        _logger.LogDebug("Could not extract fuel grade info for IdleStatus completion: {Error}", fgEx.Message);
+                                    }
+
+
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogWarning(ex, "[UploadStatus] **CONTEXT ERROR** - Error parsing Redis context for IdleStatus completion {DeviceId}:{TransactionId}, using basic data",
+                                        deviceId, transactionId);
+                                }
+                            }
+                            else
+                            {
+                                _logger.LogWarning("[UploadStatus] **NO CONTEXT** - No Redis context found for IdleStatus completion {DeviceId}:{TransactionId} - transaction may be external or context expired",
+                                    deviceId, transactionId);
+
+                                // Best-effort fallback enrichment when transaction context is missing.
+                                try
+                                {
+                                    var fallbackAuthState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
+                                    if (fallbackAuthState?.NozzleId is > 0 && statusData["Nozzle"] == null)
+                                    {
+                                        statusData["Nozzle"] = fallbackAuthState.NozzleId;
+                                    }
+
+                                    if (!string.IsNullOrWhiteSpace(fallbackAuthState?.TagId) && statusData["Tag"] == null)
+                                    {
+                                        statusData["Tag"] = fallbackAuthState.TagId;
+                                    }
+
+                                    var lastStatusKey = $"device:{deviceId}:status";
+                                    var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
+                                    if (!lastStatusJson.IsNullOrEmpty)
+                                    {
+                                        var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
+                                        if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
+                                            fuelGradesElement.ValueKind == JsonValueKind.Array)
+                                        {
+                                            var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
+                                            if (fuelGrades.Count > 0)
                                             {
-                                                statusData["FuelGradeName"] = gradeNameProp.GetString();
+                                                var firstGrade = fuelGrades[0];
+                                                if (statusData["FuelGradeId"] == null &&
+                                                    firstGrade.TryGetProperty("Id", out var gradeIdProp))
+                                                {
+                                                    statusData["FuelGradeId"] = gradeIdProp.GetInt32();
+                                                }
+
+                                                if (statusData["FuelGradeName"] == null &&
+                                                    firstGrade.TryGetProperty("Name", out var gradeNameProp))
+                                                {
+                                                    statusData["FuelGradeName"] = gradeNameProp.GetString();
+                                                }
                                             }
                                         }
                                     }
                                 }
-                            }
-                            catch (Exception fgEx)
-                            {
-                                _logger.LogDebug("Could not extract fuel grade info for IdleStatus completion: {Error}", fgEx.Message);
-                            }
-
-
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogWarning(ex, "[UploadStatus] **CONTEXT ERROR** - Error parsing Redis context for IdleStatus completion {DeviceId}:{TransactionId}, using basic data",
-                                deviceId, transactionId);
-                        }
-                    }
-                    else
-                    {
-                        _logger.LogWarning("[UploadStatus] **NO CONTEXT** - No Redis context found for IdleStatus completion {DeviceId}:{TransactionId} - transaction may be external or context expired",
-                            deviceId, transactionId);
-
-                        // Best-effort fallback enrichment when transaction context is missing.
-                        try
-                        {
-                            var fallbackAuthState = await _authTracker.GetAuthorizationState(deviceId, pumpId);
-                            if (fallbackAuthState?.NozzleId is > 0 && statusData["Nozzle"] == null)
-                            {
-                                statusData["Nozzle"] = fallbackAuthState.NozzleId;
-                            }
-
-                            if (!string.IsNullOrWhiteSpace(fallbackAuthState?.TagId) && statusData["Tag"] == null)
-                            {
-                                statusData["Tag"] = fallbackAuthState.TagId;
-                            }
-
-                            var lastStatusKey = $"device:{deviceId}:status";
-                            var lastStatusJson = await _redisDb.StringGetAsync(lastStatusKey);
-                            if (!lastStatusJson.IsNullOrEmpty)
-                            {
-                                var lastStatus = System.Text.Json.JsonSerializer.Deserialize<JsonElement>(lastStatusJson);
-                                if (lastStatus.TryGetProperty("FuelGrades", out var fuelGradesElement) &&
-                                    fuelGradesElement.ValueKind == JsonValueKind.Array)
+                                catch (Exception fallbackEx)
                                 {
-                                    var fuelGrades = fuelGradesElement.EnumerateArray().ToList();
-                                    if (fuelGrades.Count > 0)
-                                    {
-                                        var firstGrade = fuelGrades[0];
-                                        if (statusData["FuelGradeId"] == null &&
-                                            firstGrade.TryGetProperty("Id", out var gradeIdProp))
-                                        {
-                                            statusData["FuelGradeId"] = gradeIdProp.GetInt32();
-                                        }
-
-                                        if (statusData["FuelGradeName"] == null &&
-                                            firstGrade.TryGetProperty("Name", out var gradeNameProp))
-                                        {
-                                            statusData["FuelGradeName"] = gradeNameProp.GetString();
-                                        }
-                                    }
+                                    _logger.LogDebug(fallbackEx,
+                                        "[UploadStatus] Fallback enrichment failed for IdleStatus completion {DeviceId}:{TransactionId}",
+                                        deviceId, transactionId);
                                 }
                             }
-                        }
-                        catch (Exception fallbackEx)
-                        {
-                            _logger.LogDebug(fallbackEx,
-                                "[UploadStatus] Fallback enrichment failed for IdleStatus completion {DeviceId}:{TransactionId}",
-                                deviceId, transactionId);
-                        }
-                    }
 
-                    // **PROCESS COMPLETION** - Trigger auto-completion service with enriched data
-                    _ = Task.Run(async () =>
-                    {
-                        try
-                        {
-                            await _autoCompletionService.ProcessEndOfTransactionAsync(
-                                deviceId, pumpId, transactionId, statusData);
+                            // **PROCESS COMPLETION** - Trigger auto-completion service with enriched data
+                            _ = Task.Run(async () =>
+                            {
+                                try
+                                {
+                                    await _autoCompletionService.ProcessEndOfTransactionAsync(
+                                        deviceId, pumpId, transactionId, statusData);
 
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger.LogError(ex, "[UploadStatus] **IDLE FAILED** - IdleStatus-based completion failed for {DeviceId}:{TransactionId}",
+                                        deviceId, transactionId);
+                                }
+                            });
                         }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "[UploadStatus] **IDLE FAILED** - IdleStatus-based completion failed for {DeviceId}:{TransactionId}",
-                                deviceId, transactionId);
-                        }
-                    });
-                }
                     }
                 }
 

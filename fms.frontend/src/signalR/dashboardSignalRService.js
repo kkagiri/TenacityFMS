@@ -352,7 +352,7 @@ class DashboardSignalRService {
         console.log("[Dashboard SignalR] Protocol negotiated", this.protocol);
         this.notifyListeners("protocolNegotiated", { ...this.protocol });
         // Optionally fetch telemetry immediately for diagnostics
-        this.requestProtocolTelemetry().catch(() => {});
+        this.requestProtocolTelemetry().catch(() => { });
       }
     } catch (err) {
       console.warn(
@@ -864,23 +864,6 @@ class DashboardSignalRService {
       },
       0
     ); // No debounce for notifications
-
-    // Active Alarm events for dashboard
-    registerEvent(
-      "ActiveAlarmSummary",
-      (data) => {
-        if (data) {
-          this.notifyListeners("activeAlarmSummary", data);
-          if (store) {
-            store.dispatch({
-              type: "UPDATE_ACTIVE_ALARM_SUMMARY",
-              payload: data,
-            });
-          }
-        }
-      },
-      2000
-    );
   }
 
   /**

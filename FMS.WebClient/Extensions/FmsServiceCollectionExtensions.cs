@@ -50,7 +50,6 @@ using FMS.BackgroundServices.FMS;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.FMS.BackgroundServices.FMS;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.ActiveAlarm;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.PTSService.Services;
@@ -561,12 +560,15 @@ public static class FmsServiceCollectionExtensions
         // Real-time notification abstraction
         services.AddScoped<FMS.Application.Infrastructure.Communication.SignalR.ISignalRNotificationService, FMS.Application.Infrastructure.Communication.SignalR.SignalRNotificationService>();
         services.AddScoped<INotificationRecipientResolver, NotificationRecipientResolver>();
-        services.AddScoped<IActiveAlarmService, ActiveAlarmService>();
         services.AddScoped<IBusinessFunctionNotificationService, BusinessFunctionNotificationService>();
         services.AddScoped<FMS.Application.Features.Notification.Services.Groups.INotificationGroupService, FMS.Application.Features.Notification.Services.Groups.NotificationGroupService>();
-        services.AddScoped<IAlarmHandlerService, AlarmHandlerService>();
-        services.AddScoped<FMS.Application.Features.Notification.Services.Integration.AlarmHandlerActiveAlarmIntegration>();
         services.AddSingleton<ICategoryMetadataProvider, InMemoryCategoryMetadataProvider>();
+
+        // ========== EVENT EXPRESSION ENGINE (Phase 1) ==========
+        services.AddSingleton<FMS.Application.Features.EventEngine.Expressions.ExpressionEvaluatorFactory>();
+        services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
+        services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
+        services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
         // Alert Configuration Service — cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()

@@ -278,7 +278,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 _context.FuelRefills.Add(fuelRefil);
 
-                // We check if the tank is using book keeping and update the stock accordingly
+                // We check if the tank is using book keeping and validate stock accordingly
                 if (tank.UseBookKeeping == 1)
                 {
                     // Check if the date of the fuel refill is today
@@ -293,9 +293,10 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                             return new FMSResponseMessage(false, "Operation would result in negative tank level. Cannot proceed.");
                         }
 
-                        // Update both book stock (ledger) and physical stock
-                        tank.CurrentStock = (tank.CurrentStock ?? 0) - (decimal)fuelRefil.ManualFuelrefillAmount;
-                        tank.LastStockUpdate = DateTime.UtcNow;
+                        // NOTE: Do NOT update CurrentStock here.
+                        // ProcessTankStockChangeCommand handles the CurrentStock and PhysicalStockValue updates
+                        // when processing the TankVolumeHistory record. Updating here would cause a DOUBLE DEDUCTION
+                        // because both handlers share the same scoped DbContext (same tracked entity).
                     }
                 }
 
@@ -341,8 +342,17 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 if (!volumeUpdateResult.Success)
                 {
-                    _logger.LogWarning("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
-                    // We continue even if volume history update fails, but log the error
+                    _logger.LogError("Failed to update tank volume history for fuel refill {RefillId}: {Message}",
+                        fuelRefil.Id, volumeUpdateResult.Message);
+
+                    // CRITICAL FIX: Roll back the fuel refill to maintain data consistency.
+                    // Without this, the FuelRefills table has an entry but TankVolumeHistory does not,
+                    // causing stock calculation discrepancies.
+                    _context.FuelRefills.Remove(fuelRefil);
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    return new FMSResponseMessage(false,
+                        $"Failed to create fuel refill: Could not update tank volume history. {volumeUpdateResult.Message}");
                 }
 
                 // Check if vehicle should be auto-assigned to a different site based on refueling pattern

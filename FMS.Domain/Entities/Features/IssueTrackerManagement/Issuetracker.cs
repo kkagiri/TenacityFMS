@@ -103,8 +103,6 @@ public partial class Issuetracker
 
     public virtual Issuecategory IssueCategory { get; set; } = null!;
 
-    public virtual ActiveAlarm? ActiveAlarm { get; set; }
-
     // V2 Navigation Properties
     public virtual Issuetemplate? IssueTemplate { get; set; }
     public virtual Devicetype? DeviceTypeNavigation { get; set; }

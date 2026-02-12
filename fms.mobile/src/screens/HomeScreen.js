@@ -127,6 +127,14 @@ const HomeScreen = ({ navigation }) => {
       onPress: () => navigation.navigate("ManageStocks"),
     },
     {
+      id: "issueTracker",
+      name: "Issue Tracker",
+      icon: "exclamation-circle",
+      color: "#7c3aed",
+      description: "View & manage issues",
+      onPress: () => navigation.navigate("IssueList"),
+    },
+    {
       id: "settings",
       name: "Settings",
       icon: "cog",
@@ -301,8 +309,8 @@ const HomeScreen = ({ navigation }) => {
                     fuelStats.percentFull < 30
                       ? "#ef4444"
                       : fuelStats.percentFull < 60
-                      ? "#f59e0b"
-                      : "#22c55e",
+                        ? "#f59e0b"
+                        : "#22c55e",
                 },
               ]}
             >

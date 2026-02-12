@@ -1,7 +1,7 @@
 /**
  * File: NotificationController.cs
  * Purpose: Exposes notification management APIs for policies, preferences, history, and delivery actions.
- * Dependencies: INotificationService, IAlarmHandlerService, IMediator, AutoMapper, ASP.NET Core Identity
+ * Dependencies: INotificationService, IMediator, AutoMapper, ASP.NET Core Identity
  * Last Modified: 2026-02-07
  *
  * Key Endpoints:
@@ -23,7 +23,6 @@ using FMS.Application.Features.Notification.DTOs.Groups;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Queries;
 using FMS.Application.Features.Notification.Services;
-using FMS.Application.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -51,7 +50,6 @@ namespace FMS.WebClient.Controllers
     public class NotificationController : ControllerBase
     {
         private readonly INotificationService _notificationService;
-        private readonly IAlarmHandlerService _alarmHandlerService;
         private readonly ILogger<NotificationController> _logger;
         private readonly IMediator _mediator;
         private readonly IMapper _mapper;
@@ -62,7 +60,6 @@ namespace FMS.WebClient.Controllers
 
         public NotificationController(
             INotificationService notificationService,
-            IAlarmHandlerService alarmHandlerService,
             ILogger<NotificationController> logger,
             IMediator mediator,
             IMapper mapper,
@@ -72,7 +69,6 @@ namespace FMS.WebClient.Controllers
             RoleManager<Role> roleManager)
         {
             _notificationService = notificationService;
-            _alarmHandlerService = alarmHandlerService;
             _logger = logger;
             _mediator = mediator;
             _mapper = mapper;
@@ -826,69 +822,6 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Trigger a custom alarm
-        /// </summary>
-        /// <param name="request">Alarm request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
-        [HttpPost("alarm")]
-        [RequirePermission(Permissions.Notification.Create)]
-        public async Task<IActionResult> TriggerAlarm([FromBody] TriggerAlarmRequest request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
-                if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
-
-                // Use AutoMapper to map TriggerAlarmRequest to CreateAlarmNotificationRequest
-                var alarmRequest = _mapper.Map<CreateAlarmNotificationRequest>(request);
-                alarmRequest.TriggeredBy = userId;
-
-                var result = await _notificationService.CreateAlarmNotificationAsync(alarmRequest, cancellationToken);
-
-                if (result.IsSuccess)
-                {
-                    return Ok(new { success = true, message = result.Message });
-                }
-
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error triggering alarm");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Trigger device disconnection alarm
-        /// </summary>
-        /// <param name="deviceId">Device ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
-        [HttpPost("alarm/device-disconnection/{deviceId}")]
-        [RequirePermission(Permissions.Notification.Create)]
-        public async Task<IActionResult> TriggerDeviceDisconnectionAlarm(string deviceId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var result = await _alarmHandlerService.ProcessDeviceDisconnectionAlarmAsync(deviceId, cancellationToken);
-
-                if (result.IsSuccess)
-                {
-                    return Ok(new { success = true, message = result.Message });
-                }
-
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error triggering device disconnection alarm for device {DeviceId}", deviceId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
         /// Get notification statistics for dashboard
         /// </summary>
         /// <param name="fromDate">Start date for statistics</param>
@@ -1205,166 +1138,6 @@ namespace FMS.WebClient.Controllers
                 _logger.LogError(ex, "Error updating notification policy {PolicyId}", policyId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
-        }
-
-        /// <summary>
-        /// Get alarm handlers
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of alarm handlers</returns>
-        [HttpGet("alarm-handlers")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> GetAlarmHandlers([FromQuery] int? policyId = null, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var result = await _alarmHandlerService.GetAlarmHandlersAsync(policyId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, data = result.Data });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving alarm handlers");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        [HttpPost("alarm-handlers")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> CreateAlarmHandler([FromBody] FMS.Application.Features.Notification.DTOs.AlarmHandlers.CreateAlarmHandlerRequestDto request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = GetCurrentUserIdOrDefault("System");
-                var result = await _alarmHandlerService.CreateAlarmHandlerAsync(request, userId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, id = result.Data, message = result.Message });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating alarm handler");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        [HttpPut("alarm-handlers/{id}")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> UpdateAlarmHandler(int id, [FromBody] FMS.Application.Features.Notification.DTOs.AlarmHandlers.UpdateAlarmHandlerRequestDto request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var userId = GetCurrentUserIdOrDefault("System");
-                var result = await _alarmHandlerService.UpdateAlarmHandlerAsync(id, request, userId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating alarm handler {Id}", id);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        [HttpDelete("alarm-handlers/{id}")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> DeleteAlarmHandler(int id, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var result = await _alarmHandlerService.DeleteAlarmHandlerAsync(id, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error deleting alarm handler {Id}", id);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        [HttpGet("alarm-handlers/types")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetAlarmHandlerTypes([FromQuery] int? categoryId = null, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var result = await _alarmHandlerService.GetAlarmHandlerTypesAsync(categoryId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, data = result.Data });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving alarm handler types");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Test evaluation of alarm handlers without real telemetry ingestion.
-        /// Sends a synthetic AlarmEvaluationEvent into the evaluation engine.
-        /// </summary>
-        [HttpPost("alarm-handlers/evaluate-test")]
-        [AllowAnonymous]
-        public async Task<IActionResult> EvaluateAlarmHandlersTest([FromBody] EvaluateAlarmHandlersTestRequest request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (request == null || string.IsNullOrWhiteSpace(request.AlarmType))
-                {
-                    return BadRequest(new { success = false, message = "AlarmType is required" });
-                }
-                var data = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-                if (request.Data != null)
-                {
-                    foreach (var kv in request.Data) data[kv.Key] = kv.Value;
-                }
-                if (request.PercentageFull.HasValue)
-                {
-                    data["percentageFull"] = request.PercentageFull.Value;
-                }
-                if (request.WaterHeight.HasValue)
-                {
-                    data["waterHeight"] = request.WaterHeight.Value;
-                }
-                if (request.OfflineMinutes.HasValue)
-                {
-                    data["offlineMinutes"] = request.OfflineMinutes.Value;
-                }
-                var evt = new FMS.Application.Features.Notification.DTOs.AlarmHandlers.AlarmEvaluationEvent
-                {
-                    AlarmType = request.AlarmType,
-                    SiteId = request.SiteId,
-                    TankId = request.TankId,
-                    DeviceId = request.DeviceId,
-                    PtsDeviceId = request.PtsDeviceId,
-                    OccurredAtUtc = DateTime.UtcNow,
-                    Data = data
-                };
-                var result = await _alarmHandlerService.EvaluateHandlersAsync(evt, cancellationToken);
-                if (result.IsSuccess)
-                {
-                    return Ok(new { success = true, message = result.Message, created = result.Data });
-                }
-                return Ok(new { success = false, message = result.Message, created = result.Data });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error evaluating alarm handlers test");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        public class EvaluateAlarmHandlersTestRequest
-        {
-            public string AlarmType { get; set; } = string.Empty;
-            public int? SiteId { get; set; }
-            public int? TankId { get; set; }
-            public int? DeviceId { get; set; }
-            public string? PtsDeviceId { get; set; }
-            public decimal? PercentageFull { get; set; }
-            public decimal? WaterHeight { get; set; }
-            public double? OfflineMinutes { get; set; }
-            public Dictionary<string, object>? Data { get; set; }
         }
 
         /// <summary>

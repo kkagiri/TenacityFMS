@@ -71,6 +71,13 @@ const DrawerContent = ({ navigation, state }) => {
       description: "Search & view vehicle info",
     },
     {
+      id: "issueTracker",
+      label: "Issue Tracker",
+      icon: "exclamation-circle",
+      screen: "IssueList",
+      description: "View & manage issues",
+    },
+    {
       id: "divider1",
       type: "divider",
     },

@@ -1,0 +1,19 @@
+/**
+ * File: EventExpressionList.scss
+ * Purpose: Styles for EventExpressionList component
+ * Last Modified: 2026-02-06
+ */
+
+.event-expression-list {
+  .event-expression-grid {
+    .dx-datagrid-header-panel {
+      @apply tw-border-b tw-border-gray-200;
+    }
+
+    .dx-row {
+      &:hover {
+        @apply tw-bg-blue-50;
+      }
+    }
+  }
+}

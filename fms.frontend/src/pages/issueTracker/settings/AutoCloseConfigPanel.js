@@ -21,7 +21,7 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
 
   // Checker type options
   const checkerTypes = [
-    { id: 'ActiveAlarm', name: 'Active Alarm Resolution' },
+    { id: 'ActiveEvent', name: 'Active Event Resolution' },
     { id: 'StatusCheck', name: 'Status Check API' },
     { id: 'TimeBasedExpiry', name: 'Time-Based Expiry' },
     { id: 'ManualOnly', name: 'Manual Close Only' }
@@ -41,7 +41,7 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
         setConfig({
           issueTemplateId: templateId,
           isEnabled: false,
-          checkerType: 'ActiveAlarm',
+          checkerType: 'ActiveEvent',
           checkIntervalSeconds: 300,
           checkerConfigJson: '{}',
           autoCloseWhenSatisfied: true
@@ -53,7 +53,7 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
       setConfig({
         issueTemplateId: templateId,
         isEnabled: false,
-        checkerType: 'ActiveAlarm',
+        checkerType: 'ActiveEvent',
         checkIntervalSeconds: 300,
         checkerConfigJson: '{}',
         autoCloseWhenSatisfied: true
@@ -135,11 +135,11 @@ const AutoCloseConfigPanel = ({ templateId, templateName, onConfigSaved }) => {
   // Get config template based on checker type
   const getConfigTemplate = (checkerType) => {
     switch (checkerType) {
-      case 'ActiveAlarm':
+      case 'ActiveEvent':
         return JSON.stringify({
-          alarmCodeField: 'alarmCode',
-          resolutionCheckEndpoint: '/api/v1/activealarm/check-resolved',
-          matchFields: ['deviceId', 'alarmCode']
+          eventTypeField: 'eventType',
+          resolutionCheckEndpoint: '/api/v1/active-events/check-resolved',
+          matchFields: ['deviceId', 'eventType']
         }, null, 2);
       case 'StatusCheck':
         return JSON.stringify({

@@ -185,12 +185,6 @@ namespace FMS.Persistence.EntityConfigurations
                     .OnDelete(DeleteBehavior.ClientSetNull)
                     .HasConstraintName("issue_vehicle");
 
-                builder.HasOne(d => d.ActiveAlarm)
-                    .WithMany(p => p.IssueTrackers)
-                    .HasForeignKey(d => d.ActiveAlarmId)
-                    .OnDelete(DeleteBehavior.SetNull)
-                    .HasConstraintName("issuetracker_activealarm");
-
                 // V2 Navigation relationships
                 builder.HasOne(d => d.IssueTemplate)
                     .WithMany()
