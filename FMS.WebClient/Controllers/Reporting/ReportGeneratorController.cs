@@ -2,7 +2,7 @@
  * File: ReportGeneratorController.cs
  * Purpose: Manages JSReport template CRUD and report rendering (HTML/PDF/Excel).
  * Dependencies: MediatR, IJsReportService, FMSResponse
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  *
  * Key Actions:
  * - PreviewHtml(): Renders template to HTML for in-app preview
@@ -10,6 +10,7 @@
  * - RenderExcel(): Renders template to Excel
  */
 using FMS.Application.Common;
+using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.TankManagement.PumpTransaction;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
@@ -21,6 +22,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 
 using FMS.WebClient.Attributes;
@@ -222,6 +224,108 @@ namespace FMS.WebClient.Controllers.Reporting
             return data;
         }
 
+        private static List<int>? NormalizeIdFilter(JsonElement? value)
+        {
+            if (!value.HasValue)
+            {
+                return null;
+            }
+
+            if (value.Value.ValueKind is JsonValueKind.Null or JsonValueKind.Undefined)
+            {
+                return null;
+            }
+
+            var ids = new List<int>();
+
+            if (value.Value.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var item in value.Value.EnumerateArray())
+                {
+                    if (item.ValueKind == JsonValueKind.Number && item.TryGetInt32(out var numericId))
+                    {
+                        ids.Add(numericId);
+                        continue;
+                    }
+
+                    if (item.ValueKind == JsonValueKind.String &&
+                        int.TryParse(item.GetString(), out var parsedId))
+                    {
+                        ids.Add(parsedId);
+                    }
+                }
+            }
+            else if (value.Value.ValueKind == JsonValueKind.Number &&
+                     value.Value.TryGetInt32(out var singleNumericId))
+            {
+                ids.Add(singleNumericId);
+            }
+            else if (value.Value.ValueKind == JsonValueKind.String &&
+                     int.TryParse(value.Value.GetString(), out var singleParsedId))
+            {
+                ids.Add(singleParsedId);
+            }
+
+            return ids.Count == 0 ? null : ids.Distinct().ToList();
+        }
+
+        private static string? BuildFilterLabel(string? explicitName, List<int>? ids, string fallbackPrefix)
+        {
+            if (!string.IsNullOrWhiteSpace(explicitName))
+            {
+                return explicitName;
+            }
+
+            if (ids == null || ids.Count == 0)
+            {
+                return null;
+            }
+
+            return string.Join(", ", ids.Select(id => $"{fallbackPrefix} #{id}"));
+        }
+
+        #region Issue Tracker Report
+
+        /// <summary>
+        /// Get Issue Tracker report data with filters and pagination.
+        /// </summary>
+        [HttpGet("issue-tracker/data")]
+        public async Task<IActionResult> GetIssueTrackerReportData(
+            [FromQuery] IssueTrackerReportRequest request,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var query = new GetIssueTrackerReportQuery
+                {
+                    DateFrom = request.DateFrom,
+                    DateTo = request.DateTo,
+                    SiteIds = request.SiteId,
+                    VehicleIds = request.VehicleId,
+                    IssueTemplateIds = request.IssueTemplateId,
+                    StatusIds = request.Status,
+                    CategoryIds = request.CategoryIds,
+                    PageNumber = request.PageNumber <= 0 ? 1 : request.PageNumber,
+                    PageSize = request.PageSize <= 0 ? 200 : request.PageSize
+                };
+
+                var result = await _mediator.Send(query, cancellationToken);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching Issue Tracker report data");
+                return StatusCode(500, FMSResponse<string>.Failed($"Error fetching Issue Tracker report data: {ex.Message}"));
+            }
+        }
+
+        #endregion
+
         #region Pump Transaction Report
 
         /// <summary>
@@ -232,14 +336,20 @@ namespace FMS.WebClient.Controllers.Reporting
         {
             try
             {
+                var siteIds = NormalizeIdFilter(request.SiteId);
+                var tankIds = NormalizeIdFilter(request.TankId);
+                var vehicleIds = NormalizeIdFilter(request.VehicleId);
+                var fuelGradeIds = NormalizeIdFilter(request.FuelGradeId);
+                var employeeIds = NormalizeIdFilter(request.EmployeeId);
+
                 // Fetch pump transactions using existing query
                 var query = new GetPumpTransactionQuery
                 {
                     StartDate = request.DateFrom,
                     EndDate = request.DateTo,
-                    SiteIds = request.SiteId.HasValue ? new List<int> { request.SiteId.Value } : null,
-                    TankIds = request.TankId.HasValue ? new List<int> { request.TankId.Value } : null,
-                    VehicleIds = request.VehicleId.HasValue ? new List<int> { request.VehicleId.Value } : null
+                    SiteIds = siteIds,
+                    TankIds = tankIds,
+                    VehicleIds = vehicleIds
                 };
 
                 var result = await _mediator.Send(query);
@@ -250,6 +360,20 @@ namespace FMS.WebClient.Controllers.Reporting
                 }
 
                 var transactions = result.Data.ToList();
+
+                if (fuelGradeIds is { Count: > 0 })
+                {
+                    transactions = transactions
+                        .Where(t => t.FuelGradeId.HasValue && fuelGradeIds.Contains(t.FuelGradeId.Value))
+                        .ToList();
+                }
+
+                if (employeeIds is { Count: > 0 })
+                {
+                    transactions = transactions
+                        .Where(t => t.EmployeeId.HasValue && employeeIds.Contains(t.EmployeeId.Value))
+                        .ToList();
+                }
 
                 // Build report data
                 var reportData = new
@@ -263,10 +387,10 @@ namespace FMS.WebClient.Controllers.Reporting
 
                     filters = new
                     {
-                        siteName = request.SiteName,
-                        tankName = request.TankName,
-                        vehicleName = request.VehicleName,
-                        fuelGrade = request.FuelGradeName
+                        siteName = BuildFilterLabel(request.SiteName, siteIds, "Site"),
+                        tankName = BuildFilterLabel(request.TankName, tankIds, "Tank"),
+                        vehicleName = BuildFilterLabel(request.VehicleName, vehicleIds, "Vehicle"),
+                        fuelGrade = BuildFilterLabel(request.FuelGradeName, fuelGradeIds, "Fuel Grade")
                     },
 
                     summary = new
@@ -368,17 +492,30 @@ namespace FMS.WebClient.Controllers.Reporting
         public string? ReportTitle { get; set; }
         public DateTime? DateFrom { get; set; }
         public DateTime? DateTo { get; set; }
-        public int? SiteId { get; set; }
+        public JsonElement? SiteId { get; set; }
         public string? SiteName { get; set; }
-        public int? TankId { get; set; }
+        public JsonElement? TankId { get; set; }
         public string? TankName { get; set; }
-        public int? VehicleId { get; set; }
+        public JsonElement? VehicleId { get; set; }
         public string? VehicleName { get; set; }
-        public int? FuelGradeId { get; set; }
+        public JsonElement? FuelGradeId { get; set; }
         public string? FuelGradeName { get; set; }
-        public int? EmployeeId { get; set; }
+        public JsonElement? EmployeeId { get; set; }
         public string? EmployeeName { get; set; }
         public string? Format { get; set; } = "pdf"; // pdf, excel, html
+    }
+
+    public class IssueTrackerReportRequest
+    {
+        public DateTime? DateFrom { get; set; }
+        public DateTime? DateTo { get; set; }
+        public List<int>? SiteId { get; set; }
+        public List<int>? VehicleId { get; set; }
+        public List<int>? IssueTemplateId { get; set; }
+        public List<int>? Status { get; set; }
+        public List<int>? CategoryIds { get; set; }
+        public int PageNumber { get; set; } = 1;
+        public int PageSize { get; set; } = 200;
     }
 
     #endregion

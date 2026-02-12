@@ -11,7 +11,6 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useStockFilters } from '../shared/context/StockFilterContext';
 import { useStockData } from '../shared/hooks/useStockDataOptimized';
-import PumpTransactionManager from './components/PumpTransactionManager';
 import TransactionHub from './components/TransactionHub';
 import DispensingManager from './components/DispensingManager';
 import BulkImportManager from './components/bulkImport/BulkImportManager';
@@ -47,7 +46,6 @@ const StockManagement = () => {
   const allTabData = useMemo(() => [
     { key: 'transactionHub', text: "Transaction Hub", icon: "fa-light fa-exchange-alt", path: 'transaction-hub' },
     { key: 'deliveryManagement', text: "Delivery Management", icon: "fa-light fa-truck-container", path: 'delivery-management' },
-    { key: 'pumpTransactions', text: "Pump Transactions", icon: "fa-light fa-gas-pump", path: 'pump-transactions' },
     { key: 'dispensingVolumes', text: "Dispensing Volumes", icon: "fa-light fa-tint", path: 'dispensing-volumes', adminOnly: true },
     { key: 'bulkImport', text: "Bulk Import", icon: "fa-light fa-file-upload", path: 'bulk-import', adminOnly: true },
     { key: 'tankStockTable', text: "Tank Stock Table", icon: "fa-light fa-table", path: 'tank-stock-table', adminOnly: true },
@@ -118,13 +116,6 @@ const StockManagement = () => {
       case 'deliveryManagement':
         return (
           <DeliveryManager />
-        );
-      case 'pumpTransactions':
-        return (
-          <PumpTransactionManager
-            selectedSite={selectedSite}
-            dateRange={dateRange}
-          />
         );
       case 'dispensingVolumes':
         return (

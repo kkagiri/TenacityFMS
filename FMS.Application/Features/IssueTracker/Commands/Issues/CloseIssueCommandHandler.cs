@@ -1,14 +1,14 @@
 /**
  * File: CloseIssueCommandHandler.cs
- * Purpose: Handles closing an issue with approver permission check (four-eyes principle)
+ * Purpose: Handles closing an issue by an authorized user (requires Approve permission at controller level)
  * Dependencies: GpsdataContext, IIssueActivityService
- * Last Modified: 2026-02-06
+ * Last Modified: 2026-02-12
  *
  * Key Rules:
- * - The user closing the issue must NOT be the assignee (approver != field agent)
+ * - Authorization is enforced at the controller level via RequirePermission
  * - Finds the "closed/completed/done" status automatically
  * - Sets ClosingDate to UTC now
- * - Logs activity with approver details
+ * - Logs activity with closer details
  */
 using System;
 using System.Linq;
@@ -43,6 +43,9 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         {
             try
             {
+                // Ensure notes columns exist
+                await IssueNotesSchemaGuard.EnsureColumnsExistAsync(_context, _logger, cancellationToken);
+
                 // Fetch issue
                 var issue = await _context.Issuetrackers
                     .FirstOrDefaultAsync(i => i.Id == request.IssueId, cancellationToken);
@@ -52,13 +55,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     return FMSResponse<bool>.Failed($"Issue with ID {request.IssueId} not found.");
                 }
 
-                // ========== APPROVER PERMISSION CHECK ==========
-                // The user closing the issue must NOT be the assignee (four-eyes principle)
-                if (string.Equals(issue.AssignTo, request.ClosedByUserId, StringComparison.OrdinalIgnoreCase))
-                {
-                    return FMSResponse<bool>.Failed(
-                        "The assigned field agent cannot close their own issue. An approver (supervisor/manager) must close it.");
-                }
+                // Authorization is enforced at the controller level via [RequirePermission]
+                // Any user with the Approve permission can close issues, including admins
 
                 // Find a "closed" status
                 var closedStatus = await _context.Issuestatuses
@@ -75,8 +73,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                         "No closed/completed status is configured. Please create a status with 'Closed', 'Completed', 'Resolved', or 'Done' in its name.");
                 }
 
-                // Resolve approver username
-                var approverUser = await _context.Users
+                // Resolve closer username
+                var closerUser = await _context.Users
                     .FirstOrDefaultAsync(u => u.Id == request.ClosedByUserId, cancellationToken);
 
                 var previousStatusId = issue.Status;
@@ -91,6 +89,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                 issue.Status = closedStatus.Id;
                 issue.ClosingDate = DateTime.UtcNow;
                 issue.LastModfield = DateTime.UtcNow;
+                issue.ClosingNotes = string.IsNullOrWhiteSpace(request.ClosingNotes) ? null : request.ClosingNotes.Trim();
 
                 await _context.SaveChangesAsync(cancellationToken);
 
@@ -98,20 +97,20 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                 await _activityService.LogActivityAsync(
                     issue.Id,
                     "IssueClosed",
-                    $"Issue closed by approver {approverUser?.UserName ?? request.ClosedByUserId}" +
+                    $"Issue closed by {closerUser?.UserName ?? request.ClosedByUserId}" +
                         (string.IsNullOrWhiteSpace(request.ClosingNotes) ? "" : $". Notes: {request.ClosingNotes}"),
                     request.ClosedByUserId,
-                    approverUser?.UserName,
+                    closerUser?.UserName,
                     fieldName: "Status",
                     oldValue: previousStatusName ?? previousStatusId?.ToString(),
                     newValue: closedStatus.Status,
                     cancellationToken: cancellationToken);
 
                 _logger.LogInformation(
-                    "Issue {IssueId} closed by approver {ApproverUserId} ({ApproverName})",
-                    issue.Id, request.ClosedByUserId, approverUser?.UserName);
+                    "Issue {IssueId} closed by {CloserUserId} ({CloserName})",
+                    issue.Id, request.ClosedByUserId, closerUser?.UserName);
 
-                return FMSResponse<bool>.Success(true, "Issue closed successfully by approver.");
+                return FMSResponse<bool>.Success(true, "Issue closed successfully.");
             }
             catch (Exception ex)
             {

@@ -96,6 +96,16 @@ public partial class Issuetracker
     /// </summary>
     public string? ReportedBy { get; set; }
 
+    /// <summary>
+    /// Notes entered when the issue was marked as complete
+    /// </summary>
+    public string? CompletionNotes { get; set; }
+
+    /// <summary>
+    /// Notes entered when the issue was officially closed
+    /// </summary>
+    public string? ClosingNotes { get; set; }
+
     [NotMapped]
     public virtual User AssignToNavigation { get; set; } = null!;
 

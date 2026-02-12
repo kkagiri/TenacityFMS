@@ -6,9 +6,7 @@
 
 // Dashboard Components
 export { default as CombinedIssueDashboard } from './CombinedIssueDashboard';
-export { default as UserIssuesDashboard } from './UserIssuesDashboard';
 export { default as IssueDashboardStats } from './IssueDashboardStats';
-export { default as IssueTrackerDashboard } from './IssueTrackerDashboard';
 
 // Form & Popup Components
 export { default as GPSTriggeredIssueForm } from './GPSTriggeredIssueForm';

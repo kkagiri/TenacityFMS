@@ -27,346 +27,373 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.IssueTracker.Commands.Issues
 {
-    public record CreateIssueCommand(IssueTrackerDTO IssueTrackerDto) : IRequest<int>;
+  public record CreateIssueCommand(IssueTrackerDTO IssueTrackerDto) : IRequest<int>;
 
-    public class IssueCreateCommandHandler : IRequestHandler<CreateIssueCommand, int>
+  public class IssueCreateCommandHandler : IRequestHandler<CreateIssueCommand, int>
+  {
+    private readonly GpsdataContext _context;
+    private readonly INotificationService _notificationService;
+    private readonly IIssueActivityService _activityService;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<IssueCreateCommandHandler> _logger;
+
+    public IssueCreateCommandHandler(
+        GpsdataContext context,
+        INotificationService notificationService,
+        IIssueActivityService activityService,
+        IConfiguration configuration,
+        ILogger<IssueCreateCommandHandler> logger)
     {
-        private readonly GpsdataContext _context;
-        private readonly INotificationService _notificationService;
-        private readonly IIssueActivityService _activityService;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<IssueCreateCommandHandler> _logger;
+      _context = context;
+      _notificationService = notificationService;
+      _activityService = activityService;
+      _configuration = configuration;
+      _logger = logger;
+    }
 
-        public IssueCreateCommandHandler(
-            GpsdataContext context,
-            INotificationService notificationService,
-            IIssueActivityService activityService,
-            IConfiguration configuration,
-            ILogger<IssueCreateCommandHandler> logger)
+    public async Task<int> Handle(CreateIssueCommand request, CancellationToken cancellationToken)
+    {
+      try
+      {
+        // Resolve usernames to user IDs
+        string? openbyUserId = null;
+        User? openbyUser = null;
+        var assignToUsers = new List<User>();
+
+        // Find user by username for Openby field
+        if (!string.IsNullOrEmpty(request.IssueTrackerDto.Openby))
         {
-            _context = context;
-            _notificationService = notificationService;
-            _activityService = activityService;
-            _configuration = configuration;
-            _logger = logger;
+          openbyUser = await _context.Users
+              .FirstOrDefaultAsync(u => u.UserName == request.IssueTrackerDto.Openby, cancellationToken);
+          if (openbyUser != null)
+          {
+            openbyUserId = openbyUser.Id;
+          }
+          else
+          {
+            throw new Exception($"User '{request.IssueTrackerDto.Openby}' not found");
+          }
         }
 
-        public async Task<int> Handle(CreateIssueCommand request, CancellationToken cancellationToken)
+        // Find users by username(s) for AssignTo field.
+        // Supports comma/semicolon separated usernames for multiple assignees.
+        var requestedAssignees = ParseAssignees(request.IssueTrackerDto.AssignTo);
+        if (requestedAssignees.Count > 0)
         {
-            try
-            {
-                // Resolve usernames to user IDs
-                string? openbyUserId = null;
-                string? assignToUserId = null;
-                User? openbyUser = null;
-                User? assignToUser = null;
+          assignToUsers = await _context.Users
+              .Where(u => requestedAssignees.Contains(u.UserName))
+              .ToListAsync(cancellationToken);
 
-                // Find user by username for Openby field
-                if (!string.IsNullOrEmpty(request.IssueTrackerDto.Openby))
-                {
-                    openbyUser = await _context.Users
-                        .FirstOrDefaultAsync(u => u.UserName == request.IssueTrackerDto.Openby, cancellationToken);
-                    if (openbyUser != null)
-                    {
-                        openbyUserId = openbyUser.Id;
-                    }
-                    else
-                    {
-                        throw new Exception($"User '{request.IssueTrackerDto.Openby}' not found");
-                    }
-                }
+          var foundUserNames = assignToUsers
+              .Select(u => u.UserName)
+              .Where(userName => !string.IsNullOrWhiteSpace(userName))
+              .ToHashSet(StringComparer.OrdinalIgnoreCase);
 
-                // Find user by username for AssignTo field
-                if (!string.IsNullOrEmpty(request.IssueTrackerDto.AssignTo))
-                {
-                    assignToUser = await _context.Users
-                        .FirstOrDefaultAsync(u => u.UserName == request.IssueTrackerDto.AssignTo, cancellationToken);
-                    if (assignToUser != null)
-                    {
-                        assignToUserId = assignToUser.Id;
-                    }
-                    else
-                    {
-                        throw new Exception($"User '{request.IssueTrackerDto.AssignTo}' not found");
-                    }
-                }
+          var missingAssignees = requestedAssignees
+              .Where(assignee => !foundUserNames.Contains(assignee))
+              .ToList();
 
-                // Validate required fields
-                if (string.IsNullOrEmpty(openbyUserId))
-                {
-                    throw new Exception("Openby user is required");
-                }
-                if (string.IsNullOrEmpty(assignToUserId))
-                {
-                    throw new Exception("AssignTo user is required");
-                }
-
-                // Validate and truncate field lengths to prevent DB overflow
-                if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemTitle) && request.IssueTrackerDto.ProblemTitle.Length > 255)
-                {
-                    _logger.LogWarning("ProblemTitle truncated from {OriginalLength} to 255 characters", request.IssueTrackerDto.ProblemTitle.Length);
-                    request.IssueTrackerDto.ProblemTitle = request.IssueTrackerDto.ProblemTitle[..255];
-                }
-                if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemDescription) && request.IssueTrackerDto.ProblemDescription.Length > 2000)
-                {
-                    _logger.LogWarning("ProblemDescription truncated from {OriginalLength} to 2000 characters", request.IssueTrackerDto.ProblemDescription.Length);
-                    request.IssueTrackerDto.ProblemDescription = request.IssueTrackerDto.ProblemDescription[..2000];
-                }
-
-                // Map DTO to Entity
-                Issuetracker issueEntity = new Issuetracker
-                {
-                    IssueCategoryId = request.IssueTrackerDto.IssueCategory,
-                    IssueTemplateId = request.IssueTrackerDto.IssueTemplateId,
-                    DeviceTypeId = request.IssueTrackerDto.DeviceTypeId ?? request.IssueTrackerDto.DeviceType,
-                    SiteId = request.IssueTrackerDto.Site,
-                    Openby = openbyUserId,
-                    RelatedIssue = request.IssueTrackerDto.RelatedIssue,
-                    ProblemDescription = request.IssueTrackerDto.ProblemDescription,
-                    ProblemTitle = request.IssueTrackerDto.ProblemTitle,
-                    Status = request.IssueTrackerDto.Status,
-                    Priority = request.IssueTrackerDto.Priority,
-                    DueDate = request.IssueTrackerDto.DueDate,
-                    OpenDate = request.IssueTrackerDto.OpenDate ?? DateTime.UtcNow,
-                    ClosingDate = request.IssueTrackerDto.ClosingDate,
-                    LastModfield = DateTime.UtcNow,
-                    VehicleId = request.IssueTrackerDto.Vehicle,
-                    //DeviceId = request.IssueTrackerDto.Device,
-                    DeviceType = request.IssueTrackerDto.DeviceType,
-                    AssignTo = assignToUserId,
-                    CanAutoClose = request.IssueTrackerDto.CanAutoClose ?? false,
-                    IsAutoCreated = request.IssueTrackerDto.IsAutoCreated ?? false
-                };
-
-                await _context.Issuetrackers.AddAsync(issueEntity, cancellationToken);
-                await _context.SaveChangesAsync(cancellationToken);
-
-                // Log issue creation activity
-                await _activityService.LogIssueCreatedAsync(
-                    issueEntity.Id,
-                    openbyUserId!,
-                    openbyUser?.UserName ?? request.IssueTrackerDto.Openby,
-                    cancellationToken);
-
-                // Only send assignment notification for today's or future issues
-                // Past issues (field agents logging completed work) skip notification
-                var issueDate = issueEntity.OpenDate?.Date ?? DateTime.UtcNow.Date;
-                var today = DateTime.UtcNow.Date;
-
-                if (issueDate >= today)
-                {
-                    await SendAssignmentNotificationAsync(
-                        issueEntity,
-                        request.IssueTrackerDto,
-                        openbyUser,
-                        assignToUser,
-                        openbyUserId,
-                        assignToUserId,
-                        cancellationToken);
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "Skipping assignment notification for past issue {IssueId} (open date: {OpenDate})",
-                        issueEntity.Id, issueDate);
-                }
-
-                return issueEntity.Id;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error creating issue");
-                throw new Exception("Error creating issue", ex);
-            }
+          if (missingAssignees.Count > 0)
+          {
+            throw new Exception($"Assignee(s) not found: {string.Join(", ", missingAssignees)}");
+          }
         }
 
-        private async Task SendAssignmentNotificationAsync(
-            Issuetracker issueEntity,
-            IssueTrackerDTO issueDto,
-            User? openbyUser,
-            User? assignToUser,
-            string? openbyUserId,
-            string? assignToUserId,
-            CancellationToken cancellationToken)
+        // Validate required fields
+        if (string.IsNullOrEmpty(openbyUserId))
         {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(assignToUserId))
-                {
-                    return;
-                }
-
-                // Fetch vehicle and site details for the email
-                string? vehicleName = null;
-                string? siteName = null;
-
-                if (issueEntity.VehicleId > 0)
-                {
-                    vehicleName = await _context.Vehicles
-                        .Where(v => v.VehicleId == issueEntity.VehicleId)
-                        .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
-                        .FirstOrDefaultAsync(cancellationToken);
-                }
-
-                if (issueEntity.SiteId > 0)
-                {
-                    siteName = await _context.Sites
-                        .Where(s => s.Id == issueEntity.SiteId)
-                        .Select(s => s.Name)
-                        .FirstOrDefaultAsync(cancellationToken);
-                }
-
-                var frontendBaseUrl = GetFrontendBaseUrl();
-                var responseUrl = $"{frontendBaseUrl}/issue-tracker/assignment/{issueEntity.Id}/respond";
-                var confirmUrl = $"{responseUrl}?action=confirm";
-                var scheduleUrl = $"{responseUrl}?action=schedule";
-                var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issueEntity.Id}";
-                var dueDateText = issueDto.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
-                var assignedWorkerName = assignToUser?.UserName ?? "Assigned Worker";
-                var assignedWorkerEmail = assignToUser?.Email ?? "N/A";
-                var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
-                var systemMessage = $"You have been assigned this issue. Click here to view details.";
-                var emailBodyHtml = BuildAssignmentEmailHtmlMessage(
-                    issueEntity.Id,
-                    issueEntity.ProblemTitle,
-                    dueDateText,
-                    assignedWorkerName,
-                    assignedWorkerEmail,
-                    vehicleName,
-                    siteName,
-                    confirmUrl,
-                    scheduleUrl,
-                    issueUrl);
-
-                var notificationPriority = await ResolveNotificationPriorityAsync(issueDto.Priority, cancellationToken);
-
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.IssueTracker,
-                    Priority = notificationPriority,
-                    Title = $"Issue Assigned: {vehicleLabel}{issueEntity.ProblemTitle}",
-                    Message = systemMessage,
-                    Data = new
-                    {
-                        IssueId = issueEntity.Id,
-                        IssueTitle = issueEntity.ProblemTitle,
-                        ActionUrl = issueUrl,
-                        DueDate = issueDto.DueDate,
-                        AssignedToUserId = assignToUserId,
-                        AssignedToUserName = assignedWorkerName,
-                        AssignedToEmail = assignedWorkerEmail,
-                        AssignmentResponseUrl = responseUrl,
-                        AssignmentConfirmUrl = confirmUrl,
-                        AssignmentScheduleUrl = scheduleUrl,
-                        IssueUrl = issueUrl,
-                        EmailBodyHtml = emailBodyHtml
-                    },
-                    TriggerSource = "IssueTrackerAssignment",
-                    TriggeredBy = openbyUserId ?? openbyUser?.UserName ?? "System",
-                    SiteId = issueEntity.SiteId,
-                    VehicleId = issueEntity.VehicleId,
-                    IssueTrackerId = issueEntity.Id,
-                    Recipients = new List<NotificationRecipientDto>
-                    {
-                        new()
-                        {
-                            UserId = assignToUserId,
-                            DeliveryMethods = new List<string> { "Email", "System" },
-                            ResolvedFrom = "IssueAssignment"
-                        }
-                    },
-                    DisableFallbackAllUsers = true
-                };
-
-                var notificationResult = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-                if (!notificationResult.IsSuccess)
-                {
-                    _logger.LogWarning(
-                        "Issue {IssueId} created but assignment notification failed: {Message}",
-                        issueEntity.Id,
-                        notificationResult.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send assignment notification for issue {IssueId}", issueEntity.Id);
-            }
+          throw new Exception("Openby user is required");
+        }
+        if (assignToUsers.Count == 0)
+        {
+          throw new Exception("At least one AssignTo user is required");
         }
 
-        private async Task<NotificationPriority> ResolveNotificationPriorityAsync(int? issuePriorityId, CancellationToken cancellationToken)
+        var primaryAssignee = assignToUsers[0];
+        var assignToUserId = primaryAssignee.Id;
+
+        // Validate and truncate field lengths to prevent DB overflow
+        if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemTitle) && request.IssueTrackerDto.ProblemTitle.Length > 255)
         {
-            if (!issuePriorityId.HasValue)
-            {
-                return NotificationPriority.Medium;
-            }
-
-            var priorityName = await _context.Issuepriorities
-                .Where(p => p.Id == issuePriorityId.Value)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (string.IsNullOrWhiteSpace(priorityName))
-            {
-                return NotificationPriority.Medium;
-            }
-
-            if (priorityName.Contains("critical", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotificationPriority.Critical;
-            }
-
-            if (priorityName.Contains("high", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotificationPriority.High;
-            }
-
-            if (priorityName.Contains("low", StringComparison.OrdinalIgnoreCase))
-            {
-                return NotificationPriority.Low;
-            }
-
-            return NotificationPriority.Medium;
+          _logger.LogWarning("ProblemTitle truncated from {OriginalLength} to 255 characters", request.IssueTrackerDto.ProblemTitle.Length);
+          request.IssueTrackerDto.ProblemTitle = request.IssueTrackerDto.ProblemTitle[..255];
+        }
+        if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemDescription) && request.IssueTrackerDto.ProblemDescription.Length > 2000)
+        {
+          _logger.LogWarning("ProblemDescription truncated from {OriginalLength} to 2000 characters", request.IssueTrackerDto.ProblemDescription.Length);
+          request.IssueTrackerDto.ProblemDescription = request.IssueTrackerDto.ProblemDescription[..2000];
         }
 
-        private string GetFrontendBaseUrl()
+        // Map DTO to Entity
+        Issuetracker issueEntity = new Issuetracker
         {
-            var configuredBaseUrl = _configuration["IssueTracker:FrontendBaseUrl"]
-                ?? _configuration["Frontend:BaseUrl"]
-                ?? _configuration["App:FrontendBaseUrl"];
+          IssueCategoryId = request.IssueTrackerDto.IssueCategory,
+          IssueTemplateId = request.IssueTrackerDto.IssueTemplateId,
+          DeviceTypeId = request.IssueTrackerDto.DeviceTypeId ?? request.IssueTrackerDto.DeviceType,
+          SiteId = request.IssueTrackerDto.Site,
+          Openby = openbyUserId,
+          RelatedIssue = request.IssueTrackerDto.RelatedIssue,
+          ProblemDescription = request.IssueTrackerDto.ProblemDescription,
+          ProblemTitle = request.IssueTrackerDto.ProblemTitle,
+          Status = request.IssueTrackerDto.Status,
+          Priority = request.IssueTrackerDto.Priority,
+          DueDate = request.IssueTrackerDto.DueDate,
+          OpenDate = request.IssueTrackerDto.OpenDate ?? DateTime.UtcNow,
+          ClosingDate = request.IssueTrackerDto.ClosingDate,
+          LastModfield = DateTime.UtcNow,
+          VehicleId = request.IssueTrackerDto.Vehicle,
+          //DeviceId = request.IssueTrackerDto.Device,
+          DeviceType = request.IssueTrackerDto.DeviceType,
+          AssignTo = assignToUserId,
+          CanAutoClose = request.IssueTrackerDto.CanAutoClose ?? false,
+          IsAutoCreated = request.IssueTrackerDto.IsAutoCreated ?? false
+        };
 
-            if (string.IsNullOrWhiteSpace(configuredBaseUrl))
-            {
-                throw new InvalidOperationException(
-                    "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' (or 'Frontend:BaseUrl') in appsettings or environment variables.");
-            }
+        await _context.Issuetrackers.AddAsync(issueEntity, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
 
-            return configuredBaseUrl.TrimEnd('/');
+        await PersistIssueAssigneesAsync(
+          issueEntity.Id,
+          openbyUserId,
+          assignToUsers,
+          cancellationToken);
+
+        // Log issue creation activity
+        await _activityService.LogIssueCreatedAsync(
+            issueEntity.Id,
+            openbyUserId!,
+            openbyUser?.UserName ?? request.IssueTrackerDto.Openby,
+            cancellationToken);
+
+        // Only send assignment notification for today's or future issues
+        // Past issues (field agents logging completed work) skip notification
+        var issueDate = issueEntity.OpenDate?.Date ?? DateTime.UtcNow.Date;
+        var today = DateTime.UtcNow.Date;
+
+        if (issueDate >= today)
+        {
+          await SendAssignmentNotificationAsync(
+              issueEntity,
+              request.IssueTrackerDto,
+              openbyUser,
+            assignToUsers,
+              openbyUserId,
+              cancellationToken);
+        }
+        else
+        {
+          _logger.LogInformation(
+              "Skipping assignment notification for past issue {IssueId} (open date: {OpenDate})",
+              issueEntity.Id, issueDate);
         }
 
-        private static string BuildAssignmentEmailHtmlMessage(
-            int issueId,
-            string issueTitle,
-            string dueDateText,
-            string assignedWorkerName,
-            string assignedWorkerEmail,
-            string? vehicleName,
-            string? siteName,
-            string confirmUrl,
-            string scheduleUrl,
-            string issueUrl)
-        {
-            var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
-            var safeWorkerName = WebUtility.HtmlEncode(assignedWorkerName);
-            var safeWorkerEmail = WebUtility.HtmlEncode(assignedWorkerEmail);
-            var safeDueDate = WebUtility.HtmlEncode(dueDateText);
-            var safeVehicleName = WebUtility.HtmlEncode(vehicleName ?? "Not specified");
-            var safeSiteName = WebUtility.HtmlEncode(siteName ?? "Not specified");
-            var safeConfirmUrl = WebUtility.HtmlEncode(confirmUrl);
-            var safeScheduleUrl = WebUtility.HtmlEncode(scheduleUrl);
-            var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+        return issueEntity.Id;
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error creating issue");
+        throw new Exception("Error creating issue", ex);
+      }
+    }
 
-            return $@"
+    private async Task SendAssignmentNotificationAsync(
+        Issuetracker issueEntity,
+        IssueTrackerDTO issueDto,
+        User? openbyUser,
+        List<User> assignToUsers,
+        string? openbyUserId,
+        CancellationToken cancellationToken)
+    {
+      try
+      {
+        if (assignToUsers == null || assignToUsers.Count == 0)
+        {
+          return;
+        }
+
+        var primaryAssignee = assignToUsers[0];
+        var assignToUserId = primaryAssignee.Id;
+
+        // Fetch vehicle and site details for the email
+        string? vehicleName = null;
+        string? siteName = null;
+
+        if (issueEntity.VehicleId > 0)
+        {
+          vehicleName = await _context.Vehicles
+              .Where(v => v.VehicleId == issueEntity.VehicleId)
+              .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
+              .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (issueEntity.SiteId > 0)
+        {
+          siteName = await _context.Sites
+              .Where(s => s.Id == issueEntity.SiteId)
+              .Select(s => s.Name)
+              .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        var frontendBaseUrl = GetFrontendBaseUrl();
+        var responseUrl = $"{frontendBaseUrl}/issue-tracker/assignment/{issueEntity.Id}/respond";
+        var confirmUrl = $"{responseUrl}?action=confirm";
+        var scheduleUrl = $"{responseUrl}?action=schedule";
+        var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issueEntity.Id}";
+        var dueDateText = issueDto.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
+        var assignedWorkerName = primaryAssignee?.UserName ?? "Assigned Worker";
+        var assignedWorkerEmail = primaryAssignee?.Email ?? "N/A";
+        var allAssigneeNames = assignToUsers
+            .Select(user => user.UserName)
+            .Where(userName => !string.IsNullOrWhiteSpace(userName))
+            .ToList();
+        var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
+        var systemMessage = allAssigneeNames.Count > 1
+            ? $"Issue has been assigned to multiple users ({string.Join(", ", allAssigneeNames)}). Click here to view details."
+            : "You have been assigned this issue. Click here to view details.";
+        var emailBodyHtml = BuildAssignmentEmailHtmlMessage(
+            issueEntity.Id,
+            issueEntity.ProblemTitle,
+            dueDateText,
+            assignedWorkerName,
+            assignedWorkerEmail,
+            vehicleName,
+            siteName,
+            confirmUrl,
+            scheduleUrl,
+            issueUrl);
+
+        var notificationPriority = await ResolveNotificationPriorityAsync(issueDto.Priority, cancellationToken);
+
+        var notificationRequest = new CreateNotificationRequest
+        {
+          Type = NotificationType.Alert,
+          CategoryId = (int)WellKnownCategories.IssueTracker,
+          Priority = notificationPriority,
+          Title = $"Issue Assigned: {vehicleLabel}{issueEntity.ProblemTitle}",
+          Message = systemMessage,
+          Data = new
+          {
+            IssueId = issueEntity.Id,
+            IssueTitle = issueEntity.ProblemTitle,
+            ActionUrl = issueUrl,
+            DueDate = issueDto.DueDate,
+            AssignedToUserId = assignToUserId,
+            AssignedToUserName = assignedWorkerName,
+            AssignedToUserNames = allAssigneeNames,
+            AssignedToEmail = assignedWorkerEmail,
+            AssignmentResponseUrl = responseUrl,
+            AssignmentConfirmUrl = confirmUrl,
+            AssignmentScheduleUrl = scheduleUrl,
+            IssueUrl = issueUrl,
+            EmailBodyHtml = emailBodyHtml
+          },
+          TriggerSource = "IssueTrackerAssignment",
+          TriggeredBy = openbyUserId ?? openbyUser?.UserName ?? "System",
+          SiteId = issueEntity.SiteId,
+          VehicleId = issueEntity.VehicleId,
+          IssueTrackerId = issueEntity.Id,
+          Recipients = assignToUsers
+                .Where(user => !string.IsNullOrWhiteSpace(user.Id))
+                .Select(user => new NotificationRecipientDto
+                {
+                  UserId = user.Id,
+                  DeliveryMethods = new List<string> { "Email", "System" },
+                  ResolvedFrom = "IssueAssignment"
+                })
+                .GroupBy(recipient => recipient.UserId)
+                .Select(group => group.First())
+                .ToList(),
+          DisableFallbackAllUsers = true
+        };
+
+        var notificationResult = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
+        if (!notificationResult.IsSuccess)
+        {
+          _logger.LogWarning(
+              "Issue {IssueId} created but assignment notification failed: {Message}",
+              issueEntity.Id,
+              notificationResult.Message);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Failed to send assignment notification for issue {IssueId}", issueEntity.Id);
+      }
+    }
+
+    private async Task<NotificationPriority> ResolveNotificationPriorityAsync(int? issuePriorityId, CancellationToken cancellationToken)
+    {
+      if (!issuePriorityId.HasValue)
+      {
+        return NotificationPriority.Medium;
+      }
+
+      var priorityName = await _context.Issuepriorities
+          .Where(p => p.Id == issuePriorityId.Value)
+          .Select(p => p.Name)
+          .FirstOrDefaultAsync(cancellationToken);
+
+      if (string.IsNullOrWhiteSpace(priorityName))
+      {
+        return NotificationPriority.Medium;
+      }
+
+      if (priorityName.Contains("critical", StringComparison.OrdinalIgnoreCase))
+      {
+        return NotificationPriority.Critical;
+      }
+
+      if (priorityName.Contains("high", StringComparison.OrdinalIgnoreCase))
+      {
+        return NotificationPriority.High;
+      }
+
+      if (priorityName.Contains("low", StringComparison.OrdinalIgnoreCase))
+      {
+        return NotificationPriority.Low;
+      }
+
+      return NotificationPriority.Medium;
+    }
+
+    private string GetFrontendBaseUrl()
+    {
+      var configuredBaseUrl = _configuration["IssueTracker:FrontendBaseUrl"]
+          ?? _configuration["Frontend:BaseUrl"]
+          ?? _configuration["App:FrontendBaseUrl"];
+
+      if (string.IsNullOrWhiteSpace(configuredBaseUrl))
+      {
+        throw new InvalidOperationException(
+            "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' (or 'Frontend:BaseUrl') in appsettings or environment variables.");
+      }
+
+      return configuredBaseUrl.TrimEnd('/');
+    }
+
+    private static string BuildAssignmentEmailHtmlMessage(
+        int issueId,
+        string issueTitle,
+        string dueDateText,
+        string assignedWorkerName,
+        string assignedWorkerEmail,
+        string? vehicleName,
+        string? siteName,
+        string confirmUrl,
+        string scheduleUrl,
+        string issueUrl)
+    {
+      var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
+      var safeWorkerName = WebUtility.HtmlEncode(assignedWorkerName);
+      var safeWorkerEmail = WebUtility.HtmlEncode(assignedWorkerEmail);
+      var safeDueDate = WebUtility.HtmlEncode(dueDateText);
+      var safeVehicleName = WebUtility.HtmlEncode(vehicleName ?? "Not specified");
+      var safeSiteName = WebUtility.HtmlEncode(siteName ?? "Not specified");
+      var safeConfirmUrl = WebUtility.HtmlEncode(confirmUrl);
+      var safeScheduleUrl = WebUtility.HtmlEncode(scheduleUrl);
+      var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+
+      return $@"
                 <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;"">
                   <!-- Header -->
                   <tr>
@@ -376,20 +403,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                       </div>
                       <div style=""font-size:22px;color:#ffffff;font-weight:700;line-height:1.3;"">Issue #{issueId}: {safeIssueTitle}</div>
                     </td>
-                  </tr>
-
-                  <!-- Body -->
-                  <tr>
-                    <td style=""padding:0;background:#ffffff;border-left:1px solid #e5e7eb;border-right:1px solid #e5e7eb;"">
-                      <!-- Message -->
-                      <div style=""padding:20px 24px;border-bottom:1px solid #f3f4f6;"">
-                        <p style=""margin:0;font-size:15px;color:#374151;line-height:1.6;"">
-                          You have been assigned this issue in <strong style=""color:#1e40af;"">Hyoung FMS</strong>. Please confirm your availability or schedule your start date before the due date.
-                        </p>
-                      </div>
-
-                      <!-- Details Grid -->
-                      <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;"">
+                  <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;"">
                         <tr>
                           <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
                             <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">
@@ -458,6 +472,72 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     </td>
                   </tr>
                 </table>";
-        }
     }
+
+    private async Task PersistIssueAssigneesAsync(
+      int issueId,
+      string? assignedFromUserId,
+      List<User> assignees,
+      CancellationToken cancellationToken)
+    {
+      if (issueId <= 0 || assignees == null || assignees.Count == 0)
+      {
+        return;
+      }
+
+      var assignedFrom = !string.IsNullOrWhiteSpace(assignedFromUserId)
+        ? assignedFromUserId
+        : assignees[0].Id;
+
+      var existingRows = await _context.Issueassignmenttrackers
+        .Where(row => row.Issue == issueId)
+        .ToListAsync(cancellationToken);
+
+      if (existingRows.Count > 0)
+      {
+        _context.Issueassignmenttrackers.RemoveRange(existingRows);
+        await _context.SaveChangesAsync(cancellationToken);
+      }
+
+      var startId = await _context.Issueassignmenttrackers
+        .Select(row => (int?)row.Id)
+        .MaxAsync(cancellationToken) ?? 0;
+
+      var nextId = startId;
+      var rows = assignees
+        .Where(user => !string.IsNullOrWhiteSpace(user.Id))
+        .Select(user => new Issueassignmenttracker
+        {
+          Id = ++nextId,
+          Issue = issueId,
+          AssignedFrom = assignedFrom,
+          AssignedTo = user.Id,
+          AssignedDate = DateTime.UtcNow
+        })
+        .ToList();
+
+      if (rows.Count == 0)
+      {
+        return;
+      }
+
+      await _context.Issueassignmenttrackers.AddRangeAsync(rows, cancellationToken);
+      await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    private static List<string> ParseAssignees(string? assignToValue)
+    {
+      if (string.IsNullOrWhiteSpace(assignToValue))
+      {
+        return new List<string>();
+      }
+
+      return assignToValue
+        .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries)
+        .Select(userName => userName.Trim())
+        .Where(userName => !string.IsNullOrWhiteSpace(userName))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
+    }
+  }
 }

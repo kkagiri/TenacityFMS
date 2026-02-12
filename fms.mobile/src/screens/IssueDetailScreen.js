@@ -193,9 +193,10 @@ const IssueDetailScreen = () => {
   const [attachmentsLoading, setAttachmentsLoading] = useState(false);
   const [showUploadModal, setShowUploadModal] = useState(false);
 
-  // Close notes dialog (Android fallback for Alert.prompt)
-  const [showCloseDialog, setShowCloseDialog] = useState(false);
-  const [closeNotes, setCloseNotes] = useState("");
+  // Notes dialog (Android fallback for Alert.prompt)
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [notesDialogMode, setNotesDialogMode] = useState(null); // 'close' | 'complete'
+  const [actionNotes, setActionNotes] = useState("");
 
   // ===== DATA LOADING =====
   const loadIssue = useCallback(
@@ -284,11 +285,11 @@ const IssueDetailScreen = () => {
     }
   }, [issue, isFollowing, activeTab, loadActivities]);
 
-  const handleMarkComplete = useCallback(async () => {
+  const doMarkComplete = useCallback(async (notes) => {
     if (!issue?.id) return;
     setIsSaving(true);
     try {
-      await issueTrackerService.markIssueComplete(issue.id);
+      await issueTrackerService.markIssueComplete(issue.id, notes || null);
       await loadIssue(true);
       if (activeTab === "activity") loadActivities();
       Alert.alert("Success", "Issue marked as complete.");
@@ -297,8 +298,29 @@ const IssueDetailScreen = () => {
     } finally {
       setIsSaving(false);
       setShowQuickActions(false);
+      setShowNotesDialog(false);
+      setNotesDialogMode(null);
+      setActionNotes("");
     }
   }, [issue, loadIssue, activeTab, loadActivities]);
+
+  const handleMarkComplete = useCallback(() => {
+    if (!issue?.id) return;
+    setShowQuickActions(false);
+
+    if (Platform.OS === "ios") {
+      Alert.prompt(
+        "Mark as Complete",
+        "Completion notes (optional). These notes will be saved in the activity log and notify the issue opener:",
+        (notes) => doMarkComplete(notes),
+        "plain-text"
+      );
+    } else {
+      setActionNotes("");
+      setNotesDialogMode("complete");
+      setShowNotesDialog(true);
+    }
+  }, [issue, doMarkComplete]);
 
   const doCloseIssue = useCallback(async (notes) => {
     if (!issue?.id) return;
@@ -313,8 +335,9 @@ const IssueDetailScreen = () => {
     } finally {
       setIsSaving(false);
       setShowQuickActions(false);
-      setShowCloseDialog(false);
-      setCloseNotes("");
+      setShowNotesDialog(false);
+      setNotesDialogMode(null);
+      setActionNotes("");
     }
   }, [issue, loadIssue, activeTab, loadActivities]);
 
@@ -332,8 +355,9 @@ const IssueDetailScreen = () => {
       );
     } else {
       // Android — show custom dialog with TextInput
-      setCloseNotes("");
-      setShowCloseDialog(true);
+      setActionNotes("");
+      setNotesDialogMode("close");
+      setShowNotesDialog(true);
     }
   }, [issue, doCloseIssue]);
 
@@ -919,33 +943,39 @@ const IssueDetailScreen = () => {
         </TouchableOpacity>
       </Modal>
 
-      {/* Close Issue Notes Dialog (Android) */}
+      {/* Notes Dialog (Android) */}
       <Modal
-        visible={showCloseDialog}
+        visible={showNotesDialog}
         transparent
         animationType="fade"
         onRequestClose={() => {
-          setShowCloseDialog(false);
-          setCloseNotes("");
+          setShowNotesDialog(false);
+          setNotesDialogMode(null);
+          setActionNotes("");
         }}
       >
         <TouchableOpacity
           style={styles.modalOverlay}
           activeOpacity={1}
           onPress={() => {
-            setShowCloseDialog(false);
-            setCloseNotes("");
+            setShowNotesDialog(false);
+            setNotesDialogMode(null);
+            setActionNotes("");
           }}
         >
           <View style={styles.closeDialogSheet}>
-            <Text style={styles.closeDialogTitle}>Close Issue</Text>
+            <Text style={styles.closeDialogTitle}>
+              {notesDialogMode === "complete" ? "Mark as Complete" : "Close Issue"}
+            </Text>
             <Text style={styles.closeDialogSubtitle}>
-              Enter closing/approval notes (optional):
+              {notesDialogMode === "complete"
+                ? "Completion notes (optional). These notes will be saved in the activity log and notify the issue opener:"
+                : "Enter closing/approval notes (optional):"}
             </Text>
             <TextInput
               style={styles.closeDialogInput}
-              value={closeNotes}
-              onChangeText={setCloseNotes}
+              value={actionNotes}
+              onChangeText={setActionNotes}
               placeholder="Enter notes..."
               placeholderTextColor="#9CA3AF"
               multiline
@@ -957,21 +987,30 @@ const IssueDetailScreen = () => {
               <TouchableOpacity
                 style={styles.closeDialogCancelBtn}
                 onPress={() => {
-                  setShowCloseDialog(false);
-                  setCloseNotes("");
+                  setShowNotesDialog(false);
+                  setNotesDialogMode(null);
+                  setActionNotes("");
                 }}
               >
                 <Text style={styles.closeDialogCancelText}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={styles.closeDialogConfirmBtn}
-                onPress={() => doCloseIssue(closeNotes)}
+                onPress={() => {
+                  if (notesDialogMode === "complete") {
+                    doMarkComplete(actionNotes);
+                  } else {
+                    doCloseIssue(actionNotes);
+                  }
+                }}
                 disabled={isSaving}
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text style={styles.closeDialogConfirmText}>Close Issue</Text>
+                  <Text style={styles.closeDialogConfirmText}>
+                    {notesDialogMode === "complete" ? "Mark Complete" : "Close Issue"}
+                  </Text>
                 )}
               </TouchableOpacity>
             </View>

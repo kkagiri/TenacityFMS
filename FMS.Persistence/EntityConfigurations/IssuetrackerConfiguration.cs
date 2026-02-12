@@ -140,6 +140,18 @@ namespace FMS.Persistence.EntityConfigurations
                     .UseCollation("utf8mb4_general_ci")
                     .HasCharSet("utf8mb4");
 
+                builder.Property(e => e.CompletionNotes)
+                    .HasMaxLength(2000)
+                    .HasColumnName("CompletionNotes")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
+                builder.Property(e => e.ClosingNotes)
+                    .HasMaxLength(2000)
+                    .HasColumnName("ClosingNotes")
+                    .UseCollation("utf8mb4_general_ci")
+                    .HasCharSet("utf8mb4");
+
                 builder.HasOne(d => d.AssignToNavigation)
                     .WithMany(p => p.IssuetrackerAssignToNavigations)
                     .HasForeignKey(d => d.AssignTo)

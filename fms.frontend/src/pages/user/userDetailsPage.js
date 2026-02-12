@@ -422,7 +422,7 @@ const UserDetailsPage = () => {
             <h2 className="toolbar-title">User Details</h2>
           </div>
         </ToolbarItem>
-        <ToolbarItem location="after" locateInMenu="auto">
+        <ToolbarItem location="after" locateInMenu="never">
           <div className="user-details__action-buttons">
             <Button
               text="Edit User"

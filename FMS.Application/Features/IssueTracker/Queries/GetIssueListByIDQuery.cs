@@ -12,85 +12,138 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
 
-public record GetIssueListByIdQuery (int Id) : IRequest<IssueTrackerResponseDTO>;
+public record GetIssueListByIdQuery(int Id) : IRequest<IssueTrackerResponseDTO>;
 
-public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuery, IssueTrackerResponseDTO> {
+public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuery, IssueTrackerResponseDTO>
+{
     private readonly GpsdataContext _context;
     private readonly ILogger<GetIssueListByIDQueryHandler> _logger;
 
-    public GetIssueListByIDQueryHandler (GpsdataContext context, ILogger<GetIssueListByIDQueryHandler> logger) {
+    public GetIssueListByIDQueryHandler(GpsdataContext context, ILogger<GetIssueListByIDQueryHandler> logger)
+    {
         _context = context;
         _logger = logger;
 
     }
 
-    public async Task<IssueTrackerResponseDTO> Handle (GetIssueListByIdQuery request, CancellationToken cancellationToken) {
-        try {
+    public async Task<IssueTrackerResponseDTO> Handle(GetIssueListByIdQuery request, CancellationToken cancellationToken)
+    {
+        try
+        {
             var issuetracker = await _context.Issuetrackers
-                .Include (i => i.OpenbyNavigation)
-                .Include (i => i.StatusNavigation)
-                .Include (i => i.AssignToNavigation)
-                .Include (i => i.PriorityNavigation)
-                .Include (i => i.IssueCategory)
-                .Include (i => i.Site)
-                .Include (i => i.Vehicle)
+                .Include(i => i.OpenbyNavigation)
+                .Include(i => i.StatusNavigation)
+                .Include(i => i.AssignToNavigation)
+                .Include(i => i.PriorityNavigation)
+                .Include(i => i.IssueCategory)
+                .Include(i => i.Site)
+                .Include(i => i.Vehicle)
                 //.Include (i => i.DeviceTypeNavigation)
-                .Where (i => i.Id == request.Id)
-                .Select (issue => new IssueTrackerResponseDTO {
+                .Where(i => i.Id == request.Id)
+                .Select(issue => new IssueTrackerResponseDTO
+                {
                     Id = issue.Id,
-                        ProblemTitle = issue.ProblemTitle,
-                        ProblemDescription = issue.ProblemDescription,
-                        OpenDate = issue.OpenDate,
-                        DueDate = issue.DueDate,
-                        ClosingDate = issue.ClosingDate,
-                        LastModfield = issue.LastModfield,
-                        RelatedIssue = issue.RelatedIssue,
+                    ProblemTitle = issue.ProblemTitle,
+                    ProblemDescription = issue.ProblemDescription,
+                    OpenDate = issue.OpenDate,
+                    DueDate = issue.DueDate,
+                    ClosingDate = issue.ClosingDate,
+                    LastModfield = issue.LastModfield,
+                    RelatedIssue = issue.RelatedIssue,
 
-                        // Category information
-                        IssueCategoryId = issue.IssueCategoryId,
-                        CategoryName = issue.IssueCategory != null ? issue.IssueCategory.Name : "",
+                    // Category information
+                    IssueCategoryId = issue.IssueCategoryId,
+                    CategoryName = issue.IssueCategory != null ? issue.IssueCategory.Name : "",
 
-                        // Site information
-                        SiteId = issue.SiteId,
-                        SiteName = issue.Site != null ? issue.Site.Name : "",
+                    // Site information
+                    SiteId = issue.SiteId,
+                    SiteName = issue.Site != null ? issue.Site.Name : "",
 
-                        // Status information
-                        Status = issue.Status,
-                        StatusName = issue.StatusNavigation != null ? issue.StatusNavigation.Status : "",
+                    // Status information
+                    Status = issue.Status,
+                    StatusName = issue.StatusNavigation != null ? issue.StatusNavigation.Status : "",
 
-                        // Priority information
-                        Priority = issue.Priority,
-                        PriorityName = issue.PriorityNavigation != null ? issue.PriorityNavigation.Name : "",
+                    // Priority information
+                    Priority = issue.Priority,
+                    PriorityName = issue.PriorityNavigation != null ? issue.PriorityNavigation.Name : "",
 
-                        // Vehicle information
-                        VehicleId = issue.VehicleId,
-                        VehicleNumber = issue.Vehicle != null ? issue.Vehicle.NumberPlate : "",
-                        VehicleHyoungNo = issue.Vehicle != null ? issue.Vehicle.HyoungNo : "",
+                    // Vehicle information
+                    VehicleId = issue.VehicleId,
+                    VehicleNumber = issue.Vehicle != null ? issue.Vehicle.NumberPlate : "",
+                    VehicleHyoungNo = issue.Vehicle != null ? issue.Vehicle.HyoungNo : "",
 
-                        // User information - using names instead of IDs
-                        OpenbyId = issue.Openby ?? "",
-                        OpenbyUserName = issue.OpenbyNavigation != null ? issue.OpenbyNavigation.UserName : "",
-                        OpenbyEmail = issue.OpenbyNavigation != null ? issue.OpenbyNavigation.Email : "",
+                    // User information - using names instead of IDs
+                    OpenbyId = issue.Openby ?? "",
+                    OpenbyUserName = issue.OpenbyNavigation != null ? issue.OpenbyNavigation.UserName : "",
+                    OpenbyEmail = issue.OpenbyNavigation != null ? issue.OpenbyNavigation.Email : "",
 
-                        AssignToId = issue.AssignTo ?? "",
-                        AssignToUserName = issue.AssignToNavigation != null ? issue.AssignToNavigation.UserName : "",
-                        AssignToEmail = issue.AssignToNavigation != null ? issue.AssignToNavigation.Email : "",
+                    AssignToId = issue.AssignTo ?? "",
+                    AssignToUserName = issue.AssignToNavigation != null ? issue.AssignToNavigation.UserName : "",
+                    AssignToEmail = issue.AssignToNavigation != null ? issue.AssignToNavigation.Email : "",
 
-                        // Device information (optional)
-                        //DeviceId = issue.DeviceId,
-                        //DeviceType = issue.DeviceType,
-                        //DeviceTypeName = issue.DeviceTypeNavigation != null ? issue.DeviceTypeNavigation.Name : ""
+                    // Notes
+                    CompletionNotes = issue.CompletionNotes,
+                    ClosingNotes = issue.ClosingNotes,
+
+                    // Device information (optional)
+                    //DeviceId = issue.DeviceId,
+                    //DeviceType = issue.DeviceType,
+                    //DeviceTypeName = issue.DeviceTypeNavigation != null ? issue.DeviceTypeNavigation.Name : ""
                 })
-                .FirstOrDefaultAsync (cancellationToken);
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (issuetracker == null) {
-                throw new Exception ($"Issue with ID {request.Id} not found");
+            if (issuetracker != null)
+            {
+                var assignees = await (
+                    from assignment in _context.Issueassignmenttrackers
+                    join user in _context.Users on assignment.AssignedTo equals user.Id
+                    where assignment.Issue == issuetracker.Id
+                    orderby assignment.AssignedDate descending
+                    select new
+                    {
+                        UserId = user.Id,
+                        UserName = user.UserName,
+                        UserEmail = user.Email
+                    })
+                    .ToListAsync(cancellationToken);
+
+                if (assignees.Count > 0)
+                {
+                    issuetracker.AssignToIds = string.Join(",", assignees
+                        .Select(row => row.UserId)
+                        .Where(userId => !string.IsNullOrWhiteSpace(userId))
+                        .Distinct());
+                    issuetracker.AssignToUserNames = string.Join(", ", assignees
+                        .Select(row => row.UserName)
+                        .Where(userName => !string.IsNullOrWhiteSpace(userName))
+                        .Distinct());
+
+                    var primaryAssignee = assignees.FirstOrDefault();
+                    if (primaryAssignee != null)
+                    {
+                        issuetracker.AssignToId = primaryAssignee.UserId ?? issuetracker.AssignToId;
+                        issuetracker.AssignToUserName = primaryAssignee.UserName ?? issuetracker.AssignToUserName;
+                        issuetracker.AssignToEmail = primaryAssignee.UserEmail ?? issuetracker.AssignToEmail;
+                    }
+                }
+                else
+                {
+                    issuetracker.AssignToIds = issuetracker.AssignToId;
+                    issuetracker.AssignToUserNames = issuetracker.AssignToUserName;
+                }
+            }
+
+            if (issuetracker == null)
+            {
+                throw new Exception($"Issue with ID {request.Id} not found");
             }
 
             return issuetracker;
-        } catch (Exception ex) {
-            _logger.LogError (ex, "An error occured while getting issue tracker");
-            throw new Exception (ex.ToString ());
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "An error occured while getting issue tracker");
+            throw new Exception(ex.ToString());
         }
     }
 }

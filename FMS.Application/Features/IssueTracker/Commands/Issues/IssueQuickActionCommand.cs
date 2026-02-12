@@ -15,6 +15,7 @@ using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Enums;
@@ -28,267 +29,271 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.IssueTracker.Commands.Issues
 {
-    public enum IssueQuickActionType
+  public enum IssueQuickActionType
+  {
+    MarkComplete,
+    EscalateToHigh
+  }
+
+  public class IssueQuickActionRequest
+  {
+    public int IssueId { get; set; }
+    public IssueQuickActionType ActionType { get; set; }
+    public string? PerformedByUserId { get; set; }
+    public string? Notes { get; set; }
+  }
+
+  public record IssueQuickActionCommand(IssueQuickActionRequest Request) : IRequest<FMSResponse<bool>>;
+
+  public class IssueQuickActionCommandHandler : IRequestHandler<IssueQuickActionCommand, FMSResponse<bool>>
+  {
+    private readonly GpsdataContext _context;
+    private readonly INotificationService _notificationService;
+    private readonly IConfiguration _configuration;
+    private readonly ILogger<IssueQuickActionCommandHandler> _logger;
+
+    public IssueQuickActionCommandHandler(
+        GpsdataContext context,
+        INotificationService notificationService,
+        IConfiguration configuration,
+        ILogger<IssueQuickActionCommandHandler> logger)
     {
-        MarkComplete,
-        EscalateToHigh
+      _context = context;
+      _notificationService = notificationService;
+      _configuration = configuration;
+      _logger = logger;
     }
 
-    public class IssueQuickActionRequest
+    public async Task<FMSResponse<bool>> Handle(IssueQuickActionCommand command, CancellationToken cancellationToken)
     {
-        public int IssueId { get; set; }
-        public IssueQuickActionType ActionType { get; set; }
-        public string? PerformedByUserId { get; set; }
-        public string? Notes { get; set; }
+      try
+      {
+        var request = command.Request;
+
+        // Ensure notes columns exist
+        await IssueNotesSchemaGuard.EnsureColumnsExistAsync(_context, _logger, cancellationToken);
+
+        // Fetch the issue with related data
+        var issue = await _context.Issuetrackers
+            .FirstOrDefaultAsync(i => i.Id == request.IssueId, cancellationToken);
+
+        if (issue == null)
+        {
+          return FMSResponse<bool>.Failed($"Issue with ID {request.IssueId} not found.");
+        }
+
+        // Get user who performed the action
+        User? performedByUser = null;
+        if (!string.IsNullOrEmpty(request.PerformedByUserId))
+        {
+          performedByUser = await _context.Users
+              .FirstOrDefaultAsync(u => u.Id == request.PerformedByUserId || u.UserName == request.PerformedByUserId, cancellationToken);
+        }
+
+        // Get issue opener and assigned user
+        var openbyUser = !string.IsNullOrEmpty(issue.Openby)
+            ? await _context.Users.FirstOrDefaultAsync(u => u.Id == issue.Openby, cancellationToken)
+            : null;
+
+        var assignedUser = !string.IsNullOrEmpty(issue.AssignTo)
+            ? await _context.Users.FirstOrDefaultAsync(u => u.Id == issue.AssignTo, cancellationToken)
+            : null;
+
+        // Get vehicle and site names for notifications
+        string? vehicleName = null;
+        string? siteName = null;
+
+        if (issue.VehicleId > 0)
+        {
+          vehicleName = await _context.Vehicles
+              .Where(v => v.VehicleId == issue.VehicleId)
+              .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
+              .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        if (issue.SiteId > 0)
+        {
+          siteName = await _context.Sites
+              .Where(s => s.Id == issue.SiteId)
+              .Select(s => s.Name)
+              .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        string actionDescription;
+        string previousValue;
+
+        switch (request.ActionType)
+        {
+          case IssueQuickActionType.MarkComplete:
+            var result = await HandleMarkCompleteAsync(issue, openbyUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
+            if (!result.IsSuccess) return result;
+            actionDescription = "marked as complete";
+            previousValue = await GetStatusNameAsync(issue.Status, cancellationToken) ?? "Unknown";
+            break;
+
+          case IssueQuickActionType.EscalateToHigh:
+            previousValue = await GetPriorityNameAsync(issue.Priority, cancellationToken) ?? "Unknown";
+            var escalateResult = await HandleEscalateToHighAsync(issue, assignedUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
+            if (!escalateResult.IsSuccess) return escalateResult;
+            actionDescription = "escalated to high priority";
+            break;
+
+          default:
+            return FMSResponse<bool>.Failed($"Unknown action type: {request.ActionType}");
+        }
+
+        // Update the issue's last modified timestamp
+        issue.LastModfield = DateTime.UtcNow;
+        await _context.SaveChangesAsync(cancellationToken);
+
+        _logger.LogInformation(
+            "Issue {IssueId} {ActionDescription} by user {UserId}",
+            request.IssueId,
+            actionDescription,
+            request.PerformedByUserId ?? "System");
+
+        return FMSResponse<bool>.Success(true, $"Issue successfully {actionDescription}.");
+      }
+      catch (Exception ex)
+      {
+        _logger.LogError(ex, "Error performing quick action on issue {IssueId}", command.Request.IssueId);
+        return FMSResponse<bool>.Failed($"Error performing action: {ex.Message}");
+      }
     }
 
-    public record IssueQuickActionCommand(IssueQuickActionRequest Request) : IRequest<FMSResponse<bool>>;
-
-    public class IssueQuickActionCommandHandler : IRequestHandler<IssueQuickActionCommand, FMSResponse<bool>>
+    private async Task<FMSResponse<bool>> HandleMarkCompleteAsync(
+        Issuetracker issue,
+        User? openbyUser,
+        User? performedByUser,
+        string? vehicleName,
+        string? siteName,
+        string? notes,
+        CancellationToken cancellationToken)
     {
-        private readonly GpsdataContext _context;
-        private readonly INotificationService _notificationService;
-        private readonly IConfiguration _configuration;
-        private readonly ILogger<IssueQuickActionCommandHandler> _logger;
+      // Find the "Complete" or "Closed" status
+      var completeStatus = await _context.Issuestatuses
+          .Where(s => s.Status != null &&
+              (s.Status.ToLower().Contains("complete") ||
+               s.Status.ToLower().Contains("closed") ||
+               s.Status.ToLower().Contains("resolved") ||
+               s.Status.ToLower().Contains("done")))
+          .FirstOrDefaultAsync(cancellationToken);
 
-        public IssueQuickActionCommandHandler(
-            GpsdataContext context,
-            INotificationService notificationService,
-            IConfiguration configuration,
-            ILogger<IssueQuickActionCommandHandler> logger)
+      if (completeStatus == null)
+      {
+        return FMSResponse<bool>.Failed("No 'Complete' or 'Closed' status found in the system.");
+      }
+
+      var previousStatusId = issue.Status;
+      issue.Status = completeStatus.Id;
+      issue.ClosingDate = DateTime.UtcNow;
+      issue.CompletionNotes = string.IsNullOrWhiteSpace(notes) ? null : notes.Trim();
+
+      // Send notification to the opener
+      if (openbyUser != null && !string.IsNullOrEmpty(openbyUser.Id))
+      {
+        await SendCompletionNotificationAsync(
+            issue,
+            openbyUser,
+            performedByUser,
+            vehicleName,
+            siteName,
+            notes,
+            cancellationToken);
+      }
+
+      return FMSResponse<bool>.Success(true);
+    }
+
+    private async Task<FMSResponse<bool>> HandleEscalateToHighAsync(
+        Issuetracker issue,
+        User? assignedUser,
+        User? performedByUser,
+        string? vehicleName,
+        string? siteName,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+      // Find the "High" priority
+      var highPriority = await _context.Issuepriorities
+          .Where(p => p.Name != null && p.Name.ToLower().Contains("high"))
+          .FirstOrDefaultAsync(cancellationToken);
+
+      if (highPriority == null)
+      {
+        return FMSResponse<bool>.Failed("No 'High' priority found in the system.");
+      }
+
+      var previousPriorityId = issue.Priority;
+      issue.Priority = highPriority.Id;
+
+      // Send notification to the assigned user
+      if (assignedUser != null && !string.IsNullOrEmpty(assignedUser.Id))
+      {
+        await SendEscalationNotificationAsync(
+            issue,
+            assignedUser,
+            performedByUser,
+            vehicleName,
+            siteName,
+            notes,
+            cancellationToken);
+      }
+
+      return FMSResponse<bool>.Success(true);
+    }
+
+    private async Task SendCompletionNotificationAsync(
+        Issuetracker issue,
+        User openbyUser,
+        User? completedByUser,
+        string? vehicleName,
+        string? siteName,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+      try
+      {
+        var frontendBaseUrl = GetFrontendBaseUrl();
+        var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
+        var completedByName = completedByUser?.UserName ?? "System";
+
+        var emailBodyHtml = BuildCompletionEmailHtml(
+            issue.Id,
+            issue.ProblemTitle ?? "Untitled Issue",
+            openbyUser.UserName ?? "User",
+            completedByName,
+            vehicleName ?? "Not specified",
+            siteName ?? "Not specified",
+            DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+            notes,
+            issueUrl);
+
+        var notificationRequest = new CreateNotificationRequest
         {
-            _context = context;
-            _notificationService = notificationService;
-            _configuration = configuration;
-            _logger = logger;
-        }
-
-        public async Task<FMSResponse<bool>> Handle(IssueQuickActionCommand command, CancellationToken cancellationToken)
-        {
-            try
-            {
-                var request = command.Request;
-
-                // Fetch the issue with related data
-                var issue = await _context.Issuetrackers
-                    .FirstOrDefaultAsync(i => i.Id == request.IssueId, cancellationToken);
-
-                if (issue == null)
-                {
-                    return FMSResponse<bool>.Failed($"Issue with ID {request.IssueId} not found.");
-                }
-
-                // Get user who performed the action
-                User? performedByUser = null;
-                if (!string.IsNullOrEmpty(request.PerformedByUserId))
-                {
-                    performedByUser = await _context.Users
-                        .FirstOrDefaultAsync(u => u.Id == request.PerformedByUserId || u.UserName == request.PerformedByUserId, cancellationToken);
-                }
-
-                // Get issue opener and assigned user
-                var openbyUser = !string.IsNullOrEmpty(issue.Openby)
-                    ? await _context.Users.FirstOrDefaultAsync(u => u.Id == issue.Openby, cancellationToken)
-                    : null;
-
-                var assignedUser = !string.IsNullOrEmpty(issue.AssignTo)
-                    ? await _context.Users.FirstOrDefaultAsync(u => u.Id == issue.AssignTo, cancellationToken)
-                    : null;
-
-                // Get vehicle and site names for notifications
-                string? vehicleName = null;
-                string? siteName = null;
-
-                if (issue.VehicleId > 0)
-                {
-                    vehicleName = await _context.Vehicles
-                        .Where(v => v.VehicleId == issue.VehicleId)
-                        .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
-                        .FirstOrDefaultAsync(cancellationToken);
-                }
-
-                if (issue.SiteId > 0)
-                {
-                    siteName = await _context.Sites
-                        .Where(s => s.Id == issue.SiteId)
-                        .Select(s => s.Name)
-                        .FirstOrDefaultAsync(cancellationToken);
-                }
-
-                string actionDescription;
-                string previousValue;
-
-                switch (request.ActionType)
-                {
-                    case IssueQuickActionType.MarkComplete:
-                        var result = await HandleMarkCompleteAsync(issue, openbyUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
-                        if (!result.IsSuccess) return result;
-                        actionDescription = "marked as complete";
-                        previousValue = await GetStatusNameAsync(issue.Status, cancellationToken) ?? "Unknown";
-                        break;
-
-                    case IssueQuickActionType.EscalateToHigh:
-                        previousValue = await GetPriorityNameAsync(issue.Priority, cancellationToken) ?? "Unknown";
-                        var escalateResult = await HandleEscalateToHighAsync(issue, assignedUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
-                        if (!escalateResult.IsSuccess) return escalateResult;
-                        actionDescription = "escalated to high priority";
-                        break;
-
-                    default:
-                        return FMSResponse<bool>.Failed($"Unknown action type: {request.ActionType}");
-                }
-
-                // Update the issue's last modified timestamp
-                issue.LastModfield = DateTime.UtcNow;
-                await _context.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation(
-                    "Issue {IssueId} {ActionDescription} by user {UserId}",
-                    request.IssueId,
-                    actionDescription,
-                    request.PerformedByUserId ?? "System");
-
-                return FMSResponse<bool>.Success(true, $"Issue successfully {actionDescription}.");
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error performing quick action on issue {IssueId}", command.Request.IssueId);
-                return FMSResponse<bool>.Failed($"Error performing action: {ex.Message}");
-            }
-        }
-
-        private async Task<FMSResponse<bool>> HandleMarkCompleteAsync(
-            Issuetracker issue,
-            User? openbyUser,
-            User? performedByUser,
-            string? vehicleName,
-            string? siteName,
-            string? notes,
-            CancellationToken cancellationToken)
-        {
-            // Find the "Complete" or "Closed" status
-            var completeStatus = await _context.Issuestatuses
-                .Where(s => s.Status != null &&
-                    (s.Status.ToLower().Contains("complete") ||
-                     s.Status.ToLower().Contains("closed") ||
-                     s.Status.ToLower().Contains("resolved") ||
-                     s.Status.ToLower().Contains("done")))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (completeStatus == null)
-            {
-                return FMSResponse<bool>.Failed("No 'Complete' or 'Closed' status found in the system.");
-            }
-
-            var previousStatusId = issue.Status;
-            issue.Status = completeStatus.Id;
-            issue.ClosingDate = DateTime.UtcNow;
-
-            // Send notification to the opener
-            if (openbyUser != null && !string.IsNullOrEmpty(openbyUser.Id))
-            {
-                await SendCompletionNotificationAsync(
-                    issue,
-                    openbyUser,
-                    performedByUser,
-                    vehicleName,
-                    siteName,
-                    notes,
-                    cancellationToken);
-            }
-
-            return FMSResponse<bool>.Success(true);
-        }
-
-        private async Task<FMSResponse<bool>> HandleEscalateToHighAsync(
-            Issuetracker issue,
-            User? assignedUser,
-            User? performedByUser,
-            string? vehicleName,
-            string? siteName,
-            string? notes,
-            CancellationToken cancellationToken)
-        {
-            // Find the "High" priority
-            var highPriority = await _context.Issuepriorities
-                .Where(p => p.Name != null && p.Name.ToLower().Contains("high"))
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (highPriority == null)
-            {
-                return FMSResponse<bool>.Failed("No 'High' priority found in the system.");
-            }
-
-            var previousPriorityId = issue.Priority;
-            issue.Priority = highPriority.Id;
-
-            // Send notification to the assigned user
-            if (assignedUser != null && !string.IsNullOrEmpty(assignedUser.Id))
-            {
-                await SendEscalationNotificationAsync(
-                    issue,
-                    assignedUser,
-                    performedByUser,
-                    vehicleName,
-                    siteName,
-                    notes,
-                    cancellationToken);
-            }
-
-            return FMSResponse<bool>.Success(true);
-        }
-
-        private async Task SendCompletionNotificationAsync(
-            Issuetracker issue,
-            User openbyUser,
-            User? completedByUser,
-            string? vehicleName,
-            string? siteName,
-            string? notes,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var frontendBaseUrl = GetFrontendBaseUrl();
-                var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
-                var completedByName = completedByUser?.UserName ?? "System";
-
-                var emailBodyHtml = BuildCompletionEmailHtml(
-                    issue.Id,
-                    issue.ProblemTitle ?? "Untitled Issue",
-                    openbyUser.UserName ?? "User",
-                    completedByName,
-                    vehicleName ?? "Not specified",
-                    siteName ?? "Not specified",
-                    DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
-                    notes,
-                    issueUrl);
-
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.IssueTracker,
-                    Priority = NotificationPriority.Medium,
-                    Title = $"Issue Completed: {issue.ProblemTitle}",
-                    Message = $"Your issue #{issue.Id} has been marked as complete by {completedByName}.",
-                    Data = new
-                    {
-                        IssueId = issue.Id,
-                        IssueTitle = issue.ProblemTitle,
-                        CompletedBy = completedByName,
-                        CompletedAt = DateTime.UtcNow,
-                        VehicleName = vehicleName,
-                        SiteName = siteName,
-                        IssueUrl = issueUrl,
-                        Notes = notes,
-                        EmailBodyHtml = emailBodyHtml
-                    },
-                    TriggerSource = "IssueCompletion",
-                    TriggeredBy = completedByUser?.Id ?? "System",
-                    SiteId = issue.SiteId,
-                    VehicleId = issue.VehicleId,
-                    IssueTrackerId = issue.Id,
-                    Recipients = new List<NotificationRecipientDto>
+          Type = NotificationType.Alert,
+          CategoryId = (int)WellKnownCategories.IssueTracker,
+          Priority = NotificationPriority.Medium,
+          Title = $"Issue Completed: {issue.ProblemTitle}",
+          Message = $"Your issue #{issue.Id} has been marked as complete by {completedByName}.",
+          Data = new
+          {
+            IssueId = issue.Id,
+            IssueTitle = issue.ProblemTitle,
+            CompletedBy = completedByName,
+            CompletedAt = DateTime.UtcNow,
+            VehicleName = vehicleName,
+            SiteName = siteName,
+            IssueUrl = issueUrl,
+            Notes = notes,
+            EmailBodyHtml = emailBodyHtml
+          },
+          TriggerSource = "IssueCompletion",
+          TriggeredBy = completedByUser?.Id ?? "System",
+          SiteId = issue.SiteId,
+          VehicleId = issue.VehicleId,
+          IssueTrackerId = issue.Id,
+          Recipients = new List<NotificationRecipientDto>
                     {
                         new()
                         {
@@ -297,78 +302,78 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                             ResolvedFrom = "IssueOpener"
                         }
                     },
-                    DisableFallbackAllUsers = true
-                };
+          DisableFallbackAllUsers = true
+        };
 
-                var result = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-                if (!result.IsSuccess)
-                {
-                    _logger.LogWarning(
-                        "Issue {IssueId} completed but notification to opener failed: {Message}",
-                        issue.Id,
-                        result.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send completion notification for issue {IssueId}", issue.Id);
-            }
-        }
-
-        private async Task SendEscalationNotificationAsync(
-            Issuetracker issue,
-            User assignedUser,
-            User? escalatedByUser,
-            string? vehicleName,
-            string? siteName,
-            string? notes,
-            CancellationToken cancellationToken)
+        var result = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
+        if (!result.IsSuccess)
         {
-            try
-            {
-                var frontendBaseUrl = GetFrontendBaseUrl();
-                var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
-                var escalatedByName = escalatedByUser?.UserName ?? "System";
-                var dueDateText = issue.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
+          _logger.LogWarning(
+              "Issue {IssueId} completed but notification to opener failed: {Message}",
+              issue.Id,
+              result.Message);
+        }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Failed to send completion notification for issue {IssueId}", issue.Id);
+      }
+    }
 
-                var emailBodyHtml = BuildEscalationEmailHtml(
-                    issue.Id,
-                    issue.ProblemTitle ?? "Untitled Issue",
-                    assignedUser.UserName ?? "User",
-                    escalatedByName,
-                    vehicleName ?? "Not specified",
-                    siteName ?? "Not specified",
-                    dueDateText,
-                    notes,
-                    issueUrl);
+    private async Task SendEscalationNotificationAsync(
+        Issuetracker issue,
+        User assignedUser,
+        User? escalatedByUser,
+        string? vehicleName,
+        string? siteName,
+        string? notes,
+        CancellationToken cancellationToken)
+    {
+      try
+      {
+        var frontendBaseUrl = GetFrontendBaseUrl();
+        var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
+        var escalatedByName = escalatedByUser?.UserName ?? "System";
+        var dueDateText = issue.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
 
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.IssueTracker,
-                    Priority = NotificationPriority.High,
-                    Title = $"⚠️ Priority Escalated: {issue.ProblemTitle}",
-                    Message = $"Issue #{issue.Id} has been escalated to HIGH priority by {escalatedByName}. Please review immediately.",
-                    Data = new
-                    {
-                        IssueId = issue.Id,
-                        IssueTitle = issue.ProblemTitle,
-                        EscalatedBy = escalatedByName,
-                        EscalatedAt = DateTime.UtcNow,
-                        NewPriority = "High",
-                        VehicleName = vehicleName,
-                        SiteName = siteName,
-                        DueDate = issue.DueDate,
-                        IssueUrl = issueUrl,
-                        Notes = notes,
-                        EmailBodyHtml = emailBodyHtml
-                    },
-                    TriggerSource = "IssuePriorityEscalation",
-                    TriggeredBy = escalatedByUser?.Id ?? "System",
-                    SiteId = issue.SiteId,
-                    VehicleId = issue.VehicleId,
-                    IssueTrackerId = issue.Id,
-                    Recipients = new List<NotificationRecipientDto>
+        var emailBodyHtml = BuildEscalationEmailHtml(
+            issue.Id,
+            issue.ProblemTitle ?? "Untitled Issue",
+            assignedUser.UserName ?? "User",
+            escalatedByName,
+            vehicleName ?? "Not specified",
+            siteName ?? "Not specified",
+            dueDateText,
+            notes,
+            issueUrl);
+
+        var notificationRequest = new CreateNotificationRequest
+        {
+          Type = NotificationType.Alert,
+          CategoryId = (int)WellKnownCategories.IssueTracker,
+          Priority = NotificationPriority.High,
+          Title = $"⚠️ Priority Escalated: {issue.ProblemTitle}",
+          Message = $"Issue #{issue.Id} has been escalated to HIGH priority by {escalatedByName}. Please review immediately.",
+          Data = new
+          {
+            IssueId = issue.Id,
+            IssueTitle = issue.ProblemTitle,
+            EscalatedBy = escalatedByName,
+            EscalatedAt = DateTime.UtcNow,
+            NewPriority = "High",
+            VehicleName = vehicleName,
+            SiteName = siteName,
+            DueDate = issue.DueDate,
+            IssueUrl = issueUrl,
+            Notes = notes,
+            EmailBodyHtml = emailBodyHtml
+          },
+          TriggerSource = "IssuePriorityEscalation",
+          TriggeredBy = escalatedByUser?.Id ?? "System",
+          SiteId = issue.SiteId,
+          VehicleId = issue.VehicleId,
+          IssueTrackerId = issue.Id,
+          Recipients = new List<NotificationRecipientDto>
                     {
                         new()
                         {
@@ -377,78 +382,78 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                             ResolvedFrom = "IssueAssignee"
                         }
                     },
-                    DisableFallbackAllUsers = true
-                };
+          DisableFallbackAllUsers = true
+        };
 
-                var result = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-                if (!result.IsSuccess)
-                {
-                    _logger.LogWarning(
-                        "Issue {IssueId} escalated but notification to assignee failed: {Message}",
-                        issue.Id,
-                        result.Message);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to send escalation notification for issue {IssueId}", issue.Id);
-            }
-        }
-
-        private async Task<string?> GetStatusNameAsync(int? statusId, CancellationToken cancellationToken)
+        var result = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
+        if (!result.IsSuccess)
         {
-            if (!statusId.HasValue) return null;
-            return await _context.Issuestatuses
-                .Where(s => s.Id == statusId.Value)
-                .Select(s => s.Status)
-                .FirstOrDefaultAsync(cancellationToken);
+          _logger.LogWarning(
+              "Issue {IssueId} escalated but notification to assignee failed: {Message}",
+              issue.Id,
+              result.Message);
         }
+      }
+      catch (Exception ex)
+      {
+        _logger.LogWarning(ex, "Failed to send escalation notification for issue {IssueId}", issue.Id);
+      }
+    }
 
-        private async Task<string?> GetPriorityNameAsync(int? priorityId, CancellationToken cancellationToken)
-        {
-            if (!priorityId.HasValue) return null;
-            return await _context.Issuepriorities
-                .Where(p => p.Id == priorityId.Value)
-                .Select(p => p.Name)
-                .FirstOrDefaultAsync(cancellationToken);
-        }
+    private async Task<string?> GetStatusNameAsync(int? statusId, CancellationToken cancellationToken)
+    {
+      if (!statusId.HasValue) return null;
+      return await _context.Issuestatuses
+          .Where(s => s.Id == statusId.Value)
+          .Select(s => s.Status)
+          .FirstOrDefaultAsync(cancellationToken);
+    }
 
-        private string GetFrontendBaseUrl()
-        {
-            var configuredBaseUrl = _configuration["IssueTracker:FrontendBaseUrl"]
-                ?? _configuration["Frontend:BaseUrl"]
-                ?? _configuration["App:FrontendBaseUrl"];
+    private async Task<string?> GetPriorityNameAsync(int? priorityId, CancellationToken cancellationToken)
+    {
+      if (!priorityId.HasValue) return null;
+      return await _context.Issuepriorities
+          .Where(p => p.Id == priorityId.Value)
+          .Select(p => p.Name)
+          .FirstOrDefaultAsync(cancellationToken);
+    }
 
-            if (string.IsNullOrWhiteSpace(configuredBaseUrl))
-            {
-                throw new InvalidOperationException(
-                    "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' in appsettings.");
-            }
+    private string GetFrontendBaseUrl()
+    {
+      var configuredBaseUrl = _configuration["IssueTracker:FrontendBaseUrl"]
+          ?? _configuration["Frontend:BaseUrl"]
+          ?? _configuration["App:FrontendBaseUrl"];
 
-            return configuredBaseUrl.TrimEnd('/');
-        }
+      if (string.IsNullOrWhiteSpace(configuredBaseUrl))
+      {
+        throw new InvalidOperationException(
+            "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' in appsettings.");
+      }
 
-        private static string BuildCompletionEmailHtml(
-            int issueId,
-            string issueTitle,
-            string openerName,
-            string completedByName,
-            string vehicleName,
-            string siteName,
-            string completedAt,
-            string? notes,
-            string issueUrl)
-        {
-            var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
-            var safeOpenerName = WebUtility.HtmlEncode(openerName);
-            var safeCompletedBy = WebUtility.HtmlEncode(completedByName);
-            var safeVehicle = WebUtility.HtmlEncode(vehicleName);
-            var safeSite = WebUtility.HtmlEncode(siteName);
-            var safeCompletedAt = WebUtility.HtmlEncode(completedAt);
-            var safeNotes = WebUtility.HtmlEncode(notes ?? "No additional notes");
-            var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+      return configuredBaseUrl.TrimEnd('/');
+    }
 
-            return $@"
+    private static string BuildCompletionEmailHtml(
+        int issueId,
+        string issueTitle,
+        string openerName,
+        string completedByName,
+        string vehicleName,
+        string siteName,
+        string completedAt,
+        string? notes,
+        string issueUrl)
+    {
+      var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
+      var safeOpenerName = WebUtility.HtmlEncode(openerName);
+      var safeCompletedBy = WebUtility.HtmlEncode(completedByName);
+      var safeVehicle = WebUtility.HtmlEncode(vehicleName);
+      var safeSite = WebUtility.HtmlEncode(siteName);
+      var safeCompletedAt = WebUtility.HtmlEncode(completedAt);
+      var safeNotes = WebUtility.HtmlEncode(notes ?? "No additional notes");
+      var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+
+      return $@"
                 <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"">
                   <tr>
                     <td style=""padding:24px 24px 16px;background:linear-gradient(135deg,#059669 0%,#10b981 100%);border-radius:12px 12px 0 0;"">
@@ -503,29 +508,29 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     </td>
                   </tr>
                 </table>";
-        }
+    }
 
-        private static string BuildEscalationEmailHtml(
-            int issueId,
-            string issueTitle,
-            string assigneeName,
-            string escalatedByName,
-            string vehicleName,
-            string siteName,
-            string dueDate,
-            string? notes,
-            string issueUrl)
-        {
-            var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
-            var safeAssigneeName = WebUtility.HtmlEncode(assigneeName);
-            var safeEscalatedBy = WebUtility.HtmlEncode(escalatedByName);
-            var safeVehicle = WebUtility.HtmlEncode(vehicleName);
-            var safeSite = WebUtility.HtmlEncode(siteName);
-            var safeDueDate = WebUtility.HtmlEncode(dueDate);
-            var safeNotes = WebUtility.HtmlEncode(notes ?? "No additional notes");
-            var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+    private static string BuildEscalationEmailHtml(
+        int issueId,
+        string issueTitle,
+        string assigneeName,
+        string escalatedByName,
+        string vehicleName,
+        string siteName,
+        string dueDate,
+        string? notes,
+        string issueUrl)
+    {
+      var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
+      var safeAssigneeName = WebUtility.HtmlEncode(assigneeName);
+      var safeEscalatedBy = WebUtility.HtmlEncode(escalatedByName);
+      var safeVehicle = WebUtility.HtmlEncode(vehicleName);
+      var safeSite = WebUtility.HtmlEncode(siteName);
+      var safeDueDate = WebUtility.HtmlEncode(dueDate);
+      var safeNotes = WebUtility.HtmlEncode(notes ?? "No additional notes");
+      var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
 
-            return $@"
+      return $@"
                 <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;"">
                   <tr>
                     <td style=""padding:24px 24px 16px;background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);border-radius:12px 12px 0 0;"">
@@ -580,6 +585,6 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     </td>
                   </tr>
                 </table>";
-        }
     }
+  }
 }

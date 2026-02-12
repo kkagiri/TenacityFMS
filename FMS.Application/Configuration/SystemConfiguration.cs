@@ -185,6 +185,33 @@ namespace FMS.Application.Configuration
         /// Configuration key for tank stock maximum historical days in database
         /// </summary>
         public const string DB_CONFIG_TANK_STOCK_MAX_HISTORICAL_DAYS_KEY = "TankStock.MaxHistoricalDays";
+
+        /// <summary>
+        /// Configuration key to enable/disable IssueMonitoringService auto-checkups.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_ENABLED_KEY = "IssueTracker.AutoMonitoring.Enabled";
+
+        /// <summary>
+        /// Configuration key for default vehicle GPS offline threshold in minutes
+        /// when template OfflineThresholdMinutes is not set.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_VEHICLE_OFFLINE_THRESHOLD_MINUTES_KEY = "IssueTracker.AutoMonitoring.VehicleOfflineThresholdMinutes";
+
+        /// <summary>
+        /// Configuration key for default PTS offline threshold in minutes
+        /// when template OfflineThresholdMinutes is not set.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_PTS_OFFLINE_THRESHOLD_MINUTES_KEY = "IssueTracker.AutoMonitoring.PTSOfflineThresholdMinutes";
+
+        /// <summary>
+        /// Configuration key for fuel-while-offline monitoring lookback window in minutes.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_FUEL_ACTIVITY_WINDOW_MINUTES_KEY = "IssueTracker.AutoMonitoring.FuelActivityWindowMinutes";
+
+        /// <summary>
+        /// Configuration key for default IssueCategoryId used by auto-created issues.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID_KEY = "IssueTracker.AutoMonitoring.DefaultIssueCategoryId";
         #endregion
 
         #region PTS Automated Fueling Configuration Keys
@@ -280,6 +307,14 @@ namespace FMS.Application.Configuration
         public const int DEFAULT_PTS_OFFLINE_THRESHOLD_SECONDS = 60;
         #endregion
 
+        #region Issue Monitoring Default Values
+        public const bool DEFAULT_ISSUE_MONITORING_ENABLED = true;
+        public const int DEFAULT_ISSUE_MONITORING_VEHICLE_OFFLINE_THRESHOLD_MINUTES = 60;
+        public const int DEFAULT_ISSUE_MONITORING_PTS_OFFLINE_THRESHOLD_MINUTES = 30;
+        public const int DEFAULT_ISSUE_MONITORING_FUEL_ACTIVITY_WINDOW_MINUTES = 4320;
+        public const int DEFAULT_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID = 1;
+        #endregion
+
         #region PTS Automated Fueling Default Values
         public const bool DEFAULT_PTS_UPDATE_TANK_VOLUME_FROM_BOOKKEEPING = true;
         public const bool DEFAULT_PTS_USE_PTS_PROBE_READINGS = false;
@@ -348,6 +383,23 @@ namespace FMS.Application.Configuration
         public const int DEFAULT_ITD_MATCH_TIME_WINDOW_HOURS = 24;
         public const string DEFAULT_ITD_ALERT_PRIORITY = "Medium";
         public const int DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES = 0; // No auto-resolve
+        #endregion
+
+        #region Tank Measurement Configuration Keys
+        /// <summary>
+        /// How many days of tank measurement history to retain per tank (0 = no retention cleanup)
+        /// </summary>
+        public const string DB_CONFIG_TANK_MEASUREMENT_RETENTION_DAYS_KEY = "TankMeasurement.RetentionDays";
+
+        /// <summary>
+        /// Interval (seconds) at which WebClient broadcasts latest tank measurements over SignalR
+        /// </summary>
+        public const string DB_CONFIG_TANK_MEASUREMENT_SIGNALR_PUSH_INTERVAL_SECONDS_KEY = "TankMeasurement.SignalRPushIntervalSeconds";
+        #endregion
+
+        #region Tank Measurement Default Values
+        public const int DEFAULT_TANK_MEASUREMENT_RETENTION_DAYS = 30;
+        public const int DEFAULT_TANK_MEASUREMENT_SIGNALR_PUSH_INTERVAL_SECONDS = 10;
         #endregion
     }
 }

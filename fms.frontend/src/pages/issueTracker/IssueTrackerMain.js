@@ -10,11 +10,10 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import IssueTrackerLayout from './layout/IssueTrackerLayout';
-import IssueTrackerPage from './IssueTrackerPage';
 import IssueAssignmentResponsePage from './IssueAssignmentResponsePage';
 import IssueCreateForm from './forms/IssueCreateForm';
 import IssueTrackerDetailPage from './IssueTrackerDetailPage';
-import IssueTicketsPage from './tickets/IssueTicketsPage';
+import IssueTicketListPage from './tickets/IssueTicketListPage';
 import IssueReportsPage from './reports/IssueReportsPage';
 import IssueAnalyticsPage from './analytics/IssueAnalyticsPage';
 import IssueSettingsPage from './settings/IssueSettingsPage';
@@ -35,7 +34,7 @@ const IssueTrackerMain = () => {
         <Route path="/my-dashboard" element={<CombinedIssueDashboard />} />
 
         {/* Feature routes */}
-        <Route path="/tickets" element={<IssueTicketsPage />} />
+        <Route path="/tickets" element={<IssueTicketListPage />} />
         <Route path="/create" element={<IssueCreateForm />} />
         <Route path="/details/:id" element={<IssueTrackerDetailPage />} />
         <Route path="/assignment/:id/respond" element={<IssueAssignmentResponsePage />} />

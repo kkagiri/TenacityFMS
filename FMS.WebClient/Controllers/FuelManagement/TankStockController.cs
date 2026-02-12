@@ -19,6 +19,8 @@ using FMS.Application.Features.FMS.TankStock;
 using FMS.Application.Features.FMS.TankTransfer;
 using FMS.Application.Features.TankManagement.BulkImport.Commands;
 using FMS.Application.Features.TankManagement.BulkImport.DTOs;
+using FMS.Application.Features.TankManagement.Deliveries.Queries;
+using FMS.Application.Features.TankManagement.TankMeasurements.Queries;
 using FMS.Application.Features.TankManagement.Queries;
 using FMS.Application.Features.TankManagement.TankStock.Commands;
 using FMS.Application.Queries.Database.FMSQuery.TankStock;
@@ -98,6 +100,56 @@ public class TankStockController : ControllerBase
         );
 
         var result = await _mediator.Send(query);
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets in-tank deliveries (PTS auto-detected) filtered by site and optional date range/status.
+    /// </summary>
+    [HttpGet("in-tank-deliveries")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
+    public async Task<IActionResult> GetInTankDeliveries(
+        [FromQuery] int siteId,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null,
+        [FromQuery] string? status = null)
+    {
+        if (siteId <= 0)
+        {
+            return BadRequest(FMSResponse.FailedResponse("Invalid Site ID"));
+        }
+
+        var result = await _mediator.Send(new GetInTankDeliveriesBySiteQuery(
+            SiteId: siteId,
+            StartDate: startDate,
+            EndDate: endDate,
+            Status: status));
+
+        return Ok(result);
+    }
+
+    /// <summary>
+    /// Gets tank measurement history for charting (volume/temperature/water levels).
+    /// </summary>
+    [HttpGet("tank-measurements/history")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
+    public async Task<IActionResult> GetTankMeasurementHistory(
+        [FromQuery] int tankId,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        if (tankId <= 0)
+        {
+            return BadRequest(FMSResponse.FailedResponse("Invalid Tank ID"));
+        }
+
+        var result = await _mediator.Send(new GetTankMeasurementHistoryQuery(
+            TankId: tankId,
+            StartDate: startDate,
+            EndDate: endDate));
+
         return Ok(result);
     }
 

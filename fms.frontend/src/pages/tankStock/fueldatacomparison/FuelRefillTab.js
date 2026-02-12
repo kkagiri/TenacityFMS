@@ -20,6 +20,40 @@ import FuelRefillTable from './components/FuelRefillTable';
 import { getFuelRefillList } from '../../../api/fuelRefillClient';
 import './FuelRefillTab.scss';
 
+const getRecordsFromResponse = (response) => {
+  if (Array.isArray(response)) {
+    return response;
+  }
+
+  if (Array.isArray(response?.details)) {
+    return response.details;
+  }
+
+  if (Array.isArray(response?.data?.details)) {
+    return response.data.details;
+  }
+
+  if (Array.isArray(response?.data)) {
+    return response.data;
+  }
+
+  return [];
+};
+
+const normalizeFuelRefillRecord = (item, index) => {
+  const normalizedDate = item.date || item.dispenseDate || item.dateCreated || null;
+  const normalizedId = item.id ?? item.gpsEntryId ?? `${item.vehicleId || 'vehicle'}-${normalizedDate || index}-${index}`;
+
+  return {
+    ...item,
+    rowKey: normalizedId,
+    id: item.id ?? normalizedId,
+    date: normalizedDate,
+    manualFuelrefillAmount: item.manualFuelrefillAmount ?? item.manualVolume ?? 0,
+    comment: item.comment ?? item.gpsModificationReason ?? ''
+  };
+};
+
 /**
  * Statistics card component
  */
@@ -101,21 +135,28 @@ const FuelRefillTab = () => {
 
       // Prepare filter parameters
       const siteId = selectedSiteIds && selectedSiteIds.length > 0 ? selectedSiteIds[0] : null;
+      const tankId = selectedTankIds && selectedTankIds.length > 0 ? selectedTankIds[0] : null;
 
       const response = await getFuelRefillList(
-        100,
-        0,
-        startDate,
-        endDate,
-        siteId
+        {
+          limit: 100,
+          skip: 0,
+          startDate: startDate?.toISOString ? startDate.toISOString() : startDate,
+          endDate: endDate?.toISOString ? endDate.toISOString() : endDate,
+          siteId,
+          tankId
+        }
       );
 
-      if (response && Array.isArray(response)) {
-        let filteredData = response;
+      const records = getRecordsFromResponse(response);
+
+      if (records.length > 0) {
+        const normalizedRecords = records.map(normalizeFuelRefillRecord);
+        let filteredData = normalizedRecords;
 
         // Filter by tank if selected
         if (selectedTankIds && selectedTankIds.length > 0) {
-          filteredData = filteredData.filter(item =>
+          filteredData = filteredData.filter((item) =>
             selectedTankIds.includes(item.tankId)
           );
         }

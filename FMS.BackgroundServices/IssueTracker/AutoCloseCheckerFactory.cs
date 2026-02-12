@@ -44,6 +44,7 @@ namespace FMS.BackgroundServices.IssueTracker
             {
                 { "Online", typeof(OnlineChecker) },
                 { "DeviceOnline", typeof(OnlineChecker) },
+                { "OnlineChecker", typeof(OnlineChecker) },
                 { "AlarmCleared", typeof(AlarmClearedChecker) },
                 { "ActiveAlarm", typeof(AlarmClearedChecker) },
                 { "Status", typeof(StatusChecker) },

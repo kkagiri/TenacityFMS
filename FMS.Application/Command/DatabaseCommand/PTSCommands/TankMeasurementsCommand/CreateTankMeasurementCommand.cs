@@ -34,6 +34,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
         private readonly ILogger<CreateTankMeasurementCommandHandler> _logger;
         private readonly ISystemConfigurationService _systemConfigurationService;
 
+
         public CreateTankMeasurementCommandHandler(
             GpsdataContext context,
             ILogger<CreateTankMeasurementCommandHandler> logger,
@@ -82,7 +83,14 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
 
                 //Cursor: Try to find the actual Tank entity to link
                 var tank = await _context.Tanks
-                    .FirstOrDefaultAsync(t => t.PtsId == request.DeviceId, cancellationToken);
+                    .FirstOrDefaultAsync(t => t.PtsId == request.DeviceId && t.ProbeNumber == tankMeasurementDto.Tank, cancellationToken);
+
+                // Fallback: match by PtsId only
+                if (tank == null)
+                {
+                    tank = await _context.Tanks
+                        .FirstOrDefaultAsync(t => t.PtsId == request.DeviceId, cancellationToken);
+                }
 
                 if (tank != null)
                 {
@@ -146,6 +154,20 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                 _logger.LogInformation("Tank measurement created successfully for device {DeviceId}, tank {Tank}, packet {PacketId}",
                     request.DeviceId, tankMeasurementDto.Tank, tankMeasurementDto.PacketId);
 
+                // Retention cleanup: delete older measurements for this tank beyond configured retention window.
+                if (tankMeasurement.TankId.HasValue)
+                {
+                    var retentionDays = await _systemConfigurationService.GetTankMeasurementRetentionDaysAsync(cancellationToken);
+
+                    if (retentionDays > 0)
+                    {
+                        await DeleteOldTankMeasurementsAsync(
+                            tankMeasurement.TankId.Value,
+                            cutoffUtc: DateTime.UtcNow.AddDays(-retentionDays),
+                            cancellationToken);
+                    }
+                }
+
                 // TODO: Wire EventExpressionEngine.ProcessAsync() for tank measurement events
 
                 return FMSResponse.SuccessResponse("Tank measurement processed successfully");
@@ -160,7 +182,7 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
         }
 
         /// <summary>
-        /// Helper method to get configuration values with fallback
+        /// Helper method to get boolean configuration values with fallback
         /// </summary>
         private async Task<bool> GetConfigurationValueAsync(string key, bool defaultValue, CancellationToken cancellationToken)
         {
@@ -183,6 +205,34 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
             {
                 _logger.LogWarning(ex, "Failed to get configuration value for key {Key}, using default {DefaultValue}", key, defaultValue);
                 return defaultValue;
+            }
+        }
+
+        private async Task DeleteOldTankMeasurementsAsync(int tankId, DateTime cutoffUtc, CancellationToken cancellationToken)
+        {
+            try
+            {
+                var oldMeasurements = await _context.Tankmeasurements
+                    .Where(tm => tm.TankId == tankId && tm.DateTime < cutoffUtc)
+                    .ToListAsync(cancellationToken);
+
+                if (oldMeasurements.Count == 0)
+                {
+                    return;
+                }
+
+                _context.Tankmeasurements.RemoveRange(oldMeasurements);
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Deleted {Count} old tank measurements for TankId={TankId} older than {CutoffUtc}",
+                    oldMeasurements.Count,
+                    tankId,
+                    cutoffUtc);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Non-critical: retention cleanup failed for TankId={TankId}", tankId);
             }
         }
     }

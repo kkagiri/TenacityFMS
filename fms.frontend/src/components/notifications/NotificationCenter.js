@@ -8,6 +8,7 @@
  * - NotificationCenter: Loads backend notifications and renders compact actionable list
  */
 import React, { useState, useEffect, useCallback, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchNotifications,
@@ -129,8 +130,26 @@ class NotificationErrorBoundary extends React.Component {
   }
 }
 
+// Custom hook to detect mobile viewport
+const useIsMobile = (breakpoint = 640) => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+};
+
 const NotificationCenter = () => {
   const dispatch = useDispatch();
+  const isMobile = useIsMobile();
 
   // Get notifications and import progress from Redux store
   const { notifications, importProgress, backendNotifications } = useSelector(
@@ -727,63 +746,143 @@ const NotificationCenter = () => {
           </div>
         </div>
 
-        {/* Popover for notifications */}
+        {/* Popover / Full-screen for notifications */}
         {isOpen && (
-          <div className="notification-popover" ref={popoverRef}>
-            <div className="tw-bg-white tw-rounded tw-shadow-lg tw-w-96">
-              <div className="tw-flex tw-justify-between tw-items-center tw-p-3">
-                <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-                  Notifications
-                </h4>
-                <div className="tw-flex tw-gap-2">
-                  <Button
-                    onClick={handlePreferences}
-                    stylingMode="text"
-                    className="preferences-btn"
-                    icon="fa-solid fa-cog"
-                    hint="Notification Preferences"
-                  />
-                </div>
-              </div>
-
-              <div className="tw-overflow-auto notification-content">
-                <div className="tw-p-2">
-                  {importProgress && renderImportProgress()}
-
-                  {visibleNotifications.length === 0 && !importProgress ? (
-                    <div className="tw-text-center tw-py-8 tw-text-gray-500">
-                      <i className="fa-regular fa-inbox-empty tw-text-3xl tw-block tw-mb-2"></i>
-                      <div>No notifications</div>
-                    </div>
-                  ) : (
-                    visibleNotifications.map((notification) => (
-                      <div key={notification.id}>
-                        {renderNotificationItem(notification)}
+          isMobile ? (
+            // Render mobile full-screen overlay via portal at <body> to escape overflow clipping
+            ReactDOM.createPortal(
+              <>
+                <div
+                  className="notification-mobile-backdrop"
+                  onClick={() => setIsOpen(false)}
+                />
+                <div
+                  className="notification-popover notification-popover--mobile"
+                  ref={popoverRef}
+                >
+                  <div className="tw-bg-white tw-w-full tw-h-full tw-flex tw-flex-col">
+                    <div className="tw-flex tw-justify-between tw-items-center tw-p-3 tw-border-b tw-border-gray-200 tw-flex-shrink-0">
+                      <h4 className="tw-text-lg tw-font-semibold tw-m-0">
+                        Notifications
+                      </h4>
+                      <div className="tw-flex tw-items-center tw-gap-2">
+                        <Button
+                          onClick={handlePreferences}
+                          stylingMode="text"
+                          className="preferences-btn"
+                          icon="fa-solid fa-cog"
+                          hint="Notification Preferences"
+                        />
+                        <button
+                          type="button"
+                          className="tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-gray-100 hover:tw-bg-gray-200 tw-text-gray-600 tw-border-0 tw-cursor-pointer"
+                          onClick={() => setIsOpen(false)}
+                          aria-label="Close notifications"
+                        >
+                          <i className="fa-solid fa-xmark tw-text-base"></i>
+                        </button>
                       </div>
-                    ))
-                  )}
-
-                  {/* Show More/Less button */}
-                  {hasMoreNotifications && (
-                    <div className="tw-text-center tw-py-3 tw-mt-2 tw-border-t tw-border-gray-200">
-                      <button
-                        className="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-border tw-border-gray-200 tw-rounded-full tw-px-4 tw-py-1.5 hover:tw-bg-gray-50"
-                        onClick={toggleShowAllNotifications}
-                      >
-                        <span className="tw-text-blue-500 tw-font-medium">
-                          {showAllNotifications ? "Show Less" : "Show More"}
-                        </span>
-                        <i
-                          className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
-                            } tw-text-blue-500 tw-ml-1 tw-text-xs`}
-                        ></i>
-                      </button>
                     </div>
-                  )}
+
+                    <div className="tw-overflow-auto tw-flex-1 notification-content">
+                      <div className="tw-p-2">
+                        {importProgress && renderImportProgress()}
+
+                        {visibleNotifications.length === 0 && !importProgress ? (
+                          <div className="tw-text-center tw-py-8 tw-text-gray-500">
+                            <i className="fa-regular fa-inbox-empty tw-text-3xl tw-block tw-mb-2"></i>
+                            <div>No notifications</div>
+                          </div>
+                        ) : (
+                          visibleNotifications.map((notification) => (
+                            <div key={notification.id}>
+                              {renderNotificationItem(notification)}
+                            </div>
+                          ))
+                        )}
+
+                        {/* Show More/Less button */}
+                        {hasMoreNotifications && (
+                          <div className="tw-text-center tw-py-3 tw-mt-2 tw-border-t tw-border-gray-200">
+                            <button
+                              className="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-border tw-border-gray-200 tw-rounded-full tw-px-4 tw-py-1.5 hover:tw-bg-gray-50"
+                              onClick={toggleShowAllNotifications}
+                            >
+                              <span className="tw-text-blue-500 tw-font-medium">
+                                {showAllNotifications ? "Show Less" : "Show More"}
+                              </span>
+                              <i
+                                className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
+                                  } tw-text-blue-500 tw-ml-1 tw-text-xs`}
+                              ></i>
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </>,
+              document.body
+            )
+          ) : (
+            // Desktop: render inline popover
+            <div className="notification-popover" ref={popoverRef}>
+              <div className="tw-bg-white tw-rounded tw-shadow-lg tw-w-96">
+                <div className="tw-flex tw-justify-between tw-items-center tw-p-3">
+                  <h4 className="tw-text-lg tw-font-semibold tw-m-0">
+                    Notifications
+                  </h4>
+                  <div className="tw-flex tw-gap-2">
+                    <Button
+                      onClick={handlePreferences}
+                      stylingMode="text"
+                      className="preferences-btn"
+                      icon="fa-solid fa-cog"
+                      hint="Notification Preferences"
+                    />
+                  </div>
+                </div>
+
+                <div className="tw-overflow-auto notification-content">
+                  <div className="tw-p-2">
+                    {importProgress && renderImportProgress()}
+
+                    {visibleNotifications.length === 0 && !importProgress ? (
+                      <div className="tw-text-center tw-py-8 tw-text-gray-500">
+                        <i className="fa-regular fa-inbox-empty tw-text-3xl tw-block tw-mb-2"></i>
+                        <div>No notifications</div>
+                      </div>
+                    ) : (
+                      visibleNotifications.map((notification) => (
+                        <div key={notification.id}>
+                          {renderNotificationItem(notification)}
+                        </div>
+                      ))
+                    )}
+
+                    {/* Show More/Less button */}
+                    {hasMoreNotifications && (
+                      <div className="tw-text-center tw-py-3 tw-mt-2 tw-border-t tw-border-gray-200">
+                        <button
+                          className="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-border tw-border-gray-200 tw-rounded-full tw-px-4 tw-py-1.5 hover:tw-bg-gray-50"
+                          onClick={toggleShowAllNotifications}
+                        >
+                          <span className="tw-text-blue-500 tw-font-medium">
+                            {showAllNotifications ? "Show Less" : "Show More"}
+                          </span>
+                          <i
+                            className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
+                              } tw-text-blue-500 tw-ml-1 tw-text-xs`}
+                          ></i>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </div>
             </div>
-          </div>
+          )
         )}
 
         {/* Notification Preferences Popup */}

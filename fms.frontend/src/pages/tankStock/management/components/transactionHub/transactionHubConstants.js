@@ -19,7 +19,8 @@ export const VolumeChangeReasonEnum = [
   { id: 6, name: 'Dispensing' },
   { id: 7, name: 'Automated Dispensing' },
   { id: 8, name: 'Reconciliation' },
-  { id: 9, name: 'Automated Reconciliation' }
+  { id: 9, name: 'Automated Reconciliation' },
+  { id: 10, name: 'In-Tank Delivery' }
 ];
 
 /**

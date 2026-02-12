@@ -2,7 +2,7 @@
  * File: JsReportService.cs
  * Purpose: Render JsReport templates to PDF, Excel, and HTML using embedded jsreport.Local
  * Dependencies: jsreport.Local, jsreport.Types, Newtonsoft.Json, ILogger
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-02-12
  *
  * Key Functions:
  * - RenderPdfAsync: Renders a named template to PDF with adaptive timeout for large payloads
@@ -138,6 +138,7 @@ namespace FMS.WebClient.Services.Reporting
                 ["device-offline-report"] = GetDeviceOfflineTemplate,
                 ["pts-device-status-report"] = GetPtsDeviceStatusTemplate,
                 ["tank-volume-history-report"] = GetTankVolumeHistoryTemplate,
+                ["issue-tracker-report"] = GetIssueTrackerTemplate,
                 ["consumption-by-refills-report"] = GetConsumptionByRefillsTemplate,
             };
 
@@ -709,6 +710,11 @@ namespace FMS.WebClient.Services.Reporting
             {{{{#if tankName}}}}<div class=""filter-item""><span class=""filter-label"">Tank:</span><span class=""filter-value"">{{{{tankName}}}}</span></div>{{{{/if}}}}
             {{{{#if vehicleId}}}}<div class=""filter-item""><span class=""filter-label"">Vehicle:</span><span class=""filter-value"">{{{{vehicleId}}}}</span></div>{{{{/if}}}}
             {{{{#if deviceId}}}}<div class=""filter-item""><span class=""filter-label"">Device:</span><span class=""filter-value"">{{{{deviceId}}}}</span></div>{{{{/if}}}}
+            {{{{#if issueTemplateId}}}}<div class=""filter-item""><span class=""filter-label"">Template:</span><span class=""filter-value"">{{{{issueTemplateId}}}}</span></div>{{{{/if}}}}
+            {{{{#if status}}}}<div class=""filter-item""><span class=""filter-label"">Status:</span><span class=""filter-value"">{{{{status}}}}</span></div>{{{{/if}}}}
+            {{{{#if categoryIds}}}}<div class=""filter-item""><span class=""filter-label"">Categories:</span><span class=""filter-value"">{{{{categoryIds}}}}</span></div>{{{{/if}}}}
+            {{{{#if pageNumber}}}}<div class=""filter-item""><span class=""filter-label"">Page:</span><span class=""filter-value"">{{{{pageNumber}}}}</span></div>{{{{/if}}}}
+            {{{{#if pageSize}}}}<div class=""filter-item""><span class=""filter-label"">Page Size:</span><span class=""filter-value"">{{{{pageSize}}}}</span></div>{{{{/if}}}}
         </div>
     </div>
 
@@ -947,6 +953,42 @@ namespace FMS.WebClient.Services.Reporting
     </table>
     {{/if}}",
                 "No tank volume history data found for the selected criteria.");
+        }
+
+        private string GetIssueTrackerTemplate()
+        {
+            return BuildGenericReportTemplate(
+                "Issue Tracker Report", "#0ea5e9", "clipboard-list-check",
+                @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalIssues}}</div><div class=""label"">Total Issues</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.openIssues}}</div><div class=""label"">Open</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.closedIssues}}</div><div class=""label"">Closed</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.autoCreatedIssues}}</div><div class=""label"">Auto Created</div></div>
+    </div>
+    {{/if}}",
+                @"    {{#if records}}
+    <table class=""data-table"">
+        <thead><tr><th>#</th><th>Opened (Local)</th><th>Site</th><th>Vehicle</th><th>Template</th><th>Status</th><th>Category</th><th>Issue</th><th>Assigned To</th><th>Opened By</th></tr></thead>
+        <tbody>
+            {{#each records}}
+            <tr>
+                <td class=""text-center text-muted"">{{rowNumber}}</td>
+                <td>{{openDate}}</td>
+                <td>{{siteName}}</td>
+                <td class=""font-bold"">{{vehicleName}}</td>
+                <td>{{issueTemplateName}}</td>
+                <td>{{statusName}}</td>
+                <td>{{categoryName}}</td>
+                <td>{{problemTitle}}</td>
+                <td>{{assignedTo}}</td>
+                <td>{{openedBy}}</td>
+            </tr>
+            {{/each}}
+        </tbody>
+    </table>
+    {{/if}}",
+                "No issue tracker data found for the selected criteria.");
         }
 
         private string GetConsumptionByRefillsTemplate()

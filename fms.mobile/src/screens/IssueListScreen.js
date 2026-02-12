@@ -39,6 +39,8 @@ const FILTER_CHIPS = [
   { key: "open", label: "Open", icon: "folder-open", color: "#3B82F6" },
   { key: "inprogress", label: "In Progress", icon: "clock", color: "#F59E0B" },
   { key: "completed", label: "Completed", icon: "check-circle", color: "#10B981" },
+  { key: "overdue", label: "Overdue", icon: "exclamation-triangle", color: "#EF4444" },
+  { key: "unassigned", label: "Unassigned", icon: "user-slash", color: "#6B7280" },
   { key: "following", label: "Following", icon: "bell", color: "#8B5CF6" },
 ];
 
@@ -203,9 +205,7 @@ const IssueListScreen = () => {
   const [categories, setCategories] = useState([]);
   const [selectedSiteId, setSelectedSiteId] = useState(null);
   const [selectedCategoryId, setSelectedCategoryId] = useState(null);
-  const [unassignedOnly, setUnassignedOnly] = useState(false);
   const [dueIssuesOnly, setDueIssuesOnly] = useState(false);
-  const [overdueOnly, setOverdueOnly] = useState(false);
   const [datePreset, setDatePreset] = useState("all");
   const [followedIssueIds, setFollowedIssueIds] = useState(new Set());
 
@@ -278,12 +278,10 @@ const IssueListScreen = () => {
     if (selectedSiteId) count++;
     if (selectedVehicle) count++;
     if (selectedCategoryId) count++;
-    if (unassignedOnly) count++;
     if (dueIssuesOnly) count++;
-    if (overdueOnly) count++;
     if (datePreset !== "all") count++;
     return count;
-  }, [selectedSiteId, selectedVehicle, selectedCategoryId, unassignedOnly, dueIssuesOnly, overdueOnly, datePreset]);
+  }, [selectedSiteId, selectedVehicle, selectedCategoryId, dueIssuesOnly, datePreset]);
 
   const clearAllFilters = useCallback(() => {
     setSelectedSiteId(null);
@@ -291,9 +289,7 @@ const IssueListScreen = () => {
     setVehicleSearchText("");
     setVehicleSearchResults([]);
     setSelectedCategoryId(null);
-    setUnassignedOnly(false);
     setDueIssuesOnly(false);
-    setOverdueOnly(false);
     setDatePreset("all");
   }, []);
 
@@ -301,9 +297,17 @@ const IssueListScreen = () => {
   const filteredIssues = useMemo(() => {
     let result = issues;
 
-    // Filter by status chip or following
+    // Filter by status chip
     if (activeFilter === "following") {
       result = result.filter((issue) => followedIssueIds.has(issue.id));
+    } else if (activeFilter === "overdue") {
+      const now = new Date();
+      result = result.filter((issue) => {
+        if (!issue.dueDate) return false;
+        return new Date(issue.dueDate) < now;
+      });
+    } else if (activeFilter === "unassigned") {
+      result = result.filter((issue) => !issue.assignToId && !issue.assignToUserName);
     } else if (activeFilter !== "all") {
       result = result.filter((issue) => {
         const statusName = (issue.statusName || "").toLowerCase().replace(/\s+/g, "");
@@ -330,11 +334,6 @@ const IssueListScreen = () => {
       result = result.filter((issue) => issue.issueCategoryId === selectedCategoryId);
     }
 
-    // Filter unassigned
-    if (unassignedOnly) {
-      result = result.filter((issue) => !issue.assignToId && !issue.assignToUserName);
-    }
-
     // Filter due issues (due within next 7 days)
     if (dueIssuesOnly) {
       const now = new Date();
@@ -343,15 +342,6 @@ const IssueListScreen = () => {
         if (!issue.dueDate) return false;
         const due = new Date(issue.dueDate);
         return due >= now && due <= in7Days;
-      });
-    }
-
-    // Filter overdue
-    if (overdueOnly) {
-      const now = new Date();
-      result = result.filter((issue) => {
-        if (!issue.dueDate) return false;
-        return new Date(issue.dueDate) < now;
       });
     }
 
@@ -386,7 +376,7 @@ const IssueListScreen = () => {
     }
 
     return result;
-  }, [issues, activeFilter, searchText, selectedSiteId, selectedVehicle, selectedCategoryId, unassignedOnly, dueIssuesOnly, overdueOnly, datePreset, followedIssueIds]);
+  }, [issues, activeFilter, searchText, selectedSiteId, selectedVehicle, selectedCategoryId, dueIssuesOnly, datePreset, followedIssueIds]);
 
   const counts = useMemo(() => {
     const all = issues.length;
@@ -400,7 +390,12 @@ const IssueListScreen = () => {
       return ["completed", "closed", "resolved", "done"].includes(s);
     }).length;
     const following = followedIssueIds.size;
-    return { all, open, inProgress, completed, following };
+    const overdue = issues.filter((i) => {
+      if (!i.dueDate) return false;
+      return new Date(i.dueDate) < new Date();
+    }).length;
+    const unassigned = issues.filter((i) => !i.assignToId && !i.assignToUserName).length;
+    return { all, open, inProgress, completed, following, overdue, unassigned };
   }, [issues, followedIssueIds]);
 
   const handleIssuePress = useCallback(
@@ -506,16 +501,7 @@ const IssueListScreen = () => {
       >
         {FILTER_CHIPS.map((chip) => {
           const isActive = activeFilter === chip.key;
-          const count =
-            chip.key === "all"
-              ? counts.all
-              : chip.key === "open"
-                ? counts.open
-                : chip.key === "inprogress"
-                  ? counts.inProgress
-                  : chip.key === "completed"
-                    ? counts.completed
-                    : counts.following;
+          const count = counts[chip.key === "inprogress" ? "inProgress" : chip.key] || 0;
 
           return (
             <TouchableOpacity
@@ -741,22 +727,6 @@ const IssueListScreen = () => {
               <Text style={styles.filterSectionLabel}>Quick Filters</Text>
               <TouchableOpacity
                 style={styles.toggleRow}
-                onPress={() => setUnassignedOnly(!unassignedOnly)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.toggleInfo}>
-                  <Icon name="user-slash" size={14} color={unassignedOnly ? "#6D28D9" : "#6B7280"} />
-                  <Text style={[styles.toggleLabel, unassignedOnly && styles.toggleLabelActive]}>
-                    Unassigned Only
-                  </Text>
-                </View>
-                <View style={[styles.toggleSwitch, unassignedOnly && styles.toggleSwitchOn]}>
-                  <View style={[styles.toggleKnob, unassignedOnly && styles.toggleKnobOn]} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.toggleRow}
                 onPress={() => setDueIssuesOnly(!dueIssuesOnly)}
                 activeOpacity={0.7}
               >
@@ -768,22 +738,6 @@ const IssueListScreen = () => {
                 </View>
                 <View style={[styles.toggleSwitch, dueIssuesOnly && styles.toggleSwitchOn]}>
                   <View style={[styles.toggleKnob, dueIssuesOnly && styles.toggleKnobOn]} />
-                </View>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.toggleRow}
-                onPress={() => setOverdueOnly(!overdueOnly)}
-                activeOpacity={0.7}
-              >
-                <View style={styles.toggleInfo}>
-                  <Icon name="exclamation-triangle" size={14} color={overdueOnly ? "#EF4444" : "#6B7280"} />
-                  <Text style={[styles.toggleLabel, overdueOnly && styles.toggleLabelActive]}>
-                    Overdue Issues
-                  </Text>
-                </View>
-                <View style={[styles.toggleSwitch, overdueOnly && styles.toggleSwitchOn]}>
-                  <View style={[styles.toggleKnob, overdueOnly && styles.toggleKnobOn]} />
                 </View>
               </TouchableOpacity>
 
@@ -905,9 +859,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+    flexGrow: 0,
+    flexShrink: 0,
   },
   chipRowContent: {
     flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
     paddingVertical: 10,
     gap: 6,

@@ -21,6 +21,31 @@ class IssueTrackerService {
     this.baseURL = '/issuetracker';
   }
 
+  extractFileNameFromContentDisposition(contentDisposition) {
+    if (!contentDisposition || typeof contentDisposition !== 'string') {
+      return null;
+    }
+
+    // Examples:
+    // content-disposition: attachment; filename="Report.xlsx"
+    // content-disposition: attachment; filename*=UTF-8''Report%20Final.xlsx
+    const utf8Match = contentDisposition.match(/filename\*=(?:UTF-8''|utf-8'')([^;]+)/);
+    if (utf8Match && utf8Match[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1].trim().replace(/^"|"$/g, ''));
+      } catch {
+        // fall through
+      }
+    }
+
+    const asciiMatch = contentDisposition.match(/filename=([^;]+)/);
+    if (asciiMatch && asciiMatch[1]) {
+      return asciiMatch[1].trim().replace(/^"|"$/g, '');
+    }
+
+    return null;
+  }
+
   /**
    * Get all issues with optional filtering
    * @param {Object} filters - Filtering parameters
@@ -401,6 +426,86 @@ class IssueTrackerService {
       console.error('Error in bulk status update:', error);
       throw this.handleError(error, 'Failed to bulk update issue status');
     }
+  }
+
+  /**
+   * Bulk delete issues
+   * @param {number[]} issueIds - Issue IDs to delete
+   * @returns {Promise<{deletedIds:number[], failedIds:number[], failures:Array}>} Bulk delete summary
+   */
+  async bulkDeleteIssues(issueIds = []) {
+    if (!Array.isArray(issueIds) || issueIds.length === 0) {
+      return {
+        deletedIds: [],
+        failedIds: [],
+        failures: []
+      };
+    }
+
+    const results = await Promise.allSettled(
+      issueIds.map((issueId) => axiosInstance.delete(`${this.baseURL}/${issueId}`))
+    );
+
+    const deletedIds = [];
+    const failedIds = [];
+    const failures = [];
+
+    results.forEach((result, index) => {
+      const issueId = issueIds[index];
+      if (result.status === 'fulfilled') {
+        deletedIds.push(issueId);
+      } else {
+        failedIds.push(issueId);
+        failures.push({
+          issueId,
+          error: result.reason
+        });
+      }
+    });
+
+    if (deletedIds.length > 0 && failedIds.length === 0) {
+      notify({
+        message: `Successfully deleted ${deletedIds.length} issue(s)`,
+        type: 'success',
+        displayTime: 3000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+    } else if (deletedIds.length > 0 && failedIds.length > 0) {
+      notify({
+        message: `Deleted ${deletedIds.length} issue(s), but failed to delete ${failedIds.length} issue(s).`,
+        type: 'warning',
+        displayTime: 4000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+    } else {
+      notify({
+        message: 'Failed to delete selected issues.',
+        type: 'error',
+        displayTime: 4000,
+        position: {
+          my: 'top center',
+          at: 'top center',
+          of: window,
+          offset: '0 20'
+        }
+      });
+    }
+
+    return {
+      deletedIds,
+      failedIds,
+      failures
+    };
   }
 
   /**
@@ -953,6 +1058,39 @@ class IssueTrackerService {
    */
   getAttachmentDownloadUrl(issueId, attachmentId) {
     return `/api/v1/issuetracker/${issueId}/attachments/${attachmentId}/download`;
+  }
+
+  /**
+   * Download an attachment as a Blob using authenticated axios request.
+   * This is required because <a href> downloads do not include the Bearer token header.
+   * @param {number} issueId
+   * @param {number} attachmentId
+   * @returns {Promise<{blob: Blob, fileName: string | null}>}
+   */
+  async downloadAttachment(issueId, attachmentId) {
+    try {
+      const response = await axiosInstance.get(
+        `${this.baseURL}/${issueId}/attachments/${attachmentId}/download`,
+        {
+          responseType: 'blob',
+          headers: {
+            Accept: 'application/octet-stream'
+          }
+        }
+      );
+
+      const contentDisposition = response?.headers?.['content-disposition']
+        || response?.headers?.['Content-Disposition'];
+      const fileName = this.extractFileNameFromContentDisposition(contentDisposition);
+
+      return {
+        blob: response.data,
+        fileName: fileName || null
+      };
+    } catch (error) {
+      console.error(`Error downloading attachment ${attachmentId} for issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to download attachment');
+    }
   }
 
   // ===== CLOSE ISSUE (APPROVER ONLY) =====

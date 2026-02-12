@@ -244,3 +244,50 @@
     opacity: 1;
   }
 }
+
+/* --------------------------------------------------
+   Mobile full-screen notification overlay (< 640px)
+   -------------------------------------------------- */
+
+// Mobile full-screen backdrop (rendered via portal at <body>)
+.notification-mobile-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 10000;
+}
+
+// Mobile full-screen notification panel (rendered via portal at <body>)
+.notification-popover.notification-popover--mobile {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  max-width: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  z-index: 10001;
+  background-color: #fff;
+
+  .tw-bg-white {
+    border-radius: 0;
+    overflow: visible;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+  }
+
+  .notification-content {
+    max-height: none !important;
+    flex: 1 1 0;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+}

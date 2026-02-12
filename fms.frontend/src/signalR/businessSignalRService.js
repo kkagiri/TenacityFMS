@@ -536,6 +536,17 @@ class BusinessSignalRService {
       500
     );
 
+    // Tank Measurement Updates (real-time monitoring)
+    registerEvent(
+      "TankMeasurementUpdate",
+      (data) => {
+        if (data) {
+          this.notifyListeners("tankMeasurementUpdate", data);
+        }
+      },
+      0
+    );
+
     registerEvent(
       "StockAdjustmentUpdate",
       (data) => {

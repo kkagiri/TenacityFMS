@@ -551,6 +551,26 @@ namespace FMS.Application.Services.Configuration
         }
         #endregion
 
+        #region Tank Measurement Configuration
+        public async Task<int> GetTankMeasurementRetentionDaysAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_TANK_MEASUREMENT_RETENTION_DAYS_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_TANK_MEASUREMENT_RETENTION_DAYS,
+                cancellationToken);
+        }
+
+        public async Task<int> GetTankMeasurementSignalRPushIntervalSecondsAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_TANK_MEASUREMENT_SIGNALR_PUSH_INTERVAL_SECONDS_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_TANK_MEASUREMENT_SIGNALR_PUSH_INTERVAL_SECONDS,
+                cancellationToken);
+        }
+        #endregion
+
         #region Generic Configuration Access
         /// <inheritdoc />
         public async Task<decimal> GetDecimalAsync(string key, decimal defaultValue, CancellationToken cancellationToken = default)

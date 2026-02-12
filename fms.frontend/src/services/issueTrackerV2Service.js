@@ -16,6 +16,28 @@ class IssueTrackerV2Service {
     this.autoCloseURL = `${this.baseURL}/auto-close-configs`;
   }
 
+  normalizeCheckerType(checkerType) {
+    if (!checkerType) return checkerType;
+
+    const checkerTypeMap = {
+      Online: 'OnlineChecker',
+      online: 'OnlineChecker',
+      OnlineChecker: 'OnlineChecker',
+      AlarmCleared: 'AlarmCleared',
+      alarmcleared: 'AlarmCleared',
+      StatusCheck: 'StatusChecker',
+      StatusChecker: 'StatusChecker',
+      statuschecker: 'StatusChecker',
+      ActiveEvent: 'AlarmCleared',
+      TimeBasedExpiry: 'Custom',
+      ManualOnly: 'Custom',
+      Custom: 'Custom',
+      custom: 'Custom'
+    };
+
+    return checkerTypeMap[checkerType] || checkerType;
+  }
+
   // ============================================
   // Device Types API
   // ============================================
@@ -262,7 +284,12 @@ class IssueTrackerV2Service {
    */
   async createAutoCloseConfig(configData) {
     try {
-      const response = await axiosInstance.post(this.autoCloseURL, configData);
+      const payload = {
+        ...configData,
+        checkerType: this.normalizeCheckerType(configData?.checkerType)
+      };
+
+      const response = await axiosInstance.post(this.autoCloseURL, payload);
       this.showNotification('Auto-close configuration created successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
@@ -279,7 +306,12 @@ class IssueTrackerV2Service {
    */
   async updateAutoCloseConfig(id, configData) {
     try {
-      const response = await axiosInstance.put(`${this.autoCloseURL}/${id}`, configData);
+      const payload = {
+        ...configData,
+        checkerType: this.normalizeCheckerType(configData?.checkerType)
+      };
+
+      const response = await axiosInstance.put(`${this.autoCloseURL}/${id}`, payload);
       this.showNotification('Auto-close configuration updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
