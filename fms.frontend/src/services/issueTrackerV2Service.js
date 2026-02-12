@@ -28,6 +28,8 @@ class IssueTrackerV2Service {
       StatusCheck: 'StatusChecker',
       StatusChecker: 'StatusChecker',
       statuschecker: 'StatusChecker',
+      FuelActivity: 'FuelActivity',
+      fuelactivity: 'FuelActivity',
       ActiveEvent: 'AlarmCleared',
       TimeBasedExpiry: 'Custom',
       ManualOnly: 'Custom',

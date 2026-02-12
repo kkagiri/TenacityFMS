@@ -63,6 +63,11 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.IsActive)
                     .HasColumnType("tinyint(4)")
                     .HasColumnName("IsActive");
+                builder.Property(e => e.VehicleStatusValue)
+                    .HasColumnType("tinyint(4)")
+                    .HasColumnName("VehicleStatus")
+                    .HasDefaultValue(VehicleStatus.Working)
+                    .HasConversion<int>();
                 builder.Property(e => e.HyoungNo).HasMaxLength(45);
                 builder.Property(e => e.FuelTankCapacity)
                     .HasColumnType("decimal(10,2)")

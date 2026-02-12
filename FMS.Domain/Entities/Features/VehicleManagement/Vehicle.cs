@@ -6,6 +6,19 @@ using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 
 namespace FMS.Domain.Entities;
 
+/// <summary>
+/// Represents the operational status of a vehicle.
+/// </summary>
+public enum VehicleStatus
+{
+    /// <summary>Vehicle is actively in use / on the road</summary>
+    Working = 0,
+    /// <summary>Vehicle is parked in the yard (not expected to move)</summary>
+    ParkedYard = 1,
+    /// <summary>Vehicle is in the workshop for maintenance/repair</summary>
+    Workshop = 2
+}
+
 public partial class Vehicle
 {
 
@@ -57,6 +70,12 @@ public partial class Vehicle
     public sbyte? IsCompanyVehicle { get; set; }
 
     public sbyte? IsActive { get; set; }
+
+    /// <summary>
+    /// Operational status of the vehicle: Working (0), ParkedYard (1), Workshop (2).
+    /// Defaults to Working. Used by issue monitoring to skip offline alerts for parked/workshop vehicles.
+    /// </summary>
+    public VehicleStatus VehicleStatusValue { get; set; } = VehicleStatus.Working;
 
     /// <summary>
     /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.

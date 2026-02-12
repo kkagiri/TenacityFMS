@@ -33,10 +33,13 @@ namespace FMS.WebClient.Services.Reporting
         private const int DefaultRenderTimeoutMs = 120000;
         private const int LargePayloadRenderTimeoutMs = 300000;
         private const int LargePayloadThresholdBytes = 750000;
+        private const string LetterheadLogoFileName = "letterhead-logo.png";
 
         private readonly ILogger<JsReportService> _logger;
         private readonly ILocalUtilityReportingService _reportingService;
         private readonly string _templatesPath;
+        private readonly string _letterheadLogoPath;
+        private readonly string _letterheadLogoDataUri;
 
         public JsReportService(ILogger<JsReportService> logger, IWebHostEnvironment environment)
         {
@@ -45,8 +48,11 @@ namespace FMS.WebClient.Services.Reporting
             // ALWAYS use a writable location (C:\Logs or temp folder) to avoid IIS permission issues
             // Do NOT use deployment directory (C:\inetpub\wwwroot) as it's read-only for app pools
             _templatesPath = GetWritableTemplatesPath(environment);
+            _letterheadLogoPath = GetLetterheadLogoPath(environment);
+            _letterheadLogoDataUri = LoadLetterheadLogoDataUri(_letterheadLogoPath);
 
             _logger.LogInformation("JsReport templates path: {Path}", _templatesPath);
+            _logger.LogInformation("JsReport letterhead logo path: {Path}", _letterheadLogoPath);
 
             // Configure embedded JsReport with temp directory
             var jsReportTempPath = Path.Combine(Path.GetTempPath(), "FMS_JsReport_Temp");
@@ -105,6 +111,135 @@ namespace FMS.WebClient.Services.Reporting
             var appDataPath = Path.Combine(environment.ContentRootPath, "App_Data", "ReportTemplates");
             TryCreateDirectory(appDataPath);
             return appDataPath;
+        }
+
+        private string GetLetterheadLogoPath(IWebHostEnvironment environment)
+        {
+            var webRootPath = environment.WebRootPath;
+            if (string.IsNullOrWhiteSpace(webRootPath))
+            {
+                webRootPath = Path.Combine(environment.ContentRootPath, "wwwroot");
+            }
+
+            var brandingFolderPath = Path.Combine(webRootPath, "reports", "branding");
+            Directory.CreateDirectory(brandingFolderPath);
+
+            return Path.Combine(brandingFolderPath, LetterheadLogoFileName);
+        }
+
+        private string LoadLetterheadLogoDataUri(string logoPath)
+        {
+            try
+            {
+                if (!File.Exists(logoPath))
+                {
+                    _logger.LogWarning(
+                        "Letterhead logo not found at {LogoPath}. Place logo file there to show branding in all reports.",
+                        logoPath);
+                    return string.Empty;
+                }
+
+                var imageBytes = File.ReadAllBytes(logoPath);
+                if (imageBytes.Length == 0)
+                {
+                    _logger.LogWarning("Letterhead logo file is empty at {LogoPath}", logoPath);
+                    return string.Empty;
+                }
+
+                var mimeType = GetImageMimeType(Path.GetExtension(logoPath));
+                return $"data:{mimeType};base64,{Convert.ToBase64String(imageBytes)}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load letterhead logo from {LogoPath}", logoPath);
+                return string.Empty;
+            }
+        }
+
+        private static string GetImageMimeType(string extension)
+        {
+            return extension.ToLowerInvariant() switch
+            {
+                ".jpg" or ".jpeg" => "image/jpeg",
+                ".svg" => "image/svg+xml",
+                ".gif" => "image/gif",
+                ".webp" => "image/webp",
+                _ => "image/png",
+            };
+        }
+
+        private string ApplyLetterheadBranding(string templateContent)
+        {
+            if (string.IsNullOrWhiteSpace(templateContent))
+            {
+                return templateContent;
+            }
+
+            if (templateContent.Contains("fms-report-letterhead", StringComparison.OrdinalIgnoreCase))
+            {
+                return templateContent;
+            }
+
+            var updatedTemplate = templateContent;
+            var cssBlock = GetLetterheadCssBlock();
+            const string styleClosingTag = "</style>";
+
+            var styleIndex = updatedTemplate.IndexOf(styleClosingTag, StringComparison.OrdinalIgnoreCase);
+            if (styleIndex >= 0)
+            {
+                updatedTemplate = updatedTemplate.Insert(styleIndex, cssBlock);
+            }
+            else
+            {
+                const string headClosingTag = "</head>";
+                var headIndex = updatedTemplate.IndexOf(headClosingTag, StringComparison.OrdinalIgnoreCase);
+                var inlineStyleBlock = $"\n<style>{cssBlock}\n</style>\n";
+
+                updatedTemplate = headIndex >= 0
+                    ? updatedTemplate.Insert(headIndex, inlineStyleBlock)
+                    : inlineStyleBlock + updatedTemplate;
+            }
+
+            var letterheadHtml = BuildLetterheadHtmlBlock();
+            const string bodyOpenTag = "<body";
+            var bodyStartIndex = updatedTemplate.IndexOf(bodyOpenTag, StringComparison.OrdinalIgnoreCase);
+            if (bodyStartIndex >= 0)
+            {
+                var bodyTagEndIndex = updatedTemplate.IndexOf('>', bodyStartIndex);
+                updatedTemplate = bodyTagEndIndex >= 0
+                    ? updatedTemplate.Insert(bodyTagEndIndex + 1, $"\n{letterheadHtml}\n")
+                    : $"{letterheadHtml}\n{updatedTemplate}";
+            }
+            else
+            {
+                updatedTemplate = $"{letterheadHtml}\n{updatedTemplate}";
+            }
+
+            return updatedTemplate;
+        }
+
+        private static string GetLetterheadCssBlock()
+        {
+            return @"
+        .fms-report-letterhead { margin: 0 0 18px 0; padding-bottom: 10px; border-bottom: 2px solid #d1d5db; }
+        .fms-report-letterhead img { display: block; width: 100%; max-height: 140px; object-fit: contain; object-position: left center; }
+        .fms-report-letterhead-missing { border: 1px dashed #9ca3af; background: #f9fafb; color: #374151; font-size: 11px; padding: 10px 12px; border-radius: 4px; }
+        .fms-report-letterhead-missing code { background: #eef2f7; padding: 2px 4px; border-radius: 3px; }";
+        }
+
+        private string BuildLetterheadHtmlBlock()
+        {
+            if (!string.IsNullOrWhiteSpace(_letterheadLogoDataUri))
+            {
+                return $@"<div class=""fms-report-letterhead"">
+        <img src=""{_letterheadLogoDataUri}"" alt=""Company Letterhead"" />
+    </div>";
+            }
+
+            return $@"<div class=""fms-report-letterhead fms-report-letterhead-missing"">
+        Letterhead logo not found. Place your letterhead image at:
+        <code>{_letterheadLogoPath.Replace("\\", "/")}</code>
+    </div>";
         }
 
         private bool TryCreateDirectory(string path)
@@ -169,6 +304,7 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     throw new FileNotFoundException($"Template '{templateName}' not found");
                 }
+                templateContent = ApplyLetterheadBranding(templateContent);
 
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
@@ -207,6 +343,7 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     throw new FileNotFoundException($"Template '{templateName}' not found");
                 }
+                templateContent = ApplyLetterheadBranding(templateContent);
 
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
@@ -240,6 +377,7 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     throw new FileNotFoundException($"Template '{templateName}' not found");
                 }
+                templateContent = ApplyLetterheadBranding(templateContent);
 
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
@@ -267,11 +405,12 @@ namespace FMS.WebClient.Services.Reporting
         {
             try
             {
+                var brandedTemplate = ApplyLetterheadBranding(htmlTemplate);
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
                     Template = new Template
                     {
-                        Content = htmlTemplate,
+                        Content = brandedTemplate,
                         Engine = Engine.Handlebars,
                         Recipe = Recipe.ChromePdf,
                         Chrome = BuildPdfChromeOptions()
