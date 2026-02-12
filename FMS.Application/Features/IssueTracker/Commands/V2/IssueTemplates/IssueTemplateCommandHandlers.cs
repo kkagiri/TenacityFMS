@@ -138,6 +138,8 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                     DefaultPriorityId = request.Template.DefaultPriorityId,
                     DefaultStatusId = request.Template.DefaultStatusId,
                     IsActive = request.Template.IsActive,
+                    CanAutoCreate = request.Template.CanAutoCreate,
+                    OfflineThresholdMinutes = request.Template.OfflineThresholdMinutes,
                     DefaultAssignee = defaultAssigneeId,
                     CreatedAt = now,
                     UpdatedAt = now
@@ -182,6 +184,8 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 DefaultStatusId = entity.DefaultStatusId,
                 DefaultStatusName = statusName,
                 IsActive = entity.IsActive,
+                CanAutoCreate = entity.CanAutoCreate,
+                OfflineThresholdMinutes = entity.OfflineThresholdMinutes,
                 DefaultAssignee = entity.DefaultAssignee,
                 DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,
@@ -348,6 +352,8 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
             entity.DefaultPriorityId = request.Template.DefaultPriorityId;
             entity.DefaultStatusId = request.Template.DefaultStatusId;
             entity.IsActive = request.Template.IsActive;
+            entity.CanAutoCreate = request.Template.CanAutoCreate;
+            entity.OfflineThresholdMinutes = request.Template.OfflineThresholdMinutes;
             entity.DefaultAssignee = defaultAssigneeId;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -366,6 +372,8 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 DefaultStatusId = entity.DefaultStatusId,
                 DefaultStatusName = statusName,
                 IsActive = entity.IsActive,
+                CanAutoCreate = entity.CanAutoCreate,
+                OfflineThresholdMinutes = entity.OfflineThresholdMinutes,
                 DefaultAssignee = entity.DefaultAssignee,
                 DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,

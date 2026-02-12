@@ -51,6 +51,7 @@ public class UpdateAutoCloseConfigDTO
 public static class AutoCloseCheckerTypes
 {
     public const string OnlineChecker = "OnlineChecker";
+    public const string FuelActivity = "FuelActivity";
     public const string AlarmCleared = "AlarmCleared";
     public const string StatusChecker = "StatusChecker";
     public const string Custom = "Custom";
@@ -58,6 +59,7 @@ public static class AutoCloseCheckerTypes
     public static readonly string[] All = new[]
     {
         OnlineChecker,
+        FuelActivity,
         AlarmCleared,
         StatusChecker,
         Custom

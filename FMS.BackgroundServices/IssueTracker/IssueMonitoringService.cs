@@ -208,8 +208,19 @@ namespace FMS.BackgroundServices.IssueTracker
                     return 0;
                 }
 
+                // Filter out vehicles that are ParkedYard or Workshop — no need to alert for those
+                var activeGpsVehicles = gpsVehicles
+                    .Where(m => m.Vehicle!.VehicleStatusValue == VehicleStatus.Working)
+                    .ToList();
+
+                var skippedCount = gpsVehicles.Count - activeGpsVehicles.Count;
+                if (skippedCount > 0)
+                {
+                    _logger.LogDebug("[GPS Offline Monitor] Skipped {Count} vehicles with ParkedYard/Workshop status", skippedCount);
+                }
+
                 _logger.LogDebug("[GPS Offline Monitor] Checking {Count} GPS-equipped vehicles for offline status (threshold: {Threshold} min)",
-                    gpsVehicles.Count, offlineThresholdMinutes);
+                    activeGpsVehicles.Count, offlineThresholdMinutes);
 
                 // BULK FETCH: Get all vehicle locations in a single GPSGate API call
                 // instead of calling GetVehicleLocationAsync per vehicle (N HTTP + 2N DB queries → 1 HTTP + 2 DB queries)
@@ -229,7 +240,7 @@ namespace FMS.BackgroundServices.IssueTracker
                         "All vehicles without cached data will be treated as offline.", allLocationsResponse.Message);
                 }
 
-                foreach (var mapping in gpsVehicles)
+                foreach (var mapping in activeGpsVehicles)
                 {
                     try
                     {
@@ -351,8 +362,7 @@ namespace FMS.BackgroundServices.IssueTracker
                     .Include(m => m.Vehicle)
                     .Where(m => m.IsActive && m.Vehicle != null
                              && m.Vehicle.IsActive.HasValue && m.Vehicle.IsActive.Value == 1)
-                    .Select(m => new { m.Vehicle!.VehicleId, m.Vehicle.HyoungNo, m.Vehicle.NumberPlate, m.Vehicle.WorkingSiteId })
-                    .Distinct()
+                    .Select(m => new { m.Vehicle!.VehicleId, m.Vehicle.HyoungNo, m.Vehicle.NumberPlate, m.Vehicle.WorkingSiteId, m.Vehicle.VehicleStatusValue })
                     .ToListAsync(cancellationToken);
 
                 if (!gpsVehicles.Any())
@@ -441,6 +451,22 @@ namespace FMS.BackgroundServices.IssueTracker
 
                         if (!isOffline)
                             continue; // GPS is online, no issue
+
+                        // If vehicle is ParkedYard or Workshop but has fuel activity, transition to Working
+                        if (vehicle.VehicleStatusValue != VehicleStatus.Working)
+                        {
+                            var vehicleEntity = await context.Vehicles
+                                .FirstOrDefaultAsync(v => v.VehicleId == vehicle.VehicleId, cancellationToken);
+                            if (vehicleEntity != null)
+                            {
+                                var previousStatus = vehicleEntity.VehicleStatusValue;
+                                vehicleEntity.VehicleStatusValue = VehicleStatus.Working;
+                                vehicleEntity.DateModified = DateTime.UtcNow;
+                                _logger.LogWarning(
+                                    "[Fuel+Offline Monitor] Vehicle {VehicleId} ({VehicleName}) changed from {OldStatus} to Working due to fuel activity while GPS offline",
+                                    vehicle.VehicleId, vehicle.HyoungNo ?? vehicle.NumberPlate, previousStatus);
+                            }
+                        }
 
                         // Skip if there's already an open issue for this vehicle+template
                         var existingIssue = await HasOpenIssueForDevice(
