@@ -64,10 +64,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasColumnName("priority");
                 builder.Property(e => e.ProblemDescription)
-                    .HasMaxLength(945)
+                    .HasMaxLength(2000)
                     .HasColumnName("problemDescription");
                 builder.Property(e => e.ProblemTitle)
-                    .HasMaxLength(45)
+                    .HasMaxLength(255)
                     .HasColumnName("problemTitle");
                 builder.Property(e => e.RelatedIssue)
                     .HasColumnType("int(11)")

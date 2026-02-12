@@ -700,7 +700,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             </label>
             <input
               type="text"
-              maxLength={160}
+              maxLength={255}
               placeholder="Example: Fuel pump pressure drop on lane 2"
               value={formData.issueTitle}
               onChange={(e) => handleFieldChange('issueTitle', e.target.value)}
@@ -712,7 +712,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                   {validationState.hasTitle ? '✓ Valid title' : 'Minimum 5 characters required'}
                 </p>
               )}
-              <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{titleLength}/160</span>
+              <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{titleLength}/255</span>
             </div>
           </div>
 
@@ -896,16 +896,16 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                 >
                   <div className="tw-flex-shrink-0 tw-mt-1">
                     <div className={`tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${file._category === 'Installation'
-                        ? 'tw-bg-purple-100 tw-text-purple-600'
-                        : file._category === 'Calibration'
-                          ? 'tw-bg-orange-100 tw-text-orange-600'
-                          : 'tw-bg-blue-100 tw-text-blue-600'
+                      ? 'tw-bg-purple-100 tw-text-purple-600'
+                      : file._category === 'Calibration'
+                        ? 'tw-bg-orange-100 tw-text-orange-600'
+                        : 'tw-bg-blue-100 tw-text-blue-600'
                       }`}>
                       <i className={`fa-light ${file._category === 'Installation'
-                          ? 'fa-screwdriver-wrench'
-                          : file._category === 'Calibration'
-                            ? 'fa-gauge'
-                            : 'fa-file'
+                        ? 'fa-screwdriver-wrench'
+                        : file._category === 'Calibration'
+                          ? 'fa-gauge'
+                          : 'fa-file'
                         }`}></i>
                     </div>
                   </div>
@@ -914,10 +914,10 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                     <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1">
                       <p className="tw-font-medium tw-text-gray-800 tw-truncate">{file.name}</p>
                       <span className={`tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${file._category === 'Installation'
-                          ? 'tw-bg-purple-100 tw-text-purple-700'
-                          : file._category === 'Calibration'
-                            ? 'tw-bg-orange-100 tw-text-orange-700'
-                            : 'tw-bg-blue-100 tw-text-blue-700'
+                        ? 'tw-bg-purple-100 tw-text-purple-700'
+                        : file._category === 'Calibration'
+                          ? 'tw-bg-orange-100 tw-text-orange-700'
+                          : 'tw-bg-blue-100 tw-text-blue-700'
                         }`}>
                         {file._category || 'General'}
                       </span>

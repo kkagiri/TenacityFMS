@@ -156,6 +156,18 @@ class IssueTrackerService {
     }
   }
 
+  async getFollowedIssues(limit = 50) {
+    try {
+      const params = limit ? { limit } : {};
+      const response = await issueApiClient.get(`${BASE_URL}/followed-issues`, { params });
+      const data = unwrap(response);
+      return Array.isArray(data) ? data : [];
+    } catch (error) {
+      console.error("[IssueTrackerService] getFollowedIssues error:", error);
+      return [];
+    }
+  }
+
   // ===== FOLLOW OPERATIONS =====
 
   async followIssue(issueId) {

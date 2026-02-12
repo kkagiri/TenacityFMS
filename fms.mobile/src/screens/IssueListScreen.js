@@ -12,7 +12,7 @@
  * - Permission gated: poweruser, admin, or _View_Issue permission
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import {
   View,
   Text,
@@ -24,11 +24,13 @@ import {
   ActivityIndicator,
   RefreshControl,
   TextInput,
-  Animated,
+  Modal,
+  ScrollView,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
 import issueTrackerService from "../services/issueTrackerService";
+import apiService from "../services/apiService";
 import { usePermissions } from "../hooks/usePermissions";
 
 // ===== CONSTANTS =====
@@ -37,6 +39,7 @@ const FILTER_CHIPS = [
   { key: "open", label: "Open", icon: "folder-open", color: "#3B82F6" },
   { key: "inprogress", label: "In Progress", icon: "clock", color: "#F59E0B" },
   { key: "completed", label: "Completed", icon: "check-circle", color: "#10B981" },
+  { key: "following", label: "Following", icon: "bell", color: "#8B5CF6" },
 ];
 
 // ===== HELPERS =====
@@ -113,6 +116,9 @@ const IssueCard = React.memo(({ issue, onPress }) => {
   const assignee = issue.assignToUserName || "Unassigned";
   const avatarColor = getAvatarColor(assignee);
 
+  const vehicleLabel = issue.vehicleHyoungNo || issue.vehicleNumber || null;
+  const siteLabel = issue.siteName || null;
+
   return (
     <TouchableOpacity
       style={styles.card}
@@ -128,6 +134,24 @@ const IssueCard = React.memo(({ issue, onPress }) => {
           {issue.problemTitle || "Untitled Issue"}
         </Text>
       </View>
+
+      {/* Vehicle / Site info row */}
+      {(vehicleLabel || siteLabel) && (
+        <View style={styles.cardInfoRow}>
+          {vehicleLabel && (
+            <View style={styles.cardInfoItem}>
+              <Icon name="truck" size={10} color="#6D28D9" />
+              <Text style={styles.cardInfoText} numberOfLines={1}>{vehicleLabel}</Text>
+            </View>
+          )}
+          {siteLabel && (
+            <View style={styles.cardInfoItem}>
+              <Icon name="building" size={10} color="#6B7280" />
+              <Text style={styles.cardInfoText} numberOfLines={1}>{siteLabel}</Text>
+            </View>
+          )}
+        </View>
+      )}
 
       <View style={styles.cardBottom}>
         <View style={styles.badgeRow}>
@@ -173,6 +197,45 @@ const IssueListScreen = () => {
   const [searchText, setSearchText] = useState("");
   const [statuses, setStatuses] = useState([]);
 
+  // Filter panel state
+  const [showFilterPanel, setShowFilterPanel] = useState(false);
+  const [sites, setSites] = useState([]);
+  const [categories, setCategories] = useState([]);
+  const [selectedSiteId, setSelectedSiteId] = useState(null);
+  const [selectedCategoryId, setSelectedCategoryId] = useState(null);
+  const [unassignedOnly, setUnassignedOnly] = useState(false);
+  const [dueIssuesOnly, setDueIssuesOnly] = useState(false);
+  const [overdueOnly, setOverdueOnly] = useState(false);
+  const [datePreset, setDatePreset] = useState("all");
+  const [followedIssueIds, setFollowedIssueIds] = useState(new Set());
+
+  // Vehicle quick search state
+  const [vehicleSearchText, setVehicleSearchText] = useState("");
+  const [vehicleSearchResults, setVehicleSearchResults] = useState([]);
+  const [vehicleSearching, setVehicleSearching] = useState(false);
+  const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const vehicleSearchTimeout = useRef(null);
+
+  const handleVehicleSearch = useCallback((text) => {
+    setVehicleSearchText(text);
+    if (vehicleSearchTimeout.current) clearTimeout(vehicleSearchTimeout.current);
+    if (!text.trim()) {
+      setVehicleSearchResults([]);
+      return;
+    }
+    vehicleSearchTimeout.current = setTimeout(async () => {
+      setVehicleSearching(true);
+      try {
+        const results = await apiService.searchVehicles(text.trim(), 10);
+        setVehicleSearchResults(Array.isArray(results) ? results : []);
+      } catch (_e) {
+        setVehicleSearchResults([]);
+      } finally {
+        setVehicleSearching(false);
+      }
+    }, 400);
+  }, []);
+
   const loadData = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
@@ -185,6 +248,19 @@ const IssueListScreen = () => {
 
       setIssues(issueData);
       setStatuses(statusData);
+
+      // Load filter options in background
+      Promise.all([
+        apiService.getSiteList().catch(() => []),
+        issueTrackerService.getIssueCategories().catch(() => []),
+        issueTrackerService.getFollowedIssues().catch(() => []),
+      ]).then(([siteData, catData, followedData]) => {
+        const sArr = Array.isArray(siteData?.data) ? siteData.data : Array.isArray(siteData) ? siteData : [];
+        setSites(sArr);
+        setCategories(Array.isArray(catData) ? catData : []);
+        const ids = new Set((followedData || []).map((f) => f.issueId || f.id));
+        setFollowedIssueIds(ids);
+      });
     } catch (error) {
       console.error("[IssueListScreen] loadData error:", error);
     } finally {
@@ -197,12 +273,38 @@ const IssueListScreen = () => {
     if (canViewIssues) loadData();
   }, [canViewIssues, loadData]);
 
+  const activeFilterCount = useMemo(() => {
+    let count = 0;
+    if (selectedSiteId) count++;
+    if (selectedVehicle) count++;
+    if (selectedCategoryId) count++;
+    if (unassignedOnly) count++;
+    if (dueIssuesOnly) count++;
+    if (overdueOnly) count++;
+    if (datePreset !== "all") count++;
+    return count;
+  }, [selectedSiteId, selectedVehicle, selectedCategoryId, unassignedOnly, dueIssuesOnly, overdueOnly, datePreset]);
+
+  const clearAllFilters = useCallback(() => {
+    setSelectedSiteId(null);
+    setSelectedVehicle(null);
+    setVehicleSearchText("");
+    setVehicleSearchResults([]);
+    setSelectedCategoryId(null);
+    setUnassignedOnly(false);
+    setDueIssuesOnly(false);
+    setOverdueOnly(false);
+    setDatePreset("all");
+  }, []);
+
   // Map filter chip keys to status name matching
   const filteredIssues = useMemo(() => {
     let result = issues;
 
-    // Filter by chip
-    if (activeFilter !== "all") {
+    // Filter by status chip or following
+    if (activeFilter === "following") {
+      result = result.filter((issue) => followedIssueIds.has(issue.id));
+    } else if (activeFilter !== "all") {
       result = result.filter((issue) => {
         const statusName = (issue.statusName || "").toLowerCase().replace(/\s+/g, "");
         if (activeFilter === "open") return statusName === "open";
@@ -213,6 +315,62 @@ const IssueListScreen = () => {
       });
     }
 
+    // Filter by site
+    if (selectedSiteId) {
+      result = result.filter((issue) => issue.siteId === selectedSiteId);
+    }
+
+    // Filter by vehicle
+    if (selectedVehicle) {
+      result = result.filter((issue) => issue.vehicleId === selectedVehicle.id);
+    }
+
+    // Filter by category
+    if (selectedCategoryId) {
+      result = result.filter((issue) => issue.issueCategoryId === selectedCategoryId);
+    }
+
+    // Filter unassigned
+    if (unassignedOnly) {
+      result = result.filter((issue) => !issue.assignToId && !issue.assignToUserName);
+    }
+
+    // Filter due issues (due within next 7 days)
+    if (dueIssuesOnly) {
+      const now = new Date();
+      const in7Days = new Date(now.getTime() + 7 * 86400000);
+      result = result.filter((issue) => {
+        if (!issue.dueDate) return false;
+        const due = new Date(issue.dueDate);
+        return due >= now && due <= in7Days;
+      });
+    }
+
+    // Filter overdue
+    if (overdueOnly) {
+      const now = new Date();
+      result = result.filter((issue) => {
+        if (!issue.dueDate) return false;
+        return new Date(issue.dueDate) < now;
+      });
+    }
+
+    // Filter by date preset (creation date)
+    if (datePreset !== "all") {
+      const now = new Date();
+      const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let cutoff = null;
+      if (datePreset === "today") cutoff = startOfToday;
+      else if (datePreset === "7days") cutoff = new Date(now.getTime() - 7 * 86400000);
+      else if (datePreset === "30days") cutoff = new Date(now.getTime() - 30 * 86400000);
+      if (cutoff) {
+        result = result.filter((issue) => {
+          const opened = new Date(issue.openDate || issue.createdDate);
+          return opened >= cutoff;
+        });
+      }
+    }
+
     // Filter by search text
     if (searchText.trim()) {
       const query = searchText.toLowerCase();
@@ -220,12 +378,15 @@ const IssueListScreen = () => {
         (issue) =>
           (issue.problemTitle || "").toLowerCase().includes(query) ||
           String(issue.id).includes(query) ||
-          (issue.assignToUserName || "").toLowerCase().includes(query)
+          (issue.assignToUserName || "").toLowerCase().includes(query) ||
+          (issue.vehicleHyoungNo || "").toLowerCase().includes(query) ||
+          (issue.vehicleNumber || "").toLowerCase().includes(query) ||
+          (issue.siteName || "").toLowerCase().includes(query)
       );
     }
 
     return result;
-  }, [issues, activeFilter, searchText]);
+  }, [issues, activeFilter, searchText, selectedSiteId, selectedVehicle, selectedCategoryId, unassignedOnly, dueIssuesOnly, overdueOnly, datePreset, followedIssueIds]);
 
   const counts = useMemo(() => {
     const all = issues.length;
@@ -238,8 +399,9 @@ const IssueListScreen = () => {
       const s = (i.statusName || "").toLowerCase().replace(/\s+/g, "");
       return ["completed", "closed", "resolved", "done"].includes(s);
     }).length;
-    return { all, open, inProgress, completed };
-  }, [issues]);
+    const following = followedIssueIds.size;
+    return { all, open, inProgress, completed, following };
+  }, [issues, followedIssueIds]);
 
   const handleIssuePress = useCallback(
     (issue) => {
@@ -310,18 +472,50 @@ const IssueListScreen = () => {
         </View>
       </View>
 
-      {/* Filter chips */}
-      <View style={styles.chipRow}>
+      {/* Filter button */}
+      <View style={styles.filterBar}>
+        <TouchableOpacity
+          style={[styles.filterButton, activeFilterCount > 0 && styles.filterButtonActive]}
+          onPress={() => setShowFilterPanel(true)}
+          activeOpacity={0.7}
+        >
+          <Icon name="sliders-h" size={14} color={activeFilterCount > 0 ? "#6D28D9" : "#6B7280"} />
+          <Text style={[styles.filterButtonText, activeFilterCount > 0 && styles.filterButtonTextActive]}>
+            Filters
+          </Text>
+          {activeFilterCount > 0 && (
+            <View style={styles.filterBadge}>
+              <Text style={styles.filterBadgeText}>{activeFilterCount}</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+        {activeFilterCount > 0 && (
+          <TouchableOpacity style={styles.clearFiltersBtn} onPress={clearAllFilters}>
+            <Text style={styles.clearFiltersText}>Clear</Text>
+            <Icon name="times" size={11} color="#EF4444" />
+          </TouchableOpacity>
+        )}
+      </View>
+
+      {/* Status chips - horizontal scroll */}
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.chipRow}
+        contentContainerStyle={styles.chipRowContent}
+      >
         {FILTER_CHIPS.map((chip) => {
           const isActive = activeFilter === chip.key;
           const count =
             chip.key === "all"
               ? counts.all
               : chip.key === "open"
-              ? counts.open
-              : chip.key === "inprogress"
-              ? counts.inProgress
-              : counts.completed;
+                ? counts.open
+                : chip.key === "inprogress"
+                  ? counts.inProgress
+                  : chip.key === "completed"
+                    ? counts.completed
+                    : counts.following;
 
           return (
             <TouchableOpacity
@@ -354,7 +548,7 @@ const IssueListScreen = () => {
             </TouchableOpacity>
           );
         })}
-      </View>
+      </ScrollView>
 
       {/* Issue list */}
       {loading ? (
@@ -389,6 +583,215 @@ const IssueListScreen = () => {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      {/* ===== FILTER PANEL MODAL ===== */}
+      <Modal
+        visible={showFilterPanel}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFilterPanel(false)}
+      >
+        <View style={styles.pickerOverlay}>
+          <View style={styles.filterPanel}>
+            {/* Header */}
+            <View style={styles.filterPanelHeader}>
+              <Text style={styles.filterPanelTitle}>Filters</Text>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 12 }}>
+                {activeFilterCount > 0 && (
+                  <TouchableOpacity onPress={clearAllFilters}>
+                    <Text style={styles.filterPanelReset}>Reset</Text>
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity onPress={() => setShowFilterPanel(false)}>
+                  <Icon name="times" size={18} color="#6B7280" />
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            <ScrollView style={styles.filterPanelBody} showsVerticalScrollIndicator={false}>
+              {/* ── Vehicle Search ── */}
+              <Text style={styles.filterSectionLabel}>Vehicle</Text>
+              {selectedVehicle ? (
+                <View style={styles.selectedChipRow}>
+                  <View style={styles.selectedChip}>
+                    <Icon name="truck" size={11} color="#6D28D9" />
+                    <Text style={styles.selectedChipText}>{selectedVehicle.label}</Text>
+                    <TouchableOpacity onPress={() => setSelectedVehicle(null)}>
+                      <Icon name="times" size={11} color="#6D28D9" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ) : (
+                <View>
+                  <View style={styles.filterSearchBar}>
+                    <Icon name="search" size={12} color="#9CA3AF" style={{ marginRight: 8 }} />
+                    <TextInput
+                      style={styles.filterSearchInput}
+                      placeholder="Search by plate, hyoung no..."
+                      placeholderTextColor="#9CA3AF"
+                      value={vehicleSearchText}
+                      onChangeText={handleVehicleSearch}
+                    />
+                    {vehicleSearching && <ActivityIndicator size="small" color="#6D28D9" />}
+                  </View>
+                  {vehicleSearchResults.length > 0 && (
+                    <View style={styles.searchResultsList}>
+                      {vehicleSearchResults.map((v) => {
+                        const vId = v.id || v.vehicleId;
+                        const vLabel = v.hyoungNo || v.vehicleHyoungNo || v.plateNumber || v.vehicleNumber || `#${vId}`;
+                        return (
+                          <TouchableOpacity
+                            key={vId}
+                            style={styles.searchResultItem}
+                            onPress={() => {
+                              setSelectedVehicle({ id: vId, label: vLabel });
+                              setVehicleSearchText("");
+                              setVehicleSearchResults([]);
+                            }}
+                          >
+                            <Icon name="truck" size={12} color="#6B7280" />
+                            <Text style={styles.searchResultText}>{vLabel}</Text>
+                          </TouchableOpacity>
+                        );
+                      })}
+                    </View>
+                  )}
+                </View>
+              )}
+
+              {/* ── Site ── */}
+              <Text style={styles.filterSectionLabel}>Site</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChipScroll}>
+                <TouchableOpacity
+                  style={[styles.filterChip, !selectedSiteId && styles.filterChipActive]}
+                  onPress={() => setSelectedSiteId(null)}
+                >
+                  <Text style={[styles.filterChipText, !selectedSiteId && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {sites.map((site) => {
+                  const sId = site.id || site.siteId;
+                  const sName = site.name || site.siteName || `#${sId}`;
+                  const isActive = selectedSiteId === sId;
+                  return (
+                    <TouchableOpacity
+                      key={sId}
+                      style={[styles.filterChip, isActive && styles.filterChipActive]}
+                      onPress={() => setSelectedSiteId(isActive ? null : sId)}
+                    >
+                      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]} numberOfLines={1}>
+                        {sName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* ── Category ── */}
+              <Text style={styles.filterSectionLabel}>Category</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterChipScroll}>
+                <TouchableOpacity
+                  style={[styles.filterChip, !selectedCategoryId && styles.filterChipActive]}
+                  onPress={() => setSelectedCategoryId(null)}
+                >
+                  <Text style={[styles.filterChipText, !selectedCategoryId && styles.filterChipTextActive]}>All</Text>
+                </TouchableOpacity>
+                {categories.map((cat) => {
+                  const cId = cat.id || cat.issueCategoryId;
+                  const cName = cat.name || cat.categoryName || `#${cId}`;
+                  const isActive = selectedCategoryId === cId;
+                  return (
+                    <TouchableOpacity
+                      key={cId}
+                      style={[styles.filterChip, isActive && styles.filterChipActive]}
+                      onPress={() => setSelectedCategoryId(isActive ? null : cId)}
+                    >
+                      <Text style={[styles.filterChipText, isActive && styles.filterChipTextActive]} numberOfLines={1}>
+                        {cName}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+
+              {/* ── Date Range ── */}
+              <Text style={styles.filterSectionLabel}>Date Range</Text>
+              <View style={styles.datePresetRow}>
+                {[
+                  { key: "all", label: "All Time" },
+                  { key: "today", label: "Today" },
+                  { key: "7days", label: "7 Days" },
+                  { key: "30days", label: "30 Days" },
+                ].map((preset) => {
+                  const isActive = datePreset === preset.key;
+                  return (
+                    <TouchableOpacity
+                      key={preset.key}
+                      style={[styles.datePresetChip, isActive && styles.datePresetChipActive]}
+                      onPress={() => setDatePreset(preset.key)}
+                    >
+                      <Text style={[styles.datePresetText, isActive && styles.datePresetTextActive]}>
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+
+              {/* ── Quick Filters ── */}
+              <Text style={styles.filterSectionLabel}>Quick Filters</Text>
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setUnassignedOnly(!unassignedOnly)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.toggleInfo}>
+                  <Icon name="user-slash" size={14} color={unassignedOnly ? "#6D28D9" : "#6B7280"} />
+                  <Text style={[styles.toggleLabel, unassignedOnly && styles.toggleLabelActive]}>
+                    Unassigned Only
+                  </Text>
+                </View>
+                <View style={[styles.toggleSwitch, unassignedOnly && styles.toggleSwitchOn]}>
+                  <View style={[styles.toggleKnob, unassignedOnly && styles.toggleKnobOn]} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setDueIssuesOnly(!dueIssuesOnly)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.toggleInfo}>
+                  <Icon name="calendar-check" size={14} color={dueIssuesOnly ? "#F59E0B" : "#6B7280"} />
+                  <Text style={[styles.toggleLabel, dueIssuesOnly && styles.toggleLabelActive]}>
+                    Due Issues (next 7 days)
+                  </Text>
+                </View>
+                <View style={[styles.toggleSwitch, dueIssuesOnly && styles.toggleSwitchOn]}>
+                  <View style={[styles.toggleKnob, dueIssuesOnly && styles.toggleKnobOn]} />
+                </View>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={styles.toggleRow}
+                onPress={() => setOverdueOnly(!overdueOnly)}
+                activeOpacity={0.7}
+              >
+                <View style={styles.toggleInfo}>
+                  <Icon name="exclamation-triangle" size={14} color={overdueOnly ? "#EF4444" : "#6B7280"} />
+                  <Text style={[styles.toggleLabel, overdueOnly && styles.toggleLabelActive]}>
+                    Overdue Issues
+                  </Text>
+                </View>
+                <View style={[styles.toggleSwitch, overdueOnly && styles.toggleSwitchOn]}>
+                  <View style={[styles.toggleKnob, overdueOnly && styles.toggleKnobOn]} />
+                </View>
+              </TouchableOpacity>
+
+              <View style={{ height: 24 }} />
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 };
@@ -439,13 +842,74 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#fff",
   },
-  chipRow: {
+  filterBar: {
     flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 8,
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+    gap: 8,
+  },
+  filterButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F9FAFB",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  filterButtonActive: {
+    backgroundColor: "#EDE9FE",
+    borderColor: "#C4B5FD",
+  },
+  filterButtonText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  filterButtonTextActive: {
+    color: "#6D28D9",
+  },
+  filterBadge: {
+    backgroundColor: "#6D28D9",
+    borderRadius: 10,
+    minWidth: 18,
+    height: 18,
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 5,
+  },
+  filterBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#fff",
+  },
+  clearFiltersBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  clearFiltersText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+  chipRow: {
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
+  },
+  chipRowContent: {
+    flexDirection: "row",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
     gap: 6,
   },
   chip: {
@@ -506,7 +970,24 @@ const styles = StyleSheet.create({
     borderColor: "#F3F4F6",
   },
   cardTop: {
-    marginBottom: 10,
+    marginBottom: 6,
+  },
+  cardInfoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 8,
+  },
+  cardInfoItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    maxWidth: "45%",
+  },
+  cardInfoText: {
+    fontSize: 11,
+    color: "#6B7280",
+    fontWeight: "500",
   },
   cardIdRow: {
     flexDirection: "row",
@@ -608,6 +1089,196 @@ const styles = StyleSheet.create({
     color: "#9CA3AF",
     marginTop: 8,
     textAlign: "center",
+  },
+  // Filter panel modal styles
+  pickerOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.4)",
+    justifyContent: "flex-end",
+  },
+  filterPanel: {
+    backgroundColor: "#fff",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "80%",
+    paddingBottom: 24,
+  },
+  filterPanelHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  filterPanelTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1F2937",
+  },
+  filterPanelReset: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#EF4444",
+  },
+  filterPanelBody: {
+    paddingHorizontal: 20,
+  },
+  filterSectionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#374151",
+    marginTop: 16,
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.3,
+  },
+  filterSearchBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    height: 40,
+  },
+  filterSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1F2937",
+    paddingVertical: 0,
+  },
+  searchResultsList: {
+    backgroundColor: "#F9FAFB",
+    borderRadius: 8,
+    marginTop: 4,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  searchResultItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    gap: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  searchResultText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#374151",
+  },
+  selectedChipRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+  },
+  selectedChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EDE9FE",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 6,
+  },
+  selectedChipText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#6D28D9",
+  },
+  filterChipScroll: {
+    marginBottom: 4,
+  },
+  filterChip: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 16,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    marginRight: 6,
+  },
+  filterChipActive: {
+    backgroundColor: "#6D28D9",
+  },
+  filterChipText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#6B7280",
+  },
+  filterChipTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  datePresetRow: {
+    flexDirection: "row",
+    gap: 6,
+    flexWrap: "wrap",
+  },
+  datePresetChip: {
+    backgroundColor: "#F3F4F6",
+    borderRadius: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  datePresetChipActive: {
+    backgroundColor: "#6D28D9",
+  },
+  datePresetText: {
+    fontSize: 13,
+    fontWeight: "500",
+    color: "#6B7280",
+  },
+  datePresetTextActive: {
+    color: "#fff",
+    fontWeight: "600",
+  },
+  toggleRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F3F4F6",
+  },
+  toggleInfo: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+  },
+  toggleLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#374151",
+  },
+  toggleLabelActive: {
+    color: "#6D28D9",
+    fontWeight: "600",
+  },
+  toggleSwitch: {
+    width: 42,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#D1D5DB",
+    justifyContent: "center",
+    paddingHorizontal: 2,
+  },
+  toggleSwitchOn: {
+    backgroundColor: "#6D28D9",
+  },
+  toggleKnob: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    backgroundColor: "#fff",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  toggleKnobOn: {
+    alignSelf: "flex-end",
   },
 });
 

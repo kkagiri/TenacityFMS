@@ -101,6 +101,18 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     throw new Exception("AssignTo user is required");
                 }
 
+                // Validate and truncate field lengths to prevent DB overflow
+                if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemTitle) && request.IssueTrackerDto.ProblemTitle.Length > 255)
+                {
+                    _logger.LogWarning("ProblemTitle truncated from {OriginalLength} to 255 characters", request.IssueTrackerDto.ProblemTitle.Length);
+                    request.IssueTrackerDto.ProblemTitle = request.IssueTrackerDto.ProblemTitle[..255];
+                }
+                if (!string.IsNullOrEmpty(request.IssueTrackerDto.ProblemDescription) && request.IssueTrackerDto.ProblemDescription.Length > 2000)
+                {
+                    _logger.LogWarning("ProblemDescription truncated from {OriginalLength} to 2000 characters", request.IssueTrackerDto.ProblemDescription.Length);
+                    request.IssueTrackerDto.ProblemDescription = request.IssueTrackerDto.ProblemDescription[..2000];
+                }
+
                 // Map DTO to Entity
                 Issuetracker issueEntity = new Issuetracker
                 {

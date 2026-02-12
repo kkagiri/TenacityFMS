@@ -347,7 +347,8 @@ namespace FMS.BackgroundServices.TankReconciliation
 
         private async Task ExecuteDailyAggregationAsync(CancellationToken cancellationToken)
         {
-            var reconciliationDate = DateTime.Today.AddDays(-1); // Process yesterday's data
+            // Use UTC boundaries because backend dates are stored in UTC (see System.instructions.md)
+            var reconciliationDate = DateTime.UtcNow.Date.AddDays(-1); // Process yesterday's data (UTC)
             var startTime = DateTime.UtcNow;
             var processedTanks = 0;
             var failedTanks = 0;
@@ -403,11 +404,13 @@ namespace FMS.BackgroundServices.TankReconciliation
             DateTime reconciliationDate,
             CancellationToken cancellationToken)
         {
-            var startOfDay = reconciliationDate.Date;
-            var endOfDay = startOfDay.AddDays(1).AddSeconds(-1);
+            var startOfDayUtc = DateTime.SpecifyKind(reconciliationDate.Date, DateTimeKind.Utc);
+            var startOfNextDayUtc = startOfDayUtc.AddDays(1);
 
             var existingRecord = await context.Dailytankreconciliations
-                .FirstOrDefaultAsync(dtr => dtr.TankId == tank.Id && dtr.ReconciliationDate.Date == reconciliationDate.Date, cancellationToken);
+                .FirstOrDefaultAsync(
+                    dtr => dtr.TankId == tank.Id && dtr.ReconciliationDate >= startOfDayUtc && dtr.ReconciliationDate < startOfNextDayUtc,
+                    cancellationToken);
 
             // Get opening/closing levels
             decimal? openingLevel = null;
@@ -421,7 +424,7 @@ namespace FMS.BackgroundServices.TankReconciliation
             else
             {
                 var previousDayRecord = await context.Dailytankreconciliations
-                    .Where(dtr => dtr.TankId == tank.Id && dtr.ReconciliationDate.Date == reconciliationDate.AddDays(-1).Date)
+                    .Where(dtr => dtr.TankId == tank.Id && dtr.ReconciliationDate >= startOfDayUtc.AddDays(-1) && dtr.ReconciliationDate < startOfDayUtc)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 if (previousDayRecord != null)
@@ -431,36 +434,60 @@ namespace FMS.BackgroundServices.TankReconciliation
                 else
                 {
                     var openingMeasurement = await context.Tankmeasurements
-                        .Where(tm => tm.TankId == tank.Id && tm.DateTime <= startOfDay)
+                        .Where(tm => tm.TankId == tank.Id && tm.DateTime < startOfDayUtc)
                         .OrderByDescending(tm => tm.DateTime)
                         .FirstOrDefaultAsync(cancellationToken);
 
                     openingLevel = openingMeasurement?.ProductVolume.HasValue == true ? (decimal)openingMeasurement.ProductVolume.Value : null;
+
+                    // If there are no measurements before the start of the day, fall back to the first measurement within the day.
+                    if (openingLevel == null)
+                    {
+                        var firstMeasurementWithinDay = await context.Tankmeasurements
+                            .Where(tm => tm.TankId == tank.Id && tm.DateTime >= startOfDayUtc && tm.DateTime < startOfNextDayUtc)
+                            .OrderBy(tm => tm.DateTime)
+                            .FirstOrDefaultAsync(cancellationToken);
+
+                        openingLevel = firstMeasurementWithinDay?.ProductVolume.HasValue == true ? (decimal)firstMeasurementWithinDay.ProductVolume.Value : null;
+                    }
                 }
 
                 var closingMeasurement = await context.Tankmeasurements
-                    .Where(tm => tm.TankId == tank.Id && tm.DateTime >= startOfDay && tm.DateTime <= endOfDay)
+                    .Where(tm => tm.TankId == tank.Id && tm.DateTime < startOfNextDayUtc)
                     .OrderByDescending(tm => tm.DateTime)
                     .FirstOrDefaultAsync(cancellationToken);
 
                 closingLevel = closingMeasurement?.ProductVolume.HasValue == true ? (decimal?)closingMeasurement.ProductVolume : null;
             }
 
+            // Ensure we never persist a NULL ClosingLevel (some environments have NOT NULL constraint in MySQL).
+            // If there are no measurements during the day, treat the closing level as unchanged from opening.
+            if (closingLevel == null && openingLevel != null)
+            {
+                closingLevel = openingLevel;
+            }
+
+            // If opening is missing but closing is known, align opening to closing.
+            if (openingLevel == null && closingLevel != null)
+            {
+                openingLevel = closingLevel;
+            }
+
             // Calculate totals from TankVolumeHistory
             var totalRefills = await context.TankVolumeHistories
-                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && (td.ChangeReason == VolumeChangeReasonEnum.Dispensing || td.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing))
+                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDayUtc && td.CreatedOn < startOfNextDayUtc && (td.ChangeReason == VolumeChangeReasonEnum.Dispensing || td.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing))
                 .SumAsync(td => (decimal?)td.VolumeChange, cancellationToken) ?? 0;
 
             var totalDeliveries = await context.TankVolumeHistories
-                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && td.ChangeReason == VolumeChangeReasonEnum.Delivery)
+                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDayUtc && td.CreatedOn < startOfNextDayUtc && td.ChangeReason == VolumeChangeReasonEnum.Delivery)
                 .SumAsync(td => (decimal?)td.VolumeChange, cancellationToken) ?? 0;
 
             var totalTransfersIn = await context.TankVolumeHistories
-                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && td.ChangeReason == VolumeChangeReasonEnum.TransferIn)
+                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDayUtc && td.CreatedOn < startOfNextDayUtc && td.ChangeReason == VolumeChangeReasonEnum.TransferIn)
                 .SumAsync(td => (decimal?)td.VolumeChange, cancellationToken) ?? 0;
 
             var totalTransfersOut = await context.TankVolumeHistories
-                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDay && td.CreatedOn <= endOfDay && td.ChangeReason == VolumeChangeReasonEnum.TransferOut)
+                .Where(td => td.TankId == tank.Id && td.CreatedOn >= startOfDayUtc && td.CreatedOn < startOfNextDayUtc && td.ChangeReason == VolumeChangeReasonEnum.TransferOut)
                 .SumAsync(td => (decimal?)td.VolumeChange, cancellationToken) ?? 0;
 
             // Create or update record
@@ -472,13 +499,37 @@ namespace FMS.BackgroundServices.TankReconciliation
                 existingRecord.TotalDeliveries = totalDeliveries;
                 existingRecord.TotalTransfersIn = totalTransfersIn;
                 existingRecord.TotalTransfersOut = totalTransfersOut;
+
+                if (existingRecord.ClosingLevel == null)
+                {
+                    var fallbackClosingLevel = existingRecord.OpeningLevel ?? 0m;
+                    _logger.LogWarning(
+                        "Daily aggregation fallback: ClosingLevel is NULL for TankId={TankId} on {Date}. Using fallback ClosingLevel={Fallback}.",
+                        tank.Id,
+                        startOfDayUtc,
+                        fallbackClosingLevel);
+
+                    existingRecord.ClosingLevel = fallbackClosingLevel;
+                }
             }
             else
             {
+                if (closingLevel == null)
+                {
+                    var fallbackClosingLevel = openingLevel ?? 0m;
+                    _logger.LogWarning(
+                        "Daily aggregation fallback: ClosingLevel is NULL for TankId={TankId} on {Date}. Using fallback ClosingLevel={Fallback}.",
+                        tank.Id,
+                        startOfDayUtc,
+                        fallbackClosingLevel);
+
+                    closingLevel = fallbackClosingLevel;
+                }
+
                 var newRecord = new Dailytankreconciliation
                 {
                     TankId = tank.Id,
-                    ReconciliationDate = reconciliationDate,
+                    ReconciliationDate = startOfDayUtc,
                     OpeningLevel = openingLevel,
                     ClosingLevel = closingLevel,
                     TotalRefills = totalRefills,
@@ -602,6 +653,35 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 foreach (var tankStock in tankStockData)
                 {
+                    var openingLevel = tankStock.ManualOpeningLevel
+                        ?? tankStock.SensorOpeningLevel
+                        ?? tankStock.ManualClosingLevel
+                        ?? tankStock.SensorClosingLevel;
+
+                    var closingLevel = tankStock.ManualClosingLevel
+                        ?? tankStock.SensorClosingLevel
+                        ?? tankStock.ManualOpeningLevel
+                        ?? tankStock.SensorOpeningLevel;
+
+                    if (closingLevel == null && openingLevel != null)
+                    {
+                        closingLevel = openingLevel;
+                    }
+
+                    if (openingLevel == null && closingLevel != null)
+                    {
+                        openingLevel = closingLevel;
+                    }
+
+                    if (closingLevel == null)
+                    {
+                        closingLevel = 0m;
+                        _logger.LogWarning(
+                            "TankStock → DailyTankReconciliation fallback: ClosingLevel is NULL for TankId={TankId} on {Date}. Using ClosingLevel=0.",
+                            tankStock.TankId,
+                            date);
+                    }
+
                     var existingReconciliation = await context.Dailytankreconciliations
                         .FirstOrDefaultAsync(r => r.TankId == tankStock.TankId && r.ReconciliationDate.Date == date, cancellationToken);
 
@@ -614,8 +694,8 @@ namespace FMS.BackgroundServices.TankReconciliation
                             TankId = tankStock.TankId,
                             ReconciliationDate = date,
                             CreatedOn = DateTime.UtcNow,
-                            OpeningLevel = tankStock.ManualOpeningLevel,
-                            ClosingLevel = tankStock.ManualClosingLevel,
+                            OpeningLevel = openingLevel,
+                            ClosingLevel = closingLevel,
                             TotalDeliveries = tankStock.DeliveryAmount,
                             TotalTransfersIn = tankStock.TransferInAmount,
                             TotalTransfersOut = tankStock.TransferOutAmount,
@@ -625,8 +705,8 @@ namespace FMS.BackgroundServices.TankReconciliation
                     }
                     else
                     {
-                        existingReconciliation.OpeningLevel = tankStock.ManualOpeningLevel;
-                        existingReconciliation.ClosingLevel = tankStock.ManualClosingLevel;
+                        existingReconciliation.OpeningLevel = openingLevel;
+                        existingReconciliation.ClosingLevel = closingLevel;
                         existingReconciliation.TotalDeliveries = tankStock.DeliveryAmount;
                         existingReconciliation.TotalTransfersIn = tankStock.TransferInAmount;
                         existingReconciliation.TotalTransfersOut = tankStock.TransferOutAmount;

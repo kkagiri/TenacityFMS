@@ -8,11 +8,11 @@
  * File: VehicleDetailsScreen.js
  * Purpose: Main screen for viewing vehicle details with search, GPS info, consumption, and fueling history
  * Similar functionality to web VehicleDetails.js
- * Last Modified: 2026-01-16
+ * Last Modified: 2026-02-12
  *
  * Notes:
- * - Vehicle editing is admin-only and requires web portal access
- * - Mobile app provides view-only access to vehicle information
+ * - Tank capacity editing in Vehicle Info is admin-only
+ * - Other vehicle details remain view-only in mobile
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -48,8 +48,8 @@ const TABS = [
 ];
 
 const VehicleDetailsScreen = ({ navigation, route }) => {
-  // Permissions - check _Edit_Vehicle permission from JWT token
-  const { canEditVehicle } = usePermissions();
+  // Permissions - tank editing is admin-only in mobile UI
+  const { isAdmin } = usePermissions();
 
   // State
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -217,7 +217,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         return (
           <VehicleInformation
             vehicle={selectedVehicle}
-            canEdit={canEditVehicle}
+            canEdit={isAdmin}
             onVehicleUpdated={handleVehicleUpdated}
           />
         );
@@ -231,7 +231,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         return (
           <VehicleInformation
             vehicle={selectedVehicle}
-            canEdit={canEditVehicle}
+            canEdit={isAdmin}
             onVehicleUpdated={handleVehicleUpdated}
           />
         );

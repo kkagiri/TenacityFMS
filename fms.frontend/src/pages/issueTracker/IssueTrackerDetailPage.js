@@ -754,6 +754,7 @@ const IssueTrackerDetailPage = () => {
               <input
                 id="issue-title"
                 type="text"
+                maxLength={255}
                 className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-text-gray-800 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200 focus:tw-border-blue-500"
                 value={editData.problemTitle}
                 onChange={(event) => handleEditFieldChange('problemTitle', event.target.value)}

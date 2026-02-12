@@ -2,9 +2,10 @@
  * VehicleInformation.js
  * Purpose: Display comprehensive vehicle information
  * Admin users can edit fuel tank capacity
+ * Last Modified: 2026-02-12
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
@@ -33,6 +34,14 @@ const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
   }
 
   const handleEditCapacity = () => {
+    if (!canEdit) {
+      Alert.alert(
+        "Permission Denied",
+        "Only administrators can edit tank capacity."
+      );
+      return;
+    }
+
     const currentCapacity =
       vehicle.fuelTankCapacity || vehicle.tankCapacity || "";
     setCapacityValue(String(currentCapacity));
@@ -45,6 +54,14 @@ const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
   };
 
   const handleSaveCapacity = async () => {
+    if (!canEdit) {
+      Alert.alert(
+        "Permission Denied",
+        "Only administrators can edit tank capacity."
+      );
+      return;
+    }
+
     const newCapacity = parseFloat(capacityValue);
     if (isNaN(newCapacity) || newCapacity <= 0) {
       Alert.alert("Invalid Value", "Please enter a valid tank capacity.");
@@ -183,8 +200,8 @@ const VehicleInformation = ({ vehicle, canEdit = false, onVehicleUpdated }) => {
         />
         <Text style={[styles.adminNoticeText, canEdit && styles.adminNoticeTextEditable]}>
           {canEdit
-            ? "Edit mode: Tap the pencil icon to edit tank capacity."
-            : "View-only. Editing requires Edit Vehicle permission."
+            ? "Admin mode: Tap the pencil icon to edit tank capacity."
+            : "View-only. Editing requires admin permission."
           }
         </Text>
       </View>
