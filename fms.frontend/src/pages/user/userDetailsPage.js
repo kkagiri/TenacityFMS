@@ -7,7 +7,7 @@
  * Key Functions/Components:
  * - UserDetailsPage: Displays user details, recent activities, and management actions
  */
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useParams, useNavigate } from "react-router-dom";
 import {
@@ -46,8 +46,26 @@ import Form, {
 import notify from "devextreme/ui/notify";
 import "./userDetailsPage.scss";
 
+// Hook to detect mobile viewport
+const useIsMobile = (breakpoint = 768) => {
+  const [isMobile, setIsMobile] = useState(
+    typeof window !== 'undefined' ? window.innerWidth < breakpoint : false
+  );
+
+  useEffect(() => {
+    const mql = window.matchMedia(`(max-width: ${breakpoint - 1}px)`);
+    const handler = (e) => setIsMobile(e.matches);
+    setIsMobile(mql.matches);
+    mql.addEventListener('change', handler);
+    return () => mql.removeEventListener('change', handler);
+  }, [breakpoint]);
+
+  return isMobile;
+};
+
 const UserDetailsPage = () => {
   const { id } = useParams();
+  const isMobile = useIsMobile();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -560,8 +578,9 @@ const UserDetailsPage = () => {
         onHiding={() => setShowEditPopup(false)}
         title="Edit User"
         showCloseButton={true}
-        width={600}
-        height={500}
+        fullScreen={isMobile}
+        width={isMobile ? '100%' : 600}
+        height={isMobile ? '100%' : 500}
       >
         <div className="tw-p-4">
           <Form
@@ -634,37 +653,49 @@ const UserDetailsPage = () => {
             <GroupItem caption="Mobile App Settings">
               <SimpleItem
                 dataField="bypassLocationValidation"
-                editorType="dxSwitch"
-                editorOptions={{
-                  switchedOnText: "YES",
-                  switchedOffText: "NO",
-                }}
                 label={{ text: "Bypass GPS/Location Validation" }}
                 helpText="Enable for users in low GPS/network coverage areas"
-              />
-            </GroupItem>
-
-            <GroupItem cssClass="tw-flex tw-justify-between tw-gap-4">
-              <ButtonItem
-                horizontalAlignment="left"
-                buttonOptions={{
-                  text: "Change Password",
-                  type: "normal",
-                  icon: "key",
-                  onClick: () => setShowPasswordPopup(true),
-                }}
-              />
-              <ButtonItem
-                horizontalAlignment="right"
-                buttonOptions={{
-                  text: "Save Changes",
-                  type: "default",
-                  onClick: handleSaveUser,
-                  disabled: saving,
-                }}
+                render={() => (
+                  <div className="tw-flex tw-items-center tw-gap-3">
+                    <label className="toggle-switch">
+                      <input
+                        type="checkbox"
+                        checked={!!editFormData.bypassLocationValidation}
+                        onChange={(e) =>
+                          setEditFormData((prev) => ({
+                            ...prev,
+                            bypassLocationValidation: e.target.checked,
+                          }))
+                        }
+                      />
+                      <span className="toggle-slider"></span>
+                    </label>
+                    <span className="tw-text-sm tw-text-gray-600">
+                      {editFormData.bypassLocationValidation ? "YES" : "NO"}
+                    </span>
+                  </div>
+                )}
               />
             </GroupItem>
           </Form>
+
+          {/* Action buttons outside the Form for proper side-by-side layout */}
+          <div className="tw-flex tw-justify-between tw-items-center tw-gap-3 tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
+            <Button
+              text="Change Password"
+              icon="key"
+              type="normal"
+              stylingMode="outlined"
+              onClick={() => setShowPasswordPopup(true)}
+            />
+            <Button
+              text="Save Changes"
+              type="default"
+              stylingMode="contained"
+              onClick={handleSaveUser}
+              disabled={saving}
+            />
+          </div>
         </div>
       </Popup>
 
@@ -673,8 +704,9 @@ const UserDetailsPage = () => {
         onHiding={() => setShowSitesPopup(false)}
         title={`Manage Sites for ${user.userName}`}
         showCloseButton={true}
-        width={800}
-        height={600}
+        fullScreen={isMobile}
+        width={isMobile ? '100%' : 800}
+        height={isMobile ? '100%' : 600}
       >
         <div className="tw-flex tw-flex-col tw-h-full">
           <div className="tw-p-4 tw-border-b">
@@ -751,15 +783,16 @@ const UserDetailsPage = () => {
       <Popup
         visible={showActivitiesPopup}
         onHiding={() => setShowActivitiesPopup(false)}
-        title={`Activity Log for ${user.userName}`}
+        title={isMobile ? 'Activity Log' : `Activity Log for ${user.userName}`}
         showCloseButton={true}
-        width={1000}
-        height={700}
+        fullScreen={isMobile}
+        width={isMobile ? '100%' : 1000}
+        height={isMobile ? '100%' : 700}
       >
         <div className="tw-flex tw-flex-col tw-h-full">
           <div className="tw-p-4 tw-border-b">
-            <div className="tw-flex tw-flex-wrap tw-gap-4">
-              <div className="tw-flex-1 tw-min-w-64">
+            <div className="tw-flex tw-flex-wrap tw-gap-2 sm:tw-gap-4">
+              <div className="tw-w-full sm:tw-flex-1 sm:tw-min-w-64">
                 <TextBox
                   placeholder="Search activities..."
                   mode="search"
@@ -777,7 +810,7 @@ const UserDetailsPage = () => {
                 value={actionFilter}
                 onValueChanged={(e) => setActionFilter(e.value)}
                 placeholder="Filter by action"
-                width={180}
+                width={isMobile ? '100%' : 180}
               />
 
               <SelectBox
@@ -787,7 +820,7 @@ const UserDetailsPage = () => {
                 value={controllerFilter}
                 onValueChanged={(e) => setControllerFilter(e.value)}
                 placeholder="Filter by controller"
-                width={180}
+                width={isMobile ? '100%' : 180}
               />
 
               <SelectBox
@@ -797,7 +830,7 @@ const UserDetailsPage = () => {
                 value={dateFilter}
                 onValueChanged={(e) => setDateFilter(e.value)}
                 placeholder="Filter by date"
-                width={180}
+                width={isMobile ? '100%' : 180}
               />
             </div>
           </div>
@@ -868,8 +901,9 @@ const UserDetailsPage = () => {
         }}
         title="Change Password"
         showCloseButton={true}
-        width={400}
-        height="auto"
+        fullScreen={isMobile}
+        width={isMobile ? '100%' : 400}
+        height={isMobile ? '100%' : 'auto'}
       >
         <div className="tw-p-4">
           <Form

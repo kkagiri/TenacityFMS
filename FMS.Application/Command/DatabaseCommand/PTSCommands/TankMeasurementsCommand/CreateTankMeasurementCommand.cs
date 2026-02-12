@@ -68,7 +68,9 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                         validationErrors.Add("Valid fuel grade ID is required");
                     }
 
-                    if (string.IsNullOrEmpty(request.TankMeasurementDto.PtsId))
+                    // PtsId may not be set yet (enrichment is fire-and-forget);
+                    // fallback to DeviceId which is always available
+                    if (string.IsNullOrEmpty(request.TankMeasurementDto.PtsId) && string.IsNullOrEmpty(request.DeviceId))
                     {
                         validationErrors.Add("PTS device ID is required");
                     }
@@ -80,6 +82,12 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                 }
 
                 var tankMeasurementDto = request.TankMeasurementDto;
+
+                // Ensure PtsId is set from DeviceId if the enrichment task hasn't set it yet
+                if (string.IsNullOrEmpty(tankMeasurementDto.PtsId))
+                {
+                    tankMeasurementDto.PtsId = request.DeviceId;
+                }
 
                 //Cursor: Try to find the actual Tank entity to link
                 var tank = await _context.Tanks
@@ -116,6 +124,32 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                         _logger.LogInformation("Updated physical stock from sensor for Tank {TankId}: {PhysicalStock}L (Source: {Source})",
                             tank.Id, tank.PhysicalStockValue, tank.PhysicalStockSource);
                     }
+                }
+
+                // Duplicate detection: skip if a measurement with the same DateTime + Tank + PtsId already exists
+                var isDuplicate = await _context.Tankmeasurements
+                    .AnyAsync(tm => tm.Ptsid == tankMeasurementDto.PtsId
+                                 && tm.Tank == tankMeasurementDto.Tank
+                                 && tm.DateTime == tankMeasurementDto.DateTime, cancellationToken);
+
+                if (isDuplicate)
+                {
+                    _logger.LogDebug("Skipping duplicate tank measurement for device {DeviceId}, tank {Tank}, dateTime {DateTime}",
+                        request.DeviceId, tankMeasurementDto.Tank, tankMeasurementDto.DateTime);
+                    return FMSResponse.SuccessResponse("Duplicate measurement skipped");
+                }
+
+                // Warn if measurement has no useful probe data
+                bool hasMeasurementData = tankMeasurementDto.ProductVolume.HasValue
+                    || tankMeasurementDto.ProductHeight.HasValue
+                    || tankMeasurementDto.Temperature.HasValue
+                    || tankMeasurementDto.WaterHeight.HasValue
+                    || (tankMeasurementDto.ProductMass.HasValue && tankMeasurementDto.ProductMass.Value > 0);
+
+                if (!hasMeasurementData)
+                {
+                    _logger.LogWarning("Tank measurement from device {DeviceId}, tank {Tank} has no probe data (ProductVolume, Temperature, Heights all null, ProductMass={ProductMass}). ATG probe may not be connected or configured.",
+                        request.DeviceId, tankMeasurementDto.Tank, tankMeasurementDto.ProductMass);
                 }
 
                 //Cursor: Log alarm info (Alarm table removed - alarm type names stored for reference)

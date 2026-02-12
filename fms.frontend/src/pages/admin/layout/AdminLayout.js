@@ -27,16 +27,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Permission Management",
         subtitle: "Set system access permissions",
       };
-    } else if (pathname.includes("/navigation")) {
-      return {
-        title: "Navigation Management",
-        subtitle: "Configure system navigation menu",
-      };
-    } else if (pathname.includes("/task-management")) {
-      return {
-        title: "Task Management",
-        subtitle: "Manage tasks, templates, and task types",
-      };
     } else if (pathname.includes("/tags")) {
       return {
         title: "Tag Management",
@@ -147,20 +137,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Permissions",
       icon: "fa-light fa-key",
       path: adminRoutes.permissions,
-      badge: null,
-    },
-    {
-      id: "navigation",
-      title: "Navigation",
-      icon: "fa-light fa-link",
-      path: adminRoutes.navigation,
-      badge: null,
-    },
-    {
-      id: "task-management",
-      title: "Task Management",
-      icon: "fa-light fa-tasks",
-      path: adminRoutes.taskManagement,
       badge: null,
     },
     {

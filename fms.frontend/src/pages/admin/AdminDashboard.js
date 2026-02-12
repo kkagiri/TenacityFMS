@@ -78,13 +78,6 @@ const AdminDashboard = () => {
       color: 'tw-text-orange-600'
     },
     {
-      title: 'Navigation Management',
-      description: 'Manage system navigation and menus',
-      icon: 'fa-light fa-compass',
-      route: getAdminRoute('navigation'),
-      color: 'tw-text-teal-600'
-    },
-    {
       title: 'Permissions Management',
       description: 'Configure system permissions',
       icon: 'fa-light fa-key',
