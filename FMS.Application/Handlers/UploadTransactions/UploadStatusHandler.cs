@@ -59,8 +59,8 @@ namespace FMS.Application.Handlers
                     {
                         Id = originalPacketId,
                         Type = packet.Type,
-                        Error = !result.Success,
-                        Message = result.Message
+                        Error = result.Success ? null : true,
+                        Message = result.Success ? "OK" : result.Message
                     };
                     // Important: Checks if there's a pending command in the response
                     if (result.Success && !string.IsNullOrEmpty(result.CommandType) && result.CommandData != null)

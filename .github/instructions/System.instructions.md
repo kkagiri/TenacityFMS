@@ -1,5 +1,15 @@
 # AI Agent Development Instructions - FMS System
 
+## Short Must-Do
+
+- MySQL scripts must be written for MySQL v5.5 compatibility only.
+- SQL table definitions must match the corresponding EntityConfiguration table mapping exactly.
+- Before any data update, inspect the target table first using MCP MySQL tools.
+- Frontend dynamic navigation is deprecated; do not implement or rely on it.
+- If more than 3 buttons appear in one line on a page, use a button group.
+- All frontend elements must be compatible with small mobile devices.
+- Do not write documentation unless explicitly requested by the user.
+
 ## 🚨 CRITICAL RULES - READ FIRST
 
 ### 1. **NEVER REPEAT EXISTING CODE**
@@ -571,6 +581,8 @@ const getVehicles = async () => {
 - `package.json` - Frontend dependencies
 - `tailwind.config.js` - Styling configuration
 - `axiosInstance.js` - API communication setup
+- `FmsLoggingConfiguration.cs` - WebClient Serilog logging configuration
+- `PTSLoggingConfiguration.cs` - PTS Windows Service Serilog logging configuration
 - Existing feature folders - Implementation patterns
 
 ## Important Notes
@@ -579,6 +591,98 @@ const getVehicles = async () => {
 - **Real-time updates** - Use SignalR for live data
 - **Role-based access** - Implement proper permission checks
 - **Environment configuration** - Use appropriate environment files
+
+---
+
+## Logging Architecture & Usage Guide
+
+### Overview
+Logging is managed via **code-based Serilog configuration classes** — NOT via `appsettings.json` `WriteTo` sections. The `appsettings.json` only contains `MinimumLevel` and `Enrich` settings. All log routing, filtering, and file sinks are defined in dedicated configuration classes.
+
+### Configuration Files (DO NOT use appsettings.json for log sinks)
+| Project | Configuration Class | Location |
+|---------|-------------------|----------|
+| FMS.WebClient | `FmsLoggingConfiguration` | `FMS.WebClient/Extensions/FmsLoggingConfiguration.cs` |
+| FMS.PTS.WindowsService | `PTSLoggingConfiguration` | `FMS.PTS.WindowsService/Infrastructure/Logging/PTSLoggingConfiguration.cs` |
+
+### Log Output Template
+All log entries MUST include `({SourceContext})` to show the originating class:
+```
+{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}
+```
+
+### WebClient Log Folder Structure (`C:\Logs\FMS.Webclient\`)
+```
+C:\Logs\FMS.Webclient\
+├── app/          - ALL logs (unified, for correlation) — 7-day retention
+├── errors/       - Errors & Fatals only — 14-day retention
+├── gps/          - GPS/Vehicle tracking (GPSGate, stale positions)
+├── fuel/         - Fuel & Tank operations (refills, stock, transfers)
+├── signalr/      - SignalR & Hub events (ptsHub, dashboardHub)
+├── issues/       - Issue tracker (OnlineChecker, auto-created issues)
+├── efcore/       - EF Core SQL commands — 3-day retention
+├── audit/        - HTTP request audit trail (REQ POST/GET with timing)
+└── startup/      - Application startup logs
+```
+
+all logs must start with source context of the class that generated them, and be routed to the appropriate category based on keywords in the source context or message content.
+
+### PTS Log Folder Structure (`C:\Logs\FMS.PTS\`)
+```
+C:\Logs\FMS.PTS\
+├── (root)         - Main unified JSON log (all events) — uses LocalTimeJsonFormatter (UTC+3)
+├── device-raw/    - Raw WebSocket messages from PTS devices — 7-day retention
+├── commands/      - Redis commands, pump commands, command execution — 7-day retention
+├── transactions/  - Pump transactions, tank measurements, volume changes — 14-day retention
+├── errors/        - Errors & Fatals only — 60-day retention
+└── connections/   - Device connections, disconnections, health checks — 7-day retention
+```
+
+### How Log Routing Works
+Logs are routed using **Serilog sub-loggers** with `Filter.ByIncludingOnly`. Each category logger checks:
+1. **SourceContext** — The fully qualified class name that wrote the log (via `ILogger<T>`)
+2. **Message content** — Keywords in the rendered log message
+
+A log entry matches a category if its SourceContext contains ANY of the configured keywords, OR its message contains ANY of the configured keywords.
+
+### Adding a New Log Category (Agent Instructions)
+When creating a new feature that needs dedicated logging:
+
+**For WebClient** — Edit `FMS.WebClient/Extensions/FmsLoggingConfiguration.cs`:
+1. Add the sub-directory name to the `EnsureDirectories()` method's `subDirs` array
+2. Add a new `AddCategoryLogger()` call in the `ConfigureLogging()` method:
+```csharp
+// ─── NEW_CATEGORY: Description of what goes here ───
+AddCategoryLogger(lc, "new-category", "new-category-.log",
+    sourceContextContains: new[] { "ClassNameKeyword1", "ClassNameKeyword2" },
+    messageContains: new[] { "messageKeyword1", "messageKeyword2" },
+    retainDays: 7);
+```
+
+**For PTS** — Edit `FMS.PTS.WindowsService/Infrastructure/Logging/PTSLoggingConfiguration.cs`:
+1. Add the sub-directory name to the `SubDirectories` array
+2. Add a new `AddCategoryLogger()` call in `ConfigureFinalLogging()`:
+```csharp
+AddCategoryLogger(loggerConfig, effectiveLogDirectory, "new-category",
+    $"new-category-{timestamp}.log", formatter, maxFileSize, retainedDays,
+    sourceContextContains: new[] { "ClassNameKeyword1" },
+    messageContains: new[] { "messageKeyword1" });
+```
+
+### Logging Rules for AI Agent
+1. **DO NOT add log sinks to `appsettings.json`** — All sinks are code-based
+2. **DO NOT modify output templates** without ensuring `({SourceContext})` is present
+3. **Always use `ILogger<T>`** in classes (never raw `Log.Information()`) so SourceContext is populated
+4. **Check existing categories** before creating new ones — a log may already be routed
+5. **Use appropriate log levels**:
+   - `LogEventLevel.Verbose` / `LogEventLevel.Debug` — Development diagnostics
+   - `LogEventLevel.Information` — Business events (transactions, connections, operations)
+   - `LogEventLevel.Warning` — Recoverable issues (retries, degraded performance)
+   - `LogEventLevel.Error` — Failures requiring attention
+   - `LogEventLevel.Fatal` — Application crash scenarios
+6. **Retention policy**: EF Core logs = 3 days, errors = 14-60 days, others = 7 days
+7. **Max file size**: 50MB per file (WebClient), 10MB per file (PTS) — rolls on size limit
+8. **PTS uses JSON format** (`LocalTimeJsonFormatter` with UTC+3) — WebClient uses text format
 
 ---
 
@@ -903,6 +1007,8 @@ FMS.Application/Features/EventExpressionEngine/
 └── Validators/         # CreateEventExpressionValidator, UpdateEventExpressionValidator
 ```
 
+
+
 ### Key Backend Service
 ```csharp
 // IEventExpressionEngine.ProcessAsync() — call this wherever events need evaluation
@@ -937,6 +1043,10 @@ fms.frontend/src/
     └── eventExpressionSlice.js       # Redux slice
 ```
 
+
+
+
+
 ### Frontend Route
 - URL: `/event-expressions` (Content.js + app-routes.js)
 - AppDrawer: "Events" module at `/event-expressions`
@@ -948,3 +1058,34 @@ fms.frontend/src/
 
 ### Wiring Guide
 See: `documentation/features/eventengine/event-expression-wiring/V1/implementation/README.md` for all 15 TODO locations where `IEventExpressionEngine.ProcessAsync()` needs to be called.
+
+
+
+# System Configuration
+all Added config key or System config key must have a database entry .. below is code ..
+TABLE `systemconfigurations` (
+	`Id` INT(11) NOT NULL AUTO_INCREMENT,
+	`ConfigurationKey` VARCHAR(191) NOT NULL COLLATE 'utf8mb4_unicode_ci',
+	`ConfigurationValue` VARCHAR(1000) NOT NULL COLLATE 'utf8mb4_unicode_ci',
+	`Description` VARCHAR(500) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`DataType` VARCHAR(50) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`IsActive` TINYINT(1) NOT NULL DEFAULT '1',
+	`IsEditable` TINYINT(1) NOT NULL DEFAULT '1',
+	`Category` VARCHAR(100) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`CreatedAt` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+	`UpdatedAt` TIMESTAMP NOT NULL DEFAULT '0000-00-00 00:00:00',
+	`CreatedBy` VARCHAR(100) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`UpdatedBy` VARCHAR(100) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`ValidationPattern` VARCHAR(191) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	`MinValue` DOUBLE NULL DEFAULT NULL,
+	`MaxValue` DOUBLE NULL DEFAULT NULL,
+	`DefaultValue` VARCHAR(1000) NULL DEFAULT NULL COLLATE 'utf8mb4_unicode_ci',
+	PRIMARY KEY (`Id`) USING BTREE,
+	UNIQUE INDEX `IX_SystemConfigurations_ConfigurationKey` (`ConfigurationKey`) USING BTREE,
+	INDEX `IX_SystemConfigurations_Category` (`Category`) USING BTREE,
+	INDEX `IX_SystemConfigurations_IsActive_ConfigurationKey` (`IsActive`, `ConfigurationKey`) USING BTREE
+)
+COLLATE='utf8mb4_unicode_ci'
+ENGINE=InnoDB
+AUTO_INCREMENT=189
+;

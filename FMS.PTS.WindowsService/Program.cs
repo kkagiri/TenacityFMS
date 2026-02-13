@@ -28,6 +28,7 @@ using FMS.Application.Validation.PTSValidators.Common;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket;
+using FMS.PTS.WindowsService.Infrastructure.Logging;
 using FMS.PTS.WindowsService.Services.Pump;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
@@ -82,7 +83,11 @@ namespace FMS.PTS.WindowsService
 
                 var host = CreateHostBuilder(args, environment).Build();
 
-                ConfigureFinalLogging(host.Services.GetRequiredService<IConfiguration>(), environment); // Separate method
+                // All PTS log routing is configured in PTSLoggingConfiguration - one place to manage all log files
+                var ptsConfig = host.Services.GetRequiredService<IConfiguration>()
+                    .GetSection(PTSServiceSettings.ConfigurationSection)
+                    .Get<PTSServiceSettings>();
+                PTSLoggingConfiguration.ConfigureFinalLogging(ptsConfig!, environment);
 
                 Log.Information("Starting service execution");
                 await host.RunAsync();
@@ -254,184 +259,7 @@ namespace FMS.PTS.WindowsService
             // services.AddAuthorization(...);
         }
 
-        private static void ConfigureFinalLogging(IConfiguration configuration, string environment)
-        {
-            var ptsConfig = configuration.GetSection("PTSService").Get<PTSServiceSettings>();
-            if (ptsConfig?.Logging == null)
-            {
-                throw new InvalidOperationException("Logging configuration is missing in appsettings");
-            }
-
-            var loggerConfig = new LoggerConfiguration()
-                .MinimumLevel.Is(GetLogEventLevel(ptsConfig.Logging.MinimumLevel))
-                .MinimumLevel.Override("Microsoft", LogEventLevel.Warning)
-                .MinimumLevel.Override("System", LogEventLevel.Warning)
-                .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
-                .MinimumLevel.Override("Pomelo.EntityFrameworkCore.MySql", LogEventLevel.Error)
-                .Enrich.FromLogContext()
-                .Enrich.WithEnvironmentName()
-                .Enrich.WithMachineName();
-
-            // Production-specific overrides to reduce log volume
-            if (environment == "Production")
-            {
-                // Reduce WebSocket listener verbosity - only warnings and errors
-                loggerConfig.MinimumLevel.Override("FMS.PTS.WindowsService.Infrastructure.Communication.WebSocket.PTSWebSocketListenerService", LogEventLevel.Warning);
-
-                // Reduce connection tracking verbosity
-                loggerConfig.MinimumLevel.Override("FMS.Application.Communication.Tracker.DeviceConnectionTracker", LogEventLevel.Warning);
-
-                // Reduce Redis communication verbosity
-                loggerConfig.MinimumLevel.Override("FMS.Application.Communication.Redis", LogEventLevel.Warning);
-
-                // Only log important SignalR events
-                loggerConfig.MinimumLevel.Override("Microsoft.AspNetCore.SignalR", LogEventLevel.Warning);
-
-                // Reduce HTTP client logging
-                loggerConfig.MinimumLevel.Override("System.Net.Http.HttpClient", LogEventLevel.Warning);
-            }
-
-            // Configure Console Sink with SourceContext included
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByExcluding(le =>
-                    environment == "Development" &&
-                    le.Level < LogEventLevel.Warning &&
-                    le.Properties.TryGetValue("SourceContext", out var sourceContext) &&
-                    sourceContext is Serilog.Events.ScalarValue sv &&
-                    sv.Value is string contextString &&
-                    (contextString.StartsWith("Microsoft.EntityFrameworkCore") || contextString.StartsWith("Pomelo.EntityFrameworkCore")))
-                .WriteTo.Console(
-                    outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}",
-                    theme: AnsiConsoleTheme.Code
-                )
-            );
-
-            var logDirectory = Path.GetDirectoryName(ptsConfig.Logging.FilePath);
-            if (!string.IsNullOrEmpty(logDirectory) && !Directory.Exists(logDirectory))
-            {
-                Directory.CreateDirectory(logDirectory);
-            }
-            var effectiveLogDirectory = string.IsNullOrEmpty(logDirectory) ? "C:\\Logs\\FMS.PTS" : logDirectory;
-
-            // Ensure all sub-directories exist
-            var ptsSubDirs = new[] { "device-raw", "commands", "transactions", "errors", "connections" };
-            foreach (var subDir in ptsSubDirs)
-            {
-                var fullPath = Path.Combine(effectiveLogDirectory, subDir);
-                if (!Directory.Exists(fullPath))
-                {
-                    Directory.CreateDirectory(fullPath);
-                    Log.Information("Created PTS log directory: {Path}", fullPath);
-                }
-            }
-
-            var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-
-            // === MAIN LOG: All logs in JSON format (unified, for correlation) ===
-            var mainLogFilePath = Path.Combine(effectiveLogDirectory, $"pts-service-{timestamp}.log");
-            loggerConfig.WriteTo.File(
-                formatter: new LocalTimeJsonFormatter(),
-                path: mainLogFilePath,
-                rollingInterval: RollingInterval.Day,
-                retainedFileCountLimit: ptsConfig.Logging.RetainedFileCount,
-                fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                rollOnFileSizeLimit: true,
-                shared: true);
-
-            // === RAW DEVICE MESSAGES: WebSocket raw messages from PTS devices ===
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByIncludingOnly(le =>
-                    le.Properties.TryGetValue("SourceContext", out var sc) &&
-                    sc is Serilog.Events.ScalarValue sv &&
-                    sv.Value is string ctx &&
-                    ctx == "FMS.Application.Communication.webSocket.PTSDeviceConnection" &&
-                    le.MessageTemplate.Text.Contains("Raw message"))
-                .WriteTo.File(
-                    formatter: new LocalTimeJsonFormatter(),
-                    path: Path.Combine(effectiveLogDirectory, "device-raw", $"raw-messages-{timestamp}.log"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 7,
-                    fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true)
-            );
-
-            // === COMMANDS: Redis commands, command execution, pending commands ===
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByIncludingOnly(le =>
-                    le.Properties.TryGetValue("SourceContext", out var sc) &&
-                    sc is Serilog.Events.ScalarValue sv &&
-                    sv.Value is string ctx &&
-                    (ctx.Contains("Command") || ctx.Contains("Redis") || ctx.Contains("PumpService")))
-                .WriteTo.File(
-                    formatter: new LocalTimeJsonFormatter(),
-                    path: Path.Combine(effectiveLogDirectory, "commands", $"commands-{timestamp}.log"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 7,
-                    fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true)
-            );
-
-            // === TRANSACTIONS: Pump transactions, tank transfers, completions ===
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByIncludingOnly(le =>
-                    le.Properties.TryGetValue("SourceContext", out var sc) &&
-                    sc is Serilog.Events.ScalarValue sv &&
-                    sv.Value is string ctx &&
-                    (ctx.Contains("Transaction") || ctx.Contains("TankMeasurement") ||
-                     ctx.Contains("TankVolume") || ctx.Contains("TankStock") ||
-                     ctx.Contains("UploadStatus") || ctx.Contains("UploadTankMeasurement") ||
-                     ctx.Contains("Reconciliation") || ctx.Contains("PumpTankTransfer")))
-                .WriteTo.File(
-                    formatter: new LocalTimeJsonFormatter(),
-                    path: Path.Combine(effectiveLogDirectory, "transactions", $"transactions-{timestamp}.log"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 14,
-                    fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true)
-            );
-
-            // === ERRORS ONLY: All errors and fatals in a dedicated file ===
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByIncludingOnly(le => le.Level >= LogEventLevel.Error)
-                .WriteTo.File(
-                    formatter: new LocalTimeJsonFormatter(),
-                    path: Path.Combine(effectiveLogDirectory, "errors", $"errors-{timestamp}.log"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 14,
-                    fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true)
-            );
-
-            // === CONNECTIONS: Device connections, disconnections, health checks ===
-            loggerConfig.WriteTo.Logger(lc => lc
-                .Filter.ByIncludingOnly(le =>
-                    le.Properties.TryGetValue("SourceContext", out var sc) &&
-                    sc is Serilog.Events.ScalarValue sv &&
-                    sv.Value is string ctx &&
-                    (ctx.Contains("Connection") || ctx.Contains("WebSocketListener") ||
-                     ctx.Contains("DeviceActivity") || ctx.Contains("OrphanedTransaction") ||
-                     ctx.Contains("StaleConnection")))
-                .WriteTo.File(
-                    formatter: new LocalTimeJsonFormatter(),
-                    path: Path.Combine(effectiveLogDirectory, "connections", $"connections-{timestamp}.log"),
-                    rollingInterval: RollingInterval.Day,
-                    retainedFileCountLimit: 7,
-                    fileSizeLimitBytes: ptsConfig.Logging.MaxFileSizeInMB * 1024 * 1024,
-                    rollOnFileSizeLimit: true,
-                    shared: true)
-            );
-
-            if (environment == "Development")
-            {
-                loggerConfig.WriteTo.Debug().MinimumLevel.Debug();
-            }
-
-            Log.Logger = loggerConfig.CreateLogger();
-        }
+        // ConfigureFinalLogging moved to PTSLoggingConfiguration.cs
 
         private static void ConfigureDatabase(IServiceCollection services, IConfiguration configuration)
         {
@@ -766,19 +594,7 @@ namespace FMS.PTS.WindowsService
                 return "unknown";
             }
         }
-        private static LogEventLevel GetLogEventLevel(string level)
-        {
-            return level?.ToLower() switch
-            {
-                "verbose" => LogEventLevel.Verbose,
-                "debug" => LogEventLevel.Debug,
-                "information" => LogEventLevel.Information,
-                "warning" => LogEventLevel.Warning,
-                "error" => LogEventLevel.Error,
-                "fatal" => LogEventLevel.Fatal,
-                _ => LogEventLevel.Information
-            };
-        }
+        // GetLogEventLevel moved to PTSLoggingConfiguration.cs
 
     }
 }

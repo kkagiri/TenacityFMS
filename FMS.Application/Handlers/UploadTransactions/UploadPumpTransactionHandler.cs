@@ -114,17 +114,26 @@ namespace FMS.Application.Handlers
                     _logger.LogError("Database timeout processing pump transaction for device {DeviceId}, pump {PumpId}, transaction {TransactionId}",
                         deviceId, transactionDto.Pump, transactionDto.Transaction);
 
-                    responsePacket.Error = false; // Still acknowledge to device to prevent retry storm
-                    responsePacket.Message = "Transaction queued for processing";
-                    responsePacket.Code = 202; // Accepted (will process later)
+                    responsePacket.Error = null; // ACK so device advances
+                    responsePacket.Message = "OK";
+                    responsePacket.Code = null;
 
                     return responsePacket;
                 }
 
                 var result = await commandTask;
-                responsePacket.Error = !result.Success;
-                responsePacket.Message = result.Message;
-                responsePacket.Code = result.Success ? 200 : 500;
+                if (result.Success)
+                {
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
+                }
+                else
+                {
+                    responsePacket.Error = true;
+                    responsePacket.Code = 500;
+                    responsePacket.Message = result.Message;
+                }
 
                 if (result.Success)
                 {

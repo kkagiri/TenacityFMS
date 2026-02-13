@@ -610,8 +610,7 @@ namespace FMS.BackgroundServices.IssueTracker
             string title,
             string description,
             MonitoringSettings settings,
-            int? resolvedSiteId = null,
-            CancellationToken cancellationToken = default)
+            int? resolvedSiteId = null)
         {
             // Get a default site and category
             var defaultSiteId = resolvedSiteId ?? 0;
@@ -674,7 +673,7 @@ namespace FMS.BackgroundServices.IssueTracker
 
         private string BuildAssignedToValue(List<string> resolvedAssigneeIds, string fallbackAssigneeId)
         {
-            const int assignedToMaxLength = 100;
+            const int assignedToMaxLength = 500;
 
             var values = resolvedAssigneeIds
                 .Where(id => !string.IsNullOrWhiteSpace(id))

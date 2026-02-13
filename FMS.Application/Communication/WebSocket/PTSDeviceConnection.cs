@@ -23,6 +23,7 @@ using Microsoft.AspNetCore.SignalR;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using FMS.Application.Features.PTSDevice.Commands;
 using FMS.Application.Services;
 
@@ -328,7 +329,70 @@ namespace FMS.Application.Communication.webSocket
                     //Create a new DI scope for processing Message
                     using var scope = _scopeFactory.CreateScope();
                     var messageProcessor = scope.ServiceProvider.GetRequiredService<IPTSMessageProcessor>();
-                    await messageProcessor.ProcessMessageAsync(_deviceId, ptsMessage);
+                    var response = await messageProcessor.ProcessMessageAsync(_deviceId, ptsMessage);
+
+                    // CRITICAL FIX: Send the acknowledgement response back to the device.
+                    // Previously the response was discarded, so the device never received
+                    // an ACK and would retry the same packet indefinitely (e.g. UploadTankMeasurement 1/12 loop).
+                    if (response?.Packets?.Count > 0)
+                    {
+                        var jObject = JObject.FromObject(response);
+                        var packetsArray = jObject["Packets"] as JArray;
+                        if (packetsArray != null)
+                        {
+                            foreach (var p in packetsArray)
+                            {
+                                // Remove internal-only fields before sending to device
+                                p["SetRequestType"]?.Parent?.Remove();
+
+                                // Remove null Data field
+                                var dataToken = p["Data"];
+                                if (dataToken == null || dataToken.Type == JTokenType.Null)
+                                {
+                                    dataToken?.Parent?.Remove();
+                                }
+
+                                // Remove null/false Error and null Code for clean protocol compliance
+                                var errorToken = p["Error"];
+                                if (errorToken != null && (errorToken.Type == JTokenType.Null || (errorToken.Type == JTokenType.Boolean && !errorToken.Value<bool>())))
+                                {
+                                    errorToken.Parent?.Remove();
+                                }
+                                var codeToken = p["Code"];
+                                if (codeToken != null && codeToken.Type == JTokenType.Null)
+                                {
+                                    codeToken.Parent?.Remove();
+                                }
+                            }
+                        }
+
+                        var responseJson = jObject.ToString(Formatting.None);
+                        _logger.LogInformation("Sending acknowledgement for unsolicited message to device {DeviceId}: {ResponseJson}",
+                            _deviceId, responseJson);
+
+                        await _sendLock.WaitAsync(cancellationToken);
+                        try
+                        {
+                            if (_webSocket.State == WebSocketState.Open)
+                            {
+                                var buffer = Encoding.UTF8.GetBytes(responseJson);
+                                await _webSocket.SendAsync(
+                                    new ArraySegment<byte>(buffer),
+                                    WebSocketMessageType.Text,
+                                    true,
+                                    cancellationToken);
+                            }
+                            else
+                            {
+                                _logger.LogWarning("Cannot send unsolicited response - WebSocket not open for device {DeviceId}, state: {State}",
+                                    _deviceId, _webSocket.State);
+                            }
+                        }
+                        finally
+                        {
+                            _sendLock.Release();
+                        }
+                    }
                 }
                 else
                 {

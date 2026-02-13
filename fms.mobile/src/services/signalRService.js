@@ -341,8 +341,7 @@ class SignalRService {
               Math.pow(2, retryContext.previousRetryCount) * 1000
             );
             console.log(
-              `[SignalR Mobile] Reconnecting in ${delay}ms (attempt ${
-                retryContext.previousRetryCount + 1
+              `[SignalR Mobile] Reconnecting in ${delay}ms (attempt ${retryContext.previousRetryCount + 1
               })`
             );
             return delay;
@@ -447,6 +446,13 @@ class SignalRService {
 
     // Handle pump status updates
     this.connection.on("UploadStatusUpdate", (data) => {
+      console.log("[SignalR Mobile] >>> UploadStatusUpdate RAW received:", {
+        hasData: !!data,
+        deviceId: data?.deviceId || data?.DeviceId,
+        hasStatus: !!data?.status,
+        cached: data?.cached,
+        dataKeys: data ? Object.keys(data).slice(0, 10) : [],
+      });
       this._handleUploadStatusUpdate(data);
     });
 
@@ -848,6 +854,17 @@ class SignalRService {
 
       // Use the correct status object
       const actualStatus = data.status || data;
+
+      // DEBUG: Log pump data path
+      console.log("[SignalR Mobile] UploadStatus DEBUG:", {
+        deviceId,
+        hasDataStatus: !!data.status,
+        hasPumps_Pascal: !!actualStatus?.Pumps,
+        hasPumps_camel: !!actualStatus?.pumps,
+        hasIdleStatus: !!(actualStatus?.Pumps?.IdleStatus || actualStatus?.pumps?.IdleStatus || actualStatus?.Pumps?.idleStatus || actualStatus?.pumps?.idleStatus),
+        statusKeys: actualStatus ? Object.keys(actualStatus).slice(0, 10) : [],
+        cached: data.cached || false,
+      });
 
       // Dispatch to Redux
       store.dispatch(

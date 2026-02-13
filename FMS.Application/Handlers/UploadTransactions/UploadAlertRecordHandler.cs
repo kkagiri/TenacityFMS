@@ -100,17 +100,26 @@ namespace FMS.Application.Handlers
                         }
                     });
 
-                    responsePacket.Error = false; // Still acknowledge to prevent device retry storm
-                    responsePacket.Message = "Alert queued for processing";
-                    responsePacket.Code = 202; // Accepted
+                    responsePacket.Error = null; // ACK so device advances
+                    responsePacket.Message = "OK";
+                    responsePacket.Code = null;
                     return responsePacket;
                 }
 
                 result = await processingTask;
 
-                responsePacket.Error = !result.IsSuccess;
-                responsePacket.Message = result.Message;
-                responsePacket.Code = result.IsSuccess ? 200 : 500;
+                if (result.IsSuccess)
+                {
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
+                }
+                else
+                {
+                    responsePacket.Error = true;
+                    responsePacket.Code = 500;
+                    responsePacket.Message = result.Message;
+                }
 
                 if (result.IsSuccess)
                 {

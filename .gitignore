@@ -399,3 +399,4 @@ fms.mobile/android/app/debug.keystore
 
 # iOS folder (large, platform-specific)
 fms.mobile/ios/
+fms.frontend/package.json

@@ -70,10 +70,8 @@ public class Program
 
         builder.Host.UseSerilog((ctx, services, lc) =>
         {
-            lc.ReadFrom.Configuration(ctx.Configuration)
-              .Enrich.FromLogContext()
-              .Enrich.WithProperty("Application", "FMS.WebClient")
-              .Enrich.WithProperty("Environment", ctx.HostingEnvironment.EnvironmentName);
+            // All log routing is configured in FmsLoggingConfiguration - one place to manage all log files
+            FmsLoggingConfiguration.ConfigureLogging(ctx, services, lc);
         });
 
         // Refactored: service & db registrations moved to Extensions/FmsServiceCollectionExtensions

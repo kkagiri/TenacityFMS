@@ -18,6 +18,20 @@ export const useDeviceData = (ptsId) => {
   // Parse pump status using FuelingUtils
   // FuelingUtils now handles both PascalCase and camelCase
   const devicePumpStatus = useMemo(() => {
+    // DEBUG: Log what we're getting from Redux
+    if (rawUploadStatus) {
+      console.log("[useDeviceData] DEBUG rawUploadStatus:", {
+        ptsId,
+        hasUploadStatus: !!rawUploadStatus,
+        keys: Object.keys(rawUploadStatus).slice(0, 10),
+        hasPumps_Pascal: !!rawUploadStatus?.Pumps,
+        hasPumps_camel: !!rawUploadStatus?.pumps,
+        pumpsKeys: rawUploadStatus?.Pumps ? Object.keys(rawUploadStatus.Pumps) : rawUploadStatus?.pumps ? Object.keys(rawUploadStatus.pumps) : [],
+      });
+    } else {
+      console.log("[useDeviceData] DEBUG: No rawUploadStatus for", ptsId);
+    }
+
     const pumpsData = rawUploadStatus?.Pumps || rawUploadStatus?.pumps;
     if (!pumpsData) {
       return {};
@@ -137,7 +151,7 @@ export const useDeviceData = (ptsId) => {
         "Normal",
       percentFull: Math.round(
         ((probes.Volumes?.[index] || 0) / (probes.Capacities?.[index] || 1)) *
-          100
+        100
       ),
     }));
   }, [rawUploadStatus]);

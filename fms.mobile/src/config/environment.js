@@ -32,7 +32,7 @@ console.log("📋 [Environment] Config initialized:", {
 // Physical device via WiFi needs your computer's IP address
 // Set USE_LOCAL_BACKEND to true to test with local backend
 const USE_LOCAL_BACKEND = false; // Change to true to use local backend (requires rebuild with react-native-config)
-const IS_PHYSICAL_DEVICE_USB = true; // Set to true when testing on physical device via USB
+const IS_PHYSICAL_DEVICE_USB = false; // Set to true when testing on physical device via USB
 const DEV_MACHINE_IP = "10.0.13.50"; // Only used if USB is false - Replace with your computer's IP address (run 'ipconfig' to find it)
 
 const getDefaultUrl = () => {

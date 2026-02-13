@@ -50,11 +50,14 @@ const base64Decode = (str) => {
  */
 export const decodeJwtToken = (token) => {
   try {
-    if (!token) return null;
+    if (!token || typeof token !== 'string') return null;
 
     // JWT tokens have 3 parts separated by dots: header.payload.signature
     const parts = token.split(".");
     if (parts.length !== 3) return null;
+
+    // Valid JWT headers always start with eyJ (base64 of '{"')
+    if (!parts[0].startsWith('eyJ')) return null;
 
     // Decode the payload (second part)
     const payload = parts[1];
@@ -112,7 +115,7 @@ export const getUserInfoFromToken = (token) => {
       decoded.sub ||
       decoded.nameid ||
       decoded[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/nameidentifier"
       ],
     username:
       decoded.name ||
@@ -121,7 +124,7 @@ export const getUserInfoFromToken = (token) => {
     email:
       decoded.email ||
       decoded[
-        "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
+      "http://schemas.xmlsoap.org/ws/2005/05/identity/claims/emailaddress"
       ],
     roles:
       decoded.role ||

@@ -77,21 +77,32 @@ namespace FMS.Application.Handlers
 
                 if (completedTask == timeoutTask)
                 {
-                    // Database operation timed out
+                    // Database operation timed out - still ACK to prevent infinite retry
                     _logger.LogError("Database timeout processing tank measurement for device {DeviceId}, tank {TankId}",
                         deviceId, tankMeasurementDto.Tank);
 
-                    responsePacket.Error = false; // Still acknowledge to prevent retry
-                    responsePacket.Message = "Measurement queued for processing";
-                    responsePacket.Code = 202; // Accepted
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK"; // ACK so device advances
 
                     return responsePacket;
                 }
 
                 var result = await commandTask;
-                responsePacket.Error = !result.IsSuccess;
-                responsePacket.Message = result.Message;
-                responsePacket.Code = result.IsSuccess ? 200 : 500;
+                if (result.IsSuccess)
+                {
+                    // Protocol spec: success response only needs Id, Type, Message
+                    // Don't set Error or Code - device expects minimal ACK
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
+                }
+                else
+                {
+                    responsePacket.Error = true;
+                    responsePacket.Code = 500;
+                    responsePacket.Message = result.Message;
+                }
 
                 if (result.IsSuccess)
                 {

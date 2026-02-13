@@ -7,7 +7,19 @@ const FuelingUtils = {
   handlePumpStatus: (uploadStatus) => {
     // Get Pumps from either case
     const pumpsData = uploadStatus?.Pumps || uploadStatus?.pumps;
-    if (!uploadStatus || !pumpsData) return [];
+    if (!uploadStatus || !pumpsData) {
+      console.log("[FuelingUtils] handlePumpStatus: No pump data found", {
+        hasUploadStatus: !!uploadStatus,
+        keys: uploadStatus ? Object.keys(uploadStatus).slice(0, 10) : [],
+      });
+      return [];
+    }
+
+    console.log("[FuelingUtils] handlePumpStatus: Found pump data", {
+      pumpsKeys: Object.keys(pumpsData),
+      hasIdleStatus: !!(pumpsData?.IdleStatus || pumpsData?.idleStatus),
+      hasFillingStatus: !!(pumpsData?.FillingStatus || pumpsData?.fillingStatus),
+    });
 
     const availablePumps = [];
     const pumpStatus = pumpsData;
@@ -201,10 +213,10 @@ const FuelingUtils = {
         (fg) => fg.nozzle === i || fg.id === i
       ) ||
         fuelGrades?.[i - 1] || {
-          name: "Unknown",
-          fuelType: "Unknown",
-          price: 0,
-        };
+        name: "Unknown",
+        fuelType: "Unknown",
+        price: 0,
+      };
 
       const nozzleData = {
         id: i,

@@ -78,17 +78,26 @@ namespace FMS.Application.Handlers
                     _logger.LogError("Database timeout processing in-tank delivery for device {DeviceId}, tank {TankId}",
                         deviceId, inTankDeliveryDto.Tank);
 
-                    responsePacket.Error = false; // Still acknowledge to prevent retry
-                    responsePacket.Message = "Delivery queued for processing";
-                    responsePacket.Code = 202; // Accepted
+                    responsePacket.Error = null; // ACK so device advances
+                    responsePacket.Message = "OK";
+                    responsePacket.Code = null;
 
                     return responsePacket;
                 }
 
                 var result = await commandTask;
-                responsePacket.Error = !result.IsSuccess;
-                responsePacket.Message = result.Message;
-                responsePacket.Code = result.IsSuccess ? 200 : 500;
+                if (result.IsSuccess)
+                {
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
+                }
+                else
+                {
+                    responsePacket.Error = true;
+                    responsePacket.Code = 500;
+                    responsePacket.Message = result.Message;
+                }
 
                 if (result.IsSuccess)
                 {

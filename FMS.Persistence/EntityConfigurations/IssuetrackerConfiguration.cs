@@ -129,7 +129,7 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasCharSet("utf8mb4");
 
                 builder.Property(e => e.AssignedTo)
-                    .HasMaxLength(100)
+                    .HasMaxLength(500)
                     .HasColumnName("AssignedTo")
                     .UseCollation("utf8mb4_general_ci")
                     .HasCharSet("utf8mb4");
