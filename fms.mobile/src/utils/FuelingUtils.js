@@ -139,9 +139,11 @@ const FuelingUtils = {
       });
     }
 
-    // Process offline pumps
-    if (pumpStatus.OfflineStatus?.Ids) {
-      pumpStatus.OfflineStatus.Ids.forEach((pumpId) => {
+    // Process offline pumps - handle both PascalCase and camelCase
+    const offlineStatus = getStatus(pumpStatus, "OfflineStatus", "offlineStatus");
+    const offlineIds = offlineStatus?.Ids || offlineStatus?.ids;
+    if (offlineIds) {
+      offlineIds.forEach((pumpId) => {
         if (!pumpId) return;
 
         const existingPumpIndex = availablePumps.findIndex(

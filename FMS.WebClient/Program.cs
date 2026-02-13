@@ -45,13 +45,13 @@ public class Program
         Log.Logger = new LoggerConfiguration()
             .MinimumLevel.Information()
             .Enrich.FromLogContext()
-            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] {Message:lj}{NewLine}{Exception}")
+            .WriteTo.Console(outputTemplate: "[{Timestamp:HH:mm:ss} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}")
             .WriteTo.File(
                 path: "C:\\Logs\\FMS.Webclient\\startup\\webclient-startup.log",
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: 5,
                 shared: true,
-                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] {Message:lj}{NewLine}{Exception}")
+                outputTemplate: "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}")
             .CreateLogger();
 
         Log.Information("=== FMS.WebClient Starting ===");
@@ -386,7 +386,7 @@ public class Program
     private static void EnsureLogDirectoriesExist()
     {
         var logBasePath = "C:\\Logs\\FMS.Webclient";
-        var subDirectories = new[] { "app", "errors", "audit", "slow", "startup" };
+        var subDirectories = new[] { "app", "errors", "audit", "slow", "startup", "gps", "fuel", "signalr", "issues", "efcore" };
 
         try
         {

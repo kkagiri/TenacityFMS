@@ -180,14 +180,21 @@ namespace FMS.Application.Communication.SignalR
                     return;
                 }
 
-                var status = await _deviceConnectionTracker.GetDeviceStatus(deviceId);
-                if (status == null)
+                var detailedStatus = await _deviceConnectionTracker.GetDeviceStatus(deviceId);
+                if (detailedStatus == null)
                 {
                     await Clients.Caller.SendAsync("Error", $"Device {deviceId} not found");
                     return;
                 }
 
-                await Clients.Caller.SendAsync("DeviceStatusUpdate", new { deviceId, status });
+                // Send in same flat shape as BroadcastDeviceUpdate for consistency
+                // Include 'details' for clients that need the full connection breakdown
+                await Clients.Caller.SendAsync("DeviceStatusUpdate", new
+                {
+                    deviceId,
+                    status = "Active",
+                    details = detailedStatus
+                });
                 _logger.LogDebug("Sent device status for {DeviceId} to client {ConnectionId}", deviceId, Context.ConnectionId);
             }
             catch (Exception ex)

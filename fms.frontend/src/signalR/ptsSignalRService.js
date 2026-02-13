@@ -382,32 +382,40 @@ class PTSSignalRService {
     registerEvent(
       "DeviceStatusUpdate",
       (data) => {
-        if (data && data.deviceId) {
-          console.log("[PTS SignalR] DeviceStatusUpdate RAW:", {
-            deviceId: data.deviceId,
-            status: data.status,
-            connectionStatus: data.connectionStatus,
-            Status: data.Status,
-            ConnectionStatus: data.ConnectionStatus,
-            fullData: data,
+        if (data && (data.deviceId || data.DeviceId)) {
+          const deviceId = data.deviceId || data.DeviceId;
+          // Backend BroadcastDeviceUpdate sends: { deviceId, status, connectionType, lastActivity, ipAddress }
+          // status is a string like "Active", "Connected", "Idle", "Disconnected"
+          const status = data.status || data.Status;
+          const connectionType = data.connectionType || data.ConnectionType;
+          const lastActivity = data.lastActivity || data.LastActivity;
+          const ipAddress = data.ipAddress || data.IpAddress;
+
+          console.log("[PTS SignalR] DeviceStatusUpdate:", {
+            deviceId,
+            status,
+            connectionType,
+            lastActivity,
+            ipAddress,
           });
 
-          this.notifyListeners("deviceStatusUpdate", data);
+          this.notifyListeners("deviceStatusUpdate", {
+            deviceId,
+            status,
+            connectionType,
+            lastActivity,
+            ipAddress,
+          });
 
           if (store) {
             store.dispatch({
               type: "UPDATE_SINGLE_DEVICE_STATUS",
               payload: {
-                deviceId: data.deviceId || data.DeviceId,
-                // Backend sends 'status' (lowercase), not 'connectionStatus'
-                connectionStatus:
-                  data.connectionStatus ||
-                  data.ConnectionStatus ||
-                  data.status ||
-                  data.Status,
-                connectionType: data.connectionType || data.ConnectionType,
-                lastActivity: data.lastActivity || data.LastActivity,
-                ipAddress: data.ipAddress || data.IpAddress,
+                deviceId,
+                connectionStatus: typeof status === 'string' ? status : (status?.ConnectionMode || status?.connectionMode || 'Unknown'),
+                connectionType,
+                lastActivity,
+                ipAddress,
                 timestamp: Date.now(),
               },
             });

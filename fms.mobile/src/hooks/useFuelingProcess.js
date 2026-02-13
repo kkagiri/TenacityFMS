@@ -232,7 +232,7 @@ export const useFuelingProcess = (ptsId, siteId = 1) => {
 
       if (
         ptsId &&
-        signalRService.connectionState === ConnectionState.Connected
+        signalRService.connectionState === ConnectionState.CONNECTED
       ) {
         await signalRService.subscribeToDevice(ptsId);
       }

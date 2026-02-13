@@ -834,6 +834,15 @@ class SignalRService {
 
       // Check if this is an empty cached response
       if (data.message && data.status === null) {
+        console.log(
+          "[SignalR Mobile] Empty cached status for device:",
+          deviceId,
+          "- will retry in 3 seconds"
+        );
+        // Retry once after a short delay - device may not have reported yet
+        setTimeout(() => {
+          this.requestDeviceUploadStatus(deviceId);
+        }, 3000);
         return; // Don't dispatch null status
       }
 

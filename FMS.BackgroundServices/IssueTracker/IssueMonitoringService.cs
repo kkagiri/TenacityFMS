@@ -610,7 +610,8 @@ namespace FMS.BackgroundServices.IssueTracker
             string title,
             string description,
             MonitoringSettings settings,
-            int? resolvedSiteId = null)
+            int? resolvedSiteId = null,
+            CancellationToken cancellationToken = default)
         {
             // Get a default site and category
             var defaultSiteId = resolvedSiteId ?? 0;
@@ -620,25 +621,31 @@ namespace FMS.BackgroundServices.IssueTracker
             // AssignTo and Openby are FKs to user.Id - must use actual user IDs
             var systemUserId = await ResolveSystemUserIdAsync(context);
 
-            // Resolve DefaultAssignee: supports comma-separated IDs — use first as primary AssignTo FK
-            string? assigneeUserId = null;
-            if (!string.IsNullOrEmpty(template.DefaultAssignee))
-            {
-                // Take the first ID from comma-separated list for the FK field
-                var firstId = template.DefaultAssignee
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .FirstOrDefault();
+            // Resolve DefaultAssignee: supports comma/semicolon-separated IDs or usernames.
+            // AssignTo is a FK (single user ID), AssignedTo is a display/filter field limited by DB length.
+            var requestedAssignees = (template.DefaultAssignee ?? string.Empty)
+                .Split(new[] { ',', ';' }, StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .Where(value => !string.IsNullOrWhiteSpace(value))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
-                if (!string.IsNullOrEmpty(firstId))
-                {
-                    var assigneeUser = await context.Users
-                        .AsNoTracking()
-                        .Where(u => u.Id == firstId || u.UserName == firstId)
-                        .Select(u => u.Id)
-                        .FirstOrDefaultAsync();
-                    assigneeUserId = assigneeUser;
-                }
+            var resolvedAssigneeIds = new List<string>();
+            if (requestedAssignees.Count > 0)
+            {
+                resolvedAssigneeIds = await context.Users
+                    .AsNoTracking()
+                    .Where(u => requestedAssignees.Contains(u.Id) || requestedAssignees.Contains(u.UserName))
+                    .Select(u => u.Id)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
             }
+
+            var primaryAssigneeId = resolvedAssigneeIds.FirstOrDefault();
+            var assigneeUserId = !string.IsNullOrWhiteSpace(primaryAssigneeId)
+                ? primaryAssigneeId
+                : systemUserId;
+
+            var assignedToValue = BuildAssignedToValue(resolvedAssigneeIds, assigneeUserId);
 
             return new Issuetracker
             {
@@ -654,15 +661,62 @@ namespace FMS.BackgroundServices.IssueTracker
                 DeviceTypeId = template.DeviceTypeId,
                 RelatedEntityId = relatedEntityId,
                 RelatedEntityType = relatedEntityType,
-                AssignedTo = template.DefaultAssignee,
+                AssignedTo = assignedToValue,
                 ReportedBy = "System", // Display-only field, not an FK
                 Openby = systemUserId,
-                AssignTo = assigneeUserId ?? systemUserId,
+                AssignTo = assigneeUserId,
                 SiteId = defaultSiteId,
                 IssueCategoryId = defaultCategoryId,
                 VehicleId = relatedEntityType == "vehicle" ? relatedEntityId : 0
                 // Note: For PTS devices, store the device ID in RelatedEntityType description or use a separate field
             };
+        }
+
+        private string BuildAssignedToValue(List<string> resolvedAssigneeIds, string fallbackAssigneeId)
+        {
+            const int assignedToMaxLength = 100;
+
+            var values = resolvedAssigneeIds
+                .Where(id => !string.IsNullOrWhiteSpace(id))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            if (values.Count == 0)
+            {
+                return fallbackAssigneeId.Length <= assignedToMaxLength
+                    ? fallbackAssigneeId
+                    : fallbackAssigneeId[..assignedToMaxLength];
+            }
+
+            var selectedValues = new List<string>();
+            var currentLength = 0;
+
+            foreach (var value in values)
+            {
+                var separatorLength = selectedValues.Count == 0 ? 0 : 1;
+                var nextLength = currentLength + separatorLength + value.Length;
+                if (nextLength > assignedToMaxLength)
+                {
+                    _logger.LogWarning(
+                        "Trimming AssignedTo list to fit DB limit ({MaxLength}). Template assignees: {OriginalCount}, persisted assignees: {PersistedCount}",
+                        assignedToMaxLength,
+                        values.Count,
+                        selectedValues.Count);
+                    break;
+                }
+
+                selectedValues.Add(value);
+                currentLength = nextLength;
+            }
+
+            if (selectedValues.Count == 0)
+            {
+                return fallbackAssigneeId.Length <= assignedToMaxLength
+                    ? fallbackAssigneeId
+                    : fallbackAssigneeId[..assignedToMaxLength];
+            }
+
+            return string.Join(',', selectedValues);
         }
 
         private async Task<int?> ResolveIssueSiteIdForVehicleAsync(
