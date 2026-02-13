@@ -34,6 +34,7 @@ namespace FMS.WebClient.Services.Reporting
         private const int LargePayloadRenderTimeoutMs = 300000;
         private const int LargePayloadThresholdBytes = 750000;
         private const string LetterheadLogoFileName = "letterhead-logo.png";
+        private const string FmsDataRootPath = "C:\\FMSData";
 
         private readonly ILogger<JsReportService> _logger;
         private readonly ILocalUtilityReportingService _reportingService;
@@ -84,21 +85,28 @@ namespace FMS.WebClient.Services.Reporting
         /// </summary>
         private string GetWritableTemplatesPath(IWebHostEnvironment environment)
         {
-            // Priority 1: C:\Logs\FMS.Webclient\ReportTemplates (consistent with other logs)
+            // Priority 1: C:\FMSData\reports\templates (shared writable data location)
+            var fmsDataTemplatesPath = Path.Combine(FmsDataRootPath, "reports", "templates");
+            if (TryCreateDirectory(fmsDataTemplatesPath))
+            {
+                return fmsDataTemplatesPath;
+            }
+
+            // Priority 2: C:\Logs\FMS.Webclient\ReportTemplates (legacy location)
             var logsPath = Path.Combine("C:\\Logs\\FMS.Webclient", "ReportTemplates");
             if (TryCreateDirectory(logsPath))
             {
                 return logsPath;
             }
 
-            // Priority 2: User temp folder
+            // Priority 3: User temp folder
             var tempPath = Path.Combine(Path.GetTempPath(), "FMS_ReportTemplates");
             if (TryCreateDirectory(tempPath))
             {
                 return tempPath;
             }
 
-            // Priority 3: ProgramData folder (system-wide, usually writable)
+            // Priority 4: ProgramData folder (system-wide, usually writable)
             var programDataPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
                 "Hyoung", "FMS", "ReportTemplates");
@@ -115,6 +123,14 @@ namespace FMS.WebClient.Services.Reporting
 
         private string GetLetterheadLogoPath(IWebHostEnvironment environment)
         {
+            // Primary location: C:\FMSData\reports\branding
+            var fmsDataBrandingPath = Path.Combine(FmsDataRootPath, "reports", "branding");
+            if (TryCreateDirectory(fmsDataBrandingPath))
+            {
+                return Path.Combine(fmsDataBrandingPath, LetterheadLogoFileName);
+            }
+
+            // Fallback: existing web root path
             var webRootPath = environment.WebRootPath;
             if (string.IsNullOrWhiteSpace(webRootPath))
             {
@@ -122,7 +138,7 @@ namespace FMS.WebClient.Services.Reporting
             }
 
             var brandingFolderPath = Path.Combine(webRootPath, "reports", "branding");
-            Directory.CreateDirectory(brandingFolderPath);
+            TryCreateDirectory(brandingFolderPath);
 
             return Path.Combine(brandingFolderPath, LetterheadLogoFileName);
         }
