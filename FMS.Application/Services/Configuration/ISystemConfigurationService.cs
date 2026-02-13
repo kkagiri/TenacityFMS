@@ -171,6 +171,12 @@ namespace FMS.Application.Services.Configuration
         Task<int> GetPtsUploadStatusPhysicalStockUpdateIntervalSecondsAsync(CancellationToken cancellationToken = default);
 
         /// <summary>
+        /// Gets the interval (seconds) at which tank measurement records are persisted from UploadStatus probe data.
+        /// Default: 300 seconds (5 minutes).
+        /// </summary>
+        Task<int> GetPtsUploadStatusMeasurementPersistIntervalSecondsAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
         /// Gets the volume source priority: 1=BookKeeping, 2=PTS Probe
         /// </summary>
         Task<int> GetPtsVolumeSourcePriorityAsync(CancellationToken cancellationToken = default);

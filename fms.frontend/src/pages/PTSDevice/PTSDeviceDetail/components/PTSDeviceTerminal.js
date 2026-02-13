@@ -54,6 +54,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
   const filterOptions = [
     { value: "all", label: "All Messages" },
     { value: "uploadStatusUpdate", label: "Upload Status" },
+    { value: "deviceStatusUpdate", label: "Device Status" },
     { value: "nozzleStateChange", label: "Nozzle Events" },
     { value: "fillingStatus", label: "Filling" },
     { value: "pumpTransactionCompleted", label: "Transactions" },
@@ -126,6 +127,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
     // Subscribe to all PTS events (using camelCase as defined in ptsSignalRService)
     const ptsEvents = [
       "uploadStatusUpdate",         // Full status updates from device
+      "deviceStatusUpdate",         // Device connection status changes
       "nozzleStateChange",          // Was: NozzleStateChange
       "fillingStatus",              // Was: FillingStatus
       "pumpTransactionCompleted",   // Was: PumpTransactionCompleted
@@ -185,6 +187,7 @@ const PTSDeviceTerminal = ({ device, isConnected }) => {
   const getEventTypeColor = (eventType) => {
     const colors = {
       uploadStatusUpdate: "tw-text-blue-600",
+      deviceStatusUpdate: "tw-text-emerald-600",
       nozzleStateChange: "tw-text-purple-600",
       fillingStatus: "tw-text-green-600",
       pumpTransactionCompleted: "tw-text-indigo-600",

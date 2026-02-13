@@ -164,6 +164,23 @@ const PumpSelectionStep = ({
       keyExtractor={(item) => item.id.toString()}
       ListHeaderComponent={renderHeader}
       ListFooterComponent={renderFooter}
+      ListEmptyComponent={
+        <View style={styles.emptyContainer}>
+          <Icon name="gas-pump" size={48} color="#d1d5db" />
+          <Text style={styles.emptyTitle}>No Pumps Available</Text>
+          <Text style={styles.emptySubtitle}>
+            {connectionStatus !== "connected"
+              ? "Waiting for device connection..."
+              : "No pump data received from PTS device. Try refreshing."}
+          </Text>
+          {connectionStatus === "connected" && onRefresh && (
+            <TouchableOpacity style={styles.emptyRefreshButton} onPress={onRefresh}>
+              <Icon name="sync" size={14} color="#6366f1" />
+              <Text style={styles.emptyRefreshText}>Refresh</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      }
       contentContainerStyle={styles.container}
       showsVerticalScrollIndicator={false}
     />
@@ -325,6 +342,40 @@ const styles = StyleSheet.create({
   legendText: {
     fontSize: 12,
     color: "#6b7280",
+  },
+  emptyContainer: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 48,
+    paddingHorizontal: 24,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#6b7280",
+    marginTop: 16,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#9ca3af",
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
+  },
+  emptyRefreshButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#eef2ff",
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  emptyRefreshText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#6366f1",
+    marginLeft: 8,
   },
 });
 

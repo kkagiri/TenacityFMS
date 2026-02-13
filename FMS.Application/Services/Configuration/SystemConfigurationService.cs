@@ -391,6 +391,15 @@ namespace FMS.Application.Services.Configuration
                 cancellationToken);
         }
 
+        public async Task<int> GetPtsUploadStatusMeasurementPersistIntervalSecondsAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_PTS_UPLOADSTATUS_MEASUREMENT_PERSIST_INTERVAL_SECONDS_KEY,
+                0, // No settings override
+                SystemConfigurationConstants.DEFAULT_PTS_UPLOADSTATUS_MEASUREMENT_PERSIST_INTERVAL_SECONDS,
+                cancellationToken);
+        }
+
         public async Task<int> GetPtsVolumeSourcePriorityAsync(CancellationToken cancellationToken = default)
         {
             return await GetConfigurationValueAsync(
