@@ -39,22 +39,36 @@ namespace FMS.Application.Handlers
             {
                 if (packet.Data == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Missing in-tank delivery data";
+                    _logger.LogWarning("Missing in-tank delivery data from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
                 var inTankDeliveryDto = packet.Data.ToObject<InTankDeliveryDto>();
                 if (inTankDeliveryDto == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Invalid in-tank delivery data format";
+                    _logger.LogWarning("Invalid in-tank delivery data format from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
-                // IMPROVEMENT: Fire-and-forget enrichment - don't let it delay device response
+                // Enrich SYNCHRONOUSLY before sending command to avoid race condition
+                if (string.IsNullOrEmpty(inTankDeliveryDto.PtsId))
+                {
+                    inTankDeliveryDto.PtsId = deviceId;
+                }
+                if (inTankDeliveryDto.PacketId <= 0)
+                {
+                    inTankDeliveryDto.PacketId = packet.Id;
+                }
+
+                // Fire-and-forget for non-critical enrichment logging
                 _ = Task.Run(async () =>
                 {
                     try
@@ -74,50 +88,38 @@ namespace FMS.Application.Handlers
 
                 if (completedTask == timeoutTask)
                 {
-                    // Database operation timed out
                     _logger.LogError("Database timeout processing in-tank delivery for device {DeviceId}, tank {TankId}",
                         deviceId, inTankDeliveryDto.Tank);
-
-                    responsePacket.Error = null; // ACK so device advances
-                    responsePacket.Message = "OK";
-                    responsePacket.Code = null;
-
-                    return responsePacket;
-                }
-
-                var result = await commandTask;
-                if (result.IsSuccess)
-                {
-                    responsePacket.Error = null;
-                    responsePacket.Code = null;
-                    responsePacket.Message = "OK";
                 }
                 else
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 500;
-                    responsePacket.Message = result.Message;
+                    var result = await commandTask;
+                    if (result.IsSuccess)
+                    {
+                        _logger.LogInformation("Successfully processed in-tank delivery for device {DeviceId}, tank {TankId}, start {StartTime}, end {EndTime}",
+                            deviceId, inTankDeliveryDto.Tank, inTankDeliveryDto.StartValues?.DateTime, inTankDeliveryDto.EndValues?.DateTime);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to process in-tank delivery for device {DeviceId}, tank {TankId}: {Message}. ACKing to advance device queue.",
+                            deviceId, inTankDeliveryDto.Tank, result.Message);
+                    }
                 }
 
-                if (result.IsSuccess)
-                {
-                    _logger.LogInformation("Successfully processed in-tank delivery for device {DeviceId}, tank {TankId}, start {StartTime}, end {EndTime}",
-                        deviceId, inTankDeliveryDto.Tank, inTankDeliveryDto.StartValues?.DateTime, inTankDeliveryDto.EndValues?.DateTime);
-                }
-                else
-                {
-                    _logger.LogWarning("Failed to process in-tank delivery for device {DeviceId}, tank {TankId}: {Message}",
-                        deviceId, inTankDeliveryDto.Tank, result.Message);
-                }
+                // ALWAYS return OK — never block device queue due to server-side issues
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
 
                 return responsePacket;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing in-tank delivery packet for device {DeviceId}", deviceId);
-                responsePacket.Error = true;
-                responsePacket.Code = 500;
-                responsePacket.Message = "Error processing in-tank delivery packet";
+                _logger.LogError(ex, "Error processing in-tank delivery packet for device {DeviceId}. ACKing to advance device queue.", deviceId);
+                // NEVER return Error:true — it causes infinite device retry per protocol spec
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
                 return responsePacket;
             }
         }

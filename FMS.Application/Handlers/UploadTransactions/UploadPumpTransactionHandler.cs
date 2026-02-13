@@ -58,18 +58,22 @@ namespace FMS.Application.Handlers
             {
                 if (packet.Data == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Missing transaction data";
+                    _logger.LogWarning("Missing transaction data from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
                 var transactionDto = packet.Data.ToObject<PumpTransactionDto>();
                 if (transactionDto == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Invalid transaction data format";
+                    _logger.LogWarning("Invalid transaction data format from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
@@ -122,18 +126,10 @@ namespace FMS.Application.Handlers
                 }
 
                 var result = await commandTask;
-                if (result.Success)
-                {
-                    responsePacket.Error = null;
-                    responsePacket.Code = null;
-                    responsePacket.Message = "OK";
-                }
-                else
-                {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 500;
-                    responsePacket.Message = result.Message;
-                }
+                // ALWAYS return OK — never block device queue due to server-side issues
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
 
                 if (result.Success)
                 {
@@ -142,7 +138,7 @@ namespace FMS.Application.Handlers
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to process pump transaction for device {DeviceId}, pump {PumpId}: {Message}",
+                    _logger.LogWarning("Failed to process pump transaction for device {DeviceId}, pump {PumpId}: {Message}. ACKing to advance device queue.",
                         deviceId, transactionDto.Pump, result.Message);
                 }
 
@@ -150,10 +146,11 @@ namespace FMS.Application.Handlers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing pump transaction packet for device {DeviceId}", deviceId);
-                responsePacket.Error = true;
-                responsePacket.Code = 500;
-                responsePacket.Message = "Error processing pump transaction packet";
+                _logger.LogError(ex, "Error processing pump transaction packet for device {DeviceId}. ACKing to advance device queue.", deviceId);
+                // NEVER return Error:true — it causes infinite device retry per protocol spec
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
                 return responsePacket;
             }
         }

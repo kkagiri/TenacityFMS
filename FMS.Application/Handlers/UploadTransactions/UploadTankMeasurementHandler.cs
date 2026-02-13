@@ -42,18 +42,22 @@ namespace FMS.Application.Handlers
             {
                 if (packet.Data == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Missing tank measurement data";
+                    _logger.LogWarning("Missing tank measurement data from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
                 var tankMeasurementDto = packet.Data.ToObject<TankMeasurementDto>();
                 if (tankMeasurementDto == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Invalid tank measurement data format";
+                    _logger.LogWarning("Invalid tank measurement data format from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 

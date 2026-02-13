@@ -56,18 +56,22 @@ namespace FMS.Application.Handlers
             {
                 if (packet.Data == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Missing alert data";
+                    _logger.LogWarning("Missing alert data from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
                 var alertDto = packet.Data.ToObject<AlertRecordDto>();
                 if (alertDto == null)
                 {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 400;
-                    responsePacket.Message = "Invalid alert data format";
+                    _logger.LogWarning("Invalid alert data format from device {DeviceId}, packet {PacketId}. ACKing to advance device queue.",
+                        deviceId, packet.Id);
+                    responsePacket.Error = null;
+                    responsePacket.Code = null;
+                    responsePacket.Message = "OK";
                     return responsePacket;
                 }
 
@@ -108,18 +112,10 @@ namespace FMS.Application.Handlers
 
                 result = await processingTask;
 
-                if (result.IsSuccess)
-                {
-                    responsePacket.Error = null;
-                    responsePacket.Code = null;
-                    responsePacket.Message = "OK";
-                }
-                else
-                {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 500;
-                    responsePacket.Message = result.Message;
-                }
+                // ALWAYS return OK — never block device queue due to server-side issues
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
 
                 if (result.IsSuccess)
                 {
@@ -128,7 +124,7 @@ namespace FMS.Application.Handlers
                 }
                 else
                 {
-                    _logger.LogWarning("Failed to process alert record for device {DeviceId}: {Message}",
+                    _logger.LogWarning("Failed to process alert record for device {DeviceId}: {Message}. ACKing to advance device queue.",
                         deviceId, result.Message);
                 }
 
@@ -136,10 +132,11 @@ namespace FMS.Application.Handlers
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing alert record packet for device {DeviceId}", deviceId);
-                responsePacket.Error = true;
-                responsePacket.Code = 500;
-                responsePacket.Message = "Error processing alert record packet";
+                _logger.LogError(ex, "Error processing alert record packet for device {DeviceId}. ACKing to advance device queue.", deviceId);
+                // NEVER return Error:true — it causes infinite device retry per protocol spec
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
                 return responsePacket;
             }
         }
