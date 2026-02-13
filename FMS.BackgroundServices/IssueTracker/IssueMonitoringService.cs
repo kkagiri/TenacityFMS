@@ -610,7 +610,8 @@ namespace FMS.BackgroundServices.IssueTracker
             string title,
             string description,
             MonitoringSettings settings,
-            int? resolvedSiteId = null)
+            int? resolvedSiteId = null,
+            CancellationToken cancellationToken = default)
         {
             // Get a default site and category
             var defaultSiteId = resolvedSiteId ?? 0;
