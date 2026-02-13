@@ -150,6 +150,10 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                 {
                     _logger.LogWarning("Tank measurement from device {DeviceId}, tank {Tank} has no probe data (ProductVolume, Temperature, Heights all null, ProductMass={ProductMass}). ATG probe may not be connected or configured.",
                         request.DeviceId, tankMeasurementDto.Tank, tankMeasurementDto.ProductMass);
+
+                    // Do not persist empty measurements - these are often repeated retransmits
+                    // and cause table flooding without adding operational value.
+                    return FMSResponse.SuccessResponse("Empty measurement skipped");
                 }
 
                 //Cursor: Log alarm info (Alarm table removed - alarm type names stored for reference)
