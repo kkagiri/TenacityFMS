@@ -40,7 +40,6 @@ using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand
 using FMS.Application.Communication;
 using FMS.Application.Features.ATG;
 using FMS.Domain.Entities;
-using FMS.Domain.Entities.Features.TankStockManagement;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -149,11 +148,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 if (uploadstatus?.Probes != null)
                 {
                     await ProcessLiveProbeStatusInternalLogic(deviceId!, uploadstatus.Probes, cancellationToken);
-
-                    // Persist tank measurement records from UploadStatus probe data (throttled)
-                    await PersistTankMeasurementsFromProbeDataAsync(
-                        deviceId!, uploadstatus.Probes, uploadstatus.DateTime,
-                        uploadstatus.ConfigurationId, uploadstatus.FuelGrades, cancellationToken);
 
                     // Process probe alarms from UploadStatus (Low/High product alarms, water alarms, leakage)
                     await ProcessProbeAlarmsFromUploadStatusAsync(deviceId!, uploadstatus.Probes, cancellationToken);
@@ -523,134 +517,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     updatesApplied,
                     deviceId);
             }
-        }
-
-        /// <summary>
-        /// Persists tank measurement records from UploadStatus probe data.
-        /// Uses a Redis cooldown per device+tank to prevent flooding the tankmeasurements table,
-        /// since UploadStatus packets arrive every 10-30 seconds.
-        /// Default interval: 5 minutes (configurable via PTS.UploadStatus.MeasurementPersistIntervalSeconds).
-        /// </summary>
-        private async Task PersistTankMeasurementsFromProbeDataAsync(
-            string deviceId,
-            Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus,
-            DateTime statusDateTime,
-            string? configurationId,
-            List<Domain.Entities.PTS.PTSStatus.FuelGradeStatus.FuelGradeStatus>? fuelGrades,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                if (string.IsNullOrWhiteSpace(deviceId) || probeStatus?.OnlineStatus?.Measurements == null)
-                    return;
-
-                var measurements = probeStatus.OnlineStatus.Measurements
-                    .Where(m => m != null && HasUsefulProbeData(m))
-                    .ToList();
-
-                if (measurements.Count == 0)
-                    return;
-
-                var linkedTanks = await _context.Tanks
-                    .Where(t => t.PtsId == deviceId)
-                    .ToListAsync(cancellationToken);
-
-                if (linkedTanks.Count == 0)
-                    return;
-
-                var persistIntervalSeconds = await _systemConfigurationService
-                    .GetPtsUploadStatusMeasurementPersistIntervalSecondsAsync(cancellationToken);
-                if (persistIntervalSeconds <= 0)
-                    persistIntervalSeconds = 300; // 5 minute fallback
-
-                var measurementsPersisted = 0;
-
-                foreach (var tank in linkedTanks)
-                {
-                    var probeMeasurement = await ResolveProbeMeasurementForTankAsync(
-                        tank, measurements, linkedTanks.Count, cancellationToken);
-
-                    if (probeMeasurement == null)
-                        continue;
-
-                    // Check Redis cooldown — only persist once per interval per device+tank
-                    var cooldownKey = $"device:{deviceId}:tank:{tank.Id}:measurement-persist-cooldown";
-                    var cooldownValue = await _redisDb.StringGetAsync(cooldownKey);
-                    if (cooldownValue.HasValue)
-                        continue; // Still in cooldown
-
-                    // Resolve fuel grade from tank entity or UploadStatus FuelGrades list
-                    var fuelGradeId = tank.FuelGradeId ?? 0;
-                    var fuelGradeName = tank.FuelGradeName;
-                    if (fuelGradeId == 0 && fuelGrades != null && fuelGrades.Count > 0)
-                    {
-                        // Use first fuel grade from UploadStatus as fallback
-                        var fg = fuelGrades.FirstOrDefault(f => f.Id.HasValue);
-                        if (fg != null)
-                        {
-                            fuelGradeId = fg.Id!.Value;
-                            fuelGradeName = fg.Name;
-                        }
-                    }
-
-                    var tankMeasurement = new Tankmeasurement
-                    {
-                        Tank = probeMeasurement.ProbeNumber > 0 ? probeMeasurement.ProbeNumber : (tank.ProbeNumber ?? 1),
-                        TankId = tank.Id,
-                        Ptsid = deviceId,
-                        DateTime = statusDateTime,
-                        FuelGradeId = fuelGradeId,
-                        FuelGradeName = fuelGradeName,
-                        ProductHeight = probeMeasurement.ProductHeight,
-                        WaterHeight = probeMeasurement.WaterHeight,
-                        Temperature = probeMeasurement.Temperature,
-                        ProductVolume = probeMeasurement.ProductVolume,
-                        WaterVolume = probeMeasurement.WaterVolume,
-                        ProductUllage = probeMeasurement.ProductUllage,
-                        ProductTcvolume = probeMeasurement.ProductTemperatureCompensatedVolume,
-                        ProductDensity = probeMeasurement.ProductDensity,
-                        ProductMass = probeMeasurement.ProductMass,
-                        TankFillingPercentage = probeMeasurement.TankFillingPercentage,
-                        ConfigurationId = configurationId,
-                        Status = "OK",
-                        PacketId = 0 // No packet ID for UploadStatus-derived measurements
-                    };
-
-                    _context.Tankmeasurements.Add(tankMeasurement);
-                    measurementsPersisted++;
-
-                    // Set cooldown
-                    await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromSeconds(persistIntervalSeconds));
-                }
-
-                if (measurementsPersisted > 0)
-                {
-                    await _context.SaveChangesAsync(cancellationToken);
-                    _logger.LogInformation(
-                        "[UploadStatus] Persisted {Count} tank measurement record(s) from probe data for device {DeviceId}",
-                        measurementsPersisted, deviceId);
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex,
-                    "[UploadStatus] Non-critical: Failed to persist tank measurements from probe data for device {DeviceId}",
-                    deviceId);
-            }
-        }
-
-        /// <summary>
-        /// Checks whether a ProbeMeasurement has any useful probe data beyond just a probe number.
-        /// Returns false if all measurement fields are null or zero.
-        /// </summary>
-        private static bool HasUsefulProbeData(ProbeMeasurement m)
-        {
-            return (m.ProductVolume.HasValue && m.ProductVolume.Value != 0)
-                || (m.ProductHeight.HasValue && m.ProductHeight.Value != 0)
-                || (m.Temperature.HasValue && m.Temperature.Value != 0)
-                || (m.WaterHeight.HasValue && m.WaterHeight.Value != 0)
-                || (m.WaterVolume.HasValue && m.WaterVolume.Value != 0)
-                || (m.ProductMass.HasValue && m.ProductMass.Value != 0);
         }
 
         /// <summary>

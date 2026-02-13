@@ -5,6 +5,7 @@
 - MySQL scripts must be written for MySQL v5.5 compatibility only.
 - SQL table definitions must match the corresponding EntityConfiguration table mapping exactly.
 - Before any data update, inspect the target table first using MCP MySQL tools.
+- For C# inserts/updates, always include required dependencies/usings (e.g., `System`, `System.Collections`, and related namespaces).
 - Frontend dynamic navigation is deprecated; do not implement or rely on it.
 - If more than 3 buttons appear in one line on a page, use a button group.
 - All frontend elements must be compatible with small mobile devices.
