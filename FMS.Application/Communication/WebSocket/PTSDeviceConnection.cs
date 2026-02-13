@@ -331,6 +331,10 @@ namespace FMS.Application.Communication.webSocket
                     var messageProcessor = scope.ServiceProvider.GetRequiredService<IPTSMessageProcessor>();
                     var response = await messageProcessor.ProcessMessageAsync(_deviceId, ptsMessage);
 
+                    // Diagnostic log to confirm ProcessMessageAsync returned
+                    _logger.LogWarning("ACK_DIAG: ProcessMessageAsync returned for device {DeviceId}. Response null? {IsNull}, Packet count: {Count}",
+                        _deviceId, response == null, response?.Packets?.Count ?? -1);
+
                     // CRITICAL FIX: Send the acknowledgement response back to the device.
                     // Previously the response was discarded, so the device never received
                     // an ACK and would retry the same packet indefinitely (e.g. UploadTankMeasurement 1/12 loop).
