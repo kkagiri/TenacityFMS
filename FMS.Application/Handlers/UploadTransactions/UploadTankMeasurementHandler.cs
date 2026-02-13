@@ -89,19 +89,19 @@ namespace FMS.Application.Handlers
                 }
 
                 var result = await commandTask;
-                if (result.IsSuccess)
+
+                // CRITICAL: Always ACK with "OK" to the device, even on server-side failures.
+                // Per protocol spec (section 184): the device retries indefinitely on error responses,
+                // and sending Error:true causes the device to disconnect/reconnect in a loop.
+                // Server-side issues (validation, DB errors) should be logged but not block the device queue.
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
+
+                if (!result.IsSuccess)
                 {
-                    // Protocol spec: success response only needs Id, Type, Message
-                    // Don't set Error or Code - device expects minimal ACK
-                    responsePacket.Error = null;
-                    responsePacket.Code = null;
-                    responsePacket.Message = "OK";
-                }
-                else
-                {
-                    responsePacket.Error = true;
-                    responsePacket.Code = 500;
-                    responsePacket.Message = result.Message;
+                    _logger.LogWarning("Server-side processing issue for device {DeviceId}, tank {TankId}: {Message} (ACK still sent to device)",
+                        deviceId, packet.Data?.ToObject<TankMeasurementDto>()?.Tank, result.Message);
                 }
 
                 if (result.IsSuccess)
@@ -120,9 +120,10 @@ namespace FMS.Application.Handlers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing tank measurement packet for device {DeviceId}", deviceId);
-                responsePacket.Error = true;
-                responsePacket.Code = 500;
-                responsePacket.Message = "Error processing tank measurement packet";
+                // CRITICAL: Still ACK with OK - never block device queue due to server errors
+                responsePacket.Error = null;
+                responsePacket.Code = null;
+                responsePacket.Message = "OK";
                 return responsePacket;
             }
         }

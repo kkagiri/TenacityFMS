@@ -63,10 +63,10 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                         validationErrors.Add("Valid tank number is required");
                     }
 
-                    if (request.TankMeasurementDto.FuelGradeId <= 0)
-                    {
-                        validationErrors.Add("Valid fuel grade ID is required");
-                    }
+                    // FuelGradeId is optional per protocol spec (section 184):
+                    // "Fields FuelGradeId and FuelGradeName are optional, they are present
+                    //  only when PTS-2 controller has tank configured to specific fuel grade."
+                    // Do NOT validate FuelGradeId - tanks without fuel grade config will send 0 or omit it.
 
                     // PtsId may not be set yet (enrichment is fire-and-forget);
                     // fallback to DeviceId which is always available
