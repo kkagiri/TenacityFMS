@@ -1000,7 +1000,7 @@ const CombinedIssueDashboard = () => {
                             width={120}
                             cellRender={renderStatusCell}
                         />
-                        <Column dataField="categoryName" caption="Category" width={150} />
+                        <Column dataField="categoryName" caption="Tags" width={150} />
 
                         {/* Columns with visibility based on selected tab */}
                         <Column

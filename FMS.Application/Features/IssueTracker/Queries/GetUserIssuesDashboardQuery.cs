@@ -10,6 +10,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -230,6 +231,10 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 var openedByMeClosed = openedByMe.Where(i => closedStatusIds.Contains(i.Status ?? 0)).ToList();
 
                 // Build the dashboard DTO
+                var issueTagLookup = await GetIssueTagNameLookupAsync(
+                    assignedIssues.Select(i => i.Id).Concat(openedByMe.Select(i => i.Id)).Distinct().ToList(),
+                    cancellationToken);
+
                 var dashboardDto = new UserIssuesDashboardDto
                 {
                     // Assigned statistics
@@ -249,7 +254,7 @@ namespace FMS.Application.Features.IssueTracker.Queries
                     IssuesByWeek = GetIssuesByWeek(assignedIssues, openedByMe, closedStatusIds, startDate, endDate),
 
                     // Issues by category
-                    IssuesByCategory = GetIssuesByCategory(assignedIssues, closedStatusIds),
+                    IssuesByCategory = GetIssuesByCategory(assignedIssues, closedStatusIds, issueTagLookup),
 
                     // Issues by vehicle
                     IssuesByVehicle = GetIssuesByVehicle(assignedIssues, closedStatusIds),
@@ -258,9 +263,9 @@ namespace FMS.Application.Features.IssueTracker.Queries
                     IssuesBySite = GetIssuesBySite(assignedIssues, closedStatusIds),
 
                     // Issue lists
-                    AssignedIssues = MapToResponseDto(openAssigned.Take(20).ToList()),
-                    OpenedByMeIssues = MapToResponseDto(openedByMeOpen.Take(20).ToList()),
-                    RecentlyClosedIssues = MapToResponseDto(closedAssigned.Take(10).ToList())
+                    AssignedIssues = MapToResponseDto(openAssigned.Take(20).ToList(), issueTagLookup),
+                    OpenedByMeIssues = MapToResponseDto(openedByMeOpen.Take(20).ToList(), issueTagLookup),
+                    RecentlyClosedIssues = MapToResponseDto(closedAssigned.Take(10).ToList(), issueTagLookup)
                 };
 
                 return FMSResponse<UserIssuesDashboardDto>.Success(dashboardDto, "Dashboard data loaded successfully.");
@@ -319,17 +324,25 @@ namespace FMS.Application.Features.IssueTracker.Queries
             return result.OrderByDescending(w => w.StartDate).Take(12).ToList();
         }
 
-        private List<IssuesByCategoryDto> GetIssuesByCategory(List<Issuetracker> issues, List<int> closedStatusIds)
+        private List<IssuesByCategoryDto> GetIssuesByCategory(
+            List<Issuetracker> issues,
+            List<int> closedStatusIds,
+            Dictionary<int, List<string>> issueTagLookup)
         {
             return issues
-                .GroupBy(i => new { i.IssueCategoryId, CategoryName = i.IssueCategory?.Name ?? "Unknown" })
+                .Select(i => new
+                {
+                    Issue = i,
+                    CategoryName = ResolveCategoryName(i, issueTagLookup)
+                })
+                .GroupBy(x => new { x.Issue.IssueCategoryId, x.CategoryName })
                 .Select(g => new IssuesByCategoryDto
                 {
                     CategoryId = g.Key.IssueCategoryId,
                     CategoryName = g.Key.CategoryName,
                     TotalCount = g.Count(),
-                    OpenCount = g.Count(i => !closedStatusIds.Contains(i.Status ?? 0)),
-                    ClosedCount = g.Count(i => closedStatusIds.Contains(i.Status ?? 0))
+                    OpenCount = g.Count(x => !closedStatusIds.Contains(x.Issue.Status ?? 0)),
+                    ClosedCount = g.Count(x => closedStatusIds.Contains(x.Issue.Status ?? 0))
                 })
                 .OrderByDescending(c => c.TotalCount)
                 .Take(10)
@@ -378,7 +391,9 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 .ToList();
         }
 
-        private List<IssueTrackerResponseDTO> MapToResponseDto(List<Issuetracker> issues)
+        private List<IssueTrackerResponseDTO> MapToResponseDto(
+            List<Issuetracker> issues,
+            Dictionary<int, List<string>> issueTagLookup)
         {
             return issues.Select(i => new IssueTrackerResponseDTO
             {
@@ -391,7 +406,10 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 LastModfield = i.LastModfield,
                 RelatedIssue = i.RelatedIssue,
                 IssueCategoryId = i.IssueCategoryId,
-                CategoryName = i.IssueCategory?.Name ?? string.Empty,
+                CategoryName = ResolveCategoryName(i, issueTagLookup),
+                IssueCategoryTagNames = issueTagLookup.TryGetValue(i.Id, out var tagNames)
+                    ? tagNames
+                    : new List<string>(),
                 SiteId = i.SiteId,
                 SiteName = i.Site?.Name ?? string.Empty,
                 Status = i.Status,
@@ -405,6 +423,94 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 AssignToId = i.AssignTo ?? string.Empty,
                 DeviceType = i.DeviceType
             }).ToList();
+        }
+
+        private static string ResolveCategoryName(Issuetracker issue, Dictionary<int, List<string>> issueTagLookup)
+        {
+            if (issueTagLookup.TryGetValue(issue.Id, out var tagNames) && tagNames.Count > 0)
+            {
+                return string.Join(", ", tagNames);
+            }
+
+            return issue.IssueCategory?.Name ?? string.Empty;
+        }
+
+        private async Task<Dictionary<int, List<string>>> GetIssueTagNameLookupAsync(
+            List<int> issueIds,
+            CancellationToken cancellationToken)
+        {
+            var lookup = new Dictionary<int, List<string>>();
+            if (issueIds == null || issueIds.Count == 0)
+            {
+                return lookup;
+            }
+
+            var connection = _context.Database.GetDbConnection();
+            var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+
+            try
+            {
+                await using var command = connection.CreateCommand();
+                var parameterNames = new List<string>();
+                for (var index = 0; index < issueIds.Count; index++)
+                {
+                    var parameterName = $"@issueId{index}";
+                    parameterNames.Add(parameterName);
+
+                    var parameter = command.CreateParameter();
+                    parameter.ParameterName = parameterName;
+                    parameter.Value = issueIds[index];
+                    command.Parameters.Add(parameter);
+                }
+
+                command.CommandText = $@"
+SELECT it.IssueID, ic.Name
+FROM issuetracker_tags it
+INNER JOIN issuecategory ic ON ic.ID = it.IssueCategoryID
+WHERE it.IssueID IN ({string.Join(",", parameterNames)})
+ORDER BY ic.Name";
+
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    if (reader.IsDBNull(0) || reader.IsDBNull(1))
+                    {
+                        continue;
+                    }
+
+                    var issueId = reader.GetInt32(0);
+                    var tagName = reader.GetString(1);
+
+                    if (!lookup.TryGetValue(issueId, out var names))
+                    {
+                        names = new List<string>();
+                        lookup[issueId] = names;
+                    }
+
+                    if (!names.Contains(tagName, StringComparer.OrdinalIgnoreCase))
+                    {
+                        names.Add(tagName);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Issue tag lookup failed in dashboard query. Falling back to legacy category names.");
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+
+            return lookup;
         }
     }
 }

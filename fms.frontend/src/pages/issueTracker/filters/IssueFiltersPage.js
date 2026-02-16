@@ -566,7 +566,7 @@ const IssueFiltersPage = () => {
               <Column dataField="problemTitle" caption="Title" minWidth={200} />
               <Column dataField="priority" caption="Priority" width={100} />
               <Column dataField="status" caption="Status" width={120} />
-              <Column dataField="categoryName" caption="Category" width={120} />
+              <Column dataField="categoryName" caption="Tags" width={120} />
               <Column dataField="assignedToName" caption="Assigned To" width={150} />
               <Column
                 dataField="openDate"

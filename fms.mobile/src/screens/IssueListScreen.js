@@ -36,6 +36,7 @@ import { usePermissions } from "../hooks/usePermissions";
 // ===== CONSTANTS =====
 const FILTER_CHIPS = [
   { key: "all", label: "All", icon: "list" },
+  { key: "assignedtome", label: "Assigned to Me", icon: "user-tag", color: "#6D28D9" },
   { key: "open", label: "Open", icon: "folder-open", color: "#3B82F6" },
   { key: "inprogress", label: "In Progress", icon: "clock", color: "#F59E0B" },
   { key: "completed", label: "Completed", icon: "check-circle", color: "#10B981" },
@@ -184,12 +185,12 @@ const IssueCard = React.memo(({ issue, onPress }) => {
 // ===== MAIN SCREEN =====
 const IssueListScreen = () => {
   const navigation = useNavigation();
-  const { isAdmin, hasPermission, hasAnyPermission } = usePermissions();
+  const { isAdmin, hasPermission, hasAnyPermission, hasRole, userInfo } = usePermissions();
 
   // Permission check
   const canViewIssues = useMemo(
-    () => isAdmin || hasAnyPermission(["_View_Issue", "_Read_Issue", "PowerUser"]),
-    [isAdmin, hasAnyPermission]
+    () => isAdmin || hasRole("PowerUser") || hasRole("Power User") || hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues"]),
+    [isAdmin, hasRole, hasAnyPermission]
   );
 
   const [issues, setIssues] = useState([]);
@@ -298,7 +299,13 @@ const IssueListScreen = () => {
     let result = issues;
 
     // Filter by status chip
-    if (activeFilter === "following") {
+    if (activeFilter === "assignedtome") {
+      const currentUserId = userInfo?.id;
+      result = result.filter((issue) => {
+        if (!currentUserId) return false;
+        return String(issue.assignToId) === String(currentUserId);
+      });
+    } else if (activeFilter === "following") {
       result = result.filter((issue) => followedIssueIds.has(issue.id));
     } else if (activeFilter === "overdue") {
       const now = new Date();
@@ -376,10 +383,14 @@ const IssueListScreen = () => {
     }
 
     return result;
-  }, [issues, activeFilter, searchText, selectedSiteId, selectedVehicle, selectedCategoryId, dueIssuesOnly, datePreset, followedIssueIds]);
+  }, [issues, activeFilter, searchText, selectedSiteId, selectedVehicle, selectedCategoryId, dueIssuesOnly, datePreset, followedIssueIds, userInfo]);
 
   const counts = useMemo(() => {
     const all = issues.length;
+    const currentUserId = userInfo?.id;
+    const assignedToMe = currentUserId
+      ? issues.filter((i) => String(i.assignToId) === String(currentUserId)).length
+      : 0;
     const open = issues.filter((i) => (i.statusName || "").toLowerCase() === "open").length;
     const inProgress = issues.filter((i) => {
       const s = (i.statusName || "").toLowerCase().replace(/\s+/g, "");
@@ -395,8 +406,8 @@ const IssueListScreen = () => {
       return new Date(i.dueDate) < new Date();
     }).length;
     const unassigned = issues.filter((i) => !i.assignToId && !i.assignToUserName).length;
-    return { all, open, inProgress, completed, following, overdue, unassigned };
-  }, [issues, followedIssueIds]);
+    return { all, assignedToMe, open, inProgress, completed, following, overdue, unassigned };
+  }, [issues, followedIssueIds, userInfo]);
 
   const handleIssuePress = useCallback(
     (issue) => {
@@ -501,7 +512,7 @@ const IssueListScreen = () => {
       >
         {FILTER_CHIPS.map((chip) => {
           const isActive = activeFilter === chip.key;
-          const count = counts[chip.key === "inprogress" ? "inProgress" : chip.key] || 0;
+          const count = counts[chip.key === "inprogress" ? "inProgress" : chip.key === "assignedtome" ? "assignedToMe" : chip.key] || 0;
 
           return (
             <TouchableOpacity
@@ -535,6 +546,44 @@ const IssueListScreen = () => {
           );
         })}
       </ScrollView>
+
+      {/* Category filter chips */}
+      {categories.length > 0 && (
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.categoryChipRow}
+          contentContainerStyle={styles.categoryChipRowContent}
+        >
+          <TouchableOpacity
+            style={[styles.categoryChip, !selectedCategoryId && styles.categoryChipActive]}
+            onPress={() => setSelectedCategoryId(null)}
+            activeOpacity={0.7}
+          >
+            <Icon name="tags" size={11} color={!selectedCategoryId ? "#fff" : "#6B7280"} style={{ marginRight: 4 }} />
+            <Text style={[styles.categoryChipText, !selectedCategoryId && styles.categoryChipTextActive]}>
+              All Categories
+            </Text>
+          </TouchableOpacity>
+          {categories.map((cat) => {
+            const cId = cat.id || cat.issueCategoryId;
+            const cName = cat.name || cat.categoryName || `#${cId}`;
+            const isActive = selectedCategoryId === cId;
+            return (
+              <TouchableOpacity
+                key={cId}
+                style={[styles.categoryChip, isActive && styles.categoryChipActive]}
+                onPress={() => setSelectedCategoryId(isActive ? null : cId)}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.categoryChipText, isActive && styles.categoryChipTextActive]} numberOfLines={1}>
+                  {cName}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </ScrollView>
+      )}
 
       {/* Issue list */}
       {loading ? (
@@ -1236,6 +1285,43 @@ const styles = StyleSheet.create({
   },
   toggleKnobOn: {
     alignSelf: "flex-end",
+  },
+  // Category chips
+  categoryChipRow: {
+    backgroundColor: "#fff",
+    borderBottomWidth: 1,
+    borderBottomColor: "#E5E7EB",
+    flexGrow: 0,
+    flexShrink: 0,
+  },
+  categoryChipRowContent: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    gap: 6,
+  },
+  categoryChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 16,
+    backgroundColor: "#F3F4F6",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+  },
+  categoryChipActive: {
+    backgroundColor: "#6D28D9",
+    borderColor: "#6D28D9",
+  },
+  categoryChipText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#6B7280",
+  },
+  categoryChipTextActive: {
+    color: "#fff",
   },
 });
 

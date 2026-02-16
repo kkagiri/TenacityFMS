@@ -21,6 +21,7 @@ import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import { useSignalRRouting } from "./hooks/useSignalRRouting";
+import useDocumentTitle from "./hooks/useDocumentTitle";
 
 export default function Content() {
   const dispatch = useDispatch();
@@ -32,6 +33,9 @@ export default function Content() {
     enabled: true,
     debounceMs: 300,
   });
+
+  // Update browser tab title based on current route
+  useDocumentTitle();
 
   useEffect(() => {
     if (user) {

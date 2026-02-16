@@ -140,6 +140,7 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                     IsActive = request.Template.IsActive,
                     CanAutoCreate = request.Template.CanAutoCreate,
                     OfflineThresholdMinutes = request.Template.OfflineThresholdMinutes,
+                    CooldownMinutes = request.Template.CooldownMinutes,
                     DefaultAssignee = defaultAssigneeId,
                     CreatedAt = now,
                     UpdatedAt = now
@@ -186,6 +187,7 @@ public class CreateIssueTemplateCommandHandler : IRequestHandler<CreateIssueTemp
                 IsActive = entity.IsActive,
                 CanAutoCreate = entity.CanAutoCreate,
                 OfflineThresholdMinutes = entity.OfflineThresholdMinutes,
+                CooldownMinutes = entity.CooldownMinutes,
                 DefaultAssignee = entity.DefaultAssignee,
                 DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,
@@ -354,6 +356,7 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
             entity.IsActive = request.Template.IsActive;
             entity.CanAutoCreate = request.Template.CanAutoCreate;
             entity.OfflineThresholdMinutes = request.Template.OfflineThresholdMinutes;
+            entity.CooldownMinutes = request.Template.CooldownMinutes;
             entity.DefaultAssignee = defaultAssigneeId;
             entity.UpdatedAt = DateTime.UtcNow;
 
@@ -374,6 +377,7 @@ public class UpdateIssueTemplateCommandHandler : IRequestHandler<UpdateIssueTemp
                 IsActive = entity.IsActive,
                 CanAutoCreate = entity.CanAutoCreate,
                 OfflineThresholdMinutes = entity.OfflineThresholdMinutes,
+                CooldownMinutes = entity.CooldownMinutes,
                 DefaultAssignee = entity.DefaultAssignee,
                 DefaultAssigneeName = defaultAssigneeName,
                 CreatedAt = entity.CreatedAt,

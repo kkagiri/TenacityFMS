@@ -1,5 +1,12 @@
+/*
+ * File: GetIssueListByIDQuery.cs
+ * Purpose: Fetches issue detail by ID including category tags and assignment metadata.
+ * Dependencies: MediatR, GpsdataContext, EF Core
+ * Last Modified: 2026-02-14
+ */
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -71,6 +78,7 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                     VehicleId = issue.VehicleId,
                     VehicleNumber = issue.Vehicle != null ? issue.Vehicle.NumberPlate : "",
                     VehicleHyoungNo = issue.Vehicle != null ? issue.Vehicle.HyoungNo : "",
+                    VehicleStatusValue = issue.Vehicle != null ? (int)issue.Vehicle.VehicleStatusValue : 0,
 
                     // User information - using names instead of IDs
                     OpenbyId = issue.Openby ?? "",
@@ -94,6 +102,15 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
 
             if (issuetracker != null)
             {
+                var tagLookup = await GetIssueTagsAsync(issuetracker.Id, cancellationToken);
+                issuetracker.IssueCategoryTags = tagLookup.tagIds;
+                issuetracker.IssueCategoryTagNames = tagLookup.tagNames;
+
+                if (string.IsNullOrWhiteSpace(issuetracker.CategoryName) && tagLookup.tagNames.Count > 0)
+                {
+                    issuetracker.CategoryName = tagLookup.tagNames[0];
+                }
+
                 var assignees = await (
                     from assignment in _context.Issueassignmenttrackers
                     join user in _context.Users on assignment.AssignedTo equals user.Id
@@ -135,15 +152,69 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
 
             if (issuetracker == null)
             {
-                throw new Exception($"Issue with ID {request.Id} not found");
+                _logger.LogInformation("Issue with ID {IssueId} not found", request.Id);
+                return null;
             }
 
             return issuetracker;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An error occured while getting issue tracker");
-            throw new Exception(ex.ToString());
+            _logger.LogError(ex, "An error occured while getting issue tracker for issue ID {IssueId}", request.Id);
+            throw;
         }
+    }
+
+    private async Task<(List<int> tagIds, List<string> tagNames)> GetIssueTagsAsync(int issueId, CancellationToken cancellationToken)
+    {
+        var tagIds = new List<int>();
+        var tagNames = new List<string>();
+
+        var connection = _context.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            command.CommandText = @"
+SELECT ic.ID, ic.Name
+FROM issuetracker_tags it
+INNER JOIN issuecategory ic ON ic.ID = it.IssueCategoryID
+WHERE it.IssueID = @issueId
+ORDER BY ic.Name";
+
+            var parameter = command.CreateParameter();
+            parameter.ParameterName = "@issueId";
+            parameter.Value = issueId;
+            command.Parameters.Add(parameter);
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (!reader.IsDBNull(0))
+                {
+                    tagIds.Add(reader.GetInt32(0));
+                }
+
+                if (!reader.IsDBNull(1))
+                {
+                    tagNames.Add(reader.GetString(1));
+                }
+            }
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        return (tagIds, tagNames);
     }
 }

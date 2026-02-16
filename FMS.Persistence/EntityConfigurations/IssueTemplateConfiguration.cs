@@ -62,6 +62,10 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.DefaultAssignee)
                     .HasMaxLength(1000);
 
+                builder.Property(e => e.CooldownMinutes)
+                    .HasColumnType("int(11)")
+                    .HasDefaultValue(null);
+
                 builder.Property(e => e.CreatedAt)
                     .HasColumnType("datetime")
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");

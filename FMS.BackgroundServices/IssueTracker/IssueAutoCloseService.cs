@@ -20,12 +20,14 @@ namespace FMS.BackgroundServices.IssueTracker
     /// Background service for auto-closing issues based on configured conditions.
     /// Periodically checks issues that have CanAutoClose=true and evaluates their
     /// auto-close conditions using the appropriate checker strategy.
+    /// Uses the minimum CheckIntervalSeconds from active auto-close configs to
+    /// determine the check frequency (falls back to 5 minutes if none configured).
     /// </summary>
     public class IssueAutoCloseService : BackgroundService
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<IssueAutoCloseService> _logger;
-        private readonly TimeSpan _checkInterval = TimeSpan.FromMinutes(5); // Default check interval
+        private static readonly TimeSpan DefaultCheckInterval = TimeSpan.FromMinutes(5);
 
         public IssueAutoCloseService(
             IServiceProvider serviceProvider,
@@ -44,18 +46,20 @@ namespace FMS.BackgroundServices.IssueTracker
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                TimeSpan nextInterval;
                 try
                 {
-                    await ProcessAutoCloseIssues(stoppingToken);
+                    nextInterval = await ProcessAutoCloseIssues(stoppingToken);
                 }
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Error in Issue Auto-Close processing cycle");
+                    nextInterval = DefaultCheckInterval;
                 }
 
                 try
                 {
-                    await Task.Delay(_checkInterval, stoppingToken);
+                    await Task.Delay(nextInterval, stoppingToken);
                 }
                 catch (TaskCanceledException)
                 {
@@ -66,11 +70,47 @@ namespace FMS.BackgroundServices.IssueTracker
             _logger.LogInformation("Issue Auto-Close Service stopped");
         }
 
-        private async Task ProcessAutoCloseIssues(CancellationToken cancellationToken)
+        /// <summary>
+        /// Resolves the check interval from the minimum CheckIntervalSeconds across all
+        /// enabled auto-close configs. Falls back to DefaultCheckInterval (5 min) if
+        /// no configs have a value set, or if the resolved value is out of bounds.
+        /// </summary>
+        private async Task<TimeSpan> ResolveCheckIntervalAsync(GpsdataContext context)
+        {
+            try
+            {
+                var minIntervalSeconds = await context.Issueautocloseconfigs
+                    .Where(c => c.IsEnabled && c.CheckIntervalSeconds.HasValue && c.CheckIntervalSeconds.Value > 0)
+                    .Select(c => c.CheckIntervalSeconds!.Value)
+                    .DefaultIfEmpty(0)
+                    .MinAsync();
+
+                if (minIntervalSeconds > 0)
+                {
+                    // Clamp between 60 seconds (1 min) and 86400 seconds (24 hours)
+                    var clampedSeconds = Math.Clamp(minIntervalSeconds, 60, 86400);
+                    var interval = TimeSpan.FromSeconds(clampedSeconds);
+                    _logger.LogDebug("[Auto-Close] Using check interval from config: {Seconds}s ({Interval})",
+                        clampedSeconds, interval);
+                    return interval;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "[Auto-Close] Failed to resolve check interval from DB, using default");
+            }
+
+            return DefaultCheckInterval;
+        }
+
+        private async Task<TimeSpan> ProcessAutoCloseIssues(CancellationToken cancellationToken)
         {
             using var scope = _serviceProvider.CreateScope();
             var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
             var checkerFactory = scope.ServiceProvider.GetRequiredService<IAutoCloseCheckerFactory>();
+
+            // Resolve the next check interval from DB configs (done early so we return it even on error)
+            var nextInterval = await ResolveCheckIntervalAsync(context);
 
             try
             {
@@ -96,7 +136,7 @@ namespace FMS.BackgroundServices.IssueTracker
                 if (!autoCloseableIssues.Any())
                 {
                     _logger.LogDebug("No auto-closeable issues found");
-                    return;
+                    return nextInterval;
                 }
 
                 _logger.LogInformation("Found {Count} issues eligible for auto-close check", autoCloseableIssues.Count);
@@ -188,6 +228,8 @@ namespace FMS.BackgroundServices.IssueTracker
             {
                 _logger.LogError(ex, "Error in auto-close processing");
             }
+
+            return nextInterval;
         }
 
         private async Task<List<int>> GetOpenStatusIds(GpsdataContext context)

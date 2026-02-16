@@ -104,6 +104,14 @@ class IssueTrackerService {
       return unwrap(response);
     } catch (error) {
       console.error(`[IssueTrackerService] getIssueById(${id}) error:`, error);
+      if (error?.response?.status === 404) {
+        const notFoundError = new Error(
+          error?.response?.data?.message || `Issue ${id} not found`
+        );
+        notFoundError.status = 404;
+        notFoundError.isNotFound = true;
+        throw notFoundError;
+      }
       throw error;
     }
   }

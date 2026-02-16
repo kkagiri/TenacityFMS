@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -91,6 +92,19 @@ public class GetIssueListByVehiceIdQueryHandler : IRequestHandler<GetIssueListBy
                 .Select(issue => issue.Id)
                 .ToList();
 
+            var issueTagLookup = await GetIssueTagNameLookupAsync(issueIds, cancellationToken);
+
+            foreach (var issue in issues)
+            {
+                if (!issueTagLookup.TryGetValue(issue.Id, out var tagNames) || tagNames.Count == 0)
+                {
+                    continue;
+                }
+
+                issue.IssueCategoryTagNames = tagNames;
+                issue.CategoryName = string.Join(", ", tagNames);
+            }
+
             var assignmentRows = await (
                 from assignment in _context.Issueassignmenttrackers
                 join user in _context.Users on assignment.AssignedTo equals user.Id
@@ -147,5 +161,81 @@ public class GetIssueListByVehiceIdQueryHandler : IRequestHandler<GetIssueListBy
             _logger.LogError(ex, "An error occured while getting issues list by vehicle id @{VehicleId}", request.VehicleId);
             throw new Exception(ex.Message);
         }
+    }
+
+    private async Task<Dictionary<int, List<string>>> GetIssueTagNameLookupAsync(List<int> issueIds, CancellationToken cancellationToken)
+    {
+        var lookup = new Dictionary<int, List<string>>();
+        if (issueIds == null || issueIds.Count == 0)
+        {
+            return lookup;
+        }
+
+        var connection = _context.Database.GetDbConnection();
+        var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+        if (shouldCloseConnection)
+        {
+            await connection.OpenAsync(cancellationToken);
+        }
+
+        try
+        {
+            await using var command = connection.CreateCommand();
+            var parameterNames = new List<string>();
+            for (var index = 0; index < issueIds.Count; index++)
+            {
+                var parameterName = $"@issueId{index}";
+                parameterNames.Add(parameterName);
+
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = parameterName;
+                parameter.Value = issueIds[index];
+                command.Parameters.Add(parameter);
+            }
+
+            command.CommandText = $@"
+SELECT it.IssueID, ic.Name
+FROM issuetracker_tags it
+INNER JOIN issuecategory ic ON ic.ID = it.IssueCategoryID
+WHERE it.IssueID IN ({string.Join(",", parameterNames)})
+ORDER BY ic.Name";
+
+            await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+            while (await reader.ReadAsync(cancellationToken))
+            {
+                if (reader.IsDBNull(0) || reader.IsDBNull(1))
+                {
+                    continue;
+                }
+
+                var issueId = reader.GetInt32(0);
+                var tagName = reader.GetString(1);
+
+                if (!lookup.TryGetValue(issueId, out var tagNames))
+                {
+                    tagNames = new List<string>();
+                    lookup[issueId] = tagNames;
+                }
+
+                if (!tagNames.Contains(tagName, StringComparer.OrdinalIgnoreCase))
+                {
+                    tagNames.Add(tagName);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "Issue tag lookup failed. Falling back to legacy category names.");
+        }
+        finally
+        {
+            if (shouldCloseConnection)
+            {
+                await connection.CloseAsync();
+            }
+        }
+
+        return lookup;
     }
 }

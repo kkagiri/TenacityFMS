@@ -109,11 +109,19 @@ namespace FMS.BackgroundServices.IssueTracker
                 return false;
 
             var expectedStatuses = ParseExpectedStatuses(expectedStatus);
-            var currentStatus = vehicle.IsActive.HasValue && vehicle.IsActive.Value == 1 ? "active" : "inactive";
+            // Use VehicleStatusValue for operational status: Working, ParkedYard, Workshop
+            // IsActive only indicates whether the record is soft-deleted, NOT the operational state.
+            var currentStatus = vehicle.VehicleStatusValue switch
+            {
+                VehicleStatus.Working => "working",
+                VehicleStatus.ParkedYard => "parkedyard",
+                VehicleStatus.Workshop => "workshop",
+                _ => "working"
+            };
 
             if (expectedStatuses.Contains(currentStatus))
             {
-                _closeReason = $"Vehicle status is now '{currentStatus}'";
+                _closeReason = $"Vehicle operational status is now '{currentStatus}'";
                 return true;
             }
 

@@ -35,6 +35,13 @@ public partial class Issuetemplate
     /// </summary>
     public string? DefaultAssignee { get; set; }
 
+    /// <summary>
+    /// Cooldown period in minutes after an issue is closed before a new one
+    /// can be auto-created for the same device/vehicle. Prevents rapid re-triggering.
+    /// Default: null (no cooldown — only checks for open issues).
+    /// </summary>
+    public int? CooldownMinutes { get; set; }
+
     public DateTime? CreatedAt { get; set; }
 
     public DateTime? UpdatedAt { get; set; }

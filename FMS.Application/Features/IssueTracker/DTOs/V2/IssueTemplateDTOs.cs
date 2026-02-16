@@ -23,6 +23,10 @@ public class IssueTemplateDTO
     public int? OfflineThresholdMinutes { get; set; }
     public string? DefaultAssignee { get; set; }
     public string? DefaultAssigneeName { get; set; }
+    /// <summary>
+    /// Cooldown in minutes after issue close before re-triggering for the same device
+    /// </summary>
+    public int? CooldownMinutes { get; set; }
     public DateTime? CreatedAt { get; set; }
     public DateTime? UpdatedAt { get; set; }
 
@@ -60,6 +64,7 @@ public class CreateIssueTemplateDTO
     public bool CanAutoCreate { get; set; }
     public int? OfflineThresholdMinutes { get; set; }
     public string? DefaultAssignee { get; set; }
+    public int? CooldownMinutes { get; set; }
     public List<int> CategoryIds { get; set; } = new List<int>();
 }
 
@@ -79,5 +84,6 @@ public class UpdateIssueTemplateDTO
     public bool CanAutoCreate { get; set; }
     public int? OfflineThresholdMinutes { get; set; }
     public string? DefaultAssignee { get; set; }
+    public int? CooldownMinutes { get; set; }
     public List<int> CategoryIds { get; set; } = new List<int>();
 }

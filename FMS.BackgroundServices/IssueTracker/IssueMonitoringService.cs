@@ -247,9 +247,9 @@ namespace FMS.BackgroundServices.IssueTracker
                         var vehicle = mapping.Vehicle!;
                         var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
 
-                        // Skip if there's already an open issue for this vehicle+template
+                        // Skip if there's already an open issue or recently-closed issue (cooldown) for this vehicle+template
                         var existingIssue = await HasOpenIssueForDevice(
-                            context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken);
+                            context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken, template.CooldownMinutes);
 
                         if (existingIssue)
                             continue;
@@ -282,10 +282,12 @@ namespace FMS.BackgroundServices.IssueTracker
 
                             // Build title/description from template placeholders
                             var title = (template.TitleTemplate ?? "GPS Offline - {vehicleName}")
-                                .Replace("{vehicleName}", vehicleName);
-
-                            var description = (template.DescriptionTemplate ?? "Vehicle GPS device has been offline. Last seen: {lastSeen}.")
                                 .Replace("{vehicleName}", vehicleName)
+                                .Replace("{vehicleStatus}", "Working");
+
+                            var description = (template.DescriptionTemplate ?? "Vehicle {vehicleName} GPS device has been offline. Last seen: {lastSeen}. Vehicle status: {vehicleStatus}.")
+                                .Replace("{vehicleName}", vehicleName)
+                                .Replace("{vehicleStatus}", "Working")
                                 .Replace("{thresholdMinutes}", offlineThresholdMinutes.ToString())
                                 .Replace("{lastSeen}", lastSeenInfo);
 
@@ -325,11 +327,19 @@ namespace FMS.BackgroundServices.IssueTracker
         }
 
         /// <summary>
-        /// Monitors vehicles that have fuel activity (refill or pump transaction)
-        /// within the configured period but whose GPS device is offline.
-        /// This is suspicious — the vehicle is being fueled but the tracker is down.
-        /// Default threshold: 3 days (4320 minutes) for fuel activity window,
-        /// uses the same offline threshold logic as GPS offline monitoring.
+        /// Monitors ALL GPS-equipped vehicles (Working, ParkedYard, Workshop) that have
+        /// fuel activity (refill or pump transaction) within the configured period but
+        /// whose GPS device is offline. This is suspicious — the vehicle is being fueled
+        /// but the tracker is down, regardless of its declared status.
+        ///
+        /// Alert scenarios:
+        ///   - Working + GPS Offline + Fuel Activity → Alert
+        ///   - ParkedYard + GPS Offline + Fuel Activity → Alert (unexpected fueling)
+        ///   - Workshop + GPS Offline + Fuel Activity → Alert (unexpected fueling)
+        ///   - Any status + GPS Offline + No Fuel Activity → No alert (handled by GPS offline monitor for Working only)
+        ///
+        /// Vehicle status is NOT changed — it is included in the issue description so
+        /// fleet managers can decide the appropriate action.
         /// </summary>
         private async Task<int> MonitorVehicleFuelWhileOfflineAsync(
             GpsdataContext context,
@@ -452,30 +462,22 @@ namespace FMS.BackgroundServices.IssueTracker
                         if (!isOffline)
                             continue; // GPS is online, no issue
 
-                        // If vehicle is ParkedYard or Workshop but has fuel activity, transition to Working
-                        if (vehicle.VehicleStatusValue != VehicleStatus.Working)
-                        {
-                            var vehicleEntity = await context.Vehicles
-                                .FirstOrDefaultAsync(v => v.VehicleId == vehicle.VehicleId, cancellationToken);
-                            if (vehicleEntity != null)
-                            {
-                                var previousStatus = vehicleEntity.VehicleStatusValue;
-                                vehicleEntity.VehicleStatusValue = VehicleStatus.Working;
-                                vehicleEntity.DateModified = DateTime.UtcNow;
-                                _logger.LogWarning(
-                                    "[Fuel+Offline Monitor] Vehicle {VehicleId} ({VehicleName}) changed from {OldStatus} to Working due to fuel activity while GPS offline",
-                                    vehicle.VehicleId, vehicle.HyoungNo ?? vehicle.NumberPlate, previousStatus);
-                            }
-                        }
-
-                        // Skip if there's already an open issue for this vehicle+template
+                        // Skip if there's already an open issue or recently-closed issue (cooldown) for this vehicle+template
                         var existingIssue = await HasOpenIssueForDevice(
-                            context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken);
+                            context, template.Id, vehicle.VehicleId, "vehicle", cancellationToken, template.CooldownMinutes);
 
                         if (existingIssue)
                             continue;
 
                         var vehicleName = vehicle.HyoungNo ?? vehicle.NumberPlate ?? vehicle.VehicleId.ToString();
+                        var vehicleStatusLabel = vehicle.VehicleStatusValue switch
+                        {
+                            VehicleStatus.Working => "Working (Active)",
+                            VehicleStatus.ParkedYard => "Parked Yard",
+                            VehicleStatus.Workshop => "Workshop",
+                            _ => "Unknown"
+                        };
+
                         var resolvedSiteId = await ResolveIssueSiteIdForVehicleAsync(
                             context,
                             vehicle.VehicleId,
@@ -483,11 +485,13 @@ namespace FMS.BackgroundServices.IssueTracker
                             cancellationToken);
 
                         var title = (template.TitleTemplate ?? "Fuel Activity While GPS Offline - {vehicleName}")
-                            .Replace("{vehicleName}", vehicleName);
+                            .Replace("{vehicleName}", vehicleName)
+                            .Replace("{vehicleStatus}", vehicleStatusLabel);
 
                         var description = (template.DescriptionTemplate
-                            ?? "Vehicle {vehicleName} has fuel activity (refill or pump transaction) in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.")
+                            ?? "Vehicle {vehicleName} (Status: {vehicleStatus}) has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.")
                             .Replace("{vehicleName}", vehicleName)
+                            .Replace("{vehicleStatus}", vehicleStatusLabel)
                             .Replace("{thresholdDays}", $"{thresholdDays:F0}")
                             .Replace("{thresholdMinutes}", offlineThresholdMinutes.ToString())
                             .Replace("{lastSeen}", lastSeenInfo);
@@ -501,8 +505,8 @@ namespace FMS.BackgroundServices.IssueTracker
                         issuesCreated++;
 
                         _logger.LogInformation(
-                            "[Fuel+Offline Monitor] Auto-created issue for vehicle {VehicleNo} (ID: {VehicleId}) - fueled but GPS offline since {LastSeen}",
-                            vehicleName, vehicle.VehicleId, lastSeenInfo);
+                            "[Fuel+Offline Monitor] Auto-created issue for vehicle {VehicleNo} (ID: {VehicleId}, Status: {Status}) - fueled but GPS offline since {LastSeen}",
+                            vehicleName, vehicle.VehicleId, vehicleStatusLabel, lastSeenInfo);
                     }
                     catch (Exception ex)
                     {
@@ -549,7 +553,7 @@ namespace FMS.BackgroundServices.IssueTracker
             foreach (var device in offlineDevices)
             {
                 var existingIssue = await HasOpenIssueForDevice(
-                    context, template.Id, 0, "pts", cancellationToken); // Ptsdevice uses string Ptsid, not int Id
+                    context, template.Id, 0, "pts", cancellationToken, template.CooldownMinutes); // Ptsdevice uses string Ptsid, not int Id
 
                 if (existingIssue)
                     continue;
@@ -580,16 +584,24 @@ namespace FMS.BackgroundServices.IssueTracker
             return issuesCreated;
         }
 
+        /// <summary>
+        /// Checks whether issue creation should be skipped for a device/vehicle+template combo.
+        /// Returns true if:
+        ///   1. There is already an OPEN issue for this device+template, OR
+        ///   2. There is a recently CLOSED issue within the cooldown window (prevents rapid re-triggering).
+        /// </summary>
         private async Task<bool> HasOpenIssueForDevice(
             GpsdataContext context,
             int templateId,
             int deviceId,
             string deviceType,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken,
+            int? cooldownMinutes = null)
         {
             var closedStatuses = new[] { "Closed", "Resolved", "Auto-Closed", "Cancelled" };
 
-            return await context.Issuetrackers
+            // 1. Check for any OPEN issue (not closed/resolved)
+            var hasOpen = await context.Issuetrackers
                 .Where(i => i.IssueTemplateId == templateId
                     && i.RelatedEntityId == deviceId
                     && i.RelatedEntityType == deviceType
@@ -600,6 +612,48 @@ namespace FMS.BackgroundServices.IssueTracker
                     s => s.Id,
                     (i, s) => i)
                 .AnyAsync(cancellationToken);
+
+            if (hasOpen)
+                return true;
+
+            // 2. Cooldown check — skip if a closed issue exists within the cooldown window
+            if (cooldownMinutes.HasValue && cooldownMinutes.Value > 0)
+            {
+                var cooldownCutoff = DateTime.UtcNow.AddMinutes(-cooldownMinutes.Value);
+
+                var recentlyClosed = await context.Issuetrackers
+                    .Where(i => i.IssueTemplateId == templateId
+                        && i.RelatedEntityId == deviceId
+                        && i.RelatedEntityType == deviceType
+                        && i.IsAutoCreated
+                        && i.Status.HasValue
+                        && (i.ClosingDate.HasValue && i.ClosingDate.Value >= cooldownCutoff
+                            || i.LastModfield.HasValue && i.LastModfield.Value >= cooldownCutoff))
+                    .Join(
+                        context.Issuestatuses.Where(s => closedStatuses.Contains(s.Status)),
+                        i => i.Status,
+                        s => s.Id,
+                        (i, s) => i)
+                    .AnyAsync(cancellationToken);
+
+                if (recentlyClosed)
+                    return true;
+            }
+
+            // 3. Deadline suppression — skip if any issue for this device has a future DueDate
+            //    This respects the assignee's commitment: "I'll handle this by <date>"
+            var hasFutureDeadline = await context.Issuetrackers
+                .Where(i => i.IssueTemplateId == templateId
+                    && i.RelatedEntityId == deviceId
+                    && i.RelatedEntityType == deviceType
+                    && i.IsAutoCreated
+                    && i.DueDate.HasValue && i.DueDate.Value > DateTime.UtcNow)
+                .AnyAsync(cancellationToken);
+
+            if (hasFutureDeadline)
+                return true;
+
+            return false;
         }
 
         private async Task<Issuetracker> CreateIssueFromTemplateAsync(
@@ -938,22 +992,44 @@ namespace FMS.BackgroundServices.IssueTracker
                         .FirstOrDefaultAsync(cancellationToken);
                 }
 
-                var frontendBaseUrl = configuration?.GetValue<string>("FrontendBaseUrl")
-                    ?? configuration?.GetValue<string>("AppSettings:FrontendBaseUrl")
-                    ?? "http://localhost:3000";
+                var frontendBaseUrl = GetFrontendBaseUrl(configuration);
                 var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
                 var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
                 var primaryAssignee = assignedUsers.First();
+
+                var priorityName = await context.Issuepriorities
+                    .AsNoTracking()
+                    .Where(p => issue.Priority.HasValue && p.Id == issue.Priority.Value)
+                    .Select(p => p.Name)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "High";
+
+                var categoryName = await context.Issuecategories
+                    .AsNoTracking()
+                    .Where(c => c.Id == issue.IssueCategoryId)
+                    .Select(c => c.Name)
+                    .FirstOrDefaultAsync(cancellationToken)
+                    ?? issue.RelatedEntityType
+                    ?? "Issue";
+
+                var createdAt = issue.OpenDate ?? DateTime.UtcNow;
+                var allAssigneeNames = string.Join(", ", assignedUsers
+                    .Select(u => string.IsNullOrWhiteSpace(u.UserName) ? u.Id : u.UserName));
+                var issueTypeLabel = ResolveIssueTypeLabel(issue.RelatedEntityType, issue.ProblemTitle);
 
                 // Build rich HTML email with clickable links
                 var emailBodyHtml = BuildAutoCreatedIssueEmailHtml(
                     issue.Id,
                     issue.ProblemTitle ?? "Untitled Issue",
+                    issue.ProblemDescription ?? string.Empty,
+                    issueTypeLabel,
+                    priorityName,
+                    categoryName,
                     vehicleName,
                     siteName,
                     primaryAssignee.UserName ?? "User",
                     primaryAssignee.Email ?? "",
-                    string.Join(", ", assignedUsers.Select(u => u.UserName)),
+                    allAssigneeNames,
+                    createdAt,
                     issueUrl);
 
                 // Build recipients list — one per assigned user
@@ -1015,76 +1091,149 @@ namespace FMS.BackgroundServices.IssueTracker
         private static string BuildAutoCreatedIssueEmailHtml(
             int issueId,
             string issueTitle,
+                        string issueDescription,
+            string issueTypeLabel,
+                        string priorityName,
+                        string categoryName,
             string? vehicleName,
             string? siteName,
             string assignedToName,
             string assignedToEmail,
             string allAssigneeNames,
+                        DateTime issueTime,
             string issueUrl)
         {
             var safeTitle = System.Net.WebUtility.HtmlEncode(issueTitle);
+            var safeDescription = System.Net.WebUtility.HtmlEncode(issueDescription);
+            var safeIssueType = System.Net.WebUtility.HtmlEncode(issueTypeLabel);
+            var safePriority = System.Net.WebUtility.HtmlEncode(priorityName);
+            var safeCategory = System.Net.WebUtility.HtmlEncode(categoryName);
             var safeVehicle = System.Net.WebUtility.HtmlEncode(vehicleName ?? "Not specified");
             var safeSite = System.Net.WebUtility.HtmlEncode(siteName ?? "Not specified");
             var safeAssignee = System.Net.WebUtility.HtmlEncode(assignedToName);
             var safeEmail = System.Net.WebUtility.HtmlEncode(assignedToEmail);
             var safeAllAssignees = System.Net.WebUtility.HtmlEncode(allAssigneeNames);
+            var safeIssueTime = System.Net.WebUtility.HtmlEncode(issueTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"));
             var safeUrl = System.Net.WebUtility.HtmlEncode(issueUrl);
 
-            return $@"
-<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:600px;margin:0 auto;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Oxygen,Ubuntu,sans-serif;"">
-  <!-- Header -->
-  <tr>
-    <td style=""padding:24px 24px 16px;background:linear-gradient(135deg,#dc2626 0%,#ef4444 100%);border-radius:12px 12px 0 0;"">
-      <div style=""font-size:11px;color:rgba(255,255,255,0.8);font-weight:600;letter-spacing:0.08em;text-transform:uppercase;margin-bottom:8px;"">
-        <span style=""display:inline-block;background:rgba(255,255,255,0.2);padding:4px 10px;border-radius:20px;"">&#9888; Auto-Created Issue</span>
-      </div>
-      <div style=""font-size:22px;color:#ffffff;font-weight:700;line-height:1.3;"">Issue #{issueId}: {safeTitle}</div>
-    </td>
-  </tr>
-  <!-- Body -->
-  <tr>
-    <td style=""background:#ffffff;border:1px solid #e5e7eb;border-top:none;padding:0;"">
-      <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;"">
-        <tr>
-          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
-            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128100; Assigned To</div>
-            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeAssignee}</div>
-            <div style=""font-size:13px;color:#6b7280;"">{safeEmail}</div>
-          </td>
-          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
-            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128101; All Assignees</div>
-            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeAllAssignees}</div>
-          </td>
-        </tr>
-        <tr>
-          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
-            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128663; Vehicle</div>
-            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeVehicle}</div>
-          </td>
-          <td style=""padding:16px 24px;border-bottom:1px solid #f3f4f6;width:50%;"">
-            <div style=""font-size:11px;color:#6b7280;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;margin-bottom:4px;"">&#128205; Site/Location</div>
-            <div style=""font-size:14px;color:#111827;font-weight:600;"">{safeSite}</div>
-          </td>
-        </tr>
-      </table>
-      <!-- Action Button -->
-      <div style=""padding:24px;text-align:center;"">
-        <a href=""{safeUrl}"" style=""display:inline-block;padding:14px 32px;background:linear-gradient(135deg,#2563eb 0%,#3b82f6 100%);color:#ffffff;text-decoration:none;border-radius:8px;font-size:15px;font-weight:600;box-shadow:0 4px 6px rgba(37,99,235,0.25);"">
-          View Issue Details &rarr;
-        </a>
-      </div>
-    </td>
-  </tr>
-  <!-- Footer -->
-  <tr>
-    <td style=""padding:16px 24px;background:#f9fafb;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 12px 12px;text-align:center;"">
-      <p style=""margin:0;font-size:12px;color:#6b7280;"">
-        This issue was <strong>automatically created</strong> by the <strong>Hyoung FMS Monitoring System</strong>.<br/>
-        Please do not reply directly to this email.
-      </p>
-    </td>
-  </tr>
-</table>";
+            return $@"<!DOCTYPE html>
+<html lang=""en"">
+<head>
+        <meta charset=""UTF-8"">
+        <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
+        <title>Auto-Created Issue Notification</title>
+</head>
+<body style=""margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;"">
+        <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background-color:#f5f5f5;padding:30px 15px;"">
+                <tr>
+                        <td align=""center"">
+                                <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:800px;background-color:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);"">
+                                        <tr>
+                                                <td style=""background-color:#1e293b;padding:24px 32px;"">
+                                                        <h1 style=""margin:0;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;"">Hyoung FMS</h1>
+                                                        <p style=""margin:4px 0 0 0;font-size:14px;color:#94a3b8;"">Fleet Management Notification</p>
+                                                </td>
+                                        </tr>
+                                        <tr>
+                                                <td style=""padding:32px 32px 24px 32px;"">
+                                                        <h2 style=""margin:0;font-size:22px;font-weight:600;color:#0f172a;line-height:1.3;"">{safeTitle} | Issue #{issueId}</h2>
+                                                </td>
+                                        </tr>
+                                        <tr>
+                                                <td style=""padding:0 32px 24px 32px;"">
+                                                        <p style=""margin:0;font-size:14px;line-height:1.6;color:#475569;"">{safeDescription}</p>
+                                                </td>
+                                        </tr>
+                                        <tr>
+                                                <td style=""padding:0 32px 32px 32px;"">
+                                                        <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;border:1px solid #e2e8f0;"">
+                                                            <tr>
+                                                                <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Issue Type</span></td>
+                                                                <td colspan=""3"" style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeIssueType}</span></td>
+                                                            </tr>
+                                                                <tr>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Priority</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safePriority}</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Category</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeCategory}</span></td>
+                                                                </tr>
+                                                                <tr>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Vehicle</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeVehicle}</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Site</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeSite}</span></td>
+                                                                </tr>
+                                                                <tr>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Assigned To</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeAssignee}</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Time</span></td>
+                                                                        <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeIssueTime}</span></td>
+                                                                </tr>
+                                                                <tr>
+                                                                        <td style=""padding:14px 20px;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">All Assignees</span></td>
+                                                                        <td colspan=""3"" style=""padding:14px 20px;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeAllAssignees}</span></td>
+                                                                </tr>
+                                                        </table>
+                                                </td>
+                                        </tr>
+                                        <tr>
+                                                <td style=""padding:0 32px 32px 32px;"" align=""center"">
+                                                        <a href=""{safeUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">View Issue Details</a>
+                                                </td>
+                                        </tr>
+                                        <tr>
+                                                <td style=""padding:24px 32px;background-color:#f8fafc;border-top:1px solid #e2e8f0;"">
+                                                        <p style=""margin:0;font-size:13px;color:#64748b;line-height:1.5;text-align:center;"">
+                                                                This is an automated message from Hyoung FMS. Please do not reply directly to this email.
+                                                        </p>
+                                                </td>
+                                        </tr>
+                                </table>
+                        </td>
+                </tr>
+        </table>
+</body>
+</html>";
+        }
+
+        private static string ResolveIssueTypeLabel(string? relatedEntityType, string? problemTitle)
+        {
+            var normalizedTitle = (problemTitle ?? string.Empty).ToLowerInvariant();
+            var normalizedEntityType = (relatedEntityType ?? string.Empty).ToLowerInvariant();
+
+            if (normalizedTitle.Contains("fuel activity") && normalizedTitle.Contains("gps offline"))
+            {
+                return "Fuel Activity + GPS Offline";
+            }
+
+            if (normalizedTitle.Contains("gps offline"))
+            {
+                return "GPS Offline";
+            }
+
+            if (normalizedEntityType is "pts" or "pts_terminal" or "tank_monitor" or "tankmonitor" or "atg")
+            {
+                return "PTS Offline";
+            }
+
+            return "Auto-Created Issue";
+        }
+
+        private string GetFrontendBaseUrl(IConfiguration? configuration)
+        {
+            var configuredBaseUrl = configuration?.GetValue<string>("IssueTracker:FrontendBaseUrl")
+                ?? configuration?.GetValue<string>("Frontend:BaseUrl")
+                ?? configuration?.GetValue<string>("App:FrontendBaseUrl")
+                ?? configuration?.GetValue<string>("FrontendBaseUrl")
+                ?? configuration?.GetValue<string>("AppSettings:FrontendBaseUrl");
+
+            if (string.IsNullOrWhiteSpace(configuredBaseUrl))
+            {
+                throw new InvalidOperationException(
+                    "Frontend base URL is not configured. Set 'IssueTracker:FrontendBaseUrl' (or 'Frontend:BaseUrl') in configuration.");
+            }
+
+            return configuredBaseUrl.TrimEnd('/');
         }
 
         public override async Task StopAsync(CancellationToken cancellationToken)
