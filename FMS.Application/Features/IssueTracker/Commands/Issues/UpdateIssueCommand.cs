@@ -11,6 +11,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Features.FMS.Issuetracker;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -25,12 +26,18 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IIssueActivityService _activityService;
     private readonly ILogger<UpdateIssueCommandHandler> _logger;
 
-    public UpdateIssueCommandHandler(GpsdataContext context, IMapper mapper, ILogger<UpdateIssueCommandHandler> logger)
+    public UpdateIssueCommandHandler(
+        GpsdataContext context,
+        IMapper mapper,
+        IIssueActivityService activityService,
+        ILogger<UpdateIssueCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _activityService = activityService;
         _logger = logger;
     }
 
@@ -46,6 +53,14 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
                 _logger.LogWarning("Issue with ID: {Id} not found", request.IssueTracker.Id);
                 return Unit.Value;
             }
+
+            var previousStatusId = entity.Status;
+            var previousPriorityId = entity.Priority;
+            var previousAssigneeId = entity.AssignTo;
+            var previousDueDate = entity.DueDate;
+            var previousTitle = entity.ProblemTitle;
+            var previousDescription = entity.ProblemDescription;
+            var previousCategoryId = entity.IssueCategoryId;
 
             // Resolve usernames to user IDs before mapping
             string? openbyUserId = null;
@@ -133,6 +148,106 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
                     entity.Id,
                     openbyUserId ?? entity.Openby,
                     assignToUsers,
+                    cancellationToken);
+            }
+
+            var modifiedByUserId = !string.IsNullOrWhiteSpace(request.IssueTracker.ModifiedByUserId)
+                ? request.IssueTracker.ModifiedByUserId!
+                : (!string.IsNullOrWhiteSpace(openbyUserId) ? openbyUserId : entity.Openby);
+
+            if (string.IsNullOrWhiteSpace(modifiedByUserId))
+            {
+                modifiedByUserId = "System";
+            }
+
+            var modifiedByUserName = await GetUserDisplayNameByIdAsync(modifiedByUserId, cancellationToken);
+
+            var oldStatusName = await GetStatusNameByIdAsync(previousStatusId, cancellationToken);
+            var newStatusName = await GetStatusNameByIdAsync(entity.Status, cancellationToken);
+            if (previousStatusId != entity.Status)
+            {
+                await _activityService.LogStatusChangeAsync(
+                    entity.Id,
+                    oldStatusName,
+                    newStatusName,
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            var oldPriorityName = await GetPriorityNameByIdAsync(previousPriorityId, cancellationToken);
+            var newPriorityName = await GetPriorityNameByIdAsync(entity.Priority, cancellationToken);
+            if (previousPriorityId != entity.Priority)
+            {
+                await _activityService.LogPriorityChangeAsync(
+                    entity.Id,
+                    oldPriorityName,
+                    newPriorityName,
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            if (!string.Equals(previousAssigneeId, entity.AssignTo, StringComparison.Ordinal))
+            {
+                var oldAssigneeName = await GetUserDisplayNameByIdAsync(previousAssigneeId, cancellationToken);
+                var newAssigneeName = await GetUserDisplayNameByIdAsync(entity.AssignTo, cancellationToken);
+
+                await _activityService.LogAssignmentChangeAsync(
+                    entity.Id,
+                    oldAssigneeName,
+                    newAssigneeName,
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            var dueDateChanged = previousDueDate?.Date != entity.DueDate?.Date;
+            if (dueDateChanged)
+            {
+                await _activityService.LogFieldChangeAsync(
+                    entity.Id,
+                    "DueDate",
+                    FormatDateForActivity(previousDueDate),
+                    FormatDateForActivity(entity.DueDate),
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            if (!string.Equals(previousTitle, entity.ProblemTitle, StringComparison.Ordinal))
+            {
+                await _activityService.LogFieldChangeAsync(
+                    entity.Id,
+                    "ProblemTitle",
+                    previousTitle,
+                    entity.ProblemTitle,
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            if (!string.Equals(previousDescription, entity.ProblemDescription, StringComparison.Ordinal))
+            {
+                await _activityService.LogFieldChangeAsync(
+                    entity.Id,
+                    "ProblemDescription",
+                    previousDescription,
+                    entity.ProblemDescription,
+                    modifiedByUserId,
+                    modifiedByUserName,
+                    cancellationToken);
+            }
+
+            if (previousCategoryId != entity.IssueCategoryId)
+            {
+                await _activityService.LogFieldChangeAsync(
+                    entity.Id,
+                    "IssueCategory",
+                    previousCategoryId.ToString(),
+                    entity.IssueCategoryId.ToString(),
+                    modifiedByUserId,
+                    modifiedByUserName,
                     cancellationToken);
             }
 
@@ -238,5 +353,49 @@ public class UpdateIssueCommandHandler : IRequestHandler<UpdateIssueCommand, Uni
                 new object[] { issueId, tagId },
                 cancellationToken);
         }
+    }
+
+    private async Task<string?> GetStatusNameByIdAsync(int? statusId, CancellationToken cancellationToken)
+    {
+        if (!statusId.HasValue)
+        {
+            return null;
+        }
+
+        return await _context.Issuestatuses
+            .Where(status => status.Id == statusId.Value)
+            .Select(status => status.Status)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<string?> GetPriorityNameByIdAsync(int? priorityId, CancellationToken cancellationToken)
+    {
+        if (!priorityId.HasValue)
+        {
+            return null;
+        }
+
+        return await _context.Issuepriorities
+            .Where(priority => priority.Id == priorityId.Value)
+            .Select(priority => priority.Name)
+            .FirstOrDefaultAsync(cancellationToken);
+    }
+
+    private async Task<string?> GetUserDisplayNameByIdAsync(string? userId, CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(userId))
+        {
+            return null;
+        }
+
+        return await _context.Users
+            .Where(user => user.Id == userId)
+            .Select(user => user.UserName ?? user.Id)
+            .FirstOrDefaultAsync(cancellationToken) ?? userId;
+    }
+
+    private static string? FormatDateForActivity(DateTime? dateValue)
+    {
+        return dateValue?.ToString("yyyy-MM-dd");
     }
 }

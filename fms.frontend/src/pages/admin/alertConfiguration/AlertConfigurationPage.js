@@ -196,7 +196,8 @@ const serializeAssigneeIds = (ids) => {
 const AlertConfigurationPage = () => {
     const dispatch = useDispatch();
     const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
+    const [savingGps, setSavingGps] = useState(false);
+    const [savingFuel, setSavingFuel] = useState(false);
     const [templates, setTemplates] = useState([]);
     const [deviceTypes, setDeviceTypes] = useState([]);
     const [autoCloseConfigs, setAutoCloseConfigs] = useState([]);
@@ -308,96 +309,199 @@ const AlertConfigurationPage = () => {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [dispatch]);
 
+    // ===== DTO Builders (only include fields the backend expects) =====
+
+    /**
+     * Build a clean UpdateIssueTemplateDTO — strips read-only/response-only fields.
+     * Maps to: UpdateIssueTemplateDTO { Id, DeviceTypeId, Name, TitleTemplate, DescriptionTemplate,
+     *   DefaultPriorityId, DefaultStatusId, IsActive, CanAutoCreate, OfflineThresholdMinutes,
+     *   DefaultAssignee, CooldownMinutes, CategoryIds }
+     */
+    const buildTemplatePayload = useCallback((template) => ({
+        id: template.id,
+        deviceTypeId: template.deviceTypeId,
+        name: template.name,
+        titleTemplate: template.titleTemplate || null,
+        descriptionTemplate: template.descriptionTemplate || null,
+        defaultPriorityId: template.defaultPriorityId || null,
+        defaultStatusId: template.defaultStatusId || null,
+        isActive: !!template.isActive,
+        canAutoCreate: !!template.canAutoCreate,
+        offlineThresholdMinutes: template.offlineThresholdMinutes || null,
+        defaultAssignee: template.defaultAssignee || null,
+        cooldownMinutes: template.cooldownMinutes || null,
+        categoryIds: template.categoryIds || [],
+    }), []);
+
+    /**
+     * Build a clean auto-close config DTO for the Upsert (POST) endpoint.
+     * Maps to: CreateAutoCloseConfigDTO { IssueTemplateId, IsEnabled, CheckerType,
+     *   CheckIntervalSeconds, CheckerConfigJson, AutoCloseWhenSatisfied }
+     */
+    const buildAutoClosePayload = useCallback((autoClose, templateId, defaultCheckerType) => ({
+        issueTemplateId: templateId,
+        isEnabled: !!autoClose.isEnabled,
+        checkerType: autoClose.checkerType || defaultCheckerType,
+        checkIntervalSeconds: autoClose.checkIntervalSeconds || 600,
+        checkerConfigJson: autoClose.checkerConfigJson || JSON.stringify({ onlineThresholdMinutes: 15 }),
+        autoCloseWhenSatisfied: autoClose.autoCloseWhenSatisfied ?? true,
+    }), []);
+
+    /** Validate template fields before saving */
+    const validateTemplate = useCallback((template, label) => {
+        const errors = [];
+        if (!template.offlineThresholdMinutes || template.offlineThresholdMinutes < 1) {
+            errors.push('Offline threshold must be at least 1 minute');
+        }
+        if (!template.name?.trim()) {
+            errors.push('Template name is required');
+        }
+        if (errors.length > 0) {
+            notify({ message: `${label}: ${errors.join('. ')}`, type: 'warning', displayTime: 4000 });
+            return false;
+        }
+        return true;
+    }, []);
+
+    /**
+     * Silent data refresh — re-fetches without showing the loading spinner.
+     * Synchronises local state with the server after a save.
+     */
+    const refreshData = useCallback(async () => {
+        try {
+            isHydrated.current = false;
+            const [templatesRes, deviceTypesRes, autoCloseRes] = await Promise.all([
+                issueTrackerV2Service.getTemplates(),
+                issueTrackerV2Service.getDeviceTypes(),
+                issueTrackerV2Service.getAutoCloseConfigs(),
+            ]);
+
+            const allTemplates = templatesRes?.data || templatesRes || [];
+            const allDeviceTypes = deviceTypesRes?.data || deviceTypesRes || [];
+            const allAutoClose = autoCloseRes?.data || autoCloseRes || [];
+
+            setTemplates(allTemplates);
+            setDeviceTypes(allDeviceTypes);
+            setAutoCloseConfigs(allAutoClose);
+
+            // Re-resolve GPS template
+            const gpsDeviceTypeIds = allDeviceTypes
+                .filter((dt) => GPS_DEVICE_TYPES.includes(dt.name?.toLowerCase()))
+                .map((dt) => dt.id);
+            const gpsTpl = allTemplates.find(
+                (t) => gpsDeviceTypeIds.includes(t.deviceTypeId) && t.canAutoCreate
+            ) || allTemplates.find((t) => gpsDeviceTypeIds.includes(t.deviceTypeId)) || null;
+            setGpsTemplate(gpsTpl ? { ...gpsTpl } : null);
+            setGpsAutoClose(gpsTpl
+                ? (allAutoClose.find((ac) => ac.issueTemplateId === gpsTpl.id) ? { ...allAutoClose.find((ac) => ac.issueTemplateId === gpsTpl.id) } : null)
+                : null
+            );
+
+            // Re-resolve Fuel template
+            const fuelDeviceTypeIds = allDeviceTypes
+                .filter((dt) => FUEL_DEVICE_TYPES.includes(dt.name?.toLowerCase()))
+                .map((dt) => dt.id);
+            const fuelTpl = allTemplates.find(
+                (t) => fuelDeviceTypeIds.includes(t.deviceTypeId) && t.canAutoCreate
+            ) || allTemplates.find((t) => fuelDeviceTypeIds.includes(t.deviceTypeId)) || null;
+            setFuelTemplate(fuelTpl ? { ...fuelTpl } : null);
+            setFuelAutoClose(fuelTpl
+                ? (allAutoClose.find((ac) => ac.issueTemplateId === fuelTpl.id) ? { ...allAutoClose.find((ac) => ac.issueTemplateId === fuelTpl.id) } : null)
+                : null
+            );
+        } catch (err) {
+            console.error('Failed to refresh alert configuration:', err);
+        } finally {
+            setTimeout(() => { isHydrated.current = true; }, 0);
+        }
+    }, []);
+
     // ===== Save Handlers =====
+
     const handleSaveGps = useCallback(async () => {
         if (!gpsTemplate) {
             notify({ message: 'No GPS monitoring template found. Create one in Issue Tracker Settings first.', type: 'warning', displayTime: 4000 });
             return;
         }
-        setSaving(true);
-        try {
-            await issueTrackerV2Service.updateTemplate(gpsTemplate.id, {
-                ...gpsTemplate,
-                deviceTypeId: gpsTemplate.deviceTypeId,
-                name: gpsTemplate.name,
-                offlineThresholdMinutes: gpsTemplate.offlineThresholdMinutes,
-                canAutoCreate: gpsTemplate.canAutoCreate,
-                titleTemplate: gpsTemplate.titleTemplate,
-                descriptionTemplate: gpsTemplate.descriptionTemplate,
-                defaultAssignee: gpsTemplate.defaultAssignee,
-                defaultPriorityId: gpsTemplate.defaultPriorityId,
-                isActive: gpsTemplate.isActive,
-                cooldownMinutes: gpsTemplate.cooldownMinutes || null,
-            });
+        if (!validateTemplate(gpsTemplate, 'GPS Config')) return;
 
+        setSavingGps(true);
+        try {
+            // Step 1: Save template with clean DTO
+            const templatePayload = buildTemplatePayload(gpsTemplate);
+            await issueTrackerV2Service.updateTemplate(gpsTemplate.id, templatePayload, { silent: true });
+
+            // Step 2: Save auto-close config via Upsert (POST) if user has configured it
+            let autoCloseSuccess = true;
             if (gpsAutoClose) {
-                if (gpsAutoClose.id) {
-                    await issueTrackerV2Service.updateAutoCloseConfig(gpsAutoClose.id, {
-                        ...gpsAutoClose,
-                        issueTemplateId: gpsTemplate.id,
-                    });
-                } else {
-                    await issueTrackerV2Service.createAutoCloseConfig({
-                        ...gpsAutoClose,
-                        issueTemplateId: gpsTemplate.id,
-                    });
+                try {
+                    const autoClosePayload = buildAutoClosePayload(gpsAutoClose, gpsTemplate.id, 'Online');
+                    // Always use upsert (POST) — backend handles create-or-update by templateId
+                    await issueTrackerV2Service.createAutoCloseConfig(autoClosePayload, { silent: true });
+                } catch (acErr) {
+                    autoCloseSuccess = false;
+                    console.error('Failed to save GPS auto-close config:', acErr);
                 }
             }
 
-            notify({ message: 'GPS monitoring configuration saved', type: 'success', displayTime: 3000 });
-            await loadData();
+            // Step 3: Single notification based on outcome
+            if (autoCloseSuccess) {
+                notify({ message: 'GPS monitoring configuration saved successfully', type: 'success', displayTime: 3000 });
+            } else {
+                notify({ message: 'GPS template saved, but auto-close configuration failed. Please try again.', type: 'warning', displayTime: 5000 });
+            }
+
+            // Step 4: Silent refresh
+            await refreshData();
         } catch (err) {
             console.error('Failed to save GPS config:', err);
-            notify({ message: 'Failed to save GPS configuration', type: 'error', displayTime: 4000 });
+            notify({ message: err.message || 'Failed to save GPS configuration', type: 'error', displayTime: 4000 });
         } finally {
-            setSaving(false);
+            setSavingGps(false);
         }
-    }, [gpsTemplate, gpsAutoClose, loadData]);
+    }, [gpsTemplate, gpsAutoClose, buildTemplatePayload, buildAutoClosePayload, validateTemplate, refreshData]);
 
     const handleSaveFuel = useCallback(async () => {
         if (!fuelTemplate) {
             notify({ message: 'No Fuel monitoring template found. Create one in Issue Tracker Settings first.', type: 'warning', displayTime: 4000 });
             return;
         }
-        setSaving(true);
-        try {
-            await issueTrackerV2Service.updateTemplate(fuelTemplate.id, {
-                ...fuelTemplate,
-                deviceTypeId: fuelTemplate.deviceTypeId,
-                name: fuelTemplate.name,
-                offlineThresholdMinutes: fuelTemplate.offlineThresholdMinutes,
-                canAutoCreate: fuelTemplate.canAutoCreate,
-                titleTemplate: fuelTemplate.titleTemplate,
-                descriptionTemplate: fuelTemplate.descriptionTemplate,
-                defaultAssignee: fuelTemplate.defaultAssignee,
-                defaultPriorityId: fuelTemplate.defaultPriorityId,
-                isActive: fuelTemplate.isActive,
-                cooldownMinutes: fuelTemplate.cooldownMinutes || null,
-            });
+        if (!validateTemplate(fuelTemplate, 'Fuel Config')) return;
 
+        setSavingFuel(true);
+        try {
+            // Step 1: Save template with clean DTO
+            const templatePayload = buildTemplatePayload(fuelTemplate);
+            await issueTrackerV2Service.updateTemplate(fuelTemplate.id, templatePayload, { silent: true });
+
+            // Step 2: Save auto-close config via Upsert (POST) if user has configured it
+            let autoCloseSuccess = true;
             if (fuelAutoClose) {
-                if (fuelAutoClose.id) {
-                    await issueTrackerV2Service.updateAutoCloseConfig(fuelAutoClose.id, {
-                        ...fuelAutoClose,
-                        issueTemplateId: fuelTemplate.id,
-                    });
-                } else {
-                    await issueTrackerV2Service.createAutoCloseConfig({
-                        ...fuelAutoClose,
-                        issueTemplateId: fuelTemplate.id,
-                    });
+                try {
+                    const autoClosePayload = buildAutoClosePayload(fuelAutoClose, fuelTemplate.id, 'FuelActivity');
+                    await issueTrackerV2Service.createAutoCloseConfig(autoClosePayload, { silent: true });
+                } catch (acErr) {
+                    autoCloseSuccess = false;
+                    console.error('Failed to save fuel auto-close config:', acErr);
                 }
             }
 
-            notify({ message: 'Fuel activity monitoring configuration saved', type: 'success', displayTime: 3000 });
-            await loadData();
+            // Step 3: Single notification based on outcome
+            if (autoCloseSuccess) {
+                notify({ message: 'Fuel activity monitoring configuration saved successfully', type: 'success', displayTime: 3000 });
+            } else {
+                notify({ message: 'Fuel template saved, but auto-close configuration failed. Please try again.', type: 'warning', displayTime: 5000 });
+            }
+
+            // Step 4: Silent refresh
+            await refreshData();
         } catch (err) {
             console.error('Failed to save fuel config:', err);
-            notify({ message: 'Failed to save fuel configuration', type: 'error', displayTime: 4000 });
+            notify({ message: err.message || 'Failed to save fuel configuration', type: 'error', displayTime: 4000 });
         } finally {
-            setSaving(false);
+            setSavingFuel(false);
         }
-    }, [fuelTemplate, fuelAutoClose, loadData]);
+    }, [fuelTemplate, fuelAutoClose, buildTemplatePayload, buildAutoClosePayload, validateTemplate, refreshData]);
 
     // ===== Field update helpers (guarded against no-op updates) =====
     const updateGpsField = useCallback((field, value) => {
@@ -459,7 +563,7 @@ const AlertConfigurationPage = () => {
 
     // ===== Auto-Setup: Create missing device type + template =====
     const handleSetupGps = useCallback(async () => {
-        setSaving(true);
+        setSavingGps(true);
         try {
             // Find or create GPS Device type
             let gpsDeviceTypeId = null;
@@ -467,7 +571,7 @@ const AlertConfigurationPage = () => {
             if (existingGpsDt) {
                 gpsDeviceTypeId = existingGpsDt.id;
             } else {
-                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'GPS Device', description: 'Vehicle GPS tracking device', isMonitored: true });
+                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'GPS Device', description: 'Vehicle GPS tracking device', isMonitored: true }, { silent: true });
                 gpsDeviceTypeId = dtRes?.data?.id || dtRes?.id;
             }
 
@@ -482,7 +586,7 @@ const AlertConfigurationPage = () => {
                 canAutoCreate: true,
                 isActive: true,
                 offlineThresholdMinutes: 60,
-            });
+            }, { silent: true });
 
             notify({ message: 'GPS monitoring template created successfully', type: 'success', displayTime: 3000 });
             await loadData();
@@ -490,12 +594,12 @@ const AlertConfigurationPage = () => {
             console.error('Failed to setup GPS monitoring:', err);
             notify({ message: 'Failed to create GPS monitoring template', type: 'error', displayTime: 4000 });
         } finally {
-            setSaving(false);
+            setSavingGps(false);
         }
     }, [deviceTypes, loadData]);
 
     const handleSetupFuel = useCallback(async () => {
-        setSaving(true);
+        setSavingFuel(true);
         try {
             // Create a "fuel_activity" device type
             let fuelDeviceTypeId = null;
@@ -503,7 +607,7 @@ const AlertConfigurationPage = () => {
             if (existingFuelDt) {
                 fuelDeviceTypeId = existingFuelDt.id;
             } else {
-                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'fuel_activity', description: 'Fuel activity + GPS offline monitoring', isMonitored: true });
+                const dtRes = await issueTrackerV2Service.createDeviceType({ name: 'fuel_activity', description: 'Fuel activity + GPS offline monitoring', isMonitored: true }, { silent: true });
                 fuelDeviceTypeId = dtRes?.data?.id || dtRes?.id;
             }
 
@@ -518,7 +622,7 @@ const AlertConfigurationPage = () => {
                 canAutoCreate: true,
                 isActive: true,
                 offlineThresholdMinutes: 60,
-            });
+            }, { silent: true });
 
             notify({ message: 'Fuel activity monitoring template created successfully', type: 'success', displayTime: 3000 });
             await loadData();
@@ -526,7 +630,7 @@ const AlertConfigurationPage = () => {
             console.error('Failed to setup fuel monitoring:', err);
             notify({ message: 'Failed to create fuel monitoring template', type: 'error', displayTime: 4000 });
         } finally {
-            setSaving(false);
+            setSavingFuel(false);
         }
     }, [deviceTypes, loadData]);
 
@@ -577,12 +681,12 @@ const AlertConfigurationPage = () => {
                         <i className="fa-light fa-satellite-dish tw-text-4xl tw-mb-3 tw-block"></i>
                         <p className="tw-text-sm tw-mb-4">No GPS monitoring template configured yet.</p>
                         <Button
-                            text={saving ? 'Creating...' : 'Setup GPS Monitoring'}
+                            text={savingGps ? 'Creating...' : 'Setup GPS Monitoring'}
                             type="default"
                             stylingMode="contained"
                             icon="fa-light fa-plus"
                             onClick={handleSetupGps}
-                            disabled={saving}
+                            disabled={savingGps}
                         />
                     </div>
                 ) : (
@@ -749,12 +853,12 @@ const AlertConfigurationPage = () => {
 
                         <div className="tw-flex tw-justify-end tw-mt-6">
                             <Button
-                                text={saving ? 'Saving...' : 'Save GPS Configuration'}
+                                text={savingGps ? 'Saving...' : 'Save GPS Configuration'}
                                 type="default"
                                 stylingMode="contained"
                                 icon="fa-light fa-floppy-disk"
                                 onClick={handleSaveGps}
-                                disabled={saving}
+                                disabled={savingGps}
                             />
                         </div>
                     </div>
@@ -787,12 +891,12 @@ const AlertConfigurationPage = () => {
                         <i className="fa-light fa-gas-pump tw-text-4xl tw-mb-3 tw-block"></i>
                         <p className="tw-text-sm tw-mb-4">No fuel activity monitoring template configured yet.</p>
                         <Button
-                            text={saving ? 'Creating...' : 'Setup Fuel Activity Monitoring'}
+                            text={savingFuel ? 'Creating...' : 'Setup Fuel Activity Monitoring'}
                             type="default"
                             stylingMode="contained"
                             icon="fa-light fa-plus"
                             onClick={handleSetupFuel}
-                            disabled={saving}
+                            disabled={savingFuel}
                         />
                     </div>
                 ) : (
@@ -993,12 +1097,12 @@ const AlertConfigurationPage = () => {
 
                         <div className="tw-flex tw-justify-end tw-mt-6">
                             <Button
-                                text={saving ? 'Saving...' : 'Save Fuel Configuration'}
+                                text={savingFuel ? 'Saving...' : 'Save Fuel Configuration'}
                                 type="default"
                                 stylingMode="contained"
                                 icon="fa-light fa-floppy-disk"
                                 onClick={handleSaveFuel}
-                                disabled={saving}
+                                disabled={savingFuel}
                             />
                         </div>
                     </div>

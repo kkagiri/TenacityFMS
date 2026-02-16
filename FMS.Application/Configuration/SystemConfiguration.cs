@@ -212,6 +212,12 @@ namespace FMS.Application.Configuration
         /// Configuration key for default IssueCategoryId used by auto-created issues.
         /// </summary>
         public const string DB_CONFIG_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID_KEY = "IssueTracker.AutoMonitoring.DefaultIssueCategoryId";
+
+        /// <summary>
+        /// Configuration key for daily local run time (HH:mm) of IssueMonitoringService.
+        /// Example: "00:00" for midnight.
+        /// </summary>
+        public const string DB_CONFIG_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL_KEY = "IssueTracker.AutoMonitoring.DailyRunTimeLocal";
         #endregion
 
         #region PTS Automated Fueling Configuration Keys
@@ -320,6 +326,7 @@ namespace FMS.Application.Configuration
         public const int DEFAULT_ISSUE_MONITORING_PTS_OFFLINE_THRESHOLD_MINUTES = 30;
         public const int DEFAULT_ISSUE_MONITORING_FUEL_ACTIVITY_WINDOW_MINUTES = 4320;
         public const int DEFAULT_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID = 1;
+        public const string DEFAULT_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL = "00:00";
         #endregion
 
         #region PTS Automated Fueling Default Values

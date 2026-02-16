@@ -2,7 +2,7 @@
  * File: IssueQuickActionCommand.cs
  * Purpose: Handles quick actions on issues (Mark Complete, Escalate Priority) with notifications and timeline updates
  * Dependencies: MediatR, GpsdataContext, INotificationService, IConfiguration
- * Last Modified: 2026-02-05
+ * Last Modified: 2026-02-16
  *
  * Key Functions:
  * - MarkComplete: Sets status to complete/closed, notifies the opener, updates timeline
@@ -48,17 +48,20 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
   public class IssueQuickActionCommandHandler : IRequestHandler<IssueQuickActionCommand, FMSResponse<bool>>
   {
     private readonly GpsdataContext _context;
+    private readonly IIssueActivityService _activityService;
     private readonly INotificationService _notificationService;
     private readonly IConfiguration _configuration;
     private readonly ILogger<IssueQuickActionCommandHandler> _logger;
 
     public IssueQuickActionCommandHandler(
         GpsdataContext context,
+        IIssueActivityService activityService,
         INotificationService notificationService,
         IConfiguration configuration,
         ILogger<IssueQuickActionCommandHandler> logger)
     {
       _context = context;
+      _activityService = activityService;
       _notificationService = notificationService;
       _configuration = configuration;
       _logger = logger;
@@ -120,22 +123,27 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         }
 
         string actionDescription;
-        string previousValue;
+        string? oldStatusName = null;
+        string? newStatusName = null;
+        string? oldPriorityName = null;
+        string? newPriorityName = null;
 
         switch (request.ActionType)
         {
           case IssueQuickActionType.MarkComplete:
+            oldStatusName = await GetStatusNameAsync(issue.Status, cancellationToken) ?? "Unknown";
             var result = await HandleMarkCompleteAsync(issue, openbyUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
             if (!result.IsSuccess) return result;
             actionDescription = "marked as complete";
-            previousValue = await GetStatusNameAsync(issue.Status, cancellationToken) ?? "Unknown";
+            newStatusName = await GetStatusNameAsync(issue.Status, cancellationToken) ?? "Unknown";
             break;
 
           case IssueQuickActionType.EscalateToHigh:
-            previousValue = await GetPriorityNameAsync(issue.Priority, cancellationToken) ?? "Unknown";
+            oldPriorityName = await GetPriorityNameAsync(issue.Priority, cancellationToken) ?? "Unknown";
             var escalateResult = await HandleEscalateToHighAsync(issue, assignedUser, performedByUser, vehicleName, siteName, request.Notes, cancellationToken);
             if (!escalateResult.IsSuccess) return escalateResult;
             actionDescription = "escalated to high priority";
+            newPriorityName = await GetPriorityNameAsync(issue.Priority, cancellationToken) ?? "Unknown";
             break;
 
           default:
@@ -145,6 +153,55 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         // Update the issue's last modified timestamp
         issue.LastModfield = DateTime.UtcNow;
         await _context.SaveChangesAsync(cancellationToken);
+
+        var performedByUserId = performedByUser?.Id ?? request.PerformedByUserId ?? "System";
+        var performedByUserName = performedByUser?.UserName ?? request.PerformedByUserId ?? "System";
+
+        if (!string.Equals(oldStatusName, newStatusName, StringComparison.OrdinalIgnoreCase)
+          && request.ActionType == IssueQuickActionType.MarkComplete)
+        {
+          await _activityService.LogStatusChangeAsync(
+            issue.Id,
+            oldStatusName,
+            newStatusName,
+            performedByUserId,
+            performedByUserName,
+            cancellationToken);
+
+          await _activityService.LogActivityAsync(
+            issue.Id,
+            "Completed",
+            $"{performedByUserName} has marked issue as complete",
+            performedByUserId,
+            performedByUserName,
+            fieldName: "Status",
+            oldValue: oldStatusName,
+            newValue: newStatusName,
+            cancellationToken: cancellationToken);
+        }
+
+        if (!string.Equals(oldPriorityName, newPriorityName, StringComparison.OrdinalIgnoreCase)
+          && request.ActionType == IssueQuickActionType.EscalateToHigh)
+        {
+          await _activityService.LogPriorityChangeAsync(
+            issue.Id,
+            oldPriorityName,
+            newPriorityName,
+            performedByUserId,
+            performedByUserName,
+            cancellationToken);
+        }
+
+        if (!string.IsNullOrWhiteSpace(request.Notes))
+        {
+          await _activityService.LogActivityAsync(
+            issue.Id,
+            "NoteAdded",
+            $"{performedByUserName} added a note: {request.Notes.Trim()}",
+            performedByUserId,
+            performedByUserName,
+            cancellationToken: cancellationToken);
+        }
 
         _logger.LogInformation(
             "Issue {IssueId} {ActionDescription} by user {UserId}",
@@ -257,6 +314,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         var frontendBaseUrl = GetFrontendBaseUrl();
         var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
         var completedByName = completedByUser?.UserName ?? "System";
+        var completedAtUtc = DateTime.UtcNow;
+        var completedAtLocal = FormatLocalDateTime(completedAtUtc);
 
         var emailBodyHtml = BuildCompletionEmailHtml(
             issue.Id,
@@ -265,7 +324,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             completedByName,
             vehicleName ?? "Not specified",
             siteName ?? "Not specified",
-            DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm"),
+          completedAtLocal,
             notes,
             issueUrl);
 
@@ -281,7 +340,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             IssueId = issue.Id,
             IssueTitle = issue.ProblemTitle,
             CompletedBy = completedByName,
-            CompletedAt = DateTime.UtcNow,
+            CompletedAt = completedAtUtc,
+            CompletedAtLocal = completedAtLocal,
             VehicleName = vehicleName,
             SiteName = siteName,
             IssueUrl = issueUrl,
@@ -334,7 +394,9 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         var frontendBaseUrl = GetFrontendBaseUrl();
         var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
         var escalatedByName = escalatedByUser?.UserName ?? "System";
-        var dueDateText = issue.DueDate?.ToString("yyyy-MM-dd") ?? "Not set";
+        var escalatedAtUtc = DateTime.UtcNow;
+        var escalatedAtLocal = FormatLocalDateTime(escalatedAtUtc);
+        var dueDateText = issue.DueDate.HasValue ? FormatLocalDateTime(issue.DueDate.Value) : "Not set";
 
         var emailBodyHtml = BuildEscalationEmailHtml(
             issue.Id,
@@ -359,11 +421,13 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             IssueId = issue.Id,
             IssueTitle = issue.ProblemTitle,
             EscalatedBy = escalatedByName,
-            EscalatedAt = DateTime.UtcNow,
+            EscalatedAt = escalatedAtUtc,
+            EscalatedAtLocal = escalatedAtLocal,
             NewPriority = "High",
             VehicleName = vehicleName,
             SiteName = siteName,
             DueDate = issue.DueDate,
+            DueDateLocal = issue.DueDate.HasValue ? FormatLocalDateTime(issue.DueDate.Value) : null,
             IssueUrl = issueUrl,
             Notes = notes,
             EmailBodyHtml = emailBodyHtml
@@ -431,6 +495,19 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
       }
 
       return configuredBaseUrl.TrimEnd('/');
+    }
+
+    private static string FormatLocalDateTime(DateTime dateTime)
+    {
+      var utcDateTime = dateTime.Kind switch
+      {
+        DateTimeKind.Utc => dateTime,
+        DateTimeKind.Local => dateTime.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+      };
+
+      var localDateTime = utcDateTime.ToLocalTime();
+      return localDateTime.ToString("yyyy-MM-dd hh:mm tt") + " (Local)";
     }
 
     private static string BuildCompletionEmailHtml(

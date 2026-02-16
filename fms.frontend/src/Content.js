@@ -152,6 +152,16 @@ export default function Content() {
           element={React.createElement(resolvedComponents("vehicles"))}
         />
 
+        {/* Employee Management System Routes - Handle all employee sub-routes internally */}
+        <Route
+          path="/employees"
+          element={React.createElement(resolvedComponents("employees"))}
+        />
+        <Route
+          path="/employees/*"
+          element={React.createElement(resolvedComponents("employees"))}
+        />
+
         {/* Reports System Routes - Handle all reports sub-routes internally */}
         <Route
           path="/reports"

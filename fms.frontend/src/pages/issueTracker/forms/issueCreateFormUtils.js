@@ -39,7 +39,10 @@ export const createInitialFormState = (openByUserName, openStatus) => ({
   canAutoClose: false,
   issueTitle: '',
   issueDescription: '',
-  attachments: []
+  attachments: [],
+  followIssue: true,
+  reminderEnabled: false,
+  reminderDaysBefore: 1
 });
 
 export const normalizeCollection = (source) => {

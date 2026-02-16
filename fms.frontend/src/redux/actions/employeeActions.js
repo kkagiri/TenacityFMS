@@ -1,3 +1,16 @@
+/**
+ * File: employeeActions.js
+ * Purpose: Redux thunk actions for employee CRUD, listing, and search operations.
+ * Dependencies: axios instance, employee reducer action types.
+ * Last Modified: 2026-02-16
+ *
+ * Key Functions:
+ * - fetchEmployees(): Loads employee list with active/inactive filtering.
+ * - createEmployee(): Creates a new employee.
+ * - updateEmployee(): Updates employee details and assignments.
+ * - deleteEmployee(): Deletes an employee record.
+ */
+
 import axiosInstance from './../../api/axiosInstance';
 
 export const FETCH_EMPLOYEES_REQUEST = 'FETCH_EMPLOYEES_REQUEST';
@@ -62,6 +75,7 @@ export const createEmployee = (employeeData) => async (dispatch) => {
   } catch (error) {
     const errorMessage = error.response?.data?.message || error.message;
     dispatch({ type: CREATE_EMPLOYEE_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };
 
@@ -83,17 +97,35 @@ export const updateEmployee = (key, employeeData) => async (dispatch) => {
     dispatch({ type: UPDATE_EMPLOYEE_SUCCESS, payload: response.data });
     return response.data;
   } catch (error) {
-    dispatch({ type: UPDATE_EMPLOYEE_FAILURE, payload: error.message });
+    const errorMessage = error.response?.data?.message || error.message;
+    dispatch({ type: UPDATE_EMPLOYEE_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };
 
 export const deleteEmployee = (id) => async (dispatch) => {
   dispatch({ type: DELETE_EMPLOYEE_REQUEST });
   try {
-    await axiosInstance.delete(`/employee/${id}`);
+    const response = await axiosInstance.delete(`/employee/${id}`);
+    const apiSuccess = response?.data?.success ?? response?.data?.Success;
+
+    if (apiSuccess === false) {
+      const errorMessage =
+        response?.data?.message || response?.data?.Message || "Failed to delete employee.";
+      dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: errorMessage });
+      return { success: false, message: errorMessage, data: response?.data };
+    }
+
     dispatch({ type: DELETE_EMPLOYEE_SUCCESS, payload: id });
+    return {
+      success: true,
+      message: response?.data?.message || "Employee deleted successfully.",
+      data: response?.data,
+    };
   } catch (error) {
-    dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: error.message });
+    const errorMessage = error.response?.data?.message || error.message;
+    dispatch({ type: DELETE_EMPLOYEE_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };
 

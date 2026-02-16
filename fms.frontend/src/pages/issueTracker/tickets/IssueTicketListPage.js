@@ -7,8 +7,8 @@
  * Key Functions/Components:
  * - IssueTicketListPage: Displays issue tickets and navigates to detail/edit screens
  */
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import DataGrid, {
   Column,
   Paging,
@@ -38,6 +38,7 @@ import './IssueTicketListPage.scss';
 
 const IssueTicketListPage = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dataGridRef = useRef(null);
   const { hasRole, hasPermission } = usePermissions();
   const canDeleteIssue = hasRole('Admin') || hasPermission('_Delete_Issues');
@@ -53,6 +54,37 @@ const IssueTicketListPage = () => {
   const [closeMonitorNotes, setCloseMonitorNotes] = useState('');
   const [closingInProgress, setClosingInProgress] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // External filter from navigation state (e.g. "View Vehicle Issue History" link)
+  const externalFilter = location.state?.applyFilters || null;
+  const externalFilterLabel = location.state?.filterLabel || '';
+
+  const gridFilterValue = useMemo(() => {
+    if (!externalFilter) return undefined;
+    const filters = [];
+    if (externalFilter.vehicleId) {
+      filters.push(['vehicleId', '=', externalFilter.vehicleId]);
+    }
+    if (externalFilter.siteId) {
+      filters.push(['siteId', '=', externalFilter.siteId]);
+    }
+    if (externalFilter.deviceId) {
+      filters.push(['deviceId', '=', externalFilter.deviceId]);
+    }
+    if (filters.length === 0) return undefined;
+    if (filters.length === 1) return filters[0];
+    // Combine multiple filters with 'and'
+    return filters.reduce((acc, f, i) => i === 0 ? f : [acc, 'and', f]);
+  }, [externalFilter]);
+
+  const handleClearExternalFilter = useCallback(() => {
+    // Clear the location state and remove filter
+    navigate(location.pathname, { replace: true, state: {} });
+    // Clear the DataGrid filter
+    if (dataGridRef.current?.instance) {
+      dataGridRef.current.instance.clearFilter();
+    }
+  }, [navigate, location.pathname]);
 
   const humanizeElapsedMinutes = useCallback((minutesValue) => {
     const minutes = Number(minutesValue);
@@ -520,6 +552,24 @@ const IssueTicketListPage = () => {
         </div>
       </div>
 
+      {/* External filter banner */}
+      {externalFilterLabel && (
+        <div className="tw-flex tw-items-center tw-gap-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-px-4 tw-py-2.5 tw-mb-3">
+          <i className="fa-light fa-filter tw-text-blue-600"></i>
+          <span className="tw-text-sm tw-text-blue-800 tw-font-medium">
+            Filtered by: {externalFilterLabel}
+          </span>
+          <button
+            type="button"
+            onClick={handleClearExternalFilter}
+            className="tw-ml-auto tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 tw-bg-transparent tw-border tw-border-blue-300 tw-rounded tw-px-3 tw-py-1 tw-cursor-pointer hover:tw-bg-blue-100 tw-transition-colors"
+          >
+            <i className="fa-light fa-xmark tw-mr-1"></i>
+            Clear Filter
+          </button>
+        </div>
+      )}
+
       {/* Data Grid */}
       <div className="tw-bg-white tw-rounded-lg tw-shadow">
         <DataGrid
@@ -534,6 +584,7 @@ const IssueTicketListPage = () => {
           columnAutoWidth={true}
           onRowClick={handleRowClick}
           onExporting={handleExport}
+          defaultFilterValue={gridFilterValue}
           height={600}
         >
           <LoadPanel enabled={loading} />
@@ -703,6 +754,11 @@ const IssueTicketListPage = () => {
             width={120}
             allowSorting={true}
           />
+
+          {/* Hidden columns for external filter support */}
+          <Column dataField="vehicleId" visible={false} allowFiltering={true} />
+          <Column dataField="siteId" visible={false} allowFiltering={true} />
+          <Column dataField="deviceId" visible={false} allowFiltering={true} />
 
           <Column
             dataField="openDate"

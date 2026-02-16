@@ -8,6 +8,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Data;
 using FMS.Application.Common;
 using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Persistence.DataAccess;
@@ -17,7 +18,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.IssueTracker.Queries
 {
-    public record GetLinkedIssuesQuery(int IssueId) : IRequest<FMSResponse<List<IssueTrackerResponseDTO>>>;
+    public record GetLinkedIssuesQuery(int IssueId, string? MatchBy = null, int? TagId = null) : IRequest<FMSResponse<List<IssueTrackerResponseDTO>>>;
 
     public class GetLinkedIssuesQueryHandler
         : IRequestHandler<GetLinkedIssuesQuery, FMSResponse<List<IssueTrackerResponseDTO>>>
@@ -43,19 +44,58 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 return FMSResponse<List<IssueTrackerResponseDTO>>.Failed("Issue not found");
             }
 
-            // Get issues with the same template (excluding current issue)
+            // Get issues matching the selected mode (excluding current issue)
             var query = _context.Issuetrackers
                 .Where(i => i.Id != request.IssueId);
 
-            // If the issue has a template, find issues with same template
-            if (currentIssue.IssueTemplateId.HasValue)
+            var normalizedMatchBy = (request.MatchBy ?? string.Empty).Trim().ToLowerInvariant();
+
+            if (normalizedMatchBy == "vehicle")
             {
-                query = query.Where(i => i.IssueTemplateId == currentIssue.IssueTemplateId);
+                query = query.Where(i => i.VehicleId == currentIssue.VehicleId);
             }
-            // Otherwise, find issues with same category
+            else if (normalizedMatchBy == "template")
+            {
+                if (currentIssue.IssueTemplateId.HasValue)
+                {
+                    query = query.Where(i => i.IssueTemplateId == currentIssue.IssueTemplateId);
+                }
+                else
+                {
+                    return FMSResponse<List<IssueTrackerResponseDTO>>.Success(new List<IssueTrackerResponseDTO>());
+                }
+            }
+            else if (normalizedMatchBy == "tag")
+            {
+                var currentIssueTagIds = await GetIssueTagIdsAsync(request.IssueId, cancellationToken);
+                var selectedTagId = request.TagId ?? currentIssueTagIds.FirstOrDefault();
+
+                if (selectedTagId <= 0)
+                {
+                    selectedTagId = currentIssue.IssueCategoryId;
+                }
+
+                if (selectedTagId > 0)
+                {
+                    var issueIdsByTag = await GetIssueIdsByTagIdAsync(selectedTagId, cancellationToken);
+                    query = query.Where(i => i.IssueCategoryId == selectedTagId || issueIdsByTag.Contains(i.Id));
+                }
+                else
+                {
+                    return FMSResponse<List<IssueTrackerResponseDTO>>.Success(new List<IssueTrackerResponseDTO>());
+                }
+            }
             else
             {
-                query = query.Where(i => i.IssueCategoryId == currentIssue.IssueCategoryId);
+                // Legacy fallback: template if available, else category
+                if (currentIssue.IssueTemplateId.HasValue)
+                {
+                    query = query.Where(i => i.IssueTemplateId == currentIssue.IssueTemplateId);
+                }
+                else
+                {
+                    query = query.Where(i => i.IssueCategoryId == currentIssue.IssueCategoryId);
+                }
             }
 
             var linkedIssues = await query
@@ -87,6 +127,94 @@ namespace FMS.Application.Features.IssueTracker.Queries
                 .ToListAsync(cancellationToken);
 
             return FMSResponse<List<IssueTrackerResponseDTO>>.Success(linkedIssues);
+        }
+
+        private async Task<List<int>> GetIssueTagIdsAsync(int issueId, CancellationToken cancellationToken)
+        {
+            var tagIds = new List<int>();
+            var connection = _context.Database.GetDbConnection();
+            var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+
+            try
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = @"
+SELECT DISTINCT it.IssueCategoryID
+FROM issuetracker_tags it
+WHERE it.IssueID = @issueId";
+
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "@issueId";
+                parameter.Value = issueId;
+                command.Parameters.Add(parameter);
+
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        tagIds.Add(reader.GetInt32(0));
+                    }
+                }
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+
+            return tagIds;
+        }
+
+        private async Task<List<int>> GetIssueIdsByTagIdAsync(int tagId, CancellationToken cancellationToken)
+        {
+            var issueIds = new List<int>();
+            var connection = _context.Database.GetDbConnection();
+            var shouldCloseConnection = connection.State != ConnectionState.Open;
+
+            if (shouldCloseConnection)
+            {
+                await connection.OpenAsync(cancellationToken);
+            }
+
+            try
+            {
+                await using var command = connection.CreateCommand();
+                command.CommandText = @"
+SELECT DISTINCT it.IssueID
+FROM issuetracker_tags it
+WHERE it.IssueCategoryID = @tagId";
+
+                var parameter = command.CreateParameter();
+                parameter.ParameterName = "@tagId";
+                parameter.Value = tagId;
+                command.Parameters.Add(parameter);
+
+                await using var reader = await command.ExecuteReaderAsync(cancellationToken);
+                while (await reader.ReadAsync(cancellationToken))
+                {
+                    if (!reader.IsDBNull(0))
+                    {
+                        issueIds.Add(reader.GetInt32(0));
+                    }
+                }
+            }
+            finally
+            {
+                if (shouldCloseConnection)
+                {
+                    await connection.CloseAsync();
+                }
+            }
+
+            return issueIds;
         }
     }
 }

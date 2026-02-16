@@ -89,7 +89,7 @@ const FollowedIssuesTicker = ({
         if (onIssueClick) {
             onIssueClick(issue);
         } else {
-            navigate(`/issuetracker/view/${issue.issueId}`);
+            navigate(`/issue-tracker/details/${issue.issueId}`);
         }
     };
 
@@ -155,7 +155,7 @@ const FollowedIssuesTicker = ({
             )}
 
             {issues.length > 0 && (
-                <div className="tw-space-y-2 tw-max-h-96 tw-overflow-y-auto">
+                <div className="tw-space-y-2 tw-overflow-y-auto" style={{ maxHeight: '28rem' }}>
                     {issues.map((issue) => {
                         const priorityStyle = getPriorityStyle(issue.priority);
                         const statusColor = getStatusColor(issue.status);

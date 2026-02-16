@@ -26,8 +26,8 @@ import {
   Dimensions,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import ApiService from "../services/apiService";
-import { usePermissions } from "../hooks/usePermissions";
+import ApiService from "../../services/apiService";
+import { usePermissions } from "../../hooks/usePermissions";
 
 // Import vehicle components
 import {
@@ -36,7 +36,7 @@ import {
   VehicleGPSInfo,
   VehicleConsumptionHistory,
   VehicleFuelingHistory,
-} from "../components/vehicle";
+} from "../../components/vehicle";
 
 const { width } = Dimensions.get("window");
 

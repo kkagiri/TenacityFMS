@@ -11,9 +11,24 @@ import React, { useEffect, useState, useCallback } from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import issueTrackerService from '../../../services/issueTrackerService';
 
+/**
+ * Ensures a date string from the backend (UTC) is parsed correctly as UTC.
+ * .NET often returns ISO strings without the trailing 'Z', causing JS to treat them as local time.
+ */
+const parseAsUtc = (dateValue) => {
+    if (!dateValue) return null;
+    if (dateValue instanceof Date) return dateValue;
+    const str = String(dateValue).trim();
+    // If the string looks like an ISO date without timezone info, append 'Z' to treat as UTC
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str) && !/[Zz+\-]\d{0,4}$/.test(str)) {
+        return new Date(str + 'Z');
+    }
+    return new Date(str);
+};
+
 const formatActivityDate = (dateValue) => {
     if (!dateValue) return '';
-    const date = new Date(dateValue);
+    const date = parseAsUtc(dateValue);
     if (Number.isNaN(date.getTime())) return dateValue;
 
     const now = new Date();
@@ -28,8 +43,8 @@ const formatActivityDate = (dateValue) => {
     if (diffHours < 24) return `${diffHours} hour${diffHours > 1 ? 's' : ''} ago`;
     if (diffDays < 7) return `${diffDays} day${diffDays > 1 ? 's' : ''} ago`;
 
-    // Show absolute time for older activities
-    return date.toLocaleString('en-GB', {
+    // Show absolute time for older activities (in user's local timezone)
+    return date.toLocaleString(undefined, {
         month: 'short',
         day: 'numeric',
         hour: '2-digit',
@@ -40,30 +55,42 @@ const formatActivityDate = (dateValue) => {
 
 const formatTimeOnly = (dateValue) => {
     if (!dateValue) return '';
-    const date = new Date(dateValue);
+    const date = parseAsUtc(dateValue);
     if (Number.isNaN(date.getTime())) return '';
-    return date.toLocaleTimeString('en-GB', {
+    return date.toLocaleTimeString(undefined, {
         hour: '2-digit',
         minute: '2-digit',
         hour12: true
     }).toLowerCase();
 };
 
-const getActivityIcon = (activityType) => {
+const getActivityIcon = (activityType, fieldName, description) => {
+    const normalizedType = (activityType || '').toLowerCase();
+    const normalizedField = (fieldName || '').toLowerCase();
+    const normalizedDescription = (description || '').toLowerCase();
+
+    if (normalizedField === 'duedate' || normalizedDescription.includes('due date') || normalizedType.includes('schedule')) {
+        return { icon: 'fa-light fa-calendar-clock', color: 'tw-text-sky-700', bg: 'tw-bg-sky-100' };
+    }
+
     const iconMap = {
-        'Created': { icon: 'fa-light fa-circle-plus', color: 'tw-text-green-600', bg: 'tw-bg-green-100' },
-        'Updated': { icon: 'fa-light fa-pen-to-square', color: 'tw-text-blue-600', bg: 'tw-bg-blue-100' },
-        'StatusChanged': { icon: 'fa-light fa-arrow-right-arrow-left', color: 'tw-text-purple-600', bg: 'tw-bg-purple-100' },
-        'PriorityChanged': { icon: 'fa-light fa-arrow-up', color: 'tw-text-orange-600', bg: 'tw-bg-orange-100' },
-        'Assigned': { icon: 'fa-light fa-user-check', color: 'tw-text-indigo-600', bg: 'tw-bg-indigo-100' },
-        'ReminderSet': { icon: 'fa-light fa-bell', color: 'tw-text-yellow-600', bg: 'tw-bg-yellow-100' },
-        'Followed': { icon: 'fa-light fa-bell-on', color: 'tw-text-blue-700', bg: 'tw-bg-blue-100' },
-        'Unfollowed': { icon: 'fa-light fa-bell-slash', color: 'tw-text-gray-700', bg: 'tw-bg-gray-100' },
-        'TagsUpdated': { icon: 'fa-light fa-tags', color: 'tw-text-pink-600', bg: 'tw-bg-pink-100' },
-        'Closed': { icon: 'fa-light fa-circle-check', color: 'tw-text-gray-600', bg: 'tw-bg-gray-100' },
-        'Reopened': { icon: 'fa-light fa-rotate-left', color: 'tw-text-amber-600', bg: 'tw-bg-amber-100' }
+        created: { icon: 'fa-light fa-circle-plus', color: 'tw-text-green-600', bg: 'tw-bg-green-100' },
+        updated: { icon: 'fa-light fa-pen-to-square', color: 'tw-text-blue-600', bg: 'tw-bg-blue-100' },
+        statuschanged: { icon: 'fa-light fa-arrow-right-arrow-left', color: 'tw-text-purple-600', bg: 'tw-bg-purple-100' },
+        prioritychanged: { icon: 'fa-light fa-arrow-up', color: 'tw-text-orange-600', bg: 'tw-bg-orange-100' },
+        assigned: { icon: 'fa-light fa-user-check', color: 'tw-text-indigo-600', bg: 'tw-bg-indigo-100' },
+        assignmentresponse: { icon: 'fa-light fa-user-clock', color: 'tw-text-indigo-600', bg: 'tw-bg-indigo-100' },
+        noteadded: { icon: 'fa-light fa-note-sticky', color: 'tw-text-cyan-700', bg: 'tw-bg-cyan-100' },
+        completed: { icon: 'fa-light fa-circle-check', color: 'tw-text-emerald-700', bg: 'tw-bg-emerald-100' },
+        closed: { icon: 'fa-light fa-lock', color: 'tw-text-gray-700', bg: 'tw-bg-gray-100' },
+        issueclosed: { icon: 'fa-light fa-lock', color: 'tw-text-gray-700', bg: 'tw-bg-gray-100' },
+        reminderset: { icon: 'fa-light fa-bell', color: 'tw-text-yellow-600', bg: 'tw-bg-yellow-100' },
+        followed: { icon: 'fa-light fa-bell-on', color: 'tw-text-blue-700', bg: 'tw-bg-blue-100' },
+        unfollowed: { icon: 'fa-light fa-bell-slash', color: 'tw-text-gray-700', bg: 'tw-bg-gray-100' },
+        tagsupdated: { icon: 'fa-light fa-tags', color: 'tw-text-pink-600', bg: 'tw-bg-pink-100' },
+        reopened: { icon: 'fa-light fa-rotate-left', color: 'tw-text-amber-600', bg: 'tw-bg-amber-100' }
     };
-    return iconMap[activityType] || { icon: 'fa-light fa-clock', color: 'tw-text-gray-500', bg: 'tw-bg-gray-100' };
+    return iconMap[normalizedType] || { icon: 'fa-light fa-clock', color: 'tw-text-gray-500', bg: 'tw-bg-gray-100' };
 };
 
 const parseDescription = (description) => {
@@ -132,7 +159,7 @@ const IssueActivityStream = ({ issueId, onRefresh }) => {
 
             <div className="tw-space-y-0">
                 {activities.map((activity, index) => {
-                    const { icon, color, bg } = getActivityIcon(activity.activityType);
+                    const { icon, color, bg } = getActivityIcon(activity.activityType, activity.fieldName, activity.description);
                     const { userName, action } = parseDescription(activity.description);
                     const timeStr = formatTimeOnly(activity.activityDate);
 

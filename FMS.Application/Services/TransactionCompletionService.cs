@@ -8,10 +8,12 @@ using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
 
@@ -36,6 +38,8 @@ namespace FMS.Application.Services
         private readonly IMediator _mediator;
         private readonly GpsdataContext _context;
         private readonly ILogger<TransactionCompletionService> _logger;
+        private readonly Features.Vehicle.Services.IGPSService? _gpsService;
+        private readonly ISystemConfigurationService? _systemConfigService;
         private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
         public TransactionCompletionService(
@@ -47,6 +51,8 @@ namespace FMS.Application.Services
             IMediator mediator,
             GpsdataContext context,
             ILogger<TransactionCompletionService> logger,
+            Features.Vehicle.Services.IGPSService? gpsService = null,
+            ISystemConfigurationService? systemConfigService = null,
             Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
             _deviceConnectionTracker = deviceConnectionTracker;
@@ -57,6 +63,8 @@ namespace FMS.Application.Services
             _mediator = mediator;
             _context = context;
             _logger = logger;
+            _gpsService = gpsService;
+            _systemConfigService = systemConfigService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
         }
 
@@ -98,6 +106,7 @@ namespace FMS.Application.Services
                     {
                         // **CRITICAL FIX**: Enrich transaction with Redis context (Odometer, TankId, VehicleId, Tag, etc.)
                         await EnrichTransactionWithRedisContext(completionResult.TransactionData, deviceId, transactionId);
+                        await TryCaptureFuelLevelAfterAsync(completionResult.TransactionData);
                         await SaveTransactionToDatabase(completionResult.TransactionData);
                     }
 
@@ -555,6 +564,10 @@ namespace FMS.Application.Services
                 {
                     transaction.Odometer = odometerProp.GetDecimal();
                 }
+                if (transaction.FuelLevelBefore == null && context.TryGetProperty("FuelLevelBefore", out var fuelLevelBeforeProp) && fuelLevelBeforeProp.ValueKind == JsonValueKind.Number)
+                {
+                    transaction.FuelLevelBefore = fuelLevelBeforeProp.GetDecimal();
+                }
                 if (transaction.TankId == null && context.TryGetProperty("TankId", out var tankIdProp) && tankIdProp.ValueKind == JsonValueKind.Number)
                 {
                     transaction.TankId = tankIdProp.GetInt32();
@@ -594,6 +607,57 @@ namespace FMS.Application.Services
             }
         }
 
+        /// <summary>
+        /// Captures fuel level after fueling from GPS for vehicle refueling transactions.
+        /// Applies only when feature is enabled and vehicle has GPS installed.
+        /// </summary>
+        private async Task TryCaptureFuelLevelAfterAsync(Pumptransaction transaction)
+        {
+            if (_gpsService == null || _systemConfigService == null)
+            {
+                return;
+            }
+
+            if (transaction.IsTransferMode || !transaction.VehicleId.HasValue || transaction.VehicleId.Value <= 0)
+            {
+                return;
+            }
+
+            try
+            {
+                var fuelLevelCheckEnabled = await _systemConfigService.GetPtsEnableGPSFuelLevelCheckAsync();
+                if (!fuelLevelCheckEnabled)
+                {
+                    return;
+                }
+
+                var hasGpsInstalled = await _context.Vehicles
+                    .Where(v => v.VehicleId == transaction.VehicleId.Value)
+                    .Select(v => v.HasGPSInstalled == 1)
+                    .FirstOrDefaultAsync();
+
+                if (!hasGpsInstalled)
+                {
+                    return;
+                }
+
+                var fuelLevelResult = await _gpsService.GetFuelLevelAsync(transaction.VehicleId.Value);
+                if (fuelLevelResult.IsSuccess && fuelLevelResult.Data.HasValue)
+                {
+                    transaction.FuelLevelAfter = fuelLevelResult.Data.Value;
+                    _logger.LogDebug("[Completion] Captured FuelLevelAfter={FuelLevel}L for vehicle {VehicleId}",
+                        fuelLevelResult.Data.Value,
+                        transaction.VehicleId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[Completion] Failed to capture fuel level after fueling for vehicle {VehicleId}",
+                    transaction.VehicleId);
+            }
+        }
+
         private async Task SaveTransactionToDatabase(Pumptransaction transactionData)
         {
             try
@@ -616,6 +680,27 @@ namespace FMS.Application.Services
                 }
                 else
                 {
+                    var updated = false;
+
+                    if (!existingTransaction.FuelLevelBefore.HasValue && transactionData.FuelLevelBefore.HasValue)
+                    {
+                        existingTransaction.FuelLevelBefore = transactionData.FuelLevelBefore;
+                        updated = true;
+                    }
+
+                    if (!existingTransaction.FuelLevelAfter.HasValue && transactionData.FuelLevelAfter.HasValue)
+                    {
+                        existingTransaction.FuelLevelAfter = transactionData.FuelLevelAfter;
+                        updated = true;
+                    }
+
+                    if (updated)
+                    {
+                        await _context.SaveChangesAsync();
+                        _logger.LogInformation("[Completion] Updated existing transaction {TransactionId} with GPS fuel levels for Device {DeviceId}",
+                            transactionData.Transaction, transactionData.PtsId);
+                    }
+
                     _logger.LogDebug("[Completion] Transaction {TransactionId} already exists in database for Device {DeviceId}",
                         transactionData.Transaction, transactionData.PtsId);
                 }

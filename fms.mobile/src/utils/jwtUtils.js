@@ -50,14 +50,21 @@ const base64Decode = (str) => {
  */
 export const decodeJwtToken = (token) => {
   try {
-    if (!token || typeof token !== 'string') return null;
+    if (!token || typeof token !== "string") return null;
+
+    const normalizedToken = token
+      .trim()
+      .replace(/^Bearer\s+/i, "")
+      .replace(/^['\"]|['\"]$/g, "");
+
+    if (!normalizedToken) return null;
 
     // JWT tokens have 3 parts separated by dots: header.payload.signature
-    const parts = token.split(".");
+    const parts = normalizedToken.split(".");
     if (parts.length !== 3) return null;
 
     // Valid JWT headers always start with eyJ (base64 of '{"')
-    if (!parts[0].startsWith('eyJ')) return null;
+    if (!parts[0].startsWith("eyJ")) return null;
 
     // Decode the payload (second part)
     const payload = parts[1];
@@ -65,10 +72,17 @@ export const decodeJwtToken = (token) => {
     // Decode from base64
     const decodedPayload = base64Decode(payload);
 
+    // JWT payload should decode to JSON object text
+    const trimmedPayload = decodedPayload?.trim?.() || "";
+    if (!trimmedPayload.startsWith("{") || !trimmedPayload.endsWith("}")) {
+      return null;
+    }
+
     // Parse JSON
-    return JSON.parse(decodedPayload);
+    return JSON.parse(trimmedPayload);
   } catch (error) {
-    console.warn("[jwtUtils] Failed to decode JWT token:", error);
+    // Invalid/malformed tokens are expected in some environments (e.g., opaque tokens)
+    // so decode failures should not produce noisy warnings on every render.
     return null;
   }
 };

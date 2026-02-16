@@ -86,6 +86,18 @@ public partial class Pumptransaction
     public decimal? Odometer { get; set; }
 
     /// <summary>
+    /// Vehicle fuel level before fueling (from GPS sensor when available).
+    /// Captured during authorization for vehicle fueling transactions.
+    /// </summary>
+    public decimal? FuelLevelBefore { get; set; }
+
+    /// <summary>
+    /// Vehicle fuel level after fueling (from GPS sensor when available).
+    /// Captured during transaction completion for vehicle fueling transactions.
+    /// </summary>
+    public decimal? FuelLevelAfter { get; set; }
+
+    /// <summary>
     /// Mobile app GPS latitude at time of fueling authorization.
     /// Captured from mobile device during pump authorization.
     /// </summary>

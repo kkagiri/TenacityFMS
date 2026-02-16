@@ -88,6 +88,14 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasPrecision(12, 2)
                     .HasComment("Vehicle odometer reading at time of fueling");
 
+                // Vehicle fuel level fields from GPS sensor
+                builder.Property(e => e.FuelLevelBefore)
+                    .HasPrecision(12, 3)
+                    .HasComment("Vehicle fuel level before fueling (GPS sensor, liters)");
+                builder.Property(e => e.FuelLevelAfter)
+                    .HasPrecision(12, 3)
+                    .HasComment("Vehicle fuel level after fueling (GPS sensor, liters)");
+
                 // Relationships
                 builder.HasOne(d => d.Pts).WithMany(p => p.Pumptransactions)
                     .HasForeignKey(d => d.PtsId)

@@ -2,12 +2,12 @@
  * File: NotificationCenter.js
  * Purpose: Bell popover for in-app notifications and report/action shortcuts
  * Dependencies: react, react-redux, notification actions, DevExtreme button
- * Last Modified: 2026-02-07
+ * Last Modified: 2026-02-16
  *
  * Key Components:
  * - NotificationCenter: Loads backend notifications and renders compact actionable list
  */
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
@@ -62,6 +62,30 @@ const resolveBackendNotificationDbId = (notification) => {
   }
 
   return null;
+};
+
+const isBackendNotificationRead = (notification) =>
+  notification?.isRead === true || notification?.IsRead === true;
+
+const getUnreadBackendNotificationDbIds = (notifications = []) => {
+  if (!Array.isArray(notifications) || notifications.length === 0) {
+    return [];
+  }
+
+  const unreadIds = new Set();
+
+  notifications.forEach((notification) => {
+    if (isBackendNotificationRead(notification)) {
+      return;
+    }
+
+    const notificationDbId = resolveBackendNotificationDbId(notification);
+    if (notificationDbId) {
+      unreadIds.add(notificationDbId);
+    }
+  });
+
+  return Array.from(unreadIds);
 };
 
 const resolveReportActionText = (data) => {
@@ -161,10 +185,15 @@ const NotificationCenter = () => {
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [visibleNotifications, setVisibleNotifications] = useState([]);
   const [preferencesPopupVisible, setPreferencesPopupVisible] = useState(false);
+  const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
   const isMounted = useRef(true);
   const isLoading = useRef(false);
   const popoverRef = useRef(null);
   const buttonRef = useRef(null);
+  const unreadBackendNotificationDbIds = useMemo(
+    () => getUnreadBackendNotificationDbIds(backendNotifications),
+    [backendNotifications]
+  );
 
   const markBackendNotificationAsRead = useCallback((item) => {
     if (!item?.isBackendNotification || item.isRead) {
@@ -178,6 +207,27 @@ const NotificationCenter = () => {
 
     dispatch(markNotificationAsRead(notificationDbId));
   }, [dispatch]);
+
+  const handleMarkAllAsRead = useCallback(async () => {
+    if (isMarkingAllRead || unreadBackendNotificationDbIds.length === 0) {
+      return;
+    }
+
+    setIsMarkingAllRead(true);
+
+    try {
+      await Promise.all(
+        unreadBackendNotificationDbIds.map((notificationId) =>
+          dispatch(markNotificationAsRead(notificationId))
+        )
+      );
+      dispatch(fetchNotifications({ take: 50 }));
+    } finally {
+      if (isMounted.current) {
+        setIsMarkingAllRead(false);
+      }
+    }
+  }, [dispatch, isMarkingAllRead, unreadBackendNotificationDbIds]);
 
   // Update mounted status on unmount
   useEffect(() => {
@@ -308,9 +358,7 @@ const NotificationCenter = () => {
             Date.now()
           ).getTime(),
           isBackendNotification: true,
-          isRead:
-            backendNotification?.isRead === true ||
-            backendNotification?.IsRead === true,
+          isRead: isBackendNotificationRead(backendNotification),
         };
       }),
     ]; // Sort notifications by timestamp (latest first), with fallback sorting
@@ -360,7 +408,7 @@ const NotificationCenter = () => {
   // Check for unread notifications
   useEffect(() => {
     const unreadBackendCount = (backendNotifications || []).filter(
-      (n) => !n.isRead
+      (notification) => !isBackendNotificationRead(notification)
     ).length;
     const hasAnyUnread =
       notifications.length > 0 || !!importProgress || unreadBackendCount > 0;
@@ -719,7 +767,7 @@ const NotificationCenter = () => {
 
   // Calculate unread count
   const unreadBackendCount = (backendNotifications || []).filter(
-    (n) => !n.isRead
+    (notification) => !isBackendNotificationRead(notification)
   ).length;
   const unreadCount =
     notifications.length + unreadBackendCount + (importProgress ? 1 : 0);
@@ -766,6 +814,16 @@ const NotificationCenter = () => {
                         Notifications
                       </h4>
                       <div className="tw-flex tw-items-center tw-gap-2">
+                        {unreadBackendNotificationDbIds.length > 0 && (
+                          <button
+                            type="button"
+                            className="tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded tw-border tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-xs tw-font-medium tw-text-blue-700 hover:tw-bg-blue-100 disabled:tw-opacity-60 disabled:tw-cursor-not-allowed"
+                            onClick={handleMarkAllAsRead}
+                            disabled={isMarkingAllRead}
+                          >
+                            {isMarkingAllRead ? "Marking..." : "Read All"}
+                          </button>
+                        )}
                         <Button
                           onClick={handlePreferences}
                           stylingMode="text"
@@ -834,6 +892,16 @@ const NotificationCenter = () => {
                     Notifications
                   </h4>
                   <div className="tw-flex tw-gap-2">
+                    {unreadBackendNotificationDbIds.length > 0 && (
+                      <button
+                        type="button"
+                        className="tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded tw-border tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-xs tw-font-medium tw-text-blue-700 hover:tw-bg-blue-100 disabled:tw-opacity-60 disabled:tw-cursor-not-allowed"
+                        onClick={handleMarkAllAsRead}
+                        disabled={isMarkingAllRead}
+                      >
+                        {isMarkingAllRead ? "Marking..." : "Read All"}
+                      </button>
+                    )}
                     <Button
                       onClick={handlePreferences}
                       stylingMode="text"

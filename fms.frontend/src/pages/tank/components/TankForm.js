@@ -30,10 +30,22 @@ const tankTypeOptions = [
   { value: "MobileTanker", text: "Mobile Tanker (Moves with Vehicle)" },
 ];
 
+const fuelGradeOptions = ["Diesel", "Petrol", "Kerosene"];
+
+const normalizeNullableNumber = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  const parsed = Number(value);
+  return Number.isNaN(parsed) ? null : parsed;
+};
+
 const TankForm = ({ tank, onClose, onSubmit }) => {
   const dispatch = useDispatch();
   const { sites } = useSelector((state) => state.site);
   const { vehicles } = useSelector((state) => state.vehicle);
+  const { tanks } = useSelector((state) => state.tank);
 
   // DevExtreme editors can throw if `dataSource` is undefined while a value exists.
   // Always provide an array (or empty array) while data is loading.
@@ -63,6 +75,38 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
 
   const [loading, setLoading] = useState(false);
 
+  const getInactiveSiteId = () => {
+    if (!Array.isArray(sitesDataSource) || sitesDataSource.length === 0) {
+      return null;
+    }
+
+    const inactiveByName = sitesDataSource.find((siteItem) => {
+      const name = (siteItem?.name || "").trim().toLowerCase();
+      return (
+        name === "inactive" ||
+        name === "inactive site" ||
+        name === "unassigned" ||
+        name === "unassigned tanks" ||
+        name === "no site" ||
+        name === "not assigned"
+      );
+    });
+
+    if (inactiveByName?.id) {
+      return Number(inactiveByName.id);
+    }
+
+    const inactiveFlagged = sitesDataSource.find(
+      (siteItem) => siteItem?.isActive === false || siteItem?.isActive === 0
+    );
+
+    if (inactiveFlagged?.id) {
+      return Number(inactiveFlagged.id);
+    }
+
+    return null;
+  };
+
   // Fetch vehicles for the linked vehicle dropdown
   useEffect(() => {
     dispatch(fetchVehicleList());
@@ -70,6 +114,13 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
 
   useEffect(() => {
     if (tank) {
+      const resolvedSiteId = normalizeNullableNumber(
+        tank.siteId ?? tank.siteID ?? tank.site?.id
+      );
+      const resolvedLinkedVehicleId = normalizeNullableNumber(
+        tank.linkedVehicleId ?? tank.vehicleId ?? tank.linkedVehicle?.vehicleId
+      );
+
       setFormData({
         ...tank,
         useBookKeeping:
@@ -80,19 +131,58 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
         priority: tank.priority || null,
         fuelGradeId: tank.fuelGradeId || null,
         fuelGradeName: tank.fuelGradeName || null,
+        siteId: resolvedSiteId,
         tankType: tank.tankType || "Stationary",
         latitude: tank.latitude || null,
         longitude: tank.longitude || null,
-        linkedVehicleId: tank.linkedVehicleId || null,
+        linkedVehicleId: resolvedLinkedVehicleId,
         locationValidationRadius: tank.locationValidationRadius ?? 100,
       });
     }
   }, [tank]);
 
   const handleSubmit = async () => {
-    if (!formData.name || !formData.siteId || formData.tankVolume <= 0) {
+    if (!formData.name || formData.tankVolume <= 0) {
       notify("Please fill in all required fields", "error");
       return;
+    }
+
+    const inactiveSiteId = getInactiveSiteId();
+    let resolvedSiteId = normalizeNullableNumber(formData.siteId);
+
+    if (!resolvedSiteId) {
+      if (!inactiveSiteId) {
+        notify(
+          "Site is required. To keep tank inactive, create/select an inactive site named 'Inactive' or 'Unassigned'.",
+          "error",
+          5000
+        );
+        return;
+      }
+
+      resolvedSiteId = inactiveSiteId;
+    }
+
+    const isInactiveSelection =
+      inactiveSiteId !== null && Number(resolvedSiteId) === Number(inactiveSiteId);
+
+    if (!isInactiveSelection) {
+      const duplicateTank = (Array.isArray(tanks) ? tanks : []).find((tankItem) => {
+        if (tank && Number(tankItem.id) === Number(tank.id)) {
+          return false;
+        }
+
+        return Number(tankItem.siteId) === Number(resolvedSiteId);
+      });
+
+      if (duplicateTank) {
+        notify(
+          `Only one tank is allowed per site. Site already has tank: ${duplicateTank.name}.`,
+          "error",
+          5000
+        );
+        return;
+      }
     }
 
     setLoading(true);
@@ -112,7 +202,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
         useBookKeeping: Boolean(formData.useBookKeeping),
         hasAutomaticBookKeeping: Boolean(formData.hasAutomaticBookKeeping),
         priority: formData.priority || null,
-        siteId: formData.siteId,
+        siteId: resolvedSiteId,
         discrepancyThreshold: formData.discrepancyThreshold || null,
         currentStock: formData.currentStock || 0,
         // Fuel Grade
@@ -128,7 +218,7 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
             : null,
         linkedVehicleId:
           formData.tankType === "MobileTanker"
-            ? formData.linkedVehicleId || null
+            ? normalizeNullableNumber(formData.linkedVehicleId)
             : null,
         locationValidationRadius: formData.locationValidationRadius ?? 100,
         // NOTE: lastStockUpdate, physicalStockValue, lastPhysicalStockUpdate, physicalStockSource
@@ -219,7 +309,8 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
                 dataSource: sitesDataSource,
                 displayExpr: "name",
                 valueExpr: "id",
-                placeholder: "Select Site",
+                placeholder: "Select Site (optional)",
+                showClearButton: true,
                 wrapItemText: true,
                 searchEnabled: true,
                 width: "100%",
@@ -229,7 +320,6 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
               }}
             >
               <Label text="Site" />
-              <RequiredRule message="Site is required" />
             </Item>
           </GroupItem>
 
@@ -332,9 +422,13 @@ const TankForm = ({ tank, onClose, onSubmit }) => {
 
           <Item
             dataField="fuelGradeName"
-            editorType="dxTextBox"
+            editorType="dxSelectBox"
             editorOptions={{
-              placeholder: "e.g., Diesel, Petrol, etc.",
+              dataSource: fuelGradeOptions,
+              placeholder: "Select Fuel Grade",
+              searchEnabled: true,
+              showClearButton: true,
+              width: "100%",
             }}
           >
             <Label text="Fuel Grade" />

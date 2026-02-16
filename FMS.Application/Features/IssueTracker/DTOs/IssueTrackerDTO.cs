@@ -23,9 +23,11 @@ namespace FMS.Application.Features.FMS.Issuetracker
         public DateTime? OpenDate { get; set; }
         public DateTime? ClosingDate { get; set; }
         public DateTime? LastModfield { get; set; }
+        public string? ModifiedByUserId { get; set; }
         public int Vehicle { get; set; }
         public int? Device { get; set; }
         public int? DeviceType { get; set; }
         public string AssignTo { get; set; }
+        public string? CompletionNotes { get; set; }
     }
 }

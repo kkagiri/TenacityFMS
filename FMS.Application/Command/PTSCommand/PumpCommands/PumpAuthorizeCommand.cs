@@ -118,6 +118,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
         private readonly IPumpAuthorizationLoggingService _loggingService;
         private readonly IDeviceConnectionTypeService _connectionTypeService;
         private readonly Features.LocationValidation.Services.ILocationValidationService _locationValidationService;
+        private readonly Features.Vehicle.Services.IGPSService? _gpsService;
         private readonly IGPSGateDriverNameService? _driverNameService;
         private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
 
@@ -136,6 +137,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             IDeviceConnectionTypeService connectionTypeService,
             Features.LocationValidation.Services.ILocationValidationService locationValidationService,
             ILogger<PumpAuthorizeCommandHandler> logger,
+            Features.Vehicle.Services.IGPSService? gpsService = null,
             IGPSGateDriverNameService? driverNameService = null,
             Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
@@ -153,6 +155,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
             _connectionTypeService = connectionTypeService;
             _locationValidationService = locationValidationService;
             _logger = logger;
+            _gpsService = gpsService;
             _driverNameService = driverNameService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
         }
@@ -828,6 +831,10 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     confirmation.Transaction);
             }
 
+            // Capture fuel level before fueling for GPS-enabled vehicles in vehicle refueling mode.
+            // This value is stored in transaction context and persisted when transaction completes.
+            var fuelLevelBefore = await TryGetFuelLevelBeforeFuelingAsync(request, cancellationToken);
+
             // Store transaction context
             var transactionContext = new TransactionContext
             {
@@ -839,6 +846,7 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 UserId = request.UserId,
                 SiteId = siteId,
                 Odometer = request.Odometer,
+                FuelLevelBefore = fuelLevelBefore,
                 MobileLocationLatitude = (double?)request.MobileLocation?.Latitude,
                 MobileLocationLongitude = (double?)request.MobileLocation?.Longitude,
                 MobileLocationAccuracy = (double?)request.MobileLocation?.Accuracy,
@@ -900,6 +908,59 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
             // Check if vehicle GPS is offline and create alert if needed
             await CheckVehicleGpsOfflineAsync(request.VehicleId, request.TankId, (decimal?)request.Dose, request.UserId, cancellationToken);
+        }
+
+        /// <summary>
+        /// Gets vehicle fuel level before fueling from GPS sensor for vehicle fueling mode only.
+        /// Returns null when feature is disabled, vehicle has no GPS, or reading is unavailable.
+        /// </summary>
+        private async Task<decimal?> TryGetFuelLevelBeforeFuelingAsync(PumpAuthorizeCommand request, CancellationToken cancellationToken)
+        {
+            if (!request.VehicleId.HasValue || _gpsService == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var fuelLevelCheckEnabled = await _systemConfigService.GetPtsEnableGPSFuelLevelCheckAsync(cancellationToken);
+                if (!fuelLevelCheckEnabled)
+                {
+                    return null;
+                }
+
+                var hasGpsInstalled = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => v.VehicleId == request.VehicleId.Value)
+                    .Select(v => v.HasGPSInstalled == 1)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (!hasGpsInstalled)
+                {
+                    return null;
+                }
+
+                var fuelLevelResult = await _gpsService.GetFuelLevelAsync(request.VehicleId.Value);
+                if (fuelLevelResult.IsSuccess && fuelLevelResult.Data.HasValue)
+                {
+                    _logger.LogDebug("[PumpAuth] Captured FuelLevelBefore={FuelLevel}L for vehicle {VehicleId}",
+                        fuelLevelResult.Data.Value,
+                        request.VehicleId.Value);
+                    return fuelLevelResult.Data.Value;
+                }
+
+                _logger.LogDebug("[PumpAuth] Fuel level before fueling unavailable for vehicle {VehicleId}. Message: {Message}",
+                    request.VehicleId.Value,
+                    fuelLevelResult.Message);
+                return null;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[PumpAuth] Failed to capture fuel level before fueling for vehicle {VehicleId}",
+                    request.VehicleId.Value);
+                return null;
+            }
         }
 
         /// <summary>

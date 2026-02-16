@@ -185,6 +185,7 @@ namespace FMS.Application.Handlers
                         transaction.TankId = transaction.TankId ?? context.TankId;
                         transaction.VehicleId = transaction.VehicleId ?? context.VehicleId;
                         transaction.Odometer = transaction.Odometer ?? context.Odometer;
+                        transaction.FuelLevelBefore = transaction.FuelLevelBefore ?? context.FuelLevelBefore;
                         transaction.Tag = string.IsNullOrEmpty(transaction.Tag) ? context.Tag : transaction.Tag;
 
                         // UserId is now string? (GUID from ASP.NET Identity)
@@ -203,8 +204,8 @@ namespace FMS.Application.Handlers
                             transaction.Nozzle = context.Nozzle.Value;
                         }
 
-                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}, Odometer={Odometer}, Tag={Tag}, Nozzle={Nozzle}, FuelGradeId={FuelGradeId}",
-                            context.TankId, context.VehicleId, context.Odometer, context.Tag, context.Nozzle, context.FuelGradeId);
+                        _logger.LogInformation("Enriched transaction with context from Redis: TankId={TankId}, VehicleId={VehicleId}, Odometer={Odometer}, FuelLevelBefore={FuelLevelBefore}, Tag={Tag}, Nozzle={Nozzle}, FuelGradeId={FuelGradeId}",
+                            context.TankId, context.VehicleId, context.Odometer, context.FuelLevelBefore, context.Tag, context.Nozzle, context.FuelGradeId);
 
                         await _redisDb.KeyDeleteAsync(redisKey);
                     }

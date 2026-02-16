@@ -3,7 +3,7 @@
  * Purpose: Issue list view with filter chips, search, and issue cards.
  *          Tap a card to navigate to IssueDetailScreen.
  * Dependencies: React Native, issueTrackerService, usePermissions
- * Last Modified: 2026-02-11
+ * Last Modified: 2026-02-16
  *
  * Key Features:
  * - Filter chips: All, Open, In Progress, Completed
@@ -29,9 +29,9 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
-import issueTrackerService from "../services/issueTrackerService";
-import apiService from "../services/apiService";
-import { usePermissions } from "../hooks/usePermissions";
+import issueTrackerService from "../../services/issueTrackerService";
+import apiService from "../../services/apiService";
+import { usePermissions } from "../../hooks/usePermissions";
 
 // ===== CONSTANTS =====
 const FILTER_CHIPS = [
@@ -99,17 +99,45 @@ const getAvatarColor = (name) => {
   return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
 
+const parseServerDateToLocal = (dateValue) => {
+  if (!dateValue) return null;
+
+  if (dateValue instanceof Date) {
+    return Number.isNaN(dateValue.getTime()) ? null : dateValue;
+  }
+
+  if (typeof dateValue !== "string") {
+    const parsed = new Date(dateValue);
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+
+  const raw = dateValue.trim();
+  if (!raw) return null;
+
+  const hasTimezoneInfo = /([zZ]|[+\-]\d{2}:?\d{2})$/.test(raw);
+  const normalized = hasTimezoneInfo ? raw : `${raw}Z`;
+  const parsed = new Date(normalized);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+};
+
 const formatRelativeDate = (dateStr) => {
-  if (!dateStr) return "";
-  const date = new Date(dateStr);
-  if (isNaN(date.getTime())) return "";
+  const date = parseServerDateToLocal(dateStr);
+  if (!date) return "";
+
   const now = new Date();
   const diffMs = now - date;
   const diffDays = Math.floor(diffMs / 86400000);
-  if (diffDays === 0) return "Today";
-  if (diffDays === 1) return "Yesterday";
+
+  const localTime = date.toLocaleTimeString("en-GB", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+
+  if (diffDays === 0) return `Today ${localTime}`;
+  if (diffDays === 1) return `Yesterday ${localTime}`;
   if (diffDays < 7) return `${diffDays}d ago`;
-  return date.toLocaleDateString("en-GB", { month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-GB", { month: "short", day: "numeric" }) + ` ${localTime}`;
 };
 
 // ===== ISSUE CARD =====
@@ -311,7 +339,8 @@ const IssueListScreen = () => {
       const now = new Date();
       result = result.filter((issue) => {
         if (!issue.dueDate) return false;
-        return new Date(issue.dueDate) < now;
+        const due = parseServerDateToLocal(issue.dueDate);
+        return due ? due < now : false;
       });
     } else if (activeFilter === "unassigned") {
       result = result.filter((issue) => !issue.assignToId && !issue.assignToUserName);
@@ -347,8 +376,8 @@ const IssueListScreen = () => {
       const in7Days = new Date(now.getTime() + 7 * 86400000);
       result = result.filter((issue) => {
         if (!issue.dueDate) return false;
-        const due = new Date(issue.dueDate);
-        return due >= now && due <= in7Days;
+        const due = parseServerDateToLocal(issue.dueDate);
+        return due ? due >= now && due <= in7Days : false;
       });
     }
 
@@ -362,8 +391,8 @@ const IssueListScreen = () => {
       else if (datePreset === "30days") cutoff = new Date(now.getTime() - 30 * 86400000);
       if (cutoff) {
         result = result.filter((issue) => {
-          const opened = new Date(issue.openDate || issue.createdDate);
-          return opened >= cutoff;
+          const opened = parseServerDateToLocal(issue.openDate || issue.createdDate);
+          return opened ? opened >= cutoff : false;
         });
       }
     }
@@ -403,7 +432,8 @@ const IssueListScreen = () => {
     const following = followedIssueIds.size;
     const overdue = issues.filter((i) => {
       if (!i.dueDate) return false;
-      return new Date(i.dueDate) < new Date();
+      const due = parseServerDateToLocal(i.dueDate);
+      return due ? due < new Date() : false;
     }).length;
     const unassigned = issues.filter((i) => !i.assignToId && !i.assignToUserName).length;
     return { all, assignedToMe, open, inProgress, completed, following, overdue, unassigned };

@@ -79,11 +79,12 @@ namespace FMS.BackgroundServices.IssueTracker
         {
             try
             {
-                var minIntervalSeconds = await context.Issueautocloseconfigs
+                var intervals = await context.Issueautocloseconfigs
                     .Where(c => c.IsEnabled && c.CheckIntervalSeconds.HasValue && c.CheckIntervalSeconds.Value > 0)
                     .Select(c => c.CheckIntervalSeconds!.Value)
-                    .DefaultIfEmpty(0)
-                    .MinAsync();
+                    .ToListAsync();
+
+                var minIntervalSeconds = intervals.Count > 0 ? intervals.Min() : 0;
 
                 if (minIntervalSeconds > 0)
                 {

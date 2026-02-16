@@ -42,6 +42,14 @@ const IssueStatusIndicator = ({ status, size = 'md', showIcon = true, className 
           label: 'Resolved',
           dotColor: 'tw-bg-green-500'
         };
+      case 'complete':
+      case 'completed':
+        return {
+          color: 'tw-bg-emerald-100 tw-text-emerald-800 tw-border-emerald-200',
+          icon: 'fa-light fa-circle-check',
+          label: 'Completed',
+          dotColor: 'tw-bg-emerald-500'
+        };
       case 'closed':
         return {
           color: 'tw-bg-gray-100 tw-text-gray-800 tw-border-gray-200',

@@ -82,6 +82,12 @@ namespace FMS.Application.Features.PTS.Services
         public decimal? Odometer { get; set; }
 
         /// <summary>
+        /// Vehicle fuel level before fueling (from GPS sensor when available).
+        /// Captured during authorization for vehicle fueling transactions.
+        /// </summary>
+        public decimal? FuelLevelBefore { get; set; }
+
+        /// <summary>
         /// Mobile location latitude (if provided).
         /// </summary>
         public double? MobileLocationLatitude { get; set; }

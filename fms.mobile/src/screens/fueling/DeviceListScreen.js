@@ -17,8 +17,8 @@ import { useFocusEffect } from "@react-navigation/native";
 import {
   fetchDevicesBySite,
   fetchDeviceList,
-} from "../redux/slices/deviceSlice";
-import signalRService from "../services/signalRService";
+} from "../../redux/slices/deviceSlice";
+import signalRService from "../../services/signalRService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",

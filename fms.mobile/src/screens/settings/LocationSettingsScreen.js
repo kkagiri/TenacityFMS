@@ -22,9 +22,9 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import ApiService from "../services/apiService";
-import { usePermissions } from "../hooks/usePermissions";
-import SearchableSelectionModal from "../components/common/SearchableSelectionModal";
+import ApiService from "../../services/apiService";
+import { usePermissions } from "../../hooks/usePermissions";
+import SearchableSelectionModal from "../../components/common/SearchableSelectionModal";
 
 // Bypass duration options
 const BYPASS_DURATION_OPTIONS = [

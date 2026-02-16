@@ -19,7 +19,7 @@ import {
   loginUser,
   clearError,
   checkAuthStatus,
-} from "../redux/slices/authSlice";
+} from "../../redux/slices/authSlice";
 
 const { width, height } = Dimensions.get("window");
 
@@ -118,7 +118,7 @@ const LoginScreen = ({ navigation }) => {
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <Image
-              source={require("../assets/images/hyoung-logo.png")}
+              source={require("../../assets/images/hyoung-logo.png")}
               style={styles.logo}
               resizeMode="contain"
             />

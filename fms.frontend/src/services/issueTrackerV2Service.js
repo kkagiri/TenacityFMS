@@ -78,10 +78,10 @@ class IssueTrackerV2Service {
    * @param {Object} deviceTypeData - Device type data
    * @returns {Promise} Created device type
    */
-  async createDeviceType(deviceTypeData) {
+  async createDeviceType(deviceTypeData, options = {}) {
     try {
       const response = await axiosInstance.post(this.deviceTypesURL, deviceTypeData);
-      this.showNotification('Device type created successfully', 'success');
+      if (!options.silent) this.showNotification('Device type created successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error creating device type:', error);
@@ -183,10 +183,10 @@ class IssueTrackerV2Service {
    * @param {number[]} [templateData.categoryIds] - Category/tag IDs
    * @returns {Promise} Created template
    */
-  async createTemplate(templateData) {
+  async createTemplate(templateData, options = {}) {
     try {
       const response = await axiosInstance.post(this.templatesURL, templateData);
-      this.showNotification('Issue template created successfully', 'success');
+      if (!options.silent) this.showNotification('Issue template created successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error creating issue template:', error);
@@ -200,10 +200,10 @@ class IssueTrackerV2Service {
    * @param {Object} templateData - Updated template data
    * @returns {Promise} Updated template
    */
-  async updateTemplate(id, templateData) {
+  async updateTemplate(id, templateData, options = {}) {
     try {
       const response = await axiosInstance.put(`${this.templatesURL}/${id}`, templateData);
-      this.showNotification('Issue template updated successfully', 'success');
+      if (!options.silent) this.showNotification('Issue template updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error(`Error updating issue template ${id}:`, error);
@@ -284,7 +284,7 @@ class IssueTrackerV2Service {
    * @param {Object} configData - Configuration data
    * @returns {Promise} Created configuration
    */
-  async createAutoCloseConfig(configData) {
+  async createAutoCloseConfig(configData, options = {}) {
     try {
       const payload = {
         ...configData,
@@ -292,7 +292,7 @@ class IssueTrackerV2Service {
       };
 
       const response = await axiosInstance.post(this.autoCloseURL, payload);
-      this.showNotification('Auto-close configuration created successfully', 'success');
+      if (!options.silent) this.showNotification('Auto-close configuration created successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error('Error creating auto-close config:', error);
@@ -306,7 +306,7 @@ class IssueTrackerV2Service {
    * @param {Object} configData - Updated configuration data
    * @returns {Promise} Updated configuration
    */
-  async updateAutoCloseConfig(id, configData) {
+  async updateAutoCloseConfig(id, configData, options = {}) {
     try {
       const payload = {
         ...configData,
@@ -314,7 +314,7 @@ class IssueTrackerV2Service {
       };
 
       const response = await axiosInstance.put(`${this.autoCloseURL}/${id}`, payload);
-      this.showNotification('Auto-close configuration updated successfully', 'success');
+      if (!options.silent) this.showNotification('Auto-close configuration updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
       console.error(`Error updating auto-close config ${id}:`, error);

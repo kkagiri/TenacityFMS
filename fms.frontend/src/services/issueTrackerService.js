@@ -857,11 +857,20 @@ class IssueTrackerService {
   /**
    * Get linked issues (same template or category)
    * @param {number} issueId - Issue ID
+   * @param {{matchBy?: 'template'|'vehicle'|'tag', tagId?: number|null}} [options] - Linked issue filter options
    * @returns {Promise} List of linked issues
    */
-  async getLinkedIssues(issueId) {
+  async getLinkedIssues(issueId, options = {}) {
     try {
-      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/linked-issues`);
+      const params = {};
+      if (options?.matchBy) {
+        params.matchBy = options.matchBy;
+      }
+      if (options?.tagId) {
+        params.tagId = options.tagId;
+      }
+
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/linked-issues`, { params });
       const result = response.data;
       if (result.isSuccess || result.IsSuccess) {
         return result.data || result.Data || [];

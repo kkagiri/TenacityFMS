@@ -338,9 +338,9 @@ namespace FMS.Application.Features.TankManagement.PumpTransaction
                         EmployeeName = pt.Employee?.FullName,
                         FuelRefillId = fr?.Id,
 
-                        // Fuel level data - placeholder, will be populated from GPS data if available
-                        FuelLevelBefore = null,
-                        FuelLevelAfter = null
+                        // Fuel level data captured from GPS sensor during authorization/completion
+                        FuelLevelBefore = pt.FuelLevelBefore,
+                        FuelLevelAfter = pt.FuelLevelAfter
                     };
                 }).ToList();
 

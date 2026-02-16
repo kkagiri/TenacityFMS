@@ -61,13 +61,33 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
     const navigate = useNavigate();
     const [linkedIssues, setLinkedIssues] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [matchBy, setMatchBy] = useState('template');
+    const [selectedTagId, setSelectedTagId] = useState('');
+
+    const availableTags = Array.isArray(currentIssue?.issueCategoryTags)
+        ? currentIssue.issueCategoryTags.map((tagId, index) => ({
+            id: tagId,
+            name: currentIssue?.issueCategoryTagNames?.[index] || `Tag ${tagId}`
+        }))
+        : [];
 
     const loadLinkedIssues = useCallback(async () => {
         if (!issueId) return;
 
         try {
             setLoading(true);
-            const data = await issueTrackerService.getLinkedIssues(issueId);
+            const requestOptions = {
+                matchBy
+            };
+
+            if (matchBy === 'tag') {
+                const numericTagId = Number(selectedTagId);
+                if (numericTagId > 0) {
+                    requestOptions.tagId = numericTagId;
+                }
+            }
+
+            const data = await issueTrackerService.getLinkedIssues(issueId, requestOptions);
             // Filter out the current issue from linked issues
             const filtered = (data || [])
                 .filter(issue => issue.id !== Number(issueId))
@@ -79,16 +99,37 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
         } finally {
             setLoading(false);
         }
-    }, [issueId]);
+    }, [issueId, matchBy, selectedTagId]);
 
     useEffect(() => {
         loadLinkedIssues();
     }, [loadLinkedIssues]);
 
+    useEffect(() => {
+        if (!selectedTagId && availableTags.length > 0) {
+            setSelectedTagId(String(availableTags[0].id));
+        }
+    }, [availableTags, selectedTagId]);
+
     const handleRowClick = (e) => {
         if (e.data?.id) {
             navigate(`/issue-tracker/details/${e.data.id}`);
         }
+    };
+
+    const handleMatchByChange = (event) => {
+        const nextMatchBy = event.target.value;
+        setMatchBy(nextMatchBy);
+
+        if (nextMatchBy === 'tag') {
+            if (!selectedTagId && availableTags.length > 0) {
+                setSelectedTagId(String(availableTags[0].id));
+            }
+        }
+    };
+
+    const handleTagChange = (event) => {
+        setSelectedTagId(event.target.value);
     };
 
     const statusCellRender = (cellData) => (
@@ -135,11 +176,57 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
 
     return (
         <div>
+            <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-3 tw-mb-4">
+                <div>
+                    <label htmlFor="linked-issues-match-by" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                        Match By
+                    </label>
+                    <select
+                        id="linked-issues-match-by"
+                        className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
+                        value={matchBy}
+                        onChange={handleMatchByChange}
+                    >
+                        <option value="template">By Template</option>
+                        <option value="vehicle">By Vehicle</option>
+                        <option value="tag">By Similar Tag</option>
+                    </select>
+                </div>
+
+                {matchBy === 'tag' && (
+                    <div>
+                        <label htmlFor="linked-issues-tag" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                            Tag
+                        </label>
+                        <select
+                            id="linked-issues-tag"
+                            className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
+                            value={selectedTagId}
+                            onChange={handleTagChange}
+                            disabled={availableTags.length === 0}
+                        >
+                            {availableTags.length === 0 ? (
+                                <option value="">No tags available</option>
+                            ) : (
+                                availableTags.map((tag) => (
+                                    <option key={tag.id} value={tag.id}>
+                                        {tag.name}
+                                    </option>
+                                ))
+                            )}
+                        </select>
+                    </div>
+                )}
+            </div>
+
             <p className="tw-text-sm tw-text-gray-600 tw-mb-3">
                 <i className="fa-light fa-info-circle tw-mr-2"></i>
                 Showing {linkedIssues.length} issue{linkedIssues.length !== 1 ? 's' : ''}
-                {currentIssue?.templateName && (
+                {matchBy === 'template' && currentIssue?.templateName && (
                     <span> using template: <span className="tw-font-medium">{currentIssue.templateName}</span></span>
+                )}
+                {matchBy === 'vehicle' && currentIssue?.vehicleHyoungNo && (
+                    <span> for vehicle: <span className="tw-font-medium">{currentIssue.vehicleHyoungNo}</span></span>
                 )}
             </p>
             <DataGrid

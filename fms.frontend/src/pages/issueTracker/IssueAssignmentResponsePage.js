@@ -137,6 +137,7 @@ const IssueAssignmentResponsePage = () => {
   }
 
   const currentStatusInfo = VEHICLE_STATUS.find(s => s.value === initialVehicleStatus);
+  const normalizedIssueStatus = (issue.statusName || issue.status || '').toString().toLowerCase();
 
   return (
     <div className="tw-max-w-3xl tw-mx-auto tw-bg-white tw-rounded-xl tw-shadow tw-mt-6 tw-mb-10">
@@ -156,11 +157,12 @@ const IssueAssignmentResponsePage = () => {
         <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
           <div className="tw-flex tw-items-start tw-justify-between tw-mb-2">
             <p className="tw-text-xs tw-text-gray-400 tw-font-mono">Issue #{issue.id}</p>
-            <span className={`tw-text-xs tw-px-2 tw-py-0.5 tw-rounded-full tw-font-medium ${
-              issue.statusName === 'Open' ? 'tw-bg-blue-100 tw-text-blue-700' :
-              issue.statusName === 'In Progress' ? 'tw-bg-yellow-100 tw-text-yellow-700' :
-              'tw-bg-gray-100 tw-text-gray-600'
-            }`}>
+            <span className={`tw-text-xs tw-px-2 tw-py-0.5 tw-rounded-full tw-font-medium ${normalizedIssueStatus.includes('open') ? 'tw-bg-blue-100 tw-text-blue-700' :
+                normalizedIssueStatus.includes('progress') ? 'tw-bg-yellow-100 tw-text-yellow-700' :
+                  normalizedIssueStatus.includes('complete') || normalizedIssueStatus.includes('resolved') || normalizedIssueStatus.includes('done') ? 'tw-bg-emerald-100 tw-text-emerald-700' :
+                    normalizedIssueStatus.includes('close') ? 'tw-bg-gray-100 tw-text-gray-700' :
+                      'tw-bg-gray-100 tw-text-gray-600'
+              }`}>
               {issue.statusName || issue.status || 'Unknown'}
             </span>
           </div>

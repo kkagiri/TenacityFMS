@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.IssueTracker.Services;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -21,13 +22,16 @@ public class RespondToIssueAssignmentCommandHandler : IRequestHandler<RespondToI
 {
     private readonly GpsdataContext _context;
     private readonly ILogger<RespondToIssueAssignmentCommandHandler> _logger;
+    private readonly IIssueActivityService _activityService;
 
     public RespondToIssueAssignmentCommandHandler(
         GpsdataContext context,
-        ILogger<RespondToIssueAssignmentCommandHandler> logger)
+        ILogger<RespondToIssueAssignmentCommandHandler> logger,
+        IIssueActivityService activityService)
     {
         _context = context;
         _logger = logger;
+        _activityService = activityService;
     }
 
     public async Task<FMSResponse<bool>> Handle(RespondToIssueAssignmentCommand command, CancellationToken cancellationToken)
@@ -151,6 +155,93 @@ public class RespondToIssueAssignmentCommandHandler : IRequestHandler<RespondToI
 
             issue.LastModfield = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
+
+            // --- Activity Stream Logging ---
+            var responderName = await _context.Users.AsNoTracking()
+                .Where(u => u.Id == request.RespondedByUserId)
+                .Select(u => u.UserName ?? u.Id)
+                .FirstOrDefaultAsync(cancellationToken) ?? request.RespondedByUserId;
+
+            // Log the assignment response action
+            var actionLabel = normalizedAction == "confirm" ? "Confirmed" : "Scheduled";
+            if (request.Action?.Trim().ToLowerInvariant() == "ongoing")
+                actionLabel = "Marked as Ongoing";
+
+            await _activityService.LogActivityAsync(
+                issue.Id,
+                "AssignmentResponse",
+                $"{responderName} responded to assignment: {actionLabel}",
+                request.RespondedByUserId,
+                responderName,
+                cancellationToken: cancellationToken);
+
+            // Log status change to In Progress
+            if (inProgressStatusId.HasValue)
+            {
+                var statusName = await _context.Issuestatuses.AsNoTracking()
+                    .Where(s => s.Id == inProgressStatusId.Value)
+                    .Select(s => s.Status)
+                    .FirstOrDefaultAsync(cancellationToken) ?? "In Progress";
+
+                await _activityService.LogStatusChangeAsync(
+                    issue.Id,
+                    null, // old status not tracked here
+                    statusName,
+                    request.RespondedByUserId,
+                    responderName,
+                    cancellationToken);
+            }
+
+            // Log vehicle status change
+            if (request.VehicleStatusChange.HasValue)
+            {
+                var newStatusName = ((VehicleStatus)request.VehicleStatusChange.Value).ToString();
+                await _activityService.LogFieldChangeAsync(
+                    issue.Id,
+                    "VehicleStatus",
+                    null, // old value logged via application logger above
+                    newStatusName,
+                    request.RespondedByUserId,
+                    responderName,
+                    cancellationToken);
+            }
+
+            // Log deadline change
+            if (request.NewDueDate.HasValue)
+            {
+                await _activityService.LogFieldChangeAsync(
+                    issue.Id,
+                    "DueDate",
+                    null,
+                    request.NewDueDate.Value.ToString("yyyy-MM-dd"),
+                    request.RespondedByUserId,
+                    responderName,
+                    cancellationToken);
+            }
+            else if (normalizedAction == "schedule" && request.ScheduledDate.HasValue)
+            {
+                await _activityService.LogFieldChangeAsync(
+                    issue.Id,
+                    "DueDate",
+                    null,
+                    request.ScheduledDate.Value.ToString("yyyy-MM-dd"),
+                    request.RespondedByUserId,
+                    responderName,
+                    cancellationToken);
+            }
+
+            // Log note if provided
+            if (!string.IsNullOrWhiteSpace(request.Note))
+            {
+                await _activityService.LogActivityAsync(
+                    issue.Id,
+                    "NoteAdded",
+                    $"{responderName} added a note: {request.Note.Trim()}",
+                    request.RespondedByUserId,
+                    responderName,
+                    cancellationToken: cancellationToken);
+            }
+            // --- End Activity Stream Logging ---
 
             var responseMessage = normalizedAction == "confirm"
                 ? "Issue assignment confirmed successfully. Status updated to In Progress."

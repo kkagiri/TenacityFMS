@@ -10,21 +10,21 @@ import Toast from "react-native-toast-message";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 // Import mobile components
-import TankSelectionStep from "../components/fueling/TankSelectionStep";
-import PumpSelectionStep from "../components/fueling/PumpSelectionStep";
-import NozzleSelectionStep from "../components/fueling/NozzleSelectionStep";
-import ModeSelectionStep from "../components/fueling/ModeSelectionStep";
-import TransferDetailsStep from "../components/fueling/TransferDetailsStep";
-import VehicleSelectionStep from "../components/fueling/VehicleSelectionStep";
-import FuelingVolumeStep from "../components/fueling/FuelingVolumeStep";
-import ScanStep from "../components/fueling/ScanStep";
-import TransactionMonitoringModal from "../components/fueling/TransactionMonitoringModal";
-import TransactionSummaryStep from "../components/fueling/TransactionSummaryStep";
-import FuelingHeader from "../components/fueling/FuelingHeader";
-import LoadingOverlay from "../components/common/LoadingOverlay";
+import TankSelectionStep from "../../components/fueling/TankSelectionStep";
+import PumpSelectionStep from "../../components/fueling/PumpSelectionStep";
+import NozzleSelectionStep from "../../components/fueling/NozzleSelectionStep";
+import ModeSelectionStep from "../../components/fueling/ModeSelectionStep";
+import TransferDetailsStep from "../../components/fueling/TransferDetailsStep";
+import VehicleSelectionStep from "../../components/fueling/VehicleSelectionStep";
+import FuelingVolumeStep from "../../components/fueling/FuelingVolumeStep";
+import ScanStep from "../../components/fueling/ScanStep";
+import TransactionMonitoringModal from "../../components/fueling/TransactionMonitoringModal";
+import TransactionSummaryStep from "../../components/fueling/TransactionSummaryStep";
+import FuelingHeader from "../../components/fueling/FuelingHeader";
+import LoadingOverlay from "../../components/common/LoadingOverlay";
 
 // Import custom hook
-import { useFuelingProcess } from "../hooks/useFuelingProcess";
+import { useFuelingProcess } from "../../hooks/useFuelingProcess";
 
 const FuelingProcessScreen = () => {
   const route = useRoute();

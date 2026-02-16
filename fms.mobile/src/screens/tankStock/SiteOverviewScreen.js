@@ -1,9 +1,19 @@
+/**
+ * File: SiteOverviewScreen.js
+ * Purpose: Displays site/tank stock overview with transaction insights and latest update source details.
+ * Dependencies: react, react-redux, react-navigation, react-native-vector-icons, apiService
+ * Last Modified: 2026-02-16
+ *
+ * Key Functions:
+ * - fetchTodayTransactions(): Retrieves today's transaction totals by site.
+ * - fetchLatestLedgerUpdates(): Retrieves latest ledger update per tank/site as fallback metadata.
+ * - getTankLastUpdateInfo(): Resolves tank last-updated/source using tank data first, then ledger.
+ */
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
-  ScrollView,
   TouchableOpacity,
   RefreshControl,
   ActivityIndicator,
@@ -12,9 +22,80 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation } from "@react-navigation/native";
-import { fetchSiteList } from "../redux/slices/siteSlice";
-import { fetchTanks } from "../redux/slices/tankSlice";
-import apiService from "../services/apiService";
+import { fetchSiteList } from "../../redux/slices/siteSlice";
+import { fetchTanks } from "../../redux/slices/tankSlice";
+import apiService from "../../services/apiService";
+
+const VOLUME_CHANGE_REASON_MAP = {
+  0: "Opening Stock",
+  1: "Closing Stock",
+  2: "Delivery",
+  3: "Transfer In",
+  4: "Transfer Out",
+  5: "Adjustment",
+  6: "Dispensing",
+  7: "Auto Dispensing",
+  8: "Reconciliation",
+  9: "Auto Reconciliation",
+};
+
+const formatLocalDateForApi = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateValue = (dateValue) => {
+  if (!dateValue) return null;
+  if (dateValue instanceof Date) return dateValue;
+
+  const raw = String(dateValue).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,7})?)?$/.test(raw)) {
+    return new Date(`${raw}Z`);
+  }
+
+  return new Date(raw);
+};
+
+const formatLastUpdated = (dateValue) => {
+  const date = parseDateValue(dateValue);
+  if (!date || Number.isNaN(date.getTime())) return "-";
+
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+};
+
+const resolveLedgerSource = (tx) => {
+  if (!tx) return null;
+
+  const explicitSource =
+    tx.physicalStockSource ||
+    tx.PhysicalStockSource ||
+    tx.stockSource ||
+    tx.StockSource ||
+    tx.source ||
+    tx.Source;
+
+  if (explicitSource) return explicitSource;
+
+  const reasonId =
+    tx.volumeChangeReason ?? tx.changeReason ?? tx.reason ?? tx.Reason;
+
+  return VOLUME_CHANGE_REASON_MAP[reasonId] || "Tank Volume History";
+};
 
 const SiteOverviewScreen = () => {
   const dispatch = useDispatch();
@@ -29,6 +110,8 @@ const SiteOverviewScreen = () => {
   const [expandedSite, setExpandedSite] = useState(null);
   const [todayTransactions, setTodayTransactions] = useState({});
   const [loadingTransactions, setLoadingTransactions] = useState(false);
+  const [latestTxByTank, setLatestTxByTank] = useState({});
+  const [latestTxBySite, setLatestTxBySite] = useState({});
 
   // Load initial data
   useEffect(() => {
@@ -38,7 +121,7 @@ const SiteOverviewScreen = () => {
   const loadData = async () => {
     dispatch(fetchSiteList());
     dispatch(fetchTanks());
-    await fetchTodayTransactions();
+    await Promise.all([fetchTodayTransactions(), fetchLatestLedgerUpdates()]);
   };
 
   const fetchTodayTransactions = async () => {
@@ -51,13 +134,17 @@ const SiteOverviewScreen = () => {
 
       // Use TankVolumeHistory API (same source as Transaction Hub)
       const response = await apiService.getTankVolumeHistory({
-        startDate: today.toISOString(),
-        endDate: tomorrow.toISOString(),
+        startDate: formatLocalDateForApi(today),
+        endDate: formatLocalDateForApi(tomorrow),
         take: 1000,
       });
 
       // Response is an array of transactions
-      const transactions = Array.isArray(response) ? response : [];
+      const transactions = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
 
       // Group transactions by site (TankVolumeHistoryDTO includes siteId)
       const txBySite = {};
@@ -76,6 +163,66 @@ const SiteOverviewScreen = () => {
       console.error("Failed to fetch today's transactions:", error);
     } finally {
       setLoadingTransactions(false);
+    }
+  };
+
+  const fetchLatestLedgerUpdates = async () => {
+    try {
+      const endDate = new Date();
+      const startDate = new Date();
+      startDate.setDate(startDate.getDate() - 30);
+
+      const response = await apiService.getTankVolumeHistory({
+        startDate: formatLocalDateForApi(startDate),
+        endDate: formatLocalDateForApi(endDate),
+        take: 3000,
+        includeVehicleNames: false,
+      });
+
+      const transactions = Array.isArray(response)
+        ? response
+        : Array.isArray(response?.data)
+          ? response.data
+          : [];
+
+      const byTank = {};
+      const bySite = {};
+
+      transactions.forEach((tx) => {
+        const tankId = tx.tankId || tx.TankId;
+        const siteId = tx.siteId || tx.SiteId;
+        const timestamp = tx.timestamp || tx.Timestamp || tx.recordedAt;
+        const date = parseDateValue(timestamp);
+
+        if (!date || Number.isNaN(date.getTime())) return;
+
+        if (tankId) {
+          const current = byTank[tankId];
+          const currentDate = parseDateValue(
+            current?.timestamp || current?.Timestamp || current?.recordedAt
+          );
+
+          if (!currentDate || date > currentDate) {
+            byTank[tankId] = tx;
+          }
+        }
+
+        if (siteId) {
+          const current = bySite[siteId];
+          const currentDate = parseDateValue(
+            current?.timestamp || current?.Timestamp || current?.recordedAt
+          );
+
+          if (!currentDate || date > currentDate) {
+            bySite[siteId] = tx;
+          }
+        }
+      });
+
+      setLatestTxByTank(byTank);
+      setLatestTxBySite(bySite);
+    } catch (error) {
+      console.error("Failed to fetch latest ledger updates:", error);
     }
   };
 
@@ -178,6 +325,67 @@ const SiteOverviewScreen = () => {
     return `${Math.round(volume).toLocaleString()} L`;
   };
 
+  const getTankLastUpdateInfo = useCallback(
+    (tank) => {
+      const tankUpdatedAt =
+        tank.lastPhysicalStockUpdate || tank.lastStockUpdate || null;
+      const tankSource =
+        tank.physicalStockSource || tank.stockSource || tank.source || null;
+
+      if (tankUpdatedAt || tankSource) {
+        return {
+          updatedAt: tankUpdatedAt,
+          source: tankSource || "Tank",
+        };
+      }
+
+      const ledgerTx = latestTxByTank[tank.id];
+      if (!ledgerTx) return { updatedAt: null, source: null };
+
+      return {
+        updatedAt:
+          ledgerTx.timestamp || ledgerTx.Timestamp || ledgerTx.recordedAt || null,
+        source: resolveLedgerSource(ledgerTx),
+      };
+    },
+    [latestTxByTank]
+  );
+
+  const getSiteLastUpdateInfo = useCallback(
+    (siteId, siteTanks) => {
+      let latestDate = null;
+      let latestSource = null;
+
+      siteTanks.forEach((tank) => {
+        const info = getTankLastUpdateInfo(tank);
+        const date = parseDateValue(info.updatedAt);
+        if (!date || Number.isNaN(date.getTime())) return;
+
+        if (!latestDate || date > latestDate) {
+          latestDate = date;
+          latestSource = info.source;
+        }
+      });
+
+      if (latestDate) {
+        return { updatedAt: latestDate, source: latestSource || "Tank" };
+      }
+
+      const siteLedgerTx = latestTxBySite[siteId];
+      if (!siteLedgerTx) return { updatedAt: null, source: null };
+
+      return {
+        updatedAt:
+          siteLedgerTx.timestamp ||
+          siteLedgerTx.Timestamp ||
+          siteLedgerTx.recordedAt ||
+          null,
+        source: resolveLedgerSource(siteLedgerTx),
+      };
+    },
+    [getTankLastUpdateInfo, latestTxBySite]
+  );
+
   const renderTankItem = (tank) => {
     // Use physicalStockValue (actual physical fuel level) for display
     const physicalStock = tank.physicalStockValue ?? tank.currentVolume ?? 0;
@@ -185,6 +393,7 @@ const SiteOverviewScreen = () => {
     const percent =
       capacity > 0 ? Math.round((physicalStock / capacity) * 100) : 0;
     const productName = tank.fuelGradeName || tank.productName || "Unknown";
+    const updateInfo = getTankLastUpdateInfo(tank);
 
     return (
       <View key={tank.id} style={styles.tankItem}>
@@ -219,6 +428,10 @@ const SiteOverviewScreen = () => {
               ]}
             />
           </View>
+          <Text style={styles.tankUpdateText}>
+            Last Updated: {formatLastUpdated(updateInfo.updatedAt)}
+            {updateInfo.source ? ` • ${updateInfo.source}` : ""}
+          </Text>
         </View>
       </View>
     );
@@ -227,6 +440,7 @@ const SiteOverviewScreen = () => {
   const renderSiteCard = ({ item: site }) => {
     const stats = getSiteStats(site.id);
     const isExpanded = expandedSite === site.id;
+    const siteUpdateInfo = getSiteLastUpdateInfo(site.id, stats.tanks);
 
     return (
       <View style={styles.siteCard}>
@@ -244,6 +458,10 @@ const SiteOverviewScreen = () => {
               <Text style={styles.siteSubtext}>
                 {stats.tankCount} tanks • {formatVolume(stats.totalStock)}{" "}
                 stored
+              </Text>
+              <Text style={styles.siteUpdateText}>
+                Last Updated: {formatLastUpdated(siteUpdateInfo.updatedAt)}
+                {siteUpdateInfo.source ? ` • ${siteUpdateInfo.source}` : ""}
               </Text>
             </View>
           </View>
@@ -552,6 +770,11 @@ const styles = StyleSheet.create({
     color: "#6b7280",
     marginTop: 2,
   },
+  siteUpdateText: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 4,
+  },
   siteStatsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -675,6 +898,11 @@ const styles = StyleSheet.create({
   tankFill: {
     height: "100%",
     borderRadius: 2,
+  },
+  tankUpdateText: {
+    fontSize: 11,
+    color: "#9ca3af",
+    marginTop: 6,
   },
   noTanksText: {
     fontSize: 13,

@@ -120,6 +120,7 @@ namespace FMS.WebClient.Controllers
             {
                 // Ensure the ID matches the route parameter
                 issueData.Id = id;
+                issueData.ModifiedByUserId = GetCurrentUserIdOrDefault();
                 UpdateIssueCommand command = new(issueData);
                 Unit result = await _mediator.Send(command);
                 return Ok(result);
@@ -836,11 +837,14 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet("{id}/linked-issues")]
         [RequirePermission(Permissions.IssueTracker.Read)]
-        public async Task<IActionResult> GetLinkedIssues(int id)
+        public async Task<IActionResult> GetLinkedIssues(
+            int id,
+            [FromQuery] string? matchBy = null,
+            [FromQuery] int? tagId = null)
         {
             try
             {
-                var query = new GetLinkedIssuesQuery(id);
+                var query = new GetLinkedIssuesQuery(id, matchBy, tagId);
                 var result = await _mediator.Send(query);
                 return result.IsSuccess ? Ok(result) : BadRequest(result);
             }

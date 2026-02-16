@@ -16,13 +16,13 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import CustomDateTimePicker from "../components/common/CustomDateTimePicker";
-import { fetchTanksBySite, fetchTanks } from "../redux/slices/tankSlice";
-import { fetchSiteList } from "../redux/slices/siteSlice";
+import CustomDateTimePicker from "../../components/common/CustomDateTimePicker";
+import { fetchTanksBySite, fetchTanks } from "../../redux/slices/tankSlice";
+import { fetchSiteList } from "../../redux/slices/siteSlice";
 import {
   createTankTransfer,
   clearTransferResult,
-} from "../redux/slices/stockSlice";
+} from "../../redux/slices/stockSlice";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",

@@ -9,13 +9,14 @@
  * - handleTemplateSelected: Pre-fills issue fields from selected template
  * - handleSubmit: Saves issue and navigates to details when backend confirms success
  */
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
 import notify from 'devextreme/ui/notify';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TagBox } from 'devextreme-react/tag-box';
 import { Popup } from 'devextreme-react/popup';
+import { Button } from 'devextreme-react/button';
 import VehicleSearchableSelector from '../../../components/selectors/VehicleSearchableSelector';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
 import { fetchUsers } from '../../../redux/actions/userActions';
@@ -52,6 +53,14 @@ const toDateTimeLocalValue = (value) => {
 
 const normalizeToken = (value) => String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
 const isFuelActivityToken = (value) => normalizeToken(value) === 'fuel_activity';
+const getDeviceTypeLabel = (item) => {
+  if (!item || typeof item !== 'object') {
+    return '';
+  }
+
+  const label = item.name || item.typeName;
+  return typeof label === 'string' ? label : '';
+};
 
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
@@ -64,6 +73,12 @@ const IssueCreateForm = ({ onSubmit = null }) => {
   const statusesState = useSelector((state) => state.issueTracker?.statuses);
 
   const users = useMemo(() => normalizeCollection(usersState), [usersState]);
+  const userDataSource = useMemo(() => users.map(user => ({
+    id: user.id,
+    userName: getUserName(user),
+    email: getUserEmail(user),
+    displayName: `${getUserName(user)}${getUserEmail(user) ? ` (${getUserEmail(user)})` : ''}`
+  })), [users]);
   const sites = useMemo(() => normalizeCollection(sitesState), [sitesState]);
   const categories = useMemo(() => normalizeCollection(categoriesState), [categoriesState]);
   const priorities = useMemo(() => normalizeCollection(prioritiesState), [prioritiesState]);
@@ -106,6 +121,22 @@ const IssueCreateForm = ({ onSubmit = null }) => {
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState({ name: '', titleTemplate: '', descriptionTemplate: '', isActive: true, categoryIds: [] });
   const [localCategoryOptions, setLocalCategoryOptions] = useState([]);
+  const [isCreatingTag, setIsCreatingTag] = useState(false);
+  const [creatingTagLabel, setCreatingTagLabel] = useState('');
+  const [newTagInput, setNewTagInput] = useState('');
+  const [tagDropdownOpen, setTagDropdownOpen] = useState(false);
+  const tagContainerRef = useRef(null);
+
+  // Close tag dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (tagContainerRef.current && !tagContainerRef.current.contains(e.target)) {
+        setTagDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const categoryOptions = useMemo(() => {
     const merged = [...categories, ...localCategoryOptions];
@@ -349,45 +380,115 @@ const IssueCreateForm = ({ onSubmit = null }) => {
     }));
   };
 
-  const handleCreateTagFromInput = async (event) => {
-    const rawText = event?.text || '';
-    const tagCandidates = rawText
-      .split(',')
-      .map((item) => item.trim())
-      .filter(Boolean);
+  const newTagSuggestions = useMemo(() => {
+    const query = newTagInput.trim().toLowerCase();
+    return categoryOptions.filter((item) => {
+      const name = (item?.name || '').toLowerCase();
+      if (categoryIds.includes(item.id)) return false;
+      if (!query) return true;
+      return name.includes(query);
+    });
+  }, [newTagInput, categoryOptions, categoryIds]);
 
-    if (tagCandidates.length === 0) {
+  const newTagExactMatch = useMemo(() => {
+    const query = normalizeToken(newTagInput);
+    if (!query) return null;
+    return categoryOptions.find((item) => normalizeToken(item?.name) === query) || null;
+  }, [newTagInput, categoryOptions]);
+
+  const handleAddNewTag = async () => {
+    const tagName = newTagInput.trim();
+    if (!tagName) return;
+
+    // If exact match exists, just select it
+    if (newTagExactMatch?.id) {
+      setCategoryIds((prev) => Array.from(new Set([...prev, newTagExactMatch.id])));
+      setNewTagInput('');
+      setTagDropdownOpen(false);
+      return;
+    }
+
+    try {
+      setIsCreatingTag(true);
+      setCreatingTagLabel(tagName);
+
+      const createResult = await issueTrackerService.createIssueCategory({
+        name: tagName,
+        description: `Tag: ${tagName}`
+      });
+
+      const rawId = createResult?.id ?? createResult?.data?.id ?? null;
+      const newTagId = typeof rawId === 'number' && rawId > 0 ? rawId : null;
+
+      if (newTagId) {
+        setLocalCategoryOptions((prev) => ([...prev, { id: newTagId, name: tagName, description: `Tag: ${tagName}` }]));
+        setCategoryIds((prev) => Array.from(new Set([...prev, newTagId])));
+      } else {
+        // Backend returned id:0 or no id — re-fetch categories to resolve actual id
+        const refreshResult = await dispatch(fetchIssueCategories());
+        const refreshed = Array.isArray(refreshResult?.payload) ? refreshResult.payload
+          : Array.isArray(refreshResult) ? refreshResult : [];
+        const created = refreshed.find((c) => normalizeToken(c?.name) === normalizeToken(tagName));
+        if (created?.id) {
+          setLocalCategoryOptions((prev) => ([...prev, { id: created.id, name: tagName, description: `Tag: ${tagName}` }]));
+          setCategoryIds((prev) => Array.from(new Set([...prev, created.id])));
+        }
+      }
+
+      setNewTagInput('');
+      setTagDropdownOpen(false);
+      notify({ message: `Tag "${tagName}" created and added.`, type: 'success', displayTime: 2000 });
+    } catch (error) {
+      console.error('Error creating tag:', error);
+      notify({ message: error?.message || 'Failed to create tag.', type: 'error', displayTime: 3000 });
+    } finally {
+      setIsCreatingTag(false);
+      setCreatingTagLabel('');
+    }
+  };
+
+  const handleSelectSuggestion = (tagId) => {
+    setCategoryIds((prev) => Array.from(new Set([...prev, tagId])));
+    setNewTagInput('');
+    setTagDropdownOpen(false);
+  };
+
+  const handleRemoveTag = (tagId) => {
+    setCategoryIds((prev) => prev.filter((id) => id !== tagId));
+  };
+
+  const handleTemplateTagCustomItem = async (event) => {
+    const rawText = event?.text || '';
+    const candidate = rawText.trim();
+    if (!candidate) {
       event.customItem = null;
       return;
     }
 
+    const existing = categoryOptions.find((item) => normalizeToken(item?.name) === normalizeToken(candidate));
+    if (existing?.id) {
+      event.customItem = existing;
+      return;
+    }
+
     event.customItem = (async () => {
-      const createdIds = [];
-
-      for (const candidate of tagCandidates) {
-        const existing = categoryOptions.find((item) => normalizeToken(item?.name) === normalizeToken(candidate));
-        if (existing?.id) {
-          createdIds.push(existing.id);
-          continue;
-        }
-
+      try {
         const createResult = await issueTrackerService.createIssueCategory({
           name: candidate,
           description: `Tag: ${candidate}`
         });
-
         const newTagId = Number(createResult?.id || createResult?.data?.id || 0);
         if (newTagId > 0) {
-          createdIds.push(newTagId);
-          setLocalCategoryOptions((prev) => ([...prev, { id: newTagId, name: candidate, description: `Tag: ${candidate}` }]));
+          const newTag = { id: newTagId, name: candidate, description: `Tag: ${candidate}` };
+          setLocalCategoryOptions((prev) => ([...prev, newTag]));
+          notify({ message: `Tag "${candidate}" created.`, type: 'success', displayTime: 2000 });
+          return newTag;
         }
+      } catch (error) {
+        console.error('Error creating tag in template popup:', error);
+        notify({ message: error?.message || 'Failed to create tag.', type: 'error', displayTime: 3000 });
       }
-
-      if (createdIds.length > 1) {
-        setCategoryIds((prev) => Array.from(new Set([...(prev || []), ...createdIds])));
-      }
-
-      return createdIds[0] || null;
+      return null;
     })();
   };
 
@@ -491,7 +592,8 @@ const IssueCreateForm = ({ onSubmit = null }) => {
       Vehicle: formData.vehicleId,
       Device: null,
       DeviceType: formData.deviceTypeId,
-      AssignTo: (formData.assignToUsers || []).join(',')
+      AssignTo: (formData.assignToUsers || []).join(','),
+      CompletionNotes: (formData.statusName || '').toLowerCase() === 'complete' ? (formData.completionNotes || '').trim() || null : null
     };
 
     try {
@@ -509,24 +611,25 @@ const IssueCreateForm = ({ onSubmit = null }) => {
         throw new Error('Issue saved but no issue ID was returned from backend.');
       }
 
-      // Upload attachments if any were selected
+      // Upload attachments as a single batch after issue is created
       if (formData.attachments && formData.attachments.length > 0) {
-        let uploadedCount = 0;
-        const failedUploads = [];
-
-        for (const file of formData.attachments) {
-          try {
+        const uploadResults = await Promise.allSettled(
+          formData.attachments.map((file) => {
             const category = file._category || 'General';
-            await issueTrackerService.uploadAttachment(issueId, file, category);
-            uploadedCount++;
-          } catch (uploadErr) {
-            console.error('Failed to upload attachment:', file.name, uploadErr);
-            failedUploads.push({
-              name: file.name,
-              error: uploadErr?.response?.data?.message || uploadErr?.message || 'Upload failed'
-            });
-          }
-        }
+            return issueTrackerService.uploadAttachment(issueId, file, category);
+          })
+        );
+
+        const failedUploads = uploadResults
+          .map((result, index) => ({ result, file: formData.attachments[index] }))
+          .filter(({ result }) => result.status === 'rejected')
+          .map(({ result, file }) => ({
+            name: file?.name || 'Unknown file',
+            error:
+              result?.reason?.response?.data?.message ||
+              result?.reason?.message ||
+              'Upload failed'
+          }));
 
         if (failedUploads.length > 0) {
           const errorDetails = failedUploads.map(f => `${f.name}: ${f.error}`).join('; ');
@@ -535,6 +638,30 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             type: 'warning',
             displayTime: 5000
           });
+        }
+      }
+
+      // Follow issue if checkbox is checked
+      if (formData.followIssue) {
+        try {
+          await issueTrackerService.followIssue(issueId, { notifyByEmail: true, notifyByPush: true });
+        } catch (followErr) {
+          console.warn('Failed to follow issue:', followErr);
+        }
+      }
+
+      // Create due-date reminder if enabled
+      if (formData.reminderEnabled && formData.dueDate) {
+        try {
+          await issueTrackerService.createIssueReminder(issueId, {
+            reminderType: 'OnceBeforeDue',
+            daysBefore: formData.reminderDaysBefore,
+            notifyAssignee: true,
+            notifyOpener: true,
+            isActive: true
+          });
+        } catch (reminderErr) {
+          console.warn('Failed to create reminder:', reminderErr);
         }
       }
 
@@ -630,7 +757,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
               <SelectBox
                 value={formData.deviceTypeId}
                 dataSource={deviceTypes}
-                displayExpr={(item) => item?.name || item?.typeName || `Device Type ${item?.id}`}
+                displayExpr={getDeviceTypeLabel}
                 valueExpr="id"
                 placeholder="Select device type..."
                 searchEnabled={true}
@@ -729,29 +856,136 @@ const IssueCreateForm = ({ onSubmit = null }) => {
           </h2>
 
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
-            <div>
+            <div className="md:tw-col-span-2">
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
                 Issue Tags <span className="tw-text-red-500">*</span>
               </label>
-              <TagBox
-                value={categoryIds}
-                dataSource={categoryOptions}
-                displayExpr="name"
-                valueExpr="id"
-                placeholder={formData.issueTemplateId ? 'Select or type tags (comma-separated)...' : 'Select template first'}
-                searchEnabled={true}
-                showSelectionControls={true}
-                applyValueMode="useButtons"
-                onValueChanged={(e) => setCategoryIds(e.value || [])}
-                acceptCustomValue={true}
-                customItemCreateEvent="change"
-                onCustomItemCreating={handleCreateTagFromInput}
-                disabled={!formData.issueTemplateId}
-              />
+
+              {/* Selected tags as removable pills */}
+              {categoryIds.length > 0 && (
+                <div className="tw-flex tw-flex-wrap tw-gap-1.5 tw-mb-2">
+                  {categoryIds.map((tagId) => {
+                    const tag = categoryOptions.find((c) => c.id === tagId);
+                    return (
+                      <span
+                        key={tagId}
+                        className="tw-inline-flex tw-items-center tw-gap-1 tw-pl-2.5 tw-pr-1 tw-py-1 tw-bg-blue-100 tw-text-blue-800 tw-text-xs tw-font-medium tw-rounded-full tw-border tw-border-blue-200"
+                      >
+                        <i className="fa-light fa-tag"></i>
+                        {tag?.name || `Tag #${tagId}`}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tagId)}
+                          className="tw-ml-0.5 tw-flex tw-items-center tw-justify-center tw-text-blue-400 hover:tw-text-red-500 tw-transition-colors tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer"
+                          title="Remove tag"
+                        >
+                          <i className="fa-light fa-xmark tw-text-xs"></i>
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              {/* Unified search / create input */}
+              <div className="tw-relative" ref={tagContainerRef}>
+                <div className="tw-relative">
+                  <i className="fa-light fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-gray-400 tw-text-sm tw-pointer-events-none"></i>
+                  <input
+                    type="text"
+                    value={newTagInput}
+                    onChange={(e) => {
+                      setNewTagInput(e.target.value);
+                      setTagDropdownOpen(true);
+                    }}
+                    onFocus={() => setTagDropdownOpen(true)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault();
+                        if (newTagExactMatch) {
+                          handleSelectSuggestion(newTagExactMatch.id);
+                        } else if (newTagInput.trim()) {
+                          handleAddNewTag();
+                        }
+                      }
+                      if (e.key === 'Escape') {
+                        setTagDropdownOpen(false);
+                      }
+                    }}
+                    placeholder={!formData.issueTemplateId ? 'Select template first' : 'Search or create a tag...'}
+                    disabled={!formData.issueTemplateId || isCreatingTag}
+                    className="tw-w-full tw-pl-9 tw-pr-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 disabled:tw-bg-gray-50 disabled:tw-text-gray-400"
+                  />
+                </div>
+
+                {/* Dropdown panel */}
+                {tagDropdownOpen && formData.issueTemplateId && (
+                  <div className="tw-absolute tw-z-20 tw-left-0 tw-right-0 tw-mt-1 tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-y-auto" style={{ maxHeight: '210px' }}>
+                    {/* Add New Tag option — always at top */}
+                    {!newTagExactMatch && newTagInput.trim() && (
+                      <button
+                        type="button"
+                        onClick={() => handleAddNewTag()}
+                        disabled={isCreatingTag}
+                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors tw-text-blue-600 tw-font-medium"
+                      >
+                        {isCreatingTag ? (
+                          <><i className="fa-light fa-spinner fa-spin"></i> Creating "{creatingTagLabel}"...</>
+                        ) : (
+                          <><i className="fa-light fa-plus"></i> Add New Tag</>)}
+                      </button>
+                    )}
+
+                    {/* Existing tag matches */}
+                    {newTagSuggestions.map((tag) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => handleSelectSuggestion(tag.id)}
+                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
+                      >
+                        <i className="fa-light fa-tag tw-text-gray-400"></i>
+                        <span>{tag.name}</span>
+                        {normalizeToken(tag.name) === normalizeToken(newTagInput) && (
+                          <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
+                        )}
+                      </button>
+                    ))}
+
+                    {/* Create new entry at bottom */}
+                    {!newTagExactMatch && newTagInput.trim() && (
+                      <div className="tw-px-3 tw-py-2 tw-text-xs tw-text-gray-400">
+                        Press Enter or click "Add New Tag" to create <strong>"{newTagInput.trim()}"</strong>
+                      </div>
+                    )}
+
+                    {newTagSuggestions.length === 0 && newTagExactMatch && (
+                      <button
+                        type="button"
+                        onClick={() => handleSelectSuggestion(newTagExactMatch.id)}
+                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
+                      >
+                        <i className="fa-light fa-tag tw-text-gray-400"></i>
+                        <span>{newTagExactMatch.name}</span>
+                        <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
+                      </button>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* Creating indicator */}
+              {isCreatingTag && (
+                <p className="tw-text-xs tw-text-blue-500 tw-mt-1.5">
+                  <i className="fa-light fa-spinner fa-spin tw-mr-1"></i>
+                  Creating tag: {creatingTagLabel}...
+                </p>
+              )}
+
               {!formData.issueTemplateId && (
                 <p className="tw-text-xs tw-text-blue-500 tw-mt-1">
                   <i className="fa-light fa-info-circle tw-mr-1"></i>
-                  Select an issue template first to enable category selection
+                  Select an issue template first to enable tag selection
                 </p>
               )}
               {attemptedSubmit && formData.issueTemplateId && !validationState.hasCategory && (
@@ -869,19 +1103,16 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             </label>
             <TagBox
               value={formData.assignToUsers || []}
-              dataSource={users.map(user => ({
-                id: user.id,
-                userName: getUserName(user),
-                email: getUserEmail(user),
-                displayName: `${getUserName(user)}${getUserEmail(user) ? ` (${getUserEmail(user)})` : ''}`
-              }))}
+              dataSource={userDataSource}
               displayExpr="displayName"
               valueExpr="userName"
               placeholder="Select one or more users..."
               searchEnabled={true}
               searchExpr={['userName', 'email']}
               showSelectionControls={true}
-              applyValueMode="useButtons"
+              applyValueMode="instantly"
+              multiline={true}
+              showClearButton={true}
               onValueChanged={(e) => {
                 const selectedUsers = e.value || [];
                 handleFieldChange('assignToUsers', selectedUsers);
@@ -914,12 +1145,29 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Status</label>
-              <input
-                type="text"
-                value={formData.statusName || 'Open'}
-                readOnly
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
-              />
+              <select
+                value={formData.statusId ?? ''}
+                onChange={(e) => {
+                  const selectedId = e.target.value ? parseInt(e.target.value, 10) : null;
+                  const selectedStatus = statuses.find((s) => s.id === selectedId);
+                  handleFieldChange('statusId', selectedId);
+                  handleFieldChange('statusName', selectedStatus?.status || selectedStatus?.name || '');
+                }}
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+              >
+                <option value="">Select status...</option>
+                {statuses
+                  .filter((s) => {
+                    const label = String(s.status || s.name || '').toLowerCase().trim();
+                    return ['open', 'ongoing', 'complete'].includes(label);
+                  })
+                  .map((s) => (
+                    <option key={s.id} value={s.id}>
+                      {s.status || s.name}
+                    </option>
+                  ))
+                }
+              </select>
             </div>
 
             <div>
@@ -947,20 +1195,89 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             </div>
           </div>
 
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Timeline Notes</label>
-            <textarea
-              rows={2}
-              maxLength={1000}
-              placeholder="Optional: add timeline checkpoints, ETA, or dependencies."
-              value={formData.timelineNotes}
-              onChange={(e) => handleFieldChange('timelineNotes', e.target.value)}
-              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
-            />
-          </div>
+          {/* Completion Notes — only visible when status is Complete */}
+          {(formData.statusName || '').toLowerCase() === 'complete' && (
+            <div className="tw-mt-4">
+              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                <i className="fa-light fa-clipboard-check tw-mr-1 tw-text-green-600"></i>
+                Completion Notes
+              </label>
+              <textarea
+                rows={3}
+                maxLength={1000}
+                placeholder="Enter completion notes or resolution summary..."
+                value={formData.completionNotes || ''}
+                onChange={(e) => handleFieldChange('completionNotes', e.target.value)}
+                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
+              />
+            </div>
+          )}
         </div>
 
-        {/* Section 5: Attachments */}
+        {/* Section 5: Notifications */}
+        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
+          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
+            <i className="fa-light fa-bell tw-text-blue-600"></i>
+            Notifications
+          </h2>
+
+          {/* Follow checkbox */}
+          <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-3">
+            <input
+              type="checkbox"
+              checked={formData.followIssue}
+              onChange={(e) => handleFieldChange('followIssue', e.target.checked)}
+              className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
+            />
+            <span className="tw-text-sm tw-text-gray-700">
+              <i className="fa-light fa-eye tw-mr-1"></i>
+              Follow this issue — receive notifications on changes
+            </span>
+          </label>
+
+          {/* Due date reminder — only shown when due date is set and is in the future */}
+          {formData.dueDate && (() => {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = new Date(`${formData.dueDate}T00:00:00`);
+            return due > today;
+          })() && (
+              <div className="tw-mt-3 tw-pl-6 tw-border-l-2 tw-border-blue-100">
+                <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2">
+                  <input
+                    type="checkbox"
+                    checked={formData.reminderEnabled}
+                    onChange={(e) => handleFieldChange('reminderEnabled', e.target.checked)}
+                    className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
+                  />
+                  <span className="tw-text-sm tw-text-gray-700">
+                    <i className="fa-light fa-clock tw-mr-1"></i>
+                    Receive reminder before due date
+                  </span>
+                </label>
+
+                {formData.reminderEnabled && (
+                  <div className="tw-flex tw-items-center tw-gap-2 tw-mt-2 tw-ml-6">
+                    <span className="tw-text-sm tw-text-gray-600">Remind</span>
+                    <input
+                      type="number"
+                      min={1}
+                      max={30}
+                      value={formData.reminderDaysBefore}
+                      onChange={(e) => {
+                        const val = Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1));
+                        handleFieldChange('reminderDaysBefore', val);
+                      }}
+                      className="tw-w-16 tw-px-2 tw-py-1 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm tw-text-center focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                    />
+                    <span className="tw-text-sm tw-text-gray-600">day(s) before due date</span>
+                  </div>
+                )}
+              </div>
+            )}
+        </div>
+
+        {/* Section 6: Attachments */}
         <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-6 tw-shadow-sm">
           <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
             <i className="fa-light fa-paperclip tw-text-blue-600"></i>
@@ -1063,41 +1380,28 @@ const IssueCreateForm = ({ onSubmit = null }) => {
 
         {/* Form Actions */}
         <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-4 tw-border-t tw-border-gray-200">
-          <button
-            type="button"
+          <Button
+            text="Cancel"
+            icon="fa-light fa-times"
+            stylingMode="text"
             onClick={handleCancel}
-            className="tw-px-4 tw-py-2 tw-text-gray-600 tw-bg-white tw-rounded-md hover:tw-bg-gray-50 tw-transition-colors tw-shadow-sm"
             disabled={isSubmitting}
-          >
-            <i className="fa-light fa-times tw-mr-2"></i>
-            Cancel
-          </button>
-          <button
-            type="button"
+          />
+          <Button
+            text="Reset"
+            icon="fa-light fa-rotate"
+            stylingMode="outlined"
             onClick={handleReset}
-            className="tw-px-4 tw-py-2 tw-text-gray-600 tw-bg-white tw-rounded-md hover:tw-bg-gray-50 tw-transition-colors tw-shadow-sm"
             disabled={isSubmitting}
-          >
-            <i className="fa-light fa-rotate tw-mr-2"></i>
-            Reset
-          </button>
-          <button
-            type="submit"
+          />
+          <Button
+            text={isSubmitting ? 'Creating...' : 'Create Issue'}
+            icon={isSubmitting ? 'fa-light fa-spinner fa-spin' : 'fa-light fa-save'}
+            type="default"
+            stylingMode="contained"
+            useSubmitBehavior={true}
             disabled={!isReadyToSubmit || isSubmitting}
-            className="tw-px-6 tw-py-2 tw-bg-blue-600 tw-text-white tw-rounded-md hover:tw-bg-blue-700 disabled:tw-opacity-50 disabled:tw-cursor-not-allowed tw-transition-colors tw-shadow-sm"
-          >
-            {isSubmitting ? (
-              <>
-                <i className="fa-light fa-spinner fa-spin tw-mr-2"></i>
-                Creating...
-              </>
-            ) : (
-              <>
-                <i className="fa-light fa-save tw-mr-2"></i>
-                Create Issue
-              </>
-            )}
-          </button>
+          />
         </div>
       </form>
 
@@ -1171,7 +1475,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
               onValueChanged={(e) => setTemplateDraft(prev => ({ ...prev, categoryIds: e.value }))}
               acceptCustomValue={true}
               customItemCreateEvent="change"
-              onCustomItemCreating={handleCreateTagFromInput}
+              onCustomItemCreating={handleTemplateTagCustomItem}
               disabled={isCreatingTemplate}
             />
           </div>
@@ -1232,22 +1536,20 @@ const IssueCreateForm = ({ onSubmit = null }) => {
           </label>
 
           <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
-            <button
-              type="button"
-              className="tw-px-4 tw-py-2 tw-border tw-border-gray-300 tw-rounded tw-text-gray-700 hover:tw-bg-gray-50"
+            <Button
+              text="Cancel"
+              stylingMode="text"
               onClick={() => setIsTemplatePopupVisible(false)}
               disabled={isCreatingTemplate}
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              className="tw-px-4 tw-py-2 tw-bg-orange-600 tw-text-white tw-rounded hover:tw-bg-orange-700 disabled:tw-opacity-60"
+            />
+            <Button
+              text={isCreatingTemplate ? 'Saving...' : 'Save Template'}
+              icon="fa-light fa-save"
+              type="default"
+              stylingMode="contained"
               onClick={handleCreateTemplate}
               disabled={isCreatingTemplate}
-            >
-              {isCreatingTemplate ? 'Saving...' : 'Save Template'}
-            </button>
+            />
           </div>
         </div>
       </Popup>

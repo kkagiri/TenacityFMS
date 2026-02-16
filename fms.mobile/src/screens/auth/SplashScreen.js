@@ -15,7 +15,7 @@ import {
   Dimensions,
   TouchableOpacity,
 } from "react-native";
-import { APP_VERSION } from "../config/appVersion";
+import { APP_VERSION } from "../../config/appVersion";
 
 const { width, height } = Dimensions.get("window");
 
@@ -130,7 +130,7 @@ const SplashScreen = ({
             <FallbackLogo />
           ) : (
             <Image
-              source={require("../assets/images/hyoung-logo.png")}
+              source={require("../../assets/images/hyoung-logo.png")}
               style={styles.logo}
               resizeMode="contain"
               onError={handleImageError}

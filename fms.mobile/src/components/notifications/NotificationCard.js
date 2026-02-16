@@ -45,6 +45,26 @@ const CATEGORY_ICONS = {
   Alarm: "bell",
 };
 
+const parseDateToLocal = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw);
+  const hasTime = raw.includes("T");
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  if (hasTimezone) return new Date(raw);
+  if (hasTime) return new Date(`${raw}Z`);
+  return new Date(raw);
+};
+
 const NotificationCard = ({
   notification,
   onPress,
@@ -79,7 +99,8 @@ const NotificationCard = ({
   // Format relative time
   const formatRelativeTime = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    const date = parseDateToLocal(dateString);
+    if (!date || Number.isNaN(date.getTime())) return "";
     const now = new Date();
     const diffMs = now - date;
     const diffMins = Math.floor(diffMs / 60000);

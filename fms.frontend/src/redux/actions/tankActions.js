@@ -110,8 +110,15 @@ export const deleteTank = (id) => async (dispatch) => {
   try {
     await axiosInstance.delete(`/tank/${id}`);
     dispatch({ type: DELETE_TANK_SUCCESS, payload: id });
+    return { success: true };
   } catch (error) {
-    dispatch({ type: DELETE_TANK_FAILURE, payload: error.message });
+    const errorMessage =
+      error.response?.data?.message ||
+      error.response?.data?.title ||
+      error.message ||
+      "Error deleting tank";
+    dispatch({ type: DELETE_TANK_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };
 

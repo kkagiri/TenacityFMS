@@ -267,6 +267,22 @@ class IssueTrackerService {
     }
   }
 
+  async respondToIssueAssignment(issueId, responseData) {
+    try {
+      const response = await issueApiClient.post(
+        `${BASE_URL}/${issueId}/assignment-response`,
+        responseData
+      );
+      return unwrap(response);
+    } catch (error) {
+      console.error(
+        `[IssueTrackerService] respondToIssueAssignment(${issueId}) error:`,
+        error
+      );
+      throw error;
+    }
+  }
+
   // ===== ACTIVITY STREAM =====
 
   async getIssueActivities(issueId, limit = null) {

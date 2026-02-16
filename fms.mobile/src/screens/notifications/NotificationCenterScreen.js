@@ -39,13 +39,113 @@ import {
   selectHasMore,
   selectFilters,
   selectStatistics,
-} from "../redux/slices/notificationSlice";
+} from "../../redux/slices/notificationSlice";
 
 // Components
 import {
   NotificationCard,
   NotificationFilters,
-} from "../components/notifications";
+} from "../../components/notifications";
+
+const parseDateToLocal = (value) => {
+  if (!value) return null;
+  if (value instanceof Date) return value;
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const hasTimezone = /[zZ]|[+-]\d{2}:?\d{2}$/.test(raw);
+  const hasTime = raw.includes("T");
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(raw)) {
+    const [year, month, day] = raw.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  if (hasTimezone) return new Date(raw);
+  if (hasTime) return new Date(`${raw}Z`);
+  return new Date(raw);
+};
+
+const formatLocalTimestamp = (value) => {
+  const date = parseDateToLocal(value);
+  if (!date || Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString();
+};
+
+const safeParseNotificationData = (notification) => {
+  const rawData = notification?.data ?? notification?.Data;
+  if (!rawData) return {};
+  if (typeof rawData === "object") return rawData;
+
+  if (typeof rawData === "string") {
+    try {
+      return JSON.parse(rawData);
+    } catch (_error) {
+      return {};
+    }
+  }
+
+  return {};
+};
+
+const extractIssueLinks = (notification) => {
+  const data = safeParseNotificationData(notification);
+
+  const issueUrl =
+    data.IssueUrl ||
+    data.issueUrl ||
+    data.ActionUrl ||
+    data.actionUrl ||
+    notification?.actionUrl ||
+    notification?.ActionUrl ||
+    null;
+
+  const assignmentResponseUrl =
+    data.AssignmentResponseUrl ||
+    data.assignmentResponseUrl ||
+    data.AssignmentConfirmUrl ||
+    data.assignmentConfirmUrl ||
+    null;
+
+  const tryExtractIdFromUrl = (url) => {
+    if (!url || typeof url !== "string") return null;
+    const match = url.match(/issue-tracker\/(?:details|assignment)\/(\d+)/i);
+    if (!match?.[1]) return null;
+    const parsed = Number(match[1]);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const issueIdCandidates = [
+    notification?.issueTrackerId,
+    notification?.IssueTrackerId,
+    notification?.issueId,
+    notification?.IssueId,
+    data.IssueId,
+    data.issueId,
+    data.IssueTrackerId,
+    data.issueTrackerId,
+    tryExtractIdFromUrl(issueUrl),
+    tryExtractIdFromUrl(assignmentResponseUrl),
+  ];
+
+  const issueId = issueIdCandidates
+    .map((candidate) => Number(candidate))
+    .find((candidate) => Number.isFinite(candidate) && candidate > 0);
+
+  return {
+    issueId: issueId || null,
+    issueUrl,
+    assignmentResponseUrl,
+    isAssignmentNotification:
+      Boolean(assignmentResponseUrl) ||
+      /issue-tracker\/assignment\//i.test(issueUrl || "") ||
+      String(notification?.triggerSource || notification?.TriggerSource || "")
+        .toLowerCase()
+        .includes("issueassignment") ||
+      String(notification?.title || "").toLowerCase().includes("issue assigned"),
+  };
+};
 
 const NotificationCenterScreen = () => {
   const dispatch = useDispatch();
@@ -65,6 +165,11 @@ const NotificationCenterScreen = () => {
   const [selectedNotification, setSelectedNotification] = useState(null);
   const [showDetailModal, setShowDetailModal] = useState(false);
   const [activeTab, setActiveTab] = useState("all"); // "all", "unread", "pending"
+
+  const selectedIssueLinks = useMemo(
+    () => extractIssueLinks(selectedNotification),
+    [selectedNotification]
+  );
 
   // Initial fetch
   useEffect(() => {
@@ -124,10 +229,41 @@ const NotificationCenterScreen = () => {
   );
 
   // Handle notification press
-  const handleNotificationPress = useCallback((notification) => {
-    setSelectedNotification(notification);
-    setShowDetailModal(true);
-  }, []);
+  const handleNotificationPress = useCallback(
+    (notification) => {
+      const links = extractIssueLinks(notification);
+
+      if (links.issueId) {
+        if (links.isAssignmentNotification) {
+          navigation.navigate("IssueAssignmentResponse", {
+            issueId: links.issueId,
+          });
+          return;
+        }
+
+        navigation.navigate("IssueDetail", { issueId: links.issueId });
+        return;
+      }
+
+      setSelectedNotification(notification);
+      setShowDetailModal(true);
+    },
+    [navigation]
+  );
+
+  const handleOpenIssueDetails = useCallback(() => {
+    if (!selectedIssueLinks.issueId) return;
+    setShowDetailModal(false);
+    navigation.navigate("IssueDetail", { issueId: selectedIssueLinks.issueId });
+  }, [navigation, selectedIssueLinks.issueId]);
+
+  const handleOpenAssignmentResponse = useCallback(() => {
+    if (!selectedIssueLinks.issueId) return;
+    setShowDetailModal(false);
+    navigation.navigate("IssueAssignmentResponse", {
+      issueId: selectedIssueLinks.issueId,
+    });
+  }, [navigation, selectedIssueLinks.issueId]);
 
   // Handle filter change
   const handleFiltersChange = useCallback(
@@ -166,8 +302,8 @@ const NotificationCenterScreen = () => {
         {activeTab === "unread"
           ? "You've read all your notifications!"
           : activeTab === "pending"
-          ? "No pending approvals at this time"
-          : "No notifications yet. We'll notify you when something happens."}
+            ? "No pending approvals at this time"
+            : "No notifications yet. We'll notify you when something happens."}
       </Text>
     </View>
   );
@@ -429,20 +565,14 @@ const NotificationCenterScreen = () => {
                   <View style={styles.timestampItem}>
                     <Icon name="clock" size={12} color="#9ca3af" />
                     <Text style={styles.timestampText}>
-                      Created:{" "}
-                      {new Date(
-                        selectedNotification.createdAt
-                      ).toLocaleString()}
+                      Created: {formatLocalTimestamp(selectedNotification.createdAt)}
                     </Text>
                   </View>
                   {selectedNotification.readAt && (
                     <View style={styles.timestampItem}>
                       <Icon name="eye" size={12} color="#9ca3af" />
                       <Text style={styles.timestampText}>
-                        Read:{" "}
-                        {new Date(
-                          selectedNotification.readAt
-                        ).toLocaleString()}
+                        Read: {formatLocalTimestamp(selectedNotification.readAt)}
                       </Text>
                     </View>
                   )}
@@ -450,14 +580,33 @@ const NotificationCenterScreen = () => {
                     <View style={styles.timestampItem}>
                       <Icon name="check-circle" size={12} color="#16a34a" />
                       <Text style={styles.timestampText}>
-                        Acknowledged:{" "}
-                        {new Date(
-                          selectedNotification.acknowledgedAt
-                        ).toLocaleString()}
+                        Acknowledged: {formatLocalTimestamp(selectedNotification.acknowledgedAt)}
                       </Text>
                     </View>
                   )}
                 </View>
+
+                {selectedIssueLinks.issueId && (
+                  <View style={styles.linkSection}>
+                    <TouchableOpacity
+                      style={styles.openIssueButton}
+                      onPress={handleOpenIssueDetails}
+                    >
+                      <Icon name="external-link-alt" size={14} color="#ffffff" />
+                      <Text style={styles.openIssueButtonText}>Open Issue Details</Text>
+                    </TouchableOpacity>
+
+                    {selectedIssueLinks.assignmentResponseUrl && (
+                      <TouchableOpacity
+                        style={styles.respondButton}
+                        onPress={handleOpenAssignmentResponse}
+                      >
+                        <Icon name="clipboard-check" size={14} color="#2563eb" />
+                        <Text style={styles.respondButtonText}>Respond to Assignment</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
               </ScrollView>
             )}
 
@@ -740,6 +889,40 @@ const styles = StyleSheet.create({
   timestampText: {
     fontSize: 12,
     color: "#9ca3af",
+  },
+  linkSection: {
+    marginTop: 14,
+    gap: 8,
+  },
+  openIssueButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    backgroundColor: "#2563eb",
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  openIssueButtonText: {
+    color: "#ffffff",
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  respondButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    backgroundColor: "#eff6ff",
+    borderRadius: 10,
+    paddingVertical: 12,
+  },
+  respondButtonText: {
+    color: "#2563eb",
+    fontSize: 14,
+    fontWeight: "700",
   },
   modalFooter: {
     flexDirection: "row",

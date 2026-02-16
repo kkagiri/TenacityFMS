@@ -96,7 +96,7 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                 // Log activity
                 await _activityService.LogActivityAsync(
                     issue.Id,
-                    "IssueClosed",
+                    "Closed",
                     $"Issue closed by {closerUser?.UserName ?? request.ClosedByUserId}" +
                         (string.IsNullOrWhiteSpace(request.ClosingNotes) ? "" : $". Notes: {request.ClosingNotes}"),
                     request.ClosedByUserId,

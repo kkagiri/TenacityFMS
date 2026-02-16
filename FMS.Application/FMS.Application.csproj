@@ -17,8 +17,6 @@
     <PackageReference Include="StackExchange.Redis" Version="2.8.24" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
     <PackageReference Include="system.servicemodel.duplex" Version="4.7.0" />
-    <PackageReference Include="system.servicemodel.http" Version="4.7.0" />
-    <PackageReference Include="system.servicemodel.netTcp" Version="4.7.0" />
     <PackageReference Include="system.servicemodel.security" Version="4.7.0" />
     <PackageReference Include="System.ServiceProcess.ServiceController" Version="9.0.7" />
   </ItemGroup>

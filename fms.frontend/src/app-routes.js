@@ -1,9 +1,19 @@
+/**
+ * File: app-routes.js
+ * Purpose: Maps navigation page names to React page modules.
+ * Dependencies: Page module entry components across frontend domains.
+ * Last Modified: 2026-02-16
+ *
+ * Key Functions:
+ * - resolvedComponents(pageName): Resolves dynamic route component by page label.
+ */
+
 import { HomePage } from "./pages";
 import ConsumptionBasedonRefills from "./pages/reports/consumption/consumptionBasedonRefills";
 import FuelReportImporter from "./pages/FuelReportImporter/FuelReportImporter";
 import VehicleManualRefill from "./pages/manualrefill/manualRefilPage";
 import unauthorized from "./pages/unauthorized";
-import EmployeePage from "./pages/employees/employeePage";
+import EmployeeMain from "./pages/employees/EmployeeMain";
 //Cursor - New tank stock main entry point for Phase 1 redesign
 import { TankStockMain } from "./pages/tankStock";
 import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
@@ -78,7 +88,7 @@ const resolvedComponents = (pageName) => {
     case "manual refill":
       return VehicleManualRefill;
     case "employees":
-      return EmployeePage;
+      return EmployeeMain;
     case "automatic fueling":
       return ATGDashboard;
     case "atg":

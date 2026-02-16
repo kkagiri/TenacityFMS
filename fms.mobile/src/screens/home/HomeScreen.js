@@ -30,12 +30,12 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { fetchTanks } from "../redux/slices/tankSlice";
-import { fetchNotificationStats } from "../redux/slices/notificationSlice";
-import apiService from "../services/apiService";
-import signalRService from "../services/signalRService";
-import { NotificationBell } from "../components/notifications";
-import { usePermissions } from "../hooks/usePermissions";
+import { fetchTanks } from "../../redux/slices/tankSlice";
+import { fetchNotificationStats } from "../../redux/slices/notificationSlice";
+import apiService from "../../services/apiService";
+import signalRService from "../../services/signalRService";
+import { NotificationBell } from "../../components/notifications";
+import { usePermissions } from "../../hooks/usePermissions";
 
 const { width } = Dimensions.get("window");
 

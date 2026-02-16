@@ -11,8 +11,8 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import { fetchTanksBySite } from "../redux/slices/tankSlice";
-import { fetchSiteList } from "../redux/slices/siteSlice";
+import { fetchTanksBySite } from "../../redux/slices/tankSlice";
+import { fetchSiteList } from "../../redux/slices/siteSlice";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",

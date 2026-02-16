@@ -22,7 +22,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 
 import { store, persistor } from "./redux/store";
 import AppNavigator from "./navigation/AppNavigator";
-import SplashScreen from "./screens/SplashScreen";
+import SplashScreen from "./screens/auth/SplashScreen";
 import { checkAuthStatus } from "./redux/slices/authSlice";
 import { ENV } from "./config/environment";
 import fuelingNotificationService from "./services/fuelingNotificationService";

@@ -27,6 +27,8 @@ const normalizeTank = (t) => ({
   tankType: t.TankType || t.tankType || "Stationary",
   lastStockUpdate: t.LastStockUpdate || t.lastStockUpdate,
   lastPhysicalStockUpdate: t.LastPhysicalStockUpdate || t.lastPhysicalStockUpdate,
+  physicalStockSource:
+    t.PhysicalStockSource || t.physicalStockSource || t.StockSource || t.stockSource,
 });
 
 // Async thunks for tank operations

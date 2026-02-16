@@ -1,440 +1,521 @@
-import React, { useEffect, useCallback, useRef, useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
-import { fetchEmployees, createEmployee, updateEmployee, deleteEmployee } from "../../redux/actions/employeeActions";
-import { fetchVehicleList } from "../../redux/actions/vehicleActions";
-import { fetchpermissionbyUserId } from '../../redux/actions/permissionActions';
-import { fetchUsers } from '../../redux/actions/userActions';
-import { fetchSiteList } from '../../redux/actions/siteActions';
-import EmployeevehicleTagbox from "./../../components/employee/employeeVehicleTagBox";
-import Switch, { SwitchTypes } from 'devextreme-react/switch';
-import { format } from 'date-fns';
-import DataGrid, {
-    Paging,
-    HeaderFilter, SearchPanel,
-    Editing, FilterRow, Column, Lookup, Toolbar, Item as TItems, Sorting, RequiredRule, ColumnChooser, ColumnChooserSelection,
-    Form, Popup, Grouping, Position, Export, Selection,
-    GroupPanel, Summary, SortByGroupSummaryInfo, GroupItem, FilterPanel,
-    FilterBuilderPopup, LoadPanel
-} from 'devextreme-react/data-grid';
+/**
+ * File: employeePage.js
+ * Purpose: Employee list management page with CRUD operations, quick search, and details navigation.
+ * Dependencies: redux employee/site/vehicle/user actions, DevExtreme DataGrid components.
+ * Last Modified: 2026-02-16
+ *
+ * Key Components:
+ * - EmployeePage(): Manages employee listing, editing, export, and detail access.
+ */
 
-import Button from 'devextreme-react/button';
-import notify from 'devextreme/ui/notify';
-import LoadIndicator from 'devextreme-react/load-indicator';
-import { jsPDF } from 'jspdf';
-import { exportDataGrid } from 'devextreme/pdf_exporter';
-import { Workbook } from 'exceljs';
-import saveAs from 'file-saver';
-import { exportDataGrid as exportDataGridToExcel } from 'devextreme/excel_exporter';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  createEmployee,
+  deleteEmployee,
+  fetchEmployees,
+  updateEmployee,
+} from "../../redux/actions/employeeActions";
+import { fetchVehicleList } from "../../redux/actions/vehicleActions";
+import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
+import { fetchUsers } from "../../redux/actions/userActions";
+import { fetchSiteList } from "../../redux/actions/siteActions";
+import EmployeevehicleTagbox from "../../components/employee/employeeVehicleTagBox";
+import Switch from "devextreme-react/switch";
+import { format } from "date-fns";
+import DataGrid, {
+  Column,
+  ColumnChooser,
+  Editing,
+  Export,
+  FilterRow,
+  HeaderFilter,
+  Item as TItems,
+  LoadPanel,
+  Lookup,
+  Pager,
+  Paging,
+  Position,
+  SearchPanel,
+  Selection,
+  Sorting,
+  Toolbar,
+  RequiredRule,
+} from "devextreme-react/data-grid";
+import Button from "devextreme-react/button";
+import TextBox from "devextreme-react/text-box";
+import notify from "devextreme/ui/notify";
+import LoadIndicator from "devextreme-react/load-indicator";
+import { jsPDF } from "jspdf";
+import { exportDataGrid } from "devextreme/pdf_exporter";
+import { Workbook } from "exceljs";
+import saveAs from "file-saver";
+import { exportDataGrid as exportDataGridToExcel } from "devextreme/excel_exporter";
 
 const EmployeePage = () => {
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const location = useLocation();
+  const gridRef = useRef(null);
 
+  const employees = useSelector((state) => state.employee?.employees || []);
+  const loading = useSelector((state) => state.employee?.loading);
+  const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
+  const permissions = useSelector((state) => state.permission?.permissions || []);
+  const users = useSelector((state) => state.user?.users || []);
+  const user = useSelector((state) => state.auth?.user);
+  const sites = useSelector((state) => state.site?.sites || []);
 
-    const dispatch = useDispatch();
-    const employees = useSelector(state => state.employee.employees);
-    const loading = useSelector(state => state.employee.loading);
-    const error = useSelector(state => state.employee.error);
-    const vehicles = useSelector(state => state.vehicle.vehicles);
-    const permissions = useSelector(state => state.permission.permissions);
-    const users = useSelector(state => state.user.users);
-    const user = useSelector(state => state.auth.user);
-    const sites = useSelector((state) => state.site.sites);
-    const gridRef = useRef(null);
-    const [saving, setSaving] = useState(false);
-    const [selectedVehicles, setSelectedVehicles] = useState([]);
-    const exportFormats = ['pdf'];
-    const employeestatus = ['Active', 'Terminated'];
-    const [includeTerminated, setIncludeTerminated] = useState(true);
-    const [switchLabel, setSwitchLabel] = useState('Load active employees only');
+  const [saving, setSaving] = useState(false);
+  const [activeOnly, setActiveOnly] = useState(true);
+  const [quickSearchTerm, setQuickSearchTerm] = useState("");
 
-    const fetchData = useCallback(async () => {
-        try {
-            await Promise.all([
-                dispatch(fetchEmployees(includeTerminated)),
-                dispatch(fetchVehicleList()),
-                dispatch(fetchUsers()),
-                dispatch(fetchSiteList()),
-                dispatch(fetchpermissionbyUserId(user.id))
+  const employeeStatusOptions = ["Active", "Terminated"];
+  const exportFormats = ["xlsx", "pdf"];
+  const switchLabel = useMemo(
+    () => (activeOnly ? "Active employees only" : "All employees"),
+    [activeOnly]
+  );
 
+  const fetchData = useCallback(async () => {
+    try {
+      const requests = [
+        dispatch(fetchEmployees(activeOnly)),
+        dispatch(fetchVehicleList()),
+        dispatch(fetchUsers()),
+        dispatch(fetchSiteList()),
+      ];
 
-            ]);
-        } catch (error) {
-            console.error(error);
-        }
+      if (user?.id) {
+        requests.push(dispatch(fetchpermissionbyUserId(user.id)));
+      }
+
+      await Promise.all(requests);
+    } catch (error) {
+      notify("Failed to refresh employee data.", "error", 3000);
     }
-        , [dispatch, user.id, includeTerminated]);
+  }, [activeOnly, dispatch, user?.id]);
 
-    useEffect(() => {
-        fetchData();
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  useEffect(() => {
+    if (location.hash === "#add-employee" && gridRef.current?.instance) {
+      gridRef.current.instance.addRow();
+      navigate(location.pathname, { replace: true });
     }
-        , [fetchData]);
+  }, [location.hash, location.pathname, navigate]);
 
+  const refresh = useCallback(() => {
+    fetchData();
+    gridRef.current?.instance.refresh();
+  }, [fetchData]);
 
+  const addRow = useCallback(() => {
+    gridRef.current?.instance.addRow();
+  }, []);
 
-    const onRowInserted = async (e) => {
-        try {
-            const newData = {
-                ...e.data,
-                vehicles: e.data.vehicles || [],
-                fullName: e.data.fullName.toUpperCase()
+  const handleQuickSearchChanged = useCallback((event) => {
+    const value = event.value || "";
+    setQuickSearchTerm(value);
+    gridRef.current?.instance.searchByText(value);
+  }, []);
 
-            }; // Ensure vehicles is an array
-            // Remove the ID generated by DataGrid
-            delete newData.id;
-            console.log('New data:', newData);
+  const formatDateToLocal = useCallback((cellInfo) => {
+    if (!cellInfo?.value) return "";
+    return format(new Date(cellInfo.value), "dd/MM/yyyy HH:mm");
+  }, []);
 
-            const response = await dispatch(createEmployee(newData));
+  const vehicleTemplate = useCallback(
+    (container, options) => {
+      const text = (options.value || [])
+        .map((vehicleId) => {
+          const vehicle = vehicles.find((item) => item.vehicleId === vehicleId);
+          return vehicle ? vehicle.hyoungNo : vehicleId;
+        })
+        .join(", ");
+      container.textContent = text || "\u00A0";
+      container.title = text;
+    },
+    [vehicles]
+  );
 
-            if (response && response.success) {
-                console.log('Employee created:', response);
-                await dispatch(fetchEmployees());
-                //  dispatch(fetchEmployees());
-                e.component.navigateToRow(e.key)
-                notify('Employee added successfully', 'success', 3000);
+  const handleOpenDetails = useCallback(
+    (employeeId) => {
+      if (!employeeId) return;
+      navigate(`/employees/${employeeId}/details`);
+    },
+    [navigate]
+  );
 
-            } else {
-                throw new Error('Employee creation failed');
+  const onRowInserted = useCallback(
+    async (event) => {
+      try {
+        setSaving(true);
+        const payload = {
+          ...event.data,
+          fullName: (event.data.fullName || "").toUpperCase(),
+          vehicles: event.data.vehicles || [],
+        };
 
-            }
-        } catch (error) {
-            e.cancel = true;
-            console.log('Error:', error);
-            const errorMessage = error.response?.message || error.message || 'Error processing operation.';
-            notify(errorMessage, 'error', 3000);
-        }
-    };
+        delete payload.id;
 
+        const response = await dispatch(createEmployee(payload));
+        const success = response?.success || response?.Success;
 
-    const onRowUpdated = async (e) => {
-        try {
-
-            const updatedData = {
-                ...e.data,
-                fullName: e.data.fullName.toUpperCase()
-            };
-
-            // Ensure vehicles are in the correct format
-            if (updatedData.vehicles && Array.isArray(updatedData.vehicles)) {
-                updatedData.vehicles = updatedData.vehicles.map(v =>
-                    typeof v === 'object' && v.vehicleId ? v.vehicleId : v
-                );
-            } else {
-                updatedData.vehicles = [];
-            }
-
-            var response = await dispatch(updateEmployee(e.key, e.data));
-            if (response && response.success) {
-                dispatch(fetchEmployees());
-                notify('Employee updated successfully', 'success', 3000);
-                e.component.navigateToRow(e.key)
-            } else {
-                e.cancel = true;
-                notify(response.message, 'error', 3000);
-
-            }
-        }
-        catch (error) {
-            e.cancel = true;
-
-            const errorMessage = error.response?.data?.message || 'Error processing operation.';
-            notify(errorMessage, 'error', 3000);
-        }
-    }
-
-    const onRowRemoved = (e) => {
-        try {
-            dispatch(deleteEmployee(e.key));
-            notify('Employee deleted successfully', 'success', 3000);
-        }
-        catch (error) {
-            e.cancel = true;
-            const errorMessage = error.response?.data?.message || 'Error processing operation.';
-            notify(errorMessage, 'error', 3000);
-        }
-    }
-
-
-    const calculateFilterExpression = (filterValue, selectedFilterOperation, target) => {
-        if (target === 'search' && typeof (filterValue) === 'string') {
-            return [this.dataField, 'contains', filterValue];
-        }
-        return function (data) {
-            console.log('Filter value:', filterValue);
-            return (data.vehicles || []).indexOf(filterValue) !== -1;
-        }
-    };
-
-
-    const vehicleTemplate = (container, options) => {
-        const noBreakSpace = '\u00A0';
-        const text = (options.value || []).map(vehicleId => {
-            const vehicle = vehicles.find(v => v.vehicleId === vehicleId);
-            return vehicle ? vehicle.hyoungNo : vehicleId;
-        }).join(', ');
-        container.textContent = text || noBreakSpace;
-        container.title = text;
-    };
-
-    const addRow = () => {
-        gridRef.current.instance.addRow();
-    };
-    const refresh = useCallback(() => {
-        gridRef.current?.instance.refresh();
-    }, []);
-
-    const handleSwitchChange = useCallback((value) => {
-        setIncludeTerminated(value);
-        setSwitchLabel(value ? 'Load all employees' : 'Load active employees only');
-        fetchData();
-        refresh();
-    }, [fetchData, refresh]);
-
-    const canEdit = permissions.includes('_Edit_Employee');
-    const canDelete = permissions.includes('_Delete_Employee');
-    const canCreate = permissions.includes('_Create_Employee');
-
-    const handleTagBoxValueChanged = (newValue) => {
-        setSelectedVehicles(newValue);
-    };
-    const formatDateToLocal = (cellInfo) => {
-        if (cellInfo.value) {
-            const date = new Date(cellInfo.value);
-            return format(date, 'dd/MM/yyyy HH:mm');
-        }
-        return '';
-    };
-
-    const onExporting = useCallback((e) => {
-        const format = e.format;
-
-        if (format === 'xlsx') {
-            try {
-                const workbook = new Workbook();
-                const worksheet = workbook.addWorksheet('Employees');
-
-                notify('Preparing export...', 'info', 2000);
-
-                exportDataGridToExcel({
-                    component: e.component,
-                    worksheet,
-                    autoFilterEnabled: true,
-                    customizeCell: ({ gridCell, excelCell }) => {
-                        if (gridCell.rowType === 'data') {
-                            excelCell.font = { size: 12 };
-                        }
-                        if (gridCell.rowType === 'header') {
-                            excelCell.font = { bold: true };
-                        }
-                    }
-                }).then(() => {
-                    workbook.xlsx.writeBuffer()
-                        .then((buffer) => {
-                            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Employees.xlsx');
-                            notify('Export complete', 'success', 2000);
-                        })
-                        .catch(err => {
-                            console.error("Buffer creation error:", err);
-                            notify('Export failed', 'error', 2000);
-                        });
-                }).catch(err => {
-                    console.error("exportDataGrid error:", err);
-                    notify('Export failed', 'error', 2000);
-                });
-            } catch (error) {
-                console.error("General export error:", error);
-                notify('Export failed', 'error', 2000);
-            }
-        } else if (format === 'pdf') {
-            const doc = new jsPDF();
-
-            exportDataGrid({
-                jsPDFDocument: doc,
-                component: e.component,
-                indent: 5,
-            }).then(() => {
-                doc.save('Employees.pdf');
-                notify('Export complete', 'success', 2000);
-            }).catch(err => {
-                console.error("PDF export error:", err);
-                notify('Export failed', 'error', 2000);
-            });
+        if (!success) {
+          throw new Error(response?.message || response?.Message || "Create failed");
         }
 
-        e.cancel = true;
-    }, []);
+        await dispatch(fetchEmployees(activeOnly));
+        notify("Employee added successfully.", "success", 2500);
+      } catch (error) {
+        event.cancel = true;
+        notify(error.message || "Failed to create employee.", "error", 3000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [activeOnly, dispatch]
+  );
 
-    if (loading || saving) {
-        return (
-            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-                <LoadIndicator width={'24px'} height={'24px'} visible={true} />
-            </div>
-        );
+  const onRowUpdated = useCallback(
+    async (event) => {
+      try {
+        setSaving(true);
+        const merged = {
+          ...event.oldData,
+          ...event.data,
+          id: event.key,
+          fullName: (event.data.fullName || event.oldData.fullName || "").toUpperCase(),
+        };
+
+        merged.vehicles = Array.isArray(merged.vehicles)
+          ? merged.vehicles.map((vehicle) =>
+              typeof vehicle === "object" && vehicle.vehicleId
+                ? vehicle.vehicleId
+                : vehicle
+            )
+          : [];
+
+        const response = await dispatch(updateEmployee(event.key, merged));
+        const success = response?.success || response?.Success;
+
+        if (!success) {
+          throw new Error(response?.message || response?.Message || "Update failed");
+        }
+
+        await dispatch(fetchEmployees(activeOnly));
+        notify("Employee updated successfully.", "success", 2500);
+      } catch (error) {
+        event.cancel = true;
+        notify(error.message || "Failed to update employee.", "error", 3000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [activeOnly, dispatch]
+  );
+
+  const onRowRemoved = useCallback(
+    async (event) => {
+      try {
+        setSaving(true);
+        const response = await dispatch(deleteEmployee(event.key));
+        const success = response?.success || response?.Success;
+
+        if (!success) {
+          throw new Error(response?.message || response?.Message || "Failed to delete employee.");
+        }
+
+        await dispatch(fetchEmployees(activeOnly));
+        notify("Employee removed successfully.", "success", 2500);
+      } catch (error) {
+        event.cancel = true;
+        notify(error.message || "Failed to delete employee.", "error", 3000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [activeOnly, dispatch]
+  );
+
+  const onExporting = useCallback((event) => {
+    const selectedFormat = event.format;
+
+    if (selectedFormat === "xlsx") {
+      const workbook = new Workbook();
+      const worksheet = workbook.addWorksheet("Employees");
+
+      exportDataGridToExcel({
+        component: event.component,
+        worksheet,
+        autoFilterEnabled: true,
+      })
+        .then(() => workbook.xlsx.writeBuffer())
+        .then((buffer) => {
+          saveAs(
+            new Blob([buffer], { type: "application/octet-stream" }),
+            "Employees.xlsx"
+          );
+          notify("Export complete.", "success", 2000);
+        })
+        .catch(() => notify("Excel export failed.", "error", 2500));
+    } else if (selectedFormat === "pdf") {
+      const pdfDocument = new jsPDF();
+      exportDataGrid({
+        jsPDFDocument: pdfDocument,
+        component: event.component,
+        indent: 5,
+      })
+        .then(() => {
+          pdfDocument.save("Employees.pdf");
+          notify("Export complete.", "success", 2000);
+        })
+        .catch(() => notify("PDF export failed.", "error", 2500));
     }
 
+    event.cancel = true;
+  }, []);
+
+  const canEdit = permissions.includes("_Edit_Employee");
+  const canDelete = permissions.includes("_Delete_Employee");
+  const canCreate = permissions.includes("_Create_Employee");
+
+  if (loading || saving) {
     return (
+      <div className="tw-h-[70vh] tw-flex tw-items-center tw-justify-center">
+        <LoadIndicator visible={true} width="30px" height="30px" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
+      <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-mb-4">
         <div>
-            <h2 className={'content-block'}>Employees</h2>
-
-            <div className={'content-block'}>
-
-
-                <DataGrid
-                    ref={gridRef}
-                    dataSource={employees}
-                    showBorders={true}
-                    keyExpr={'id'}
-                    allowColumnReordering={true}
-                    allowColumnResizing={true}
-                    columnAutoWidth={true}
-                    rowAlernationEnable={true}
-                    repaintChangesOnly={true}
-                    onRowInserted={onRowInserted}
-                    onRowUpdated={onRowUpdated}
-                    onRowRemoved={onRowRemoved}
-                    onExporting={onExporting}
-                >
-                    <ColumnChooser enabled={true} mode="select" height={200} >
-                        <Position
-                            my="right top"
-                            at="right top"
-                        />
-                    </ColumnChooser>
-                    <LoadPanel enabled={true} />
-                    <Export enabled={true} allowExportSelectedData={true} formats={exportFormats} />
-                    <Paging enabled={true} defaultPageSize={20} />
-                    <FilterRow visible={true} />
-                    <HeaderFilter visible={true} />
-                    <Sorting mode="multiple" />
-                    <Selection mode="multiple" />
-
-                    <Editing
-                        mode="row"
-                        allowUpdating={canEdit}
-                        allowAdding={canCreate}
-                        allowDeleting={canDelete}
-                        selectTextOnEditStart={true}
-                        startEditAction="dblClick"
-                        newRowPosition={'first'}
-
-                    ></Editing>
-
-                    <Toolbar>
-                        <TItems location='before' locateInMenu='auto'>
-                            <Button
-                                icon='plus'
-                                text='Add Employee'
-                                type='default'
-                                stylingMode='contained'
-                                onClick={addRow}
-                                visible={canCreate}
-                            />
-                        </TItems>
-                        <TItems location='after' locateInMenu='auto'>
-                            <span>{switchLabel}</span>
-                        </TItems>
-                        <TItems location='after' locateInMenu='auto'>
-
-                            <Switch defaultValue={includeTerminated}
-                                value={includeTerminated}
-                                onValueChanged={(e) => handleSwitchChange(e.value)} />
-
-                        </TItems>
-
-                        <TItems name="exportButton" locateInMenu={'auto'} />
-
-                        <TItems name="columnChooserButton" />
-
-                        <TItems
-                            location='after'
-                            showText='inMenu'
-                            widget='dxButton'
-                        >
-                            <Button
-                                icon='refresh'
-                                text='Refresh'
-                                stylingMode='text'
-                                onClick={refresh}
-                            />
-                        </TItems>
-
-                    </Toolbar>
-
-                    <Column dataField="id" allowEditing={false} visible={false} defaultSortOrder={"dsc"} />
-                    <Column dataField="fullName" caption="Full Names" minWidth={200} allowHiding={false}
-                        calculateCellValue={(data) => data.fullName ? data.fullName.toUpperCase() : ''}
-                    >
-                        <RequiredRule />
-                    </Column>
-
-                    <Column dataField="employeephoneNumber" caption="Phone No" minWidth={150} hidingPriority={3} />
-                    <Column dataField="employeeWorkNo" caption="Work No" minWidth={150} hidingPriority={3} />
-                    <Column dataField="employeestatus" caption="Employee Status" minWidth={150} hidingPriority={3}>  <Lookup dataSource={employeestatus} /></Column>
-                    <Column
-                        dataField="vehicles"
-                        minWidth={300}
-                        hidingPriority={4}
-                        caption="Default vehicles"
-                        allowSorting={false}
-                        allowHiding={false}
-                        allowFiltering={false}
-                        editCellRender={(cellInfo) => (
-                            <EmployeevehicleTagbox
-                                value={cellInfo.value}
-                                onValueChanged={(newValue) => {
-                                    cellInfo.setValue(newValue);
-                                    handleTagBoxValueChanged(newValue); // Ensure parent state is updated
-                                }}
-                            />
-                        )}
-                        cellTemplate={vehicleTemplate}
-                        calculateFilterExpression={calculateFilterExpression}
-                    >
-                        <lookup dataSource={vehicles} valueExpr="vehicleId" displayExpr="hyoungNo" />
-                    </Column>
-                    <Column dataField="siteId" caption="Site" width={150} allowHiding={false} minWidth={150} hidingPriority={5}>
-                        <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
-                        <RequiredRule />
-                    </Column>
-                    <Column
-                        minWidth={100}
-                        hidingPriority={1}
-                        dataField={'dateCreated'}
-                        caption={'Created On'}
-                        dataType={'datetime'}
-                        visible={false}
-                        allowEditing={false}
-                        cellRender={formatDateToLocal}
-                    />
-                    <Column
-                        dataField={'dateModified'}
-                        caption={'Updated On'}
-                        dataType={'datetime'}
-                        visible={false}
-                        allowEditing={false}
-                        hidingPriority={1}
-                        cellRender={formatDateToLocal}
-                    />
-                    <Column dataField={'createdBy'} caption={'Created By'} visible={false} allowEditing={false} hidingPriority={1} >
-                        <lookup
-                            dataSource={users}
-                            valueExpr="id"
-                            displayExpr="userName"
-
-                        /></Column>
-                    <Column dataField={'modifiedBy'} caption={'Updated By'} visible={false} allowEditing={false} hidingPriority={1}>
-                        <lookup
-                            dataSource={users}
-                            valueExpr="id"
-                            displayExpr="userName"
-                        /></Column>
-                </DataGrid>
-
-            </div>
-
-
+          <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">Employees</h2>
+          <p className="tw-text-sm tw-text-gray-600">
+            Manage employee records, assignments, and profile lifecycle.
+          </p>
         </div>
 
-    )
-}
+        <div className="tw-flex tw-items-center tw-gap-2">
+          <Button
+            text="Open Consumption History"
+            icon="fa-light fa-chart-column"
+            type="normal"
+            stylingMode="outlined"
+            onClick={() => navigate("/employees/consumption-history")}
+          />
+          <Button
+            text="Add Employee"
+            icon="fa-light fa-user-plus"
+            type="default"
+            stylingMode="contained"
+            visible={canCreate}
+            onClick={addRow}
+          />
+        </div>
+      </div>
+
+      <DataGrid
+        ref={gridRef}
+        dataSource={employees}
+        showBorders={true}
+        keyExpr="id"
+        allowColumnReordering={true}
+        allowColumnResizing={true}
+        columnAutoWidth={true}
+        rowAlternationEnabled={true}
+        repaintChangesOnly={true}
+        onRowInserted={onRowInserted}
+        onRowUpdated={onRowUpdated}
+        onRowRemoved={onRowRemoved}
+        onExporting={onExporting}
+      >
+        <LoadPanel enabled={true} />
+        <ColumnChooser enabled={true} mode="select" height={220}>
+          <Position my="right top" at="right top" />
+        </ColumnChooser>
+        <Export
+          enabled={true}
+          allowExportSelectedData={true}
+          formats={exportFormats}
+        />
+        <Paging enabled={true} defaultPageSize={20} />
+        <Pager
+          visible={true}
+          showInfo={true}
+          showNavigationButtons={true}
+          showPageSizeSelector={true}
+          allowedPageSizes={[10, 20, 50, 100]}
+        />
+        <SearchPanel visible={false} />
+        <FilterRow visible={true} />
+        <HeaderFilter visible={true} />
+        <Sorting mode="multiple" />
+        <Selection mode="multiple" />
+
+        <Editing
+          mode="row"
+          allowUpdating={canEdit}
+          allowAdding={canCreate}
+          allowDeleting={canDelete}
+          selectTextOnEditStart={true}
+          startEditAction="dblClick"
+          newRowPosition="first"
+        />
+
+        <Toolbar>
+          <TItems location="before" locateInMenu="auto">
+            <TextBox
+              value={quickSearchTerm}
+              width={280}
+              mode="search"
+              showClearButton={true}
+              placeholder="Quick employee search..."
+              onValueChanged={handleQuickSearchChanged}
+            />
+          </TItems>
+
+          <TItems location="after" locateInMenu="auto">
+            <span>{switchLabel}</span>
+          </TItems>
+          <TItems location="after" locateInMenu="auto">
+            <Switch
+              value={activeOnly}
+              onValueChanged={(event) => setActiveOnly(event.value)}
+            />
+          </TItems>
+          <TItems name="exportButton" locateInMenu="auto" />
+          <TItems name="columnChooserButton" locateInMenu="auto" />
+          <TItems location="after" locateInMenu="auto">
+            <Button
+              icon="refresh"
+              text="Refresh"
+              stylingMode="text"
+              onClick={refresh}
+            />
+          </TItems>
+        </Toolbar>
+
+        <Column dataField="id" visible={false} allowEditing={false} />
+
+        <Column
+          dataField="fullName"
+          caption="Full Name"
+          minWidth={210}
+          allowHiding={false}
+          calculateCellValue={(data) => (data.fullName ? data.fullName.toUpperCase() : "")}
+        >
+          <RequiredRule />
+        </Column>
+
+        <Column
+          dataField="employeephoneNumber"
+          caption="Phone No"
+          minWidth={150}
+          hidingPriority={3}
+        />
+        <Column
+          dataField="employeeWorkNo"
+          caption="Work No"
+          minWidth={140}
+          hidingPriority={3}
+        />
+        <Column
+          dataField="employeestatus"
+          caption="Status"
+          minWidth={130}
+          hidingPriority={3}
+        >
+          <Lookup dataSource={employeeStatusOptions} />
+        </Column>
+
+        <Column
+          dataField="vehicles"
+          caption="Default Vehicles"
+          minWidth={290}
+          hidingPriority={4}
+          allowSorting={false}
+          allowHiding={false}
+          allowFiltering={false}
+          editCellRender={(cellInfo) => (
+            <EmployeevehicleTagbox
+              value={cellInfo.value}
+              onValueChanged={(newValue) => cellInfo.setValue(newValue)}
+            />
+          )}
+          cellTemplate={vehicleTemplate}
+        />
+
+        <Column
+          dataField="siteId"
+          caption="Site"
+          minWidth={150}
+          allowHiding={false}
+          hidingPriority={5}
+        >
+          <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
+          <RequiredRule />
+        </Column>
+
+        <Column
+          dataField="dateCreated"
+          caption="Created On"
+          dataType="datetime"
+          visible={false}
+          allowEditing={false}
+          cellRender={formatDateToLocal}
+        />
+        <Column
+          dataField="dateModified"
+          caption="Updated On"
+          dataType="datetime"
+          visible={false}
+          allowEditing={false}
+          cellRender={formatDateToLocal}
+        />
+        <Column
+          dataField="createdBy"
+          caption="Created By"
+          visible={false}
+          allowEditing={false}
+        >
+          <Lookup dataSource={users} valueExpr="id" displayExpr="userName" />
+        </Column>
+        <Column
+          dataField="modifiedBy"
+          caption="Updated By"
+          visible={false}
+          allowEditing={false}
+        >
+          <Lookup dataSource={users} valueExpr="id" displayExpr="userName" />
+        </Column>
+
+        <Column
+          caption="Details"
+          width={120}
+          fixed={true}
+          fixedPosition="right"
+          allowEditing={false}
+          allowFiltering={false}
+          allowSorting={false}
+          cellRender={(cell) => (
+            <Button
+              text="Open"
+              icon="fa-light fa-arrow-right"
+              stylingMode="text"
+              onClick={() => handleOpenDetails(cell.data.id)}
+            />
+          )}
+        />
+      </DataGrid>
+    </div>
+  );
+};
+
 export default EmployeePage;
-
-

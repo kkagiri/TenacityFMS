@@ -38,7 +38,7 @@ import {
   clearFilters,
   setPage,
   clearErrors,
-} from "../redux/slices/transactionSlice";
+} from "../../redux/slices/transactionSlice";
 
 const { width } = Dimensions.get("window");
 
@@ -106,6 +106,70 @@ const getFueledByDisplay = (item) => {
     (item.fueledBy && typeof item.fueledBy === "string" ? item.fueledBy : null) ||
     "N/A"
   );
+};
+
+const normalizeNumber = (value) => {
+  if (value === null || value === undefined || value === "") return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+};
+
+const getConsumptionMetric = (item) => {
+  const isKmPerLiter = item?.isKmPerLiter !== false;
+  const unit = isKmPerLiter ? "km/L" : "L/hr";
+
+  const distanceOrHours =
+    normalizeNumber(item?.consumptionSinceLastRefuel) ??
+    normalizeNumber(item?.distanceSinceLastRefuel) ??
+    normalizeNumber(item?.distance);
+
+  const volumeIssued =
+    normalizeNumber(item?.volume) ??
+    normalizeNumber(item?.fuelIssued) ??
+    normalizeNumber(item?.amount);
+
+  let value = null;
+
+  if (
+    distanceOrHours !== null &&
+    volumeIssued !== null &&
+    distanceOrHours > 0 &&
+    volumeIssued > 0
+  ) {
+    value = isKmPerLiter
+      ? distanceOrHours / volumeIssued
+      : volumeIssued / distanceOrHours;
+  }
+
+  if (value === null) {
+    const metricCandidates = isKmPerLiter
+      ? [
+          item?.consumption,
+          item?.avgEfficiency,
+          item?.averageConsumption,
+          item?.kmPerLiter,
+          item?.efficiency,
+        ]
+      : [
+          item?.consumption,
+          item?.avgEfficiency,
+          item?.averageConsumption,
+          item?.literPerHour,
+          item?.efficiency,
+        ];
+
+    value = metricCandidates
+      .map(normalizeNumber)
+      .find((candidate) => candidate !== null && candidate > 0);
+  }
+
+  return {
+    isKmPerLiter,
+    unit,
+    value,
+    detailsLabel: isKmPerLiter ? "Distance" : "Hours",
+    detailsValue: distanceOrHours,
+  };
 };
 
 const TransactionHistoryScreen = ({ navigation }) => {
@@ -552,6 +616,12 @@ const TransactionHistoryScreen = ({ navigation }) => {
     return `${(volume || 0).toFixed(2)} L`;
   };
 
+  const formatConsumption = (value, unit) => {
+    const normalized = normalizeNumber(value);
+    if (normalized === null || normalized <= 0) return "N/A";
+    return `${normalized.toFixed(2)} ${unit}`;
+  };
+
   // Format distance (km) or engine hours based on vehicle type
   const formatDistanceOrHours = (value, isKmPerLiter = true) => {
     if (!value) return "N/A";
@@ -652,7 +722,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
 
   const renderTransactionItem = ({ item, index }) => {
     // Use real API data directly - no mock locations
-    const consumption = item.consumptionSinceLastRefuel;
+    const consumptionMetric = getConsumptionMetric(item);
     const location = getFuelingLocation(item);
     const hasLocation = location.latitude !== null && location.longitude !== null;
     const locationText = hasLocation
@@ -801,11 +871,15 @@ const TransactionHistoryScreen = ({ navigation }) => {
             <Text style={styles.amountValue}>{formatVolume(item.volume)}</Text>
           </View>
           <View style={styles.amountItem}>
-            <Text style={styles.amountLabel}>
-              {item.isKmPerLiter !== false ? "Distance" : "Engine Hours"}
-            </Text>
+            <Text style={styles.amountLabel}>Consumption</Text>
             <Text style={styles.amountValueConsumption}>
-              {formatDistanceOrHours(consumption, item.isKmPerLiter !== false)}
+              {formatConsumption(consumptionMetric.value, consumptionMetric.unit)}
+            </Text>
+            <Text style={styles.amountSubDetail}>
+              {consumptionMetric.detailsLabel}: {formatDistanceOrHours(
+                consumptionMetric.detailsValue,
+                consumptionMetric.isKmPerLiter
+              )}
             </Text>
           </View>
         </View>
@@ -1163,6 +1237,15 @@ const TransactionHistoryScreen = ({ navigation }) => {
                     {formatDistanceOrHours(
                       selectedTransaction.consumptionSinceLastRefuel,
                       selectedTransaction.isKmPerLiter !== false
+                    )}
+                  </Text>
+                </View>
+                <View style={[styles.auditRow, styles.auditRowHighlightSecondary]}>
+                  <Text style={styles.auditLabelBold}>Consumption ({selectedTransaction.isKmPerLiter !== false ? "km/L" : "L/hr"})</Text>
+                  <Text style={styles.auditValueHighlight}>
+                    {formatConsumption(
+                      getConsumptionMetric(selectedTransaction).value,
+                      getConsumptionMetric(selectedTransaction).unit
                     )}
                   </Text>
                 </View>
@@ -2268,6 +2351,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#7c3aed",
   },
+  amountSubDetail: {
+    fontSize: 11,
+    color: "#6b7280",
+    marginTop: 2,
+  },
   // View more indicator
   viewMoreIndicator: {
     flexDirection: "row",
@@ -2316,6 +2404,13 @@ const styles = StyleSheet.create({
   },
   auditRowHighlight: {
     backgroundColor: "#faf5ff",
+    marginHorizontal: -16,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  auditRowHighlightSecondary: {
+    backgroundColor: "#eff6ff",
     marginHorizontal: -16,
     paddingHorizontal: 16,
     marginBottom: -16,

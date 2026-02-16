@@ -5,7 +5,7 @@
  *          Features quick actions (Follow/Unfollow, Complete, Close),
  *          property sections, vehicle navigation, and attachment upload.
  * Dependencies: React Native, issueTrackerService, usePermissions
- * Last Modified: 2026-02-11
+ * Last Modified: 2026-02-16
  *
  * Key Sections:
  * - Header with quick action menu
@@ -35,9 +35,9 @@ import {
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { launchImageLibrary, launchCamera } from "react-native-image-picker";
-import issueTrackerService from "../services/issueTrackerService";
-import { usePermissions } from "../hooks/usePermissions";
-import { API_CONFIG } from "../config/environment";
+import issueTrackerService from "../../services/issueTrackerService";
+import { usePermissions } from "../../hooks/usePermissions";
+import { API_CONFIG } from "../../config/environment";
 
 // ===== HELPERS =====
 const formatDateTime = (value) => {
@@ -480,7 +480,7 @@ const IssueDetailScreen = () => {
 
   const isCompleted = useMemo(() => {
     const s = (issue?.statusName || "").toLowerCase().replace(/\s+/g, "");
-    return ["completed", "closed", "resolved", "done"].includes(s);
+    return ["complete", "completed", "close", "closed", "resolved", "done"].includes(s);
   }, [issue?.statusName]);
 
   // Permission-based action guards

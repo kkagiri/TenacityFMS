@@ -2,7 +2,7 @@
  * File: CreateIssueCommand.cs
  * Purpose: Create issue records and notify assigned worker through notification service
  * Dependencies: MediatR, GpsdataContext, INotificationService, IConfiguration
- * Last Modified: 2026-02-03
+ * Last Modified: 2026-02-16
  *
  * CRITICAL FIX: Explicitly sets CanAutoClose/IsAutoCreated values to avoid EF value-generation issues.
  */
@@ -148,7 +148,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
           DeviceType = request.IssueTrackerDto.DeviceType,
           AssignTo = assignToUserId,
           CanAutoClose = request.IssueTrackerDto.CanAutoClose ?? false,
-          IsAutoCreated = request.IssueTrackerDto.IsAutoCreated ?? false
+          IsAutoCreated = request.IssueTrackerDto.IsAutoCreated ?? false,
+          CompletionNotes = string.IsNullOrWhiteSpace(request.IssueTrackerDto.CompletionNotes) ? null : request.IssueTrackerDto.CompletionNotes.Trim()
         };
 
         await _context.Issuetrackers.AddAsync(issueEntity, cancellationToken);
@@ -167,6 +168,22 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             openbyUserId!,
             openbyUser?.UserName ?? request.IssueTrackerDto.Openby,
             cancellationToken);
+
+        // If created with Complete status, log completion activity with notes
+        if (!string.IsNullOrWhiteSpace(issueEntity.CompletionNotes))
+        {
+          var performerName = openbyUser?.UserName ?? request.IssueTrackerDto.Openby ?? "System";
+          await _activityService.LogActivityAsync(
+              issueEntity.Id,
+              "Completed",
+              $"{performerName} created issue as complete: {issueEntity.CompletionNotes.Trim()}",
+              openbyUserId!,
+              performerName,
+              fieldName: "CompletionNotes",
+              oldValue: null,
+              newValue: issueEntity.CompletionNotes.Trim(),
+              cancellationToken: cancellationToken);
+        }
 
         // Only send assignment notification for today's or future issues
         // Past issues (field agents logging completed work) skip notification
@@ -270,6 +287,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
 
         var issueTypeLabel = "Issue Assignment";
         var createdAt = issueEntity.OpenDate ?? DateTime.UtcNow;
+        var createdAtLocalText = FormatLocalDateTime(createdAt);
+        var dueDateLocalText = issueDto.DueDate.HasValue ? FormatLocalDateTime(issueDto.DueDate.Value) : null;
 
         var emailBodyHtml = BuildAssignmentEmailHtmlMessage(
             issueEntity.Id,
@@ -283,8 +302,9 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             vehicleName,
             siteName,
           allAssigneeNamesText,
-          createdAt,
-            issueUrl);
+            createdAtLocalText,
+            issueUrl,
+            responseUrl);
 
         var notificationPriority = await ResolveNotificationPriorityAsync(issueDto.Priority, cancellationToken);
 
@@ -309,6 +329,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
             AssignmentConfirmUrl = confirmUrl,
             AssignmentScheduleUrl = scheduleUrl,
             IssueUrl = issueUrl,
+            CreatedAtLocal = createdAtLocalText,
+            DueDateLocal = dueDateLocalText,
             EmailBodyHtml = emailBodyHtml
           },
           TriggerSource = "IssueTrackerAssignment",
@@ -453,8 +475,9 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         string? vehicleName,
         string? siteName,
         string allAssigneeNames,
-        DateTime issueTime,
-        string issueUrl)
+        string issueTimeLocal,
+        string issueUrl,
+        string? responseUrl = null)
     {
       var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
       var safeDescription = WebUtility.HtmlEncode(issueDescription);
@@ -466,8 +489,11 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
       var safeVehicleName = WebUtility.HtmlEncode(vehicleName ?? "Not specified");
       var safeSiteName = WebUtility.HtmlEncode(siteName ?? "Not specified");
       var safeAllAssignees = WebUtility.HtmlEncode(allAssigneeNames);
-      var safeIssueTime = WebUtility.HtmlEncode(issueTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"));
+      var safeIssueTime = WebUtility.HtmlEncode(issueTimeLocal);
       var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
+      var safeResponseUrl = !string.IsNullOrWhiteSpace(responseUrl)
+          ? WebUtility.HtmlEncode(responseUrl)
+          : null;
 
       return $@"<!DOCTYPE html>
 <html lang=""en"">
@@ -532,6 +558,8 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
                     <tr>
                         <td style=""padding:0 32px 32px 32px;"" align=""center"">
                             <a href=""{safeIssueUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">View Issue Details</a>
+                            {(safeResponseUrl != null ? $@"<span style=""display:inline-block;width:12px;""></span>
+                            <a href=""{safeResponseUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">Respond to Assignment</a>" : "")}
                         </td>
                     </tr>
                     <tr>
@@ -547,6 +575,19 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
     </table>
 </body>
 </html>";
+    }
+
+    private static string FormatLocalDateTime(DateTime dateTime)
+    {
+      var utcDateTime = dateTime.Kind switch
+      {
+        DateTimeKind.Utc => dateTime,
+        DateTimeKind.Local => dateTime.ToUniversalTime(),
+        _ => DateTime.SpecifyKind(dateTime, DateTimeKind.Utc)
+      };
+
+      var localDateTime = utcDateTime.ToLocalTime();
+      return localDateTime.ToString("yyyy-MM-dd hh:mm tt") + " (Local)";
     }
 
     private async Task PersistIssueAssigneesAsync(

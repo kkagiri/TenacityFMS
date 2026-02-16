@@ -21,7 +21,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomDateTimePicker from "../components/common/CustomDateTimePicker";
+import CustomDateTimePicker from "../../components/common/CustomDateTimePicker";
 import {
   fetchTanksBySite,
   createOpeningStock,
@@ -29,7 +29,7 @@ import {
   getTankCurrentVolume,
   clearStockResult,
   clearError,
-} from "../redux/slices/tankSlice";
+} from "../../redux/slices/tankSlice";
 import styles from "./OpenStockScreen.styles";
 
 const OpenStockScreen = ({ navigation, route }) => {

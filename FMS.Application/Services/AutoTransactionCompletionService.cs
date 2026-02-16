@@ -8,7 +8,9 @@ using FMS.Application.Communication;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
+using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock;
+using FMS.Application.Features.Vehicle.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.PTS;
 using FMS.Persistence;
@@ -197,6 +199,9 @@ namespace FMS.Application.Services
                 //Cursor: **ENHANCED LOGGING** - Log the complete final data being processed
                 _logger.LogInformation("[AutoComplete] Final transaction data for {DeviceId}:{Transaction}: {FinalData}",
                     deviceId, transaction, finalData.ToString());
+
+                // Capture fuel level after fueling for vehicle refueling mode (GPS-enabled vehicles only).
+                await TryEnrichFuelLevelAfterAsync(finalData);
 
                 // Step 1: Create Pumptransaction entity from final data
                 var pumpTransaction = CreatePumpTransactionFromData(deviceId, pump, transaction, finalData);
@@ -604,6 +609,7 @@ namespace FMS.Application.Services
                 EnrichPropertyIfMissing(data, context, "Nozzle"); // CRITICAL: Nozzle from authorization
                 EnrichPropertyIfMissing(data, context, "PumpId"); // Pump ID from authorization
                 EnrichPropertyIfMissing(data, context, "SiteId"); // Site ID for configuration lookup
+                EnrichPropertyIfMissing(data, context, "FuelLevelBefore"); // Fuel level before fueling from authorization
                 // Mobile location from authorization for fueling location tracking
                 EnrichPropertyIfMissingDouble(data, context, "MobileLocationLatitude", "MobileLatitude");
                 EnrichPropertyIfMissingDouble(data, context, "MobileLocationLongitude", "MobileLongitude");
@@ -753,6 +759,8 @@ namespace FMS.Application.Services
                 IsTransferMode = data.Value<bool?>("IsTransferMode") ?? false, //Cursor: Flag for tank transfer vs vehicle fueling
                 EmployeeId = data.Value<int?>("EmployeeId"), //Cursor: Employee/Driver who performed the fueling
                 Odometer = data.Value<decimal?>("Odometer"), //Cursor: Add odometer from authorization context
+                FuelLevelBefore = data.Value<decimal?>("FuelLevelBefore"),
+                FuelLevelAfter = data.Value<decimal?>("FuelLevelAfter"),
                 // Mobile location from authorization for fueling location tracking
                 MobileLatitude = data.Value<decimal?>("MobileLatitude"),
                 MobileLongitude = data.Value<decimal?>("MobileLongitude"),
@@ -773,6 +781,8 @@ namespace FMS.Application.Services
 
             // **CRITICAL FIX**: Also update context fields from authorization (Odometer, TankId, VehicleId, Tag)
             existing.Odometer = updated.Odometer ?? existing.Odometer;
+            existing.FuelLevelBefore = updated.FuelLevelBefore ?? existing.FuelLevelBefore;
+            existing.FuelLevelAfter = updated.FuelLevelAfter ?? existing.FuelLevelAfter;
             existing.TankId = updated.TankId ?? existing.TankId;
             existing.VehicleId = updated.VehicleId ?? existing.VehicleId;
             existing.DestinationTankId = updated.DestinationTankId ?? existing.DestinationTankId; //Cursor: Update destination tank
@@ -794,6 +804,70 @@ namespace FMS.Application.Services
             }
 
             // Don't update core identifiers (PtsId, Transaction, Pump)
+        }
+
+        /// <summary>
+        /// Captures fuel level after fueling from GPS for vehicle refueling transactions.
+        /// Applies only when GPS fuel level check is enabled, vehicle is GPS-enabled, and this is not transfer mode.
+        /// </summary>
+        private async Task TryEnrichFuelLevelAfterAsync(JObject data)
+        {
+            try
+            {
+                if (data["FuelLevelAfter"] != null && data["FuelLevelAfter"]!.Type != JTokenType.Null)
+                {
+                    return;
+                }
+
+                var isTransferMode = data.Value<bool?>("IsTransferMode") ?? false;
+                var vehicleId = data.Value<int?>("VehicleId");
+
+                if (isTransferMode || !vehicleId.HasValue || vehicleId.Value <= 0)
+                {
+                    return;
+                }
+
+                using var scope = _scopeFactory.CreateScope();
+                var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+                var systemConfigService = scope.ServiceProvider.GetService<ISystemConfigurationService>();
+                var gpsService = scope.ServiceProvider.GetService<IGPSService>();
+
+                if (systemConfigService == null || gpsService == null)
+                {
+                    return;
+                }
+
+                var fuelLevelCheckEnabled = await systemConfigService.GetPtsEnableGPSFuelLevelCheckAsync();
+                if (!fuelLevelCheckEnabled)
+                {
+                    return;
+                }
+
+                var hasGpsInstalled = await context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => v.VehicleId == vehicleId.Value)
+                    .Select(v => v.HasGPSInstalled == 1)
+                    .FirstOrDefaultAsync();
+
+                if (!hasGpsInstalled)
+                {
+                    return;
+                }
+
+                var fuelLevelResult = await gpsService.GetFuelLevelAsync(vehicleId.Value);
+                if (fuelLevelResult.IsSuccess && fuelLevelResult.Data.HasValue)
+                {
+                    data["FuelLevelAfter"] = fuelLevelResult.Data.Value;
+                    _logger.LogDebug("[AutoComplete] Captured FuelLevelAfter={FuelLevel}L for vehicle {VehicleId}",
+                        fuelLevelResult.Data.Value,
+                        vehicleId.Value);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "[AutoComplete] Failed to capture fuel level after fueling from GPS during auto completion");
+            }
         }
 
         private async Task SendCloseCommandToDevice(string deviceId, int pump, int transaction)

@@ -15,24 +15,25 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import Icon from "react-native-vector-icons/FontAwesome5";
 
 // Import screens
-import LoginScreen from "../screens/LoginScreen";
-import HomeScreen from "../screens/HomeScreen";
-import DeviceListScreen from "../screens/DeviceListScreen";
-import FuelingProcessScreen from "../screens/FuelingProcessScreen";
-import TransactionHistoryScreen from "../screens/TransactionHistoryScreen";
-import TankTransactionHubScreen from "../screens/TankTransactionHubScreen";
-import SiteOverviewScreen from "../screens/SiteOverviewScreen";
-import SettingsScreen from "../screens/SettingsScreen";
-import ManageStocksScreen from "../screens/ManageStocksScreen";
-import OpenStockScreen from "../screens/OpenStockScreen";
-import VehicleDetailsScreen from "../screens/VehicleDetailsScreen";
-import ManualRefillScreen from "../screens/ManualRefillScreen";
-import TankDeliveryScreen from "../screens/TankDeliveryScreen";
-import TankTransferScreen from "../screens/TankTransferScreen";
-import NotificationCenterScreen from "../screens/NotificationCenterScreen";
-import LocationSettingsScreen from "../screens/LocationSettingsScreen";
-import IssueListScreen from "../screens/IssueListScreen";
-import IssueDetailScreen from "../screens/IssueDetailScreen";
+import LoginScreen from "../screens/auth/LoginScreen";
+import HomeScreen from "../screens/home/HomeScreen";
+import DeviceListScreen from "../screens/fueling/DeviceListScreen";
+import FuelingProcessScreen from "../screens/fueling/FuelingProcessScreen";
+import TransactionHistoryScreen from "../screens/fueling/TransactionHistoryScreen";
+import TankTransactionHubScreen from "../screens/tankStock/TankTransactionHubScreen";
+import SiteOverviewScreen from "../screens/tankStock/SiteOverviewScreen";
+import SettingsScreen from "../screens/settings/SettingsScreen";
+import ManageStocksScreen from "../screens/tankStock/ManageStocksScreen";
+import OpenStockScreen from "../screens/tankStock/OpenStockScreen";
+import VehicleDetailsScreen from "../screens/vehicle/VehicleDetailsScreen";
+import ManualRefillScreen from "../screens/tankStock/ManualRefillScreen";
+import TankDeliveryScreen from "../screens/tankStock/TankDeliveryScreen";
+import TankTransferScreen from "../screens/tankStock/TankTransferScreen";
+import NotificationCenterScreen from "../screens/notifications/NotificationCenterScreen";
+import LocationSettingsScreen from "../screens/settings/LocationSettingsScreen";
+import IssueListScreen from "../screens/issues/IssueListScreen";
+import IssueDetailScreen from "../screens/issues/IssueDetailScreen";
+import IssueAssignmentResponseScreen from "../screens/issues/IssueAssignmentResponseScreen";
 
 import { useSelector } from "react-redux";
 
@@ -263,6 +264,14 @@ const MainStackNavigator = () => {
         component={IssueDetailScreen}
         options={{
           title: "Issue Details",
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name="IssueAssignmentResponse"
+        component={IssueAssignmentResponseScreen}
+        options={{
+          title: "Issue Assignment Response",
           headerShown: false,
         }}
       />

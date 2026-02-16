@@ -1,5 +1,16 @@
+/**
+ * File: IssueMonitoringService.cs
+ * Purpose: Runs automated issue monitoring checks and creates issues for offline/suspicious devices.
+ * Dependencies: GpsdataContext, ISystemConfigurationService, IGPSService, IIssueActivityService, INotificationService
+ * Last Modified: 2026-02-16
+ *
+ * Key Functions:
+ * - ExecuteAsync(): Schedules monitoring at configured daily local time.
+ * - MonitorDevicesAsync(): Evaluates templates and creates issues.
+ */
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,11 +49,11 @@ namespace FMS.BackgroundServices.IssueTracker
             public int PtsOfflineThresholdMinutes { get; set; } = 30;
             public int FuelActivityWindowMinutes { get; set; } = 4320;
             public int DefaultIssueCategoryId { get; set; } = 1;
+            public TimeSpan DailyRunTimeLocal { get; set; } = TimeSpan.Zero;
         }
 
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<IssueMonitoringService> _logger;
-        private readonly TimeSpan _monitoringInterval = TimeSpan.FromMinutes(10); // Default monitoring interval
 
         public IssueMonitoringService(
             IServiceProvider serviceProvider,
@@ -57,10 +68,36 @@ namespace FMS.BackgroundServices.IssueTracker
             _logger.LogInformation("Issue Monitoring Service started");
 
             // Initial delay to let other services start
-            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            try
+            {
+                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
+            }
+            catch (TaskCanceledException)
+            {
+                _logger.LogInformation("Issue Monitoring Service stopped before initial scheduling");
+                return;
+            }
 
             while (!stoppingToken.IsCancellationRequested)
             {
+                var schedulingSettings = await GetSchedulingSettingsAsync(stoppingToken);
+                var delayUntilNextRun = GetDelayUntilNextDailyRunLocal(schedulingSettings.DailyRunTimeLocal);
+                var nextRunLocal = DateTime.Now.Add(delayUntilNextRun);
+
+                _logger.LogInformation(
+                    "Next issue monitoring cycle scheduled at {NextRunLocal} (configured daily run time: {ConfiguredRunTime})",
+                    nextRunLocal.ToString("yyyy-MM-dd HH:mm:ss"),
+                    schedulingSettings.DailyRunTimeLocal.ToString(@"hh\:mm"));
+
+                try
+                {
+                    await Task.Delay(delayUntilNextRun, stoppingToken);
+                }
+                catch (TaskCanceledException)
+                {
+                    break;
+                }
+
                 try
                 {
                     await MonitorDevicesAsync(stoppingToken);
@@ -69,18 +106,37 @@ namespace FMS.BackgroundServices.IssueTracker
                 {
                     _logger.LogError(ex, "Error in Issue Monitoring processing cycle");
                 }
-
-                try
-                {
-                    await Task.Delay(_monitoringInterval, stoppingToken);
-                }
-                catch (TaskCanceledException)
-                {
-                    break;
-                }
             }
 
             _logger.LogInformation("Issue Monitoring Service stopped");
+        }
+
+        private async Task<MonitoringSettings> GetSchedulingSettingsAsync(CancellationToken cancellationToken)
+        {
+            try
+            {
+                using var scope = _serviceProvider.CreateScope();
+                var systemConfig = scope.ServiceProvider.GetService<ISystemConfigurationService>();
+                return await GetMonitoringSettingsAsync(systemConfig, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to load scheduling settings; falling back to defaults");
+                return new MonitoringSettings();
+            }
+        }
+
+        private static TimeSpan GetDelayUntilNextDailyRunLocal(TimeSpan runTimeLocal)
+        {
+            var nowLocal = DateTime.Now;
+            var nextRunLocal = nowLocal.Date.Add(runTimeLocal);
+
+            if (nextRunLocal < nowLocal)
+            {
+                nextRunLocal = nextRunLocal.AddDays(1);
+            }
+
+            return nextRunLocal - nowLocal;
         }
 
         private async Task MonitorDevicesAsync(CancellationToken cancellationToken)
@@ -851,6 +907,12 @@ namespace FMS.BackgroundServices.IssueTracker
                     SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID_KEY,
                     SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_DEFAULT_ISSUE_CATEGORY_ID,
                     cancellationToken);
+
+                var configuredDailyRunTime = await systemConfig.GetConfigurationValueAsync(
+                    SystemConfigurationConstants.DB_CONFIG_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL_KEY,
+                    cancellationToken);
+
+                settings.DailyRunTimeLocal = ParseDailyRunTimeLocal(configuredDailyRunTime);
             }
             catch (Exception ex)
             {
@@ -858,6 +920,40 @@ namespace FMS.BackgroundServices.IssueTracker
             }
 
             return settings;
+        }
+
+        private TimeSpan ParseDailyRunTimeLocal(string? configuredDailyRunTime)
+        {
+            if (!string.IsNullOrWhiteSpace(configuredDailyRunTime)
+                && TimeSpan.TryParseExact(
+                    configuredDailyRunTime,
+                    new[] { @"hh\:mm", @"h\:mm", @"hh\:mm\:ss", @"h\:mm\:ss" },
+                    CultureInfo.InvariantCulture,
+                    out var parsed)
+                && parsed >= TimeSpan.Zero
+                && parsed < TimeSpan.FromDays(1))
+            {
+                return parsed;
+            }
+
+            if (!string.IsNullOrWhiteSpace(configuredDailyRunTime))
+            {
+                _logger.LogWarning(
+                    "Invalid issue monitoring daily run time '{RunTime}'. Falling back to default '{DefaultRunTime}'. Expected format: HH:mm",
+                    configuredDailyRunTime,
+                    SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL);
+            }
+
+            if (TimeSpan.TryParseExact(
+                SystemConfigurationConstants.DEFAULT_ISSUE_MONITORING_DAILY_RUN_TIME_LOCAL,
+                @"hh\:mm",
+                CultureInfo.InvariantCulture,
+                out var defaultParsed))
+            {
+                return defaultParsed;
+            }
+
+            return TimeSpan.Zero;
         }
 
         /// <summary>
@@ -994,6 +1090,7 @@ namespace FMS.BackgroundServices.IssueTracker
 
                 var frontendBaseUrl = GetFrontendBaseUrl(configuration);
                 var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
+                var responseUrl = $"{frontendBaseUrl}/issue-tracker/assignment/{issue.Id}/respond";
                 var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
                 var primaryAssignee = assignedUsers.First();
 
@@ -1030,7 +1127,8 @@ namespace FMS.BackgroundServices.IssueTracker
                     primaryAssignee.Email ?? "",
                     allAssigneeNames,
                     createdAt,
-                    issueUrl);
+                    issueUrl,
+                    responseUrl);
 
                 // Build recipients list — one per assigned user
                 var recipients = assignedUsers.Select(u => new NotificationRecipientDto
@@ -1101,7 +1199,8 @@ namespace FMS.BackgroundServices.IssueTracker
             string assignedToEmail,
             string allAssigneeNames,
                         DateTime issueTime,
-            string issueUrl)
+            string issueUrl,
+            string? responseUrl = null)
         {
             var safeTitle = System.Net.WebUtility.HtmlEncode(issueTitle);
             var safeDescription = System.Net.WebUtility.HtmlEncode(issueDescription);
@@ -1115,6 +1214,9 @@ namespace FMS.BackgroundServices.IssueTracker
             var safeAllAssignees = System.Net.WebUtility.HtmlEncode(allAssigneeNames);
             var safeIssueTime = System.Net.WebUtility.HtmlEncode(issueTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'"));
             var safeUrl = System.Net.WebUtility.HtmlEncode(issueUrl);
+            var safeResponseUrl = !string.IsNullOrWhiteSpace(responseUrl)
+                ? System.Net.WebUtility.HtmlEncode(responseUrl)
+                : null;
 
             return $@"<!DOCTYPE html>
 <html lang=""en"">
@@ -1179,6 +1281,8 @@ namespace FMS.BackgroundServices.IssueTracker
                                         <tr>
                                                 <td style=""padding:0 32px 32px 32px;"" align=""center"">
                                                         <a href=""{safeUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">View Issue Details</a>
+                                                        {(safeResponseUrl != null ? $@"<span style=""display:inline-block;width:12px;""></span>
+                                                        <a href=""{safeResponseUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">Respond to Assignment</a>" : "")}
                                                 </td>
                                         </tr>
                                         <tr>

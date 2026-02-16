@@ -19,7 +19,7 @@ import {
 } from "react-native";
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
-import CustomDateTimePicker from "../components/common/CustomDateTimePicker";
+import CustomDateTimePicker from "../../components/common/CustomDateTimePicker";
 import { Picker } from "@react-native-picker/picker";
 
 import {
@@ -28,11 +28,39 @@ import {
   resetFilters,
   clearTransactions,
   setRefreshing,
-} from "../redux/slices/tankVolumeHistorySlice";
-import { fetchSiteList } from "../redux/slices/siteSlice";
-import { fetchTanksBySite } from "../redux/slices/tankSlice";
+} from "../../redux/slices/tankVolumeHistorySlice";
+import { fetchSiteList } from "../../redux/slices/siteSlice";
+import { fetchTanksBySite } from "../../redux/slices/tankSlice";
 
 const { width } = Dimensions.get("window");
+
+const formatLocalDateForApi = (date) => {
+  if (!(date instanceof Date) || Number.isNaN(date.getTime())) return null;
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
+const parseDateForDisplay = (dateValue) => {
+  if (!dateValue) return null;
+  if (dateValue instanceof Date) return dateValue;
+
+  const dateText = String(dateValue).trim();
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
+    const [year, month, day] = dateText.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+
+  if (
+    /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2}(\.\d{1,7})?)?$/.test(dateText)
+  ) {
+    return new Date(`${dateText}Z`);
+  }
+
+  return new Date(dateText);
+};
 
 // Volume change reason mapping (matches backend VolumeChangeReasonEnum.cs)
 const VolumeChangeReasonEnum = [
@@ -89,8 +117,8 @@ const TankTransactionHubScreen = ({ navigation }) => {
     );
 
     const initialFilters = {
-      startDate: startOfDay.toISOString().split("T")[0],
-      endDate: endOfDay.toISOString().split("T")[0],
+      startDate: formatLocalDateForApi(startOfDay),
+      endDate: formatLocalDateForApi(endOfDay),
       siteId: selectedSite?.id || null,
       tankId: null,
       take: 100,
@@ -138,12 +166,12 @@ const TankTransactionHubScreen = ({ navigation }) => {
       startDate: tempFilters.startDate
         ? typeof tempFilters.startDate === "string"
           ? tempFilters.startDate
-          : tempFilters.startDate.toISOString().split("T")[0]
+          : formatLocalDateForApi(tempFilters.startDate)
         : null,
       endDate: tempFilters.endDate
         ? typeof tempFilters.endDate === "string"
           ? tempFilters.endDate
-          : tempFilters.endDate.toISOString().split("T")[0]
+          : formatLocalDateForApi(tempFilters.endDate)
         : null,
       take: 100,
       includeVehicleNames: true,
@@ -216,7 +244,8 @@ const TankTransactionHubScreen = ({ navigation }) => {
   // Format date for display
   const formatDate = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    const date = parseDateForDisplay(dateString);
+    if (!date || Number.isNaN(date.getTime())) return "";
     return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
@@ -227,7 +256,8 @@ const TankTransactionHubScreen = ({ navigation }) => {
   // Format time for display
   const formatTime = (dateString) => {
     if (!dateString) return "";
-    const date = new Date(dateString);
+    const date = parseDateForDisplay(dateString);
+    if (!date || Number.isNaN(date.getTime())) return "";
     return date.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
@@ -705,9 +735,8 @@ const TankTransactionHubScreen = ({ navigation }) => {
                     {tanks?.map((tank) => (
                       <Picker.Item
                         key={tank.id}
-                        label={`${tank.name} (${
-                          tank.fuelTypeName || "Unknown"
-                        })`}
+                        label={`${tank.name} (${tank.fuelTypeName || "Unknown"
+                          })`}
                         value={tank.id}
                       />
                     ))}
@@ -754,8 +783,8 @@ const TankTransactionHubScreen = ({ navigation }) => {
               ? tempFilters.startDate
               : new Date()
             : tempFilters.endDate instanceof Date
-            ? tempFilters.endDate
-            : new Date()
+              ? tempFilters.endDate
+              : new Date()
         }
         onConfirm={handleDateChange}
         onCancel={() => setShowDatePicker(false)}

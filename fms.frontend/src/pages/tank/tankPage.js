@@ -22,7 +22,11 @@ import { Button } from "devextreme-react/button";
 import { Popup } from "devextreme-react/popup";
 import { LoadPanel } from "devextreme-react/load-panel";
 import notify from "devextreme/ui/notify";
-import { fetchTanks } from "../../redux/actions/tankActions";
+import {
+  fetchTanks,
+  updateTank,
+  deleteTank,
+} from "../../redux/actions/tankActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import TankDetails from "./components/TankDetails";
 import TankForm from "./components/TankForm";
@@ -42,6 +46,7 @@ const TankPage = () => {
     (state) => state.realtimeStatus?.uploadStatusByDevice || {}
   );
   const mobileMenuRef = useRef(null);
+  const UNASSIGNED_SITE_KEY = "unassigned";
 
   // Get user roles from auth state
   const userRoles = user ? user.roles : [];
@@ -56,6 +61,47 @@ const TankPage = () => {
   const [loading, setLoading] = useState(false);
   const [showDetailsOnMobile, setShowDetailsOnMobile] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+
+  const normalizeSiteId = useCallback((value) => {
+    if (value === null || value === undefined || value === "") {
+      return null;
+    }
+
+    const parsed = Number(value);
+    return Number.isNaN(parsed) ? null : parsed;
+  }, []);
+
+  const getInactiveSiteId = useCallback(() => {
+    if (!Array.isArray(sites) || sites.length === 0) {
+      return null;
+    }
+
+    const normalizedByName = sites.find((site) => {
+      const name = (site?.name || "").trim().toLowerCase();
+      return (
+        name === "inactive" ||
+        name === "inactive site" ||
+        name === "unassigned" ||
+        name === "unassigned tanks" ||
+        name === "no site" ||
+        name === "not assigned"
+      );
+    });
+
+    if (normalizedByName?.id) {
+      return Number(normalizedByName.id);
+    }
+
+    const inactiveFlagged = sites.find(
+      (site) => site?.isActive === false || site?.isActive === 0
+    );
+
+    if (inactiveFlagged?.id) {
+      return Number(inactiveFlagged.id);
+    }
+
+    return null;
+  }, [sites]);
 
   useEffect(() => {
     // Only fetch data on initial mount
@@ -88,8 +134,15 @@ const TankPage = () => {
   const transformedTreeData = useMemo(() => {
     if (!sites || !tanks) return [];
 
+    const getSiteParentKey = (siteId) => {
+      const normalized = normalizeSiteId(siteId);
+      return normalized === null ? UNASSIGNED_SITE_KEY : normalized;
+    };
+
     const sitesWithTanks = sites.filter((site) =>
-      tanks.some((tank) => tank.siteId === site.id)
+      tanks.some(
+        (tank) => normalizeSiteId(tank.siteId) === normalizeSiteId(site.id)
+      )
     );
 
     const transformedData = sitesWithTanks.map((site) => ({
@@ -102,10 +155,15 @@ const TankPage = () => {
 
     tanks.forEach((tank) => {
       // Add tank only if its parent site is in the filtered list
-      if (sitesWithTanks.some((site) => site.id === tank.siteId)) {
+      const tankSiteParentKey = getSiteParentKey(tank.siteId);
+      if (
+        sitesWithTanks.some(
+          (site) => normalizeSiteId(site.id) === tankSiteParentKey
+        )
+      ) {
         transformedData.push({
           id: `tank_${tank.id}`,
-          parentId: `site_${tank.siteId}`,
+          parentId: `site_${tankSiteParentKey}`,
           name: tank.name,
           type: "tank",
           tankData: tank,
@@ -114,6 +172,30 @@ const TankPage = () => {
         });
       }
     });
+
+    const unassignedTanks = tanks.filter((tank) => normalizeSiteId(tank.siteId) === null);
+
+    if (unassignedTanks.length > 0) {
+      transformedData.push({
+        id: `site_${UNASSIGNED_SITE_KEY}`,
+        name: "Unassigned Tanks",
+        type: "site",
+        siteId: null,
+        siteData: null,
+      });
+
+      unassignedTanks.forEach((tank) => {
+        transformedData.push({
+          id: `tank_${tank.id}`,
+          parentId: `site_${UNASSIGNED_SITE_KEY}`,
+          name: tank.name,
+          type: "tank",
+          tankData: tank,
+          volume: tank.tankVolume,
+          currentStock: tank.currentStock,
+        });
+      });
+    }
 
     return transformedData;
   }, [sites, tanks]);
@@ -162,6 +244,88 @@ const TankPage = () => {
   const handleLinkPTSDevice = () => {
     if (selectedTank) {
       setShowPTSLink(true);
+    }
+  };
+
+  const handleUnassignTank = async () => {
+    if (!selectedTank) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Unassign tank \"${selectedTank.name}\" from its current site?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const inactiveSiteId = getInactiveSiteId();
+
+      if (!inactiveSiteId) {
+        notify(
+          "No inactive/unassigned site found. Create or rename a site as 'Inactive' (or 'Unassigned') first.",
+          "warning",
+          4500
+        );
+        return;
+      }
+
+      const payload = {
+        ...selectedTank,
+        siteId: inactiveSiteId,
+      };
+
+      const result = await dispatch(updateTank(selectedTank.id, payload));
+
+      if (result?.success) {
+        await dispatch(fetchTanks());
+        setSelectedTank({
+          ...selectedTank,
+          siteId: inactiveSiteId,
+          siteName: "Inactive",
+        });
+        notify("Tank moved to inactive site successfully", "success", 3000);
+      } else {
+        notify("Failed to unassign tank", "error", 3000);
+      }
+    } catch (error) {
+      notify(error.message || "Failed to unassign tank", "error", 3000);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDeleteTank = async () => {
+    if (!selectedTank) {
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `Delete tank \"${selectedTank.name}\"? This action cannot be undone.`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await dispatch(deleteTank(selectedTank.id));
+      if (result?.success) {
+        setSelectedTank(null);
+        setSelectedSite(null);
+        await dispatch(fetchTanks());
+        notify("Tank deleted successfully", "success", 2500);
+      } else {
+        notify(result?.message || "Failed to delete tank", "error", 3000);
+      }
+    } catch (error) {
+      notify(error.message || "Failed to delete tank", "error", 3000);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -297,7 +461,20 @@ const TankPage = () => {
           tankCount: 0,
         };
 
-      const siteTanks = tanks.filter((tank) => tank.siteId === siteId);
+      const normalizeSiteId = (value) => {
+        if (value === null || value === undefined || value === "") {
+          return null;
+        }
+
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? value : parsed;
+      };
+
+      const normalizedSiteId = normalizeSiteId(siteId);
+
+      const siteTanks = tanks.filter(
+        (tank) => normalizeSiteId(tank.siteId) === normalizedSiteId
+      );
       const totalCapacity = siteTanks.reduce(
         (sum, tank) => sum + (tank.tankVolume || 0),
         0
@@ -417,6 +594,17 @@ const TankPage = () => {
                 />
 
                 <Button
+                  text="Unassign"
+                  icon="fa-light fa-link-slash"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={handleUnassignTank}
+                  disabled={!selectedTank}
+                  hint="Unassign selected tank from site"
+                  className="tank-page__action-btn"
+                />
+
+                <Button
                   text="Link PTS"
                   icon="fa-light fa-link"
                   type="default"
@@ -424,6 +612,17 @@ const TankPage = () => {
                   onClick={handleLinkPTSDevice}
                   disabled={!selectedTank}
                   hint="Link PTS Device"
+                  className="tank-page__action-btn"
+                />
+
+                <Button
+                  text="Delete"
+                  icon="fa-light fa-trash"
+                  type="default"
+                  stylingMode="outlined"
+                  onClick={handleDeleteTank}
+                  disabled={!selectedTank}
+                  hint="Delete selected tank"
                   className="tank-page__action-btn tank-page__action-btn--last"
                 />
               </div>
@@ -434,9 +633,8 @@ const TankPage = () => {
 
       <div className="tw-flex tw-flex-col lg:tw-flex-row tw-flex-1 tw-gap-4 tw-overflow-hidden">
         <div
-          className={`tw-w-full lg:tw-w-1/3 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-max-h-[400px] lg:tw-max-h-full tw-overflow-auto ${
-            showDetailsOnMobile ? "tw-hidden lg:tw-block" : ""
-          }`}
+          className={`tw-w-full lg:tw-w-1/3 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-max-h-[400px] lg:tw-max-h-full tw-overflow-auto ${showDetailsOnMobile ? "tw-hidden lg:tw-block" : ""
+            }`}
         >
           <TreeList
             dataSource={treeData}
@@ -458,9 +656,8 @@ const TankPage = () => {
         </div>
 
         <div
-          className={`tw-flex-1 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 md:tw-p-6 tw-overflow-auto tw-relative ${
-            !showDetailsOnMobile ? "tw-hidden lg:tw-block" : ""
-          }`}
+          className={`tw-flex-1 tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 md:tw-p-6 tw-overflow-auto tw-relative ${!showDetailsOnMobile ? "tw-hidden lg:tw-block" : ""
+            }`}
         >
           {/* Back button for mobile */}
           {(selectedTank || selectedSite) && (
@@ -645,7 +842,7 @@ const TankPage = () => {
         showTitle={true}
         title={editMode ? "Edit Tank" : "Add New Tank"}
         width="90%"
-        maxWidth={600}
+        maxWidth={980}
         height="auto"
         showCloseButton={true}
       >

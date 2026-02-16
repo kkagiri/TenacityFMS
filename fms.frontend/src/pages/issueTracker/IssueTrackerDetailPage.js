@@ -114,6 +114,11 @@ const findPriorityByKeywords = (items, keywords) => {
   }) || null;
 };
 
+const includesKeyword = (value, keywords) => {
+  const normalizedValue = (value || '').toLowerCase();
+  return keywords.some((keyword) => normalizedValue.includes(keyword));
+};
+
 const normalizeIssueListResponse = (response) => {
   if (Array.isArray(response)) {
     return response;
@@ -429,15 +434,58 @@ const IssueTrackerDetailPage = () => {
   const issueTagNames = useMemo(() => normalizeIssueTags(issue), [issue]);
 
   const completeStatusOption = useMemo(
-    () => findStatusByKeywords(statuses, ['complete', 'completed', 'closed', 'resolved', 'done']),
+    () => findStatusByKeywords(statuses, ['complete', 'completed', 'resolved', 'done']),
+    [statuses]
+  );
+  const closedStatusOption = useMemo(
+    () => findStatusByKeywords(statuses, ['close', 'closed']),
     [statuses]
   );
   const highPriorityOption = useMemo(
     () => findPriorityByKeywords(priorities, ['high']),
     [priorities]
   );
-  const isAlreadyComplete = Boolean(completeStatusOption && issue?.status === completeStatusOption.id);
+
+  const currentStatusLabel = useMemo(() => {
+    if (!issue) {
+      return '';
+    }
+
+    if (issue.statusName) {
+      return issue.statusName;
+    }
+
+    const matchedStatus = statuses.find((status) => status.id === issue.status);
+    return getStatusLabel(matchedStatus) || '';
+  }, [issue, statuses]);
+
+  const isAlreadyClosed = useMemo(() => {
+    if (!issue) {
+      return false;
+    }
+
+    if (closedStatusOption && issue.status === closedStatusOption.id) {
+      return true;
+    }
+
+    return includesKeyword(currentStatusLabel, ['close', 'closed']);
+  }, [issue, closedStatusOption, currentStatusLabel]);
+
+  const isAlreadyComplete = useMemo(() => {
+    if (!issue || isAlreadyClosed) {
+      return false;
+    }
+
+    if (completeStatusOption && issue.status === completeStatusOption.id) {
+      return true;
+    }
+
+    return includesKeyword(currentStatusLabel, ['complete', 'completed', 'resolved', 'done']);
+  }, [issue, completeStatusOption, currentStatusLabel, isAlreadyClosed]);
+
+  const isTerminalStatus = isAlreadyClosed || isAlreadyComplete;
   const isAlreadyHigh = Boolean(highPriorityOption && issue?.priority === highPriorityOption.id);
+  const canUploadAttachments = !isAlreadyClosed;
 
   const tabItems = useMemo(() => ([
     { key: 'overview', text: 'Overview', icon: 'fa-light fa-info-circle' },
@@ -472,6 +520,10 @@ const IssueTrackerDetailPage = () => {
   }, [activityRefreshFn]);
 
   const handleQuickMarkComplete = async (notes) => {
+    if (isAlreadyClosed || isAlreadyComplete) {
+      return;
+    }
+
     if (!completeStatusOption) {
       notify({
         message: 'No complete/closed status configured.',
@@ -504,6 +556,10 @@ const IssueTrackerDetailPage = () => {
   };
 
   const handleQuickMarkHighPriority = async () => {
+    if (isAlreadyClosed || isAlreadyComplete) {
+      return;
+    }
+
     if (!highPriorityOption) {
       notify({
         message: 'No high priority option configured.',
@@ -622,6 +678,15 @@ const IssueTrackerDetailPage = () => {
 
   const handleDeleteIssue = async () => {
     if (!issue?.id) {
+      return;
+    }
+
+    if (isAlreadyClosed) {
+      notify({
+        message: 'Closed issues cannot be deleted.',
+        type: 'warning',
+        displayTime: 3000
+      });
       return;
     }
 
@@ -753,7 +818,7 @@ const IssueTrackerDetailPage = () => {
                 stylingMode="outlined"
                 type="default"
                 onClick={() => setShowCompletePopup(true)}
-                disabled={isSaving || isAlreadyComplete}
+                disabled={isSaving || isAlreadyComplete || isAlreadyClosed}
                 className="user-details__action-btn"
               />
               <Button
@@ -762,17 +827,17 @@ const IssueTrackerDetailPage = () => {
                 stylingMode="outlined"
                 type="default"
                 onClick={handleQuickMarkHighPriority}
-                disabled={isSaving || isAlreadyHigh}
+                disabled={isSaving || isAlreadyHigh || isAlreadyComplete || isAlreadyClosed}
                 className="user-details__action-btn"
               />
-              {!isAlreadyComplete && (
+              {!isAlreadyClosed && (
                 <Button
                   text={isClosing ? 'Closing...' : 'Close Issue'}
                   icon="fa-light fa-lock"
                   stylingMode="outlined"
                   type="default"
                   onClick={() => setShowClosePopup(true)}
-                  disabled={isSaving || isClosing || isAlreadyComplete}
+                  disabled={isSaving || isClosing || isAlreadyClosed}
                   hint="Close this issue with approval notes"
                   className="user-details__action-btn"
                 />
@@ -783,8 +848,8 @@ const IssueTrackerDetailPage = () => {
                 type="default"
                 stylingMode="outlined"
                 onClick={handleEnableEditMode}
-                disabled={isAlreadyComplete}
-                hint={isAlreadyComplete ? 'This issue is closed and cannot be edited' : 'Edit issue details'}
+                disabled={isTerminalStatus}
+                hint={isTerminalStatus ? 'This issue is complete/closed and cannot be edited' : 'Edit issue details'}
                 className={`user-details__action-btn ${canDeleteIssue ? '' : 'user-details__action-btn--last'}`}
               />
               {canDeleteIssue && (
@@ -794,7 +859,7 @@ const IssueTrackerDetailPage = () => {
                   type="danger"
                   stylingMode="outlined"
                   onClick={handleDeleteIssue}
-                  disabled={isSaving}
+                  disabled={isSaving || isAlreadyClosed}
                   className="user-details__action-btn user-details__action-btn--last"
                 />
               )}
@@ -979,7 +1044,7 @@ const IssueTrackerDetailPage = () => {
               <button
                 type="button"
                 className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
-                onClick={() => navigate('/issue-tracker', {
+                onClick={() => navigate('/issue-tracker/tickets', {
                   state: {
                     applyFilters: { vehicleId: issue.vehicleId },
                     filterLabel: `Vehicle: ${issue.vehicleHyoungNo || issue.vehicleNumber}`
@@ -999,7 +1064,7 @@ const IssueTrackerDetailPage = () => {
               <button
                 type="button"
                 className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
-                onClick={() => navigate('/issue-tracker', {
+                onClick={() => navigate('/issue-tracker/tickets', {
                   state: {
                     applyFilters: { siteId: issue.siteId },
                     filterLabel: `Site: ${issue.siteName}`
@@ -1020,7 +1085,7 @@ const IssueTrackerDetailPage = () => {
                 <button
                   type="button"
                   className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
-                  onClick={() => navigate('/issue-tracker', {
+                  onClick={() => navigate('/issue-tracker/tickets', {
                     state: {
                       applyFilters: { deviceId: issue.deviceId },
                       filterLabel: `Device: ${issue.deviceTypeName || issue.deviceId}`
@@ -1168,8 +1233,14 @@ const IssueTrackerDetailPage = () => {
                       accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
                       className="tw-text-sm tw-text-gray-700"
                       onChange={handleFileUpload}
-                      disabled={isUploading}
+                      disabled={isUploading || !canUploadAttachments}
                     />
+                    {!canUploadAttachments && (
+                      <p className="tw-text-xs tw-text-amber-600 tw-mt-1">
+                        <i className="fa-light fa-lock tw-mr-1"></i>
+                        Closed issues do not allow new attachments.
+                      </p>
+                    )}
                   </div>
                   {isUploading && (
                     <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-blue-600">
