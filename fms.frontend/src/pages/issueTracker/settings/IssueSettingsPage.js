@@ -30,7 +30,7 @@ import IssueMonitoringSystemConfigTab from './IssueMonitoringSystemConfigTab';
 const SETTINGS_BASE_PATH = '/issue-tracker/settings';
 
 const TAB_CONFIG = [
-  { key: 'categories', text: 'Categories', icon: 'fa-light fa-tags', path: 'categories' },
+  { key: 'categories', text: 'Tags', icon: 'fa-light fa-tags', path: 'categories' },
   { key: 'priorities', text: 'Priorities', icon: 'fa-light fa-exclamation-triangle', path: 'priorities' },
   { key: 'statuses', text: 'Statuses', icon: 'fa-light fa-list-check', path: 'statuses' },
   { key: 'device-types', text: 'Device Types', icon: 'fa-light fa-microchip', path: 'device-types' },
@@ -396,17 +396,17 @@ const IssueSettingsPage = () => {
               useIcons={true}
               confirmDelete={true}
               texts={{
-                confirmDeleteMessage: 'Are you sure you want to delete this category?',
-                addRow: 'Add Category',
-                editRow: 'Edit Category',
+                confirmDeleteMessage: 'Are you sure you want to delete this tag?',
+                addRow: 'Add Tag',
+                editRow: 'Edit Tag',
                 saveRowChanges: 'Save',
                 cancelRowChanges: 'Cancel',
                 deleteRow: 'Delete'
               }}
             />
             <Column dataField="id" caption="ID" width={80} allowEditing={false} />
-            <Column dataField="name" caption="Category Name">
-              <RequiredRule message="Category name is required" />
+            <Column dataField="name" caption="Tag Name">
+              <RequiredRule message="Tag name is required" />
             </Column>
             <Column dataField="description" caption="Description" />
           </DataGrid>

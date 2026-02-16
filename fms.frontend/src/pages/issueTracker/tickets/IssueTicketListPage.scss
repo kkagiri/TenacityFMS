@@ -1,0 +1,50 @@
+/**
+ * File: IssueTicketListPage.scss
+ * Purpose: Local styles for Issue Ticket list toolbar and responsive menu button behavior.
+ * Dependencies: DevExtreme DataGrid toolbar CSS classes
+ * Last Modified: 2026-02-14
+ *
+ * Key Styles:
+ * - Removes oval/border from toolbar overflow (meatball) button
+ * - Keeps overflow icon as plain three dots
+ * - Ensures menu popover action text remains visible
+ */
+
+.issue-ticket-list-page {
+  .dx-datagrid {
+    .dx-toolbar {
+      .dx-toolbar-menu-container {
+        .dx-dropdownmenu-button {
+          background: transparent !important;
+          border: none !important;
+          box-shadow: none !important;
+          min-width: auto !important;
+
+          .dx-button-content {
+            padding: 0 !important;
+          }
+
+          &.dx-state-hover,
+          &.dx-state-focused,
+          &.dx-state-active {
+            background: transparent !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+        }
+      }
+    }
+  }
+
+}
+
+.dx-dropdownmenu-popup {
+  .dx-overlay-content {
+    min-width: 180px !important;
+  }
+
+  .dx-menu-item .dx-menu-item-content {
+    min-width: 180px;
+    white-space: nowrap;
+  }
+}

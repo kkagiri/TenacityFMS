@@ -9,6 +9,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -36,10 +37,14 @@ public class RespondToIssueAssignmentCommandHandler : IRequestHandler<RespondToI
             var request = command.Request;
             var normalizedAction = request.Action?.Trim().ToLowerInvariant();
 
-            if (normalizedAction != "confirm" && normalizedAction != "schedule")
+            if (normalizedAction != "confirm" && normalizedAction != "schedule" && normalizedAction != "ongoing")
             {
-                return FMSResponse<bool>.Failed("Action must be either 'confirm' or 'schedule'.");
+                return FMSResponse<bool>.Failed("Action must be 'confirm', 'ongoing', or 'schedule'.");
             }
+
+            // Treat "ongoing" as alias for "confirm"
+            if (normalizedAction == "ongoing")
+                normalizedAction = "confirm";
 
             if (string.IsNullOrWhiteSpace(request.RespondedByUserId))
             {
@@ -110,12 +115,59 @@ public class RespondToIssueAssignmentCommandHandler : IRequestHandler<RespondToI
                 issue.Status = inProgressStatusId.Value;
             }
 
+            // Handle new due date (independent of action — can be sent with confirm/ongoing/schedule)
+            if (request.NewDueDate.HasValue)
+            {
+                var newDueDate = request.NewDueDate.Value.Date;
+                if (newDueDate < DateTime.UtcNow.Date)
+                {
+                    return FMSResponse<bool>.Failed("New due date cannot be in the past.");
+                }
+                issue.DueDate = newDueDate;
+            }
+
+            // Handle vehicle status change
+            if (request.VehicleStatusChange.HasValue)
+            {
+                var validStatuses = new[] { 0, 1, 2 }; // Working=0, ParkedYard=1, Workshop=2
+                if (!validStatuses.Contains(request.VehicleStatusChange.Value))
+                {
+                    return FMSResponse<bool>.Failed("Invalid vehicle status. Use 0 (Working), 1 (Parked Yard), or 2 (Workshop).");
+                }
+
+                var vehicle = await _context.Vehicles
+                    .FirstOrDefaultAsync(v => v.VehicleId == issue.VehicleId, cancellationToken);
+
+                if (vehicle != null)
+                {
+                    var newStatus = (VehicleStatus)request.VehicleStatusChange.Value;
+                    vehicle.VehicleStatusValue = newStatus;
+
+                    _logger.LogInformation(
+                        "Vehicle status changed via issue response. VehicleId: {VehicleId}, NewStatus: {NewStatus}, IssueId: {IssueId}, ChangedBy: {UserId}",
+                        vehicle.VehicleId, newStatus, issue.Id, request.RespondedByUserId);
+                }
+            }
+
             issue.LastModfield = DateTime.UtcNow;
             await _context.SaveChangesAsync(cancellationToken);
 
             var responseMessage = normalizedAction == "confirm"
                 ? "Issue assignment confirmed successfully. Status updated to In Progress."
                 : $"Issue scheduled successfully for {issue.DueDate:yyyy-MM-dd}. Status updated to In Progress.";
+
+            // Append vehicle status info to response message
+            if (request.VehicleStatusChange.HasValue)
+            {
+                var statusName = ((VehicleStatus)request.VehicleStatusChange.Value).ToString();
+                responseMessage += $" Vehicle status changed to {statusName}.";
+            }
+
+            // Append deadline info to response message
+            if (request.NewDueDate.HasValue)
+            {
+                responseMessage += $" Deadline updated to {request.NewDueDate.Value:yyyy-MM-dd}. No new alerts will be created for this vehicle until this date.";
+            }
 
             _logger.LogInformation(
                 "Issue assignment response processed. IssueId: {IssueId}, Action: {Action}, RespondedBy: {UserId}",

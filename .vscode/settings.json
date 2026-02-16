@@ -23,5 +23,8 @@
   },
   "[json]": {
     "editor.defaultFormatter": "vscode.json-language-features"
+  },
+  "chat.tools.terminal.autoApprove": {
+    "dotnet build": true
   }
 }

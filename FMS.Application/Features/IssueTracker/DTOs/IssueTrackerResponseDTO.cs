@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 
 namespace FMS.Application.Features.FMS.Issuetracker
 {
@@ -16,6 +17,8 @@ namespace FMS.Application.Features.FMS.Issuetracker
         // Category information
         public int IssueCategoryId { get; set; }
         public string CategoryName { get; set; } = string.Empty;
+        public List<int> IssueCategoryTags { get; set; } = new();
+        public List<string> IssueCategoryTagNames { get; set; } = new();
 
         // Site information
         public int SiteId { get; set; }
@@ -33,6 +36,10 @@ namespace FMS.Application.Features.FMS.Issuetracker
         public int VehicleId { get; set; }
         public string VehicleNumber { get; set; } = string.Empty;
         public string VehicleHyoungNo { get; set; } = string.Empty;
+        /// <summary>
+        /// Current vehicle operational status: 0=Working, 1=ParkedYard, 2=Workshop
+        /// </summary>
+        public int VehicleStatusValue { get; set; }
 
         // User information - using names instead of IDs
         public string OpenbyId { get; set; } = string.Empty;

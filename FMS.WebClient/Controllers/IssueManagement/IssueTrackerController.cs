@@ -77,11 +77,17 @@ namespace FMS.WebClient.Controllers
             {
                 GetIssueListByIdQuery query = new(id);
                 IssueTrackerResponseDTO issueTracker = await _mediator.Send(query);
+
+                if (issueTracker == null)
+                {
+                    return NotFound(new { message = $"Issue with ID {id} not found." });
+                }
+
                 return Ok(issueTracker);
             }
             catch (Exception ex)
             {
-                return BadRequest(new { message = $"Error fetching issue {id}: {ex.Message}" });
+                return BadRequest(new { message = $"Unable to fetch issue {id}.", error = ex.Message });
             }
         }
 
@@ -331,6 +337,21 @@ namespace FMS.WebClient.Controllers
                 if (categoryData is null)
                 {
                     return BadRequest(new { message = "Category data is required" });
+                }
+
+                var requestedName = categoryData.Name?.Trim();
+                if (string.IsNullOrWhiteSpace(requestedName))
+                {
+                    return BadRequest(new { message = "Category name is required" });
+                }
+
+                var existingCategories = await _mediator.Send(new GetIssueCategoryListQuery());
+                var existingCategory = existingCategories
+                    .FirstOrDefault(category => string.Equals(category.Name?.Trim(), requestedName, StringComparison.OrdinalIgnoreCase));
+
+                if (existingCategory != null)
+                {
+                    return Ok(new { id = existingCategory.Id, message = "Category already exists" });
                 }
 
                 IssueCategoryCreateCommand command = new(categoryData);

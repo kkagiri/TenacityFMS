@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities;
@@ -28,32 +29,32 @@ namespace FMS.BackgroundServices.IssueTracker
     /// </summary>
     public class AutoCloseCheckerFactory : IAutoCloseCheckerFactory
     {
-        private readonly IServiceProvider _serviceProvider;
+        private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<AutoCloseCheckerFactory> _logger;
         private readonly Dictionary<string, Type> _checkerTypes;
 
         public AutoCloseCheckerFactory(
-            IServiceProvider serviceProvider,
+            IServiceScopeFactory scopeFactory,
             ILogger<AutoCloseCheckerFactory> logger)
         {
-            _serviceProvider = serviceProvider;
+            _scopeFactory = scopeFactory;
             _logger = logger;
 
             // Register known checker types
             _checkerTypes = new Dictionary<string, Type>(StringComparer.OrdinalIgnoreCase)
             {
-                { "Online", typeof(OnlineChecker) },
-                { "DeviceOnline", typeof(OnlineChecker) },
-                { "OnlineChecker", typeof(OnlineChecker) },
-                { "AlarmCleared", typeof(AlarmClearedChecker) },
-                { "ActiveAlarm", typeof(AlarmClearedChecker) },
-                { "Status", typeof(StatusChecker) },
-                { "DeviceStatus", typeof(StatusChecker) },
-                { "Timeout", typeof(TimeoutChecker) },
-                { "AutoTimeout", typeof(TimeoutChecker) },
-                { "ManualOnly", typeof(ManualOnlyChecker) },
-                { "FuelActivity", typeof(FuelActivityChecker) },
-                { "NoFuelActivity", typeof(FuelActivityChecker) }
+                { NormalizeCheckerType("Online"), typeof(OnlineChecker) },
+                { NormalizeCheckerType("DeviceOnline"), typeof(OnlineChecker) },
+                { NormalizeCheckerType("OnlineChecker"), typeof(OnlineChecker) },
+                { NormalizeCheckerType("AlarmCleared"), typeof(AlarmClearedChecker) },
+                { NormalizeCheckerType("ActiveAlarm"), typeof(AlarmClearedChecker) },
+                { NormalizeCheckerType("Status"), typeof(StatusChecker) },
+                { NormalizeCheckerType("DeviceStatus"), typeof(StatusChecker) },
+                { NormalizeCheckerType("Timeout"), typeof(TimeoutChecker) },
+                { NormalizeCheckerType("AutoTimeout"), typeof(TimeoutChecker) },
+                { NormalizeCheckerType("ManualOnly"), typeof(ManualOnlyChecker) },
+                { NormalizeCheckerType("FuelActivity"), typeof(FuelActivityChecker) },
+                { NormalizeCheckerType("NoFuelActivity"), typeof(FuelActivityChecker) }
             };
         }
 
@@ -65,13 +66,15 @@ namespace FMS.BackgroundServices.IssueTracker
                 return null;
             }
 
-            if (_checkerTypes.TryGetValue(checkerType, out var type))
+            var normalizedCheckerType = NormalizeCheckerType(checkerType);
+
+            if (_checkerTypes.TryGetValue(normalizedCheckerType, out var type))
             {
                 try
                 {
                     // Create a DI scope so scoped services (e.g. GpsdataContext) can be resolved.
                     // The ScopedAutoCloseChecker wrapper ensures the scope is disposed after use.
-                    var scope = _serviceProvider.CreateScope();
+                    var scope = _scopeFactory.CreateScope();
                     var innerChecker = (IAutoCloseChecker)ActivatorUtilities.CreateInstance(scope.ServiceProvider, type);
                     return new ScopedAutoCloseChecker(innerChecker, scope);
                 }
@@ -84,6 +87,15 @@ namespace FMS.BackgroundServices.IssueTracker
 
             _logger.LogWarning("Unknown checker type: {CheckerType}", checkerType);
             return null;
+        }
+
+        private static string NormalizeCheckerType(string checkerType)
+        {
+            return new string(checkerType
+                .Trim()
+                .ToLowerInvariant()
+                .Where(char.IsLetterOrDigit)
+                .ToArray());
         }
     }
 

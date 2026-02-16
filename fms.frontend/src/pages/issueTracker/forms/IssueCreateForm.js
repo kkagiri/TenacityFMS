@@ -50,6 +50,9 @@ const toDateTimeLocalValue = (value) => {
   return `${year}-${month}-${day}T${hours}:${minutes}`;
 };
 
+const normalizeToken = (value) => String(value || '').trim().toLowerCase().replace(/[\s-]+/g, '_');
+const isFuelActivityToken = (value) => normalizeToken(value) === 'fuel_activity';
+
 const IssueCreateForm = ({ onSubmit = null }) => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
@@ -102,6 +105,25 @@ const IssueCreateForm = ({ onSubmit = null }) => {
   const [isTemplatePopupVisible, setIsTemplatePopupVisible] = useState(false);
   const [isCreatingTemplate, setIsCreatingTemplate] = useState(false);
   const [templateDraft, setTemplateDraft] = useState({ name: '', titleTemplate: '', descriptionTemplate: '', isActive: true, categoryIds: [] });
+  const [localCategoryOptions, setLocalCategoryOptions] = useState([]);
+
+  const categoryOptions = useMemo(() => {
+    const merged = [...categories, ...localCategoryOptions];
+    const unique = [];
+    const seen = new Set();
+
+    merged.forEach((item) => {
+      const key = item?.id ?? `${normalizeToken(item?.name)}-${item?.description || ''}`;
+      if (key === null || key === undefined || seen.has(key)) {
+        return;
+      }
+
+      seen.add(key);
+      unique.push(item);
+    });
+
+    return unique;
+  }, [categories, localCategoryOptions]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -120,7 +142,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
           const types = Array.isArray(deviceTypesRes.value)
             ? deviceTypesRes.value
             : deviceTypesRes.value?.data || [];
-          setDeviceTypes(types);
+          setDeviceTypes(types.filter((type) => !isFuelActivityToken(type?.name || type?.typeName)));
         }
       } finally {
         setIsLoading(false);
@@ -181,7 +203,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
         setLoadingTemplates(true);
         const response = await issueTrackerV2Service.getTemplatesByDeviceType(newDeviceTypeId);
         const templateList = Array.isArray(response) ? response : response?.data || [];
-        setTemplates(templateList.filter(t => t.isActive));
+        setTemplates(templateList.filter((t) => t.isActive && !isFuelActivityToken(t?.name || t?.titleTemplate)));
       } catch (error) {
         console.error('Error loading templates:', error);
         setTemplates([]);
@@ -280,7 +302,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
       // Reload templates
       const response = await issueTrackerV2Service.getTemplatesByDeviceType(formData.deviceTypeId);
       const templateList = Array.isArray(response) ? response : response?.data || [];
-      setTemplates(templateList.filter(t => t.isActive));
+      setTemplates(templateList.filter((t) => t.isActive && !isFuelActivityToken(t?.name || t?.titleTemplate)));
 
       // Close popup and reset
       setIsTemplatePopupVisible(false);
@@ -325,6 +347,48 @@ const IssueCreateForm = ({ onSubmit = null }) => {
       ...prev,
       attachments: selectedFiles
     }));
+  };
+
+  const handleCreateTagFromInput = async (event) => {
+    const rawText = event?.text || '';
+    const tagCandidates = rawText
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+    if (tagCandidates.length === 0) {
+      event.customItem = null;
+      return;
+    }
+
+    event.customItem = (async () => {
+      const createdIds = [];
+
+      for (const candidate of tagCandidates) {
+        const existing = categoryOptions.find((item) => normalizeToken(item?.name) === normalizeToken(candidate));
+        if (existing?.id) {
+          createdIds.push(existing.id);
+          continue;
+        }
+
+        const createResult = await issueTrackerService.createIssueCategory({
+          name: candidate,
+          description: `Tag: ${candidate}`
+        });
+
+        const newTagId = Number(createResult?.id || createResult?.data?.id || 0);
+        if (newTagId > 0) {
+          createdIds.push(newTagId);
+          setLocalCategoryOptions((prev) => ([...prev, { id: newTagId, name: candidate, description: `Tag: ${candidate}` }]));
+        }
+      }
+
+      if (createdIds.length > 1) {
+        setCategoryIds((prev) => Array.from(new Set([...(prev || []), ...createdIds])));
+      }
+
+      return createdIds[0] || null;
+    })();
   };
 
   const handleRemoveAttachment = (indexToRemove) => {
@@ -407,7 +471,8 @@ const IssueCreateForm = ({ onSubmit = null }) => {
     }
 
     const payload = {
-      IssueCategory: categoryIds[0] || categories[0]?.id,
+      IssueCategory: categoryIds[0] || categoryOptions[0]?.id,
+      IssueCategoryTags: categoryIds,
       IssueTemplateId: formData.issueTemplateId,
       DeviceTypeId: formData.deviceTypeId,
       CanAutoClose: Boolean(formData.canAutoClose),
@@ -639,7 +704,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             <div className="tw-col-span-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
               <p className="tw-text-xs tw-font-semibold tw-text-blue-700 tw-mb-2">
                 <i className="fa-light fa-tags tw-mr-1"></i>
-                Template Categories
+                Template Tags
               </p>
               <div className="tw-flex tw-flex-wrap tw-gap-2">
                 {formData.issueTemplate.categories.map((category) => (
@@ -666,18 +731,21 @@ const IssueCreateForm = ({ onSubmit = null }) => {
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Issue Categories <span className="tw-text-red-500">*</span>
+                Issue Tags <span className="tw-text-red-500">*</span>
               </label>
               <TagBox
                 value={categoryIds}
-                dataSource={categories}
+                dataSource={categoryOptions}
                 displayExpr="name"
                 valueExpr="id"
-                placeholder={formData.issueTemplateId ? "Select categories..." : "Select template first"}
+                placeholder={formData.issueTemplateId ? 'Select or type tags (comma-separated)...' : 'Select template first'}
                 searchEnabled={true}
                 showSelectionControls={true}
                 applyValueMode="useButtons"
                 onValueChanged={(e) => setCategoryIds(e.value || [])}
+                acceptCustomValue={true}
+                customItemCreateEvent="change"
+                onCustomItemCreating={handleCreateTagFromInput}
                 disabled={!formData.issueTemplateId}
               />
               {!formData.issueTemplateId && (
@@ -687,7 +755,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
                 </p>
               )}
               {attemptedSubmit && formData.issueTemplateId && !validationState.hasCategory && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one category is required</p>
+                <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one tag is required</p>
               )}
             </div>
 
@@ -1092,15 +1160,18 @@ const IssueCreateForm = ({ onSubmit = null }) => {
               Categories / Tags
             </label>
             <TagBox
-              dataSource={categories}
+              dataSource={categoryOptions}
               displayExpr="name"
               valueExpr="id"
-              placeholder="Select categories"
+              placeholder="Select or type tags"
               searchEnabled={true}
               showSelectionControls={true}
               applyValueMode="useButtons"
               value={templateDraft.categoryIds || []}
               onValueChanged={(e) => setTemplateDraft(prev => ({ ...prev, categoryIds: e.value }))}
+              acceptCustomValue={true}
+              customItemCreateEvent="change"
+              onCustomItemCreating={handleCreateTagFromInput}
               disabled={isCreatingTemplate}
             />
           </div>

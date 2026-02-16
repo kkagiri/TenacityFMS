@@ -76,6 +76,21 @@ const toNullableInt = (value) => {
 const getCategoryLabel = (category) => category?.name || category?.categoryName || '';
 const getPriorityLabel = (priority) => priority?.name || priority?.priorityName || priority?.priority || '';
 const getStatusLabel = (status) => status?.status || status?.name || status?.statusName || '';
+const normalizeIssueTags = (issueData) => {
+  if (!issueData) {
+    return [];
+  }
+
+  if (Array.isArray(issueData.issueCategoryTagNames) && issueData.issueCategoryTagNames.length > 0) {
+    return issueData.issueCategoryTagNames;
+  }
+
+  if (issueData.categoryName) {
+    return [issueData.categoryName];
+  }
+
+  return [];
+};
 
 const findStatusByKeywords = (items, keywords) => {
   if (!Array.isArray(items)) {
@@ -172,6 +187,9 @@ const IssueTrackerDetailPage = () => {
       problemTitle: issueData.problemTitle || '',
       problemDescription: issueData.problemDescription || '',
       issueCategoryId: issueData.issueCategoryId || null,
+      issueCategoryTags: Array.isArray(issueData.issueCategoryTags) && issueData.issueCategoryTags.length > 0
+        ? issueData.issueCategoryTags
+        : (issueData.issueCategoryId ? [issueData.issueCategoryId] : []),
       priority: issueData.priority ?? null,
       status: issueData.status ?? null,
       dueDate: toDateInputValue(issueData.dueDate),
@@ -207,11 +225,13 @@ const IssueTrackerDetailPage = () => {
         }
       } catch (error) {
         console.error(`Error loading issue details for issue ${id}:`, error);
-        notify({
-          message: 'Unable to load issue details.',
-          type: 'error',
-          displayTime: 3000
-        });
+        if (!error?.isNotFound && error?.status !== 404) {
+          notify({
+            message: 'Unable to load issue details.',
+            type: 'error',
+            displayTime: 3000
+          });
+        }
         setIssue(null);
       } finally {
         setLoading(false);
@@ -259,6 +279,9 @@ const IssueTrackerDetailPage = () => {
       const payload = {
         Id: issue.id,
         IssueCategory: editData.issueCategoryId ?? issue.issueCategoryId,
+        IssueCategoryTags: (editData.issueCategoryTags && editData.issueCategoryTags.length > 0)
+          ? editData.issueCategoryTags
+          : (issue.issueCategoryTags || (issue.issueCategoryId ? [issue.issueCategoryId] : [])),
         Site: issue.siteId,
         Openby: '',
         RelatedIssue: editData.relatedIssue,
@@ -333,6 +356,7 @@ const IssueTrackerDetailPage = () => {
       const payload = {
         Id: issue.id,
         IssueCategory: issue.issueCategoryId,
+        IssueCategoryTags: issue.issueCategoryTags || (issue.issueCategoryId ? [issue.issueCategoryId] : []),
         Site: issue.siteId,
         Openby: '',
         RelatedIssue: issue.relatedIssue,
@@ -395,12 +419,14 @@ const IssueTrackerDetailPage = () => {
 
   const editingCategoryDisplay = useMemo(() => {
     if (!isEditMode || !editData) {
-      return issue?.categoryName || '';
+      return normalizeIssueTags(issue).join(', ');
     }
 
     const selectedCategory = categories.find((item) => item.id === editData.issueCategoryId);
-    return getCategoryLabel(selectedCategory) || issue?.categoryName || '';
+    return getCategoryLabel(selectedCategory) || normalizeIssueTags(issue).join(', ');
   }, [isEditMode, editData, categories, issue]);
+
+  const issueTagNames = useMemo(() => normalizeIssueTags(issue), [issue]);
 
   const completeStatusOption = useMemo(
     () => findStatusByKeywords(statuses, ['complete', 'completed', 'closed', 'resolved', 'done']),
@@ -803,7 +829,13 @@ const IssueTrackerDetailPage = () => {
         <div className="tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-mb-4">
           <IssuePriorityBadge priority={editingPriorityDisplay} />
           <IssueStatusIndicator status={editingStatusDisplay} />
-          {editingCategoryDisplay && (
+          {!isEditMode && issueTagNames.length > 0 && issueTagNames.map((tagName) => (
+            <span key={tagName} className="tw-inline-flex tw-items-center tw-bg-gray-100 tw-text-gray-700 tw-text-xs tw-font-medium tw-px-3 tw-py-1 tw-rounded-full">
+              <i className="fa-light fa-tag tw-mr-1"></i>
+              {tagName}
+            </span>
+          ))}
+          {isEditMode && editingCategoryDisplay && (
             <span className="tw-inline-flex tw-items-center tw-bg-gray-100 tw-text-gray-700 tw-text-xs tw-font-medium tw-px-3 tw-py-1 tw-rounded-full">
               <i className="fa-light fa-tag tw-mr-1"></i>
               {editingCategoryDisplay}
@@ -835,7 +867,11 @@ const IssueTrackerDetailPage = () => {
                 id="issue-category"
                 className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-text-gray-800 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200 focus:tw-border-blue-500"
                 value={editData.issueCategoryId ?? ''}
-                onChange={(event) => handleEditFieldChange('issueCategoryId', toNullableInt(event.target.value))}
+                onChange={(event) => {
+                  const nextCategoryId = toNullableInt(event.target.value);
+                  handleEditFieldChange('issueCategoryId', nextCategoryId);
+                  handleEditFieldChange('issueCategoryTags', nextCategoryId ? [nextCategoryId] : []);
+                }}
               >
                 <option value="">Select category</option>
                 {categories.map((category) => (
@@ -942,7 +978,7 @@ const IssueTrackerDetailPage = () => {
             {issue.vehicleId && (
               <button
                 type="button"
-                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
                 onClick={() => navigate('/issue-tracker', {
                   state: {
                     applyFilters: { vehicleId: issue.vehicleId },
@@ -962,7 +998,7 @@ const IssueTrackerDetailPage = () => {
             {issue.siteId && (
               <button
                 type="button"
-                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
                 onClick={() => navigate('/issue-tracker', {
                   state: {
                     applyFilters: { siteId: issue.siteId },
@@ -983,7 +1019,7 @@ const IssueTrackerDetailPage = () => {
               {issue.deviceId && (
                 <button
                   type="button"
-                  className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1"
+                  className="tw-mt-2 tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 hover:tw-underline tw-flex tw-items-center tw-gap-1 tw-bg-blue-50 hover:tw-bg-blue-100 tw-border-0 tw-rounded tw-px-2 tw-py-1"
                   onClick={() => navigate('/issue-tracker', {
                     state: {
                       applyFilters: { deviceId: issue.deviceId },

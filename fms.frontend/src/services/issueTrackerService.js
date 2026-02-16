@@ -72,6 +72,12 @@ class IssueTrackerService {
       return response.data;
     } catch (error) {
       console.error(`Error fetching issue ${id}:`, error);
+      if (error?.response?.status === 404) {
+        const notFoundError = new Error(error?.response?.data?.message || `Issue ${id} not found`);
+        notFoundError.status = 404;
+        notFoundError.isNotFound = true;
+        throw notFoundError;
+      }
       throw this.handleError(error, `Failed to fetch issue ${id}`);
     }
   }

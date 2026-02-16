@@ -34,6 +34,7 @@ import { exportDataGrid } from 'devextreme/excel_exporter';
 import saveAs from 'file-saver';
 import issueTrackerService from '../../../services/issueTrackerService';
 import { usePermissions } from '../../../hooks/usePermissions';
+import './IssueTicketListPage.scss';
 
 const IssueTicketListPage = () => {
   const navigate = useNavigate();
@@ -149,6 +150,9 @@ const IssueTicketListPage = () => {
       '';
 
     const rawDescription = issue.problemDescription || '';
+    const categoryName = Array.isArray(issue.issueCategoryTagNames) && issue.issueCategoryTagNames.length > 0
+      ? issue.issueCategoryTagNames.join(', ')
+      : (issue.categoryName || '');
     const lastSeenDetails = parseLastSeenDetails(rawDescription);
     const problemDescription = rawDescription.replace(
       /(\d+(?:\.\d+)?)\s*(?:min|mins|minute|minutes)\s+ago/gi,
@@ -159,6 +163,7 @@ const IssueTicketListPage = () => {
       ...issue,
       assignedToName,
       vehicleName,
+      categoryName,
       problemDescription,
       lastSeenAtUtc: lastSeenDetails.lastSeenAtUtc,
       lastSeenMinutesAgo: lastSeenDetails.lastSeenMinutesAgo,
@@ -480,10 +485,10 @@ const IssueTicketListPage = () => {
   }
 
   return (
-    <div className="tw-p-6">
+    <div className="issue-ticket-list-page tw-p-2 sm:tw-p-4 lg:tw-p-6">
       {/* Header */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-p-6 tw-mb-6">
-        <div className="tw-flex tw-justify-between tw-items-start tw-mb-4">
+      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-p-4 sm:tw-p-5 lg:tw-p-6 tw-mb-4 lg:tw-mb-6">
+        <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-justify-between lg:tw-items-start tw-gap-3 tw-mb-4">
           <div>
             <h2 className="tw-text-2xl tw-font-semibold tw-text-gray-900 tw-mb-2">
               <i className="fa-light fa-ticket tw-mr-2 tw-text-orange-500"></i>
@@ -494,13 +499,14 @@ const IssueTicketListPage = () => {
             </p>
           </div>
 
-          <div className="tw-flex tw-gap-3">
+          <div className="tw-flex tw-flex-wrap tw-gap-2 tw-w-full lg:tw-w-auto">
             <Button
               text="Refresh"
               type="normal"
               stylingMode="outlined"
               icon="fa-light fa-sync"
               onClick={handleRefresh}
+              className="tw-flex-1 sm:tw-flex-none"
             />
             <Button
               text="Create New Issue"
@@ -508,7 +514,7 @@ const IssueTicketListPage = () => {
               stylingMode="contained"
               icon="fa-light fa-plus"
               onClick={handleCreateNew}
-              className="tw-bg-orange-600 tw-text-white"
+              className="tw-bg-orange-600 tw-text-white tw-flex-1 sm:tw-flex-none"
             />
           </div>
         </div>
@@ -548,33 +554,40 @@ const IssueTicketListPage = () => {
           <Export enabled={true} allowExportSelectedData={true} />
 
           <Toolbar>
-            <ToolbarItem name="exportButton" />
-            <ToolbarItem name="columnChooserButton" />
-            <ToolbarItem location="before">
-              <Button
-                text="Close & Monitor"
-                icon="fa-light fa-eye"
-                type="normal"
-                stylingMode="outlined"
-                onClick={handleOpenCloseMonitor}
-                hint="Close selected issues and continue monitoring vehicles for fuel activity"
-              />
-            </ToolbarItem>
+            <ToolbarItem name="exportButton" locateInMenu="auto" />
+            <ToolbarItem name="columnChooserButton" locateInMenu="auto" />
+            <ToolbarItem
+              location="before"
+              locateInMenu="auto"
+              widget="dxButton"
+              options={{
+                text: 'Close & Monitor',
+                icon: 'fa-light fa-eye',
+                type: 'normal',
+                stylingMode: 'outlined',
+                onClick: handleOpenCloseMonitor,
+                hint: 'Close selected issues and continue monitoring vehicles for fuel activity'
+              }}
+            />
             {canDeleteIssue && (
-              <ToolbarItem location="before">
-                <Button
-                  text={isDeleting ? 'Deleting...' : 'Delete Selected'}
-                  icon="fa-light fa-trash"
-                  type="danger"
-                  stylingMode="outlined"
-                  onClick={handleBulkDelete}
-                  disabled={isDeleting}
-                  hint="Delete selected issues (admin only)"
-                />
-              </ToolbarItem>
+              <ToolbarItem
+                location="before"
+                locateInMenu="auto"
+                widget="dxButton"
+                options={{
+                  text: isDeleting ? 'Deleting...' : 'Delete Selected',
+                  icon: 'fa-light fa-trash',
+                  type: 'danger',
+                  stylingMode: 'outlined',
+                  onClick: handleBulkDelete,
+                  disabled: isDeleting,
+                  hint: 'Delete selected issues (admin only)'
+                }}
+              />
             )}
             <ToolbarItem
               location="after"
+              locateInMenu="auto"
               widget="dxButton"
               options={{
                 text: 'Refresh',
@@ -659,7 +672,7 @@ const IssueTicketListPage = () => {
 
           <Column
             dataField="categoryName"
-            caption="Category"
+            caption="Tags"
             width={150}
             allowSorting={true}
           >

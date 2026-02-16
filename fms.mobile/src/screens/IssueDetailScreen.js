@@ -131,6 +131,17 @@ const getStatusConfig = (status) => {
   }
 };
 
+const normalizeIssueTags = (issue) => {
+  if (!issue) return [];
+  if (Array.isArray(issue.issueCategoryTagNames) && issue.issueCategoryTagNames.length > 0) {
+    return issue.issueCategoryTagNames;
+  }
+  if (issue.categoryName) {
+    return [issue.categoryName];
+  }
+  return [];
+};
+
 const ACTIVITY_ICONS = {
   Created: { icon: "plus-circle", color: "#10B981" },
   Updated: { icon: "pen", color: "#3B82F6" },
@@ -167,11 +178,11 @@ const IssueDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { issueId } = route.params;
-  const { isAdmin, hasAnyPermission } = usePermissions();
+  const { isAdmin, hasPermission, hasAnyPermission, hasRole, userInfo } = usePermissions();
 
   const canView = useMemo(
-    () => isAdmin || hasAnyPermission(["_View_Issue", "_Read_Issue", "PowerUser"]),
-    [isAdmin, hasAnyPermission]
+    () => isAdmin || hasRole("PowerUser") || hasRole("Power User") || hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues"]),
+    [isAdmin, hasRole, hasAnyPermission]
   );
 
   // State
@@ -214,7 +225,11 @@ const IssueDetailScreen = () => {
         setIsFollowing(followStatus?.isFollowing || false);
       } catch (error) {
         console.error("[IssueDetailScreen] loadIssue error:", error);
-        Alert.alert("Error", "Unable to load issue details.");
+        if (error?.isNotFound || error?.status === 404) {
+          setIssue(null);
+        } else {
+          Alert.alert("Error", "Unable to load issue details.");
+        }
       } finally {
         setLoading(false);
         setRefreshing(false);
@@ -468,6 +483,36 @@ const IssueDetailScreen = () => {
     return ["completed", "closed", "resolved", "done"].includes(s);
   }, [issue?.statusName]);
 
+  // Permission-based action guards
+  const canEdit = useMemo(
+    () => isAdmin || hasAnyPermission(["_Edit_Issues", "_Edit_Issue"]),
+    [isAdmin, hasAnyPermission]
+  );
+
+  const canApprove = useMemo(
+    () => isAdmin || hasAnyPermission(["_Approve_Issues", "_Approve_Issue"]),
+    [isAdmin, hasAnyPermission]
+  );
+
+  const canDelete = useMemo(
+    () => isAdmin || hasAnyPermission(["_Delete_Issues", "_Delete_Issue"]),
+    [isAdmin, hasAnyPermission]
+  );
+
+  const isIssueOpener = useMemo(() => {
+    if (!userInfo?.id || !issue) return false;
+    return (
+      String(userInfo.id) === String(issue.openbyId || issue.openById || issue.openBy)
+    );
+  }, [userInfo, issue]);
+
+  const canCloseIssue = useMemo(
+    () => canApprove || isIssueOpener,
+    [canApprove, isIssueOpener]
+  );
+
+  const issueTagNames = useMemo(() => normalizeIssueTags(issue), [issue]);
+
   // ===== TAB RENDERERS (must be before return) =====
 
   const renderOverview = () => {
@@ -642,15 +687,17 @@ const IssueDetailScreen = () => {
   const renderAttachments = () => {
     return (
       <View>
-        {/* Upload button */}
-        <TouchableOpacity
-          style={styles.uploadButton}
-          onPress={handleUploadAttachment}
-          activeOpacity={0.7}
-        >
-          <Icon name="plus" size={16} color="#6D28D9" />
-          <Text style={styles.uploadButtonText}>Add Attachment</Text>
-        </TouchableOpacity>
+        {/* Upload button — requires _Edit_Issues permission */}
+        {canEdit && (
+          <TouchableOpacity
+            style={styles.uploadButton}
+            onPress={handleUploadAttachment}
+            activeOpacity={0.7}
+          >
+            <Icon name="plus" size={16} color="#6D28D9" />
+            <Text style={styles.uploadButtonText}>Add Attachment</Text>
+          </TouchableOpacity>
+        )}
 
         {attachmentsLoading ? (
           <View style={styles.tabLoading}>
@@ -685,12 +732,14 @@ const IssueDetailScreen = () => {
                     {formatRelativeTime(att.uploadedAt)}
                   </Text>
                 </View>
-                <TouchableOpacity
-                  style={styles.attachmentDeleteBtn}
-                  onPress={() => handleDeleteAttachment(att)}
-                >
-                  <Icon name="trash-alt" size={14} color="#EF4444" />
-                </TouchableOpacity>
+                {canDelete && (
+                  <TouchableOpacity
+                    style={styles.attachmentDeleteBtn}
+                    onPress={() => handleDeleteAttachment(att)}
+                  >
+                    <Icon name="trash-alt" size={14} color="#EF4444" />
+                  </TouchableOpacity>
+                )}
               </View>
             ))}
           </View>
@@ -826,14 +875,14 @@ const IssueDetailScreen = () => {
             {priorityConfig.label}
           </Text>
         </View>
-        {issue.categoryName && (
-          <View style={[styles.bigBadge, { backgroundColor: "#F3F4F6" }]}>
+        {issueTagNames.map((tagName) => (
+          <View key={tagName} style={[styles.bigBadge, { backgroundColor: "#F3F4F6" }]}>
             <Icon name="tag" size={10} color="#6B7280" />
             <Text style={[styles.bigBadgeText, { color: "#6B7280", marginLeft: 4 }]}>
-              {issue.categoryName}
+              {tagName}
             </Text>
           </View>
-        )}
+        ))}
       </View>
 
       {/* Tabs */}
@@ -910,7 +959,7 @@ const IssueDetailScreen = () => {
               </Text>
             </TouchableOpacity>
 
-            {!isCompleted && (
+            {!isCompleted && canEdit && (
               <TouchableOpacity
                 style={styles.quickActionItem}
                 onPress={handleMarkComplete}
@@ -921,14 +970,16 @@ const IssueDetailScreen = () => {
               </TouchableOpacity>
             )}
 
-            {!isCompleted && (
+            {!isCompleted && canCloseIssue && (
               <TouchableOpacity
                 style={styles.quickActionItem}
                 onPress={handleCloseIssue}
                 disabled={isSaving}
               >
                 <Icon name="lock" size={16} color="#6B7280" />
-                <Text style={styles.quickActionText}>Close Issue (Approver)</Text>
+                <Text style={styles.quickActionText}>
+                  {canApprove ? "Close Issue (Approver)" : "Close Issue"}
+                </Text>
               </TouchableOpacity>
             )}
 

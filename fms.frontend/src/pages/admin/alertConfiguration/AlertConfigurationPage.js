@@ -31,8 +31,8 @@ const EMPTY_ARRAY = [];
 
 /** Duration unit multipliers (to minutes) */
 const DURATION_UNITS = [
-    { key: 'minutes', label: 'Minutes', factor: 1 },
-    { key: 'hours', label: 'Hours', factor: 60 },
+    { key: 'minutes', label: 'Min', factor: 1 },
+    { key: 'hours', label: 'Hrs', factor: 60 },
     { key: 'days', label: 'Days', factor: 1440 },
 ];
 
@@ -85,15 +85,17 @@ const DurationInput = ({ totalMinutes, onChange, min = 1, max = 10080 }) => {
                         format={unit === 'minutes' ? '#,##0' : '#,##0.##'}
                     />
                 </div>
-                <div className="tw-flex tw-border tw-border-l-0 tw-rounded-r-md tw-overflow-hidden">
-                    {DURATION_UNITS.map((u) => (
+                <div className="tw-inline-flex tw-rounded-md tw-shadow-sm tw-border tw-border-gray-300 tw-overflow-hidden tw-self-stretch">
+                    {DURATION_UNITS.map((u, idx) => (
                         <button
                             key={u.key}
                             type="button"
                             onClick={() => handleUnitChange(u.key)}
-                            className={`tw-px-3 tw-py-1 tw-text-xs tw-font-medium tw-transition-colors tw-border-l first:tw-border-l-0 ${unit === u.key
-                                    ? 'tw-bg-blue-500 tw-text-white'
-                                    : 'tw-bg-gray-50 tw-text-gray-600 hover:tw-bg-gray-100'
+                            className={`tw-px-3 tw-py-1.5 tw-text-xs tw-font-semibold tw-transition-all tw-duration-150 tw-cursor-pointer
+                                ${idx > 0 ? 'tw-border-l tw-border-gray-300' : ''}
+                                ${unit === u.key
+                                    ? 'tw-bg-blue-600 tw-text-white tw-shadow-inner'
+                                    : 'tw-bg-white tw-text-gray-600 hover:tw-bg-gray-100 active:tw-bg-gray-200'
                                 }`}
                         >
                             {u.label}
@@ -111,6 +113,52 @@ const DurationInput = ({ totalMinutes, onChange, min = 1, max = 10080 }) => {
                 ) : 'Set the offline threshold duration'}
             </p>
         </div>
+    );
+};
+
+/**
+ * Popover info panel — click the (i) icon to show/hide, click outside to dismiss.
+ */
+const InfoPopover = ({ children, color = 'blue' }) => {
+    const [open, setOpen] = useState(false);
+    const ref = useRef(null);
+
+    useEffect(() => {
+        if (!open) return;
+        const handleClickOutside = (e) => {
+            if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+        };
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [open]);
+
+    const colors = {
+        blue: { bg: 'tw-bg-blue-50', border: 'tw-border-blue-200', icon: 'tw-text-blue-500', text: 'tw-text-blue-700', ring: 'tw-ring-blue-300' },
+        amber: { bg: 'tw-bg-amber-50', border: 'tw-border-amber-200', icon: 'tw-text-amber-500', text: 'tw-text-amber-700', ring: 'tw-ring-amber-300' },
+    };
+    const c = colors[color] || colors.blue;
+
+    return (
+        <span className="tw-relative tw-inline-block" ref={ref}>
+            <button
+                type="button"
+                onClick={() => setOpen((v) => !v)}
+                className={`tw-w-5 tw-h-5 tw-rounded-full tw-border tw-flex tw-items-center tw-justify-center tw-cursor-pointer tw-transition-all
+                    ${open ? `${c.bg} ${c.border} tw-ring-2 ${c.ring}` : `tw-bg-white tw-border-gray-300 hover:${c.bg} hover:${c.border}`}`}
+                title="Click for more info"
+            >
+                <i className={`fa-light fa-info tw-text-[10px] ${c.icon}`}></i>
+            </button>
+            {open && (
+                <div className={`tw-absolute tw-z-50 tw-mt-2 tw-left-1/2 tw--translate-x-1/2 tw-w-72 tw-p-3 tw-rounded-lg tw-border ${c.border} ${c.bg} tw-shadow-lg tw-animate-in tw-fade-in`}
+                    style={{ animation: 'fadeIn 150ms ease-out' }}>
+                    <div className={`tw-text-xs ${c.text} tw-leading-relaxed`}>
+                        {children}
+                    </div>
+                    <div className={`tw-absolute tw--top-1.5 tw-left-1/2 tw--translate-x-1/2 tw-w-3 tw-h-3 tw-rotate-45 ${c.bg} tw-border-l tw-border-t ${c.border}`}></div>
+                </div>
+            )}
+        </span>
     );
 };
 
@@ -279,6 +327,7 @@ const AlertConfigurationPage = () => {
                 defaultAssignee: gpsTemplate.defaultAssignee,
                 defaultPriorityId: gpsTemplate.defaultPriorityId,
                 isActive: gpsTemplate.isActive,
+                cooldownMinutes: gpsTemplate.cooldownMinutes || null,
             });
 
             if (gpsAutoClose) {
@@ -323,6 +372,7 @@ const AlertConfigurationPage = () => {
                 defaultAssignee: fuelTemplate.defaultAssignee,
                 defaultPriorityId: fuelTemplate.defaultPriorityId,
                 isActive: fuelTemplate.isActive,
+                cooldownMinutes: fuelTemplate.cooldownMinutes || null,
             });
 
             if (fuelAutoClose) {
@@ -464,7 +514,7 @@ const AlertConfigurationPage = () => {
                 deviceTypeId: fuelDeviceTypeId,
                 name: 'Fuel Activity While GPS Offline',
                 titleTemplate: 'Fuel Activity While GPS Offline - {vehicleName}',
-                descriptionTemplate: 'Vehicle {vehicleName} has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.',
+                descriptionTemplate: 'Vehicle {vehicleName} (Status: {vehicleStatus}) has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.',
                 canAutoCreate: true,
                 isActive: true,
                 offlineThresholdMinutes: 60,
@@ -550,6 +600,33 @@ const AlertConfigurationPage = () => {
                                     min={5}
                                     max={10080}
                                 />
+                                <p className="tw-text-xs tw-text-amber-600 tw-mt-1">
+                                    <i className="fa-light fa-arrow-turn-down-right tw-mr-1"></i>
+                                    Overrides the global <em>VehicleOfflineThresholdMinutes</em> in System Config for this template.
+                                    If not set, the System Config value is used as fallback.
+                                </p>
+                            </div>
+
+                            {/* Cooldown Period */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-hourglass-clock tw-mr-1 tw-text-gray-400"></i>
+                                    Cooldown Period
+                                    <InfoPopover color="blue">
+                                        After an issue is auto-closed, the system will <strong>not</strong> create a new issue
+                                        for the same vehicle until this cooldown period has elapsed.
+                                        Set to <strong>0</strong> or leave empty to disable (issues can be re-created immediately).
+                                    </InfoPopover>
+                                </label>
+                                <DurationInput
+                                    totalMinutes={gpsTemplate.cooldownMinutes || 0}
+                                    onChange={(mins) => updateGpsField('cooldownMinutes', mins || null)}
+                                    min={0}
+                                    max={10080}
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Prevents repeated issue creation for the same vehicle after auto-close
+                                </p>
                             </div>
 
                             {/* Default Assignees (multi-select) */}
@@ -590,7 +667,7 @@ const AlertConfigurationPage = () => {
                                     placeholder="GPS Offline - {vehicleName}"
                                 />
                                 <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-                                    Placeholders: {'{vehicleName}'}
+                                    Placeholders: {'{vehicleName}'}, {'{vehicleStatus}'}
                                 </p>
                             </div>
 
@@ -601,13 +678,13 @@ const AlertConfigurationPage = () => {
                                     Issue Description Template
                                 </label>
                                 <TextArea
-                                    value={gpsTemplate.descriptionTemplate || 'Vehicle GPS device has been offline. Last seen: {lastSeen}.'}
+                                    value={gpsTemplate.descriptionTemplate || 'Vehicle {vehicleName} GPS device has been offline. Last seen: {lastSeen}. Vehicle status: {vehicleStatus}.'}
                                     onValueChanged={(e) => updateGpsField('descriptionTemplate', e.value)}
                                     height={60}
                                     placeholder="Vehicle GPS device has been offline. Last seen: {lastSeen}."
                                 />
                                 <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-                                    Placeholders: {'{vehicleName}'}, {'{lastSeen}'}, {'{thresholdMinutes}'}
+                                    Placeholders: {'{vehicleName}'}, {'{vehicleStatus}'}, {'{lastSeen}'}, {'{thresholdMinutes}'}
                                 </p>
                             </div>
                         </div>
@@ -616,10 +693,17 @@ const AlertConfigurationPage = () => {
                         <div className="tw-mt-6 tw-pt-4 tw-border-t">
                             <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
                                 <div>
-                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-flex tw-items-center tw-gap-1.5">
                                         <i className="fa-light fa-rotate tw-mr-1"></i> Auto-Close Settings
+                                        <InfoPopover color="blue">
+                                            When enabled, the system periodically checks whether the GPS device has come back online.
+                                            If the device stays online for at least the <strong>Online Threshold</strong> duration,
+                                            the issue is automatically closed and a resolution note is added.
+                                            The <strong>Check Interval</strong> controls how often the system checks &mdash;
+                                            the shortest interval across all enabled auto-close configs is used.
+                                        </InfoPopover>
                                     </h4>
-                                    <p className="tw-text-xs tw-text-gray-400">Automatically close issue when GPS comes back online</p>
+                                    <p className="tw-text-xs tw-text-gray-400">Automatically close the issue when GPS comes back online</p>
                                 </div>
                                 <ToggleSwitch
                                     checked={gpsAutoClose?.isEnabled ?? false}
@@ -627,31 +711,39 @@ const AlertConfigurationPage = () => {
                                 />
                             </div>
                             {gpsAutoClose?.isEnabled && (
-                                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
-                                    <div>
-                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                            Online Threshold
-                                        </label>
-                                        <DurationInput
-                                            totalMinutes={gpsCheckerConfig.onlineThresholdMinutes || 15}
-                                            onChange={(mins) => updateCheckerConfigField(updateGpsAutoClose, gpsAutoClose, 'onlineThresholdMinutes', mins)}
-                                            min={1}
-                                            max={1440}
-                                        />
+                                <>
+                                    <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                                        <div>
+                                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                                Online Threshold
+                                            </label>
+                                            <DurationInput
+                                                totalMinutes={gpsCheckerConfig.onlineThresholdMinutes || 15}
+                                                onChange={(mins) => updateCheckerConfigField(updateGpsAutoClose, gpsAutoClose, 'onlineThresholdMinutes', mins)}
+                                                min={1}
+                                                max={1440}
+                                            />
+                                            <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                                How long GPS must stay online before the issue is closed
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                                Check Interval (seconds)
+                                            </label>
+                                            <NumberBox
+                                                value={gpsAutoClose.checkIntervalSeconds || 600}
+                                                onValueChanged={(e) => updateGpsAutoClose('checkIntervalSeconds', e.value)}
+                                                min={60}
+                                                max={86400}
+                                                showSpinButtons={true}
+                                            />
+                                            <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                                How often the auto-close service runs to check open issues
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                            Check Interval (seconds)
-                                        </label>
-                                        <NumberBox
-                                            value={gpsAutoClose.checkIntervalSeconds || 600}
-                                            onValueChanged={(e) => updateGpsAutoClose('checkIntervalSeconds', e.value)}
-                                            min={60}
-                                            max={86400}
-                                            showSpinButtons={true}
-                                        />
-                                    </div>
-                                </div>
+                                </>
                             )}
                         </div>
 
@@ -718,6 +810,33 @@ const AlertConfigurationPage = () => {
                                     min={5}
                                     max={10080}
                                 />
+                                <p className="tw-text-xs tw-text-amber-600 tw-mt-1">
+                                    <i className="fa-light fa-arrow-turn-down-right tw-mr-1"></i>
+                                    Overrides the global <em>VehicleOfflineThresholdMinutes</em> in System Config for this template.
+                                    If not set, the System Config value is used as fallback.
+                                </p>
+                            </div>
+
+                            {/* Cooldown Period */}
+                            <div>
+                                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                    <i className="fa-light fa-hourglass-clock tw-mr-1 tw-text-gray-400"></i>
+                                    Cooldown Period
+                                    <InfoPopover color="amber">
+                                        After an issue is auto-closed, the system will <strong>not</strong> create a new issue
+                                        for the same vehicle until this cooldown period has elapsed.
+                                        Set to <strong>0</strong> or leave empty to disable (issues can be re-created immediately).
+                                    </InfoPopover>
+                                </label>
+                                <DurationInput
+                                    totalMinutes={fuelTemplate.cooldownMinutes || 0}
+                                    onChange={(mins) => updateFuelField('cooldownMinutes', mins || null)}
+                                    min={0}
+                                    max={10080}
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Prevents repeated issue creation for the same vehicle after auto-close
+                                </p>
                             </div>
 
                             {/* Default Assignees (multi-select) */}
@@ -746,14 +865,35 @@ const AlertConfigurationPage = () => {
                             </div>
 
                             {/* Info box explaining the logic */}
-                            <div className="md:tw-col-span-2 tw-p-3 tw-bg-amber-50 tw-rounded-lg tw-border tw-border-amber-200">
+                            <div className="md:tw-col-span-2 tw-p-4 tw-bg-amber-50 tw-rounded-lg tw-border tw-border-amber-200">
                                 <div className="tw-flex tw-items-start tw-gap-2">
                                     <i className="fa-light fa-triangle-exclamation tw-text-amber-500 tw-mt-0.5"></i>
                                     <div className="tw-text-xs tw-text-amber-800">
-                                        <strong>How it works:</strong> The system checks for vehicles that have fuel activity
-                                        (fuel refills or pump transactions) in the last <strong>3 days</strong> but whose
-                                        GPS device has been offline beyond the threshold above. This combination is suspicious
-                                        and may indicate GPS tampering or device failure.
+                                        <strong>Monitoring Scenarios:</strong>
+                                        <p className="tw-mt-1 tw-mb-0">Alerts are triggered for <strong>all vehicle statuses</strong> when fuel activity is detected while GPS is offline:</p>
+                                        <ul className="tw-list-none tw-mt-2 tw-mb-0 tw-space-y-1.5 tw-pl-0">
+                                            <li className="tw-flex tw-items-start tw-gap-2">
+                                                <span className="tw-inline-block tw-w-2 tw-h-2 tw-rounded-full tw-bg-green-500 tw-mt-1 tw-flex-shrink-0"></span>
+                                                <span><strong>Working</strong> + GPS Offline + Fuel Activity &rarr; Alert (possible GPS failure)</span>
+                                            </li>
+                                            <li className="tw-flex tw-items-start tw-gap-2">
+                                                <span className="tw-inline-block tw-w-2 tw-h-2 tw-rounded-full tw-bg-blue-500 tw-mt-1 tw-flex-shrink-0"></span>
+                                                <span><strong>Parked Yard</strong> + GPS Offline + Fuel Activity &rarr; Alert (unexpected fueling while parked)</span>
+                                            </li>
+                                            <li className="tw-flex tw-items-start tw-gap-2">
+                                                <span className="tw-inline-block tw-w-2 tw-h-2 tw-rounded-full tw-bg-orange-500 tw-mt-1 tw-flex-shrink-0"></span>
+                                                <span><strong>Workshop</strong> + GPS Offline + Fuel Activity &rarr; Alert (unexpected fueling during maintenance)</span>
+                                            </li>
+                                            <li className="tw-flex tw-items-start tw-gap-2">
+                                                <span className="tw-inline-block tw-w-2 tw-h-2 tw-rounded-full tw-bg-gray-400 tw-mt-1 tw-flex-shrink-0"></span>
+                                                <span>GPS Offline + <strong>No Fuel Activity</strong> &rarr; No alert from this monitor</span>
+                                            </li>
+                                        </ul>
+                                        <p className="tw-mt-2 tw-mb-0 tw-text-amber-700">
+                                            <i className="fa-light fa-gear tw-mr-1"></i>
+                                            Fuel activity lookback window is configured in the <em>System Config</em> tab.
+                                            Vehicle status is included in the issue description but is <strong>never changed</strong> automatically.
+                                        </p>
                                     </div>
                                 </div>
                             </div>
@@ -771,7 +911,7 @@ const AlertConfigurationPage = () => {
                                     placeholder="Fuel Activity While GPS Offline - {vehicleName}"
                                 />
                                 <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-                                    Placeholders: {'{vehicleName}'}
+                                    Placeholders: {'{vehicleName}'}, {'{vehicleStatus}'}
                                 </p>
                             </div>
 
@@ -782,13 +922,13 @@ const AlertConfigurationPage = () => {
                                     Issue Description Template
                                 </label>
                                 <TextArea
-                                    value={fuelTemplate.descriptionTemplate || 'Vehicle {vehicleName} has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.'}
+                                    value={fuelTemplate.descriptionTemplate || 'Vehicle {vehicleName} (Status: {vehicleStatus}) has fuel activity in the last {thresholdDays} days but the GPS device is offline. Last GPS seen: {lastSeen}. This may indicate GPS tampering or device failure.'}
                                     onValueChanged={(e) => updateFuelField('descriptionTemplate', e.value)}
                                     height={80}
                                     placeholder="Vehicle {vehicleName} has fuel activity..."
                                 />
                                 <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-                                    Placeholders: {'{vehicleName}'}, {'{lastSeen}'}, {'{thresholdDays}'}, {'{thresholdMinutes}'}
+                                    Placeholders: {'{vehicleName}'}, {'{vehicleStatus}'}, {'{lastSeen}'}, {'{thresholdDays}'}, {'{thresholdMinutes}'}
                                 </p>
                             </div>
                         </div>
@@ -797,10 +937,17 @@ const AlertConfigurationPage = () => {
                         <div className="tw-mt-6 tw-pt-4 tw-border-t">
                             <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
                                 <div>
-                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700">
+                                    <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-flex tw-items-center tw-gap-1.5">
                                         <i className="fa-light fa-rotate tw-mr-1"></i> Auto-Close Settings
+                                        <InfoPopover color="amber">
+                                            When enabled, the system periodically checks whether the GPS device has come back online.
+                                            If the device stays online for at least the <strong>Online Threshold</strong> duration,
+                                            the issue is automatically closed and a resolution note is added.
+                                            The <strong>Check Interval</strong> controls how often the system checks &mdash;
+                                            the shortest interval across all enabled auto-close configs is used.
+                                        </InfoPopover>
                                     </h4>
-                                    <p className="tw-text-xs tw-text-gray-400">Automatically close issue when GPS comes back online</p>
+                                    <p className="tw-text-xs tw-text-gray-400">Automatically close the issue when GPS comes back online</p>
                                 </div>
                                 <ToggleSwitch
                                     checked={fuelAutoClose?.isEnabled ?? false}
@@ -808,31 +955,39 @@ const AlertConfigurationPage = () => {
                                 />
                             </div>
                             {fuelAutoClose?.isEnabled && (
-                                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
-                                    <div>
-                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                            Online Threshold
-                                        </label>
-                                        <DurationInput
-                                            totalMinutes={fuelCheckerConfig.onlineThresholdMinutes || 15}
-                                            onChange={(mins) => updateCheckerConfigField(updateFuelAutoClose, fuelAutoClose, 'onlineThresholdMinutes', mins)}
-                                            min={1}
-                                            max={1440}
-                                        />
+                                <>
+                                    <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                                        <div>
+                                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                                Online Threshold
+                                            </label>
+                                            <DurationInput
+                                                totalMinutes={fuelCheckerConfig.onlineThresholdMinutes || 15}
+                                                onChange={(mins) => updateCheckerConfigField(updateFuelAutoClose, fuelAutoClose, 'onlineThresholdMinutes', mins)}
+                                                min={1}
+                                                max={1440}
+                                            />
+                                            <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                                How long GPS must stay online before the issue is closed
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                                Check Interval (seconds)
+                                            </label>
+                                            <NumberBox
+                                                value={fuelAutoClose.checkIntervalSeconds || 600}
+                                                onValueChanged={(e) => updateFuelAutoClose('checkIntervalSeconds', e.value)}
+                                                min={60}
+                                                max={86400}
+                                                showSpinButtons={true}
+                                            />
+                                            <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                                How often the auto-close service runs to check open issues
+                                            </p>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                            Check Interval (seconds)
-                                        </label>
-                                        <NumberBox
-                                            value={fuelAutoClose.checkIntervalSeconds || 600}
-                                            onValueChanged={(e) => updateFuelAutoClose('checkIntervalSeconds', e.value)}
-                                            min={60}
-                                            max={86400}
-                                            showSpinButtons={true}
-                                        />
-                                    </div>
-                                </div>
+                                </>
                             )}
                         </div>
 

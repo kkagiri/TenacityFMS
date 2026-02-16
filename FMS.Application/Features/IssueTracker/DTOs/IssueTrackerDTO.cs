@@ -1,9 +1,13 @@
 using System;
+using System.Collections.Generic;
 
-namespace FMS.Application.Features.FMS.Issuetracker {
-    public class IssueTrackerDTO {
+namespace FMS.Application.Features.FMS.Issuetracker
+{
+    public class IssueTrackerDTO
+    {
         public int Id { get; set; }
         public int IssueCategory { get; set; }
+        public List<int>? IssueCategoryTags { get; set; }
         public int? IssueTemplateId { get; set; }
         public int? DeviceTypeId { get; set; }
         public bool? CanAutoClose { get; set; }

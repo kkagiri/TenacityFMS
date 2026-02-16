@@ -165,27 +165,19 @@ namespace FMS.BackgroundServices.IssueTracker
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "[OnlineChecker] Error checking GPS status for vehicle {VehicleId}, falling back to IsActive check", vehicleId);
+                    _logger.LogWarning(ex, "[OnlineChecker] Error checking GPS status for vehicle {VehicleId}. " +
+                        "Cannot confirm GPS is online — issue stays open until GPS data is available.", vehicleId);
                 }
             }
 
-            // Fallback: check if the vehicle is marked as active in DB
-            var vehicle = await _context.Vehicles
-                .Where(v => v.VehicleId == vehicleId)
-                .FirstOrDefaultAsync(cancellationToken);
-
-            if (vehicle == null)
-            {
-                _logger.LogDebug("Vehicle not found for issue {IssueId}", issue.Id);
-                return false;
-            }
-
-            if (vehicle.IsActive.HasValue && vehicle.IsActive.Value == 1)
-            {
-                _closeReason = "Vehicle is now marked as active (GPS service unavailable for live check)";
-                return true;
-            }
-
+            // No GPS data available (service unavailable or no pre-fetched data).
+            // Do NOT auto-close: we require positive GPS confirmation that the device is back online.
+            // Only vehicles with VehicleStatusValue == Working are monitored, and IsActive merely
+            // means the vehicle record exists — it does not indicate GPS online status.
+            _logger.LogDebug(
+                "[OnlineChecker] Cannot confirm GPS is online for vehicle {VehicleId} (issue {IssueId}). " +
+                "Issue will remain open until GPS service confirms the device is back online.",
+                vehicleId, issue.Id);
             return false;
         }
 

@@ -1,35 +1,30 @@
 /**
  * File: EventExpressionForm.js
- * Purpose: Create/Edit form for Event Expressions. Dynamically renders condition
- *          fields based on the selected event type metadata from the backend.
- * Dependencies: react-redux, react-router-dom, devextreme-react, eventExpressionSlice
- * Last Modified: 2026-02-06
+ * Purpose: Orchestrator for Event Expression create/edit. Uses a step-by-step accordion
+ *          with inline notification policy creation — no separate policy page needed.
+ * Dependencies: react-redux, react-router-dom, devextreme-react, step components,
+ *               eventExpressionSlice, notificationsApi
+ * Last Modified: 2026-02-14
  *
- * Key Features:
- * - Dynamic condition fields based on event type selection
- * - Site/Tank scope selectors
- * - Notification policy picker
- * - Rate limiting controls (expression-level overrides)
- * - Cooldown and max notifications per day
+ * Steps:
+ * 1. Event & Triggers — name, event type, conditions, priority, severity
+ * 2. Scope — site/tank filters
+ * 3. Delivery & Notification — channels, rate limits, cooldown, active event
+ * 4. Recipients & Templates — users, roles, message templates
+ *
+ * On save: creates/updates the notification policy first, then saves the expression.
  */
 
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useParams } from 'react-router-dom';
-import { TextBox } from 'devextreme-react/text-box';
-import { TextArea } from 'devextreme-react/text-area';
-import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
-import { Switch } from 'devextreme-react/switch';
+import { TextBox } from 'devextreme-react/text-box';
+import { SelectBox } from 'devextreme-react/select-box';
+import { DateBox } from 'devextreme-react/date-box';
 import { Button } from 'devextreme-react/button';
-import { TagBox } from 'devextreme-react/tag-box';
+import Accordion, { Item as AccordionItem } from 'devextreme-react/accordion';
 import { ValidationGroup } from 'devextreme-react/validation-group';
-import {
-    Validator,
-    RequiredRule,
-    StringLengthRule,
-    RangeRule
-} from 'devextreme-react/validator';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import {
@@ -42,11 +37,21 @@ import {
 } from '../../../redux/slices/eventExpressionSlice';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
 import { fetctTankbySiteId } from '../../../redux/actions/tankActions';
-import { fetchNotificationPolicies } from '../../../redux/actions/notificationActions';
+import notificationsApi from '../../../dataservice/notificationsApi';
+import StepBasicInfo from './steps/StepBasicInfo';
+import StepEventTriggers from './steps/StepEventTriggers';
+import StepScope from './steps/StepScope';
+import StepDelivery from './steps/StepDelivery';
+import StepRecipients from './steps/StepRecipients';
 import './EventExpressionForm.scss';
 
-const PRIORITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'];
-const SEVERITY_OPTIONS = ['Low', 'Medium', 'High', 'Critical'];
+const STEP_TITLES = [
+    '1. Basic Information',
+    '2. Event Type & Triggers',
+    '3. Scope',
+    '4. Delivery & Notification',
+    '5. Recipients & Templates'
+];
 
 const EventExpressionForm = () => {
     const dispatch = useDispatch();
@@ -63,7 +68,7 @@ const EventExpressionForm = () => {
         saveError
     } = useSelector((state) => state.eventExpressions);
 
-    // Form state
+    // ─── Expression form state ───
     const [formData, setFormData] = useState({
         name: '',
         description: '',
@@ -82,26 +87,75 @@ const EventExpressionForm = () => {
         isActive: true
     });
 
-    // Condition field values (parsed from conditions JSON)
+    // ─── Inline notification policy state ───
+    const [policyData, setPolicyData] = useState({
+        enableEmail: true,
+        enableSms: false,
+        enableSystem: true,
+        maxNotificationsPerHour: 10,
+        requireAcknowledgment: false,
+        titleTemplate: '',
+        isActive: true
+    });
+
+    // ─── Recipients ───
+    const [selectedUserIds, setSelectedUserIds] = useState([]);
+    const [selectedRoleIds, setSelectedRoleIds] = useState([]);
+    const [users, setUsers] = useState([]);
+    const [roles, setRoles] = useState([]);
+    const [loadingRecipients, setLoadingRecipients] = useState(true);
+
+    // ─── Condition fields + accordion step ───
     const [conditionValues, setConditionValues] = useState({});
+    const [activeStep, setActiveStep] = useState(0);
 
     // Lookup data from Redux store
     const sites = useSelector((state) => state.site?.sites || []);
     const tanks = useSelector((state) => state.tank?.tanks || []);
-    const policies = useSelector((state) => state.notification?.notificationPolicies || []);
 
-    // Load types and lookups on mount
+    // ─── Load types, sites, and recipient options on mount ───
     useEffect(() => {
         dispatch(fetchEventExpressionTypes());
         dispatch(fetchSiteList());
-        dispatch(fetchNotificationPolicies());
+
+        // Load user/role lists for recipient picker
+        (async () => {
+            setLoadingRecipients(true);
+            try {
+                const [usersRes, rolesRes] = await Promise.all([
+                    notificationsApi.searchUsers('', 200),
+                    notificationsApi.searchRoles('', 100)
+                ]);
+                if (usersRes.isSuccess) {
+                    setUsers(
+                        (usersRes.data || []).map((u) => ({
+                            value: u.id,
+                            text: u.userName || u.email || u.id
+                        }))
+                    );
+                }
+                if (rolesRes.isSuccess) {
+                    setRoles(
+                        (rolesRes.data || []).map((r) => ({
+                            value: r.id,
+                            text: r.name || r.id
+                        }))
+                    );
+                }
+            } catch (err) {
+                console.error('Failed to load recipients:', err);
+            } finally {
+                setLoadingRecipients(false);
+            }
+        })();
+
         return () => {
             dispatch(clearSelectedExpression());
             dispatch(clearErrors());
         };
     }, [dispatch]);
 
-    // Load expression data if editing
+    // ─── Load expression + its linked policy when editing ───
     useEffect(() => {
         if (isEditing) {
             dispatch(fetchEventExpressionById(parseInt(id)));
@@ -111,15 +165,30 @@ const EventExpressionForm = () => {
     // Populate form when expression loads
     useEffect(() => {
         if (isEditing && selectedExpression) {
+            // Parse conditions first to recover alertTypeKey for dropdown
+            let parsedConditions = {};
+            try {
+                parsedConditions = JSON.parse(selectedExpression.conditions || '{}');
+            } catch {
+                parsedConditions = {};
+            }
+
+            // Recover alertTypeKey: stored in _alertTypeKey, fallback to eventType
+            const alertKey = parsedConditions._alertTypeKey || selectedExpression.eventType || '';
+
+            // Strip internal _alertTypeKey from display conditions
+            const { _alertTypeKey, ...displayConditions } = parsedConditions;
+            setConditionValues(displayConditions);
+
             setFormData({
                 name: selectedExpression.name || '',
                 description: selectedExpression.description || '',
-                eventType: selectedExpression.eventType || '',
+                eventType: alertKey,
                 siteIds: selectedExpression.siteId ? [selectedExpression.siteId] : [],
                 tankIds: selectedExpression.tankId ? [selectedExpression.tankId] : [],
                 deviceId: selectedExpression.deviceId,
                 minimumSeverity: selectedExpression.minimumSeverity,
-                conditions: selectedExpression.conditions || '{}',
+                conditions: JSON.stringify(displayConditions),
                 notificationPolicyId: selectedExpression.notificationPolicyId,
                 cooldownMinutes: selectedExpression.cooldownMinutes || 30,
                 maxNotificationsPerDay: selectedExpression.maxNotificationsPerDay || 0,
@@ -129,116 +198,118 @@ const EventExpressionForm = () => {
                 isActive: selectedExpression.isActive ?? true
             });
 
-            // Parse existing conditions into field values
-            try {
-                const parsed = JSON.parse(selectedExpression.conditions || '{}');
-                setConditionValues(parsed);
-            } catch {
-                setConditionValues({});
+            // Load linked policy data for inline editing
+            if (selectedExpression.notificationPolicyId) {
+                (async () => {
+                    try {
+                        const pRes = await notificationsApi.getPolicy(
+                            selectedExpression.notificationPolicyId
+                        );
+                        if (pRes.isSuccess && pRes.data) {
+                            const p = pRes.data;
+                            setPolicyData({
+                                enableEmail: p.enableEmail ?? true,
+                                enableSms: p.enableSms ?? false,
+                                enableSystem: p.enableSystem ?? true,
+                                maxNotificationsPerHour: p.maxNotificationsPerHour ?? 10,
+                                requireAcknowledgment: p.requireAcknowledgment ?? false,
+                                titleTemplate: p.titleTemplate || '',
+                                isActive: p.isActive ?? true
+                            });
+                            // Load existing recipients
+                            if (p.recipients && Array.isArray(p.recipients)) {
+                                setSelectedUserIds(
+                                    p.recipients.filter((r) => r.userId).map((r) => r.userId)
+                                );
+                                setSelectedRoleIds(
+                                    p.recipients.filter((r) => r.roleId).map((r) => r.roleId)
+                                );
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Failed to load linked policy:', err);
+                    }
+                })();
             }
         }
     }, [isEditing, selectedExpression]);
 
-    // Load tanks when sites change
+    // Also load tanks on initial edit load
     useEffect(() => {
-        if (formData.siteIds && formData.siteIds.length > 0) {
-            // Load tanks for the first selected site (API supports single siteId)
+        if (isEditing && formData.siteIds && formData.siteIds.length > 0) {
             dispatch(fetctTankbySiteId(formData.siteIds[0]));
         }
-    }, [dispatch, formData.siteIds]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [isEditing]);
 
-    // Get the selected event type metadata
+    // ─── Derived metadata (find by alertTypeKey, which formData.eventType stores) ───
     const selectedTypeMetadata = useMemo(() => {
-        return expressionTypes.find((t) => t.eventType === formData.eventType) || null;
+        return expressionTypes.find((t) => t.alertTypeKey === formData.eventType) || null;
     }, [expressionTypes, formData.eventType]);
 
-    // Available conditions for the selected type
     const availableConditions = useMemo(() => {
         return selectedTypeMetadata?.availableConditions || [];
     }, [selectedTypeMetadata]);
 
+    // ─── Handlers ───
     const handleFieldChange = useCallback((field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     }, []);
 
-    const handleConditionChange = useCallback(
-        (key, value) => {
-            setConditionValues((prev) => {
-                const updated = { ...prev, [key]: value };
-                // Also update the formData conditions JSON
-                setFormData((fdPrev) => ({
-                    ...fdPrev,
-                    conditions: JSON.stringify(updated)
-                }));
-                return updated;
-            });
-        },
-        []
-    );
+    // Load tanks when site changes (must be after handleFieldChange)
+    const handleSiteChange = useCallback((siteIds) => {
+        handleFieldChange('siteIds', siteIds);
+        handleFieldChange('tankIds', []);
+        if (siteIds && siteIds.length > 0) {
+            dispatch(fetctTankbySiteId(siteIds[0]));
+        }
+    }, [dispatch, handleFieldChange]);
+
+    const handlePolicyChange = useCallback((field, value) => {
+        setPolicyData((prev) => ({ ...prev, [field]: value }));
+    }, []);
+
+    const handleConditionChange = useCallback((key, value) => {
+        setConditionValues((prev) => {
+            const updated = { ...prev, [key]: value };
+            setFormData((fdPrev) => ({
+                ...fdPrev,
+                conditions: JSON.stringify(updated)
+            }));
+            return updated;
+        });
+    }, []);
 
     const handleEventTypeChange = useCallback(
         (value) => {
             handleFieldChange('eventType', value);
-            // Reset conditions when type changes
             setConditionValues({});
             setFormData((prev) => ({ ...prev, conditions: '{}' }));
         },
         [handleFieldChange]
     );
 
-    const handleSubmit = useCallback(
-        async (e) => {
-            const validationGroup = e.validationGroup;
-            if (!validationGroup) return;
-
-            const validationResult = validationGroup.validate();
-            if (!validationResult.isValid) return;
-
-            try {
-                const payload = { ...formData };
-                // Ensure conditions is a valid JSON string
-                if (typeof payload.conditions === 'object') {
-                    payload.conditions = JSON.stringify(payload.conditions);
-                }
-                // Convert multi-select arrays to single values for backend
-                payload.siteId = payload.siteIds?.[0] || null;
-                payload.tankId = payload.tankIds?.[0] || null;
-                delete payload.siteIds;
-                delete payload.tankIds;
-
-                let result;
-                if (isEditing) {
-                    result = await dispatch(
-                        updateEventExpression({ id: parseInt(id), payload })
-                    ).unwrap();
-                } else {
-                    result = await dispatch(createEventExpression(payload)).unwrap();
-                }
-
-                if (result?.isSuccess !== false) {
-                    notify(
-                        `Expression ${isEditing ? 'updated' : 'created'} successfully`,
-                        'success',
-                        3000
-                    );
-                    navigate('/event-expressions');
-                }
-            } catch (err) {
-                notify(
-                    err?.message || `Failed to ${isEditing ? 'update' : 'create'} expression`,
-                    'error',
-                    5000
-                );
-            }
-        },
-        [dispatch, formData, id, isEditing, navigate]
-    );
-
     const handleCancel = useCallback(() => {
         navigate('/event-expressions');
     }, [navigate]);
 
-    // Render a dynamic condition field based on its metadata
+    const handleNextStep = useCallback(() => {
+        if (activeStep === 0 && !formData.name?.trim()) {
+            notify('Please enter a Name before continuing', 'warning', 2500);
+            return;
+        }
+        if (activeStep === 1 && !formData.eventType) {
+            notify('Please select an Event Type before continuing', 'warning', 2500);
+            return;
+        }
+        setActiveStep((prev) => Math.min(prev + 1, STEP_TITLES.length - 1));
+    }, [activeStep, formData.eventType, formData.name]);
+
+    const handlePreviousStep = useCallback(() => {
+        setActiveStep((prev) => Math.max(prev - 1, 0));
+    }, []);
+
+    // ─── Dynamic condition field renderer (passed to StepEventTriggers) ───
     const renderConditionField = useCallback(
         (condition) => {
             const { key, label, inputType, isRequired, defaultValue, options } = condition;
@@ -275,18 +346,43 @@ const EventExpressionForm = () => {
                             />
                         </div>
                     );
+                case 'time':
+                    return (
+                        <div key={key} className="tw-mb-3">
+                            <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                                {label} {isRequired && <span className="tw-text-red-500">*</span>}
+                            </label>
+                            <DateBox
+                                type="time"
+                                value={value ? `2000-01-01T${value}:00` : null}
+                                onValueChanged={(e) => {
+                                    if (e.value) {
+                                        const d = new Date(e.value);
+                                        const hh = String(d.getHours()).padStart(2, '0');
+                                        const mm = String(d.getMinutes()).padStart(2, '0');
+                                        handleConditionChange(key, `${hh}:${mm}`);
+                                    } else {
+                                        handleConditionChange(key, null);
+                                    }
+                                }}
+                                displayFormat="HH:mm"
+                                placeholder="Select time"
+                                showClearButton={!isRequired}
+                                width="100%"
+                            />
+                        </div>
+                    );
                 case 'boolean':
                     return (
-                        <div
-                            key={key}
-                            className="tw-mb-3 tw-flex tw-items-center tw-justify-between"
-                        >
+                        <div key={key} className="tw-mb-3 tw-flex tw-items-center tw-justify-between">
                             <label className="tw-text-sm tw-font-medium tw-text-gray-700">
                                 {label}
                             </label>
-                            <Switch
-                                value={!!value}
-                                onValueChanged={(e) => handleConditionChange(key, e.value)}
+                            <input
+                                type="checkbox"
+                                checked={!!value}
+                                onChange={(e) => handleConditionChange(key, e.target.checked)}
+                                className="tw-h-4 tw-w-4 tw-cursor-pointer"
                             />
                         </div>
                     );
@@ -309,6 +405,129 @@ const EventExpressionForm = () => {
         [conditionValues, handleConditionChange]
     );
 
+    // ─── Submit: create/update policy first, then save expression ───
+    const handleSubmit = useCallback(
+        async (e) => {
+            const validationGroup = e.validationGroup;
+            if (validationGroup) {
+                const validationResult = validationGroup.validate();
+                if (!validationResult.isValid) return;
+            }
+
+            try {
+                // 1. Build policy payload
+                const policyPayload = {
+                    name: `${formData.name} - Policy`,
+                    description: `Auto-managed policy for expression: ${formData.name}`,
+                    notificationType: 'Alert',
+                    priority: formData.priority,
+                    enableEmail: policyData.enableEmail,
+                    enableSms: policyData.enableSms,
+                    enableSystem: policyData.enableSystem,
+                    maxNotificationsPerHour: policyData.maxNotificationsPerHour || 10,
+                    maxNotificationsPerDay: formData.maxNotificationsPerDay || 50,
+                    cooldownMinutes: formData.cooldownMinutes || 30,
+                    titleTemplate:
+                        policyData.titleTemplate || 'Alert: {{alarmType}} - {{severity}}',
+                    messageTemplate:
+                        formData.messageTemplate ||
+                        '{{alarmType}} triggered at {{siteName}} with severity {{severity}}',
+                    requireAcknowledgment: policyData.requireAcknowledgment,
+                    isActive: policyData.isActive,
+                    recipientUserIds: selectedUserIds,
+                    recipientRoleIds: selectedRoleIds
+                };
+
+                let policyId = formData.notificationPolicyId;
+
+                // 2. Create or update the linked notification policy
+                if (policyId) {
+                    const updateRes = await notificationsApi.updatePolicy(policyId, policyPayload);
+                    if (!updateRes.isSuccess) {
+                        notify('Failed to update notification policy', 'error', 4000);
+                        return;
+                    }
+                } else {
+                    const createRes = await notificationsApi.createPolicy(policyPayload);
+                    if (!createRes.isSuccess || !createRes.data?.id) {
+                        notify('Failed to create notification policy', 'error', 4000);
+                        return;
+                    }
+                    policyId = createRes.data.id;
+                }
+
+                // 3. Resolve real eventType from metadata (alertTypeKey → eventType)
+                const resolvedEventType = selectedTypeMetadata?.eventType || formData.eventType;
+
+                // Include _alertTypeKey in conditions for edit-recovery
+                let conditionsObj = {};
+                try {
+                    conditionsObj = typeof formData.conditions === 'string'
+                        ? JSON.parse(formData.conditions)
+                        : (formData.conditions || {});
+                } catch { conditionsObj = {}; }
+                conditionsObj._alertTypeKey = formData.eventType;
+
+                const expressionPayload = {
+                    name: formData.name,
+                    description: formData.description,
+                    eventType: resolvedEventType,
+                    siteId: formData.siteIds?.[0] || null,
+                    tankId: formData.tankIds?.[0] || null,
+                    deviceId: formData.deviceId,
+                    minimumSeverity: formData.minimumSeverity,
+                    conditions: JSON.stringify(conditionsObj),
+                    notificationPolicyId: policyId,
+                    cooldownMinutes: formData.cooldownMinutes,
+                    maxNotificationsPerDay: formData.maxNotificationsPerDay,
+                    priority: formData.priority,
+                    createActiveEvent: formData.createActiveEvent,
+                    messageTemplate: formData.messageTemplate,
+                    isActive: formData.isActive
+                };
+
+                // 4. Save the expression
+                let result;
+                if (isEditing) {
+                    result = await dispatch(
+                        updateEventExpression({ id: parseInt(id), payload: expressionPayload })
+                    ).unwrap();
+                } else {
+                    result = await dispatch(
+                        createEventExpression(expressionPayload)
+                    ).unwrap();
+                }
+
+                if (result?.isSuccess !== false) {
+                    notify(
+                        `Expression ${isEditing ? 'updated' : 'created'} successfully`,
+                        'success',
+                        3000
+                    );
+                    navigate('/event-expressions');
+                }
+            } catch (err) {
+                notify(
+                    err?.message || `Failed to ${isEditing ? 'update' : 'create'} expression`,
+                    'error',
+                    5000
+                );
+            }
+        },
+        [
+            dispatch,
+            formData,
+            policyData,
+            selectedUserIds,
+            selectedRoleIds,
+            selectedTypeMetadata,
+            id,
+            isEditing,
+            navigate
+        ]
+    );
+
+    // ─── Loading state ───
     if (selectedLoading || typesLoading) {
         return (
             <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
@@ -318,7 +537,10 @@ const EventExpressionForm = () => {
     }
 
     return (
-        <div className="event-expression-form tw-p-4 tw-max-w-4xl tw-mx-auto">
+        <div
+            className="event-expression-form tw-p-4 tw-mx-auto"
+            style={{ width: '95vw', maxWidth: '90rem' }}
+        >
             {/* Header */}
             <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
                 <div>
@@ -328,8 +550,8 @@ const EventExpressionForm = () => {
                     </h2>
                     <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
                         {isEditing
-                            ? 'Modify the event expression configuration'
-                            : 'Define a new rule that triggers notifications when conditions are met'}
+                            ? 'Modify the event expression and its notification configuration'
+                            : 'Define a rule, set scope, and configure how notifications are delivered'}
                     </p>
                 </div>
                 <Button
@@ -341,291 +563,98 @@ const EventExpressionForm = () => {
             </div>
 
             <ValidationGroup>
-                <div className="tw-grid tw-grid-cols-2 tw-gap-6">
-                    {/* ─── Left Column: Basic Info ─── */}
-                    <div className="tw-space-y-4">
-                        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
-                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-700 tw-mb-3">
-                                <i className="fa-light fa-info-circle tw-mr-2" />
-                                Basic Information
-                            </h3>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Name <span className="tw-text-red-500">*</span>
-                                </label>
-                                <TextBox
-                                    value={formData.name}
-                                    onValueChanged={(e) => handleFieldChange('name', e.value)}
-                                    placeholder="e.g., Low Tank Volume Alert"
-                                    width="100%"
-                                >
-                                    <Validator>
-                                        <RequiredRule message="Name is required" />
-                                        <StringLengthRule max={100} message="Name must be under 100 characters" />
-                                    </Validator>
-                                </TextBox>
-                            </div>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Description
-                                </label>
-                                <TextArea
-                                    value={formData.description}
-                                    onValueChanged={(e) => handleFieldChange('description', e.value)}
-                                    placeholder="Describe what this expression monitors..."
-                                    height={80}
-                                    width="100%"
-                                />
-                            </div>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Event Type <span className="tw-text-red-500">*</span>
-                                </label>
-                                <SelectBox
-                                    items={expressionTypes}
-                                    displayExpr="displayName"
-                                    valueExpr="eventType"
-                                    value={formData.eventType}
-                                    onValueChanged={(e) => handleEventTypeChange(e.value)}
-                                    placeholder="Select event type"
-                                    width="100%"
-                                    searchEnabled={true}
-                                    itemRender={(data) => (
-                                        <div>
-                                            <div className="tw-font-medium">{data.displayName}</div>
-                                            <div className="tw-text-xs tw-text-gray-500">
-                                                {data.description}
-                                            </div>
-                                        </div>
-                                    )}
-                                >
-                                    <Validator>
-                                        <RequiredRule message="Event type is required" />
-                                    </Validator>
-                                </SelectBox>
-                            </div>
-
-                            <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-                                <div>
-                                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                        Priority
-                                    </label>
-                                    <SelectBox
-                                        items={PRIORITY_OPTIONS}
-                                        value={formData.priority}
-                                        onValueChanged={(e) => handleFieldChange('priority', e.value)}
-                                        width="100%"
-                                    />
-                                </div>
-                                <div>
-                                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                        Min. Severity
-                                    </label>
-                                    <SelectBox
-                                        items={SEVERITY_OPTIONS}
-                                        value={formData.minimumSeverity}
-                                        onValueChanged={(e) =>
-                                            handleFieldChange('minimumSeverity', e.value)
-                                        }
-                                        placeholder="Any"
-                                        showClearButton={true}
-                                        width="100%"
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Active
-                                </label>
-                                <Switch
-                                    value={formData.isActive}
-                                    onValueChanged={(e) => handleFieldChange('isActive', e.value)}
-                                />
-                            </div>
-                        </div>
-
-                        {/* ─── Scope ─── */}
-                        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
-                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-700 tw-mb-3">
-                                <i className="fa-light fa-bullseye tw-mr-2" />
-                                Scope (Optional)
-                            </h3>
-                            <p className="tw-text-xs tw-text-gray-500 tw-mb-3">
-                                Leave blank to apply to all sites/tanks
-                            </p>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Site
-                                </label>
-                                <TagBox
-                                    items={sites}
-                                    displayExpr="name"
-                                    valueExpr="siteId"
-                                    value={formData.siteIds}
-                                    onValueChanged={(e) => {
-                                        handleFieldChange('siteIds', e.value || []);
-                                        handleFieldChange('tankIds', []);
-                                    }}
-                                    placeholder="All Sites"
-                                    showClearButton={true}
-                                    searchEnabled={true}
-                                    width="100%"
-                                    multiline={false}
-                                    showSelectionControls={true}
-                                />
-                            </div>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Tank
-                                </label>
-                                <TagBox
-                                    items={tanks}
-                                    displayExpr="name"
-                                    valueExpr="id"
-                                    value={formData.tankIds}
-                                    onValueChanged={(e) => handleFieldChange('tankIds', e.value || [])}
-                                    placeholder={formData.siteIds?.length > 0 ? 'All Tanks' : 'Select a site first'}
-                                    showClearButton={true}
-                                    searchEnabled={true}
-                                    disabled={!formData.siteIds || formData.siteIds.length === 0}
-                                    width="100%"
-                                    multiline={false}
-                                    showSelectionControls={true}
-                                />
-                            </div>
-                        </div>
-                    </div>
-
-                    {/* ─── Right Column: Conditions + Actions ─── */}
-                    <div className="tw-space-y-4">
-                        {/* ─── Dynamic Conditions ─── */}
-                        {selectedTypeMetadata && availableConditions.length > 0 && (
-                            <div className="tw-bg-white tw-rounded-lg tw-border tw-border-blue-200 tw-p-4">
-                                <h3 className="tw-text-base tw-font-semibold tw-text-blue-700 tw-mb-3">
-                                    <i className="fa-light fa-sliders tw-mr-2" />
-                                    Trigger Conditions ({selectedTypeMetadata.eventType})
-                                </h3>
-                                <p className="tw-text-xs tw-text-gray-500 tw-mb-3">
-                                    Configure the conditions that must be met to trigger this expression
-                                </p>
-                                {availableConditions.map(renderConditionField)}
-                            </div>
-                        )}
-
-                        {/* ─── Notification Policy ─── */}
-                        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
-                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-700 tw-mb-3">
-                                <i className="fa-light fa-bell tw-mr-2" />
-                                Notification
-                            </h3>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Notification Policy <span className="tw-text-red-500">*</span>
-                                </label>
-                                <SelectBox
-                                    items={policies}
-                                    displayExpr="name"
-                                    valueExpr="id"
-                                    value={formData.notificationPolicyId}
-                                    onValueChanged={(e) =>
-                                        handleFieldChange('notificationPolicyId', e.value)
-                                    }
-                                    placeholder="Select policy"
-                                    searchEnabled={true}
-                                    width="100%"
-                                >
-                                    <Validator>
-                                        <RequiredRule message="Notification policy is required" />
-                                    </Validator>
-                                </SelectBox>
-                            </div>
-
-                            <div className="tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                    Message Template
-                                </label>
-                                <TextArea
-                                    value={formData.messageTemplate}
-                                    onValueChanged={(e) =>
-                                        handleFieldChange('messageTemplate', e.value)
-                                    }
-                                    placeholder="e.g., Tank {TankName} volume is {ActualValue}L (threshold: {ThresholdValue}L)"
-                                    height={60}
-                                    width="100%"
-                                />
-                            </div>
-
-                            <div className="tw-flex tw-items-center tw-justify-between tw-mb-3">
-                                <label className="tw-text-sm tw-font-medium tw-text-gray-700">
-                                    Create Active Event
-                                </label>
-                                <Switch
-                                    value={formData.createActiveEvent}
-                                    onValueChanged={(e) =>
-                                        handleFieldChange('createActiveEvent', e.value)
-                                    }
-                                />
-                            </div>
-                        </div>
-
-                        {/* ─── Rate Limiting (expression-level override) ─── */}
-                        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
-                            <h3 className="tw-text-base tw-font-semibold tw-text-gray-700 tw-mb-3">
-                                <i className="fa-light fa-gauge-high tw-mr-2" />
-                                Rate Limiting
-                            </h3>
-                            <p className="tw-text-xs tw-text-gray-500 tw-mb-3">
-                                Overrides the notification policy's rate limits for this expression
-                            </p>
-
-                            <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-                                <div>
-                                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                        Cooldown (minutes)
-                                    </label>
-                                    <NumberBox
-                                        value={formData.cooldownMinutes}
-                                        onValueChanged={(e) =>
-                                            handleFieldChange('cooldownMinutes', e.value)
-                                        }
-                                        min={0}
-                                        max={1440}
-                                        showSpinButtons={true}
-                                        width="100%"
-                                    >
-                                        <Validator>
-                                            <RangeRule min={0} max={1440} message="0-1440 minutes" />
-                                        </Validator>
-                                    </NumberBox>
-                                </div>
-                                <div>
-                                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                                        Max/Day (0=unlimited)
-                                    </label>
-                                    <NumberBox
-                                        value={formData.maxNotificationsPerDay}
-                                        onValueChanged={(e) =>
-                                            handleFieldChange('maxNotificationsPerDay', e.value)
-                                        }
-                                        min={0}
-                                        max={1000}
-                                        showSpinButtons={true}
-                                        width="100%"
-                                    />
-                                </div>
-                            </div>
-                        </div>
+                {/* Step navigation */}
+                <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between">
+                    <span className="tw-text-sm tw-text-gray-600">
+                        Step {activeStep + 1} of {STEP_TITLES.length}
+                    </span>
+                    <div className="tw-flex tw-gap-2">
+                        <Button
+                            text="Previous"
+                            stylingMode="outlined"
+                            icon="fa-light fa-arrow-left"
+                            disabled={activeStep === 0}
+                            onClick={handlePreviousStep}
+                        />
+                        <Button
+                            text="Next"
+                            stylingMode="outlined"
+                            icon="fa-light fa-arrow-right"
+                            disabled={activeStep === STEP_TITLES.length - 1}
+                            onClick={handleNextStep}
+                        />
                     </div>
                 </div>
 
-                {/* ─── Footer Actions ─── */}
+                <Accordion
+                    className="event-expression-steps"
+                    collapsible={false}
+                    multiple={false}
+                    selectedIndex={activeStep}
+                    animationDuration={200}
+                    onItemTitleClick={(e) => setActiveStep(e.itemIndex)}
+                >
+                    {/* Step 1: Basic Information */}
+                    <AccordionItem title={STEP_TITLES[0]}>
+                        <StepBasicInfo
+                            formData={formData}
+                            onFieldChange={handleFieldChange}
+                        />
+                    </AccordionItem>
+
+                    {/* Step 2: Event Type & Triggers */}
+                    <AccordionItem title={STEP_TITLES[1]}>
+                        <StepEventTriggers
+                            formData={formData}
+                            onEventTypeChange={handleEventTypeChange}
+                            expressionTypes={expressionTypes}
+                            selectedTypeMetadata={selectedTypeMetadata}
+                            availableConditions={availableConditions}
+                            renderConditionField={renderConditionField}
+                        />
+                    </AccordionItem>
+
+                    {/* Step 3: Scope */}
+                    <AccordionItem title={STEP_TITLES[2]}>
+                        <StepScope
+                            formData={formData}
+                            onFieldChange={handleFieldChange}
+                            onSiteChange={handleSiteChange}
+                            sites={sites}
+                            tanks={tanks}
+                            availableScopeFilters={selectedTypeMetadata?.availableScopeFilters}
+                        />
+                    </AccordionItem>
+
+                    {/* Step 4: Delivery & Notification */}
+                    <AccordionItem title={STEP_TITLES[3]}>
+                        <StepDelivery
+                            policyData={policyData}
+                            onPolicyChange={handlePolicyChange}
+                            formData={formData}
+                            onFieldChange={handleFieldChange}
+                        />
+                    </AccordionItem>
+
+                    {/* Step 5: Recipients & Templates */}
+                    <AccordionItem title={STEP_TITLES[4]}>
+                        <StepRecipients
+                            selectedUserIds={selectedUserIds}
+                            onUserIdsChange={setSelectedUserIds}
+                            selectedRoleIds={selectedRoleIds}
+                            onRoleIdsChange={setSelectedRoleIds}
+                            users={users}
+                            roles={roles}
+                            policyData={policyData}
+                            onPolicyChange={handlePolicyChange}
+                            formData={formData}
+                            onFieldChange={handleFieldChange}
+                            loadingData={loadingRecipients}
+                        />
+                    </AccordionItem>
+                </Accordion>
+
+                {/* Footer Actions */}
                 <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
                     {saveError && (
                         <span className="tw-text-red-500 tw-text-sm tw-mr-auto">
@@ -642,7 +671,13 @@ const EventExpressionForm = () => {
                         disabled={saving}
                     />
                     <Button
-                        text={saving ? 'Saving...' : isEditing ? 'Update Expression' : 'Create Expression'}
+                        text={
+                            saving
+                                ? 'Saving...'
+                                : isEditing
+                                    ? 'Update Expression'
+                                    : 'Create Expression'
+                        }
                         type="default"
                         stylingMode="contained"
                         icon={saving ? undefined : 'fa-light fa-check'}
