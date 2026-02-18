@@ -1,3 +1,5 @@
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
@@ -69,6 +71,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             using IServiceScope scope = _scopeFactory.CreateScope();
             GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
             IAlertConfigurationService alertConfig = scope.ServiceProvider.GetRequiredService<IAlertConfigurationService>();
+            var eventEngine = scope.ServiceProvider.GetService<IEventExpressionEngine>();
 
             // Check if vehicle maintenance alerts are enabled
             bool isEnabled = await alertConfig.IsAlertEnabledAsync(AlertConfigurationConstants.VehicleMaintenanceDue);
@@ -150,6 +153,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                             DiscrepancySeverity.High,
                             message,
                             maintenance,
+                            eventEngine,
                             stoppingToken);
 
                         overdueAlarmsCreated++;
@@ -165,6 +169,7 @@ namespace FMS.BackgroundServices.VehicleMaintenance
                             DiscrepancySeverity.Medium,
                             message,
                             maintenance,
+                            eventEngine,
                             stoppingToken);
 
                         dueSoonAlarmsCreated++;
@@ -235,22 +240,41 @@ namespace FMS.BackgroundServices.VehicleMaintenance
             return string.Join(". ", parts) + ".";
         }
 
-        private Task CreateMaintenanceAlarm(
+        private async Task CreateMaintenanceAlarm(
             string alarmType,
             string priority,
             DiscrepancySeverity severity,
             string message,
             Domain.Entities.Features.VehicleManagement.VehicleMaintenance maintenance,
+            IEventExpressionEngine? eventEngine,
             CancellationToken stoppingToken)
         {
             string description = BuildAlarmDescription(maintenance);
 
-            // TODO: Wire EventExpressionEngine.ProcessAsync() for vehicle maintenance events
+            // Fire SystemEvent for vehicle maintenance through event expression engine
+            if (eventEngine != null)
+            {
+                var maintenanceEvent = new SystemEvent
+                {
+                    Severity = priority,
+                    SubType = alarmType,
+                    SourceComponent = "VehicleMaintenanceNotifier",
+                    Message = message,
+                    ReferenceId = maintenance.MaintenanceId,
+                    ReferenceType = "VehicleMaintenance",
+                };
+                maintenanceEvent.Data["VehicleNo"] = maintenance.Vehicle?.HyoungNo ?? "Unknown";
+                maintenanceEvent.Data["NumberPlate"] = maintenance.Vehicle?.NumberPlate ?? "N/A";
+                maintenanceEvent.Data["MaintenanceType"] = maintenance.MaintenanceType;
+                maintenanceEvent.Data["Status"] = maintenance.Status;
+                maintenanceEvent.Data["Description"] = description;
+                if (maintenance.ScheduledDate.HasValue)
+                    maintenanceEvent.Data["ScheduledDate"] = maintenance.ScheduledDate.Value.ToString("yyyy-MM-dd");
+                await eventEngine.ProcessAsync(maintenanceEvent, stoppingToken);
+            }
             _logger.LogInformation(
                 "Vehicle maintenance event: {AlarmType} Priority={Priority} Severity={Severity} MaintenanceId={MaintenanceId} - {Message}",
                 alarmType, priority, severity, maintenance.MaintenanceId, message);
-
-            return Task.CompletedTask;
         }
 
         private string BuildAlarmDescription(Domain.Entities.Features.VehicleManagement.VehicleMaintenance maintenance)

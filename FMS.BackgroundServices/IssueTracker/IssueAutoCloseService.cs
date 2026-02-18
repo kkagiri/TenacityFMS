@@ -79,17 +79,15 @@ namespace FMS.BackgroundServices.IssueTracker
         {
             try
             {
-                var intervals = await context.Issueautocloseconfigs
-                    .Where(c => c.IsEnabled && c.CheckIntervalSeconds.HasValue && c.CheckIntervalSeconds.Value > 0)
-                    .Select(c => c.CheckIntervalSeconds!.Value)
-                    .ToListAsync();
+                var minIntervalSeconds = await context.Issueautocloseconfigs
+                    .Where(c => c.IsEnabled && c.CheckIntervalSeconds > 0)
+                    .Select(c => (int?)c.CheckIntervalSeconds)
+                    .MinAsync();
 
-                var minIntervalSeconds = intervals.Count > 0 ? intervals.Min() : 0;
-
-                if (minIntervalSeconds > 0)
+                if (minIntervalSeconds.HasValue && minIntervalSeconds.Value > 0)
                 {
                     // Clamp between 60 seconds (1 min) and 86400 seconds (24 hours)
-                    var clampedSeconds = Math.Clamp(minIntervalSeconds, 60, 86400);
+                    var clampedSeconds = Math.Clamp(minIntervalSeconds.Value, 60, 86400);
                     var interval = TimeSpan.FromSeconds(clampedSeconds);
                     _logger.LogDebug("[Auto-Close] Using check interval from config: {Seconds}s ({Interval})",
                         clampedSeconds, interval);

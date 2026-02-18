@@ -64,13 +64,28 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
         public const string EscalationAutoEscalate = "EscalationAutoEscalate";
         public const string BusinessImpactCalc = "BusinessImpactCalc";
 
+        // Event Expression types (mapped from EventExpressionTypeMetadataDto)
+        public const string TankStockDiscrepancy = "TankStockDiscrepancy";
+        public const string SensorVariance = "SensorVariance";
+        public const string NoTankStockEntry = "NoTankStockEntry";
+        public const string TankLevel = "TankLevel";
+        public const string DeviceStatus = "DeviceStatus";
+        public const string PumpAlarm = "PumpAlarm";
+        public const string VehicleGps = "VehicleGps";
+        public const string IssueTracker = "IssueTracker";
+        public const string SystemEvent = "System";
+        public const string EventLifecycle = "EventLifecycle";
+
         #endregion
 
         #region Alert Group Names
 
         public const string GroupTankOperations = "Tank Operations";
+        public const string GroupTankStock = "Tank Stock";
+        public const string GroupTankMonitoring = "Tank Monitoring";
         public const string GroupPTSDevice = "PTS Device";
         public const string GroupGPSVehicle = "GPS & Vehicle";
+        public const string GroupIssueTracker = "Issue Tracker";
         public const string GroupSystem = "System";
 
         #endregion
@@ -138,7 +153,16 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
                     new[] { GPSTagOffline, VehicleMaintenanceDue, OdometerSync }),
 
                 new(GroupSystem, "fa-light fa-gear", "Escalation rules and system-wide calculation parameters",
-                    new[] { EscalationAutoEscalate, BusinessImpactCalc })
+                    new[] { EscalationAutoEscalate, BusinessImpactCalc, SystemEvent, EventLifecycle }),
+
+                new(GroupTankStock, "fa-light fa-gas-pump", "Tank stock discrepancy, sensor variance, and missing entry alerts",
+                    new[] { TankStockDiscrepancy, SensorVariance, NoTankStockEntry }),
+
+                new(GroupTankMonitoring, "fa-light fa-gauge", "Tank level threshold alerts",
+                    new[] { TankLevel }),
+
+                new(GroupIssueTracker, "fa-light fa-clipboard-list-check", "Issue tracker lifecycle alerts",
+                    new[] { IssueTracker })
             };
         }
 
@@ -452,6 +476,110 @@ namespace FMS.Application.Features.Notification.Services.AlertConfiguration
                         new("maxScore", "Maximum Score", "decimal", "", true, 100m, "Maximum impact score cap"),
                         new("capacityWeightMultiplier", "Capacity Weight Multiplier", "decimal", "x", true, 2m, "Multiplier for capacity-based impact weighting"),
                     }
+                },
+
+                #endregion
+
+                #region Event Expression Types
+
+                [TankStockDiscrepancy] = new AlertTypeDefinition
+                {
+                    Key = TankStockDiscrepancy,
+                    DisplayName = "Tank Stock Discrepancy",
+                    Description = "Event expression: triggers when closing stock calculation detects a variance beyond thresholds",
+                    Group = GroupTankStock,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [SensorVariance] = new AlertTypeDefinition
+                {
+                    Key = SensorVariance,
+                    DisplayName = "Sensor Variance",
+                    Description = "Event expression: triggers when sensor reading differs from manual dip reading",
+                    Group = GroupTankStock,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [NoTankStockEntry] = new AlertTypeDefinition
+                {
+                    Key = NoTankStockEntry,
+                    DisplayName = "No Tank Stock Entry",
+                    Description = "Event expression: triggers when no opening or closing stock entry has been submitted within schedule",
+                    Group = GroupTankStock,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [TankLevel] = new AlertTypeDefinition
+                {
+                    Key = TankLevel,
+                    DisplayName = "Tank Level Alert",
+                    Description = "Event expression: triggers when tank level crosses configured thresholds",
+                    Group = GroupTankMonitoring,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [DeviceStatus] = new AlertTypeDefinition
+                {
+                    Key = DeviceStatus,
+                    DisplayName = "Device Status Change",
+                    Description = "Event expression: triggers when a PTS/ATG device goes offline, comes online, or encounters errors",
+                    Group = GroupPTSDevice,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [PumpAlarm] = new AlertTypeDefinition
+                {
+                    Key = PumpAlarm,
+                    DisplayName = "Pump Alarm",
+                    Description = "Event expression: triggers when a PTS pump reports an alarm condition",
+                    Group = GroupPTSDevice,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [VehicleGps] = new AlertTypeDefinition
+                {
+                    Key = VehicleGps,
+                    DisplayName = "Vehicle GPS Alert",
+                    Description = "Event expression: triggers when a vehicle GPS tracker changes status or violates limits",
+                    Group = GroupGPSVehicle,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [IssueTracker] = new AlertTypeDefinition
+                {
+                    Key = IssueTracker,
+                    DisplayName = "Issue Tracker Alert",
+                    Description = "Event expression: triggers for issue lifecycle events (created, updated, escalated, overdue)",
+                    Group = GroupIssueTracker,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [SystemEvent] = new AlertTypeDefinition
+                {
+                    Key = SystemEvent,
+                    DisplayName = "System Event",
+                    Description = "Event expression: triggers for system-level events like maintenance, security, reports",
+                    Group = GroupSystem,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
+                },
+
+                [EventLifecycle] = new AlertTypeDefinition
+                {
+                    Key = EventLifecycle,
+                    DisplayName = "Event Lifecycle",
+                    Description = "Event expression: triggers when an active event changes state (acknowledged, resolved, escalated)",
+                    Group = GroupSystem,
+                    DefaultEnabled = true,
+                    Parameters = new List<AlertParameterDefinition>()
                 },
 
                 #endregion

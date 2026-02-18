@@ -36,8 +36,8 @@ import {
     clearErrors
 } from '../../../redux/slices/eventExpressionSlice';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
-import { fetctTankbySiteId } from '../../../redux/actions/tankActions';
 import notificationsApi from '../../../dataservice/notificationsApi';
+import axiosInstance from '../../../api/axiosInstance';
 import StepBasicInfo from './steps/StepBasicInfo';
 import StepEventTriggers from './steps/StepEventTriggers';
 import StepScope from './steps/StepScope';
@@ -109,9 +109,12 @@ const EventExpressionForm = () => {
     const [conditionValues, setConditionValues] = useState({});
     const [activeStep, setActiveStep] = useState(0);
 
+    // ─── Multi-site scoped tanks (local, not Redux — avoids single-site overwrite) ───
+    const [scopeTanks, setScopeTanks] = useState([]);
+    const [loadingScopeTanks, setLoadingScopeTanks] = useState(false);
+
     // Lookup data from Redux store
     const sites = useSelector((state) => state.site?.sites || []);
-    const tanks = useSelector((state) => state.tank?.tanks || []);
 
     // ─── Load types, sites, and recipient options on mount ───
     useEffect(() => {
@@ -176,16 +179,26 @@ const EventExpressionForm = () => {
             // Recover alertTypeKey: stored in _alertTypeKey, fallback to eventType
             const alertKey = parsedConditions._alertTypeKey || selectedExpression.eventType || '';
 
-            // Strip internal _alertTypeKey from display conditions
-            const { _alertTypeKey, ...displayConditions } = parsedConditions;
+            // Recover multi-site selection: stored in _siteIds, fallback to single siteId
+            const recoveredSiteIds = Array.isArray(parsedConditions._siteIds) && parsedConditions._siteIds.length > 0
+                ? parsedConditions._siteIds
+                : (selectedExpression.siteId ? [selectedExpression.siteId] : []);
+
+            // Recover multi-tank selection: stored in _tankIds, fallback to single tankId
+            const recoveredTankIds = Array.isArray(parsedConditions._tankIds) && parsedConditions._tankIds.length > 0
+                ? parsedConditions._tankIds
+                : (selectedExpression.tankId ? [selectedExpression.tankId] : []);
+
+            // Strip internal fields from display conditions
+            const { _alertTypeKey, _siteIds, _tankIds, ...displayConditions } = parsedConditions;
             setConditionValues(displayConditions);
 
             setFormData({
                 name: selectedExpression.name || '',
                 description: selectedExpression.description || '',
                 eventType: alertKey,
-                siteIds: selectedExpression.siteId ? [selectedExpression.siteId] : [],
-                tankIds: selectedExpression.tankId ? [selectedExpression.tankId] : [],
+                siteIds: recoveredSiteIds,
+                tankIds: recoveredTankIds,
                 deviceId: selectedExpression.deviceId,
                 minimumSeverity: selectedExpression.minimumSeverity,
                 conditions: JSON.stringify(displayConditions),
@@ -234,13 +247,21 @@ const EventExpressionForm = () => {
         }
     }, [isEditing, selectedExpression]);
 
-    // Also load tanks on initial edit load
+    // Load tanks for all recovered siteIds during edit
     useEffect(() => {
-        if (isEditing && formData.siteIds && formData.siteIds.length > 0) {
-            dispatch(fetctTankbySiteId(formData.siteIds[0]));
+        if (isEditing && selectedExpression) {
+            // Recover siteIds from conditions or single siteId
+            let parsedConds = {};
+            try { parsedConds = JSON.parse(selectedExpression.conditions || '{}'); } catch { /* ignore */ }
+            const recoveredSiteIds = Array.isArray(parsedConds._siteIds) && parsedConds._siteIds.length > 0
+                ? parsedConds._siteIds
+                : (selectedExpression.siteId ? [selectedExpression.siteId] : []);
+            if (recoveredSiteIds.length > 0) {
+                fetchTanksForSites(recoveredSiteIds);
+            }
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isEditing]);
+    }, [isEditing, selectedExpression]);
 
     // ─── Derived metadata (find by alertTypeKey, which formData.eventType stores) ───
     const selectedTypeMetadata = useMemo(() => {
@@ -251,19 +272,45 @@ const EventExpressionForm = () => {
         return selectedTypeMetadata?.availableConditions || [];
     }, [selectedTypeMetadata]);
 
+    // ─── Helper: fetch tanks for multiple sites in parallel ───
+    const fetchTanksForSites = useCallback(async (siteIds) => {
+        if (!siteIds || siteIds.length === 0) {
+            setScopeTanks([]);
+            return;
+        }
+        setLoadingScopeTanks(true);
+        try {
+            const results = await Promise.all(
+                siteIds.map((sid) =>
+                    axiosInstance.get(`/tank/site/${sid}`).then((res) => {
+                        const data = res.data;
+                        return Array.isArray(data) ? data : (data?.data || []);
+                    }).catch(() => [])
+                )
+            );
+            // Merge and deduplicate by id
+            const merged = results.flat();
+            const unique = Array.from(new Map(merged.map((t) => [t.id, t])).values());
+            setScopeTanks(unique);
+        } catch (err) {
+            console.error('Failed to load tanks for sites:', err);
+            setScopeTanks([]);
+        } finally {
+            setLoadingScopeTanks(false);
+        }
+    }, []);
+
     // ─── Handlers ───
     const handleFieldChange = useCallback((field, value) => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     }, []);
 
-    // Load tanks when site changes (must be after handleFieldChange)
+    // Load tanks when site selection changes — fetches from ALL selected sites
     const handleSiteChange = useCallback((siteIds) => {
         handleFieldChange('siteIds', siteIds);
         handleFieldChange('tankIds', []);
-        if (siteIds && siteIds.length > 0) {
-            dispatch(fetctTankbySiteId(siteIds[0]));
-        }
-    }, [dispatch, handleFieldChange]);
+        fetchTanksForSites(siteIds);
+    }, [handleFieldChange, fetchTanksForSites]);
 
     const handlePolicyChange = useCallback((field, value) => {
         setPolicyData((prev) => ({ ...prev, [field]: value }));
@@ -420,6 +467,8 @@ const EventExpressionForm = () => {
                     name: `${formData.name} - Policy`,
                     description: `Auto-managed policy for expression: ${formData.name}`,
                     notificationType: 'Alert',
+                    alertTypeKey: formData.eventType || null,
+                    category: selectedTypeMetadata?.category || null,
                     priority: formData.priority,
                     enableEmail: policyData.enableEmail,
                     enableSms: policyData.enableSms,
@@ -468,12 +517,20 @@ const EventExpressionForm = () => {
                 } catch { conditionsObj = {}; }
                 conditionsObj._alertTypeKey = formData.eventType;
 
+                // Store multi-site and multi-tank selections in conditions for recovery
+                if (formData.siteIds?.length > 0) {
+                    conditionsObj._siteIds = formData.siteIds;
+                }
+                if (formData.tankIds?.length > 0) {
+                    conditionsObj._tankIds = formData.tankIds;
+                }
+
                 const expressionPayload = {
                     name: formData.name,
                     description: formData.description,
                     eventType: resolvedEventType,
-                    siteId: formData.siteIds?.[0] || null,
-                    tankId: formData.tankIds?.[0] || null,
+                    siteId: formData.siteIds?.[0] ?? null,
+                    tankId: formData.tankIds?.[0] ?? null,
                     deviceId: formData.deviceId,
                     minimumSeverity: formData.minimumSeverity,
                     conditions: JSON.stringify(conditionsObj),
@@ -621,7 +678,8 @@ const EventExpressionForm = () => {
                             onFieldChange={handleFieldChange}
                             onSiteChange={handleSiteChange}
                             sites={sites}
-                            tanks={tanks}
+                            tanks={scopeTanks}
+                            loadingTanks={loadingScopeTanks}
                             availableScopeFilters={selectedTypeMetadata?.availableScopeFilters}
                         />
                     </AccordionItem>

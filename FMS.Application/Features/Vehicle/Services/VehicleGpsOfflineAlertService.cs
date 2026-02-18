@@ -1,6 +1,8 @@
 using System;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Services.Configuration;
@@ -21,6 +23,7 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
     private readonly INotificationService _notificationService;
     private readonly IGPSService? _gpsService;
     private readonly ISystemConfigurationService? _configService;
+    private readonly IEventExpressionEngine? _eventEngine;
 
     /// <summary>
     /// Default threshold in days for GPS stale detection (used if config not available)
@@ -42,13 +45,15 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
         ILogger<VehicleGpsOfflineAlertService> logger,
         INotificationService notificationService,
         IGPSService? gpsService = null,
-        ISystemConfigurationService? configService = null)
+        ISystemConfigurationService? configService = null,
+        IEventExpressionEngine? eventEngine = null)
     {
         _context = context;
         _logger = logger;
         _notificationService = notificationService;
         _gpsService = gpsService;
         _configService = configService;
+        _eventEngine = eventEngine;
     }
 
     public async Task<int> GetGpsOfflineThresholdDaysAsync(CancellationToken cancellationToken = default)
@@ -164,7 +169,24 @@ public class VehicleGpsOfflineAlertService : IVehicleGpsOfflineAlertService
                     ? $"Vehicle {vehicleIdentifier} was fueled but GPS has been offline for {result.DaysSinceLastSeen} days (last seen: {result.LastSeenUtc:yyyy-MM-dd HH:mm} UTC)"
                     : $"Vehicle {vehicleIdentifier} was fueled but GPS has no location data available";
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for GPS offline events
+                // Fire VehicleGpsEvent through the event expression engine
+                if (_eventEngine != null)
+                {
+                    var gpsEvent = new VehicleGpsEvent
+                    {
+                        SiteId = siteId,
+                        VehicleId = vehicleId,
+                        VehicleName = vehicleIdentifier,
+                        Severity = "High",
+                        GpsStatus = "Offline",
+                        Message = alertMessage,
+                        LastPositionAt = result.LastSeenUtc,
+                        OfflineDuration = result.LastSeenUtc.HasValue ? DateTime.UtcNow - result.LastSeenUtc.Value : null,
+                    };
+                    gpsEvent.Data["FuelAmount"] = fuelAmount ?? 0;
+                    gpsEvent.Data["TriggeredBy"] = triggeredBy ?? "System";
+                    await _eventEngine.ProcessAsync(gpsEvent, cancellationToken);
+                }
                 _logger.LogInformation("GPS offline event detected for vehicle {VehicleId} ({VehicleNo}) - last seen {DaysSinceLastSeen} days ago",
                     vehicleId, vehicleIdentifier, result.DaysSinceLastSeen);
 

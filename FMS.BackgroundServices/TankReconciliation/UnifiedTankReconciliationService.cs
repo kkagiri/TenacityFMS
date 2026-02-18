@@ -22,6 +22,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.AutomatedReconciliation.Services;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
@@ -165,6 +167,7 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+                var eventEngine = scope.ServiceProvider.GetService<IEventExpressionEngine>();
 
                 var tanks = await context.Tanks
                     .Include(t => t.Site)
@@ -173,7 +176,7 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 foreach (var tank in tanks)
                 {
-                    await CheckSingleTankAsync(context, tank, cancellationToken);
+                    await CheckSingleTankAsync(context, tank, eventEngine, cancellationToken);
                 }
 
                 _logger.LogDebug("Completed tank level monitoring for {TankCount} tanks", tanks.Count);
@@ -187,6 +190,7 @@ namespace FMS.BackgroundServices.TankReconciliation
         private async Task CheckSingleTankAsync(
             GpsdataContext context,
             Tank tank,
+            IEventExpressionEngine? eventEngine,
             CancellationToken cancellationToken)
         {
             try
@@ -208,13 +212,28 @@ namespace FMS.BackgroundServices.TankReconciliation
                 {
                     _logger.LogWarning("Tank {TankId} measurement is {Hours:F1} hours old", tank.Id, measurementAge.TotalHours);
 
-                    // TODO: Wire EventExpressionEngine.ProcessAsync() for stale data events
+                    // Fire SystemEvent for stale data detection
+                    if (eventEngine != null)
+                    {
+                        var staleEvent = new SystemEvent
+                        {
+                            SiteId = tank.SiteId,
+                            TankId = tank.Id,
+                            Severity = measurementAge.TotalHours > 24 ? "High" : "Medium",
+                            SubType = "StaleData",
+                            SourceComponent = "TankMonitoring",
+                            Message = $"Tank {tank.Name} measurement is {measurementAge.TotalHours:F1} hours old",
+                        };
+                        staleEvent.Data["MeasurementAgeHours"] = measurementAge.TotalHours;
+                        staleEvent.Data["LastMeasurementTime"] = latestMeasurement.DateTime.ToString("yyyy-MM-dd HH:mm:ss");
+                        await eventEngine.ProcessAsync(staleEvent, cancellationToken);
+                    }
                     _logger.LogInformation("Stale data event detected for Tank {TankId}: last measurement {Hours:F1} hours ago",
                         tank.Id, measurementAge.TotalHours);
                 }
 
                 // Check for low/high volume alarms
-                await CheckVolumeAlarmsAsync(tank, latestMeasurement, cancellationToken);
+                await CheckVolumeAlarmsAsync(tank, latestMeasurement, eventEngine, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -225,6 +244,7 @@ namespace FMS.BackgroundServices.TankReconciliation
         private async Task CheckVolumeAlarmsAsync(
             Tank tank,
             Tankmeasurement measurement,
+            IEventExpressionEngine? eventEngine,
             CancellationToken cancellationToken)
         {
             try
@@ -236,14 +256,46 @@ namespace FMS.BackgroundServices.TankReconciliation
                 // Check for low volume alarm (below 10%)
                 if (fillPercentage < 10)
                 {
-                    // TODO: Wire EventExpressionEngine.ProcessAsync() for low volume events
+                    if (eventEngine != null)
+                    {
+                        var lowEvent = new TankLevelEvent
+                        {
+                            SiteId = tank.SiteId,
+                            TankId = tank.Id,
+                            Severity = "High",
+                            Message = $"Tank {tank.Name} low volume: {fillPercentage:F1}% ({currentVolume:N0}L of {tankCapacity:N0}L)",
+                            TankName = tank.Name ?? "",
+                            ProductVolume = (decimal)currentVolume,
+                            TankCapacity = tankCapacity,
+                            PercentageFull = (decimal)fillPercentage,
+                            CurrentLevel = (decimal)currentVolume,
+                        };
+                        lowEvent.Data["AlarmType"] = "BackgroundLowVolume";
+                        await eventEngine.ProcessAsync(lowEvent, cancellationToken);
+                    }
                     _logger.LogWarning("Tank {TankId} ({TankName}) low volume: {FillPct:F1}% ({Volume:N0}L of {Capacity:N0}L)",
                         tank.Id, tank.Name, fillPercentage, currentVolume, tankCapacity);
                 }
                 // Check for high volume alarm (above 95%)
                 else if (fillPercentage > 95)
                 {
-                    // TODO: Wire EventExpressionEngine.ProcessAsync() for high volume events
+                    if (eventEngine != null)
+                    {
+                        var highEvent = new TankLevelEvent
+                        {
+                            SiteId = tank.SiteId,
+                            TankId = tank.Id,
+                            Severity = "Critical",
+                            Message = $"Tank {tank.Name} high volume: {fillPercentage:F1}% ({currentVolume:N0}L of {tankCapacity:N0}L)",
+                            TankName = tank.Name ?? "",
+                            ProductVolume = (decimal)currentVolume,
+                            TankCapacity = tankCapacity,
+                            PercentageFull = (decimal)fillPercentage,
+                            CurrentLevel = (decimal)currentVolume,
+                        };
+                        highEvent.Data["AlarmType"] = "BackgroundHighVolume";
+                        await eventEngine.ProcessAsync(highEvent, cancellationToken);
+                    }
                     _logger.LogWarning("Tank {TankId} ({TankName}) high volume: {FillPct:F1}% ({Volume:N0}L of {Capacity:N0}L)",
                         tank.Id, tank.Name, fillPercentage, currentVolume, tankCapacity);
                 }
@@ -500,6 +552,18 @@ namespace FMS.BackgroundServices.TankReconciliation
                 existingRecord.TotalTransfersIn = totalTransfersIn;
                 existingRecord.TotalTransfersOut = totalTransfersOut;
 
+                if (existingRecord.OpeningLevel == null)
+                {
+                    var fallbackOpeningLevel = existingRecord.ClosingLevel ?? closingLevel ?? 0m;
+                    _logger.LogWarning(
+                        "Daily aggregation fallback: OpeningLevel is NULL for TankId={TankId} on {Date}. Using fallback OpeningLevel={Fallback}.",
+                        tank.Id,
+                        startOfDayUtc,
+                        fallbackOpeningLevel);
+
+                    existingRecord.OpeningLevel = fallbackOpeningLevel;
+                }
+
                 if (existingRecord.ClosingLevel == null)
                 {
                     var fallbackClosingLevel = existingRecord.OpeningLevel ?? 0m;
@@ -514,6 +578,18 @@ namespace FMS.BackgroundServices.TankReconciliation
             }
             else
             {
+                if (openingLevel == null)
+                {
+                    var fallbackOpeningLevel = closingLevel ?? 0m;
+                    _logger.LogWarning(
+                        "Daily aggregation fallback: OpeningLevel is NULL for TankId={TankId} on {Date}. Using fallback OpeningLevel={Fallback}.",
+                        tank.Id,
+                        startOfDayUtc,
+                        fallbackOpeningLevel);
+
+                    openingLevel = fallbackOpeningLevel;
+                }
+
                 if (closingLevel == null)
                 {
                     var fallbackClosingLevel = openingLevel ?? 0m;
@@ -680,6 +756,16 @@ namespace FMS.BackgroundServices.TankReconciliation
                             "TankStock → DailyTankReconciliation fallback: ClosingLevel is NULL for TankId={TankId} on {Date}. Using ClosingLevel=0.",
                             tankStock.TankId,
                             date);
+                    }
+
+                    if (openingLevel == null)
+                    {
+                        openingLevel = closingLevel ?? 0m;
+                        _logger.LogWarning(
+                            "TankStock → DailyTankReconciliation fallback: OpeningLevel is NULL for TankId={TankId} on {Date}. Using OpeningLevel={OpeningLevel}.",
+                            tankStock.TankId,
+                            date,
+                            openingLevel);
                     }
 
                     var existingReconciliation = await context.Dailytankreconciliations

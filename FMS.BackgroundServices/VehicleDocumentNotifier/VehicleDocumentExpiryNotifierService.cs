@@ -1,3 +1,5 @@
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using FMS.Persistence.DataAccess;
@@ -49,6 +51,7 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
 
         IServiceScope scope = _scopeFactory.CreateScope();
         GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
+        var eventEngine = scope.ServiceProvider.GetService<IEventExpressionEngine>();
 
         DateTime expiringSoonDate = DateTime.UtcNow.Date.AddDays(30);
         List<VehicleDocument> documentsToNotify = await context.VehicleDocuments
@@ -72,7 +75,24 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                 }
 
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for vehicle document expiry events
+                // Fire SystemEvent for document expiry through the event expression engine
+                if (eventEngine != null)
+                {
+                    var docEvent = new SystemEvent
+                    {
+                        Severity = daysUntilExpiry <= 7 ? "High" : "Medium",
+                        SubType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon",
+                        SourceComponent = "VehicleDocumentNotifier",
+                        Message = message,
+                        ReferenceId = doc.Id,
+                        ReferenceType = "VehicleDocument",
+                    };
+                    docEvent.Data["DocumentType"] = doc.DocumentType.ToString();
+                    docEvent.Data["VehicleNo"] = doc.Vehicle?.HyoungNo ?? "";
+                    docEvent.Data["DaysUntilExpiry"] = daysUntilExpiry;
+                    docEvent.Data["ExpiryDate"] = doc.ExpiryDate.ToString("yyyy-MM-dd");
+                    await eventEngine.ProcessAsync(docEvent, stoppingToken);
+                }
                 _logger.LogInformation(
                     "Vehicle document expiry event: {AlarmType} - {Message}", alarmType, message);
             }

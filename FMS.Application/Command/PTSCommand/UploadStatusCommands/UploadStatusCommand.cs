@@ -12,6 +12,8 @@ using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Events.Pump;
 using FMS.Application.Features.ATG.Common;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
@@ -78,6 +80,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
         private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
         private readonly ISystemConfigurationService _systemConfigurationService;
+        private readonly IEventExpressionEngine _eventEngine;
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -94,7 +97,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
             IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
             ISystemConfigurationService systemConfigurationService,
-            IServiceScopeFactory serviceScopeFactory) // For background task scoping
+            IServiceScopeFactory serviceScopeFactory, // For background task scoping
+            IEventExpressionEngine eventEngine)
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -111,6 +115,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
             _systemConfigurationService = systemConfigurationService;
             _serviceScopeFactory = serviceScopeFactory; // For background task scoping
+            _eventEngine = eventEngine;
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -676,7 +681,29 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 // Set cooldown in Redis (5 minutes)
                 await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(5));
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for probe alarm events
+                // Resolve tank and measurement for this probe
+                var tank = linkedTanks?.FirstOrDefault(t => t.ProbeNumber == probeId);
+                var measurement = measurements?.FirstOrDefault(m => m.ProbeNumber == probeId);
+
+                var probeAlarmEvent = new TankLevelEvent
+                {
+                    SiteId = tank?.SiteId ?? device?.Site,
+                    TankId = tank?.Id,
+                    PtsDeviceId = deviceId,
+                    Severity = priority,
+                    Message = message,
+                    TankName = tank?.Name ?? $"Probe #{probeId}",
+                    ProductVolume = measurement?.ProductVolume.HasValue == true ? (decimal)measurement.ProductVolume.Value : 0,
+                    TankCapacity = tank?.TankVolume ?? 0,
+                    PercentageFull = measurement?.TankFillingPercentage ?? 0,
+                    CurrentLevel = measurement?.ProductHeight.HasValue == true ? (decimal)measurement.ProductHeight.Value : 0,
+                    WaterLevel = measurement?.WaterHeight.HasValue == true ? (decimal)measurement.WaterHeight.Value : 0,
+                    Temperature = measurement?.Temperature.HasValue == true ? (decimal)measurement.Temperature.Value : 0,
+                    UllageVolume = measurement?.ProductUllage.HasValue == true ? (decimal)measurement.ProductUllage.Value : 0,
+                };
+                probeAlarmEvent.Data["AlarmType"] = alarmType;
+                probeAlarmEvent.Data["ProbeId"] = probeId;
+                await _eventEngine.ProcessAsync(probeAlarmEvent, cancellationToken);
                 _logger.LogInformation(
                     "[UploadStatus] Probe alarm event {AlarmType} for device {DeviceId} probe {ProbeId}: {Message}",
                     alarmType, deviceId, probeId, message);
@@ -907,7 +934,20 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 // Set cooldown in Redis (15 minutes)
                 await _redisDb.StringSetAsync(cooldownKey, "1", TimeSpan.FromMinutes(15));
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for system tank level events
+                var levelEvent = new TankLevelEvent
+                {
+                    SiteId = tank.SiteId,
+                    TankId = tank.Id,
+                    Severity = priority,
+                    Message = message,
+                    TankName = tank.Name ?? "",
+                    TankCapacity = tank.TankVolume,
+                    PercentageFull = percentageFull,
+                    ProductVolume = currentVolume,
+                    CurrentLevel = currentVolume,
+                };
+                levelEvent.Data["AlarmType"] = alarmType;
+                await _eventEngine.ProcessAsync(levelEvent);
                 _logger.LogWarning(
                     "[UploadStatus] System tank level event {AlarmType} for tank {TankId} ({TankName}): {PercentageFull:F1}% full, {CurrentVolume:N0}L",
                     alarmType, tank.Id, tank.Name, percentageFull, currentVolume);

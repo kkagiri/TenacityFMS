@@ -14,6 +14,8 @@ using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.AlertConfiguration;
 using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.TankStock;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -37,8 +39,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         private readonly DiscrepancyDetectionService _discrepancyDetectionService;
         private readonly INotificationService _notificationService;
         private readonly IAlertConfigurationService _alertConfig;
+        private readonly IEventExpressionEngine _eventEngine;
 
-        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, IAlertConfigurationService alertConfig)
+        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, IAlertConfigurationService alertConfig, IEventExpressionEngine eventEngine)
         {
             _context = context;
             _logger = logger;
@@ -48,6 +51,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             _discrepancyDetectionService = discrepancyDetectionService;
             _notificationService = notificationService;
             _alertConfig = alertConfig;
+            _eventEngine = eventEngine;
         }
 
         public async Task<FMSResponseMessage> Handle(ClosingStockCommand request, CancellationToken cancellationToken)
@@ -895,8 +899,27 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for stock discrepancy events
-                _logger.LogInformation("Stock discrepancy detected in Tank {TankId}: {Message}", tank.Id, message);
+                // Fire TankClosingStockEvent through the event expression engine
+                var stockEvent = new TankClosingStockEvent
+                {
+                    SiteId = tank.SiteId,
+                    TankId = tank.Id,
+                    Severity = priority,
+                    Message = message,
+                    TankName = tank.Name ?? "",
+                    SiteName = siteName,
+                    OpeningStock = reconciliation.OpeningStock,
+                    ClosingStock = reconciliation.ActualClosingStock,
+                    ExpectedClosingStock = reconciliation.ExpectedClosingStock,
+                    Variance = reconciliation.Variance,
+                    VariancePercentage = reconciliation.VariancePercentage,
+                    VarianceType = reconciliation.VarianceType,
+                    TotalDeliveries = reconciliation.TotalDeliveries,
+                    TotalSales = reconciliation.TotalDispensing,
+                };
+                var result = await _eventEngine.ProcessAsync(stockEvent, cancellationToken);
+                _logger.LogInformation("Stock discrepancy event processed for Tank {TankId}: {TriggeredCount} triggered, {SuppressedCount} suppressed",
+                    tank.Id, result.TriggeredCount, result.SuppressedCount);
             }
             catch (Exception ex)
             {
@@ -932,9 +955,23 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for sensor variance events
-                _logger.LogInformation("Sensor variance detected in Tank {TankId}: Manual {ManualVolume}L vs Sensor {SensorVolume}L",
-                    tank.Id, manualVolume, sensorVolume);
+                // Fire SensorVarianceEvent through the event expression engine
+                var sensorEvent = new SensorVarianceEvent
+                {
+                    SiteId = tank.SiteId,
+                    TankId = tank.Id,
+                    Severity = priority,
+                    Message = $"Sensor vs Manual variance in Tank {tank.Name}: Manual {manualVolume}L vs Sensor {sensorVolume}L, Variance: {variance:+0.00;-0.00;0}L ({variancePercentage:F2}%)",
+                    TankName = tank.Name ?? "",
+                    ManualReading = manualVolume,
+                    SensorReading = sensorVolume,
+                    Variance = variance,
+                    VariancePercentage = variancePercentage,
+                    TriggeredBy = recordedBy,
+                };
+                var result = await _eventEngine.ProcessAsync(sensorEvent, cancellationToken);
+                _logger.LogInformation("Sensor variance event processed for Tank {TankId}: {TriggeredCount} triggered, {SuppressedCount} suppressed",
+                    tank.Id, result.TriggeredCount, result.SuppressedCount);
             }
             catch (Exception ex)
             {

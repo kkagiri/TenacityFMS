@@ -8,6 +8,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Features.ATG;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Handlers.Interface;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Domain.Entities;
@@ -28,11 +30,13 @@ namespace FMS.Application.Handlers
         private readonly ILogger<UploadAlertRecordHandler> _logger;
         private readonly GpsdataContext _context;
         private readonly IDatabase _redisDb;
+        private readonly IEventExpressionEngine _eventEngine;
 
         public UploadAlertRecordHandler(
             ILogger<UploadAlertRecordHandler> logger,
             GpsdataContext context,
-            IConnectionMultiplexer redisConnection)
+            IConnectionMultiplexer redisConnection,
+            IEventExpressionEngine eventEngine)
         {
             _logger = logger ??
                 throw new ArgumentNullException(nameof(logger));
@@ -40,6 +44,8 @@ namespace FMS.Application.Handlers
                 throw new ArgumentNullException(nameof(context));
             _redisDb = redisConnection?.GetDatabase() ??
                 throw new ArgumentNullException(nameof(redisConnection));
+            _eventEngine = eventEngine ??
+                throw new ArgumentNullException(nameof(eventEngine));
         }
 
         public string PacketType => "UploadAlertRecord";
@@ -232,7 +238,7 @@ namespace FMS.Application.Handlers
                     _logger.LogWarning(ex, "Non-critical: Failed to load device/tank context for alert");
                 }
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for PTS alert events — alarm context logged below
+                // PTS alert context for event engine processing
                 _logger.LogDebug("PTS alert context: DeviceType={DeviceType}, Code={Code}, State={State}, Site={SiteId}",
                     alertDto.DeviceType, alertDto.Code, alertDto.State, tank?.SiteId ?? device?.Site);
 
@@ -249,21 +255,53 @@ namespace FMS.Application.Handlers
                 // Only process alarm handlers for "Started" or "Detected" states
                 if (alertDto.State == "Started" || alertDto.State == "Detected")
                 {
-                    //Cursor: Process specific alarm types
-                    // TODO: Wire EventExpressionEngine.ProcessAsync() for PTS alert events
+                    //Cursor: Process specific alarm types via event expression engine
+                    var alertSeverity = GetAlarmSeverity(alertDto);
+                    var alertDescription = GetAlarmDescription(alertDto);
+                    var alertAlarmMessage = GetAlarmMessage(alertDto);
+
                     switch (alertDto.DeviceType.ToUpper())
                     {
                         case "PUMP":
-                            _logger.LogDebug("Pump alarm received for device {DeviceId}", deviceId);
+                            var pumpEvent = new PumpAlarmEvent
+                            {
+                                SiteId = tank?.SiteId ?? device?.Site,
+                                PtsDeviceId = deviceId,
+                                Severity = alertSeverity,
+                                Message = alertAlarmMessage,
+                                PumpNumber = alertDto.DeviceNumber,
+                                AlarmCode = alertDto.Code.ToString(),
+                                AlarmDescription = alertDescription,
+                            };
+                            await _eventEngine.ProcessAsync(pumpEvent);
                             break;
                         case "PROBE":
-                            _logger.LogDebug("Tank alarm received for device {DeviceId}", deviceId);
+                            var probeEvent = new TankLevelEvent
+                            {
+                                SiteId = tank?.SiteId ?? device?.Site,
+                                TankId = tank?.Id,
+                                PtsDeviceId = deviceId,
+                                Severity = alertSeverity,
+                                Message = alertAlarmMessage,
+                                TankName = tank?.Name ?? "",
+                            };
+                            probeEvent.Data["AlertCode"] = alertDto.Code;
+                            probeEvent.Data["AlertDescription"] = alertDescription;
+                            await _eventEngine.ProcessAsync(probeEvent);
                             break;
-                        case "PTS":
-                            _logger.LogDebug("Device alarm received for device {DeviceId}", deviceId);
-                            break;
-                        default:
-                            _logger.LogDebug("Generic alarm received for device {DeviceId}", deviceId);
+                        default: // PTS, PRICEBOARD, READER, etc.
+                            var deviceEvent = new DeviceStatusEvent
+                            {
+                                SiteId = tank?.SiteId ?? device?.Site,
+                                PtsDeviceId = deviceId,
+                                Severity = alertSeverity,
+                                Message = alertAlarmMessage,
+                                DeviceName = deviceId,
+                                DeviceType = alertDto.DeviceType,
+                                ErrorCode = alertDto.Code.ToString(),
+                                ErrorDescription = alertDescription,
+                            };
+                            await _eventEngine.ProcessAsync(deviceEvent);
                             break;
                     }
                 }

@@ -17,6 +17,8 @@ using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -33,17 +35,20 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
         private readonly ILogger<InTankDeliveryDetectionService> _logger;
         private readonly TankVolumeHistoryIntegrationService _volumeHistoryService;
         private readonly ISystemConfigurationService _configService;
+        private readonly IEventExpressionEngine _eventEngine;
 
         public InTankDeliveryDetectionService(
             GpsdataContext context,
             ILogger<InTankDeliveryDetectionService> logger,
             TankVolumeHistoryIntegrationService volumeHistoryService,
-            ISystemConfigurationService configService)
+            ISystemConfigurationService configService,
+            IEventExpressionEngine eventEngine)
         {
             _context = context;
             _logger = logger;
             _volumeHistoryService = volumeHistoryService;
             _configService = configService;
+            _eventEngine = eventEngine;
         }
 
         public async Task<FMSResponse> ProcessDetectedDeliveryAsync(
@@ -208,7 +213,22 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                 var tankName = tank?.Name ?? $"Probe #{delivery.Tank}";
                 var fuelGrade = delivery.FuelGradeName ?? $"Grade {delivery.FuelGradeId}";
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for in-tank delivery events
+                // Fire SystemEvent for in-tank delivery through the event expression engine
+                var itdEvent = new SystemEvent
+                {
+                    SiteId = tank?.SiteId ?? delivery.SiteId,
+                    TankId = tank?.Id,
+                    Severity = "Medium",
+                    SubType = "InTankDelivery",
+                    SourceComponent = "InTankDeliveryDetection",
+                    Message = $"In-tank delivery detected: Tank {tankName}, Volume {absoluteVolume:N0}L, Fuel Grade {fuelGrade}",
+                    ReferenceId = delivery.DeliveryId,
+                    ReferenceType = "InTankDelivery",
+                };
+                itdEvent.Data["TankName"] = tankName;
+                itdEvent.Data["Volume"] = absoluteVolume;
+                itdEvent.Data["FuelGrade"] = fuelGrade;
+                await _eventEngine.ProcessAsync(itdEvent, cancellationToken);
                 _logger.LogInformation(
                     "ITD event detected for DeliveryId {DeliveryId}: Tank={Tank}, Volume={Volume}L, FuelGrade={FuelGrade}",
                     delivery.DeliveryId, tankName, absoluteVolume, fuelGrade);

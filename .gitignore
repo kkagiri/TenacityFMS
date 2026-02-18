@@ -400,3 +400,7 @@ fms.mobile/android/app/debug.keystore
 # iOS folder (large, platform-specific)
 fms.mobile/ios/
 fms.frontend/package.json
+fms.mobile/src/config/appVersion.js
+fms.mobile/android/app/build.gradle
+fms.mobile/src/config/appVersion.js
+fms.mobile/android/app/build.gradle

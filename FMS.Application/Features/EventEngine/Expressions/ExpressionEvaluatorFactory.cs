@@ -34,6 +34,7 @@ namespace FMS.Application.Features.EventEngine.Expressions
             Register(new TankClosingStockEvaluator());
             Register(new SensorVarianceEvaluator());
             Register(new PumpAlarmEvaluator());
+            Register(new SystemEventEvaluator());
         }
 
         /// <summary>

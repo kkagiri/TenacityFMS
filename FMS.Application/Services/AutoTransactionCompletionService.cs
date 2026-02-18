@@ -1,5 +1,6 @@
 //Cursor: Service for automatic transaction completion detection and saving
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -36,6 +37,9 @@ namespace FMS.Application.Services
     /// </summary>
     public class AutoTransactionCompletionService : IAutoTransactionCompletionService
     {
+        private const int CloseRetryDelaySeconds = 30;
+        private static readonly TimeSpan WarningThrottleWindow = TimeSpan.FromSeconds(60);
+
         private readonly ITransactionCompletionService _transactionCompletionService;
         private readonly ITransactionMonitoringService _transactionMonitoringService;
         private readonly IDirectHttpTransactionService _directHttpService;
@@ -43,6 +47,8 @@ namespace FMS.Application.Services
         private readonly IDatabase _redisDb;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly ILogger<AutoTransactionCompletionService> _logger;
+        private readonly ConcurrentDictionary<string, byte> _pendingCloseRetry = new();
+        private readonly ConcurrentDictionary<string, DateTime> _lastWarningLogByKey = new();
 
         public AutoTransactionCompletionService(
             ITransactionCompletionService transactionCompletionService,
@@ -874,23 +880,45 @@ namespace FMS.Application.Services
         {
             try
             {
+                var retryKey = $"{deviceId}:{pump}:{transaction}";
+
                 // CRITICAL FIX: Verify pump is actually in EOT state before attempting close
                 // Tank transfers may still be processing on hardware even after our timeout
                 var pumpReady = await VerifyPumpReadyForClose(deviceId, pump, transaction);
                 if (!pumpReady)
                 {
-                    _logger.LogWarning("[AutoComplete] Pump {PumpId} on device {DeviceId} not yet ready for close (transaction {Transaction}). " +
-                        "This is normal for tank transfers. Close command will be deferred.",
-                        pump, deviceId, transaction);
-
-                    // Schedule a retry after a delay
-                    _ = Task.Run(async () =>
+                    if (ShouldLogWarning($"deferred-close:{retryKey}", WarningThrottleWindow))
                     {
-                        await Task.Delay(TimeSpan.FromSeconds(30));
-                        await SendCloseCommandToDevice(deviceId, pump, transaction);
-                    });
+                        _logger.LogWarning("[AutoComplete] Pump {PumpId} on device {DeviceId} not yet ready for close (transaction {Transaction}). " +
+                            "This is normal for tank transfers. Close command will be deferred.",
+                            pump, deviceId, transaction);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[AutoComplete] Deferred close still pending for pump {PumpId} on device {DeviceId} transaction {Transaction}",
+                            pump, deviceId, transaction);
+                    }
+
+                    // Schedule one retry loop per device/pump/transaction to prevent warning storms.
+                    if (_pendingCloseRetry.TryAdd(retryKey, 0))
+                    {
+                        _ = Task.Run(async () =>
+                        {
+                            try
+                            {
+                                await Task.Delay(TimeSpan.FromSeconds(CloseRetryDelaySeconds));
+                                await SendCloseCommandToDevice(deviceId, pump, transaction);
+                            }
+                            finally
+                            {
+                                _pendingCloseRetry.TryRemove(retryKey, out _);
+                            }
+                        });
+                    }
                     return;
                 }
+
+                _pendingCloseRetry.TryRemove(retryKey, out _);
 
                 // Determine connection type and send appropriate close command
                 var wsConnection = await _connectionTracker.GetWebSocketConnection(deviceId);
@@ -943,9 +971,19 @@ namespace FMS.Application.Services
                 if (statusJson.IsNullOrEmpty)
                 {
                     // ⚠️ No status - wait before assuming ready
-                    _logger.LogWarning(
-                        "[AutoComplete] No status available for {DeviceId} pump {PumpId}, waiting 5s before retry",
-                        deviceId, pump);
+                    var noStatusLogKey = $"no-status:{deviceId}:{pump}";
+                    if (ShouldLogWarning(noStatusLogKey, WarningThrottleWindow))
+                    {
+                        _logger.LogWarning(
+                            "[AutoComplete] No status available for {DeviceId} pump {PumpId}, waiting 5s before retry",
+                            deviceId, pump);
+                    }
+                    else
+                    {
+                        _logger.LogDebug(
+                            "[AutoComplete] No status still pending for {DeviceId} pump {PumpId}; retry continues",
+                            deviceId, pump);
+                    }
                     await Task.Delay(5000);
                     return false; // Retry later
                 }
@@ -998,8 +1036,19 @@ namespace FMS.Application.Services
                         if (isIdle)
                         {
                             // ⚠️ Pump is in Idle but not EOT - needs more time
-                            _logger.LogWarning(
-                                "[AutoComplete] ⚠️ Pump {PumpId} is Idle but not EOT - waiting 5s before retry", pump);
+                            var idleNotEotLogKey = $"idle-not-eot:{deviceId}:{pump}";
+                            if (ShouldLogWarning(idleNotEotLogKey, WarningThrottleWindow))
+                            {
+                                _logger.LogWarning(
+                                    "[AutoComplete] ⚠️ Pump {PumpId} is Idle but not EOT - waiting 5s before retry", pump);
+                            }
+                            else
+                            {
+                                _logger.LogDebug(
+                                    "[AutoComplete] Pump {PumpId} still idle without EOT for device {DeviceId}; retry continues",
+                                    pump,
+                                    deviceId);
+                            }
                             await Task.Delay(5000);
                             return false; // Retry after delay
                         }
@@ -1015,6 +1064,18 @@ namespace FMS.Application.Services
                     deviceId, pump);
                 return false; // Err on safe side
             }
+        }
+
+        private bool ShouldLogWarning(string key, TimeSpan throttleWindow)
+        {
+            var now = DateTime.UtcNow;
+            if (_lastWarningLogByKey.TryGetValue(key, out var lastLogTime) && (now - lastLogTime) < throttleWindow)
+            {
+                return false;
+            }
+
+            _lastWarningLogByKey[key] = now;
+            return true;
         }
 
     }

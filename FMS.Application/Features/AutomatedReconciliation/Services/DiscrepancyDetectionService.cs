@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Events;
@@ -24,17 +26,20 @@ public class DiscrepancyDetectionService
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;
     private readonly InventoryCostingService _costingService;
+    private readonly IEventExpressionEngine _eventEngine;
 
     public DiscrepancyDetectionService(
         ILogger<DiscrepancyDetectionService> logger,
         IMediator mediator,
         GpsdataContext context,
-        InventoryCostingService costingService)
+        InventoryCostingService costingService,
+        IEventExpressionEngine eventEngine)
     {
         _logger = logger;
         _mediator = mediator;
         _context = context;
         _costingService = costingService;
+        _eventEngine = eventEngine;
     }
 
     // Enhanced discrepancy detection with configurable thresholds
@@ -70,8 +75,28 @@ public class DiscrepancyDetectionService
                 // Publish domain event for downstream alerting
                 await _mediator.Publish(discrepancyEvent, cancellationToken);
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for stock discrepancy events
-                _logger.LogInformation("Stock discrepancy detected in Tank {TankId}: Expected {Expected}L, Actual {Actual}L, Variance {Variance}L",
+                // Fire TankClosingStockEvent through the event expression engine
+                var severityStr = DetermineDiscrepancySeverity(discrepancyResult) switch
+                {
+                    FMS.Domain.Entities.enums.DiscrepancySeverity.Critical => "Critical",
+                    FMS.Domain.Entities.enums.DiscrepancySeverity.High => "High",
+                    FMS.Domain.Entities.enums.DiscrepancySeverity.Medium => "Medium",
+                    _ => "Low"
+                };
+                var stockEvent = new TankClosingStockEvent
+                {
+                    SiteId = tank.SiteId,
+                    TankId = tank.Id,
+                    Severity = severityStr,
+                    Message = $"Significant discrepancy detected for Tank {tank.Name}: Expected {discrepancyResult.ExpectedVolume:N2}L, Actual {discrepancyResult.ActualVolume:N2}L, Variance {discrepancyResult.VarianceLiters:N2}L ({discrepancyResult.VariancePercentage:F2}%)",
+                    TankName = tank.Name ?? "",
+                    ExpectedClosingStock = discrepancyResult.ExpectedVolume,
+                    ClosingStock = discrepancyResult.ActualVolume,
+                    Variance = discrepancyResult.VarianceLiters,
+                    VariancePercentage = discrepancyResult.VariancePercentage,
+                };
+                await _eventEngine.ProcessAsync(stockEvent, cancellationToken);
+                _logger.LogInformation("Stock discrepancy event processed for Tank {TankId}: Expected {Expected}L, Actual {Actual}L, Variance {Variance}L",
                     tank.Id, discrepancyResult.ExpectedVolume, discrepancyResult.ActualVolume, discrepancyResult.VarianceLiters);
 
                 _logger.LogWarning("Significant discrepancy detected for Tank {TankId}. Variance: {VarianceLiters}L ({VariancePercentage}%)",

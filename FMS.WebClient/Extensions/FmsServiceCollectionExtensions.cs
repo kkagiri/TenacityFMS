@@ -523,6 +523,10 @@ public static class FmsServiceCollectionExtensions
         // - DailyTankReconciliationService (daily aggregation at 12:00 AM and reconciliation at 2:00 AM)
         services.AddHostedService<FMS.BackgroundServices.TankReconciliation.UnifiedTankReconciliationService>();
 
+        // Tank Volume Entry Check — daily check for missing opening/closing stock entries
+        // Fires SystemEvents through EventExpressionEngine for NoTankStockEntry expressions
+        services.AddHostedService<FMS.BackgroundServices.TankStock.TankVolumeEntryCheckService>();
+
         // Unified Notification Processing Service - combines:
         // - NotificationBackgroundService (scheduled notifications every 1 min, alarm checks every 5 min)
         // - ActiveAlarmProcessingService (auto-resolution and escalation every 5 min)

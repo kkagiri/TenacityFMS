@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.ATG;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.TankStockManagement;
@@ -33,16 +35,19 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
         private readonly GpsdataContext _context;
         private readonly ILogger<CreateTankMeasurementCommandHandler> _logger;
         private readonly ISystemConfigurationService _systemConfigurationService;
+        private readonly IEventExpressionEngine _eventEngine;
 
 
         public CreateTankMeasurementCommandHandler(
             GpsdataContext context,
             ILogger<CreateTankMeasurementCommandHandler> logger,
-            ISystemConfigurationService systemConfigurationService)
+            ISystemConfigurationService systemConfigurationService,
+            IEventExpressionEngine eventEngine)
         {
             _context = context;
             _logger = logger;
             _systemConfigurationService = systemConfigurationService;
+            _eventEngine = eventEngine;
         }
 
         public async Task<FMSResponse> Handle(CreateTankMeasurementCommand request, CancellationToken cancellationToken)
@@ -206,7 +211,29 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
                     }
                 }
 
-                // TODO: Wire EventExpressionEngine.ProcessAsync() for tank measurement events
+                // Fire TankLevelEvent for every measurement — engine handles cooldown
+                if (tank != null && tankMeasurementDto.ProductVolume.HasValue)
+                {
+                    var measurementEvent = new TankLevelEvent
+                    {
+                        SiteId = tank.SiteId,
+                        TankId = tank.Id,
+                        PtsDeviceId = request.DeviceId,
+                        Severity = "Low",
+                        Message = $"Tank measurement: {tankMeasurementDto.ProductVolume:N0}L",
+                        TankName = tank.Name ?? "",
+                        ProductName = tankMeasurementDto.FuelGradeName ?? "",
+                        ProductVolume = (decimal)tankMeasurementDto.ProductVolume.Value,
+                        TankCapacity = tank.TankVolume,
+                        PercentageFull = tank.TankVolume > 0 ? (decimal)((double)tankMeasurementDto.ProductVolume.Value / (double)tank.TankVolume * 100) : 0,
+                        CurrentLevel = tankMeasurementDto.ProductHeight.HasValue ? (decimal)tankMeasurementDto.ProductHeight.Value : 0,
+                        WaterLevel = tankMeasurementDto.WaterHeight.HasValue ? (decimal)tankMeasurementDto.WaterHeight.Value : 0,
+                        Temperature = tankMeasurementDto.Temperature.HasValue ? (decimal)tankMeasurementDto.Temperature.Value : 0,
+                        UllageVolume = tankMeasurementDto.ProductUllage.HasValue ? (decimal)tankMeasurementDto.ProductUllage.Value : 0,
+                    };
+                    // Fire-and-forget: high-volume event, engine cooldown prevents spam
+                    _ = _eventEngine.ProcessAsync(measurementEvent, cancellationToken);
+                }
 
                 return FMSResponse.SuccessResponse("Tank measurement processed successfully");
             }

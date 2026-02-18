@@ -37,7 +37,7 @@ const SCOPE_LABELS = {
     ProductId: 'Product (Fuel Type)'
 };
 
-const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, availableScopeFilters }) => {
+const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, loadingTanks, availableScopeFilters }) => {
     const filters = availableScopeFilters || ['SiteId', 'TankId'];
     const hasSite = filters.includes('SiteId');
     const hasTank = filters.includes('TankId');
@@ -63,7 +63,7 @@ const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, availa
                         <TagBox
                             items={sites}
                             displayExpr="name"
-                            valueExpr="siteId"
+                            valueExpr="id"
                             value={formData.siteIds}
                             onValueChanged={(e) => {
                                 if (onSiteChange) {
@@ -96,10 +96,16 @@ const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, availa
                             valueExpr="id"
                             value={formData.tankIds}
                             onValueChanged={(e) => onFieldChange('tankIds', e.value || [])}
-                            placeholder={formData.siteIds?.length > 0 ? 'All Tanks' : 'Select a site first'}
+                            placeholder={
+                                loadingTanks
+                                    ? 'Loading tanks...'
+                                    : formData.siteIds?.length > 0
+                                        ? 'All Tanks'
+                                        : 'Select a site first'
+                            }
                             showClearButton={true}
                             searchEnabled={true}
-                            disabled={!hasSite || !formData.siteIds || formData.siteIds.length === 0}
+                            disabled={!hasSite || !formData.siteIds || formData.siteIds.length === 0 || loadingTanks}
                             width="100%"
                             multiline={false}
                             showSelectionControls={true}
