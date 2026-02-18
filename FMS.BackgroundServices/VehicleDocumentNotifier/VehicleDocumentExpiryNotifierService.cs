@@ -84,9 +84,9 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                         SubType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon",
                         SourceComponent = "VehicleDocumentNotifier",
                         Message = message,
-                        ReferenceId = doc.Id,
                         ReferenceType = "VehicleDocument",
                     };
+                    docEvent.Data["DocumentId"] = doc.Id.ToString();
                     docEvent.Data["DocumentType"] = doc.DocumentType.ToString();
                     docEvent.Data["VehicleNo"] = doc.Vehicle?.HyoungNo ?? "";
                     docEvent.Data["DaysUntilExpiry"] = daysUntilExpiry;
