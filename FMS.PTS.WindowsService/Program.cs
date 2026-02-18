@@ -297,6 +297,18 @@ namespace FMS.PTS.WindowsService
                     ),
                     contextLifetime: ServiceLifetime.Scoped);
 
+                services.AddDbContextFactory<GpsdataContext>(options =>
+                    options.UseMySql(
+                        connectionString,
+                        new MySqlServerVersion(new Version(5, 5, 61)),
+                        mySqlOptions => mySqlOptions
+                        .EnableRetryOnFailure(
+                            maxRetryCount: 3,
+                            maxRetryDelay: TimeSpan.FromSeconds(5),
+                            errorNumbersToAdd: null)
+                    ),
+                    lifetime: ServiceLifetime.Scoped);
+
                 services.AddIdentity<User, Role>()
                     .AddEntityFrameworkStores<GpsdataContext>()
                     .AddDefaultTokenProviders();
