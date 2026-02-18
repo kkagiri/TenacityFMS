@@ -123,24 +123,32 @@ namespace FMS.WebClient.Services.Reporting
 
         private string GetLetterheadLogoPath(IWebHostEnvironment environment)
         {
-            // Primary location: C:\FMSData\reports\branding
+            // Priority 1: C:\FMSData\reports\branding (shared writable data location)
             var fmsDataBrandingPath = Path.Combine(FmsDataRootPath, "reports", "branding");
             if (TryCreateDirectory(fmsDataBrandingPath))
             {
                 return Path.Combine(fmsDataBrandingPath, LetterheadLogoFileName);
             }
 
-            // Fallback: existing web root path
-            var webRootPath = environment.WebRootPath;
-            if (string.IsNullOrWhiteSpace(webRootPath))
+            // Priority 2: ProgramData (system-wide, usually writable)
+            var programDataBrandingPath = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+                "Hyoung", "FMS", "reports", "branding");
+            if (TryCreateDirectory(programDataBrandingPath))
             {
-                webRootPath = Path.Combine(environment.ContentRootPath, "wwwroot");
+                return Path.Combine(programDataBrandingPath, LetterheadLogoFileName);
             }
 
-            var brandingFolderPath = Path.Combine(webRootPath, "reports", "branding");
-            TryCreateDirectory(brandingFolderPath);
+            // Priority 3: Temp folder (always writable)
+            var tempBrandingPath = Path.Combine(Path.GetTempPath(), "FMS_Reports", "branding");
+            if (TryCreateDirectory(tempBrandingPath))
+            {
+                return Path.Combine(tempBrandingPath, LetterheadLogoFileName);
+            }
 
-            return Path.Combine(brandingFolderPath, LetterheadLogoFileName);
+            // Final fallback: return path without creating directory (logo will show as missing)
+            _logger.LogWarning("Could not create any writable branding directory. Letterhead logo will not be available.");
+            return Path.Combine(Path.GetTempPath(), "FMS_Reports", "branding", LetterheadLogoFileName);
         }
 
         private string LoadLetterheadLogoDataUri(string logoPath)
