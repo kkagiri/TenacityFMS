@@ -520,6 +520,12 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<ITimeSeriesDataService, TimeSeriesDataService>();
             services.AddScoped<IDataSourceManager, DataSourceManager>();
 
+            // ========== EVENT EXPRESSION ENGINE ==========
+            services.AddSingleton<FMS.Application.Features.EventEngine.Expressions.ExpressionEvaluatorFactory>();
+            services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
+            services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
+            services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
+
             // Register additional missing services from WebClient
             services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
             services.AddScoped<INotificationCategoryService, NotificationCategoryService>();

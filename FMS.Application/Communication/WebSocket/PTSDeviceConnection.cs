@@ -336,61 +336,69 @@ namespace FMS.Application.Communication.webSocket
                     // an ACK and would retry the same packet indefinitely (e.g. UploadTankMeasurement 1/12 loop).
                     if (response?.Packets?.Count > 0)
                     {
-                        var jObject = JObject.FromObject(response);
-                        var packetsArray = jObject["Packets"] as JArray;
-                        if (packetsArray != null)
+                        // Skip sending if the connection is already disposed/closing
+                        if (Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 1)
                         {
-                            foreach (var p in packetsArray)
-                            {
-                                // Remove internal-only fields before sending to device
-                                p["SetRequestType"]?.Parent?.Remove();
-
-                                // Remove null Data field
-                                var dataToken = p["Data"];
-                                if (dataToken == null || dataToken.Type == JTokenType.Null)
-                                {
-                                    dataToken?.Parent?.Remove();
-                                }
-
-                                // Remove null/false Error and null Code for clean protocol compliance
-                                var errorToken = p["Error"];
-                                if (errorToken != null && (errorToken.Type == JTokenType.Null || (errorToken.Type == JTokenType.Boolean && !errorToken.Value<bool>())))
-                                {
-                                    errorToken.Parent?.Remove();
-                                }
-                                var codeToken = p["Code"];
-                                if (codeToken != null && codeToken.Type == JTokenType.Null)
-                                {
-                                    codeToken.Parent?.Remove();
-                                }
-                            }
+                            _logger.LogDebug("Skipping unsolicited response - connection disposed for device {DeviceId}", _deviceId);
                         }
-
-                        var responseJson = jObject.ToString(Formatting.None);
-                        _logger.LogInformation("Sending acknowledgement for unsolicited message to device {DeviceId}: {ResponseJson}",
-                            _deviceId, responseJson);
-
-                        await _sendLock.WaitAsync(cancellationToken);
-                        try
+                        else
                         {
-                            if (_webSocket.State == WebSocketState.Open)
+                            var jObject = JObject.FromObject(response);
+                            var packetsArray = jObject["Packets"] as JArray;
+                            if (packetsArray != null)
                             {
-                                var buffer = Encoding.UTF8.GetBytes(responseJson);
-                                await _webSocket.SendAsync(
-                                    new ArraySegment<byte>(buffer),
-                                    WebSocketMessageType.Text,
-                                    true,
-                                    cancellationToken);
+                                foreach (var p in packetsArray)
+                                {
+                                    // Remove internal-only fields before sending to device
+                                    p["SetRequestType"]?.Parent?.Remove();
+
+                                    // Remove null Data field
+                                    var dataToken = p["Data"];
+                                    if (dataToken == null || dataToken.Type == JTokenType.Null)
+                                    {
+                                        dataToken?.Parent?.Remove();
+                                    }
+
+                                    // Remove null/false Error and null Code for clean protocol compliance
+                                    var errorToken = p["Error"];
+                                    if (errorToken != null && (errorToken.Type == JTokenType.Null || (errorToken.Type == JTokenType.Boolean && !errorToken.Value<bool>())))
+                                    {
+                                        errorToken.Parent?.Remove();
+                                    }
+                                    var codeToken = p["Code"];
+                                    if (codeToken != null && codeToken.Type == JTokenType.Null)
+                                    {
+                                        codeToken.Parent?.Remove();
+                                    }
+                                }
                             }
-                            else
+
+                            var responseJson = jObject.ToString(Formatting.None);
+                            _logger.LogInformation("Sending acknowledgement for unsolicited message to device {DeviceId}: {ResponseJson}",
+                                _deviceId, responseJson);
+
+                            await _sendLock.WaitAsync(cancellationToken);
+                            try
                             {
-                                _logger.LogWarning("Cannot send unsolicited response - WebSocket not open for device {DeviceId}, state: {State}",
-                                    _deviceId, _webSocket.State);
+                                if (_webSocket.State == WebSocketState.Open)
+                                {
+                                    var buffer = Encoding.UTF8.GetBytes(responseJson);
+                                    await _webSocket.SendAsync(
+                                        new ArraySegment<byte>(buffer),
+                                        WebSocketMessageType.Text,
+                                        true,
+                                        cancellationToken);
+                                }
+                                else
+                                {
+                                    _logger.LogWarning("Cannot send unsolicited response - WebSocket not open for device {DeviceId}, state: {State}",
+                                        _deviceId, _webSocket.State);
+                                }
                             }
-                        }
-                        finally
-                        {
-                            _sendLock.Release();
+                            finally
+                            {
+                                _sendLock.Release();
+                            }
                         }
                     }
                 }
@@ -404,6 +412,11 @@ namespace FMS.Application.Communication.webSocket
             {
                 _logger.LogError(jex, "Failed to deserialize message from device {DeviceId}.", _deviceId);
                 await SendErrorPacketAsync(null, "InvalidMessage", 400, "Invalid JSON format.", cancellationToken);
+            }
+            catch (ObjectDisposedException)
+            {
+                // Connection is being torn down concurrently - safe to ignore
+                _logger.LogDebug("Message processing aborted - connection disposed for device {DeviceId}.", _deviceId);
             }
             catch (Exception ex)
             {
@@ -627,8 +640,10 @@ namespace FMS.Application.Communication.webSocket
                     oldCts.Dispose();
                 }
 
-                _sendLock?.Dispose();
-                _disconnectLock?.Dispose();
+                // NOTE: Do NOT dispose _sendLock or _disconnectLock here.
+                // SemaphoreSlim used only with WaitAsync does not allocate kernel handles,
+                // so disposal is unnecessary. Disposing them while HandleCompleteMessage or
+                // SendPTSMessageAsync may still be executing causes ObjectDisposedException.
             }
             catch (Exception ex)
             {
