@@ -35,6 +35,9 @@ namespace FMS.Application.Features.EventEngine.Expressions
             Register(new SensorVarianceEvaluator());
             Register(new PumpAlarmEvaluator());
             Register(new SystemEventEvaluator());
+            Register(new ReconciliationEvaluator());
+            Register(new TagMonitoringEvaluator());
+            Register(new IssueTrackerEvaluator());
         }
 
         /// <summary>

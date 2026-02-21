@@ -38,6 +38,9 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.ExpectedStock).HasPrecision(10, 2).IsRequired();
                 builder.Property(e => e.AbsoluteVariance).HasPrecision(10, 2).IsRequired();
                 builder.Property(e => e.PercentageVariance).HasPrecision(5, 2).IsRequired();
+                builder.Property(e => e.DiscrepancyType).HasColumnType("int(11)").IsRequired()
+                    .HasDefaultValue(FMS.Domain.Entities.enums.DiscrepancyType.ClosingStockReconciliation);
+                builder.HasIndex(e => e.DiscrepancyType, "IX_ReconciliationDiscrepancy_DiscrepancyType");
                 builder.Property(e => e.Severity).HasColumnType("int(11)").IsRequired();
                 builder.Property(e => e.IsResolved).HasDefaultValue(false);
                 builder.Property(e => e.ResolvedAt).HasColumnType("datetime");

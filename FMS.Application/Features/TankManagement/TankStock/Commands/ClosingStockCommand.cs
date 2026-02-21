@@ -8,20 +8,15 @@ using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.FMS.TankStock;
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Enums;
-using FMS.Application.Features.Notification.Services;
-using FMS.Application.Features.Notification.Services.AlertConfiguration;
-using FMS.Application.Services.AutomatedReconciliation;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
-using FMS.Domain.Entities;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
@@ -36,22 +31,18 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         //Cursor - Added TankVolumeHistoryIntegrationService dependency
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
-        private readonly DiscrepancyDetectionService _discrepancyDetectionService;
-        private readonly INotificationService _notificationService;
-        private readonly IAlertConfigurationService _alertConfig;
         private readonly IEventExpressionEngine _eventEngine;
+        private readonly IConfiguration _configuration;
 
-        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, DiscrepancyDetectionService discrepancyDetectionService, INotificationService notificationService, IAlertConfigurationService alertConfig, IEventExpressionEngine eventEngine)
+        public ClosingStockCommandHandler(GpsdataContext context, ILogger<ClosingStockCommandHandler> logger, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine, IConfiguration configuration)
         {
             _context = context;
             _logger = logger;
             _mediator = mediator;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
-            _discrepancyDetectionService = discrepancyDetectionService;
-            _notificationService = notificationService;
-            _alertConfig = alertConfig;
             _eventEngine = eventEngine;
+            _configuration = configuration;
         }
 
         public async Task<FMSResponseMessage> Handle(ClosingStockCommand request, CancellationToken cancellationToken)
@@ -270,6 +261,17 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var totalTransfersIn = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum(t => t.VolumeChange);
                 var totalTransfersOut = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum(t => t.VolumeChange);
 
+                // ─── Detailed transaction breakdown for event template placeholders ───
+                var totalManualDispensing = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);
+                var totalAutomatedDispensing = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing).Sum(t => t.VolumeChange);
+                var totalInTankDeliveries = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.InTankDelivery).Sum(t => t.VolumeChange);
+                var totalAdjustments = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Adjustment).Sum(t => t.VolumeChange);
+                var netMovement = transactions
+                    .Where(t => t.ChangeReason != VolumeChangeReasonEnum.OpeningStock && t.ChangeReason != VolumeChangeReasonEnum.ClosingStock)
+                    .Sum(t => t.VolumeChange);
+                var transactionCount = transactions
+                    .Count(t => t.ChangeReason != VolumeChangeReasonEnum.OpeningStock && t.ChangeReason != VolumeChangeReasonEnum.ClosingStock);
+
                 // Update the existing TankStock entry
                 _context.Tankstocks.Update(existingTankStock);
 
@@ -317,40 +319,74 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     physicalStockSource: "Manual Closing Stock", // Pass the physical stock source
                     cancellationToken: cancellationToken);
 
+                // Track downstream warnings — these should not block the core closing stock write
+                var warnings = new List<string>();
+
                 if (!volumeUpdateResult.Success)
                 {
                     _logger.LogWarning("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
-                    // We continue even if volume history update fails, but log the error
+                    warnings.Add($"Volume history update failed: {volumeUpdateResult.Message}");
                 }
 
                 // Perform reconciliation analysis after successful closing stock entry
-                var reconciliationResult = await PerformReconciliationAnalysis(
-                    openingStock.NewVolume ?? 0,
-                    request.ClosingStock,
-                    totalDeliveries ?? 0,
-                    totalRefills ?? 0,
-                    totalTransfersIn ?? 0,
-                    totalTransfersOut ?? 0,
-                    request.TankId,
-                    entryDate,
-                    cancellationToken);
+                StockReconciliationResult reconciliationResult = null;
+                try
+                {
+                    reconciliationResult = await PerformReconciliationAnalysis(
+                        openingStock.NewVolume ?? 0,
+                        request.ClosingStock,
+                        totalDeliveries ?? 0,
+                        totalRefills ?? 0,
+                        totalTransfersIn ?? 0,
+                        totalTransfersOut ?? 0,
+                        tank,
+                        entryDate,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Reconciliation analysis failed for Tank {TankId}", request.TankId);
+                    warnings.Add("Reconciliation analysis failed");
+                }
+
+                // Enrich reconciliation result with detailed breakdown for event templates
+                if (reconciliationResult != null)
+                {
+                    reconciliationResult.TotalManualDispensing = totalManualDispensing ?? 0;
+                    reconciliationResult.TotalAutomatedDispensing = totalAutomatedDispensing ?? 0;
+                    reconciliationResult.TotalInTankDeliveries = totalInTankDeliveries ?? 0;
+                    reconciliationResult.TotalAdjustments = totalAdjustments ?? 0;
+                    reconciliationResult.NetMovement = netMovement ?? 0;
+                    reconciliationResult.TransactionCount = transactionCount;
+                }
 
                 // Perform additional sensor vs manual variance analysis
-                await PerformSensorVarianceAnalysis(
-                    request.TankId,
-                    request.ClosingStock,
-                    entryDate,
-                    request.RecordedBy,
-                    cancellationToken);
+                try
+                {
+                    await PerformSensorVarianceAnalysis(
+                        tank,
+                        request.ClosingStock,
+                        entryDate,
+                        request.RecordedBy,
+                        cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Sensor variance analysis failed for Tank {TankId}", request.TankId);
+                    warnings.Add("Sensor variance analysis failed");
+                }
 
                 // Log reconciliation results
-                if (reconciliationResult.IsSignificantVariance)
+                if (reconciliationResult?.IsSignificantVariance == true)
                 {
                     _logger.LogWarning("Significant variance detected in closing stock for Tank {TankId}: {Variance}L ({VariancePercentage}%)",
                         request.TankId, reconciliationResult.Variance, reconciliationResult.VariancePercentage);
                 }
 
-                return new FMSResponseMessage(true, "Closing stock created successfully");
+                var successMessage = "Closing stock created successfully";
+                if (warnings.Count > 0)
+                    successMessage += $" (with {warnings.Count} warning(s): {string.Join("; ", warnings)})";
+                return new FMSResponseMessage(true, successMessage);
             }
             catch (Exception ex)
             {
@@ -367,10 +403,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             decimal totalRefills,
             decimal totalTransfersIn,
             decimal totalTransfersOut,
-            int tankId,
+            Tank tank,
             DateTime entryDate,
             CancellationToken cancellationToken = default)
         {
+            var tankId = tank.Id;
             decimal expectedClosingStock = openingStock + totalDeliveries + totalTransfersIn + totalRefills + totalTransfersOut;
             decimal actualClosingStock = closingStock;
             decimal variance = actualClosingStock - expectedClosingStock;
@@ -379,15 +416,13 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             // Determine variance type
             string varianceType = variance > 0 ? "GAIN" : variance < 0 ? "LOSS" : "BALANCED";
 
-            // Load configurable thresholds from AlertConfigurationService
-            decimal significanceThresholdLiters = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankClosingStockDiscrepancy, "significanceThresholdLiters", 50m, cancellationToken);
-            decimal significanceThresholdPercentage = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankClosingStockDiscrepancy, "significanceThresholdPercent", 5m, cancellationToken);
-            decimal investigationThresholdLiters = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankClosingStockDiscrepancy, "investigationThresholdLiters", 100m, cancellationToken);
-            decimal investigationThresholdPercentage = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankClosingStockDiscrepancy, "investigationThresholdPercent", 10m, cancellationToken);
+            // Hardcoded thresholds for discrepancy record creation (business logic).
+            // Alarm/notification decisions are delegated entirely to the EventExpressionEngine
+            // where users configure thresholds, severity filters, cooldowns, and recipients.
+            const decimal significanceThresholdLiters = 50m;
+            const decimal significanceThresholdPercentage = 5m;
+            const decimal investigationThresholdLiters = 100m;
+            const decimal investigationThresholdPercentage = 10m;
 
             bool isSignificantVariance = Math.Abs(variance) >= significanceThresholdLiters ||
                 Math.Abs(variancePercentage) >= significanceThresholdPercentage;
@@ -418,14 +453,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             {
                 try
                 {
-                    var tank = await _context.Tanks.FindAsync(tankId, cancellationToken);
-                    if (tank != null)
+                    // Tank is passed from caller — no need to re-query
                     {
                         // Determine severity based on variance magnitude
-                        DiscrepancySeverity severity = DetermineSeverity(variance, variancePercentage);
+                        DiscrepancySeverity severity = DetermineSeverity(variance, variancePercentage,
+                            significanceThresholdLiters, significanceThresholdPercentage,
+                            investigationThresholdLiters, investigationThresholdPercentage);
 
                         var discrepancy = new ReconciliationDiscrepancy
                         {
+                            DiscrepancyType = DiscrepancyType.ClosingStockReconciliation,
                             PolicyExecutionId = null, // Manual closing stock discrepancy, not policy-driven
                             TankId = tankId,
                             DetectedAt = DateTime.UtcNow,
@@ -436,7 +473,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                             Severity = severity,
                             IsResolved = false,
                             AnalysisNotes = $"Daily closing stock reconciliation variance detected. Type: {varianceType} , Total Deliveries: {totalDeliveries}, Total Refills: {totalRefills}, Total Transfers In: {totalTransfersIn}, Total Transfers Out: {totalTransfersOut} , Opening Stock: {openingStock}",
-                            BusinessImpactScore = CalculateBusinessImpact(variance, tank)
+                            BusinessImpactScore = await CalculateBusinessImpactAsync(variance, tank, cancellationToken)
                         };
 
                         _context.ReconciliationDiscrepancies.Add(discrepancy);
@@ -445,11 +482,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         _logger.LogInformation("ReconciliationDiscrepancy record created for Tank {TankId}: {Variance}L ({VariancePercentage}%)",
                             tankId, variance, variancePercentage);
 
-                        // Send notification for discrepancy detection
-                        await SendDiscrepancyNotificationAsync(tank, variance, variancePercentage, varianceType, severity, result, cancellationToken);
-
-                        // Create ActiveAlarm for significant stock discrepancy
-                        await CreateDiscrepancyActiveAlarmAsync(tank, variance, variancePercentage, varianceType, severity, discrepancy.Id, result, cancellationToken);
+                        // Fire event through the configurable Event Expression Engine
+                        // The engine handles notifications, cooldown, severity matching — no direct notification needed
+                        await FireDiscrepancyEventAsync(tank, variance, variancePercentage, varianceType, severity, discrepancy.Id, result, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -511,19 +546,20 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             return result;
         }
 
-        private DiscrepancySeverity DetermineSeverity(decimal varianceLiters, decimal variancePercentage)
+        private DiscrepancySeverity DetermineSeverity(decimal varianceLiters, decimal variancePercentage,
+            decimal significanceThresholdLiters, decimal significanceThresholdPercent,
+            decimal investigationThresholdLiters, decimal investigationThresholdPercent)
         {
             decimal absVarianceLiters = Math.Abs(varianceLiters);
             decimal absVariancePercentage = Math.Abs(variancePercentage);
 
-            // Uses same investigation thresholds from config (loaded in PerformReconciliationAnalysis)
             // High = investigation level, Medium = significance level, Low = below both
-            if (absVarianceLiters > 100 || absVariancePercentage > 10)
+            if (absVarianceLiters > investigationThresholdLiters || absVariancePercentage > investigationThresholdPercent)
             {
                 return DiscrepancySeverity.High;
             }
 
-            if (absVarianceLiters > 50 || absVariancePercentage > 5)
+            if (absVarianceLiters > significanceThresholdLiters || absVariancePercentage > significanceThresholdPercent)
             {
                 return DiscrepancySeverity.Medium;
             }
@@ -531,17 +567,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             return DiscrepancySeverity.Low;
         }
 
-        private decimal CalculateBusinessImpact(decimal varianceLiters, Tank tank)
+        private Task<decimal> CalculateBusinessImpactAsync(decimal varianceLiters, Tank tank, CancellationToken cancellationToken = default)
         {
             decimal absVariance = Math.Abs(varianceLiters);
 
-            // Load configurable business impact parameters (sync read from cached values)
-            decimal litersPerPoint = _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.BusinessImpactCalc, "litersPerPoint", 10m).GetAwaiter().GetResult();
-            decimal maxScore = _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.BusinessImpactCalc, "maxScore", 100m).GetAwaiter().GetResult();
-            decimal capacityWeightMultiplier = _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.BusinessImpactCalc, "capacityWeightMultiplier", 2m).GetAwaiter().GetResult();
+            // Business impact scoring — hardcoded defaults.
+            // Alarm decisions are handled by the EventExpressionEngine.
+            const decimal litersPerPoint = 10m;
+            const decimal maxScore = 100m;
+            const decimal capacityWeightMultiplier = 2m;
 
             // Base impact score
             decimal impactScore = litersPerPoint > 0 ? Math.Min(absVariance / litersPerPoint, maxScore) : 0;
@@ -553,109 +587,29 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 impactScore = Math.Max(impactScore, percentageOfCapacity * capacityWeightMultiplier);
             }
 
-            return Math.Round(impactScore, 2);
-        }
-
-        /// <summary>
-        /// Sends notification when a discrepancy is detected during closing stock reconciliation
-        /// </summary>
-        private async Task SendDiscrepancyNotificationAsync(Tank tank, decimal variance, decimal variancePercentage,
-            string varianceType, DiscrepancySeverity severity, StockReconciliationResult reconciliation, CancellationToken cancellationToken)
-        {
-            try
-            {
-                // Determine notification priority based on severity
-                string priority = severity
-                switch
-                {
-                    DiscrepancySeverity.High => "High",
-                    DiscrepancySeverity.Medium => "Medium",
-                    DiscrepancySeverity.Low => "Low",
-                    _ => "Medium"
-                };
-
-                // Get site name for the notification
-                var site = await _context.Sites.FindAsync(tank.SiteId);
-                var siteName = site?.Name ?? $"Site {tank.SiteId}";
-
-                // Format the business date (local date, not UTC detection time)
-                var businessDate = reconciliation.Date.ToString("dd MMM yyyy");
-
-                // Build fuel day summary breakdown
-                var summaryLines = new System.Text.StringBuilder();
-                summaryLines.AppendLine($"📍 {siteName} | Tank {tank.Name} | {businessDate}");
-                summaryLines.AppendLine($"Opening Stock: {reconciliation.OpeningStock:N2}L");
-
-                // Only show non-zero transaction categories
-                if (reconciliation.TotalDispensing != 0)
-                    summaryLines.AppendLine($"  Dispensing: {reconciliation.TotalDispensing:N2}L");
-                if (reconciliation.TotalDeliveries != 0)
-                    summaryLines.AppendLine($"  Deliveries: +{reconciliation.TotalDeliveries:N2}L");
-                if (reconciliation.TotalTransfersIn != 0)
-                    summaryLines.AppendLine($"  Transfers In: +{reconciliation.TotalTransfersIn:N2}L");
-                if (reconciliation.TotalTransfersOut != 0)
-                    summaryLines.AppendLine($"  Transfers Out: {reconciliation.TotalTransfersOut:N2}L");
-
-                // Show if no transactions were recorded
-                if (reconciliation.TotalDispensing == 0 && reconciliation.TotalDeliveries == 0 &&
-                    reconciliation.TotalTransfersIn == 0 && reconciliation.TotalTransfersOut == 0)
-                    summaryLines.AppendLine("  ⚠️ No transactions recorded for this day");
-
-                summaryLines.AppendLine($"Expected Closing: {reconciliation.ExpectedClosingStock:N2}L");
-                summaryLines.AppendLine($"Actual Closing: {reconciliation.ActualClosingStock:N2}L");
-                summaryLines.AppendLine($"Variance: {variance:N2}L ({variancePercentage:F1}%) - {varianceType}");
-
-                // Create notification request
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.TankVariance,
-                    Priority = NotificationPriority.High,
-                    Title = $"Closing Stock Discrepancy - {siteName} | Tank {tank.Name} | {businessDate}",
-                    Message = summaryLines.ToString(),
-                    TriggerSource = "ClosingStock",
-                    TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                    SiteId = tank.SiteId,
-                    TankId = tank.Id,
-                    DisableFallbackAllUsers = true // ✅ Prevent spam to all users
-
-                };
-
-                // ✅ Remove hardcoded recipients - let enhanced recipient resolver handle it
-                // The NotificationRecipientResolver will now:
-                // 1. Add site administrator automatically (if SiteId provided)
-                // 2. Resolve recipients from business function groups for TriggerSource "ClosingStock"
-                // 3. Include subscribed users for TankVariance category
-                // 4. NOT fallback to all users (DisableFallbackAllUsers = true)
-
-                await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-
-                _logger.LogInformation("Discrepancy notification sent for Tank {TankId}: {Severity} severity, {Variance}L variance",
-                    tank.Id, severity, variance);
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send discrepancy notification for Tank {TankId}", tank.Id);
-                // Don't throw - notification failure shouldn't prevent closing stock creation
-            }
+            return Task.FromResult(Math.Round(impactScore, 2));
         }
 
         /// <summary>
         /// Performs sensor vs manual variance analysis for closing stock entries
         /// Compares manual closing stock entry with recent sensor readings
         /// </summary>
+        /// <summary>
+        /// Performs sensor vs manual variance analysis for closing stock entries.
+        /// Always fires SensorVarianceEvent through the EventExpressionEngine — the engine
+        /// handles enable/disable, thresholds, severity filtering, cooldown, and notifications.
+        /// </summary>
         private async Task PerformSensorVarianceAnalysis(
-            int tankId,
+            Tank tank,
             decimal manualClosingStock,
             DateTime entryDate,
             string recordedBy,
             CancellationToken cancellationToken)
         {
+            var tankId = tank.Id;
             try
             {
-                var tank = await _context.Tanks.FindAsync(tankId, cancellationToken);
-                if (tank?.PtsId == null)
+                if (tank.PtsId == null)
                 {
                     return; // No sensor available for this tank
                 }
@@ -678,25 +632,16 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 var absVariance = Math.Abs(variance);
                 var variancePercentage = sensorVolume > 0 ? (absVariance / sensorVolume) * 100 : 0;
 
-                // Load configurable sensor variance thresholds
-                var sensorEnabled = await _alertConfig.IsAlertEnabledAsync(AlertConfigurationConstants.TankSensorVariance, cancellationToken);
-                if (!sensorEnabled) return; // Sensor variance alerts are disabled
+                // Determine severity from raw variance values (no AlertConfig dependency)
+                var severity = DetermineSensorVarianceSeverity(absVariance, variancePercentage);
 
-                var varianceThresholdLiters = await _alertConfig.GetDecimalAsync(
-                    AlertConfigurationConstants.TankSensorVariance, "varianceThresholdLiters", 5.0m, cancellationToken);
-                var varianceThresholdPercentage = await _alertConfig.GetDecimalAsync(
-                    AlertConfigurationConstants.TankSensorVariance, "varianceThresholdPercent", 2.0m, cancellationToken);
-
-                var isSignificantVariance = absVariance > varianceThresholdLiters ||
-                    variancePercentage > varianceThresholdPercentage;
-
-                if (isSignificantVariance)
+                // Always create discrepancy record for any non-trivial variance (> 1L)
+                // The EventExpressionEngine decides whether to alarm based on user-configured expressions
+                if (absVariance > 1m)
                 {
-                    // Create discrepancy record for sensor vs manual variance
-                    var severity = await DetermineSensorVarianceSeverityAsync(absVariance, variancePercentage, cancellationToken);
-
                     var discrepancy = new ReconciliationDiscrepancy
                     {
+                        DiscrepancyType = DiscrepancyType.SensorVariance,
                         PolicyExecutionId = null, // Manual entry discrepancy
                         TankId = tankId,
                         DetectedAt = DateTime.UtcNow,
@@ -709,22 +654,18 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         AnalysisNotes = $"Sensor vs Manual Closing Stock variance detected. Manual Entry: {manualClosingStock}L, " +
                         $"Sensor Reading: {sensorVolume}L (from {latestSensorReading.DateTime:yyyy-MM-dd HH:mm:ss}), " +
                         $"Recorded By: {recordedBy}, Entry Date: {entryDate:yyyy-MM-dd}",
-                        BusinessImpactScore = CalculateBusinessImpact(absVariance, tank)
+                        BusinessImpactScore = await CalculateBusinessImpactAsync(absVariance, tank, cancellationToken)
                     };
 
                     _context.ReconciliationDiscrepancies.Add(discrepancy);
                     await _context.SaveChangesAsync(cancellationToken);
 
-                    _logger.LogWarning("Sensor vs Manual variance detected for Tank {TankId}: Manual {Manual}L vs Sensor {Sensor}L, Variance: {Variance}L ({VariancePercentage:F2}%)",
+                    _logger.LogInformation("Sensor vs Manual variance recorded for Tank {TankId}: Manual {Manual}L vs Sensor {Sensor}L, Variance: {Variance}L ({VariancePercentage:F2}%)",
                         tankId, manualClosingStock, sensorVolume, variance, variancePercentage);
 
-                    // Send notification for sensor variance
-                    await SendSensorVarianceNotificationAsync(
-                        tank, manualClosingStock, sensorVolume, variance, variancePercentage,
-                        latestSensorReading.DateTime, recordedBy, severity, cancellationToken);
-
-                    // Create ActiveAlarm for sensor variance
-                    await CreateSensorVarianceActiveAlarmAsync(
+                    // Fire event through the EventExpressionEngine — it handles all alarm decisions:
+                    // enable/disable, condition evaluation, severity filtering, cooldown, notifications
+                    await FireSensorVarianceEventAsync(
                         tank: tank,
                         manualVolume: manualClosingStock,
                         sensorVolume: sensorVolume,
@@ -737,10 +678,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 }
                 else
                 {
-                    _logger.LogInformation("Sensor vs Manual variance within acceptable limits for Tank {TankId}: {Variance}L ({VariancePercentage:F2}%)",
+                    _logger.LogInformation("Sensor vs Manual variance negligible for Tank {TankId}: {Variance}L ({VariancePercentage:F2}%)",
                         tankId, variance, variancePercentage);
                 }
-
             }
             catch (Exception ex)
             {
@@ -750,77 +690,18 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         }
 
         /// <summary>
-        /// Determines severity for sensor vs manual variance
+        /// Determines severity for sensor vs manual variance using fixed severity bands.
+        /// The EventExpressionEngine applies user-configured MinimumSeverity filtering.
         /// </summary>
-        private async Task<DiscrepancySeverity> DetermineSensorVarianceSeverityAsync(decimal absVarianceLiters, decimal variancePercentage, CancellationToken cancellationToken = default)
+        private static DiscrepancySeverity DetermineSensorVarianceSeverity(decimal absVarianceLiters, decimal variancePercentage)
         {
-            // Load configurable severity bands from alert configuration
-            var criticalLiters = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankSensorVariance, "criticalLiters", 20.0m, cancellationToken);
-            var criticalPercent = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankSensorVariance, "criticalPercent", 10.0m, cancellationToken);
-            var highLiters = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankSensorVariance, "highLiters", 10.0m, cancellationToken);
-            var highPercent = await _alertConfig.GetDecimalAsync(
-                AlertConfigurationConstants.TankSensorVariance, "highPercent", 5.0m, cancellationToken);
-
-            if (absVarianceLiters >= criticalLiters || variancePercentage >= criticalPercent)
+            if (absVarianceLiters >= 20m || variancePercentage >= 10m)
                 return DiscrepancySeverity.Critical;
-            if (absVarianceLiters >= highLiters || variancePercentage >= highPercent)
+            if (absVarianceLiters >= 10m || variancePercentage >= 5m)
                 return DiscrepancySeverity.High;
-            // Medium uses the base threshold (already checked to be significant)
-            return DiscrepancySeverity.Medium;
-        }
-
-        /// <summary>
-        /// Sends notification for sensor vs manual variance
-        /// </summary>
-        private async Task SendSensorVarianceNotificationAsync(
-            Tank tank,
-            decimal manualVolume,
-            decimal sensorVolume,
-            decimal variance,
-            decimal variancePercentage,
-            DateTime sensorTimestamp,
-            string recordedBy,
-            DiscrepancySeverity severity,
-            CancellationToken cancellationToken)
-        {
-            try
-            {
-                var priorityLevel = severity
-                switch
-                {
-                    DiscrepancySeverity.Critical => "High",
-                    DiscrepancySeverity.High => "Medium",
-                    _ => "Low"
-                };
-
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.SensorVariance,
-                    Priority = NotificationPriority.High,
-                    Title = $"Sensor vs Manual Closing Stock Variance - Tank {tank.Name}",
-                    Message = $"Significant variance detected between manual closing stock entry and sensor reading for Tank {tank.Name}. " +
-                        $"Manual Entry: {manualVolume}L, Sensor Reading: {sensorVolume}L (from {sensorTimestamp:yyyy-MM-dd HH:mm:ss}), " +
-                        $"Variance: {variance:+0.00;-0.00;0}L ({variancePercentage:F2}%), Severity: {severity}, Recorded By: {recordedBy}",
-                    TriggerSource = "ClosingStockSensorVariance",
-                    TriggeredBy = recordedBy
-
-                };
-
-                await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-
-                _logger.LogInformation("Sensor variance notification sent for Tank {TankId}: {Severity} severity, Manual {Manual}L vs Sensor {Sensor}L",
-                    tank.Id, severity, manualVolume, sensorVolume);
-
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to send sensor variance notification for Tank {TankId}", tank.Id);
-                // Don't throw - notification failure shouldn't prevent closing stock creation
-            }
+            if (absVarianceLiters >= 5m || variancePercentage >= 2m)
+                return DiscrepancySeverity.Medium;
+            return DiscrepancySeverity.Low;
         }
 
         public class StockReconciliationResult
@@ -833,10 +714,19 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             public decimal Variance { get; set; }
             public decimal VariancePercentage { get; set; }
 
+            // ─── Transaction Breakdown ───
             public decimal TotalDeliveries { get; set; }
-            public decimal TotalDispensing { get; set; }
+            public decimal TotalDispensing { get; set; }          // Dispensing + AutomatedDispensing combined
+            public decimal TotalManualDispensing { get; set; }    // Manual Dispensing only
+            public decimal TotalAutomatedDispensing { get; set; } // PTS AutomatedDispensing only
             public decimal TotalTransfersIn { get; set; }
             public decimal TotalTransfersOut { get; set; }
+            public decimal TotalInTankDeliveries { get; set; }    // PTS auto-detected in-tank deliveries
+            public decimal TotalAdjustments { get; set; }         // Manual adjustments
+
+            // ─── Report / Summary ───
+            public decimal NetMovement { get; set; }              // Sum of all VolumeChange
+            public int TransactionCount { get; set; }             // Count of transactions (excl. opening/closing)
 
             public string VarianceType { get; set; } = string.Empty; // GAIN, LOSS, BALANCED
             public bool IsSignificantVariance { get; set; }
@@ -844,9 +734,32 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         }
 
         /// <summary>
-        /// Creates an ActiveAlarm for stock reconciliation discrepancy
+        /// Builds a deep-link URL to the TankVolumeHistory report filtered for a specific tank and date.
         /// </summary>
-        private async Task CreateDiscrepancyActiveAlarmAsync(
+        private string BuildTankVolumeHistoryUrl(int tankId, int siteId, DateTime businessDate)
+        {
+            try
+            {
+                var baseUrl = _configuration["IssueTracker:FrontendBaseUrl"]
+                           ?? _configuration["App:FrontendBaseUrl"]
+                           ?? _configuration["FrontendBaseUrl"]
+                           ?? _configuration["AppSettings:FrontendBaseUrl"]
+                           ?? "http://localhost:3000";
+
+                var dateStr = businessDate.ToString("yyyy-MM-dd");
+                return $"{baseUrl.TrimEnd('/')}/reports/tank-volume-history?autoApply=1&startDate={dateStr}&endDate={dateStr}&tankIds={tankId}&siteIds={siteId}";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to build TankVolumeHistory report URL for Tank {TankId}", tankId);
+                return string.Empty;
+            }
+        }
+
+        /// <summary>
+        /// Fires TankClosingStockEvent through the Event Expression Engine for stock discrepancy
+        /// </summary>
+        private async Task FireDiscrepancyEventAsync(
             Tank tank,
             decimal variance,
             decimal variancePercentage,
@@ -899,6 +812,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     _ => "Medium"
                 };
 
+                // Build report deep-link URL for TankVolumeHistory
+                var reportUrl = BuildTankVolumeHistoryUrl(tank.Id, tank.SiteId, reconciliation.Date);
+
                 // Fire TankClosingStockEvent through the event expression engine
                 var stockEvent = new TankClosingStockEvent
                 {
@@ -908,14 +824,28 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     Message = message,
                     TankName = tank.Name ?? "",
                     SiteName = siteName,
+                    // Stock Levels
                     OpeningStock = reconciliation.OpeningStock,
                     ClosingStock = reconciliation.ActualClosingStock,
                     ExpectedClosingStock = reconciliation.ExpectedClosingStock,
                     Variance = reconciliation.Variance,
                     VariancePercentage = reconciliation.VariancePercentage,
                     VarianceType = reconciliation.VarianceType,
+                    // Transaction Breakdown
                     TotalDeliveries = reconciliation.TotalDeliveries,
-                    TotalSales = reconciliation.TotalDispensing,
+                    TotalDispensing = reconciliation.TotalDispensing,
+                    TotalManualDispensing = reconciliation.TotalManualDispensing,
+                    TotalAutomatedDispensing = reconciliation.TotalAutomatedDispensing,
+                    TotalTransfersIn = reconciliation.TotalTransfersIn,
+                    TotalTransfersOut = reconciliation.TotalTransfersOut,
+                    TotalInTankDeliveries = reconciliation.TotalInTankDeliveries,
+                    TotalAdjustments = reconciliation.TotalAdjustments,
+                    // Report / Summary
+                    NetMovement = reconciliation.NetMovement,
+                    TransactionCount = reconciliation.TransactionCount,
+                    BusinessDate = businessDate,
+                    BusinessDateUtc = reconciliation.Date,
+                    ReportUrl = reportUrl,
                 };
                 var result = await _eventEngine.ProcessAsync(stockEvent, cancellationToken);
                 _logger.LogInformation("Stock discrepancy event processed for Tank {TankId}: {TriggeredCount} triggered, {SuppressedCount} suppressed",
@@ -928,9 +858,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         }
 
         /// <summary>
-        /// Creates an ActiveAlarm for sensor vs manual variance
+        /// Fires SensorVarianceEvent through the Event Expression Engine for sensor variance
         /// </summary>
-        private async Task CreateSensorVarianceActiveAlarmAsync(
+        private async Task FireSensorVarianceEventAsync(
             Tank tank,
             decimal manualVolume,
             decimal sensorVolume,

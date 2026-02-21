@@ -84,12 +84,11 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.SuppressNotifications)
                 .HasDefaultValue(false);
 
-            builder.Property(e => e.CreatedAt)
-                .HasColumnType("datetime")
-                .HasDefaultValueSql("CURRENT_TIMESTAMP");
-
-            builder.Property(e => e.UpdatedAt)
-                .HasColumnType("datetime");
+            // CreatedAt and UpdatedAt columns do not exist in the active_events table yet.
+            // Ignore them to prevent EF from generating SELECT a.CreatedAt which fails.
+            // TODO: run ALTER TABLE active_events ADD COLUMN CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP, ADD COLUMN UpdatedAt DATETIME NULL;
+            builder.Ignore(e => e.CreatedAt);
+            builder.Ignore(e => e.UpdatedAt);
 
             // Indexes
             builder.HasIndex(e => new { e.State, e.TriggeredAt })

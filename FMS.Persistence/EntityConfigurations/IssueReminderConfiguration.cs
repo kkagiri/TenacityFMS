@@ -25,67 +25,67 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.Id)
                 .ValueGeneratedOnAdd()
                 .HasColumnType("int(11)")
-                .HasColumnName("Id");
+                .HasColumnName("id");
 
             builder.Property(e => e.IssueId)
                 .HasColumnType("int(11)")
-                .HasColumnName("IssueId")
+                .HasColumnName("issue_id")
                 .IsRequired();
 
             builder.Property(e => e.ReminderType)
                 .HasMaxLength(50)
-                .HasColumnName("ReminderType")
+                .HasColumnName("reminder_type")
                 .HasDefaultValue("Daily")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.DaysBefore)
                 .HasColumnType("int(11)")
-                .HasColumnName("DaysBefore")
+                .HasColumnName("days_before")
                 .HasDefaultValue(1);
 
             builder.Property(e => e.ReminderTime)
-                .HasColumnName("ReminderTime");
+                .HasColumnName("reminder_time");
 
             builder.Property(e => e.RecipientUserIds)
                 .HasColumnType("longtext")
-                .HasColumnName("RecipientUserIds")
+                .HasColumnName("recipient_user_ids")
                 .UseCollation("utf8_general_ci")
                 .HasCharSet("utf8");
 
             builder.Property(e => e.NotifyAssignee)
-                .HasColumnName("NotifyAssignee")
+                .HasColumnName("notify_assignee")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.NotifyOpener)
-                .HasColumnName("NotifyOpener")
+                .HasColumnName("notify_opener")
                 .HasDefaultValue(false);
 
             builder.Property(e => e.CustomMessage)
                 .HasMaxLength(500)
-                .HasColumnName("CustomMessage")
+                .HasColumnName("custom_message")
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.IsActive)
-                .HasColumnName("IsActive")
+                .HasColumnName("is_active")
                 .HasDefaultValue(true);
 
             builder.Property(e => e.LastSentDate)
-                .HasColumnName("LastSentDate");
+                .HasColumnName("last_sent_date");
 
             builder.Property(e => e.NextReminderDate)
-                .HasColumnName("NextReminderDate");
+                .HasColumnName("next_reminder_date");
 
             builder.Property(e => e.CreatedBy)
                 .HasMaxLength(100)
-                .HasColumnName("CreatedBy")
+                .HasColumnName("created_by")
                 .IsRequired()
                 .UseCollation("utf8mb4_general_ci")
                 .HasCharSet("utf8mb4");
 
             builder.Property(e => e.CreatedDate)
-                .HasColumnName("CreatedDate")
+                .HasColumnName("created_date")
                 .IsRequired();
 
             // Relationships

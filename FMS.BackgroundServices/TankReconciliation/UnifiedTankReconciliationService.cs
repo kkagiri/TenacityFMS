@@ -24,9 +24,8 @@ using FMS.Application.Common.Constants;
 using FMS.Application.Features.AutomatedReconciliation.Services;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Enums;
-using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -318,12 +317,12 @@ namespace FMS.BackgroundServices.TankReconciliation
 
                 using var scope = _serviceScopeFactory.CreateScope();
                 var automatedReconciliationService = scope.ServiceProvider.GetRequiredService<AutomatedReconciliationService>();
-                var notificationService = scope.ServiceProvider.GetRequiredService<INotificationService>();
+                var eventEngine = scope.ServiceProvider.GetService<IEventExpressionEngine>();
 
                 var cycleResult = await automatedReconciliationService.ExecuteReconciliationCycleAsync(cancellationToken);
 
                 LogCycleResults(cycleResult);
-                await SendSystemHealthNotificationIfNeeded(cycleResult, notificationService, cancellationToken);
+                await SendSystemHealthNotificationIfNeeded(cycleResult, eventEngine, cancellationToken);
 
                 _logger.LogDebug("Completed automated policy reconciliation cycle");
             }
@@ -365,31 +364,32 @@ namespace FMS.BackgroundServices.TankReconciliation
             }
         }
 
-        private async Task SendSystemHealthNotificationIfNeeded(ReconciliationCycleResult result, INotificationService notificationService, CancellationToken cancellationToken)
+        private async Task SendSystemHealthNotificationIfNeeded(ReconciliationCycleResult result, IEventExpressionEngine eventEngine, CancellationToken cancellationToken)
         {
+            if (eventEngine == null) return;
+
             try
             {
                 var failureRate = result.ProcessedPolicies > 0 ? (double)result.FailedPolicies / result.ProcessedPolicies : 0;
 
                 if (failureRate >= 0.5 && result.ProcessedPolicies > 0)
                 {
-                    var request = new CreateNotificationRequest
+                    var evt = new ReconciliationEvent
                     {
-                        Type = NotificationType.Alert,
-                        CategoryId = (int)WellKnownCategories.System,
-                        Priority = NotificationPriority.High,
-                        Title = "Reconciliation System Health Alert",
+                        SubType = ReconciliationEvent.SubTypeSystemHealthAlert,
+                        Severity = "High",
+                        SuccessfulPolicies = result.SuccessfulPolicies,
+                        FailedPolicies = result.FailedPolicies,
+                        ProcessedPolicies = result.ProcessedPolicies,
                         Message = $"High failure rate detected: {result.FailedPolicies}/{result.ProcessedPolicies} policies failed ({failureRate:P0})",
-                        TriggerSource = "UnifiedTankReconciliation",
                         TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
                     };
-
-                    await notificationService.CreateNotificationAsync(request, cancellationToken);
+                    await eventEngine.ProcessAsync(evt, cancellationToken);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Failed to send system health notification");
+                _logger.LogError(ex, "Failed to fire system health event");
             }
         }
 

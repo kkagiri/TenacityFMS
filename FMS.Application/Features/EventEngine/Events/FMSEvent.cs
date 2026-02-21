@@ -83,6 +83,13 @@ namespace FMS.Application.Features.EventEngine.Events
         public Dictionary<string, object> Data { get; set; } = new();
 
         /// <summary>
+        /// Returns metadata for a report attachment to include in email notifications.
+        /// Override in subclasses that want to attach a PDF report to the notification.
+        /// Returns null by default (no attachment).
+        /// </summary>
+        public virtual ReportAttachmentMetadata? GetReportAttachmentMetadata() => null;
+
+        /// <summary>
         /// Build template variables for notification message rendering.
         /// Keys become {{placeholders}} in notification title/message templates.
         /// Override in subclasses to add typed properties.
@@ -110,5 +117,19 @@ namespace FMS.Application.Features.EventEngine.Events
 
             return vars;
         }
+    }
+
+    /// <summary>
+    /// Metadata describing a report to render as PDF and attach to notification emails.
+    /// </summary>
+    public class ReportAttachmentMetadata
+    {
+        public string ReportType { get; set; } = string.Empty;
+        public string TemplateName { get; set; } = string.Empty;
+        public int? TankId { get; set; }
+        public int? SiteId { get; set; }
+        public DateTime StartDate { get; set; }
+        public DateTime EndDate { get; set; }
+        public string FileNamePrefix { get; set; } = "Report";
     }
 }

@@ -38,6 +38,12 @@ namespace FMS.Domain.Entities
         public decimal PercentageVariance { get; set; }
 
         /// <summary>
+        /// Classifies how/why this discrepancy was created
+        /// (e.g. ClosingStockReconciliation, SensorVariance, PolicyDriven)
+        /// </summary>
+        public DiscrepancyType DiscrepancyType { get; set; }
+
+        /// <summary>
         /// Severity assessment of the discrepancy
         /// </summary>
         public DiscrepancySeverity Severity { get; set; }

@@ -242,23 +242,74 @@ namespace FMS.Application.Features.EventEngine.DTOs
                 // ═══════════════════════════════════════════════════
                 new()
                 {
-                    AlertTypeKey = "IssueTracker",
-                    EventType = SystemEvent.EventTypeName,
+                    AlertTypeKey = IssueTrackerEvent.EventTypeName,
+                    EventType = IssueTrackerEvent.EventTypeName,
                     DisplayName = "Issue Tracker Alert",
-                    Description = "Triggers when issues are created, updated, escalated, or overdue in the issue tracking system",
+                    Description = "Triggers when issues are auto-created, escalated, or marked overdue in the issue tracking system",
                     Category = "Issue Tracker",
                     CategoryIcon = "fa-light fa-clipboard-list-check",
                     AvailableConditions = new List<ConditionFieldDto>
                     {
                         new("subTypeFilter", "Issue Action", "select", false, null,
                             new[] { "IssueCreated", "IssueUpdated", "IssueEscalated", "IssueOverdue" }),
-                        new("issueCategoryFilter", "Issue Category", "text", false, null),
                         new("issuePriorityFilter", "Priority Filter", "select", false, null,
-                            new[] { "Low", "Medium", "High", "Critical" })
+                            new[] { "Low", "Medium", "High", "Critical" }),
+                        new("entityTypeFilter", "Entity Type", "select", false, null,
+                            new[] { "vehicle", "pts", "atg" })
                     },
-                    AvailableScopeFilters = new[] { "SiteId", "UserId" },
-                    DefaultSeverity = "Medium",
+                    AvailableScopeFilters = new[] { "SiteId", "VehicleId" },
+                    DefaultSeverity = "High",
                     DefaultCooldownMinutes = 60
+                },
+
+                // ═══════════════════════════════════════════════════
+                // Group: Reconciliation
+                // Covers: automated reconciliation lifecycle — policy execution,
+                //         discrepancy detection, cycle summaries, manual review
+                // ═══════════════════════════════════════════════════
+                new()
+                {
+                    AlertTypeKey = ReconciliationEvent.EventTypeName,
+                    EventType = ReconciliationEvent.EventTypeName,
+                    DisplayName = "Reconciliation Alert",
+                    Description = "Triggers for automated reconciliation events: policy failures, discrepancy detection, cycle summaries, manual review requests",
+                    Category = "Tank Stock",
+                    CategoryIcon = "fa-light fa-gas-pump",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("subTypeFilter", "Event Type", "select", false, null,
+                            new[] { "PolicyExecutionFailed", "CycleSummary", "CycleCriticalFailure",
+                                    "DiscrepancyDetected", "PolicyCompleted", "ReconciliationFailed",
+                                    "ReconciliationSuccess", "ReconciliationCriticalError",
+                                    "ManualReviewRequired", "ExecutionSummary", "SystemHealthAlert" }),
+                        new("minVariance", "Minimum Variance (Liters)", "number", false, "50"),
+                        new("minVariancePercent", "Minimum Variance (%)", "number", false, "2")
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "TankId" },
+                    DefaultSeverity = "High",
+                    DefaultCooldownMinutes = 60
+                },
+
+                // ═══════════════════════════════════════════════════
+                // Group: GPS & Vehicle — Tag Monitoring
+                // Covers: GPS tag update success/failure notifications
+                // ═══════════════════════════════════════════════════
+                new()
+                {
+                    AlertTypeKey = TagMonitoringEvent.EventTypeName,
+                    EventType = TagMonitoringEvent.EventTypeName,
+                    DisplayName = "Tag Monitoring",
+                    Description = "Triggers when a vehicle GPS tag update succeeds or fails",
+                    Category = "GPS & Vehicle",
+                    CategoryIcon = "fa-light fa-car",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("subTypeFilter", "Event Type", "select", false, null,
+                            new[] { "TagUpdateSuccess", "TagUpdateError" })
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "VehicleId" },
+                    DefaultSeverity = "Medium",
+                    DefaultCooldownMinutes = 30
                 },
 
                 // ═══════════════════════════════════════════════════

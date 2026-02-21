@@ -16,7 +16,7 @@
 
 import axiosInstance from '../api/axiosInstance';
 
-const BASE_PATH = '/api/v1/active-events';
+const BASE_PATH = 'v1/active-events';
 
 const activeEventApi = {
 

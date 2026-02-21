@@ -1,31 +1,21 @@
 /**
  * File: StepRecipients.js
- * Purpose: Step 4 of Event Expression form — Recipients (users/roles) and
- *          message templates. These fields become part of the linked NotificationPolicy.
- * Dependencies: devextreme-react TagBox/TextArea, notificationsApi for user/role search
- * Last Modified: 2026-02-14
+ * Purpose: Step 5 of Event Expression form — Recipients (users/roles) selection.
+ *          These fields become part of the linked NotificationPolicy.
+ *          Message templates have been moved to StepMessageTemplate (Step 6).
+ * Dependencies: devextreme-react TagBox
+ * Last Modified: 2026-02-19
  *
  * Key Props:
  * - selectedUserIds / onUserIdsChange: user recipient state
  * - selectedRoleIds / onRoleIdsChange: role recipient state
  * - users: available users list
  * - roles: available roles list
- * - policyData: policy state (titleTemplate, messageTemplate)
- * - onPolicyChange(field, value): updates a policy field
- * - formData: expression-level messageTemplate override
- * - onFieldChange: expression field updater
+ * - loadingData: whether user/role data is loading
  */
 
 import React from 'react';
 import { TagBox } from 'devextreme-react/tag-box';
-import { TextBox } from 'devextreme-react/text-box';
-import { TextArea } from 'devextreme-react/text-area';
-
-const PLACEHOLDERS = [
-    'alarmType', 'severity', 'priority', 'siteName',
-    'tankId', 'siteId', 'timestamp', 'TankName',
-    'ActualValue', 'ThresholdValue'
-];
 
 const StepRecipients = ({
     selectedUserIds,
@@ -34,10 +24,6 @@ const StepRecipients = ({
     onRoleIdsChange,
     users,
     roles,
-    policyData,
-    onPolicyChange,
-    formData,
-    onFieldChange,
     loadingData
 }) => {
     return (
@@ -103,50 +89,27 @@ const StepRecipients = ({
                 )}
             </div>
 
-            {/* Right: Templates */}
+            {/* Right: Helpful info */}
             <div className="tw-flex-1 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
                 <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
-                    <i className="fa-light fa-file-lines tw-mr-2 tw-text-teal-500" />
-                    Message Templates
+                    <i className="fa-light fa-circle-info tw-mr-2 tw-text-blue-500" />
+                    Recipient Configuration
                 </h4>
-
-                <div className="tw-mb-3">
-                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                        Title Template
-                    </label>
-                    <TextBox
-                        value={policyData.titleTemplate}
-                        onValueChanged={(e) => onPolicyChange('titleTemplate', e.value)}
-                        placeholder="e.g., Alert: {{alarmType}} - {{severity}}"
-                        width="100%"
-                    />
-                </div>
-
-                <div className="tw-mb-3">
-                    <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                        Message Template
-                    </label>
-                    <TextArea
-                        value={formData.messageTemplate}
-                        onValueChanged={(e) => onFieldChange('messageTemplate', e.value)}
-                        placeholder="e.g., Tank {TankName} volume is {ActualValue}L (threshold: {ThresholdValue}L)"
-                        height={80}
-                        width="100%"
-                    />
-                </div>
-
-                <div className="tw-bg-gray-50 tw-rounded-lg tw-p-3">
-                    <h5 className="tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-2">Available Placeholders</h5>
-                    <div className="tw-flex tw-flex-wrap tw-gap-1">
-                        {PLACEHOLDERS.map((ph) => (
-                            <span
-                                key={ph}
-                                className="tw-inline-block tw-bg-white tw-border tw-border-gray-200 tw-rounded tw-px-2 tw-py-0.5 tw-text-xs tw-text-gray-600 tw-font-mono"
-                            >
-                                {`{{${ph}}}`}
-                            </span>
-                        ))}
-                    </div>
+                <div className="tw-bg-blue-50 tw-rounded-lg tw-p-3">
+                    <ul className="tw-text-xs tw-text-blue-700 tw-space-y-2">
+                        <li>
+                            <i className="fa-light fa-user tw-mr-1" />
+                            <strong>Users</strong> — Individual users who will receive notifications directly.
+                        </li>
+                        <li>
+                            <i className="fa-light fa-shield tw-mr-1" />
+                            <strong>Roles</strong> — All users assigned to the selected roles will automatically receive notifications.
+                        </li>
+                        <li>
+                            <i className="fa-light fa-arrow-right tw-mr-1" />
+                            Configure <strong>message templates</strong> in the next step (Step 6).
+                        </li>
+                    </ul>
                 </div>
             </div>
         </div>

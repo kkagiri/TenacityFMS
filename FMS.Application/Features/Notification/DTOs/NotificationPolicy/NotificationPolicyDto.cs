@@ -58,6 +58,16 @@ namespace FMS.Application.Features.Notification.DTOs
         /// Last modifier display name (username). Added to support showing name without extra frontend calls.
         /// </summary>
         public string? ModifiedBy { get; set; }
+        /// <summary>
+        /// Title/subject template with {{placeholders}}.
+        /// </summary>
+        public string? TitleTemplate { get; set; }
+
+        /// <summary>
+        /// Message body template with {{placeholders}}.
+        /// </summary>
+        public string? MessageTemplate { get; set; }
+
         public int RecipientCount { get; set; }
         public int GroupCount { get; set; }
         public int NotificationCount { get; set; }

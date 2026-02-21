@@ -47,6 +47,11 @@ namespace FMS.Application.Features.EventEngine.Commands
                     return FMSResponse<bool>.Failed(
                         $"Event expression with ID {command.Id} not found", "NOT_FOUND");
 
+                // System expressions cannot be deleted — only toggled via IsActive
+                if (entity.IsSystem)
+                    return FMSResponse<bool>.Failed(
+                        "System expressions cannot be deleted. You can deactivate them instead.", "FORBIDDEN");
+
                 // Soft delete: deactivate and mark as modified
                 entity.IsActive = false;
                 entity.ModifiedBy = command.DeletedBy;

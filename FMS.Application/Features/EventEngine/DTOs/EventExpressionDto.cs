@@ -18,6 +18,7 @@ namespace FMS.Application.Features.EventEngine.DTOs
         public string Name { get; set; } = string.Empty;
         public string? Description { get; set; }
         public bool IsActive { get; set; }
+        public bool IsSystem { get; set; }
         public string EventType { get; set; } = string.Empty;
         public int? SiteId { get; set; }
         public string? SiteName { get; set; }

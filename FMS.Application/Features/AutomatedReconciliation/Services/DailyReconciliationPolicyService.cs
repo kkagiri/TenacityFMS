@@ -172,6 +172,7 @@ public class DailyReconciliationPolicyService {
             var businessImpact = await CalculateBusinessImpactUsingCostingService (tankSummary.Variance, tankSummary.TankId, cancellationToken);
 
             var discrepancyRecord = new ReconciliationDiscrepancy {
+                DiscrepancyType = DiscrepancyType.DailyReconciliation,
                 PolicyExecutionId = policyExecution.Id,
                 TankId = tankSummary.TankId,
                 DetectedAt = DateTime.UtcNow,

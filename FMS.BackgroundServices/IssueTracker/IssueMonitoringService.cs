@@ -1,8 +1,8 @@
 /**
  * File: IssueMonitoringService.cs
  * Purpose: Runs automated issue monitoring checks and creates issues for offline/suspicious devices.
- * Dependencies: GpsdataContext, ISystemConfigurationService, IGPSService, IIssueActivityService, INotificationService
- * Last Modified: 2026-02-16
+ * Dependencies: GpsdataContext, ISystemConfigurationService, IGPSService, IIssueActivityService, IEventExpressionEngine
+ * Last Modified: 2026-02-18
  *
  * Key Functions:
  * - ExecuteAsync(): Schedules monitoring at configured daily local time.
@@ -16,11 +16,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.IssueTracker.Services;
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
-using FMS.Application.Features.Notification.Enums;
-using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Services.Configuration;
@@ -991,8 +989,9 @@ namespace FMS.BackgroundServices.IssueTracker
         }
 
         /// <summary>
-        /// After issues are saved to DB, log activity and send notifications to DefaultAssignee users.
-        /// Notifications go to the assigned users (from DefaultAssignee), NOT the system "OpenedBy" user.
+        /// After issues are saved to DB, log activity and emit IssueTrackerEvent through the Event Engine
+        /// for each auto-created issue. The Event Engine routes notifications to configured recipients
+        /// with cooldown and severity filtering.
         /// </summary>
         private async Task LogAndNotifyCreatedIssuesAsync(
             GpsdataContext context,
@@ -1003,7 +1002,7 @@ namespace FMS.BackgroundServices.IssueTracker
             if (!createdIssues.Any()) return;
 
             var activityService = scopedProvider.GetService<IIssueActivityService>();
-            var notificationService = scopedProvider.GetService<INotificationService>();
+            var eventEngine = scopedProvider.GetService<IEventExpressionEngine>();
             var configuration = scopedProvider.GetService<IConfiguration>();
 
             var systemUserId = await ResolveSystemUserIdAsync(context);
@@ -1019,11 +1018,11 @@ namespace FMS.BackgroundServices.IssueTracker
                             issue.Id, systemUserId, "System", cancellationToken);
                     }
 
-                    // 2. Send notification to the DefaultAssignee users (not to OpenedBy/system)
-                    if (notificationService != null && !string.IsNullOrEmpty(issue.AssignedTo))
+                    // 2. Fire IssueTrackerEvent through the Event Engine (replaces direct INotificationService call)
+                    if (eventEngine != null && !string.IsNullOrEmpty(issue.AssignedTo))
                     {
-                        await SendAutoCreatedIssueNotificationAsync(
-                            context, issue, notificationService, configuration, cancellationToken);
+                        await FireIssueCreatedEventAsync(
+                            context, issue, eventEngine, configuration, cancellationToken);
                     }
                 }
                 catch (Exception ex)
@@ -1035,64 +1034,40 @@ namespace FMS.BackgroundServices.IssueTracker
         }
 
         /// <summary>
-        /// Sends assignment notification to ALL DefaultAssignee users for auto-created issues.
-        /// Email recipients are resolved from the comma-separated AssignedTo field.
+        /// Fires an IssueTrackerEvent through the Event Engine for an auto-created issue.
+        /// The Event Engine handles routing, cooldown, and recipient resolution.
         /// </summary>
-        private async Task SendAutoCreatedIssueNotificationAsync(
+        private async Task FireIssueCreatedEventAsync(
             GpsdataContext context,
             Issuetracker issue,
-            INotificationService notificationService,
+            IEventExpressionEngine eventEngine,
             IConfiguration? configuration,
             CancellationToken cancellationToken)
         {
             try
             {
-                // Resolve all assigned user IDs from comma-separated AssignedTo field
-                var assigneeIds = (issue.AssignedTo ?? "")
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-                    .ToList();
-
-                if (!assigneeIds.Any()) return;
-
-                // Look up actual users to validate IDs and get usernames
-                var assignedUsers = await context.Users
-                    .AsNoTracking()
-                    .Where(u => assigneeIds.Contains(u.Id))
-                    .Select(u => new { u.Id, u.UserName, u.Email })
-                    .ToListAsync(cancellationToken);
-
-                if (!assignedUsers.Any())
-                {
-                    _logger.LogWarning("No valid users found for DefaultAssignee '{Ids}' on issue {IssueId}",
-                        issue.AssignedTo, issue.Id);
-                    return;
-                }
-
-                // Build vehicle name for the notification
-                string? vehicleName = null;
+                // Look up vehicle and site names for the event
+                string vehicleName = string.Empty;
                 if (issue.VehicleId > 0)
                 {
                     vehicleName = await context.Vehicles
                         .Where(v => v.VehicleId == issue.VehicleId)
                         .Select(v => v.HyoungNo ?? v.NumberPlate ?? $"Vehicle #{v.VehicleId}")
-                        .FirstOrDefaultAsync(cancellationToken);
+                        .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
                 }
 
-                // Build site name
-                string? siteName = null;
+                string siteName = string.Empty;
                 if (issue.SiteId > 0)
                 {
                     siteName = await context.Sites
                         .Where(s => s.Id == issue.SiteId)
                         .Select(s => s.Name)
-                        .FirstOrDefaultAsync(cancellationToken);
+                        .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
                 }
 
                 var frontendBaseUrl = GetFrontendBaseUrl(configuration);
                 var issueUrl = $"{frontendBaseUrl}/issue-tracker/details/{issue.Id}";
                 var responseUrl = $"{frontendBaseUrl}/issue-tracker/assignment/{issue.Id}/respond";
-                var vehicleLabel = !string.IsNullOrWhiteSpace(vehicleName) ? $"[{vehicleName}] " : "";
-                var primaryAssignee = assignedUsers.First();
 
                 var priorityName = await context.Issuepriorities
                     .AsNoTracking()
@@ -1108,12 +1083,24 @@ namespace FMS.BackgroundServices.IssueTracker
                     ?? issue.RelatedEntityType
                     ?? "Issue";
 
-                var createdAt = issue.OpenDate ?? DateTime.UtcNow;
-                var allAssigneeNames = string.Join(", ", assignedUsers
-                    .Select(u => string.IsNullOrWhiteSpace(u.UserName) ? u.Id : u.UserName));
-                var issueTypeLabel = ResolveIssueTypeLabel(issue.RelatedEntityType, issue.ProblemTitle);
+                // Look up all assigned user names for display
+                var assigneeIds = (issue.AssignedTo ?? "")
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .ToList();
 
-                // Build rich HTML email with clickable links
+                var assignedUserNames = string.Empty;
+                if (assigneeIds.Any())
+                {
+                    var names = await context.Users
+                        .AsNoTracking()
+                        .Where(u => assigneeIds.Contains(u.Id))
+                        .Select(u => u.UserName ?? u.Id)
+                        .ToListAsync(cancellationToken);
+                    assignedUserNames = string.Join(", ", names);
+                }
+
+                // Build rich HTML email body (preserved for the Event Engine to embed in notification data)
+                var issueTypeLabel = ResolveIssueTypeLabel(issue.RelatedEntityType, issue.ProblemTitle);
                 var emailBodyHtml = BuildAutoCreatedIssueEmailHtml(
                     issue.Id,
                     issue.ProblemTitle ?? "Untitled Issue",
@@ -1121,64 +1108,50 @@ namespace FMS.BackgroundServices.IssueTracker
                     issueTypeLabel,
                     priorityName,
                     categoryName,
-                    vehicleName,
-                    siteName,
-                    primaryAssignee.UserName ?? "User",
-                    primaryAssignee.Email ?? "",
-                    allAssigneeNames,
-                    createdAt,
+                    string.IsNullOrEmpty(vehicleName) ? null : vehicleName,
+                    string.IsNullOrEmpty(siteName) ? null : siteName,
+                    assignedUserNames.Split(',').FirstOrDefault()?.Trim() ?? "User",
+                    string.Empty,
+                    assignedUserNames,
+                    issue.OpenDate ?? DateTime.UtcNow,
                     issueUrl,
                     responseUrl);
 
-                // Build recipients list — one per assigned user
-                var recipients = assignedUsers.Select(u => new NotificationRecipientDto
+                var issueEvent = new IssueTrackerEvent
                 {
-                    UserId = u.Id,
-                    DeliveryMethods = new List<string> { "Email", "System" },
-                    ResolvedFrom = "IssueAutoCreation"
-                }).ToList();
-
-                var notificationRequest = new CreateNotificationRequest
-                {
-                    Type = NotificationType.Alert,
-                    CategoryId = (int)WellKnownCategories.IssueTracker,
-                    Priority = NotificationPriority.High,
-                    Title = $"Auto-Created Issue: {vehicleLabel}{issue.ProblemTitle}",
-                    Message = $"An issue has been automatically created and assigned to you. Click to view details.",
-                    Data = new
-                    {
-                        IssueId = issue.Id,
-                        IssueTitle = issue.ProblemTitle,
-                        ActionUrl = issueUrl,
-                        IssueUrl = issueUrl,
-                        AssignedToUserId = primaryAssignee.Id,
-                        AssignedToUserName = primaryAssignee.UserName,
-                        AssignedToEmail = primaryAssignee.Email,
-                        IsAutoCreated = true,
-                        EmailBodyHtml = emailBodyHtml
-                    },
-                    TriggerSource = "IssueAutoCreation",
-                    TriggeredBy = "System",
-                    SiteId = issue.SiteId,
-                    VehicleId = issue.VehicleId,
-                    IssueTrackerId = issue.Id,
-                    Recipients = recipients,
-                    DisableFallbackAllUsers = true
+                    SubType = IssueTrackerEvent.SubTypeIssueCreated,
+                    IssueId = issue.Id,
+                    IssueTitle = issue.ProblemTitle ?? string.Empty,
+                    IssueDescription = issue.ProblemDescription ?? string.Empty,
+                    IssuePriority = priorityName,
+                    IssueCategory = categoryName,
+                    RelatedEntityType = issue.RelatedEntityType ?? string.Empty,
+                    VehicleName = vehicleName,
+                    SiteName = siteName,
+                    AssignedTo = assignedUserNames,
+                    IssueUrl = issueUrl,
+                    ResponseUrl = responseUrl,
+                    EmailBodyHtml = emailBodyHtml,
+                    OpenedAt = issue.OpenDate,
+                    SiteId = issue.SiteId > 0 ? issue.SiteId : null,
+                    Severity = "High",
+                    Message = $"Auto-Created Issue: {issue.ProblemTitle}",
+                    TriggeredBy = "System"
                 };
 
-                var result = await notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
-                if (!result.IsSuccess)
-                {
-                    _logger.LogWarning(
-                        "Notification failed for auto-created issue {IssueId}: {Message}",
-                        issue.Id, result.Message);
-                }
-                else
-                {
-                    _logger.LogInformation(
-                        "Sent notification for auto-created issue {IssueId} to {Count} assignees: {Users}",
-                        issue.Id, assignedUsers.Count, string.Join(", ", assignedUsers.Select(u => u.UserName)));
-                }
+                issueEvent.Data["IssueId"] = issue.Id.ToString();
+                issueEvent.Data["IssueUrl"] = issueUrl;
+                issueEvent.Data["EmailBodyHtml"] = emailBodyHtml;
+                issueEvent.Data["AssignedTo"] = issue.AssignedTo ?? string.Empty;
+                issueEvent.Data["IsAutoCreated"] = "true";
+                if (issue.VehicleId > 0)
+                    issueEvent.Data["VehicleId"] = issue.VehicleId.ToString();
+
+                await eventEngine.ProcessAsync(issueEvent, cancellationToken);
+
+                _logger.LogInformation(
+                    "Fired IssueTrackerEvent for auto-created issue {IssueId} (type: {EntityType}, assigned: {Assignees})",
+                    issue.Id, issue.RelatedEntityType, assignedUserNames);
             }
             catch (Exception ex)
             {

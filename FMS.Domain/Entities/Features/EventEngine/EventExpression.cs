@@ -35,6 +35,12 @@ namespace FMS.Domain.Entities
         public bool IsActive { get; set; } = true;
 
         /// <summary>
+        /// Whether this expression is a system-seeded expression.
+        /// System expressions cannot be deleted by users but can be toggled (IsActive).
+        /// </summary>
+        public bool IsSystem { get; set; } = false;
+
+        /// <summary>
         /// Event type to match against FMSEvent.EventType (e.g., "TankStockDiscrepancy", "DeviceStatus")
         /// </summary>
         [Required]

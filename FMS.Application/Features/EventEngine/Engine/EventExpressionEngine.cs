@@ -2,7 +2,7 @@
  * File: EventExpressionEngine.cs
  * Purpose: Core orchestrator that processes FMSEvents through EventExpressions.
  *          The ONLY path for triggering notifications from business operations.
- * Dependencies: GpsdataContext, ExpressionEvaluatorFactory, ExpressionCooldownService,
+ * Dependencies: GpsdataContext, ExpressionEvaluatorFactory,
  *               INotificationService, EventLogService
  * Last Modified: 2026-02-11
  *
@@ -31,13 +31,12 @@ namespace FMS.Application.Features.EventEngine.Engine
 {
     /// <summary>
     /// Core engine implementation. Orchestrates the full event evaluation pipeline:
-    /// find matching expressions → evaluate conditions → check cooldown → notify → log.
+    /// find matching expressions → evaluate conditions → notify → log.
     /// </summary>
     public class EventExpressionEngine : IEventExpressionEngine
     {
         private readonly GpsdataContext _context;
         private readonly ExpressionEvaluatorFactory _evaluatorFactory;
-        private readonly ExpressionCooldownService _cooldownService;
         private readonly EventLogService _logService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<EventExpressionEngine> _logger;
@@ -54,14 +53,12 @@ namespace FMS.Application.Features.EventEngine.Engine
         public EventExpressionEngine(
             GpsdataContext context,
             ExpressionEvaluatorFactory evaluatorFactory,
-            ExpressionCooldownService cooldownService,
             EventLogService logService,
             INotificationService notificationService,
             ILogger<EventExpressionEngine> logger)
         {
             _context = context;
             _evaluatorFactory = evaluatorFactory;
-            _cooldownService = cooldownService;
             _logService = logService;
             _notificationService = notificationService;
             _logger = logger;
@@ -111,22 +108,6 @@ namespace FMS.Application.Features.EventEngine.Engine
                         if (!conditionsMet)
                         {
                             detail.SuppressedReason = "ConditionNotMet";
-                            result.SuppressedCount++;
-                            await LogExecutionAsync(expression, fmsEvent, detail, sw.ElapsedMilliseconds, ct);
-                            result.Details.Add(detail);
-                            continue;
-                        }
-
-                        // 2c. Check cooldown and daily cap
-                        var suppressedReason = await _cooldownService.GetSuppressedReasonAsync(
-                            expression.Id,
-                            expression.CooldownMinutes,
-                            expression.MaxNotificationsPerDay,
-                            ct);
-
-                        if (suppressedReason != null)
-                        {
-                            detail.SuppressedReason = suppressedReason;
                             result.SuppressedCount++;
                             await LogExecutionAsync(expression, fmsEvent, detail, sw.ElapsedMilliseconds, ct);
                             result.Details.Add(detail);
@@ -348,15 +329,7 @@ namespace FMS.Application.Features.EventEngine.Engine
                 PtsDeviceId = fmsEvent.PtsDeviceId,
                 NotificationPolicyId = policy.Id,
                 DisableFallbackAllUsers = true,
-                Data = new
-                {
-                    eventType = fmsEvent.EventType,
-                    eventCategory = fmsEvent.EventCategory,
-                    expressionId = expression.Id,
-                    expressionName = expression.Name,
-                    severity = fmsEvent.Severity,
-                    templateVariables = templateVars
-                }
+                Data = BuildNotificationData(fmsEvent, expression, templateVars)
             };
 
             var result = await _notificationService.CreateNotificationAsync(request, ct);
@@ -370,6 +343,70 @@ namespace FMS.Application.Features.EventEngine.Engine
                 "CreateNotificationAsync failed for expression {ExpressionId}: {Message}",
                 expression.Id, result.Message);
             return null;
+        }
+
+        /// <summary>
+        /// Builds the serializable Data object for the notification request.
+        /// Includes report attachment metadata when the event provides it
+        /// AND the expression has opted in via _attachReport in conditions.
+        /// </summary>
+        private static object BuildNotificationData(
+            FMSEvent fmsEvent,
+            EventExpression expression,
+            Dictionary<string, string> templateVars)
+        {
+            var reportMeta = fmsEvent.GetReportAttachmentMetadata();
+            if (reportMeta != null && IsAttachReportEnabled(expression))
+            {
+                return new
+                {
+                    eventType = fmsEvent.EventType,
+                    eventCategory = fmsEvent.EventCategory,
+                    expressionId = expression.Id,
+                    expressionName = expression.Name,
+                    severity = fmsEvent.Severity,
+                    templateVariables = templateVars,
+                    reportAttachment = new
+                    {
+                        reportType = reportMeta.ReportType,
+                        templateName = reportMeta.TemplateName,
+                        tankId = reportMeta.TankId,
+                        siteId = reportMeta.SiteId,
+                        startDate = reportMeta.StartDate.ToString("o"),
+                        endDate = reportMeta.EndDate.ToString("o"),
+                        fileNamePrefix = reportMeta.FileNamePrefix
+                    }
+                };
+            }
+
+            return new
+            {
+                eventType = fmsEvent.EventType,
+                eventCategory = fmsEvent.EventCategory,
+                expressionId = expression.Id,
+                expressionName = expression.Name,
+                severity = fmsEvent.Severity,
+                templateVariables = templateVars
+            };
+        }
+
+        /// <summary>
+        /// Checks whether the expression has the _attachReport flag set in its conditions JSON.
+        /// </summary>
+        private static bool IsAttachReportEnabled(EventExpression expression)
+        {
+            if (string.IsNullOrWhiteSpace(expression.Conditions))
+                return false;
+
+            try
+            {
+                var conditionsObj = Newtonsoft.Json.Linq.JObject.Parse(expression.Conditions);
+                return conditionsObj.Value<bool?>("_attachReport") == true;
+            }
+            catch
+            {
+                return false;
+            }
         }
 
         /// <summary>

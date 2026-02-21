@@ -516,5 +516,168 @@ namespace FMS.Application.Features.Notification.Services
                 return TimeZoneInfo.Utc;
             }
         }
+
+        /// <inheritdoc />
+        public async Task<List<EmailAttachmentDto>> BuildReportAttachmentAsync(
+            string reportType,
+            string templateName,
+            int? tankId,
+            int? siteId,
+            DateTime startDate,
+            DateTime endDate,
+            string fileNamePrefix,
+            CancellationToken cancellationToken = default)
+        {
+            var attachments = new List<EmailAttachmentDto>();
+
+            try
+            {
+                if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase))
+                {
+                    _logger.LogWarning("Unsupported event report attachment type: {ReportType}", reportType);
+                    return attachments;
+                }
+
+                if (string.IsNullOrWhiteSpace(templateName))
+                    templateName = DefaultTemplateName;
+
+                // Fetch volume history data for the date range
+                var historyResult = await _mediator.Send(
+                    new GetTankVolumeHistoryFilteredQuery
+                    {
+                        StartDate = startDate,
+                        EndDate = endDate,
+                        IncludeVehicleNames = true,
+                        UseManualDispensing = false,
+                        IncludeGpsData = false
+                    },
+                    cancellationToken);
+
+                if (!historyResult.IsSuccess || historyResult.Data == null)
+                {
+                    _logger.LogWarning("Failed to fetch tank volume history for event report attachment: {Message}", historyResult.Message);
+                    return attachments;
+                }
+
+                var filteredRows = historyResult.Data.AsEnumerable();
+                if (siteId.HasValue)
+                    filteredRows = filteredRows.Where(row => row.SiteId.HasValue && row.SiteId.Value == siteId.Value);
+                if (tankId.HasValue)
+                    filteredRows = filteredRows.Where(row => row.TankId.HasValue && row.TankId.Value == tankId.Value);
+
+                var rows = filteredRows.ToList();
+                if (rows.Count == 0)
+                {
+                    _logger.LogInformation("No volume history rows found for event report attachment (TankId={TankId}, SiteId={SiteId})", tankId, siteId);
+                    return attachments;
+                }
+
+                var resolvedTankIds = rows
+                    .Where(row => row.TankId.HasValue)
+                    .Select(row => row.TankId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var tankNameLookup = resolvedTankIds.Count == 0
+                    ? new Dictionary<int, string>()
+                    : await _context.Tanks
+                        .AsNoTracking()
+                        .Where(tank => resolvedTankIds.Contains(tank.Id))
+                        .ToDictionaryAsync(tank => tank.Id, tank => tank.Name ?? $"Tank {tank.Id}", cancellationToken);
+
+                var reportData = BuildEventReportData(rows, tankNameLookup, startDate, endDate, fileNamePrefix);
+
+                byte[] pdfBytes;
+                try
+                {
+                    pdfBytes = await _reportRenderer.RenderPdfAsync(templateName, reportData);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to render PDF for event report attachment (template={TemplateName})", templateName);
+                    return attachments;
+                }
+
+                if (pdfBytes.Length > 0 && pdfBytes.Length <= MaxAttachmentBytes)
+                {
+                    var dateStr = startDate.ToString("yyyy-MM-dd");
+                    attachments.Add(new EmailAttachmentDto
+                    {
+                        FileName = $"{fileNamePrefix}_{dateStr}.pdf",
+                        ContentType = "application/pdf",
+                        Content = pdfBytes
+                    });
+                }
+                else if (pdfBytes.Length > MaxAttachmentBytes)
+                {
+                    _logger.LogWarning("Event report PDF exceeds max attachment size ({Size} bytes)", pdfBytes.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error building event report attachment");
+            }
+
+            return attachments;
+        }
+
+        /// <summary>
+        /// Builds the report data object for event-triggered PDF rendering.
+        /// Simpler than the scheduled version — no notification entity needed.
+        /// </summary>
+        private static object BuildEventReportData(
+            IReadOnlyCollection<TankVolumeHistoryDTO> rows,
+            IReadOnlyDictionary<int, string> tankNameLookup,
+            DateTime startDate,
+            DateTime endDate,
+            string reportTitle)
+        {
+            var groupedRows = rows
+                .Where(row => row.TankId.HasValue)
+                .GroupBy(row => row.TankId!.Value)
+                .Select(group =>
+                {
+                    var ordered = group.OrderBy(item => item.Timestamp).ToList();
+                    var opening = ordered.FirstOrDefault();
+                    var closing = ordered.LastOrDefault();
+                    var tankName = tankNameLookup.TryGetValue(group.Key, out var resolvedName)
+                        ? resolvedName
+                        : $"Tank {group.Key}";
+
+                    return new
+                    {
+                        tankId = group.Key,
+                        tankName,
+                        openingVolume = FormatDecimal(opening?.NewVolume),
+                        openingTimestamp = FormatTimestamp(opening?.Timestamp, "UTC"),
+                        closingVolume = FormatDecimal(closing?.NewVolume),
+                        closingTimestamp = FormatTimestamp(closing?.Timestamp, "UTC"),
+                        totalTransactions = ordered.Count,
+                        transactions = ordered.Select((item, index) => new
+                        {
+                            index = index + 1,
+                            timestamp = FormatTimestamp(item.Timestamp, "UTC"),
+                            changeReason = FormatChangeReason(item.ChangeReason),
+                            volumeChange = FormatDecimal(item.VolumeChange),
+                            newVolume = FormatDecimal(item.NewVolume),
+                            vehicleName = Sanitize(item.VehicleName, "N/A"),
+                            recordedBy = Sanitize(item.RecordedByUserName, "Unknown")
+                        }).ToList()
+                    };
+                })
+                .OrderBy(entry => entry.tankName)
+                .ToList();
+
+            return new
+            {
+                reportTitle = reportTitle.Replace("_", " "),
+                generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "Event Engine",
+                dateRange = FormatDateRange(startDate, endDate),
+                siteName = "All Sites",
+                totalTransactions = rows.Count,
+                tankReports = groupedRows
+            };
+        }
     }
 }

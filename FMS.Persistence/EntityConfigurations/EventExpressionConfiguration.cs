@@ -34,6 +34,10 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.Property(e => e.IsActive)
                     .HasDefaultValue(true);
 
+                builder.Property(e => e.IsSystem)
+                    .HasColumnName("is_system")
+                    .HasDefaultValue(false);
+
                 builder.Property(e => e.EventType)
                     .IsRequired()
                     .HasMaxLength(50);

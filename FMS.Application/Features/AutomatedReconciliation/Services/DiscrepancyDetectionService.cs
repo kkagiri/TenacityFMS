@@ -7,6 +7,7 @@ using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.TankManagement.Services;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.enums;
 using FMS.Domain.Events;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -125,6 +126,7 @@ public class DiscrepancyDetectionService
 
         return new ReconciliationDiscrepancy
         {
+            DiscrepancyType = DiscrepancyType.PolicyDriven,
             PolicyExecutionId = policyExecutionId,
             TankId = detectionResult.TankId,
             DetectedAt = DateTime.UtcNow,

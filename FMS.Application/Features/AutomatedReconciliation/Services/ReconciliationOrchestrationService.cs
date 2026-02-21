@@ -4,14 +4,14 @@ using FMS.Domain.Entities.enums;
 using FMS.Domain.Events;
 using FMS.Persistence;
 using FMS.Persistence.DataAccess; //Cursor - Add notification service support
-using FMS.Application.Common.Constants; //Cursor - Add system constants
+using FMS.Application.Common.Constants;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using FMS.Application.Features.Notification.DTOs;
-using FMS.Application.Features.Notification.Services;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -25,21 +25,21 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
     private readonly ILogger<ReconciliationOrchestrationService> _logger;
     private readonly IMediator _mediator;
     private readonly GpsdataContext _context;
-    private readonly INotificationService _notificationService; //Cursor - Add notification service
-    private readonly ISystemConfigurationService _systemConfigService; // System configuration service
+    private readonly IEventExpressionEngine _eventEngine;
+    private readonly ISystemConfigurationService _systemConfigService;
 
     public ReconciliationOrchestrationService(
         ILogger<ReconciliationOrchestrationService> logger,
         IMediator mediator,
         GpsdataContext context,
-        INotificationService notificationService, //Cursor - Add notification service
-        ISystemConfigurationService systemConfigService) // System configuration service
+        IEventExpressionEngine eventEngine,
+        ISystemConfigurationService systemConfigService)
     {
         _logger = logger;
         _mediator = mediator;
         _context = context;
-        _notificationService = notificationService; //Cursor - Initialize notification service
-        _systemConfigService = systemConfigService; // Initialize system configuration service
+        _eventEngine = eventEngine;
+        _systemConfigService = systemConfigService;
     }
 
     //Cursor - Enhanced ProcessDiscrepancyAsync with proper error handling, resolution tracking and notifications
@@ -348,32 +348,28 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         }
     }
 
-    //Cursor - Notification methods for reconciliation orchestration events
+    //Event Engine — fire ReconciliationEvent instead of creating notifications directly
     private async Task SendReconciliationFailedNotificationAsync(ReconciliationDiscrepancy discrepancy, string errorMessage, CancellationToken cancellationToken)
     {
         try
         {
             var tank = await _context.Tanks.FindAsync(new object[] { discrepancy.TankId }, cancellationToken);
-            var request = new CreateNotificationRequest
+            var evt = new ReconciliationEvent
             {
-                Type = Notification.Enums.NotificationType.Alert,
-                CategoryId = (int)Notification.Enums.WellKnownCategories.Reconciliation,
-                Priority = Notification.Enums.NotificationPriority.Medium,
-                Title = "Reconciliation Failed",
-                Message = $"Tank {tank?.Name} reconciliation failed: {errorMessage}",
-                TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                SubType = ReconciliationEvent.SubTypeReconciliationFailed,
+                Severity = "Medium",
                 SiteId = tank?.SiteId,
                 TankId = discrepancy.TankId,
-                DisableFallbackAllUsers = true //Cursor - Disable fallback to all users
-
+                TankName = tank?.Name ?? "",
+                ErrorMessage = errorMessage,
+                Message = $"Tank {tank?.Name} reconciliation failed: {errorMessage}",
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
             };
-
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _eventEngine.ProcessAsync(evt, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send reconciliation failed notification for discrepancy {DiscrepancyId}", discrepancy.Id);
+            _logger.LogError(ex, "Failed to fire reconciliation failed event for discrepancy {DiscrepancyId}", discrepancy.Id);
         }
     }
 
@@ -382,25 +378,22 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try
         {
             var tank = await _context.Tanks.FindAsync(new object[] { discrepancy.TankId }, cancellationToken);
-            var request = new CreateNotificationRequest
+            var evt = new ReconciliationEvent
             {
-                Type = Notification.Enums.NotificationType.Info,
-                CategoryId = (int)Notification.Enums.WellKnownCategories.Reconciliation,
-                Priority = Notification.Enums.NotificationPriority.Low,
-                Title = "Reconciliation Completed",
-                Message = $"Tank {tank?.Name} successfully reconciled: {result.ResolutionDetails}",
-                TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
+                SubType = ReconciliationEvent.SubTypeReconciliationSuccess,
+                Severity = "Low",
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId
-
+                TankId = discrepancy.TankId,
+                TankName = tank?.Name ?? "",
+                ResolutionDetails = result.ResolutionDetails ?? "",
+                Message = $"Tank {tank?.Name} successfully reconciled: {result.ResolutionDetails}",
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
             };
-
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _eventEngine.ProcessAsync(evt, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send reconciliation success notification for discrepancy {DiscrepancyId}", discrepancy.Id);
+            _logger.LogError(ex, "Failed to fire reconciliation success event for discrepancy {DiscrepancyId}", discrepancy.Id);
         }
     }
 
@@ -409,26 +402,22 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
         try
         {
             var tank = await _context.Tanks.FindAsync(new object[] { discrepancy.TankId }, cancellationToken);
-            var request = new CreateNotificationRequest
+            var evt = new ReconciliationEvent
             {
-                Type = Notification.Enums.NotificationType.Alert,
-                CategoryId = (int)Notification.Enums.WellKnownCategories.Reconciliation,
-                Priority = Notification.Enums.NotificationPriority.Critical,
-                Title = "Critical Reconciliation Error",
-                Message = $"Critical error during Tank {tank?.Name} reconciliation: {errorMessage}",
-                TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
+                SubType = ReconciliationEvent.SubTypeReconciliationCriticalError,
+                Severity = "Critical",
                 SiteId = tank?.SiteId,
-                TankId = discrepancy.TankId
-
+                TankId = discrepancy.TankId,
+                TankName = tank?.Name ?? "",
+                ErrorMessage = errorMessage,
+                Message = $"Critical error during Tank {tank?.Name} reconciliation: {errorMessage}",
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
             };
-
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _eventEngine.ProcessAsync(evt, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send critical error notification for discrepancy {DiscrepancyId}", discrepancy.Id);
+            _logger.LogError(ex, "Failed to fire critical error event for discrepancy {DiscrepancyId}", discrepancy.Id);
         }
     }
 
@@ -436,25 +425,22 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
     {
         try
         {
-            var request = new CreateNotificationRequest
+            var evt = new ReconciliationEvent
             {
-                Type = Notification.Enums.NotificationType.Info,
-                CategoryId = (int)Notification.Enums.WellKnownCategories.Reconciliation,
-                Title = "Manual Review Required",
-                Message = $"Tank {tank.Name} discrepancy requires manual review. Variance: {discrepancy.AbsoluteVariance:F2}L",
-                TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                //RequireAcknowledgment = true, //Cursor: Property doesn't exist on CreateNotificationRequest
+                SubType = ReconciliationEvent.SubTypeManualReviewRequired,
+                Severity = "Medium",
                 SiteId = tank.SiteId,
-                TankId = discrepancy.TankId
-
+                TankId = discrepancy.TankId,
+                TankName = tank.Name ?? "",
+                VarianceLiters = discrepancy.AbsoluteVariance,
+                Message = $"Tank {tank.Name} discrepancy requires manual review. Variance: {discrepancy.AbsoluteVariance:F2}L",
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
             };
-
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _eventEngine.ProcessAsync(evt, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send manual review notification for tank {TankId}", tank.Id);
+            _logger.LogError(ex, "Failed to fire manual review event for tank {TankId}", tank.Id);
         }
     }
 
@@ -462,25 +448,24 @@ public class ReconciliationOrchestrationService : IReconciliationOrchestrationSe
     {
         try
         {
-            var priority = summary.FailedReconciliations > 0 ? "Medium" : "Low";
-            var request = new CreateNotificationRequest
+            var evt = new ReconciliationEvent
             {
-                Type = Notification.Enums.NotificationType.Info,
-                CategoryId = (int)Notification.Enums.WellKnownCategories.Reconciliation,
-                Priority = Notification.Enums.NotificationPriority.Medium,
-                Title = "Reconciliation Summary",
+                SubType = ReconciliationEvent.SubTypeExecutionSummary,
+                Severity = summary.FailedReconciliations > 0 ? "Medium" : "Low",
+                SiteId = policy.SiteId,
+                PolicyId = policy.Id,
+                PolicyName = policy.Name ?? "",
+                DiscrepanciesFound = summary.TotalDiscrepancies,
+                DiscrepanciesResolved = summary.SuccessfulReconciliations,
+                FailedPolicies = summary.FailedReconciliations,
                 Message = $"Policy '{policy.Name}': {summary.TotalDiscrepancies} discrepancies, {summary.SuccessfulReconciliations} resolved, {summary.FailedReconciliations} failed",
-                TriggerSource = "AutomatedReconciliation",
-                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy,
-                SiteId = policy.SiteId
-
+                TriggeredBy = SystemConstants.Defaults.SystemTriggeredBy
             };
-
-            await _notificationService.CreateNotificationAsync(request, cancellationToken);
+            await _eventEngine.ProcessAsync(evt, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Failed to send reconciliation summary notification for policy {PolicyId}", policy.Id);
+            _logger.LogError(ex, "Failed to fire reconciliation summary event for policy {PolicyId}", policy.Id);
         }
     }
 }

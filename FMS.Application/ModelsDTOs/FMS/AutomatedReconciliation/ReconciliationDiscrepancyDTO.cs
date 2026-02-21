@@ -17,6 +17,7 @@ namespace FMS.Application.Features.FMS.AutomatedReconciliation {
         public decimal ExpectedStock { get; set; }
         public decimal AbsoluteVariance { get; set; }
         public decimal PercentageVariance { get; set; }
+        public DiscrepancyType DiscrepancyType { get; set; }
         public DiscrepancySeverity Severity { get; set; }
         public bool IsResolved { get; set; }
         public DateTime? ResolvedAt { get; set; }

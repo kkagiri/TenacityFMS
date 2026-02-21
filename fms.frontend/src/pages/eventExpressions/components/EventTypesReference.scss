@@ -1,0 +1,91 @@
+/**
+ * File: EventTypesReference.scss
+ * Purpose: Styles for the Event Types reference page cards.
+ * Last Modified: 2026-02-18
+ */
+
+.event-types-reference {
+    .type-card {
+        @apply tw-rounded-xl tw-border tw-border-gray-200 tw-p-4;
+        background: white;
+        transition: all 0.2s ease;
+
+        &:hover {
+            border-color: #c4b5fd;
+            box-shadow: 0 4px 12px rgba(124, 58, 237, 0.08);
+        }
+
+        &__header {
+            @apply tw-flex tw-items-start tw-justify-between tw-mb-2;
+        }
+
+        &__title {
+            @apply tw-text-base tw-font-semibold;
+            color: #1f2937;
+        }
+
+        &__create-btn {
+            @apply tw-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-rounded-md tw-text-xs tw-font-medium;
+            background: #f5f3ff;
+            color: #7c3aed;
+            border: 1px solid #ede9fe;
+            cursor: pointer;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+
+            &:hover {
+                background: #ede9fe;
+                border-color: #c4b5fd;
+            }
+        }
+
+        &__desc {
+            @apply tw-text-sm tw-mb-3;
+            color: #6b7280;
+            line-height: 1.5;
+        }
+
+        &__section {
+            @apply tw-mb-3;
+        }
+
+        &__section-label {
+            @apply tw-block tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-mb-1;
+            color: #9ca3af;
+        }
+
+        &__tags {
+            @apply tw-flex tw-flex-wrap tw-gap-1;
+        }
+
+        &__tag {
+            @apply tw-inline-flex tw-items-center tw-gap-1 tw-px-2 tw-py-0.5 tw-rounded-md tw-text-xs tw-font-medium;
+            background: #f1f5f9;
+            color: #475569;
+
+            &--scope {
+                background: #fef3c7;
+                color: #92400e;
+            }
+        }
+
+        &__tag-type {
+            @apply tw-text-xs tw-font-normal;
+            color: #94a3b8;
+        }
+
+        &__footer {
+            @apply tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-pt-3 tw-mt-3;
+            border-top: 1px solid #f1f5f9;
+        }
+
+        &__meta {
+            @apply tw-text-xs;
+            color: #6b7280;
+
+            strong {
+                color: #374151;
+            }
+        }
+    }
+}

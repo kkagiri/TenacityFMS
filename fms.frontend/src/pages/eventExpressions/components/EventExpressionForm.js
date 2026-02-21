@@ -7,10 +7,12 @@
  * Last Modified: 2026-02-14
  *
  * Steps:
- * 1. Event & Triggers — name, event type, conditions, priority, severity
- * 2. Scope — site/tank filters
- * 3. Delivery & Notification — channels, rate limits, cooldown, active event
- * 4. Recipients & Templates — users, roles, message templates
+ * 1. Basic Information — name, description, priority, severity, active toggle
+ * 2. Event Type & Triggers — event type selection, dynamic condition fields
+ * 3. Scope — site/tank filters
+ * 4. Delivery & Notification — channels, rate limits, cooldown, active event
+ * 5. Recipients — users, roles
+ * 6. Message Template — HTML editor with placeholders and live preview
  *
  * On save: creates/updates the notification policy first, then saves the expression.
  */
@@ -43,6 +45,7 @@ import StepEventTriggers from './steps/StepEventTriggers';
 import StepScope from './steps/StepScope';
 import StepDelivery from './steps/StepDelivery';
 import StepRecipients from './steps/StepRecipients';
+import StepMessageTemplate from './steps/StepMessageTemplate';
 import './EventExpressionForm.scss';
 
 const STEP_TITLES = [
@@ -50,7 +53,8 @@ const STEP_TITLES = [
     '2. Event Type & Triggers',
     '3. Scope',
     '4. Delivery & Notification',
-    '5. Recipients & Templates'
+    '5. Recipients',
+    '6. Message Template'
 ];
 
 const EventExpressionForm = () => {
@@ -84,6 +88,7 @@ const EventExpressionForm = () => {
         priority: 'Medium',
         createActiveEvent: true,
         messageTemplate: '',
+        attachReport: false,
         isActive: true
     });
 
@@ -189,8 +194,11 @@ const EventExpressionForm = () => {
                 ? parsedConditions._tankIds
                 : (selectedExpression.tankId ? [selectedExpression.tankId] : []);
 
+            // Recover attach report flag
+            const recoveredAttachReport = !!parsedConditions._attachReport;
+
             // Strip internal fields from display conditions
-            const { _alertTypeKey, _siteIds, _tankIds, ...displayConditions } = parsedConditions;
+            const { _alertTypeKey, _siteIds, _tankIds, _attachReport, ...displayConditions } = parsedConditions;
             setConditionValues(displayConditions);
 
             setFormData({
@@ -208,6 +216,7 @@ const EventExpressionForm = () => {
                 priority: selectedExpression.priority || 'Medium',
                 createActiveEvent: selectedExpression.createActiveEvent ?? true,
                 messageTemplate: selectedExpression.messageTemplate || '',
+                attachReport: recoveredAttachReport,
                 isActive: selectedExpression.isActive ?? true
             });
 
@@ -337,7 +346,7 @@ const EventExpressionForm = () => {
     );
 
     const handleCancel = useCallback(() => {
-        navigate('/event-expressions');
+        navigate('/event-expressions/expressions');
     }, [navigate]);
 
     const handleNextStep = useCallback(() => {
@@ -525,6 +534,11 @@ const EventExpressionForm = () => {
                     conditionsObj._tankIds = formData.tankIds;
                 }
 
+                // Store attach report flag
+                if (formData.attachReport) {
+                    conditionsObj._attachReport = true;
+                }
+
                 const expressionPayload = {
                     name: formData.name,
                     description: formData.description,
@@ -561,7 +575,7 @@ const EventExpressionForm = () => {
                         'success',
                         3000
                     );
-                    navigate('/event-expressions');
+                    navigate('/event-expressions/expressions');
                 }
             } catch (err) {
                 notify(
@@ -599,18 +613,7 @@ const EventExpressionForm = () => {
             style={{ width: '95vw', maxWidth: '90rem' }}
         >
             {/* Header */}
-            <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
-                <div>
-                    <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">
-                        <i className="fa-light fa-waveform-lines tw-mr-2" />
-                        {isEditing ? 'Edit Event Expression' : 'Create Event Expression'}
-                    </h2>
-                    <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
-                        {isEditing
-                            ? 'Modify the event expression and its notification configuration'
-                            : 'Define a rule, set scope, and configure how notifications are delivered'}
-                    </p>
-                </div>
+            <div className="tw-flex tw-items-center tw-mb-6">
                 <Button
                     text="Back to List"
                     icon="fa-light fa-arrow-left"
@@ -694,7 +697,7 @@ const EventExpressionForm = () => {
                         />
                     </AccordionItem>
 
-                    {/* Step 5: Recipients & Templates */}
+                    {/* Step 5: Recipients */}
                     <AccordionItem title={STEP_TITLES[4]}>
                         <StepRecipients
                             selectedUserIds={selectedUserIds}
@@ -703,11 +706,18 @@ const EventExpressionForm = () => {
                             onRoleIdsChange={setSelectedRoleIds}
                             users={users}
                             roles={roles}
-                            policyData={policyData}
-                            onPolicyChange={handlePolicyChange}
+                            loadingData={loadingRecipients}
+                        />
+                    </AccordionItem>
+
+                    {/* Step 6: Message Template */}
+                    <AccordionItem title={STEP_TITLES[5]}>
+                        <StepMessageTemplate
                             formData={formData}
                             onFieldChange={handleFieldChange}
-                            loadingData={loadingRecipients}
+                            policyData={policyData}
+                            onPolicyChange={handlePolicyChange}
+                            selectedTypeMetadata={selectedTypeMetadata}
                         />
                     </AccordionItem>
                 </Accordion>

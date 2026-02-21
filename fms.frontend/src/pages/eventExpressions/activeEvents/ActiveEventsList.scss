@@ -1,0 +1,19 @@
+/**
+ * File: ActiveEventsList.scss
+ * Purpose: Styles for the Active Events list page.
+ * Last Modified: 2026-02-18
+ */
+
+.active-events-list {
+    .active-events-grid {
+        .dx-datagrid-header-panel {
+            @apply tw-border-b tw-border-gray-200;
+        }
+
+        .dx-row {
+            &:hover {
+                @apply tw-bg-violet-50;
+            }
+        }
+    }
+}

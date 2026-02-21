@@ -569,7 +569,7 @@ const ClosingStockForm = ({
       if (response.success) {
         showNotification(
           response.message ||
-            "Closing stock created successfully. Form cleared for new entry.",
+          "Closing stock created successfully. Form cleared for new entry.",
           "success",
           3000
         );
@@ -722,8 +722,8 @@ const ClosingStockForm = ({
                     !dataLoaded && sitesAvailable.length === 0
                       ? "Loading sites..."
                       : sitesAvailable.length > 0
-                      ? "Select a site"
-                      : "No sites available",
+                        ? "Select a site"
+                        : "No sites available",
                   width: "100%",
                   searchEnabled: true,
                   showClearButton: true,
@@ -741,9 +741,8 @@ const ClosingStockForm = ({
               </SimpleItem>
 
               <SimpleItem
-                key={`tank-${formData.siteId || "empty"}-${
-                  formData.tankId || "none"
-                }`}
+                key={`tank-${formData.siteId || "empty"}-${formData.tankId || "none"
+                  }`}
                 dataField="tankId"
                 editorType="dxSelectBox"
                 editorOptions={{
@@ -756,8 +755,8 @@ const ClosingStockForm = ({
                     !formData.siteId || formData.siteId === 0
                       ? "Select site first"
                       : filteredTanks.length > 0
-                      ? "Select a tank"
-                      : "No tanks available",
+                        ? "Select a tank"
+                        : "No tanks available",
                   width: "100%",
                   searchEnabled: true,
                   showClearButton: true,
@@ -803,7 +802,7 @@ const ClosingStockForm = ({
                     value:
                       formData.physicalStockValue != null
                         ? Number(formData.physicalStockValue).toLocaleString() +
-                          " L"
+                        " L"
                         : "No physical reading available",
                     readOnly: true,
                     width: "100%",
@@ -846,8 +845,8 @@ const ClosingStockForm = ({
                   width: "100%",
                   ...(formData.closingMeter !== null &&
                     formData.closingMeter !== undefined && {
-                      format: "#,##0.00",
-                    }),
+                    format: "#,##0.00",
+                  }),
                 }}
               >
                 <Label text="Closing Meter Reading (Optional)" />
@@ -886,7 +885,7 @@ const ClosingStockForm = ({
                             fontWeight: "bold",
                             color:
                               Math.abs(formData.amount - formData.bookBalance) >
-                              formData.bookBalance * 0.05
+                                formData.bookBalance * 0.05
                                 ? "#f44336"
                                 : "#4caf50",
                           }}
@@ -898,10 +897,10 @@ const ClosingStockForm = ({
                           L (
                           {formData.bookBalance > 0
                             ? (
-                                ((formData.amount - formData.bookBalance) /
-                                  formData.bookBalance) *
-                                100
-                              ).toFixed(2)
+                              ((formData.amount - formData.bookBalance) /
+                                formData.bookBalance) *
+                              100
+                            ).toFixed(2)
                             : "100"}
                           %)
                         </div>
@@ -922,7 +921,7 @@ const ClosingStockForm = ({
                               Math.abs(
                                 formData.amount - formData.physicalStockValue
                               ) >
-                              formData.physicalStockValue * 0.05
+                                formData.physicalStockValue * 0.05
                                 ? "#ff9800"
                                 : "#4caf50",
                           }}
@@ -934,11 +933,11 @@ const ClosingStockForm = ({
                           L (
                           {formData.physicalStockValue > 0
                             ? (
-                                ((formData.amount -
-                                  formData.physicalStockValue) /
-                                  formData.physicalStockValue) *
-                                100
-                              ).toFixed(2)
+                              ((formData.amount -
+                                formData.physicalStockValue) /
+                                formData.physicalStockValue) *
+                              100
+                            ).toFixed(2)
                             : "100"}
                           %)
                         </div>
@@ -1040,18 +1039,18 @@ const ClosingStockForm = ({
                           <strong className="tw-text-blue-600">
                             {formData.date
                               ? new Date(formData.date).toLocaleDateString(
-                                  "en-US",
-                                  {
-                                    year: "numeric",
-                                    month: "long",
-                                    day: "numeric",
-                                  }
-                                )
-                              : new Date().toLocaleDateString("en-US", {
+                                "en-US",
+                                {
                                   year: "numeric",
                                   month: "long",
                                   day: "numeric",
-                                })}
+                                }
+                              )
+                              : new Date().toLocaleDateString("en-US", {
+                                year: "numeric",
+                                month: "long",
+                                day: "numeric",
+                              })}
                           </strong>
                           . Use search and filters to analyze transaction data.
                           Negative values indicate fuel dispensed or transferred
@@ -1070,7 +1069,7 @@ const ClosingStockForm = ({
 
                     <div className="tw-p-2">
                       {Array.isArray(tankVolumeHistory) &&
-                      tankVolumeHistory.length > 0 ? (
+                        tankVolumeHistory.length > 0 ? (
                         <DataGrid
                           dataSource={tankVolumeHistory}
                           showBorders={true}

@@ -68,7 +68,7 @@ const ExecutionHistory = () => {
     }, [dispatch, expressionId, page, pageSize]);
 
     const handleBack = useCallback(() => {
-        navigate('/event-expressions');
+        navigate('/event-expressions/expressions');
     }, [navigate]);
 
     const handleRefresh = useCallback(() => {
@@ -180,13 +180,15 @@ const ExecutionHistory = () => {
         <div className="execution-history tw-p-4">
             {/* Header */}
             <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
-                <div>
-                    <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">
-                        <i className="fa-light fa-clock-rotate-left tw-mr-2" />
-                        Execution History
-                    </h2>
+                <div className="tw-flex tw-flex-col tw-items-start tw-gap-1">
+                    <Button
+                        text="Back to List"
+                        icon="fa-light fa-arrow-left"
+                        stylingMode="text"
+                        onClick={handleBack}
+                    />
                     {selectedExpression && (
-                        <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
+                        <p className="tw-text-sm tw-text-gray-500 tw-ml-1">
                             <span className="tw-font-medium">{selectedExpression.name}</span>
                             {' — '}
                             <span className="tw-text-gray-400">
@@ -201,12 +203,6 @@ const ExecutionHistory = () => {
                         icon="fa-light fa-arrows-rotate"
                         stylingMode="outlined"
                         onClick={handleRefresh}
-                    />
-                    <Button
-                        text="Back to List"
-                        icon="fa-light fa-arrow-left"
-                        stylingMode="text"
-                        onClick={handleBack}
                     />
                 </div>
             </div>
@@ -235,8 +231,8 @@ const ExecutionHistory = () => {
                     <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-3 tw-text-center">
                         <div
                             className={`tw-text-2xl tw-font-bold ${selectedExpression.isActive
-                                    ? 'tw-text-green-600'
-                                    : 'tw-text-red-600'
+                                ? 'tw-text-green-600'
+                                : 'tw-text-red-600'
                                 }`}
                         >
                             {selectedExpression.isActive ? 'Active' : 'Inactive'}
@@ -247,7 +243,7 @@ const ExecutionHistory = () => {
             )}
 
             {/* Execution History Table */}
-            <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200">
+            <div className="execution-grid-card tw-bg-white tw-rounded-lg tw-border tw-border-gray-200">
                 <DataGrid
                     dataSource={executions}
                     showBorders={false}
@@ -256,6 +252,9 @@ const ExecutionHistory = () => {
                     rowAlternationEnabled={true}
                     columnAutoWidth={true}
                     wordWrapEnabled={false}
+                    width="100%"
+                    height="100%"
+                    className="execution-history-grid"
                     noDataText={
                         executionsLoading
                             ? 'Loading...'

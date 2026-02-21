@@ -1,0 +1,196 @@
+/**
+ * File: EventExpressionsDashboard.scss
+ * Purpose: Styles for the Event Engine dashboard stat cards, severity bars,
+ *          recent events, and quick actions.
+ * Last Modified: 2026-02-18
+ */
+
+.ee-dashboard {
+    // ── Stat Cards ──────────────────────────────
+    .stat-card {
+        @apply tw-rounded-xl tw-p-5 tw-flex tw-items-center tw-gap-4;
+        background: white;
+        border: 1px solid #e2e8f0;
+        transition: all 0.2s ease;
+
+        &:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        }
+
+        &__icon {
+            @apply tw-w-12 tw-h-12 tw-rounded-lg tw-flex tw-items-center tw-justify-center;
+            font-size: 1.25rem;
+        }
+
+        &__body {
+            @apply tw-flex tw-flex-col;
+        }
+
+        &__value {
+            @apply tw-text-2xl tw-font-bold;
+            color: #1f2937;
+        }
+
+        &__label {
+            @apply tw-text-xs tw-font-medium tw-uppercase tw-tracking-wide;
+            color: #6b7280;
+        }
+
+        // Variants
+        &--danger .stat-card__icon {
+            background: #fef2f2;
+            color: #ef4444;
+        }
+
+        &--warning .stat-card__icon {
+            background: #fff7ed;
+            color: #f97316;
+        }
+
+        &--success .stat-card__icon {
+            background: #f0fdf4;
+            color: #22c55e;
+        }
+
+        &--info .stat-card__icon {
+            background: #f5f3ff;
+            color: #7c3aed;
+        }
+    }
+
+    // ── Panel ───────────────────────────────────
+    .dashboard-panel {
+        @apply tw-rounded-xl tw-p-5;
+        background: white;
+        border: 1px solid #e2e8f0;
+
+        &__title {
+            @apply tw-text-sm tw-font-semibold tw-uppercase tw-tracking-wide tw-mb-4;
+            color: #374151;
+        }
+    }
+
+    // ── Severity Bars ───────────────────────────
+    .severity-bars {
+        @apply tw-flex tw-flex-col tw-gap-3;
+    }
+
+    .severity-bar-row {
+        @apply tw-flex tw-items-center tw-gap-3;
+    }
+
+    .severity-bar-label {
+        @apply tw-flex tw-items-center tw-gap-2 tw-text-sm tw-font-medium;
+        min-width: 90px;
+        color: #374151;
+    }
+
+    .severity-bar-track {
+        @apply tw-flex-1 tw-h-2 tw-rounded-full;
+        background: #f1f5f9;
+    }
+
+    .severity-bar-fill {
+        @apply tw-h-full tw-rounded-full;
+        transition: width 0.5s ease;
+    }
+
+    .severity-bar-count {
+        @apply tw-text-sm tw-font-bold;
+        min-width: 28px;
+        text-align: right;
+    }
+
+    // ── Type list ───────────────────────────────
+    .type-list {
+        @apply tw-flex tw-flex-col tw-gap-2;
+    }
+
+    .type-list-item {
+        @apply tw-flex tw-items-center tw-justify-between tw-px-3 tw-py-2 tw-rounded-lg;
+        background: #f8fafc;
+        transition: background 0.15s ease;
+
+        &:hover {
+            background: #f1f5f9;
+        }
+    }
+
+    .type-list-name {
+        @apply tw-text-sm tw-font-medium;
+        color: #374151;
+    }
+
+    .type-list-count {
+        @apply tw-text-sm tw-font-bold tw-px-2 tw-py-0.5 tw-rounded-md;
+        background: #ede9fe;
+        color: #6d28d9;
+    }
+
+    // ── Recent Events ───────────────────────────
+    .recent-events-list {
+        @apply tw-flex tw-flex-col tw-gap-2;
+    }
+
+    .recent-event-row {
+        @apply tw-flex tw-items-center tw-gap-3 tw-px-3 tw-py-2 tw-rounded-lg;
+        background: #f8fafc;
+        transition: background 0.15s ease;
+
+        &:hover {
+            background: #f1f5f9;
+        }
+    }
+
+    .recent-event-severity {
+        @apply tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-flex-shrink-0;
+        font-size: 0.875rem;
+    }
+
+    .recent-event-info {
+        @apply tw-flex tw-flex-col tw-flex-1 tw-min-w-0;
+    }
+
+    .recent-event-message {
+        @apply tw-text-sm tw-font-medium tw-truncate;
+        color: #1f2937;
+    }
+
+    .recent-event-meta {
+        @apply tw-text-xs;
+        color: #9ca3af;
+    }
+
+    .recent-event-badge {
+        @apply tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-semibold tw-flex-shrink-0;
+    }
+
+    // ── Quick Actions ───────────────────────────
+    .quick-actions {
+        @apply tw-flex tw-flex-col tw-gap-2;
+    }
+
+    .quick-action-btn {
+        @apply tw-flex tw-items-center tw-gap-3 tw-w-full tw-px-4 tw-py-3 tw-rounded-lg tw-text-left tw-text-sm tw-font-medium;
+        background: #f8fafc;
+        border: 1px solid #e2e8f0;
+        color: #374151;
+        cursor: pointer;
+        transition: all 0.15s ease;
+
+        &:hover {
+            background: #f5f3ff;
+            border-color: #c4b5fd;
+            color: #6d28d9;
+            transform: translateX(4px);
+        }
+
+        i {
+            font-size: 1rem;
+            width: 20px;
+            text-align: center;
+            color: #7c3aed;
+        }
+    }
+}

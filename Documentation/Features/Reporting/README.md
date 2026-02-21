@@ -1,286 +1,140 @@
-# DevExtreme Reporting Module
+# FMS Reporting System
 
-A comprehensive, flexible reporting system for the FMS application built with DevExtreme React components and .NET Core backend.
+Comprehensive reporting system for the FMS application using **JsReport** as the primary report engine with Handlebars HTML templates, server-side PDF/Excel rendering, and scheduled email delivery.
 
-## 🚀 Features
+> **Note**: DevExtreme Reporting (REPX-based) exists as a secondary/legacy engine. JsReport is the active, primary system for all new reports.
 
-- **📊 Multiple Report Types**: DataGrid, PivotGrid, Charts (future), Dashboards (future)
-- **🎨 Report Gallery**: Visual browsing interface for all reports
-- **🔧 Flexible Configuration**: Define reports in code or database
-- **📤 Export Support**: Excel, PDF, CSV exports
-- **🎯 Smart Filtering**: Date ranges, dropdowns, multi-select
-- **👥 Templates**: Save and share report configurations
-- **📱 Responsive**: Works on desktop, tablet, and mobile
-- **🔒 Permission-Based**: Integrated with existing security
+## Overview
 
-## 📁 Project Structure
+The reporting system provides:
+
+- **9 built-in report sources** covering fuel management, device management, and operations
+- **Server-side rendering** via JsReport (ChromePdf for PDF, HtmlToXlsx for Excel)
+- **Customizable Handlebars templates** with letterhead branding
+- **Scheduled report delivery** via email (integrated with the notification system)
+- **Execution monitoring** with history tracking and statistics
+- **Template management** with a Monaco-based in-browser editor
+- **Multi-format output**: HTML preview, PDF download, Excel download, CSV export
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [README.md](./README.md) | This file — overall overview |
+| [IMPLEMENTATION.md](./IMPLEMENTATION.md) | Architecture, code structure, and data flow |
+| [USAGE.md](./USAGE.md) | How to use the reporting UI and API |
+| [DESIGN.md](./DESIGN.md) | System design decisions and patterns |
+| [ADDING_REPORTS.md](./ADDING_REPORTS.md) | Step-by-step guide to add a new report |
+
+## Quick Reference
+
+### Report Sources
+
+| Source ID | Category | Description |
+|-----------|----------|-------------|
+| `pump-transaction` | Fuel Management | Pump transaction records |
+| `vehicle-consumption` | Fuel Management | Vehicle fuel consumption |
+| `fuel-refill` | Fuel Management | Fuel refill records |
+| `delivery` | Fuel Management | Fuel delivery records |
+| `tank-volume-history` | Fuel Management | Tank volume history |
+| `consumption-by-refills` | Fuel Management | Consumption calculated from refills |
+| `device-offline` | Device Management | Device offline events |
+| `pts-device` | Device Management | PTS device status |
+| `issue-tracker` | Operations | Issue tracker records |
+
+### Key URLs
+
+| Route | Purpose |
+|-------|---------|
+| `/reports` | Dashboard with quick-actions and source catalog |
+| `/reports/engine/:sourceId` | Generate a report for a specific source |
+| `/reports/templates` | Manage Handlebars HTML templates |
+| `/reports/scheduling` | Create and manage scheduled report emails |
+| `/reports/monitoring` | View execution history and statistics |
+
+### Key API Endpoints
+
+| Endpoint | Method | Purpose |
+|----------|--------|---------|
+| `/api/v1/ReportGenerator/templates` | GET | List all JsReport templates |
+| `/api/v1/ReportGenerator/templates/{name}` | GET/PUT/DELETE | Template CRUD |
+| `/api/v1/ReportGenerator/preview/{templateName}` | POST | Render HTML preview |
+| `/api/v1/ReportGenerator/render/pdf/{templateName}` | POST | Render PDF |
+| `/api/v1/ReportGenerator/render/excel/{templateName}` | POST | Render Excel |
+
+## Project Structure
 
 ```
 Backend:
 ├── FMS.Application/Features/Reporting/
-│   ├── DTOs/
-│   │   ├── ReportDefinitionDTO.cs
-│   │   └── GenerateReportRequestDTO.cs
-│   ├── Commands/
-│   │   ├── GenerateReportCommand.cs
-│   │   └── GenerateReportCommandHandler.cs
-│   ├── Queries/
-│   │   ├── GetReportDefinitionQuery.cs
-│   │   └── GetReportDefinitionQueryHandler.cs
-│   └── Services/
-│       ├── IReportDefinitionService.cs
-│       ├── IReportGenerationService.cs
-│       └── ReportDefinitionService.cs
-├── FMS.WebClient/Controllers/
-│   └── ReportingController.cs
+│   ├── Commands/           # GenerateReport, CreateReportSchedule, CancelSchedule, LogExecution
+│   ├── Queries/            # GetReportDefinition(s), GetTemplates, GetSchedules, GetHistory
+│   ├── DTOs/               # ReportDefinitionDTO, GenerateReportRequestDTO
+│   └── Services/           # ReportDefinitionService, ReportGenerationService
+│
+├── FMS.WebClient/Services/Reporting/
+│   ├── IJsReportService.cs           # JsReport rendering interface
+│   ├── JsReportService.cs            # JsReport Local engine implementation
+│   ├── JsReportHtmlTemplates.cs      # 9 embedded Handlebars templates
+│   ├── JsReportTemplateManager.cs    # File-based template storage
+│   ├── JsReportLetterheadBranding.cs # Auto-inject logo & branding CSS
+│   └── NotificationReportRenderer.cs # Bridge to notification email system
+│
+├── FMS.WebClient/Controllers/Reporting/
+│   ├── ReportGeneratorController.cs  # JsReport template CRUD + rendering
+│   ├── ReportingController.cs        # Report definitions + schedules
+│   ├── StockReportController.cs      # Tank stock reports
+│   └── (DevExtreme controllers)      # Legacy REPX designer/viewer
+│
+├── FMS.Domain/Entities/
+│   ├── ReportDefinition.cs           # Report metadata
+│   ├── ReportTemplate.cs             # Template config
+│   ├── ReportSchedule.cs             # Scheduled email delivery
+│   ├── ReportExecutionHistory.cs     # Execution log
+│   └── ReportCategory.cs             # Report categories
 
 Frontend:
-├── fms.frontend/src/
-│   ├── components/Reporting/
-│   │   ├── ReportBuilder.js
-│   │   ├── ReportBuilder.scss
-│   │   └── index.js
-│   ├── pages/reports/
-│   │   ├── ReportGallery.js
-│   │   ├── TankVolumeHistoryReport.js
-│   │   └── ReportsIndex.js
-│   └── services/
-│       └── reportingService.js
+├── fms.frontend/src/pages/reports/
+│   ├── ReportsMain.js                # Route definitions
+│   ├── ReportsDashboard.js           # Landing page
+│   ├── ReportGallery.js              # Browse all reports
+│   ├── engine/                       # Report generation orchestrator
+│   │   ├── ReportEngine.js           # Central generation UI
+│   │   ├── ReportParameterForm.js    # Dynamic filter form
+│   │   ├── ReportFormatSelector.js   # Format picker
+│   │   ├── ReportOutputViewer.js     # HTML viewer (iframe)
+│   │   └── reportDataBuilder.js      # Data normalization for 9 sources
+│   ├── sources/                      # Report source definitions (config objects)
+│   ├── templates/                    # Template CRUD + Monaco editor
+│   ├── scheduling/                   # Schedule management
+│   ├── monitoring/                   # Execution history dashboard
+│   └── layout/                       # Sidebar navigation layout
+│
+├── fms.frontend/src/services/
+│   └── reportingService.js           # API client (750+ lines)
+│
+├── fms.frontend/src/components/Reporting/
+│   ├── ReportBuilder.js              # DataGrid/PivotGrid renderer (legacy)
+│   └── ReportScheduler/              # Reusable schedule email dialog
 ```
 
-## 🎯 Quick Start
+## Technology Stack
 
-### View Available Reports
-```
-Navigate to: /reports
-```
+| Component | Technology |
+|-----------|------------|
+| Report Engine | jsreport.Local + jsreport.Binary (system Chrome) |
+| PDF Rendering | ChromePdf recipe (120s default, 300s for large payloads) |
+| Excel Rendering | HtmlToXlsx recipe |
+| Templates | Handlebars HTML (file-based at `C:\FMSData\reports\templates\`) |
+| Template Editor | Monaco Editor (in-browser) |
+| Branding | Auto-injected letterhead logo from `C:\FMSData\reports\branding\` |
+| Scheduling | Notification system integration (Type:2, CategoryId:20) |
+| Frontend Framework | React 18, Redux Toolkit, DevExtreme |
+| API Client | Axios via reportingService.js |
 
-### Example Report
-```
-Navigate to: /reports/tank-volume-history
-```
+## Version History
 
-### Create a New Report (5 minutes)
-
-1. **Backend**: Add definition in `ReportDefinitionService.cs`
-```csharp
-_reportDefinitions.Add(new ReportDefinitionDTO
-{
-    ReportId = "my-report",
-    ReportName = "My Report",
-    DataSourceEndpoint = "/api/v1/MyData",
-    Columns = new List<ReportColumnDTO> { ... }
-});
-```
-
-2. **Frontend**: Create component
-```javascript
-import { ReportBuilder } from '../../components/Reporting';
-
-const MyReport = () => {
-  const [def, setDef] = useState(null);
-
-  useEffect(() => {
-    reportingService.getReportDefinition('my-report')
-      .then(r => setDef(r.data));
-  }, []);
-
-  return <ReportBuilder reportDefinition={def} autoLoad={true} />;
-};
-```
-
-3. **Route**: Add to router
-```javascript
-<Route path="/reports/my-report" element={<MyReport />} />
-```
-
-## 📚 Documentation
-
-- **[Quick Start Guide](./QUICK_START.md)** - Get up and running in 5 minutes
-- **[Complete Guide](./DEVEXTREME_REPORTING_GUIDE.md)** - Comprehensive documentation
-- **[API Reference](./DEVEXTREME_REPORTING_GUIDE.md#api-reference)** - Detailed API docs
-
-## 🎨 Built-In Reports
-
-### Tank Volume History Report
-- **ID**: `tank-volume-history-report`
-- **Type**: DataGrid
-- **Features**: Filtering, grouping, export
-- **Endpoint**: `/api/v1/TankVolumeHistory/filtered`
-
-### Tank Volume Pivot Report
-- **ID**: `tank-volume-pivot-report`
-- **Type**: PivotGrid
-- **Features**: Multi-dimensional analysis, drill-down
-- **Endpoint**: `/api/v1/TankStockReports/pivot-data`
-
-## 🔧 Configuration
-
-### Report Definition Structure
-
-```csharp
-new ReportDefinitionDTO
-{
-    ReportId = "unique-id",
-    ReportName = "Display Name",
-    Description = "Report description",
-    Category = "Category Name",
-    Type = ReportType.DataGrid, // or PivotGrid
-    Icon = "fa-light fa-icon-name",
-    DataSourceEndpoint = "/api/v1/endpoint",
-    RequiredPermission = "_Read_permission",
-    Columns = [ ... ],
-    Summaries = [ ... ],
-    ExportOptions = { ... }
-}
-```
-
-## 🌐 API Endpoints
-
-| Endpoint | Method | Description |
-|----------|--------|-------------|
-| `/api/v1/Reporting/definitions` | GET | List all reports |
-| `/api/v1/Reporting/definitions/{id}` | GET | Get report by ID |
-| `/api/v1/Reporting/generate` | POST | Generate report |
-| `/api/v1/Reporting/templates` | GET/POST | Manage templates |
-| `/api/v1/Reporting/categories` | GET | Get categories |
-
-## 💡 Usage Examples
-
-### Basic DataGrid Report
-```javascript
-<ReportBuilder
-  reportDefinition={reportDef}
-  filters={{ startDate: '2024-01-01' }}
-  autoLoad={true}
-/>
-```
-
-### With Custom Filters
-```javascript
-const MyReport = () => {
-  const [filters, setFilters] = useState({});
-
-  return (
-    <div>
-      <FilterPanel onApply={setFilters} />
-      <ReportBuilder
-        reportDefinition={reportDef}
-        filters={filters}
-        autoLoad={false}
-      />
-    </div>
-  );
-};
-```
-
-### Export Report
-```javascript
-const handleExport = async () => {
-  const result = await reportingService.generateReport({
-    reportId: 'my-report',
-    filters: myFilters,
-    exportFormat: 'excel'
-  });
-
-  if (result.success) {
-    reportingService.downloadReportFile(
-      result.fileContent,
-      result.fileName
-    );
-  }
-};
-```
-
-## 🎯 Report Types
-
-### 1. DataGrid Reports
-**Best for:** Tabular data, detailed records
-**Features:** Sorting, filtering, grouping, summaries, export
-
-### 2. PivotGrid Reports
-**Best for:** Multi-dimensional analysis, aggregations
-**Features:** Drag-drop fields, drill-down, cross-tabulation
-
-### 3. Chart Reports (Coming Soon)
-**Best for:** Visual trends and patterns
-
-### 4. Dashboard Reports (Coming Soon)
-**Best for:** Multiple metrics on one screen
-
-## 🔐 Security
-
-Reports integrate with existing permission system:
-```csharp
-RequiredPermission = "_Read_tankVolumeHistory"
-```
-
-Permission is checked automatically on the backend.
-
-## 📊 Performance
-
-- **Pagination**: Built-in for large datasets
-- **Lazy Loading**: Data loaded on demand
-- **Caching**: Report definitions cached on frontend
-- **Efficient Exports**: Streamed for large files
-
-## 🛠️ Dependencies
-
-### Backend
-- MediatR (CQRS pattern)
-- AutoMapper (optional)
-- LINQ for data queries
-
-### Frontend
-- React 18+
-- DevExtreme React 23.2.8+
-- DevExtreme Analytics Core
-- ExcelJS (exports)
-- Axios (API calls)
-
-## 🚧 Roadmap
-
-- [x] DataGrid reports
-- [x] PivotGrid reports
-- [x] Report Gallery
-- [x] Template management
-- [x] Excel export
-- [ ] PDF export (enhanced)
-- [ ] Chart reports
-- [ ] Dashboard reports
-- [ ] Scheduled reports
-- [ ] Email delivery
-- [ ] Report sharing
-- [ ] Advanced analytics
-
-## 🤝 Contributing
-
-When adding new reports:
-1. Define in `ReportDefinitionService.cs`
-2. Create React component
-3. Add route
-4. Update documentation
-5. Test exports
-
-## 📝 Version History
-
-**v1.0.0** (2024-01-24)
-- Initial release
-- DataGrid and PivotGrid support
-- Report Gallery
-- Template management
-- Export functionality
-
-## 📧 Support
-
-- Documentation: See `DEVEXTREME_REPORTING_GUIDE.md`
-- Examples: Check `fms.frontend/src/pages/reports/`
-- Issues: Contact development team
-
-## 📄 License
-
-Internal use only - Hyoung FMS Application
-
----
-
-**Ready to create your first report?** Check out the [Quick Start Guide](./QUICK_START.md)!
+| Version | Date | Changes |
+|---------|------|---------|
+| v1.0.0 | 2024-01-24 | Initial DevExtreme reporting (DataGrid, PivotGrid, Gallery) |
+| v2.0.0 | 2025 | JsReport engine, 9 source types, template management, scheduling, monitoring |

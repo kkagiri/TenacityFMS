@@ -1258,6 +1258,9 @@ namespace FMS.Application.Features.Notification.Services
                     }
                 }
 
+                // Try to build event report PDF attachment (e.g., TankVolumeHistory for stock discrepancy events)
+                var eventAttachments = await TryBuildEventReportAttachmentAsync(notification, cancellationToken);
+
                 var customEmailBody = TryGetCustomEmailBodyFromData(notification.Data);
                 if (!string.IsNullOrWhiteSpace(customEmailBody))
                 {
@@ -1266,7 +1269,8 @@ namespace FMS.Application.Features.Notification.Services
                         notification.Title,
                         customEmailBody,
                         isHtml: true,
-                        cancellationToken: cancellationToken);
+                        cancellationToken: cancellationToken,
+                        attachments: eventAttachments);
                 }
 
                 var policy = notification.NotificationPolicy;
@@ -1290,12 +1294,78 @@ namespace FMS.Application.Features.Notification.Services
                     notification.Title,
                     emailContent,
                     isHtml: true,
-                    cancellationToken: cancellationToken);
+                    cancellationToken: cancellationToken,
+                    attachments: eventAttachments);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error sending email notification to {Email}", recipient.RecipientAddress);
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// Checks the notification Data JSON for a reportAttachment metadata block
+        /// and generates the PDF attachment via ScheduledReportDeliveryService.
+        /// Returns an empty list when no report is requested or the service is unavailable.
+        /// </summary>
+        private async Task<List<EmailAttachmentDto>> TryBuildEventReportAttachmentAsync(
+            Noti.Notification notification, CancellationToken cancellationToken)
+        {
+            if (_scheduledReportDeliveryService == null || string.IsNullOrWhiteSpace(notification.Data))
+            {
+                return new List<EmailAttachmentDto>();
+            }
+
+            try
+            {
+                var dataObject = JObject.Parse(notification.Data);
+                var reportAttachment = dataObject["reportAttachment"];
+                if (reportAttachment == null || reportAttachment.Type == JTokenType.Null)
+                {
+                    return new List<EmailAttachmentDto>();
+                }
+
+                var reportType = reportAttachment.Value<string>("reportType");
+                var templateName = reportAttachment.Value<string>("templateName");
+                if (string.IsNullOrWhiteSpace(reportType) || string.IsNullOrWhiteSpace(templateName))
+                {
+                    return new List<EmailAttachmentDto>();
+                }
+
+                var tankId = reportAttachment.Value<int?>("tankId");
+                var siteId = reportAttachment.Value<int?>("siteId");
+                var startDateStr = reportAttachment.Value<string>("startDate");
+                var endDateStr = reportAttachment.Value<string>("endDate");
+                var fileNamePrefix = reportAttachment.Value<string>("fileNamePrefix") ?? "Report";
+
+                if (!DateTime.TryParse(startDateStr, null, System.Globalization.DateTimeStyles.RoundtripKind, out var startDate) ||
+                    !DateTime.TryParse(endDateStr, null, System.Globalization.DateTimeStyles.RoundtripKind, out var endDate))
+                {
+                    _logger.LogWarning("Invalid date range in reportAttachment metadata for notification {NotificationId}",
+                        notification.NotificationId);
+                    return new List<EmailAttachmentDto>();
+                }
+
+                _logger.LogInformation(
+                    "Generating event report attachment [{ReportType}] for notification {NotificationId}, Tank={TankId}, Site={SiteId}, Range={Start}-{End}",
+                    reportType, notification.NotificationId, tankId, siteId, startDate, endDate);
+
+                var attachments = await _scheduledReportDeliveryService.BuildReportAttachmentAsync(
+                    reportType, templateName, tankId, siteId, startDate, endDate, fileNamePrefix, cancellationToken);
+
+                _logger.LogInformation(
+                    "Generated {Count} report attachment(s) for notification {NotificationId}",
+                    attachments.Count, notification.NotificationId);
+
+                return attachments;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to build event report attachment for notification {NotificationId}. Email will be sent without attachment.",
+                    notification.NotificationId);
+                return new List<EmailAttachmentDto>();
             }
         }
 

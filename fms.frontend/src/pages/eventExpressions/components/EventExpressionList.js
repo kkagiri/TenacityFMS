@@ -45,6 +45,10 @@ const EventExpressionList = () => {
         dispatch(fetchEventExpressions(filters));
     }, [dispatch, filters]);
 
+    const handleRefresh = useCallback(() => {
+        dispatch(fetchEventExpressions(filters));
+    }, [dispatch, filters]);
+
     const handleCreate = useCallback(() => {
         navigate('/event-expressions/create');
     }, [navigate]);
@@ -78,7 +82,7 @@ const EventExpressionList = () => {
 
     const renderActions = useCallback(
         (cellData) => {
-            const { id, name } = cellData.data;
+            const { id, name, isSystem } = cellData.data;
             return (
                 <div className="tw-flex tw-gap-2">
                     <Button
@@ -93,12 +97,14 @@ const EventExpressionList = () => {
                         stylingMode="text"
                         onClick={() => handleViewExecutions(id)}
                     />
-                    <Button
-                        icon="fa-light fa-trash"
-                        hint="Deactivate"
-                        stylingMode="text"
-                        onClick={() => handleDelete(id, name)}
-                    />
+                    {!isSystem && (
+                        <Button
+                            icon="fa-light fa-trash"
+                            hint="Deactivate"
+                            stylingMode="text"
+                            onClick={() => handleDelete(id, name)}
+                        />
+                    )}
                 </div>
             );
         },
@@ -110,8 +116,8 @@ const EventExpressionList = () => {
         return (
             <span
                 className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${isActive
-                        ? 'tw-bg-green-100 tw-text-green-800'
-                        : 'tw-bg-gray-100 tw-text-gray-500'
+                    ? 'tw-bg-green-100 tw-text-green-800'
+                    : 'tw-bg-gray-100 tw-text-gray-500'
                     }`}
             >
                 {isActive ? 'Active' : 'Inactive'}
@@ -144,18 +150,29 @@ const EventExpressionList = () => {
         );
     }, []);
 
+    const renderName = useCallback((cellData) => {
+        const { name, isSystem } = cellData.data;
+        return (
+            <div className="tw-flex tw-items-center tw-gap-2">
+                <span>{name}</span>
+                {isSystem && (
+                    <span className="tw-px-1.5 tw-py-0.5 tw-rounded tw-text-[10px] tw-font-semibold tw-bg-indigo-100 tw-text-indigo-700 tw-uppercase tw-tracking-wide">
+                        System
+                    </span>
+                )}
+            </div>
+        );
+    }, []);
+
     return (
         <div className="event-expression-list tw-p-4">
-            <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
-                <div>
-                    <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">
-                        <i className="fa-light fa-waveform-lines tw-mr-2" />
-                        Event Expressions
-                    </h2>
-                    <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
-                        Configure rules that trigger notifications and create active events
-                    </p>
-                </div>
+            <div className="tw-flex tw-items-center tw-justify-end tw-gap-2 tw-mb-4">
+                <Button
+                    icon="fa-light fa-rotate-right"
+                    hint="Refresh"
+                    stylingMode="outlined"
+                    onClick={handleRefresh}
+                />
                 <Button
                     text="Create Expression"
                     icon="fa-light fa-plus"
@@ -172,8 +189,8 @@ const EventExpressionList = () => {
                 showRowLines={true}
                 showColumnLines={false}
                 rowAlternationEnabled={true}
-                columnAutoWidth={true}
-                wordWrapEnabled={true}
+                width="100%"
+                wordWrapEnabled={false}
                 noDataText={loading ? 'Loading...' : 'No event expressions configured'}
                 className="event-expression-grid"
             >
@@ -187,11 +204,11 @@ const EventExpressionList = () => {
                     showInfo={true}
                 />
 
-                <Column dataField="name" caption="Name" width={200} />
+                <Column dataField="name" caption="Name" width={200} cellRender={renderName} />
                 <Column dataField="eventType" caption="Event Type" width={160} />
                 <Column dataField="siteName" caption="Site" width={140} />
                 <Column dataField="tankName" caption="Tank" width={140} />
-                <Column dataField="policyName" caption="Policy" width={160} />
+                <Column dataField="policyName" caption="Policy" minWidth={160} />
                 <Column
                     dataField="priority"
                     caption="Priority"
@@ -204,12 +221,7 @@ const EventExpressionList = () => {
                     width={90}
                     cellRender={renderStatus}
                 />
-                <Column
-                    dataField="cooldownMinutes"
-                    caption="Cooldown (min)"
-                    width={120}
-                    alignment="center"
-                />
+
                 <Column
                     dataField="triggerCount"
                     caption="Triggers"

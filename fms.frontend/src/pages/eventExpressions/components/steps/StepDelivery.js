@@ -107,27 +107,6 @@ const StepDelivery = ({ policyData, onPolicyChange, formData, onFieldChange }) =
                 <div className="tw-space-y-3">
                     <div>
                         <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                            Cooldown (minutes)
-                        </label>
-                        <NumberBox
-                            value={formData.cooldownMinutes}
-                            onValueChanged={(e) => onFieldChange('cooldownMinutes', e.value)}
-                            min={0}
-                            max={1440}
-                            showSpinButtons={true}
-                            width="100%"
-                        >
-                            <Validator>
-                                <RangeRule min={0} max={1440} message="0-1440 minutes" />
-                            </Validator>
-                        </NumberBox>
-                        <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-                            Minimum time between repeated notifications
-                        </p>
-                    </div>
-
-                    <div>
-                        <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
                             Max per Day (0 = unlimited)
                         </label>
                         <NumberBox

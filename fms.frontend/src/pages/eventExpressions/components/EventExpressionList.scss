@@ -5,7 +5,10 @@
  */
 
 .event-expression-list {
+  width: 100%;
+
   .event-expression-grid {
+    width: 100% !important;
     .dx-datagrid-header-panel {
       @apply tw-border-b tw-border-gray-200;
     }

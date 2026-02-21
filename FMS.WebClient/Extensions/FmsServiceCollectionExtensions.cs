@@ -574,7 +574,6 @@ public static class FmsServiceCollectionExtensions
 
         // ========== EVENT EXPRESSION ENGINE (Phase 1) ==========
         services.AddSingleton<FMS.Application.Features.EventEngine.Expressions.ExpressionEvaluatorFactory>();
-        services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
         // Alert Configuration Service — cached, typed access to configurable alert thresholds

@@ -4,6 +4,8 @@
  * Dependencies: Notification, ScheduledReportEmailPayload
  * Last Modified: 2026-02-07
  */
+using System;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.DTOs;
@@ -16,6 +18,20 @@ namespace FMS.Application.Features.Notification.Services
     {
         Task<ScheduledReportEmailPayload?> BuildEmailPayloadAsync(
             NotificationEntity notification,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Generates a PDF report attachment for an event-triggered notification.
+        /// Returns a list of attachments (empty if generation fails).
+        /// </summary>
+        Task<List<EmailAttachmentDto>> BuildReportAttachmentAsync(
+            string reportType,
+            string templateName,
+            int? tankId,
+            int? siteId,
+            DateTime startDate,
+            DateTime endDate,
+            string fileNamePrefix,
             CancellationToken cancellationToken = default);
     }
 }
