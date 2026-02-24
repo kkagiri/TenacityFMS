@@ -14,6 +14,7 @@ import {
   FETCH_NOTIFICATION_STATISTICS_SUCCESS,
   FETCH_NOTIFICATION_STATISTICS_FAILURE,
   MARK_NOTIFICATION_READ_SUCCESS,
+  MARK_ALL_NOTIFICATIONS_READ_SUCCESS,
   ACKNOWLEDGE_NOTIFICATION_SUCCESS,
   FETCH_NOTIFICATION_POLICIES_REQUEST,
   FETCH_NOTIFICATION_POLICIES_SUCCESS,
@@ -168,6 +169,15 @@ const notificationReducer = (state = initialState, action) => {
             ? { ...notification, isRead: true }
             : notification
         ),
+      };
+
+    case MARK_ALL_NOTIFICATIONS_READ_SUCCESS:
+      return {
+        ...state,
+        backendNotifications: state.backendNotifications.map((notification) => ({
+          ...notification,
+          isRead: true,
+        })),
       };
 
     case ACKNOWLEDGE_NOTIFICATION_SUCCESS:

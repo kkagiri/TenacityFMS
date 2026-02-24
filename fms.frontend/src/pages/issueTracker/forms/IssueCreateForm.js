@@ -1,11 +1,11 @@
 /**
  * File: IssueCreateForm.js
- * Purpose: Standardized issue creation form with Tailwind CSS layout (matching vehicle module patterns)
- * Dependencies: React, Redux, Router, DevExtreme notify, createIssue action
- * Last Modified: 2026-02-05
+ * Purpose: Issue creation form with Microsoft Fluent Design — 2-column layout, BEM cards, sidebar checklist/summary
+ * Dependencies: React, Redux, Router, DevExtreme (SelectBox, TagBox, Popup, Button), IssueCreateForm.scss
+ * Last Modified: 2026-02-23
  *
  * Key Functions/Components:
- * - IssueCreateForm: Captures issue creation data using standardized FMS form layout
+ * - IssueCreateForm: Fluent-themed issue creation with breadcrumb, progress bar, form cards, sidebar
  * - handleTemplateSelected: Pre-fills issue fields from selected template
  * - handleSubmit: Saves issue and navigates to details when backend confirms success
  */
@@ -36,6 +36,7 @@ import {
 } from './issueCreateFormUtils';
 import issueTrackerService from '../../../services/issueTrackerService';
 import issueTrackerV2Service from '../../../services/issueTrackerV2Service';
+import './IssueCreateForm.scss';
 
 const pad2 = (value) => String(value).padStart(2, '0');
 const toDateTimeLocalValue = (value) => {
@@ -695,714 +696,799 @@ const IssueCreateForm = ({ onSubmit = null }) => {
   }
 
   return (
-    <div className="tw-p-4 tw-max-w-6xl tw-mx-auto">
-      {/* Header */}
-      <div className="tw-mb-6">
-        <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-          <div>
-            <p className="tw-text-xs tw-uppercase tw-tracking-wider tw-text-gray-500 tw-font-semibold tw-mb-1">
-              Issue Tracker
-            </p>
-            <h1 className="tw-text-2xl tw-font-bold tw-text-gray-900">Create New Issue</h1>
-            <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
-              Follow the workflow: Device Type → Template → Details → Assignment → Timeline
-            </p>
-          </div>
-          <span className={`tw-px-4 tw-py-2 tw-rounded-full tw-text-xs tw-font-bold tw-uppercase tw-tracking-wide ${isReadyToSubmit
-            ? 'tw-bg-green-100 tw-text-green-700 tw-border tw-border-green-200'
-            : 'tw-bg-gray-100 tw-text-gray-600 tw-border tw-border-gray-200'
-            }`}>
-            {isReadyToSubmit ? 'Ready to Submit' : 'Incomplete'}
-          </span>
-        </div>
+    <div className="issue-create-form">
+      {/* Breadcrumb */}
+      <div className="issue-create-form__breadcrumb">
+        <span className="issue-create-form__breadcrumb-link" onClick={() => navigate('/issue-tracker')}>Issues</span>
+        <i className="fa-light fa-chevron-right"></i>
+        <span>Create New Issue</span>
+      </div>
 
-        {/* Progress Steps */}
-        <div className="tw-flex tw-gap-2 tw-mt-4 tw-overflow-x-auto tw-pb-2">
-          {processSteps.map((step, index) => (
-            <div
-              key={step.label}
-              className={`tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-xs tw-font-medium tw-whitespace-nowrap tw-transition-all ${step.isComplete
-                ? 'tw-bg-green-100 tw-text-green-700'
-                : step.isActive
-                  ? 'tw-bg-blue-100 tw-text-blue-700 tw-ring-2 tw-ring-blue-300'
-                  : 'tw-bg-gray-100 tw-text-gray-500'
-                }`}
-            >
-              <span className={`tw-w-5 tw-h-5 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-text-xs tw-font-bold ${step.isComplete
-                ? 'tw-bg-green-600 tw-text-white'
-                : step.isActive
-                  ? 'tw-bg-blue-600 tw-text-white'
-                  : 'tw-bg-gray-300 tw-text-gray-600'
-                }`}>
-                {step.isComplete ? <i className="fa-light fa-check"></i> : index + 1}
-              </span>
-              {step.label}
-            </div>
-          ))}
+      {/* Page Header */}
+      <div className="issue-create-form__page-header">
+        <div>
+          <p className="issue-create-form__eyebrow">Issue Tracker</p>
+          <h1 className="issue-create-form__title">Create New Issue</h1>
+          <p className="issue-create-form__subtitle">
+            Follow the workflow: Device Type → Template → Details → Assignment → Timeline
+          </p>
         </div>
+        <span className={`issue-create-form__ready-chip ${isReadyToSubmit ? 'is-ready' : 'is-pending'}`}>
+          <i className={`fa-light ${isReadyToSubmit ? 'fa-check-circle' : 'fa-exclamation-circle'}`}></i>
+          {isReadyToSubmit ? 'Ready to Submit' : 'Incomplete'}
+        </span>
+      </div>
+
+      {/* Progress Tracker */}
+      <div className="issue-create-form__progress-track">
+        {processSteps.map((step, index) => (
+          <div
+            key={step.label}
+            className={`issue-create-form__progress-step${step.isComplete ? ' is-done' : ''}${step.isActive ? ' is-active' : ''}`}
+          >
+            <span className="issue-create-form__ps-num">
+              {step.isComplete ? <i className="fa-light fa-check"></i> : index + 1}
+            </span>
+            <span className="issue-create-form__ps-label">{step.label}</span>
+          </div>
+        ))}
       </div>
 
       <form onSubmit={handleSubmit}>
-        {/* Section 1: Device Type & Template */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-microchip tw-text-blue-600"></i>
-            Device & Template Selection
-          </h2>
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Device Type <span className="tw-text-red-500">*</span>
-              </label>
-              <SelectBox
-                value={formData.deviceTypeId}
-                dataSource={deviceTypes}
-                displayExpr={getDeviceTypeLabel}
-                valueExpr="id"
-                placeholder="Select device type..."
-                searchEnabled={true}
-                showClearButton={false}
-                disabled={isLoading}
-                onValueChanged={(e) => {
-                  const event = { target: { value: e.value } };
-                  handleDeviceTypeChange(event);
-                }}
-              />
-              {attemptedSubmit && !validationState.hasDeviceType && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Device type is required</p>
-              )}
-            </div>
+        <div className="issue-create-form__layout">
+          <div className="issue-create-form__main">
+            {/* Section 1: Device & Template */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-microchip"></i>
+                Device & Template Selection
+              </h2>
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Device Type <span className="tw-text-red-500">*</span>
+                  </label>
+                  <SelectBox
+                    value={formData.deviceTypeId}
+                    dataSource={deviceTypes}
+                    displayExpr={getDeviceTypeLabel}
+                    valueExpr="id"
+                    placeholder="Select device type..."
+                    searchEnabled={true}
+                    showClearButton={false}
+                    disabled={isLoading}
+                    onValueChanged={(e) => {
+                      const event = { target: { value: e.value } };
+                      handleDeviceTypeChange(event);
+                    }}
+                  />
+                  {attemptedSubmit && !validationState.hasDeviceType && (
+                    <p className="tw-text-xs tw-text-red-500 tw-mt-1">Device type is required</p>
+                  )}
+                </div>
 
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Issue Template <span className="tw-text-red-500">*</span>
-              </label>
-              <SelectBox
-                value={formData.issueTemplateId}
-                dataSource={[
-                  ...(formData.deviceTypeId ? [{ id: '__add_new__', name: '+ Add New Template', isSpecial: true }] : []),
-                  ...templates
-                ]}
-                displayExpr="name"
-                valueExpr="id"
-                placeholder={
-                  !formData.deviceTypeId
-                    ? 'Select device type first...'
-                    : loadingTemplates
-                      ? 'Loading templates...'
-                      : 'Select issue template...'
-                }
-                searchEnabled={true}
-                showClearButton={false}
-                disabled={!formData.deviceTypeId || loadingTemplates}
-                onValueChanged={(e) => {
-                  const event = { target: { value: e.value } };
-                  handleTemplateChange(event);
-                }}
-                itemRender={(item) => {
-                  if (item?.isSpecial) {
-                    return (
-                      <div className="tw-flex tw-items-center tw-gap-2 tw-py-1 tw-text-blue-600 tw-font-medium">
-                        <i className="fa-light fa-plus tw-w-4"></i>
-                        <span>Add New Template</span>
-                      </div>
-                    );
-                  }
-                  return (
-                    <div className="tw-py-1">
-                      <div className="tw-font-medium tw-text-gray-700">{item?.name}</div>
-                      {(item?.titleTemplate || item?.descriptionTemplate) && (
-                        <div className="tw-text-xs tw-text-gray-500 tw-mt-0.5 tw-truncate">
-                          {item.titleTemplate?.substring(0, 50) || item.descriptionTemplate?.split(' ').slice(0, 4).join(' ')}
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Issue Template <span className="tw-text-red-500">*</span>
+                  </label>
+                  <SelectBox
+                    value={formData.issueTemplateId}
+                    dataSource={[
+                      ...(formData.deviceTypeId ? [{ id: '__add_new__', name: '+ Add New Template', isSpecial: true }] : []),
+                      ...templates
+                    ]}
+                    displayExpr="name"
+                    valueExpr="id"
+                    placeholder={
+                      !formData.deviceTypeId
+                        ? 'Select device type first...'
+                        : loadingTemplates
+                          ? 'Loading templates...'
+                          : 'Select issue template...'
+                    }
+                    searchEnabled={true}
+                    showClearButton={false}
+                    disabled={!formData.deviceTypeId || loadingTemplates}
+                    onValueChanged={(e) => {
+                      const event = { target: { value: e.value } };
+                      handleTemplateChange(event);
+                    }}
+                    itemRender={(item) => {
+                      if (item?.isSpecial) {
+                        return (
+                          <div className="tw-flex tw-items-center tw-gap-2 tw-py-1 tw-text-blue-600 tw-font-medium">
+                            <i className="fa-light fa-plus tw-w-4"></i>
+                            <span>Add New Template</span>
+                          </div>
+                        );
+                      }
+                      return (
+                        <div className="tw-py-1">
+                          <div className="tw-font-medium tw-text-gray-700">{item?.name}</div>
+                          {(item?.titleTemplate || item?.descriptionTemplate) && (
+                            <div className="tw-text-xs tw-text-gray-500 tw-mt-0.5 tw-truncate">
+                              {item.titleTemplate?.substring(0, 50) || item.descriptionTemplate?.split(' ').slice(0, 4).join(' ')}
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </div>
-                  );
-                }}
-              />
-              {attemptedSubmit && !validationState.hasTemplate && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Issue template is required</p>
+                      );
+                    }}
+                  />
+                  {attemptedSubmit && !validationState.hasTemplate && (
+                    <p className="tw-text-xs tw-text-red-500 tw-mt-1">Issue template is required</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Show template categories if available */}
+              {formData.issueTemplate && formData.issueTemplate.categories && formData.issueTemplate.categories.length > 0 && (
+                <div className="tw-col-span-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
+                  <p className="tw-text-xs tw-font-semibold tw-text-blue-700 tw-mb-2">
+                    <i className="fa-light fa-tags tw-mr-1"></i>
+                    Template Tags
+                  </p>
+                  <div className="tw-flex tw-flex-wrap tw-gap-2">
+                    {formData.issueTemplate.categories.map((category) => (
+                      <span
+                        key={category.id}
+                        className="tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-bg-blue-100 tw-text-blue-700 tw-text-xs tw-font-medium tw-rounded-full"
+                      >
+                        <i className="fa-light fa-tag tw-mr-1"></i>
+                        {category.name}
+                      </span>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
-          </div>
 
-          {/* Show template categories if available */}
-          {formData.issueTemplate && formData.issueTemplate.categories && formData.issueTemplate.categories.length > 0 && (
-            <div className="tw-col-span-2 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-              <p className="tw-text-xs tw-font-semibold tw-text-blue-700 tw-mb-2">
-                <i className="fa-light fa-tags tw-mr-1"></i>
-                Template Tags
-              </p>
-              <div className="tw-flex tw-flex-wrap tw-gap-2">
-                {formData.issueTemplate.categories.map((category) => (
-                  <span
-                    key={category.id}
-                    className="tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-bg-blue-100 tw-text-blue-700 tw-text-xs tw-font-medium tw-rounded-full"
+            {/* Section 2: Issue Details */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-file-lines"></i>
+                Issue Details
+              </h2>
+
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
+                <div className="md:tw-col-span-2">
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Issue Tags <span className="tw-text-red-500">*</span>
+                  </label>
+
+                  {/* Selected tags as removable pills */}
+                  {categoryIds.length > 0 && (
+                    <div className="tw-flex tw-flex-wrap tw-gap-1.5 tw-mb-2">
+                      {categoryIds.map((tagId) => {
+                        const tag = categoryOptions.find((c) => c.id === tagId);
+                        return (
+                          <span
+                            key={tagId}
+                            className="tw-inline-flex tw-items-center tw-gap-1 tw-pl-2.5 tw-pr-1 tw-py-1 tw-bg-blue-100 tw-text-blue-800 tw-text-xs tw-font-medium tw-rounded-full tw-border tw-border-blue-200"
+                          >
+                            <i className="fa-light fa-tag"></i>
+                            {tag?.name || `Tag #${tagId}`}
+                            <button
+                              type="button"
+                              onClick={() => handleRemoveTag(tagId)}
+                              className="tw-ml-0.5 tw-flex tw-items-center tw-justify-center tw-text-blue-400 hover:tw-text-red-500 tw-transition-colors tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer"
+                              title="Remove tag"
+                            >
+                              <i className="fa-light fa-xmark tw-text-xs"></i>
+                            </button>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+
+                  {/* Unified search / create input */}
+                  <div className="tw-relative" ref={tagContainerRef}>
+                    <div className="tw-relative">
+                      <i className="fa-light fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-gray-400 tw-text-sm tw-pointer-events-none"></i>
+                      <input
+                        type="text"
+                        value={newTagInput}
+                        onChange={(e) => {
+                          setNewTagInput(e.target.value);
+                          setTagDropdownOpen(true);
+                        }}
+                        onFocus={() => setTagDropdownOpen(true)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (newTagExactMatch) {
+                              handleSelectSuggestion(newTagExactMatch.id);
+                            } else if (newTagInput.trim()) {
+                              handleAddNewTag();
+                            }
+                          }
+                          if (e.key === 'Escape') {
+                            setTagDropdownOpen(false);
+                          }
+                        }}
+                        placeholder={!formData.issueTemplateId ? 'Select template first' : 'Search or create a tag...'}
+                        disabled={!formData.issueTemplateId || isCreatingTag}
+                        className="tw-w-full tw-pl-9 tw-pr-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 disabled:tw-bg-gray-50 disabled:tw-text-gray-400"
+                      />
+                    </div>
+
+                    {/* Dropdown panel */}
+                    {tagDropdownOpen && formData.issueTemplateId && (
+                      <div className="tw-absolute tw-z-20 tw-left-0 tw-right-0 tw-mt-1 tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-y-auto" style={{ maxHeight: '210px' }}>
+                        {/* Add New Tag option — always at top */}
+                        {!newTagExactMatch && newTagInput.trim() && (
+                          <button
+                            type="button"
+                            onClick={() => handleAddNewTag()}
+                            disabled={isCreatingTag}
+                            className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors tw-text-blue-600 tw-font-medium"
+                          >
+                            {isCreatingTag ? (
+                              <><i className="fa-light fa-spinner fa-spin"></i> Creating "{creatingTagLabel}"...</>
+                            ) : (
+                              <><i className="fa-light fa-plus"></i> Add New Tag</>)}
+                          </button>
+                        )}
+
+                        {/* Existing tag matches */}
+                        {newTagSuggestions.map((tag) => (
+                          <button
+                            key={tag.id}
+                            type="button"
+                            onClick={() => handleSelectSuggestion(tag.id)}
+                            className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
+                          >
+                            <i className="fa-light fa-tag tw-text-gray-400"></i>
+                            <span>{tag.name}</span>
+                            {normalizeToken(tag.name) === normalizeToken(newTagInput) && (
+                              <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
+                            )}
+                          </button>
+                        ))}
+
+                        {/* Create new entry at bottom */}
+                        {!newTagExactMatch && newTagInput.trim() && (
+                          <div className="tw-px-3 tw-py-2 tw-text-xs tw-text-gray-400">
+                            Press Enter or click "Add New Tag" to create <strong>"{newTagInput.trim()}"</strong>
+                          </div>
+                        )}
+
+                        {newTagSuggestions.length === 0 && newTagExactMatch && (
+                          <button
+                            type="button"
+                            onClick={() => handleSelectSuggestion(newTagExactMatch.id)}
+                            className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
+                          >
+                            <i className="fa-light fa-tag tw-text-gray-400"></i>
+                            <span>{newTagExactMatch.name}</span>
+                            <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Creating indicator */}
+                  {isCreatingTag && (
+                    <p className="tw-text-xs tw-text-blue-500 tw-mt-1.5">
+                      <i className="fa-light fa-spinner fa-spin tw-mr-1"></i>
+                      Creating tag: {creatingTagLabel}...
+                    </p>
+                  )}
+
+                  {!formData.issueTemplateId && (
+                    <p className="tw-text-xs tw-text-blue-500 tw-mt-1">
+                      <i className="fa-light fa-info-circle tw-mr-1"></i>
+                      Select an issue template first to enable tag selection
+                    </p>
+                  )}
+                  {attemptedSubmit && formData.issueTemplateId && !validationState.hasCategory && (
+                    <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one tag is required</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Priority
+                  </label>
+                  <SelectBox
+                    value={formData.priorityId}
+                    dataSource={priorities}
+                    displayExpr="name"
+                    valueExpr="id"
+                    placeholder="Select priority..."
+                    searchEnabled={true}
+                    showClearButton={true}
+                    onValueChanged={(e) => handleFieldChange('priorityId', e.value)}
+                  />
+                </div>
+              </div>
+
+              <div className="tw-mb-4">
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                  Issue Title <span className="tw-text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  maxLength={255}
+                  placeholder="Example: Fuel pump pressure drop on lane 2"
+                  value={formData.issueTitle}
+                  onChange={(e) => handleFieldChange('issueTitle', e.target.value)}
+                  className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                />
+                <div className="tw-flex tw-justify-between tw-mt-1">
+                  {attemptedSubmit && (
+                    <p className={`tw-text-xs ${validationState.hasTitle ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
+                      {validationState.hasTitle ? '✓ Valid title' : 'Minimum 5 characters required'}
+                    </p>
+                  )}
+                  <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{titleLength}/255</span>
+                </div>
+              </div>
+
+              <div className="tw-mb-4">
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                  Description <span className="tw-text-red-500">*</span>
+                </label>
+                <textarea
+                  rows={4}
+                  maxLength={2000}
+                  placeholder="Share what happened, where it happened, and any immediate impact."
+                  value={formData.issueDescription}
+                  onChange={(e) => handleFieldChange('issueDescription', e.target.value)}
+                  className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
+                />
+                <div className="tw-flex tw-justify-between tw-mt-1">
+                  {attemptedSubmit && (
+                    <p className={`tw-text-xs ${validationState.hasDescription ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
+                      {validationState.hasDescription ? '✓ Valid description' : 'Minimum 15 characters required'}
+                    </p>
+                  )}
+                  <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{descriptionLength}/2000</span>
+                </div>
+              </div>
+
+              <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Site / Location <span className="tw-text-red-500">*</span>
+                  </label>
+                  <SelectBox
+                    value={formData.siteId}
+                    dataSource={sites}
+                    displayExpr="name"
+                    valueExpr="id"
+                    placeholder="Select site..."
+                    searchEnabled={true}
+                    onValueChanged={(e) => handleFieldChange('siteId', e.value)}
+                  />
+                  {attemptedSubmit && !validationState.hasLocation && (
+                    <p className="tw-text-xs tw-text-red-500 tw-mt-1">Site is required</p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    Vehicle <span className="tw-text-red-500">*</span>
+                  </label>
+                  <VehicleSearchableSelector
+                    value={formData.vehicleId}
+                    onValueChanged={(e) => handleFieldChange('vehicleId', e?.value ?? null)}
+                    placeholder="Type to search vehicle"
+                    width="100%"
+                  />
+                  {attemptedSubmit && !validationState.hasVehicle && (
+                    <p className="tw-text-xs tw-text-red-500 tw-mt-1">Vehicle is required</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Section 3: Assignment */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-user-check"></i>
+                Assignment
+              </h2>
+
+              <div>
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                  Assign To (Multiple) <span className="tw-text-red-500">*</span>
+                </label>
+                <TagBox
+                  value={formData.assignToUsers || []}
+                  dataSource={userDataSource}
+                  displayExpr="displayName"
+                  valueExpr="userName"
+                  placeholder="Select one or more users..."
+                  searchEnabled={true}
+                  searchExpr={['userName', 'email']}
+                  showSelectionControls={true}
+                  applyValueMode="instantly"
+                  multiline={true}
+                  showClearButton={true}
+                  onValueChanged={(e) => {
+                    const selectedUsers = e.value || [];
+                    handleFieldChange('assignToUsers', selectedUsers);
+                    handleFieldChange('assignTo', selectedUsers[0] || '');
+                  }}
+                />
+                {attemptedSubmit && !validationState.hasAssignedTo && (
+                  <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one assignee is required</p>
+                )}
+              </div>
+            </div>
+
+            {/* Section 4: Timeline */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-calendar"></i>
+                Timeline
+              </h2>
+
+              <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-mb-4">
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Opened By</label>
+                  <input
+                    type="text"
+                    value={formData.openBy}
+                    readOnly
+                    className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
+                  />
+                </div>
+
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Status</label>
+                  <select
+                    value={formData.statusId ?? ''}
+                    onChange={(e) => {
+                      const selectedId = e.target.value ? parseInt(e.target.value, 10) : null;
+                      const selectedStatus = statuses.find((s) => s.id === selectedId);
+                      handleFieldChange('statusId', selectedId);
+                      handleFieldChange('statusName', selectedStatus?.status || selectedStatus?.name || '');
+                    }}
+                    className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
                   >
-                    <i className="fa-light fa-tag tw-mr-1"></i>
-                    {category.name}
-                  </span>
+                    <option value="">Select status...</option>
+                    {statuses
+                      .filter((s) => {
+                        const label = String(s.status || s.name || '').toLowerCase().trim();
+                        return ['open', 'ongoing', 'complete'].includes(label);
+                      })
+                      .map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.status || s.name}
+                        </option>
+                      ))
+                    }
+                  </select>
+                </div>
+
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Open Date</label>
+                  <input
+                    type="datetime-local"
+                    value={toDateTimeLocalValue(formData.openDate)}
+                    onChange={(e) => {
+                      const nextValue = e.target.value ? new Date(e.target.value) : null;
+                      handleFieldChange('openDate', nextValue);
+                    }}
+                    className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                  />
+                  <p className="tw-text-xs tw-text-gray-400 tw-mt-1">This sets the issue creation time used in reports and timelines.</p>
+                </div>
+
+                <div>
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Target Due Date</label>
+                  <input
+                    type="date"
+                    value={formData.dueDate}
+                    onChange={(e) => handleFieldChange('dueDate', e.target.value)}
+                    className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                  />
+                </div>
+              </div>
+
+              {/* Completion Notes — only visible when status is Complete */}
+              {(formData.statusName || '').toLowerCase() === 'complete' && (
+                <div className="tw-mt-4">
+                  <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                    <i className="fa-light fa-clipboard-check tw-mr-1 tw-text-green-600"></i>
+                    Completion Notes
+                  </label>
+                  <textarea
+                    rows={3}
+                    maxLength={1000}
+                    placeholder="Enter completion notes or resolution summary..."
+                    value={formData.completionNotes || ''}
+                    onChange={(e) => handleFieldChange('completionNotes', e.target.value)}
+                    className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Section 5: Notifications */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-bell"></i>
+                Notifications
+              </h2>
+
+              {/* Follow checkbox */}
+              <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-3">
+                <input
+                  type="checkbox"
+                  checked={formData.followIssue}
+                  onChange={(e) => handleFieldChange('followIssue', e.target.checked)}
+                  className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
+                />
+                <span className="tw-text-sm tw-text-gray-700">
+                  <i className="fa-light fa-eye tw-mr-1"></i>
+                  Follow this issue — receive notifications on changes
+                </span>
+              </label>
+
+              {/* Due date reminder — only shown when due date is set and is in the future */}
+              {formData.dueDate && (() => {
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const due = new Date(`${formData.dueDate}T00:00:00`);
+                return due > today;
+              })() && (
+                  <div className="tw-mt-3 tw-pl-6 tw-border-l-2 tw-border-blue-100">
+                    <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2">
+                      <input
+                        type="checkbox"
+                        checked={formData.reminderEnabled}
+                        onChange={(e) => handleFieldChange('reminderEnabled', e.target.checked)}
+                        className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
+                      />
+                      <span className="tw-text-sm tw-text-gray-700">
+                        <i className="fa-light fa-clock tw-mr-1"></i>
+                        Receive reminder before due date
+                      </span>
+                    </label>
+
+                    {formData.reminderEnabled && (
+                      <div className="tw-flex tw-items-center tw-gap-2 tw-mt-2 tw-ml-6">
+                        <span className="tw-text-sm tw-text-gray-600">Remind</span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={30}
+                          value={formData.reminderDaysBefore}
+                          onChange={(e) => {
+                            const val = Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1));
+                            handleFieldChange('reminderDaysBefore', val);
+                          }}
+                          className="tw-w-16 tw-px-2 tw-py-1 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm tw-text-center focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                        />
+                        <span className="tw-text-sm tw-text-gray-600">day(s) before due date</span>
+                      </div>
+                    )}
+                  </div>
+                )}
+            </div>
+
+            {/* Section 6: Attachments */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-paperclip"></i>
+                Attachments
+              </h2>
+              <p className="tw-text-xs tw-text-gray-500 tw-mb-4">
+                Installation photos, calibration docs, and general files
+              </p>
+
+              <div className="tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4 tw-text-center tw-bg-gray-50">
+                <input
+                  type="file"
+                  id="attachments"
+                  multiple
+                  accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
+                  onChange={handleAttachmentsChanged}
+                  className="tw-hidden"
+                />
+                <label
+                  htmlFor="attachments"
+                  className="tw-cursor-pointer tw-flex tw-flex-col tw-items-center tw-gap-2"
+                >
+                  <i className="fa-light fa-cloud-upload tw-text-3xl tw-text-gray-400"></i>
+                  <span className="tw-text-sm tw-text-gray-600">Click to upload files</span>
+                  <span className="tw-text-xs tw-text-gray-400">Accepted: Images, PDF, Excel, Word</span>
+                </label>
+              </div>
+
+              {attachmentCount > 0 && (
+                <div className="tw-mt-4 tw-space-y-3">
+                  {formData.attachments.map((file, index) => (
+                    <div
+                      key={`${file.name}-${file.lastModified}-${index}`}
+                      className="tw-flex tw-items-start tw-gap-3 tw-px-4 tw-py-3 tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg hover:tw-shadow-sm tw-transition-shadow"
+                    >
+                      <div className="tw-flex-shrink-0 tw-mt-1">
+                        <div className={`tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${file._category === 'Installation'
+                          ? 'tw-bg-purple-100 tw-text-purple-600'
+                          : file._category === 'Calibration'
+                            ? 'tw-bg-orange-100 tw-text-orange-600'
+                            : 'tw-bg-blue-100 tw-text-blue-600'
+                          }`}>
+                          <i className={`fa-light ${file._category === 'Installation'
+                            ? 'fa-screwdriver-wrench'
+                            : file._category === 'Calibration'
+                              ? 'fa-gauge'
+                              : 'fa-file'
+                            }`}></i>
+                        </div>
+                      </div>
+
+                      <div className="tw-flex-1 tw-min-w-0">
+                        <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1">
+                          <p className="tw-font-medium tw-text-gray-800 tw-truncate">{file.name}</p>
+                          <span className={`tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${file._category === 'Installation'
+                            ? 'tw-bg-purple-100 tw-text-purple-700'
+                            : file._category === 'Calibration'
+                              ? 'tw-bg-orange-100 tw-text-orange-700'
+                              : 'tw-bg-blue-100 tw-text-blue-700'
+                            }`}>
+                            {file._category || 'General'}
+                          </span>
+                        </div>
+                        <p className="tw-text-xs tw-text-gray-500">
+                          {(file.size / 1024).toFixed(1)} KB
+                        </p>
+                      </div>
+
+                      <div className="tw-flex-shrink-0">
+                        <select
+                          className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-1.5 tw-text-sm tw-bg-white focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
+                          value={file._category || 'General'}
+                          onChange={(e) => {
+                            setFormData((prev) => {
+                              const updatedFiles = [...prev.attachments];
+                              updatedFiles[index] = Object.assign(updatedFiles[index], { _category: e.target.value });
+                              return { ...prev, attachments: updatedFiles };
+                            });
+                          }}
+                        >
+                          <option value="Installation">Installation</option>
+                          <option value="Calibration">Calibration</option>
+                          <option value="General">General</option>
+                        </select>
+                      </div>
+
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAttachment(index)}
+                        className="tw-flex-shrink-0 tw-text-red-500 hover:tw-text-red-700 tw-p-2 tw-rounded hover:tw-bg-red-50 tw-transition-colors"
+                        title="Remove attachment"
+                      >
+                        <i className="fa-light fa-trash"></i>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+          </div>{/* end __main */}
+
+          {/* Sidebar */}
+          <div className="issue-create-form__sidebar">
+            {/* Requirements Checklist */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-clipboard-check"></i>
+                Requirements
+              </h2>
+              <div className="issue-create-form__checklist">
+                {[
+                  { label: 'Device Type', done: validationState.hasDeviceType },
+                  { label: 'Template', done: validationState.hasTemplate },
+                  { label: 'Category', done: validationState.hasCategory },
+                  { label: 'Title', done: validationState.hasTitle },
+                  { label: 'Description', done: validationState.hasDescription },
+                  { label: 'Location / Site', done: validationState.hasLocation },
+                  { label: 'Vehicle', done: validationState.hasVehicle },
+                  { label: 'Assigned To', done: validationState.hasAssignedTo },
+                  { label: 'Status', done: validationState.hasStatus },
+                ].map((item) => (
+                  <div className="issue-create-form__cl-item" key={item.label}>
+                    <span className={`issue-create-form__cl-dot ${item.done ? 'issue-create-form__cl-dot--done' : 'issue-create-form__cl-dot--pending'}`}>
+                      {item.done && <i className="fa-light fa-check"></i>}
+                    </span>
+                    <span>{item.label}</span>
+                  </div>
                 ))}
               </div>
             </div>
-          )}
-        </div>
 
-        {/* Section 2: Issue Details */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-file-lines tw-text-blue-600"></i>
-            Issue Details
-          </h2>
-
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-4">
-            <div className="md:tw-col-span-2">
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Issue Tags <span className="tw-text-red-500">*</span>
-              </label>
-
-              {/* Selected tags as removable pills */}
-              {categoryIds.length > 0 && (
-                <div className="tw-flex tw-flex-wrap tw-gap-1.5 tw-mb-2">
-                  {categoryIds.map((tagId) => {
-                    const tag = categoryOptions.find((c) => c.id === tagId);
-                    return (
-                      <span
-                        key={tagId}
-                        className="tw-inline-flex tw-items-center tw-gap-1 tw-pl-2.5 tw-pr-1 tw-py-1 tw-bg-blue-100 tw-text-blue-800 tw-text-xs tw-font-medium tw-rounded-full tw-border tw-border-blue-200"
-                      >
-                        <i className="fa-light fa-tag"></i>
-                        {tag?.name || `Tag #${tagId}`}
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTag(tagId)}
-                          className="tw-ml-0.5 tw-flex tw-items-center tw-justify-center tw-text-blue-400 hover:tw-text-red-500 tw-transition-colors tw-bg-transparent tw-border-0 tw-p-0 tw-cursor-pointer"
-                          title="Remove tag"
-                        >
-                          <i className="fa-light fa-xmark tw-text-xs"></i>
-                        </button>
-                      </span>
-                    );
-                  })}
-                </div>
-              )}
-
-              {/* Unified search / create input */}
-              <div className="tw-relative" ref={tagContainerRef}>
-                <div className="tw-relative">
-                  <i className="fa-light fa-search tw-absolute tw-left-3 tw-top-1/2 tw--translate-y-1/2 tw-text-gray-400 tw-text-sm tw-pointer-events-none"></i>
-                  <input
-                    type="text"
-                    value={newTagInput}
-                    onChange={(e) => {
-                      setNewTagInput(e.target.value);
-                      setTagDropdownOpen(true);
-                    }}
-                    onFocus={() => setTagDropdownOpen(true)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault();
-                        if (newTagExactMatch) {
-                          handleSelectSuggestion(newTagExactMatch.id);
-                        } else if (newTagInput.trim()) {
-                          handleAddNewTag();
-                        }
-                      }
-                      if (e.key === 'Escape') {
-                        setTagDropdownOpen(false);
-                      }
-                    }}
-                    placeholder={!formData.issueTemplateId ? 'Select template first' : 'Search or create a tag...'}
-                    disabled={!formData.issueTemplateId || isCreatingTag}
-                    className="tw-w-full tw-pl-9 tw-pr-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 disabled:tw-bg-gray-50 disabled:tw-text-gray-400"
-                  />
-                </div>
-
-                {/* Dropdown panel */}
-                {tagDropdownOpen && formData.issueTemplateId && (
-                  <div className="tw-absolute tw-z-20 tw-left-0 tw-right-0 tw-mt-1 tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-y-auto" style={{ maxHeight: '210px' }}>
-                    {/* Add New Tag option — always at top */}
-                    {!newTagExactMatch && newTagInput.trim() && (
-                      <button
-                        type="button"
-                        onClick={() => handleAddNewTag()}
-                        disabled={isCreatingTag}
-                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors tw-text-blue-600 tw-font-medium"
-                      >
-                        {isCreatingTag ? (
-                          <><i className="fa-light fa-spinner fa-spin"></i> Creating "{creatingTagLabel}"...</>
-                        ) : (
-                          <><i className="fa-light fa-plus"></i> Add New Tag</>)}
-                      </button>
-                    )}
-
-                    {/* Existing tag matches */}
-                    {newTagSuggestions.map((tag) => (
-                      <button
-                        key={tag.id}
-                        type="button"
-                        onClick={() => handleSelectSuggestion(tag.id)}
-                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
-                      >
-                        <i className="fa-light fa-tag tw-text-gray-400"></i>
-                        <span>{tag.name}</span>
-                        {normalizeToken(tag.name) === normalizeToken(newTagInput) && (
-                          <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
-                        )}
-                      </button>
-                    ))}
-
-                    {/* Create new entry at bottom */}
-                    {!newTagExactMatch && newTagInput.trim() && (
-                      <div className="tw-px-3 tw-py-2 tw-text-xs tw-text-gray-400">
-                        Press Enter or click "Add New Tag" to create <strong>"{newTagInput.trim()}"</strong>
-                      </div>
-                    )}
-
-                    {newTagSuggestions.length === 0 && newTagExactMatch && (
-                      <button
-                        type="button"
-                        onClick={() => handleSelectSuggestion(newTagExactMatch.id)}
-                        className="tw-w-full tw-text-left tw-px-3 tw-py-2.5 tw-text-sm tw-text-gray-700 tw-bg-white tw-border-0 hover:tw-bg-blue-50 tw-flex tw-items-center tw-gap-2 tw-transition-colors"
-                      >
-                        <i className="fa-light fa-tag tw-text-gray-400"></i>
-                        <span>{newTagExactMatch.name}</span>
-                        <span className="tw-ml-auto tw-text-xs tw-text-green-600 tw-font-medium">Exact match</span>
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-
-              {/* Creating indicator */}
-              {isCreatingTag && (
-                <p className="tw-text-xs tw-text-blue-500 tw-mt-1.5">
-                  <i className="fa-light fa-spinner fa-spin tw-mr-1"></i>
-                  Creating tag: {creatingTagLabel}...
-                </p>
-              )}
-
-              {!formData.issueTemplateId && (
-                <p className="tw-text-xs tw-text-blue-500 tw-mt-1">
-                  <i className="fa-light fa-info-circle tw-mr-1"></i>
-                  Select an issue template first to enable tag selection
-                </p>
-              )}
-              {attemptedSubmit && formData.issueTemplateId && !validationState.hasCategory && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one tag is required</p>
-              )}
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Priority
-              </label>
-              <SelectBox
-                value={formData.priorityId}
-                dataSource={priorities}
-                displayExpr="name"
-                valueExpr="id"
-                placeholder="Select priority..."
-                searchEnabled={true}
-                showClearButton={true}
-                onValueChanged={(e) => handleFieldChange('priorityId', e.value)}
-              />
-            </div>
-          </div>
-
-          <div className="tw-mb-4">
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Issue Title <span className="tw-text-red-500">*</span>
-            </label>
-            <input
-              type="text"
-              maxLength={255}
-              placeholder="Example: Fuel pump pressure drop on lane 2"
-              value={formData.issueTitle}
-              onChange={(e) => handleFieldChange('issueTitle', e.target.value)}
-              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-            />
-            <div className="tw-flex tw-justify-between tw-mt-1">
-              {attemptedSubmit && (
-                <p className={`tw-text-xs ${validationState.hasTitle ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
-                  {validationState.hasTitle ? '✓ Valid title' : 'Minimum 5 characters required'}
-                </p>
-              )}
-              <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{titleLength}/255</span>
-            </div>
-          </div>
-
-          <div className="tw-mb-4">
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Description <span className="tw-text-red-500">*</span>
-            </label>
-            <textarea
-              rows={4}
-              maxLength={2000}
-              placeholder="Share what happened, where it happened, and any immediate impact."
-              value={formData.issueDescription}
-              onChange={(e) => handleFieldChange('issueDescription', e.target.value)}
-              className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
-            />
-            <div className="tw-flex tw-justify-between tw-mt-1">
-              {attemptedSubmit && (
-                <p className={`tw-text-xs ${validationState.hasDescription ? 'tw-text-green-600' : 'tw-text-red-500'}`}>
-                  {validationState.hasDescription ? '✓ Valid description' : 'Minimum 15 characters required'}
-                </p>
-              )}
-              <span className="tw-text-xs tw-text-gray-400 tw-ml-auto">{descriptionLength}/2000</span>
-            </div>
-          </div>
-
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Site / Location <span className="tw-text-red-500">*</span>
-              </label>
-              <SelectBox
-                value={formData.siteId}
-                dataSource={sites}
-                displayExpr="name"
-                valueExpr="id"
-                placeholder="Select site..."
-                searchEnabled={true}
-                onValueChanged={(e) => handleFieldChange('siteId', e.value)}
-              />
-              {attemptedSubmit && !validationState.hasLocation && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Site is required</p>
-              )}
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Vehicle <span className="tw-text-red-500">*</span>
-              </label>
-              <VehicleSearchableSelector
-                value={formData.vehicleId}
-                onValueChanged={(e) => handleFieldChange('vehicleId', e?.value ?? null)}
-                placeholder="Type to search vehicle"
-                width="100%"
-              />
-              {attemptedSubmit && !validationState.hasVehicle && (
-                <p className="tw-text-xs tw-text-red-500 tw-mt-1">Vehicle is required</p>
-              )}
-            </div>
-          </div>
-        </div>
-
-        {/* Section 3: Assignment */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-user-check tw-text-blue-600"></i>
-            Assignment
-          </h2>
-
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Assign To (Multiple) <span className="tw-text-red-500">*</span>
-            </label>
-            <TagBox
-              value={formData.assignToUsers || []}
-              dataSource={userDataSource}
-              displayExpr="displayName"
-              valueExpr="userName"
-              placeholder="Select one or more users..."
-              searchEnabled={true}
-              searchExpr={['userName', 'email']}
-              showSelectionControls={true}
-              applyValueMode="instantly"
-              multiline={true}
-              showClearButton={true}
-              onValueChanged={(e) => {
-                const selectedUsers = e.value || [];
-                handleFieldChange('assignToUsers', selectedUsers);
-                handleFieldChange('assignTo', selectedUsers[0] || '');
-              }}
-            />
-            {attemptedSubmit && !validationState.hasAssignedTo && (
-              <p className="tw-text-xs tw-text-red-500 tw-mt-1">At least one assignee is required</p>
-            )}
-          </div>
-        </div>
-
-        {/* Section 4: Timeline */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-calendar tw-text-blue-600"></i>
-            Timeline
-          </h2>
-
-          <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4 tw-mb-4">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Opened By</label>
-              <input
-                type="text"
-                value={formData.openBy}
-                readOnly
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-200 tw-rounded-md tw-text-sm tw-bg-gray-50 tw-text-gray-600"
-              />
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Status</label>
-              <select
-                value={formData.statusId ?? ''}
-                onChange={(e) => {
-                  const selectedId = e.target.value ? parseInt(e.target.value, 10) : null;
-                  const selectedStatus = statuses.find((s) => s.id === selectedId);
-                  handleFieldChange('statusId', selectedId);
-                  handleFieldChange('statusName', selectedStatus?.status || selectedStatus?.name || '');
-                }}
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-              >
-                <option value="">Select status...</option>
-                {statuses
-                  .filter((s) => {
-                    const label = String(s.status || s.name || '').toLowerCase().trim();
-                    return ['open', 'ongoing', 'complete'].includes(label);
-                  })
-                  .map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.status || s.name}
-                    </option>
-                  ))
-                }
-              </select>
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Open Date</label>
-              <input
-                type="datetime-local"
-                value={toDateTimeLocalValue(formData.openDate)}
-                onChange={(e) => {
-                  const nextValue = e.target.value ? new Date(e.target.value) : null;
-                  handleFieldChange('openDate', nextValue);
-                }}
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-              />
-              <p className="tw-text-xs tw-text-gray-400 tw-mt-1">This sets the issue creation time used in reports and timelines.</p>
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Target Due Date</label>
-              <input
-                type="date"
-                value={formData.dueDate}
-                onChange={(e) => handleFieldChange('dueDate', e.target.value)}
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-              />
-            </div>
-          </div>
-
-          {/* Completion Notes — only visible when status is Complete */}
-          {(formData.statusName || '').toLowerCase() === 'complete' && (
-            <div className="tw-mt-4">
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                <i className="fa-light fa-clipboard-check tw-mr-1 tw-text-green-600"></i>
-                Completion Notes
-              </label>
-              <textarea
-                rows={3}
-                maxLength={1000}
-                placeholder="Enter completion notes or resolution summary..."
-                value={formData.completionNotes || ''}
-                onChange={(e) => handleFieldChange('completionNotes', e.target.value)}
-                className="tw-w-full tw-px-3 tw-py-2 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500 tw-resize-none"
-              />
-            </div>
-          )}
-        </div>
-
-        {/* Section 5: Notifications */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-4 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-bell tw-text-blue-600"></i>
-            Notifications
-          </h2>
-
-          {/* Follow checkbox */}
-          <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-3">
-            <input
-              type="checkbox"
-              checked={formData.followIssue}
-              onChange={(e) => handleFieldChange('followIssue', e.target.checked)}
-              className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
-            />
-            <span className="tw-text-sm tw-text-gray-700">
-              <i className="fa-light fa-eye tw-mr-1"></i>
-              Follow this issue — receive notifications on changes
-            </span>
-          </label>
-
-          {/* Due date reminder — only shown when due date is set and is in the future */}
-          {formData.dueDate && (() => {
-            const today = new Date();
-            today.setHours(0, 0, 0, 0);
-            const due = new Date(`${formData.dueDate}T00:00:00`);
-            return due > today;
-          })() && (
-              <div className="tw-mt-3 tw-pl-6 tw-border-l-2 tw-border-blue-100">
-                <label className="tw-flex tw-items-center tw-gap-2 tw-cursor-pointer tw-mb-2">
-                  <input
-                    type="checkbox"
-                    checked={formData.reminderEnabled}
-                    onChange={(e) => handleFieldChange('reminderEnabled', e.target.checked)}
-                    className="tw-w-4 tw-h-4 tw-text-blue-600 tw-rounded tw-border-gray-300 focus:tw-ring-blue-500"
-                  />
-                  <span className="tw-text-sm tw-text-gray-700">
-                    <i className="fa-light fa-clock tw-mr-1"></i>
-                    Receive reminder before due date
+            {/* Summary */}
+            <div className="issue-create-form__card">
+              <h2 className="issue-create-form__card-title">
+                <i className="fa-light fa-info-circle"></i>
+                Summary
+              </h2>
+              <div className="issue-create-form__summary">
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Device Type</span>
+                  <span className="issue-create-form__s-val">
+                    {deviceTypes.find(d => d.id === formData.deviceTypeId)?.name
+                      || deviceTypes.find(d => d.id === formData.deviceTypeId)?.typeName
+                      || '\u2014'}
                   </span>
-                </label>
-
-                {formData.reminderEnabled && (
-                  <div className="tw-flex tw-items-center tw-gap-2 tw-mt-2 tw-ml-6">
-                    <span className="tw-text-sm tw-text-gray-600">Remind</span>
-                    <input
-                      type="number"
-                      min={1}
-                      max={30}
-                      value={formData.reminderDaysBefore}
-                      onChange={(e) => {
-                        const val = Math.max(1, Math.min(30, parseInt(e.target.value, 10) || 1));
-                        handleFieldChange('reminderDaysBefore', val);
-                      }}
-                      className="tw-w-16 tw-px-2 tw-py-1 tw-border tw-border-gray-300 tw-rounded-md tw-text-sm tw-text-center focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-                    />
-                    <span className="tw-text-sm tw-text-gray-600">day(s) before due date</span>
-                  </div>
-                )}
-              </div>
-            )}
-        </div>
-
-        {/* Section 6: Attachments */}
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-5 tw-mb-6 tw-shadow-sm">
-          <h2 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-paperclip tw-text-blue-600"></i>
-            Attachments
-          </h2>
-          <p className="tw-text-xs tw-text-gray-500 tw-mb-4">
-            Installation photos, calibration docs, and general files
-          </p>
-
-          <div className="tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4 tw-text-center tw-bg-gray-50">
-            <input
-              type="file"
-              id="attachments"
-              multiple
-              accept="image/*,.pdf,.xlsx,.xls,.csv,.doc,.docx"
-              onChange={handleAttachmentsChanged}
-              className="tw-hidden"
-            />
-            <label
-              htmlFor="attachments"
-              className="tw-cursor-pointer tw-flex tw-flex-col tw-items-center tw-gap-2"
-            >
-              <i className="fa-light fa-cloud-upload tw-text-3xl tw-text-gray-400"></i>
-              <span className="tw-text-sm tw-text-gray-600">Click to upload files</span>
-              <span className="tw-text-xs tw-text-gray-400">Accepted: Images, PDF, Excel, Word</span>
-            </label>
-          </div>
-
-          {attachmentCount > 0 && (
-            <div className="tw-mt-4 tw-space-y-3">
-              {formData.attachments.map((file, index) => (
-                <div
-                  key={`${file.name}-${file.lastModified}-${index}`}
-                  className="tw-flex tw-items-start tw-gap-3 tw-px-4 tw-py-3 tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg hover:tw-shadow-sm tw-transition-shadow"
-                >
-                  <div className="tw-flex-shrink-0 tw-mt-1">
-                    <div className={`tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${file._category === 'Installation'
-                      ? 'tw-bg-purple-100 tw-text-purple-600'
-                      : file._category === 'Calibration'
-                        ? 'tw-bg-orange-100 tw-text-orange-600'
-                        : 'tw-bg-blue-100 tw-text-blue-600'
-                      }`}>
-                      <i className={`fa-light ${file._category === 'Installation'
-                        ? 'fa-screwdriver-wrench'
-                        : file._category === 'Calibration'
-                          ? 'fa-gauge'
-                          : 'fa-file'
-                        }`}></i>
-                    </div>
-                  </div>
-
-                  <div className="tw-flex-1 tw-min-w-0">
-                    <div className="tw-flex tw-items-center tw-gap-2 tw-mb-1">
-                      <p className="tw-font-medium tw-text-gray-800 tw-truncate">{file.name}</p>
-                      <span className={`tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${file._category === 'Installation'
-                        ? 'tw-bg-purple-100 tw-text-purple-700'
-                        : file._category === 'Calibration'
-                          ? 'tw-bg-orange-100 tw-text-orange-700'
-                          : 'tw-bg-blue-100 tw-text-blue-700'
-                        }`}>
-                        {file._category || 'General'}
-                      </span>
-                    </div>
-                    <p className="tw-text-xs tw-text-gray-500">
-                      {(file.size / 1024).toFixed(1)} KB
-                    </p>
-                  </div>
-
-                  <div className="tw-flex-shrink-0">
-                    <select
-                      className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-1.5 tw-text-sm tw-bg-white focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-border-blue-500"
-                      value={file._category || 'General'}
-                      onChange={(e) => {
-                        setFormData((prev) => {
-                          const updatedFiles = [...prev.attachments];
-                          updatedFiles[index] = Object.assign(updatedFiles[index], { _category: e.target.value });
-                          return { ...prev, attachments: updatedFiles };
-                        });
-                      }}
-                    >
-                      <option value="Installation">Installation</option>
-                      <option value="Calibration">Calibration</option>
-                      <option value="General">General</option>
-                    </select>
-                  </div>
-
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveAttachment(index)}
-                    className="tw-flex-shrink-0 tw-text-red-500 hover:tw-text-red-700 tw-p-2 tw-rounded hover:tw-bg-red-50 tw-transition-colors"
-                    title="Remove attachment"
-                  >
-                    <i className="fa-light fa-trash"></i>
-                  </button>
                 </div>
-              ))}
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Template</span>
+                  <span className="issue-create-form__s-val">
+                    {templates.find(t => t.id === formData.issueTemplateId)?.name || '\u2014'}
+                  </span>
+                </div>
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Title</span>
+                  <span className="issue-create-form__s-val">{formData.title || '\u2014'}</span>
+                </div>
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Priority</span>
+                  <span className="issue-create-form__s-val">
+                    {priorities.find(p => p.id === formData.priorityId)?.name || '\u2014'}
+                  </span>
+                </div>
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Site</span>
+                  <span className="issue-create-form__s-val">
+                    {sites.find(s => s.id === formData.siteId)?.name || '\u2014'}
+                  </span>
+                </div>
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Status</span>
+                  <span className="issue-create-form__s-val">
+                    {statuses.find(s => s.id === formData.statusId)?.status
+                      || statuses.find(s => s.id === formData.statusId)?.name
+                      || '\u2014'}
+                  </span>
+                </div>
+                <div className="issue-create-form__summary-row">
+                  <span className="issue-create-form__s-label">Assigned</span>
+                  <span className="issue-create-form__s-val">
+                    {formData.assignToUsers?.length || 0} user(s)
+                  </span>
+                </div>
+              </div>
             </div>
-          )}
-        </div>
 
-        {/* Form Actions */}
-        <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-4 tw-border-t tw-border-gray-200">
-          <Button
-            text="Cancel"
-            icon="fa-light fa-times"
-            stylingMode="text"
-            onClick={handleCancel}
-            disabled={isSubmitting}
-          />
-          <Button
-            text="Reset"
-            icon="fa-light fa-rotate"
-            stylingMode="outlined"
-            onClick={handleReset}
-            disabled={isSubmitting}
-          />
-          <Button
-            text={isSubmitting ? 'Creating...' : 'Create Issue'}
-            icon={isSubmitting ? 'fa-light fa-spinner fa-spin' : 'fa-light fa-save'}
-            type="default"
-            stylingMode="contained"
-            useSubmitBehavior={true}
-            disabled={!isReadyToSubmit || isSubmitting}
-          />
-        </div>
+            {/* Submit Actions */}
+            <div className="issue-create-form__card">
+              <div className="issue-create-form__btn-grp">
+                <button
+                  type="submit"
+                  className="issue-create-form__btn issue-create-form__btn--primary"
+                  disabled={!isReadyToSubmit || isSubmitting}
+                >
+                  <i className={isSubmitting ? 'fa-light fa-spinner fa-spin' : 'fa-light fa-save'}></i>
+                  {isSubmitting ? 'Creating\u2026' : 'Create Issue'}
+                </button>
+                <button
+                  type="button"
+                  className="issue-create-form__btn-text"
+                  onClick={handleReset}
+                  disabled={isSubmitting}
+                >
+                  Reset
+                </button>
+                <button
+                  type="button"
+                  className="issue-create-form__btn-text"
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          </div>{/* end __sidebar */}
+        </div>{/* end __layout */}
       </form>
 
       {/* Template Creation Popup */}

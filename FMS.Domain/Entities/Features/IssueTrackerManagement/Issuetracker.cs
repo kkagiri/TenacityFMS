@@ -121,6 +121,8 @@ public partial class Issuetracker
 
     public virtual ICollection<IssueAttachment> Attachments { get; set; } = new List<IssueAttachment>();
 
+    public virtual ICollection<IssueCompletionRecord> CompletionRecords { get; set; } = new List<IssueCompletionRecord>();
+
     [NotMapped]
 
     public virtual User OpenbyNavigation { get; set; } = null!;

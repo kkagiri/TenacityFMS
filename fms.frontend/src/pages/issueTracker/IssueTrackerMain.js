@@ -12,7 +12,7 @@ import { Routes, Route, Navigate } from 'react-router-dom';
 import IssueTrackerLayout from './layout/IssueTrackerLayout';
 import IssueAssignmentResponsePage from './IssueAssignmentResponsePage';
 import IssueCreateForm from './forms/IssueCreateForm';
-import IssueTrackerDetailPage from './IssueTrackerDetailPage';
+import IssueTrackerDetailPage from './detail';
 import IssueTicketListPage from './tickets/IssueTicketListPage';
 import IssueReportsPage from './reports/IssueReportsPage';
 import IssueAnalyticsPage from './analytics/IssueAnalyticsPage';

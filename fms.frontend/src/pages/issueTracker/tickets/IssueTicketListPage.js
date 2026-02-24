@@ -13,7 +13,6 @@ import DataGrid, {
   Column,
   Paging,
   Pager,
-  FilterRow,
   HeaderFilter,
   SearchPanel,
   Toolbar,
@@ -54,6 +53,19 @@ const IssueTicketListPage = () => {
   const [closeMonitorNotes, setCloseMonitorNotes] = useState('');
   const [closingInProgress, setClosingInProgress] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Filter panel state
+  const [filterPanelOpen, setFilterPanelOpen] = useState(false);
+  const [filters, setFilters] = useState({
+    search: '',
+    statuses: [],
+    priorities: [],
+    tags: [],
+    vehicle: '',
+    site: '',
+    dateFrom: '',
+    dateTo: '',
+  });
 
   // External filter from navigation state (e.g. "View Vehicle Issue History" link)
   const externalFilter = location.state?.applyFilters || null;
@@ -507,104 +519,306 @@ const IssueTicketListPage = () => {
     });
   };
 
+  // ── Computed filter values ──────────────────────────────────
+  const allTags = useMemo(() => {
+    const tagSet = new Set();
+    issues.forEach(issue => {
+      if (Array.isArray(issue.issueCategoryTagNames) && issue.issueCategoryTagNames.length > 0) {
+        issue.issueCategoryTagNames.forEach(t => { if (t) tagSet.add(t.trim()); });
+      } else if (issue.categoryName) {
+        issue.categoryName.split(',').map(t => t.trim()).filter(Boolean).forEach(t => tagSet.add(t));
+      }
+    });
+    return [...tagSet].sort();
+  }, [issues]);
+
+  const filteredIssues = useMemo(() => {
+    return issues.filter(issue => {
+      if (filters.search) {
+        const q = filters.search.toLowerCase();
+        const inTitle = (issue.problemTitle || '').toLowerCase().includes(q);
+        const inDesc = (issue.problemDescription || '').toLowerCase().includes(q);
+        if (!inTitle && !inDesc) return false;
+      }
+      if (filters.statuses.length > 0 && !filters.statuses.includes(issue.statusName)) return false;
+      if (filters.priorities.length > 0 && !filters.priorities.includes(issue.priorityName)) return false;
+      if (filters.tags.length > 0) {
+        const issueTags = Array.isArray(issue.issueCategoryTagNames) && issue.issueCategoryTagNames.length > 0
+          ? issue.issueCategoryTagNames
+          : (issue.categoryName || '').split(',').map(t => t.trim()).filter(Boolean);
+        if (!filters.tags.some(t => issueTags.includes(t))) return false;
+      }
+      if (filters.vehicle && !(issue.vehicleName || '').toLowerCase().includes(filters.vehicle.toLowerCase())) return false;
+      if (filters.site && !(issue.siteName || '').toLowerCase().includes(filters.site.toLowerCase())) return false;
+      if (filters.dateFrom && issue.openDate && new Date(issue.openDate) < new Date(filters.dateFrom)) return false;
+      if (filters.dateTo) {
+        const toEnd = new Date(filters.dateTo);
+        toEnd.setHours(23, 59, 59, 999);
+        if (issue.openDate && new Date(issue.openDate) > toEnd) return false;
+      }
+      return true;
+    });
+  }, [issues, filters]);
+
+  const activeFilterCount = useMemo(() => {
+    let c = 0;
+    if (filters.search) c++;
+    if (filters.statuses.length > 0) c++;
+    if (filters.priorities.length > 0) c++;
+    if (filters.tags.length > 0) c++;
+    if (filters.vehicle) c++;
+    if (filters.site) c++;
+    if (filters.dateFrom || filters.dateTo) c++;
+    return c;
+  }, [filters]);
+
+  const setFilter = useCallback((key, value) => {
+    setFilters(prev => ({ ...prev, [key]: value }));
+  }, []);
+
+  const toggleMultiFilter = useCallback((key, value) => {
+    setFilters(prev => ({
+      ...prev,
+      [key]: prev[key].includes(value)
+        ? prev[key].filter(v => v !== value)
+        : [...prev[key], value],
+    }));
+  }, []);
+
+  const clearAllFilters = useCallback(() => {
+    setFilters({ search: '', statuses: [], priorities: [], tags: [], vehicle: '', site: '', dateFrom: '', dateTo: '' });
+  }, []);
+
   if (loading) {
     return (
-      <div className="tw-flex tw-justify-center tw-items-center tw-py-12">
+      <div className="itl__loading">
         <LoadIndicator visible={true} />
-        <span className="tw-ml-3 tw-text-gray-600">Loading issue tickets...</span>
+        <span>Loading issues…</span>
       </div>
     );
   }
 
   return (
-    <div className="issue-ticket-list-page tw-p-2 sm:tw-p-4 lg:tw-p-6">
-      {/* Header */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-p-4 sm:tw-p-5 lg:tw-p-6 tw-mb-4 lg:tw-mb-6">
-        <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-justify-between lg:tw-items-start tw-gap-3 tw-mb-4">
-          <div>
-            <h2 className="tw-text-2xl tw-font-semibold tw-text-gray-900 tw-mb-2">
-              <i className="fa-light fa-ticket tw-mr-2 tw-text-orange-500"></i>
-              Issue Tickets
-            </h2>
-            <p className="tw-text-gray-600">
-              {totalCount} total issues found. Click on any issue to view details.
-            </p>
+    <div className="itl">
+      {/* ── Command Bar ── */}
+      <div className="itl__cmd">
+        <div className="itl__cmd-info">
+          <nav className="itl__breadcrumb">
+            <span className="itl__bc-link" onClick={() => navigate('/issue-tracker')}>Issue Tracker</span>
+            <i className="fa-light fa-chevron-right"></i>
+            <span>All Issues</span>
+          </nav>
+          <div className="itl__cmd-title-row">
+            <h1 className="itl__page-title">All Issues</h1>
+            <span className="itl__count-badge">
+              {activeFilterCount > 0 ? `${filteredIssues.length} of ${issues.length}` : issues.length}
+            </span>
           </div>
-
-          <div className="tw-flex tw-flex-wrap tw-gap-2 tw-w-full lg:tw-w-auto">
-            <Button
-              text="Refresh"
-              type="normal"
-              stylingMode="outlined"
-              icon="fa-light fa-sync"
-              onClick={handleRefresh}
-              className="tw-flex-1 sm:tw-flex-none"
-            />
-            <Button
-              text="Create New Issue"
-              type="default"
-              stylingMode="contained"
-              icon="fa-light fa-plus"
-              onClick={handleCreateNew}
-              className="tw-bg-orange-600 tw-text-white tw-flex-1 sm:tw-flex-none"
-            />
-          </div>
+        </div>
+        <div className="itl__cmd-actions">
+          <button
+            className={`itl__cmd-btn${filterPanelOpen ? ' is-active' : ''}`}
+            onClick={() => setFilterPanelOpen(p => !p)}
+          >
+            <i className="fa-light fa-sliders-h"></i>
+            Filter
+            {activeFilterCount > 0 && <span className="itl__filter-badge">{activeFilterCount}</span>}
+          </button>
+          <button className="itl__cmd-btn" onClick={handleRefresh}>
+            <i className="fa-light fa-rotate"></i>
+            Refresh
+          </button>
+          <button className="itl__cmd-btn itl__cmd-btn--primary" onClick={handleCreateNew}>
+            <i className="fa-light fa-plus"></i>
+            New Issue
+          </button>
         </div>
       </div>
 
-      {/* External filter banner */}
+      {/* ── External Filter Banner ── */}
       {externalFilterLabel && (
-        <div className="tw-flex tw-items-center tw-gap-3 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-px-4 tw-py-2.5 tw-mb-3">
-          <i className="fa-light fa-filter tw-text-blue-600"></i>
-          <span className="tw-text-sm tw-text-blue-800 tw-font-medium">
-            Filtered by: {externalFilterLabel}
-          </span>
-          <button
-            type="button"
-            onClick={handleClearExternalFilter}
-            className="tw-ml-auto tw-text-xs tw-text-blue-600 hover:tw-text-blue-800 tw-bg-transparent tw-border tw-border-blue-300 tw-rounded tw-px-3 tw-py-1 tw-cursor-pointer hover:tw-bg-blue-100 tw-transition-colors"
-          >
-            <i className="fa-light fa-xmark tw-mr-1"></i>
-            Clear Filter
+        <div className="itl__ext-filter">
+          <i className="fa-light fa-filter"></i>
+          <span>Filtered by: <strong>{externalFilterLabel}</strong></span>
+          <button className="itl__ext-filter-clear" onClick={handleClearExternalFilter}>
+            <i className="fa-light fa-xmark"></i> Clear
           </button>
         </div>
       )}
 
-      {/* Data Grid */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow">
+      {/* ── Filter Panel ── */}
+      {filterPanelOpen && (
+        <div className="itl__filter-panel">
+          <div className="itl__fp-body">
+            {/* Search */}
+            <div className="itl__fp-section itl__fp-section--full">
+              <label className="itl__fp-label">Search</label>
+              <div className="itl__fp-search-wrap">
+                <i className="fa-light fa-search"></i>
+                <input
+                  type="text"
+                  className="itl__fp-search"
+                  placeholder="Search title or description\u2026"
+                  value={filters.search}
+                  onChange={e => setFilter('search', e.target.value)}
+                />
+                {filters.search && (
+                  <button className="itl__fp-clear-x" onClick={() => setFilter('search', '')}>
+                    <i className="fa-light fa-xmark"></i>
+                  </button>
+                )}
+              </div>
+            </div>
+
+            <div className="itl__fp-row">
+              {/* Status */}
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Status</label>
+                <div className="itl__fp-pills">
+                  {statuses.map(s => {
+                    const name = s.status || s.name || '';
+                    return (
+                      <button
+                        key={s.id}
+                        className={`itl__fp-pill${filters.statuses.includes(name) ? ' is-on' : ''}`}
+                        onClick={() => toggleMultiFilter('statuses', name)}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+              {/* Priority */}
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Priority</label>
+                <div className="itl__fp-pills">
+                  {priorities.map(p => {
+                    const name = p.name || '';
+                    return (
+                      <button
+                        key={p.id}
+                        className={`itl__fp-pill${filters.priorities.includes(name) ? ' is-on' : ''}`}
+                        onClick={() => toggleMultiFilter('priorities', name)}
+                      >
+                        {name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Tags */}
+            {allTags.length > 0 && (
+              <div className="itl__fp-section itl__fp-section--full">
+                <label className="itl__fp-label">
+                  <i className="fa-light fa-tag"></i>
+                  Tags / Categories
+                </label>
+                <div className="itl__fp-pills itl__fp-pills--wrap">
+                  {allTags.map(tag => (
+                    <button
+                      key={tag}
+                      className={`itl__fp-pill itl__fp-pill--tag${filters.tags.includes(tag) ? ' is-on' : ''}`}
+                      onClick={() => toggleMultiFilter('tags', tag)}
+                    >
+                      {tag}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="itl__fp-row">
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Vehicle</label>
+                <input type="text" className="itl__fp-input" placeholder="Search vehicle\u2026" value={filters.vehicle} onChange={e => setFilter('vehicle', e.target.value)} />
+              </div>
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Site</label>
+                <input type="text" className="itl__fp-input" placeholder="Search site\u2026" value={filters.site} onChange={e => setFilter('site', e.target.value)} />
+              </div>
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Open Date From</label>
+                <input type="date" className="itl__fp-input" value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} />
+              </div>
+              <div className="itl__fp-section">
+                <label className="itl__fp-label">Open Date To</label>
+                <input type="date" className="itl__fp-input" value={filters.dateTo} onChange={e => setFilter('dateTo', e.target.value)} />
+              </div>
+            </div>
+          </div>
+          <div className="itl__fp-footer">
+            <span className="itl__fp-results">{filteredIssues.length} of {issues.length} issues</span>
+            {activeFilterCount > 0 && (
+              <button className="itl__fp-clear-btn" onClick={clearAllFilters}>
+                <i className="fa-light fa-xmark"></i> Clear all filters
+              </button>
+            )}
+            <button className="itl__fp-close-btn" onClick={() => setFilterPanelOpen(false)}>
+              <i className="fa-light fa-chevron-up"></i> Collapse
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ── Active Filter Pills ── */}
+      {activeFilterCount > 0 && (
+        <div className="itl__active-filters">
+          {filters.statuses.map(s => (
+            <span key={s} className="itl__af-pill">Status: {s}<button onClick={() => toggleMultiFilter('statuses', s)}><i className="fa-light fa-xmark"></i></button></span>
+          ))}
+          {filters.priorities.map(p => (
+            <span key={p} className="itl__af-pill">Priority: {p}<button onClick={() => toggleMultiFilter('priorities', p)}><i className="fa-light fa-xmark"></i></button></span>
+          ))}
+          {filters.tags.map(t => (
+            <span key={t} className="itl__af-pill itl__af-pill--tag"><i className="fa-light fa-tag"></i> {t}<button onClick={() => toggleMultiFilter('tags', t)}><i className="fa-light fa-xmark"></i></button></span>
+          ))}
+          {filters.search && (
+            <span className="itl__af-pill">Search: &ldquo;{filters.search}&rdquo;<button onClick={() => setFilter('search', '')}><i className="fa-light fa-xmark"></i></button></span>
+          )}
+          {filters.vehicle && (
+            <span className="itl__af-pill">Vehicle: {filters.vehicle}<button onClick={() => setFilter('vehicle', '')}><i className="fa-light fa-xmark"></i></button></span>
+          )}
+          {filters.site && (
+            <span className="itl__af-pill">Site: {filters.site}<button onClick={() => setFilter('site', '')}><i className="fa-light fa-xmark"></i></button></span>
+          )}
+          {(filters.dateFrom || filters.dateTo) && (
+            <span className="itl__af-pill">Date: {filters.dateFrom || '\u221e'} \u2013 {filters.dateTo || '\u221e'}<button onClick={() => { setFilter('dateFrom', ''); setFilter('dateTo', ''); }}><i className="fa-light fa-xmark"></i></button></span>
+          )}
+          <button className="itl__af-clear" onClick={clearAllFilters}>Clear all</button>
+        </div>
+      )}
+
+      {/* ── Data Grid ── */}
+      <div className="itl__grid-wrap">
         <DataGrid
           ref={dataGridRef}
-          dataSource={issues}
+          dataSource={filteredIssues}
           keyExpr="id"
-          showBorders={true}
+          showBorders={false}
           showRowLines={true}
-          showColumnLines={true}
+          showColumnLines={false}
           allowColumnReordering={true}
           allowColumnResizing={true}
           columnAutoWidth={true}
           onRowClick={handleRowClick}
           onExporting={handleExport}
           defaultFilterValue={gridFilterValue}
-          height={600}
+          height="calc(100vh - 200px)"
+          className="itl__dx-grid"
         >
           <LoadPanel enabled={loading} />
-
           <Paging enabled={true} defaultPageSize={20} />
-          <Pager
-            showPageSizeSelector={true}
-            allowedPageSizes={[10, 20, 50, 100]}
-            showInfo={true}
-          />
-
-          <FilterRow visible={true} />
+          <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50, 100]} showInfo={true} />
           <HeaderFilter visible={true} />
-          <SearchPanel visible={true} placeholder="Search issues..." />
+          <SearchPanel visible={true} placeholder="Search in results\u2026" />
           <Sorting mode="multiple" />
           <Selection mode="multiple" />
-
           <Export enabled={true} allowExportSelectedData={true} />
-
           <Toolbar>
+            <ToolbarItem name="searchPanel" location="before" />
             <ToolbarItem name="exportButton" locateInMenu="auto" />
             <ToolbarItem name="columnChooserButton" locateInMenu="auto" />
             <ToolbarItem
@@ -617,7 +831,7 @@ const IssueTicketListPage = () => {
                 type: 'normal',
                 stylingMode: 'outlined',
                 onClick: handleOpenCloseMonitor,
-                hint: 'Close selected issues and continue monitoring vehicles for fuel activity'
+                hint: 'Close selected issues and continue monitoring vehicles'
               }}
             />
             {canDeleteIssue && (
@@ -632,20 +846,9 @@ const IssueTicketListPage = () => {
                   stylingMode: 'outlined',
                   onClick: handleBulkDelete,
                   disabled: isDeleting,
-                  hint: 'Delete selected issues (admin only)'
                 }}
               />
             )}
-            <ToolbarItem
-              location="after"
-              locateInMenu="auto"
-              widget="dxButton"
-              options={{
-                text: 'Refresh',
-                icon: 'refresh',
-                onClick: handleRefresh
-              }}
-            />
           </Toolbar>
 
           {/* Columns */}

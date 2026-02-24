@@ -22,5 +22,10 @@ export { default as IssueStatusIndicator } from './IssueStatusIndicator';
 export { default as DeviceTypeDropdown } from './DeviceTypeDropdown';
 export { default as IssueTemplateDropdown } from './IssueTemplateDropdown';
 
+// Completion & Reassignment Components
+export { default as IssueCompletionPopup } from './IssueCompletionPopup';
+export { default as IssueReassignPopup } from './IssueReassignPopup';
+export { default as IssueCompletionRecords } from './IssueCompletionRecords';
+
 // Shared Components
 export * from './shared';

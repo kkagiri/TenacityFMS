@@ -36,11 +36,15 @@ namespace FMS.Application.Features.Notification.Services.Channels
                     return false;
                 }
 
+                // Strip HTML tags — MessageTemplate may contain rich HTML designed for email;
+                // push notifications must receive clean plain text.
+                var plainBody = StripHtml(notification.Message);
+
                 // Send to all registered devices for this user
                 var result = await _pushService.SendToUserAsync(
                     recipient.UserId,
                     notification.Title,
-                    notification.Message,
+                    plainBody,
                     new
                     {
                         notificationId = notification.NotificationId,
@@ -68,6 +72,22 @@ namespace FMS.Application.Features.Notification.Services.Channels
                 _logger.LogError(ex, "[Push] Channel send failed for user {UserId}", recipient.UserId);
                 return false;
             }
+        }
+
+        /// <summary>
+        /// Strips HTML tags and collapses whitespace to produce clean plain text for push delivery.
+        /// </summary>
+        private static string StripHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+            var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+            text = text.Replace("&amp;", "&")
+                       .Replace("&lt;", "<")
+                       .Replace("&gt;", ">")
+                       .Replace("&nbsp;", " ")
+                       .Replace("&quot;", "\"");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s{2,}", " ");
+            return text.Trim();
         }
     }
 }

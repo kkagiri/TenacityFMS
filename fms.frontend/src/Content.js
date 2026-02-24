@@ -122,6 +122,16 @@ export default function Content() {
         />
         {/* Notification System Routes removed - now handled under /admin/notification */}
 
+        {/* User Notification Center - view, read and manage personal notifications */}
+        <Route
+          path="/my-notifications"
+          element={React.createElement(resolvedComponents("notification-center"))}
+        />
+        <Route
+          path="/my-notifications/*"
+          element={React.createElement(resolvedComponents("notification-center"))}
+        />
+
         {/* Admin System Routes - Handle all admin sub-routes internally - ADMIN ONLY */}
         <Route
           path="/admin"

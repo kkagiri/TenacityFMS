@@ -29,6 +29,8 @@ import TaskManagement from "./pages/taskManagement";
 import EnhancedAutomatedReconciliationSystem from "./pages/automatedReconciliation/EnhancedAutomatedReconciliationSystem";
 // Import the new notification system pages
 import NotificationSystem from "./pages/notifications";
+// Import user-facing notification center
+import NotificationCenterPage from "./pages/notificationCenter/NotificationCenterPage";
 // Import the new admin main entry point
 import AdminMain from "./pages/admin/AdminMain";
 // Import the new vehicle main entry point
@@ -82,6 +84,10 @@ const resolvedComponents = (pageName) => {
       return ConsumptionBasedonRefills;
     case "notifications":
       return NotificationSystem;
+
+    case "notification-center":
+    case "my-notifications":
+      return NotificationCenterPage;
 
     case "Fuel Report Importer":
       return FuelReportImporter;

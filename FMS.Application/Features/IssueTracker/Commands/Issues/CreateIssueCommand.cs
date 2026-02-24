@@ -479,100 +479,121 @@ namespace FMS.Application.Features.IssueTracker.Commands.Issues
         string issueUrl,
         string? responseUrl = null)
     {
-      var safeIssueTitle = WebUtility.HtmlEncode(issueTitle);
-      var safeDescription = WebUtility.HtmlEncode(issueDescription);
-      var safeIssueType = WebUtility.HtmlEncode(issueTypeLabel);
+      var safeTitle = WebUtility.HtmlEncode(issueTitle);
+      var safeDesc = WebUtility.HtmlEncode(issueDescription);
+      var safeType = WebUtility.HtmlEncode(issueTypeLabel);
       var safePriority = WebUtility.HtmlEncode(priorityName);
       var safeCategory = WebUtility.HtmlEncode(categoryName);
-      var safeWorkerName = WebUtility.HtmlEncode(assignedWorkerName);
-      var safeWorkerEmail = WebUtility.HtmlEncode(assignedWorkerEmail);
-      var safeVehicleName = WebUtility.HtmlEncode(vehicleName ?? "Not specified");
-      var safeSiteName = WebUtility.HtmlEncode(siteName ?? "Not specified");
+      var safeName = WebUtility.HtmlEncode(assignedWorkerName);
+      var safeEmail = WebUtility.HtmlEncode(assignedWorkerEmail);
+      var safeVehicle = WebUtility.HtmlEncode(vehicleName ?? "Not specified");
+      var safeSite = WebUtility.HtmlEncode(siteName ?? "Not specified");
       var safeAllAssignees = WebUtility.HtmlEncode(allAssigneeNames);
-      var safeIssueTime = WebUtility.HtmlEncode(issueTimeLocal);
-      var safeIssueUrl = WebUtility.HtmlEncode(issueUrl);
-      var safeResponseUrl = !string.IsNullOrWhiteSpace(responseUrl)
-          ? WebUtility.HtmlEncode(responseUrl)
-          : null;
+      var safeTime = WebUtility.HtmlEncode(issueTimeLocal);
+      var safeUrl = WebUtility.HtmlEncode(issueUrl);
+      var safeRespUrl = !string.IsNullOrWhiteSpace(responseUrl)
+          ? WebUtility.HtmlEncode(responseUrl) : null;
+
+      var respondButton = safeRespUrl != null
+          ? $@"<a href=""{safeRespUrl}"" style=""display:inline-block;padding:10px 24px;border:1px solid #d1d1d1;color:#323130;background:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:4px;margin-left:8px;"">Respond</a>"
+          : "";
 
       return $@"<!DOCTYPE html>
 <html lang=""en"">
-<head>
-    <meta charset=""UTF-8"">
-    <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-    <title>Issue Assignment Notification</title>
-</head>
-<body style=""margin:0;padding:0;background-color:#f5f5f5;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif;"">
-    <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background-color:#f5f5f5;padding:30px 15px;"">
-        <tr>
-            <td align=""center"">
-                <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:800px;background-color:#ffffff;box-shadow:0 2px 8px rgba(0,0,0,0.08);"">
-                    <tr>
-                        <td style=""background-color:#1e293b;padding:24px 32px;"">
-                            <h1 style=""margin:0;font-size:18px;font-weight:600;color:#ffffff;letter-spacing:-0.01em;"">Hyoung FMS</h1>
-                            <p style=""margin:4px 0 0 0;font-size:14px;color:#94a3b8;"">Fleet Management Notification</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style=""padding:32px 32px 24px 32px;"">
-                            <h2 style=""margin:0;font-size:22px;font-weight:600;color:#0f172a;line-height:1.3;"">{safeIssueTitle} | Issue #{issueId}</h2>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style=""padding:0 32px 24px 32px;"">
-                            <p style=""margin:0;font-size:14px;line-height:1.6;color:#475569;"">{safeDescription}</p>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style=""padding:0 32px 32px 32px;"">
-                            <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border-collapse:collapse;border:1px solid #e2e8f0;"">
-                                <tr>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Issue Type</span></td>
-                                    <td colspan=""3"" style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeIssueType}</span></td>
-                                </tr>
-                                <tr>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Priority</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safePriority}</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Category</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;width:25%;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeCategory}</span></td>
-                                </tr>
-                                <tr>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Vehicle</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeVehicleName}</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Site</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeSiteName}</span></td>
-                                </tr>
-                                <tr>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Assigned To</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeWorkerName}</span><br/><span style=""font-size:13px;color:#64748b;"">{safeWorkerEmail}</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">Time</span></td>
-                                    <td style=""padding:14px 20px;border-bottom:1px solid #e2e8f0;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeIssueTime}</span></td>
-                                </tr>
-                                <tr>
-                                    <td style=""padding:14px 20px;background-color:#f8fafc;""><span style=""font-size:13px;color:#64748b;font-weight:500;"">All Assignees</span></td>
-                                    <td colspan=""3"" style=""padding:14px 20px;""><span style=""font-size:14px;color:#0f172a;font-weight:600;"">{safeAllAssignees}</span></td>
-                                </tr>
-                            </table>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style=""padding:0 32px 32px 32px;"" align=""center"">
-                            <a href=""{safeIssueUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#2563eb;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">View Issue Details</a>
-                            {(safeResponseUrl != null ? $@"<span style=""display:inline-block;width:12px;""></span>
-                            <a href=""{safeResponseUrl}"" style=""display:inline-block;padding:12px 32px;background-color:#059669;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:6px;"">Respond to Assignment</a>" : "")}
-                        </td>
-                    </tr>
-                    <tr>
-                        <td style=""padding:24px 32px;background-color:#f8fafc;border-top:1px solid #e2e8f0;"">
-                            <p style=""margin:0;font-size:13px;color:#64748b;line-height:1.5;text-align:center;"">
-                                This is an automated message from Hyoung FMS. Please do not reply directly to this email.
-                            </p>
-                        </td>
-                    </tr>
-                </table>
-            </td>
-        </tr>
+<head><meta charset=""UTF-8""><meta name=""viewport"" content=""width=device-width,initial-scale=1.0""></head>
+<body style=""margin:0;padding:0;background:#f3f2f1;font-family:'Segoe UI',-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;"">
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""background:#f3f2f1;padding:32px 16px;"">
+<tr><td align=""center"">
+<table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""max-width:640px;background:#ffffff;border:1px solid #edebe9;border-radius:4px;"">
+
+  <!-- Header -->
+  <tr><td style=""padding:24px 32px 20px;border-bottom:1px solid #edebe9;"">
+    <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%""><tr>
+      <td style=""vertical-align:middle;"">
+        <span style=""font-size:20px;font-weight:600;color:#323130;"">Hyoung FMS</span>
+      </td>
+      <td style=""text-align:right;vertical-align:middle;"">
+        <span style=""display:inline-block;padding:4px 12px;background:#e5f1fb;color:#0078d4;font-size:12px;font-weight:600;border-radius:2px;letter-spacing:0.02em;"">NEW ASSIGNMENT</span>
+      </td>
+    </tr></table>
+  </td></tr>
+
+  <!-- Title -->
+  <tr><td style=""padding:24px 32px 8px;"">
+    <a href=""{safeUrl}"" style=""font-size:18px;font-weight:600;color:#0078d4;text-decoration:none;line-height:1.4;"">{safeTitle}</a>
+    <span style=""display:block;font-size:13px;color:#605e5c;margin-top:4px;"">Issue #{issueId} &middot; {safeType}</span>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style=""padding:12px 32px 20px;"">
+    <p style=""margin:0;font-size:14px;color:#323130;line-height:1.6;"">Hi <strong>{safeName}</strong>,</p>
+    <p style=""margin:8px 0 0;font-size:14px;color:#605e5c;line-height:1.6;"">An issue has been assigned to you. Please review the details below and take appropriate action.</p>
+  </td></tr>
+
+  <!-- Description -->
+  <tr><td style=""padding:0 32px 20px;"">
+    <div style=""background:#faf9f8;border:1px solid #edebe9;border-radius:4px;padding:16px;"">
+      <span style=""display:block;font-size:12px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:6px;"">Description</span>
+      <p style=""margin:0;font-size:14px;color:#323130;line-height:1.6;"">{safeDesc}</p>
+    </div>
+  </td></tr>
+
+  <!-- Details Grid -->
+  <tr><td style=""padding:0 32px 24px;"">
+    <table role=""presentation"" cellpadding=""0"" cellspacing=""0"" width=""100%"" style=""border:1px solid #edebe9;border-radius:4px;border-collapse:separate;"">
+      <tr>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;width:50%;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Priority</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safePriority}</span>
+        </td>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;border-left:1px solid #edebe9;width:50%;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Category</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeCategory}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Vehicle</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeVehicle}</span>
+        </td>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;border-left:1px solid #edebe9;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Site</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeSite}</span>
+        </td>
+      </tr>
+      <tr>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Assigned To</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeName}</span>
+          <span style=""display:block;font-size:12px;color:#a19f9d;"">{safeEmail}</span>
+        </td>
+        <td style=""padding:12px 16px;border-bottom:1px solid #edebe9;border-left:1px solid #edebe9;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">Due Date</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeTime}</span>
+        </td>
+      </tr>
+      <tr>
+        <td colspan=""2"" style=""padding:12px 16px;"">
+          <span style=""display:block;font-size:11px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.04em;margin-bottom:2px;"">All Assignees</span>
+          <span style=""font-size:14px;color:#323130;font-weight:600;"">{safeAllAssignees}</span>
+        </td>
+      </tr>
     </table>
+  </td></tr>
+
+  <!-- Action Buttons -->
+  <tr><td style=""padding:0 32px 28px;"" align=""center"">
+    <a href=""{safeUrl}"" style=""display:inline-block;padding:10px 24px;background:#0078d4;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;border-radius:4px;"">View Issue</a>
+    {respondButton}
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style=""padding:16px 32px;background:#faf9f8;border-top:1px solid #edebe9;border-radius:0 0 4px 4px;"">
+    <p style=""margin:0;font-size:12px;color:#a19f9d;text-align:center;line-height:1.5;"">This is an automated notification from <strong style=""color:#605e5c;"">Hyoung FMS</strong>. Do not reply to this email.</p>
+  </td></tr>
+
+</table>
+</td></tr></table>
 </body>
 </html>";
     }

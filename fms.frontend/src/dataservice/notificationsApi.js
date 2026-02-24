@@ -64,6 +64,16 @@ class NotificationsApi {
     }
   }
 
+  async markAllAsRead() {
+    try {
+      const response = await axiosInstance.post(`${this.basePath}/read-all`);
+      return { isSuccess: true, data: response.data, message: response.data?.message || 'All notifications marked as read' };
+    } catch (error) {
+      console.error('Error marking all as read:', error);
+      return { isSuccess: false, data: null, message: error.response?.data?.message || 'Failed to mark all as read' };
+    }
+  }
+
   async acknowledge(notificationId) {
     try {
       const response = await axiosInstance.post(`${this.basePath}/${notificationId}/acknowledge`);

@@ -57,4 +57,9 @@ public partial class Issuetemplate
     /// Categories/Tags associated with this template (many-to-many)
     /// </summary>
     public virtual ICollection<Issuecategory> Categories { get; set; } = new List<Issuecategory>();
+
+    /// <summary>
+    /// Admin-configurable completion actions for this template
+    /// </summary>
+    public virtual ICollection<IssueTemplateAction> TemplateActions { get; set; } = new List<IssueTemplateAction>();
 }

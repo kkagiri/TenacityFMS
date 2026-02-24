@@ -1,50 +1,598 @@
 /**
  * File: IssueTicketListPage.scss
- * Purpose: Local styles for Issue Ticket list toolbar and responsive menu button behavior.
- * Dependencies: DevExtreme DataGrid toolbar CSS classes
- * Last Modified: 2026-02-14
+ * Purpose: Microsoft Fabric / Office 365 design for Issue Ticket List page
+ * Dependencies: IssueTicketListPage.js
+ * Last Modified: 2026-02-24
  *
- * Key Styles:
- * - Removes oval/border from toolbar overflow (meatball) button
- * - Keeps overflow icon as plain three dots
- * - Ensures menu popover action text remains visible
+ * Design: Fluent UI / M365 Fabric tokens — Segoe UI, #0078D4, neutral greys
+ *
+ * Key Selectors:
+ * - .itl: Root wrapper with Fabric tokens
+ * - .itl__cmd: Top command bar (breadcrumb + title + action buttons)
+ * - .itl__filter-panel: Collapsible filter pane
+ * - .itl__fp-pill: Multi-select toggle pills (status / priority / tags)
+ * - .itl__active-filters: Active filter chips bar
+ * - .itl__grid-wrap: DevExtreme DataGrid host
  */
 
-.issue-ticket-list-page {
-  .dx-datagrid {
-    .dx-toolbar {
-      .dx-toolbar-menu-container {
-        .dx-dropdownmenu-button {
-          background: transparent !important;
-          border: none !important;
-          box-shadow: none !important;
-          min-width: auto !important;
+.itl {
+  /* ─── Fabric Design Tokens ─── */
+  --f-blue:        #0078D4;
+  --f-blue-dark:   #005A9E;
+  --f-blue-light:  #DEECF9;
+  --f-blue-mid:    #EFF6FC;
+  --f-red:         #D13438;
+  --f-red-light:   #FDE7E9;
+  --f-green:       #107C10;
+  --f-green-light: #DFF6DD;
+  --f-yellow:      #FFB900;
+  --f-orange:      #CA5010;
+  --f-purple:      #5C2D91;
+  --f-purple-light:#F4ECFF;
+  --f-bg:          #F5F5F5;
+  --f-surface:     #FFFFFF;
+  --f-text:        #201F1E;
+  --f-text-2:      #605E5C;
+  --f-text-3:      #A19F9D;
+  --f-border:      #EDEBE9;
+  --f-border-2:    #C8C6C4;
+  --f-shadow-s:    0 1.6px 3.6px rgba(0,0,0,.108), 0 0.3px 0.9px rgba(0,0,0,.078);
+  --f-r:           4px;
 
-          .dx-button-content {
-            padding: 0 !important;
-          }
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 13px;
+  color: var(--f-text);
+  background: var(--f-bg);
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
 
-          &.dx-state-hover,
-          &.dx-state-focused,
-          &.dx-state-active {
-            background: transparent !important;
-            border: none !important;
-            box-shadow: none !important;
-          }
-        }
+  /* ─── Loading State ─── */
+  &__loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 64px 24px;
+    font-size: 13px;
+    color: var(--f-text-2);
+  }
+
+  /* ─── Command Bar ─── */
+  &__cmd {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 24px 12px;
+    background: var(--f-surface);
+    border-bottom: 1px solid var(--f-border);
+    flex-wrap: wrap;
+  }
+
+  &__cmd-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+
+  &__breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--f-text-3);
+    i { font-size: 9px; }
+  }
+
+  &__bc-link {
+    color: var(--f-blue);
+    cursor: pointer;
+    &:hover { text-decoration: underline; }
+  }
+
+  &__cmd-title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__page-title {
+    font-size: 20px;
+    font-weight: 300;
+    letter-spacing: -0.2px;
+    margin: 0;
+    color: var(--f-text);
+  }
+
+  &__count-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2px 9px;
+    background: var(--f-blue-light);
+    color: var(--f-blue-dark);
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    min-width: 28px;
+  }
+
+  &__cmd-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  &__cmd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    font-size: 13px;
+    font-weight: 400;
+    font-family: inherit;
+    background: var(--f-surface);
+    border: 1px solid var(--f-border-2);
+    border-radius: var(--f-r);
+    color: var(--f-text);
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s;
+    white-space: nowrap;
+
+    i { font-size: 12px; }
+
+    &:hover {
+      background: #F3F2F1;
+      border-color: #979593;
+    }
+
+    &.is-active {
+      background: var(--f-blue-mid);
+      border-color: var(--f-blue);
+      color: var(--f-blue);
+    }
+
+    &--primary {
+      background: var(--f-blue);
+      border-color: var(--f-blue);
+      color: #fff;
+      font-weight: 600;
+
+      &:hover {
+        background: var(--f-blue-dark);
+        border-color: var(--f-blue-dark);
       }
     }
   }
 
+  &__filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    background: var(--f-blue);
+    color: #fff;
+    border-radius: 50%;
+    font-size: 10px;
+    font-weight: 700;
+    margin-left: 2px;
+
+    .is-active & { background: var(--f-blue-dark); }
+  }
+
+  /* ─── External Filter Banner ─── */
+  &__ext-filter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 24px;
+    background: var(--f-blue-mid);
+    border-bottom: 1px solid #BDD7EF;
+    font-size: 12px;
+    color: var(--f-blue-dark);
+
+    i { font-size: 11px; }
+  }
+
+  &__ext-filter-clear {
+    margin-left: auto;
+    background: none;
+    border: 1px solid var(--f-blue);
+    border-radius: var(--f-r);
+    color: var(--f-blue);
+    font-size: 11px;
+    font-family: inherit;
+    padding: 3px 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+
+    &:hover { background: var(--f-blue-light); }
+  }
+
+  /* ─── Filter Panel ─── */
+  &__filter-panel {
+    background: var(--f-surface);
+    border-bottom: 2px solid var(--f-blue);
+    box-shadow: var(--f-shadow-s);
+  }
+
+  &__fp-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px 24px;
+  }
+
+  &__fp-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+
+    .itl__fp-section { flex: 1 1 180px; }
+  }
+
+  &__fp-section {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    &--full { width: 100%; }
+  }
+
+  &__fp-label {
+    font-size: 11px !important;
+    font-weight: 700 !important;
+    color: var(--f-text-2) !important;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+
+    i { font-size: 10px; color: var(--f-blue); }
+  }
+
+  &__fp-input {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 6px 10px;
+    border: 1px solid var(--f-border-2);
+    border-radius: var(--f-r);
+    color: var(--f-text);
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.1s;
+
+    &::placeholder { color: var(--f-text-3); }
+
+    &:focus {
+      border-color: var(--f-blue);
+      box-shadow: 0 0 0 1px var(--f-blue);
+    }
+  }
+
+  &__fp-search-wrap {
+    position: relative;
+    display: flex;
+    align-items: center;
+
+    > i {
+      position: absolute;
+      left: 10px;
+      color: var(--f-text-3);
+      font-size: 12px;
+      pointer-events: none;
+    }
+  }
+
+  &__fp-search {
+    font-family: inherit;
+    font-size: 13px;
+    padding: 7px 32px 7px 30px;
+    border: 1px solid var(--f-border-2);
+    border-radius: var(--f-r);
+    color: var(--f-text);
+    outline: none;
+    width: 100%;
+    box-sizing: border-box;
+    transition: border-color 0.1s;
+
+    &::placeholder { color: var(--f-text-3); }
+
+    &:focus {
+      border-color: var(--f-blue);
+      box-shadow: 0 0 0 1px var(--f-blue);
+    }
+  }
+
+  &__fp-clear-x {
+    position: absolute;
+    right: 8px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--f-text-3);
+    font-size: 11px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover { color: var(--f-text); }
+  }
+
+  &__fp-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+
+    &--wrap {
+      max-height: 90px;
+      overflow-y: auto;
+
+      &::-webkit-scrollbar { width: 4px; }
+      &::-webkit-scrollbar-thumb { background: var(--f-border-2); border-radius: 2px; }
+    }
+  }
+
+  &__fp-pill {
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    padding: 4px 12px;
+    border: 1px solid var(--f-border-2);
+    border-radius: 12px;
+    background: var(--f-surface);
+    color: var(--f-text-2);
+    cursor: pointer;
+    transition: background 0.1s, border-color 0.1s, color 0.1s;
+    white-space: nowrap;
+
+    &:hover {
+      background: var(--f-blue-mid);
+      border-color: var(--f-blue);
+      color: var(--f-blue);
+    }
+
+    &.is-on {
+      background: var(--f-blue);
+      border-color: var(--f-blue);
+      color: #fff;
+    }
+
+    &--tag {
+      background: #FAF9F8;
+      border-style: dashed;
+
+      &.is-on {
+        background: var(--f-blue-light);
+        border-color: var(--f-blue);
+        color: var(--f-blue-dark);
+        border-style: solid;
+      }
+    }
+  }
+
+  &__fp-footer {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 24px;
+    border-top: 1px solid var(--f-border);
+    background: #FAFAF9;
+  }
+
+  &__fp-results {
+    font-size: 12px;
+    color: var(--f-text-2);
+    font-weight: 600;
+  }
+
+  &__fp-clear-btn {
+    font-family: inherit;
+    font-size: 12px;
+    background: none;
+    border: 1px solid var(--f-border-2);
+    border-radius: var(--f-r);
+    color: var(--f-text-2);
+    cursor: pointer;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    transition: border-color 0.1s, color 0.1s;
+
+    &:hover {
+      border-color: var(--f-red);
+      color: var(--f-red);
+    }
+  }
+
+  &__fp-close-btn {
+    margin-left: auto;
+    font-family: inherit;
+    font-size: 12px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--f-blue);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 0;
+
+    &:hover { text-decoration: underline; }
+  }
+
+  /* ─── Active Filter Pills Bar ─── */
+  &__active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 24px;
+    background: var(--f-blue-mid);
+    border-bottom: 1px solid #D0E8F8;
+  }
+
+  &__af-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 8px 3px 10px;
+    background: var(--f-blue-light);
+    border: 1px solid #BDD7EF;
+    border-radius: 12px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--f-blue-dark);
+    white-space: nowrap;
+
+    button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--f-blue);
+      font-size: 10px;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      line-height: 1;
+
+      &:hover { color: var(--f-red); }
+    }
+
+    &--tag {
+      background: var(--f-purple-light);
+      border-color: #C8A8F0;
+      color: var(--f-purple);
+
+      button { color: var(--f-purple); }
+    }
+  }
+
+  &__af-clear {
+    margin-left: 4px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 600;
+    color: var(--f-blue);
+    padding: 2px 6px;
+    text-decoration: underline;
+
+    &:hover { color: var(--f-blue-dark); }
+  }
+
+  /* ─── Grid Wrapper ─── */
+  &__grid-wrap {
+    flex: 1;
+    background: var(--f-surface);
+  }
+
+  /* ─── DevExtreme DataGrid — Fabric Overrides ─── */
+  &__dx-grid,
+  .itl__grid-wrap .dx-datagrid {
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
+    font-size: 13px;
+    color: var(--f-text);
+    background: var(--f-surface);
+    border: none !important;
+
+    .dx-datagrid-headers {
+      background: #FAFAF9;
+      border-bottom: 2px solid var(--f-border);
+
+      .dx-header-row td {
+        font-weight: 700;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+        color: var(--f-text-2);
+        padding: 10px 12px;
+        background: #FAFAF9;
+      }
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row {
+        cursor: pointer;
+        transition: background 0.1s;
+
+        td {
+          padding: 10px 12px;
+          border-bottom: 1px solid var(--f-border);
+          vertical-align: middle;
+        }
+
+        &:hover td { background: var(--f-blue-mid) !important; }
+
+        &.dx-selection > td {
+          background: var(--f-blue-light) !important;
+        }
+      }
+    }
+
+    .dx-toolbar {
+      background: #FAFAF9;
+      border-bottom: 1px solid var(--f-border);
+      padding: 8px 12px;
+    }
+
+    .dx-pager {
+      background: #FAFAF9;
+      border-top: 1px solid var(--f-border);
+      padding: 6px 12px;
+      font-size: 12px;
+      color: var(--f-text-2);
+    }
+
+    // Toolbar overflow button cleanup
+    .dx-toolbar .dx-toolbar-menu-container .dx-dropdownmenu-button {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+      min-width: auto !important;
+
+      .dx-button-content { padding: 0 !important; }
+
+      &.dx-state-hover,
+      &.dx-state-focused,
+      &.dx-state-active {
+        background: transparent !important;
+        border: none !important;
+        box-shadow: none !important;
+      }
+    }
+  }
 }
 
+/* ─── Toolbar Overflow Menu (portal, outside .itl) ─── */
 .dx-dropdownmenu-popup {
   .dx-overlay-content {
     min-width: 180px !important;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif !important;
   }
 
   .dx-menu-item .dx-menu-item-content {
     min-width: 180px;
     white-space: nowrap;
+  }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 768px) {
+  .itl {
+    &__cmd { padding: 12px 16px 10px; }
+    &__fp-body { padding: 12px 16px; }
+    &__fp-footer { padding: 8px 16px; }
+    &__active-filters { padding: 6px 16px; }
+    &__fp-row .itl__fp-section { flex: 1 1 140px; }
   }
 }

@@ -24,6 +24,7 @@ export const FETCH_NOTIFICATION_STATISTICS_SUCCESS = "FETCH_NOTIFICATION_STATIST
 export const FETCH_NOTIFICATION_STATISTICS_FAILURE = "FETCH_NOTIFICATION_STATISTICS_FAILURE";
 
 export const MARK_NOTIFICATION_READ_SUCCESS = "MARK_NOTIFICATION_READ_SUCCESS";
+export const MARK_ALL_NOTIFICATIONS_READ_SUCCESS = "MARK_ALL_NOTIFICATIONS_READ_SUCCESS";
 export const ACKNOWLEDGE_NOTIFICATION_SUCCESS = "ACKNOWLEDGE_NOTIFICATION_SUCCESS";
 
 export const FETCH_NOTIFICATION_POLICIES_REQUEST = "FETCH_NOTIFICATION_POLICIES_REQUEST";
@@ -149,6 +150,19 @@ export const markNotificationAsRead = (notificationId) => async (dispatch) => {
   } catch (error) {
     console.error('Error marking notification as read:', error);
     return { isSuccess: false, message: error.message || 'Failed to mark as read' };
+  }
+};
+
+export const markAllNotificationsAsRead = () => async (dispatch) => {
+  try {
+    const response = await notificationsApi.markAllAsRead();
+    if (response.isSuccess) {
+      dispatch({ type: MARK_ALL_NOTIFICATIONS_READ_SUCCESS });
+    }
+    return response;
+  } catch (error) {
+    console.error('Error marking all as read:', error);
+    return { isSuccess: false, message: error.message || 'Failed to mark all as read' };
   }
 };
 
@@ -441,7 +455,7 @@ export const handleFuelImportProgress =
         progressData.reportId === currentProgress.id &&
         progressData.status === currentProgress.status &&
         Math.abs(progressData.progressPercentage - currentProgress.percentage) <
-          1 &&
+        1 &&
         progressData.processedRecords !== progressData.totalRecords
       ) {
         // Skip this update - too minor to warrant UI refresh

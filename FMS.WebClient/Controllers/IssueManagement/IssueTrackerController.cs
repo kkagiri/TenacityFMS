@@ -16,9 +16,12 @@ using FMS.Application.Command.DatabaseCommand.IssueTrackerCommands.Status;
 using FMS.Application.Features.FMS.Issuetracker;
 using FMS.Application.Features.IssueTracker.Commands.Attachments;
 using FMS.Application.Features.IssueTracker.Commands.Issues;
+using FMS.Application.Features.IssueTracker.Commands.V2.Issues;
 using FMS.Application.Features.IssueTracker.DTOs;
+using FMS.Application.Features.IssueTracker.DTOs.V2;
 using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.IssueTracker.Queries.Attachments;
+using FMS.Application.Features.IssueTracker.Queries.V2.Issues;
 using FMS.Application.Features.IssueTracker.Services;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries;
 using FMS.Application.Queries.Database.FMSQuery.IssueTrackerQueries.Category;
@@ -1014,6 +1017,103 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 return BadRequest(new { message = $"Error closing issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== COMPLETE WITH STRUCTURED ACTIONS (V2) =====
+
+        /// <summary>
+        /// Complete an issue with structured completion actions.
+        /// Creates completion records, marks issue complete, notifies opener.
+        /// </summary>
+        [HttpPost("{id}/complete-with-actions")]
+        [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
+        public async Task<IActionResult> CompleteWithActions(
+            int id,
+            [FromBody] CompleteIssueWithActionsRequestDTO request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Completion data is required" });
+                }
+
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var userName = GetCurrentUserNameOrDefault();
+                var command = new CompleteIssueWithActionsCommand(id, request, userId, userName);
+                var result = await _mediator.Send(command);
+
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error completing issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== REASSIGN ISSUE (V2) =====
+
+        /// <summary>
+        /// Reassign an issue to a different user.
+        /// Sends notification to the NEW assignee only.
+        /// </summary>
+        [HttpPost("{id}/reassign")]
+        [Authorize]
+        [RequirePermission(Permissions.IssueTracker.Edit)]
+        public async Task<IActionResult> ReassignIssue(
+            int id,
+            [FromBody] ReassignIssueRequestDTO request)
+        {
+            try
+            {
+                if (request == null)
+                {
+                    return BadRequest(new { message = "Reassignment data is required" });
+                }
+
+                var userId = GetCurrentUserIdOrDefault();
+                if (string.IsNullOrEmpty(userId))
+                {
+                    return Unauthorized(new { message = "User not authenticated" });
+                }
+
+                var userName = GetCurrentUserNameOrDefault();
+                var command = new ReassignIssueCommand(id, request, userId, userName);
+                var result = await _mediator.Send(command);
+
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error reassigning issue {id}: {ex.Message}" });
+            }
+        }
+
+        // ===== COMPLETION RECORDS (V2) =====
+
+        /// <summary>
+        /// Get structured completion records for an issue.
+        /// </summary>
+        [HttpGet("{id}/completion-records")]
+        [RequirePermission(Permissions.IssueTracker.Read)]
+        public async Task<IActionResult> GetCompletionRecords(int id)
+        {
+            try
+            {
+                var query = new GetCompletionRecordsQuery(id);
+                var result = await _mediator.Send(query);
+                return result.IsSuccess ? Ok(result) : BadRequest(result);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { message = $"Error fetching completion records for issue {id}: {ex.Message}" });
             }
         }
 

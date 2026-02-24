@@ -9,6 +9,7 @@
  */
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import ReactDOM from "react-dom";
+import { useNavigate } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import {
   fetchNotifications,
@@ -173,6 +174,7 @@ const useIsMobile = (breakpoint = 640) => {
 
 const NotificationCenter = () => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   // Get notifications and import progress from Redux store
@@ -701,7 +703,7 @@ const NotificationCenter = () => {
               {message || "Notification"}
               {hasActionUrl && (
                 <span className="tw-text-blue-600 tw-font-medium tw-ml-1">
-                  View details ->
+                  View details {'\u2192'}
                 </span>
               )}
             </div>
@@ -947,6 +949,19 @@ const NotificationCenter = () => {
                       </div>
                     )}
                   </div>
+                </div>
+
+                {/* Footer: View All Notifications */}
+                <div className="tw-border-t tw-border-gray-100 tw-px-4 tw-py-3">
+                  <button
+                    type="button"
+                    onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}
+                    className="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-sm tw-font-medium tw-text-blue-600 hover:tw-text-blue-800 tw-w-full tw-bg-transparent tw-border-0 tw-cursor-pointer tw-py-1"
+                  >
+                    <i className="fa-light fa-bell" />
+                    View All Notifications
+                    <i className="fa-light fa-arrow-right tw-text-xs" />
+                  </button>
                 </div>
               </div>
             </div>

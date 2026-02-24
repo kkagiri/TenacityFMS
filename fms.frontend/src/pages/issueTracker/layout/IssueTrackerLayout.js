@@ -72,31 +72,41 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
     {
       id: 'dashboard',
       title: 'Dashboard',
-      icon: 'fa-light fa-chart-line',
+      icon: 'fa-light fa-chart-bar',
       path: '/issue-tracker/dashboard',
       badge: null,
     },
     {
       id: 'tickets',
-      title: 'Issue Tickets',
-      icon: 'fa-light fa-ticket',
+      title: 'All Issues',
+      icon: 'fa-light fa-circle-check',
       path: '/issue-tracker/tickets',
       badge: null,
     },
     {
-      id: 'reports',
-      title: 'Reports',
-      icon: 'fa-light fa-chart-bar',
-      path: '/issue-tracker/reports',
+      id: 'create',
+      title: 'Create Issue',
+      icon: 'fa-light fa-plus',
+      path: '/issue-tracker/create',
       badge: null,
     },
+  ];
+
+  const reportsItems = [
     {
       id: 'analytics',
       title: 'Analytics',
-      icon: 'fa-light fa-analytics',
+      icon: 'fa-light fa-chart-mixed',
       path: '/issue-tracker/analytics',
       badge: null,
-    }
+    },
+    {
+      id: 'reports',
+      title: 'Export',
+      icon: 'fa-light fa-file-export',
+      path: '/issue-tracker/reports',
+      badge: null,
+    },
   ];
 
   const configurationItems = [
@@ -136,6 +146,7 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
         {/* Navigation */}
         <div className="sidebar-content">
           <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Issue Tracker</div>}
             <nav className="nav-menu">
               {navigationItems.map((item) => {
                 const isActive = isActiveRoute(location.pathname, item.path);
@@ -153,6 +164,30 @@ const IssueTrackerLayout = ({ children, currentPath, pageTitle, pageSubtitle }) 
                     {!sidebarCollapsed && item.badge && (
                       <span className="nav-badge">{item.badge}</span>
                     )}
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+
+          <div className="nav-separator"></div>
+
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Reports</div>}
+            <nav className="nav-menu">
+              {reportsItems.map((item) => {
+                const isActive = isActiveRoute(location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
                   </div>
                 );
               })}

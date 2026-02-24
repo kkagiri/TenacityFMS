@@ -1,0 +1,328 @@
+/**
+ * File: NotificationCenterPage.scss
+ * Purpose: Styles for the user-facing notification center page
+ * Last Modified: 2026-02-23
+ */
+
+// ─── Page Layout ─────────────────────────────────────────────────────────────
+
+.nc-page {
+  @apply tw-flex tw-flex-col tw-h-full tw-bg-gray-50;
+}
+
+// ─── Header ──────────────────────────────────────────────────────────────────
+
+.nc-header {
+  @apply tw-flex tw-items-center tw-justify-between tw-bg-white tw-border-b tw-border-gray-200 tw-px-6 tw-py-4;
+
+  &__left {
+    @apply tw-flex tw-items-center tw-gap-4;
+  }
+
+  &__icon-wrap {
+    @apply tw-w-12 tw-h-12 tw-bg-blue-100 tw-rounded-xl tw-flex tw-items-center tw-justify-center;
+    font-size: 1.4rem;
+    color: #2563eb;
+  }
+
+  &__title {
+    @apply tw-text-2xl tw-font-bold tw-text-gray-900 tw-flex tw-items-center tw-gap-2;
+  }
+
+  &__badge {
+    @apply tw-inline-flex tw-items-center tw-justify-center tw-min-w-6 tw-h-6 tw-px-2 tw-rounded-full tw-text-xs tw-font-bold tw-text-white;
+    background-color: #dc2626;
+  }
+
+  &__subtitle {
+    @apply tw-text-sm tw-text-gray-500 tw-mt-0.5;
+  }
+
+  &__actions {
+    @apply tw-flex tw-items-center tw-gap-2;
+  }
+}
+
+// ─── Tabs ─────────────────────────────────────────────────────────────────────
+
+.nc-tabs {
+  @apply tw-flex tw-items-center tw-gap-1 tw-bg-white tw-border-b tw-border-gray-200 tw-px-6;
+}
+
+.nc-tab {
+  @apply tw-inline-flex tw-items-center tw-px-4 tw-py-3 tw-text-sm tw-font-medium tw-text-gray-500 tw-border-b-2 tw-border-transparent tw-transition-colors tw-cursor-pointer;
+  background: none;
+  border-top: none;
+  border-left: none;
+  border-right: none;
+
+  &:hover {
+    @apply tw-text-gray-700;
+    border-bottom-color: #d1d5db;
+  }
+
+  &--active {
+    @apply tw-text-blue-600;
+    border-bottom-color: #2563eb !important;
+  }
+
+  &__badge {
+    @apply tw-ml-2 tw-inline-flex tw-items-center tw-justify-center tw-min-w-5 tw-h-5 tw-px-1.5 tw-rounded-full tw-text-xs tw-font-bold tw-text-white;
+    background-color: #dc2626;
+  }
+}
+
+// ─── Filters ──────────────────────────────────────────────────────────────────
+
+.nc-filters {
+  @apply tw-flex tw-flex-wrap tw-items-center tw-gap-3 tw-bg-white tw-border-b tw-border-gray-100 tw-px-6 tw-py-3;
+
+  &__search {
+    @apply tw-relative tw-flex tw-items-center;
+    flex: 1;
+    min-width: 200px;
+    max-width: 320px;
+  }
+
+  &__search-icon {
+    @apply tw-absolute tw-left-3 tw-text-gray-400;
+    font-size: 0.875rem;
+    pointer-events: none;
+  }
+
+  &__search-input {
+    @apply tw-w-full tw-pl-9 tw-pr-4 tw-py-2 tw-text-sm tw-border tw-border-gray-300 tw-rounded-lg tw-outline-none;
+
+    &:focus {
+      @apply tw-border-blue-500 tw-ring-1 tw-ring-blue-500;
+    }
+  }
+}
+
+// ─── Buttons ──────────────────────────────────────────────────────────────────
+
+.nc-btn {
+  @apply tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-rounded-lg tw-transition-colors tw-cursor-pointer;
+  border: none;
+
+  &--primary {
+    @apply tw-bg-blue-600 tw-text-white;
+    &:hover { @apply tw-bg-blue-700; }
+    &:disabled { @apply tw-bg-blue-300 tw-cursor-not-allowed; }
+  }
+
+  &--ghost {
+    @apply tw-bg-white tw-text-gray-700 tw-border tw-border-gray-300;
+    &:hover { @apply tw-bg-gray-50; }
+    &:disabled { @apply tw-text-gray-300 tw-border-gray-200 tw-cursor-not-allowed; }
+  }
+
+  &--text {
+    @apply tw-bg-transparent tw-text-gray-500 tw-px-2;
+    &:hover { @apply tw-text-gray-800; }
+  }
+}
+
+// ─── Content Area ─────────────────────────────────────────────────────────────
+
+.nc-content {
+  @apply tw-flex-1 tw-overflow-auto tw-p-6;
+}
+
+// ─── State Views ─────────────────────────────────────────────────────────────
+
+.nc-state {
+  @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-20;
+
+  &--loading {
+    @apply tw-gap-2;
+  }
+
+  &__icon {
+    @apply tw-text-gray-300;
+    font-size: 3.5rem;
+  }
+
+  &__title {
+    @apply tw-text-lg tw-font-semibold tw-text-gray-700 tw-mt-4;
+  }
+
+  &__sub {
+    @apply tw-text-sm tw-text-gray-500 tw-mt-1 tw-text-center;
+    max-width: 320px;
+  }
+}
+
+// ─── Notification List ────────────────────────────────────────────────────────
+
+.nc-list {
+  @apply tw-flex tw-flex-col tw-gap-2 tw-max-w-3xl tw-mx-auto;
+}
+
+// ─── Notification Card ────────────────────────────────────────────────────────
+
+.nc-card {
+  @apply tw-relative tw-flex tw-items-start tw-gap-4 tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-p-4 tw-cursor-pointer tw-transition-all;
+
+  &:hover {
+    @apply tw-shadow-md tw-border-blue-200;
+    transform: translateY(-1px);
+  }
+
+  &--unread {
+    @apply tw-border-blue-100;
+    background: rgba(239, 246, 255, 0.5);
+  }
+
+  &__unread-dot {
+    @apply tw-absolute tw-top-4 tw-left-1.5 tw-w-2 tw-h-2 tw-rounded-full tw-bg-blue-500;
+  }
+
+  &__icon {
+    @apply tw-flex-shrink-0 tw-w-10 tw-h-10 tw-rounded-full tw-bg-blue-100 tw-flex tw-items-center tw-justify-center tw-text-blue-600;
+    font-size: 1.1rem;
+  }
+
+  &__body {
+    @apply tw-flex-1 tw-min-w-0;
+  }
+
+  &__header-row {
+    @apply tw-flex tw-items-start tw-justify-between tw-gap-2;
+  }
+
+  &__title {
+    @apply tw-text-sm tw-font-semibold tw-text-gray-900 tw-leading-tight;
+  }
+
+  &__time {
+    @apply tw-text-xs tw-text-gray-400 tw-flex-shrink-0;
+  }
+
+  &__message {
+    @apply tw-text-sm tw-text-gray-600 tw-mt-1 tw-leading-relaxed;
+  }
+
+  &__meta-row {
+    @apply tw-flex tw-flex-wrap tw-items-center tw-gap-1.5 tw-mt-2;
+  }
+
+  &__badge {
+    @apply tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium;
+
+    &--category {
+      @apply tw-text-blue-700 tw-bg-blue-50;
+    }
+
+    &--type {
+      @apply tw-text-indigo-700 tw-bg-indigo-50;
+    }
+
+    &--ack {
+      @apply tw-text-green-700 tw-bg-green-50;
+    }
+  }
+
+  &__actions {
+    @apply tw-flex tw-flex-col tw-gap-1 tw-flex-shrink-0;
+  }
+}
+
+.nc-action-btn {
+  @apply tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-text-gray-400 tw-bg-gray-50 tw-border tw-border-transparent tw-cursor-pointer tw-transition-colors;
+  font-size: 0.875rem;
+
+  &:hover {
+    @apply tw-text-blue-600 tw-bg-blue-50 tw-border-blue-200;
+  }
+
+  &--ack {
+    &:hover {
+      @apply tw-text-green-600 tw-bg-green-50 tw-border-green-200;
+    }
+  }
+}
+
+// ─── Pagination ───────────────────────────────────────────────────────────────
+
+.nc-pagination {
+  @apply tw-flex tw-items-center tw-justify-between tw-mt-6 tw-pb-4 tw-max-w-3xl tw-mx-auto;
+
+  &__info {
+    @apply tw-text-sm tw-text-gray-500;
+  }
+}
+
+// ─── Detail Popup ─────────────────────────────────────────────────────────────
+
+.nc-detail {
+  @apply tw-p-2;
+
+  &__badges {
+    @apply tw-flex tw-flex-wrap tw-gap-2 tw-mb-4;
+  }
+
+  &__title {
+    @apply tw-text-xl tw-font-bold tw-text-gray-900 tw-mb-3;
+  }
+
+  &__message {
+    @apply tw-text-base tw-text-gray-600 tw-leading-relaxed tw-mb-4 tw-bg-gray-50 tw-rounded-lg tw-p-3;
+  }
+
+  &__timestamps {
+    @apply tw-border-t tw-border-gray-100 tw-pt-3 tw-mb-4 tw-flex tw-flex-col tw-gap-2;
+  }
+
+  &__ts-row {
+    @apply tw-flex tw-items-center;
+  }
+
+  &__footer {
+    @apply tw-flex tw-flex-wrap tw-gap-2 tw-pt-3 tw-border-t tw-border-gray-100;
+  }
+
+  &__btn {
+    @apply tw-inline-flex tw-items-center tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-rounded-lg tw-transition-colors tw-cursor-pointer;
+    border: none;
+    background: #2563eb;
+    color: #fff;
+
+    &:hover { background: #1d4ed8; }
+
+    &--ack {
+      background: #16a34a;
+      &:hover { background: #15803d; }
+    }
+
+    &--close {
+      background: #f3f4f6;
+      color: #374151;
+      &:hover { background: #e5e7eb; }
+    }
+  }
+}
+
+// ─── Mobile Responsiveness ────────────────────────────────────────────────────
+
+@media (max-width: 640px) {
+  .nc-header {
+    @apply tw-flex-col tw-items-start tw-gap-3 tw-px-4 tw-py-3;
+
+    &__actions {
+      @apply tw-w-full;
+    }
+  }
+
+  .nc-filters {
+    @apply tw-px-4;
+  }
+
+  .nc-content {
+    @apply tw-p-4;
+  }
+
+  .nc-card {
+    @apply tw-pl-5;
+  }
+}

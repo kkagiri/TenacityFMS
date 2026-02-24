@@ -1,62 +1,28 @@
-/**
+﻿/**
  * File: CombinedIssueDashboard.js
- * Purpose: Unified Issue Tracker dashboard combining stats, filters, charts, and data grids
- * Dependencies: DevExtreme, issueTrackerService, Redux, StatCard
- * Last Modified: 2026-02-10
+ * Purpose: Fluent/M365-style Issue Dashboard â€” orchestrates sub-sections
+ * Dependencies: issueTrackerService, Redux, sub-components
+ * Last Modified: 2026-02-23
  *
- * Key Features:
- * - Consolidated statistics cards (Overview, Priority, User-specific, Performance)
- * - Full filter panel (Vehicle, Site, Category, Date range)
- * - Quick action buttons for common filters
- * - 4 charts (Issues by Week, Category, Vehicle, Site)
- * - TabPanel with 3 data grids (Assigned, Opened by Me, Recently Closed)
+ * Sub-components:
+ * - DashboardFilterSection  : filter card + quick pills
+ * - DashboardStatCards      : overview / priority / user / performance stats
+ * - DashboardCharts         : heatmap + 4 charts
+ * - DashboardIssueGrid      : tabbed data grid
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import {
-    DataGrid,
-    Column,
-    Paging,
-    Pager,
-    FilterRow,
-    FilterPanel,
-    HeaderFilter,
-    Sorting,
-    Scrolling,
-    Selection,
-    Summary,
-    TotalItem
-} from 'devextreme-react/data-grid';
-import {
-    Chart,
-    Series,
-    CommonSeriesSettings,
-    Label,
-    Legend,
-    Tooltip,
-    ArgumentAxis,
-    ValueAxis
-} from 'devextreme-react/chart';
-import {
-    PieChart,
-    Series as PieSeries,
-    Label as PieLabel,
-    Legend as PieLegend,
-    Connector,
-    Tooltip as PieTooltip
-} from 'devextreme-react/pie-chart';
-import { SelectBox } from 'devextreme-react/select-box';
-import { DateBox } from 'devextreme-react/date-box';
-import { Button } from 'devextreme-react/button';
-// Tab selection handled by local state and buttons
 import LoadIndicator from 'devextreme-react/load-indicator';
+import { Button } from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 import issueTrackerService from '../../../services/issueTrackerService';
-import { StatCard } from './shared';
 import FollowedIssuesTicker from './FollowedIssuesTicker';
-import IssueActivityHeatmap from './IssueActivityHeatmap';
+import DashboardFilterSection from './DashboardFilterSection';
+import DashboardStatCards from './DashboardStatCards';
+import DashboardCharts from './DashboardCharts';
+import DashboardIssueGrid from './DashboardIssueGrid';
 import './CombinedIssueDashboard.scss';
 
 /**
@@ -196,55 +162,62 @@ const CombinedIssueDashboard = () => {
     const handlePriorityFilter = useCallback((priority) => {
         setFilters((prev) => ({
             ...prev,
-            priorityFilter: prev.priorityFilter === priority ? null : priority
+            priorityFilter: prev.priorityFilter === priority ? null : priority,
+            statusFilter: null,
+            unassignedOnly: false,
+            overdueOnly: false
         }));
     }, []);
 
     const handleStatusFilter = useCallback((status) => {
         setFilters((prev) => ({
             ...prev,
-            statusFilter: prev.statusFilter === status ? null : status
+            statusFilter: prev.statusFilter === status ? null : status,
+            priorityFilter: null,
+            unassignedOnly: false,
+            overdueOnly: false
         }));
     }, []);
 
-    // Cell renderers
-    const renderPriorityCell = (cellData) => {
-        const priority = cellData.value;
-        const colors = {
-            Critical: 'tw-bg-red-100 tw-text-red-700',
-            High: 'tw-bg-orange-100 tw-text-orange-700',
-            Medium: 'tw-bg-yellow-100 tw-text-yellow-700',
-            Low: 'tw-bg-green-100 tw-text-green-700'
-        };
+    const handleOverdueFilter = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            overdueOnly: !prev.overdueOnly,
+            priorityFilter: null,
+            statusFilter: null,
+            unassignedOnly: false
+        }));
+    }, []);
 
-        return (
-            <span
-                className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${colors[priority] || 'tw-bg-gray-100 tw-text-gray-700'
-                    }`}
-            >
-                {priority || 'N/A'}
-            </span>
-        );
-    };
+    const handleUnassignedFilter = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            unassignedOnly: !prev.unassignedOnly,
+            priorityFilter: null,
+            statusFilter: null,
+            overdueOnly: false
+        }));
+    }, []);
 
-    const renderStatusCell = (cellData) => {
-        const status = cellData.value;
-        const colors = {
-            Open: 'tw-bg-blue-100 tw-text-blue-700',
-            'In Progress': 'tw-bg-yellow-100 tw-text-yellow-700',
-            Resolved: 'tw-bg-green-100 tw-text-green-700',
-            Closed: 'tw-bg-gray-100 tw-text-gray-700'
-        };
+    const handleResolvedTodayFilter = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            statusFilter: prev.statusFilter === 'Resolved' ? null : 'Resolved',
+            priorityFilter: null,
+            unassignedOnly: false,
+            overdueOnly: false
+        }));
+    }, []);
 
-        return (
-            <span
-                className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${colors[status] || 'tw-bg-gray-100 tw-text-gray-700'
-                    }`}
-            >
-                {status || 'N/A'}
-            </span>
-        );
-    };
+    const handleClearQuickFilters = useCallback(() => {
+        setFilters((prev) => ({
+            ...prev,
+            priorityFilter: null,
+            statusFilter: null,
+            unassignedOnly: false,
+            overdueOnly: false
+        }));
+    }, []);
 
     // Extract stats from dashboard data with safe defaults
     // Using Number() to ensure numeric values and fallback to 0
@@ -416,658 +389,101 @@ const CombinedIssueDashboard = () => {
         { id: 'closed', label: 'Recently Closed', icon: 'fa-light fa-check-circle', count: safeNumber((dashboardData?.recentlyClosedIssues || []).length) }
     ];
 
-    // Loading state
+    // â”€â”€ Loading state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (loading && !dashboardData) {
         return (
-            <div className="tw-flex tw-items-center tw-justify-center tw-h-96">
+            <div className="fms-dashboard-loading">
                 <LoadIndicator visible={true} />
-                <span className="tw-ml-3 tw-text-gray-600">Loading your dashboard...</span>
+                <span>Loading your dashboardâ€¦</span>
             </div>
         );
     }
 
-    // Error state
+    // â”€â”€ Error state â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     if (error && !dashboardData) {
         return (
-            <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-96">
-                <i className="fa-light fa-exclamation-circle tw-text-4xl tw-text-red-500 tw-mb-4"></i>
-                <p className="tw-text-gray-600">{error}</p>
-                <Button text="Retry" type="default" onClick={loadDashboardData} className="tw-mt-4" />
+            <div className="fms-dashboard-error">
+                <i className="fa-light fa-circle-exclamation"></i>
+                <p>{error}</p>
+                <Button text="Retry" type="default" onClick={loadDashboardData} />
             </div>
         );
     }
 
     return (
-        <div className="combined-issue-dashboard tw-p-6 tw-bg-gray-50 tw-min-h-screen">
-            {/* Header */}
-            <div className="tw-mb-6 tw-flex tw-items-start tw-justify-between">
+        <div className="fms-dashboard">
+            {/* â”€â”€ Page Header â”€â”€ */}
+            <div className="fms-page-hd">
                 <div>
-                    <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-                        <i className="fa-light fa-chart-user tw-mr-2"></i>
-                        Issue Dashboard
-                    </h1>
-                    <p className="tw-text-gray-500 tw-mt-1">
-                        Welcome back, {user?.firstName || user?.userName || 'User'}! Here's an overview
-                        of your issues.
-                    </p>
+                    <h1>Issue Dashboard</h1>
+                    <p>Welcome back, {user?.firstName || user?.userName || 'User'}! Here's an overview of your issues.</p>
                 </div>
-                <div className="tw-flex tw-gap-2">
-                    <Button
-                        icon={showFollowedIssues ? 'fa-light fa-bell-on' : 'fa-light fa-bell'}
-                        hint={showFollowedIssues ? 'Hide Followed Issues' : 'Show Followed Issues'}
-                        type={showFollowedIssues ? 'success' : 'normal'}
-                        stylingMode="outlined"
+                <div className="fms-btn-grp">
+                    <button
+                        className={`fms-btn ${showFollowedIssues ? 'fms-btn--active-blue' : ''}`}
                         onClick={() => setShowFollowedIssues(!showFollowedIssues)}
-                    />
-                    <Button
-                        text="Create Issue"
-                        icon="fa-light fa-plus"
-                        type="default"
-                        stylingMode="contained"
-                        className="tw-bg-blue-600 hover:tw-bg-blue-700"
+                    >
+                        <i className={`fa-light ${showFollowedIssues ? 'fa-bell-on' : 'fa-bell'}`}></i>
+                        Followed Issues
+                    </button>
+                    <button
+                        className="fms-btn fms-btn--primary"
                         onClick={() => navigate('/issue-tracker/create')}
-                    />
+                    >
+                        <i className="fa-light fa-plus"></i>
+                        Create Issue
+                    </button>
                 </div>
             </div>
 
-            {/* Followed Issues Ticker */}
+            {/* ── Followed Issues Ticker ── */}
             {showFollowedIssues && (
-                <div className="tw-mb-6">
-                    <FollowedIssuesTicker
-                        maxItems={8}
-                        refreshInterval={60000}
-                        showHeader={true}
-                    />
-                </div>
+                <FollowedIssuesTicker
+                    maxItems={8}
+                    refreshInterval={60000}
+                    onHide={() => setShowFollowedIssues(false)}
+                />
             )}
 
-            {/* Filters Section */}
-            <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-mb-6">
-                <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700">
-                        <i className="fa-light fa-filter tw-mr-2"></i>Filters
-                    </h3>
-                    <Button
-                        text="Clear All Filters"
-                        icon="clear"
-                        type="default"
-                        stylingMode="text"
-                        onClick={handleClearFilters}
-                    />
-                </div>
+            {/* â”€â”€ Filters + Quick Pills â”€â”€ */}
+            <DashboardFilterSection
+                filters={filters}
+                vehicles={vehicles}
+                sites={sites}
+                categories={categories}
+                onFilterChange={handleFilterChange}
+                onClearFilters={handleClearFilters}
+            />
 
-                <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-4">
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            Vehicle
-                        </label>
-                        <SelectBox
-                            dataSource={vehicles}
-                            displayExpr="hyoungNo"
-                            valueExpr="vehicleId"
-                            value={filters.vehicleId}
-                            onValueChanged={(e) => handleFilterChange('vehicleId', e.value)}
-                            showClearButton={true}
-                            placeholder="All Vehicles"
-                            searchEnabled={true}
-                        />
-                    </div>
+            {/* â”€â”€ Stat Cards (all sections) â”€â”€ */}
+            <DashboardStatCards
+                stats={stats}
+                formatTime={formatTime}
+                onPriorityFilter={handlePriorityFilter}
+                onStatusFilter={handleStatusFilter}                onOverdueFilter={handleOverdueFilter}
+                onUnassignedFilter={handleUnassignedFilter}
+                onResolvedTodayFilter={handleResolvedTodayFilter}
+                onClearQuickFilters={handleClearQuickFilters}
+                onTabSwitch={setSelectedTab}            />
 
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            Site
-                        </label>
-                        <SelectBox
-                            dataSource={sites}
-                            displayExpr="name"
-                            valueExpr="siteId"
-                            value={filters.siteId}
-                            onValueChanged={(e) => handleFilterChange('siteId', e.value)}
-                            showClearButton={true}
-                            placeholder="All Sites"
-                            searchEnabled={true}
-                        />
-                    </div>
+            {/* â”€â”€ Charts â”€â”€ */}
+            <DashboardCharts dashboardData={dashboardData} allIssues={normalizedAllIssues} />
 
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            Category
-                        </label>
-                        <SelectBox
-                            dataSource={categories}
-                            displayExpr="name"
-                            valueExpr="issueCategoryId"
-                            value={filters.categoryId}
-                            onValueChanged={(e) => handleFilterChange('categoryId', e.value)}
-                            showClearButton={true}
-                            placeholder="All Categories"
-                            searchEnabled={true}
-                        />
-                    </div>
+            {/* â”€â”€ Issue Data Grid â”€â”€ */}
+            <DashboardIssueGrid
+                selectedTab={selectedTab}
+                setSelectedTab={setSelectedTab}
+                tabConfig={tabConfig}
+                getTabDataSource={getTabDataSource}
+                navigate={navigate}
+            />
 
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            Weeks Back
-                        </label>
-                        <SelectBox
-                            dataSource={[
-                                { value: null, text: 'All Time' },
-                                { value: 1, text: 'Last Week' },
-                                { value: 2, text: 'Last 2 Weeks' },
-                                { value: 4, text: 'Last 4 Weeks' },
-                                { value: 8, text: 'Last 8 Weeks' },
-                                { value: 12, text: 'Last 12 Weeks' }
-                            ]}
-                            displayExpr="text"
-                            valueExpr="value"
-                            value={filters.weeksBack}
-                            onValueChanged={(e) => handleFilterChange('weeksBack', e.value)}
-                        />
-                    </div>
-
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            Start Date
-                        </label>
-                        <DateBox
-                            value={filters.startDate}
-                            onValueChanged={(e) => handleFilterChange('startDate', e.value)}
-                            showClearButton={true}
-                            placeholder="From..."
-                        />
-                    </div>
-
-                    <div>
-                        <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-600 tw-mb-1">
-                            End Date
-                        </label>
-                        <DateBox
-                            value={filters.endDate}
-                            onValueChanged={(e) => handleFilterChange('endDate', e.value)}
-                            showClearButton={true}
-                            placeholder="To..."
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Quick Action Buttons */}
-            <div className="tw-flex tw-flex-wrap tw-gap-3 tw-mb-6">
-                <Button
-                    text="Critical Issues"
-                    icon="fa-light fa-exclamation-triangle"
-                    type={filters.priorityFilter === 'Critical' ? 'danger' : 'normal'}
-                    stylingMode={filters.priorityFilter === 'Critical' ? 'contained' : 'outlined'}
-                    onClick={() => handlePriorityFilter('Critical')}
-                />
-
-                <Button
-                    text="Open Issues"
-                    icon="fa-light fa-folder-open"
-                    type={filters.statusFilter === 'Open' ? 'default' : 'normal'}
-                    stylingMode={filters.statusFilter === 'Open' ? 'contained' : 'outlined'}
-                    onClick={() => handleStatusFilter('Open')}
-                />
-
-                <Button
-                    text="In Progress"
-                    icon="fa-light fa-spinner"
-                    type={filters.statusFilter === 'In Progress' ? 'default' : 'normal'}
-                    stylingMode={filters.statusFilter === 'In Progress' ? 'contained' : 'outlined'}
-                    onClick={() => handleStatusFilter('In Progress')}
-                />
-
-                <Button
-                    text="Unassigned"
-                    icon="fa-light fa-user-slash"
-                    type="normal"
-                    stylingMode="outlined"
-                    onClick={() => handleFilterChange('unassignedOnly', true)}
-                />
-
-                {stats.overdueIssues > 0 && (
-                    <Button
-                        text={`${stats.overdueIssues} Overdue`}
-                        icon="fa-light fa-clock"
-                        type="danger"
-                        stylingMode="outlined"
-                        onClick={() => handleFilterChange('overdueOnly', true)}
-                    />
-                )}
-            </div>
-
-            {/* Row 1: Overview Stats */}
-            <div className="tw-mb-6">
-                <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                    <i className="fa-light fa-chart-simple tw-mr-2"></i>Overview
-                </h3>
-                <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
-                    <StatCard
-                        title="Total Issues"
-                        value={stats.totalIssues}
-                        icon="fa-light fa-clipboard-list"
-                        color="blue"
-                        subtitle="All issues in system"
-                    />
-                    <StatCard
-                        title="Open Issues"
-                        value={stats.openCount}
-                        icon="fa-light fa-folder-open"
-                        color="orange"
-                        subtitle="Requires attention"
-                        onClick={() => handleStatusFilter('Open')}
-                    />
-                    <StatCard
-                        title="In Progress"
-                        value={stats.inProgressCount}
-                        icon="fa-light fa-spinner"
-                        color="yellow"
-                        subtitle="Being worked on"
-                        onClick={() => handleStatusFilter('In Progress')}
-                    />
-                    <StatCard
-                        title="Resolved Today"
-                        value={stats.resolvedToday}
-                        icon="fa-light fa-check-circle"
-                        color="green"
-                        subtitle="Completed today"
-                    />
-                </div>
-            </div>
-
-            {/* Row 2: Priority & Alerts */}
-            <div className="tw-mb-6">
-                <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                    <i className="fa-light fa-bell tw-mr-2"></i>Priority & Alerts
-                </h3>
-                <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
-                    <StatCard
-                        title="Critical"
-                        value={stats.criticalCount}
-                        icon="fa-light fa-exclamation-triangle"
-                        color="red"
-                        subtitle="Immediate attention"
-                        onClick={() => handlePriorityFilter('Critical')}
-                    />
-                    <StatCard
-                        title="High Priority"
-                        value={stats.highCount}
-                        icon="fa-light fa-chevron-up"
-                        color="orange"
-                        subtitle="High importance"
-                        onClick={() => handlePriorityFilter('High')}
-                    />
-                    <StatCard
-                        title="Overdue"
-                        value={stats.overdueIssues}
-                        icon="fa-light fa-clock"
-                        color="red"
-                        subtitle="Past due date"
-                    />
-                    <StatCard
-                        title="Unassigned"
-                        value={stats.unassignedIssues}
-                        icon="fa-light fa-user-slash"
-                        color="gray"
-                        subtitle="Needs assignment"
-                    />
-                </div>
-            </div>
-
-            {/* Row 3: User-specific Stats */}
-            <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6 tw-mb-6">
-                {/* Assigned to Me */}
-                <div>
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-user-check tw-mr-2"></i>Assigned to Me
-                    </h3>
-                    <div className="tw-grid tw-grid-cols-3 tw-gap-4">
-                        <StatCard
-                            title="Total Assigned"
-                            value={stats.totalAssigned}
-                            icon="fa-light fa-clipboard-list"
-                            color="blue"
-                        />
-                        <StatCard
-                            title="My Closed"
-                            value={stats.closedByMe}
-                            icon="fa-light fa-check-circle"
-                            color="green"
-                        />
-                        <StatCard
-                            title="Awaiting Response"
-                            value={stats.awaitingResponse}
-                            icon="fa-light fa-hourglass-half"
-                            color="purple"
-                        />
-                    </div>
-                </div>
-
-                {/* Opened by Me */}
-                <div>
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-user-pen tw-mr-2"></i>Opened by Me
-                    </h3>
-                    <div className="tw-grid tw-grid-cols-3 tw-gap-4">
-                        <StatCard
-                            title="Total Opened"
-                            value={stats.totalOpenedByMe}
-                            icon="fa-light fa-file-plus"
-                            color="blue"
-                        />
-                        <StatCard
-                            title="Still Open"
-                            value={stats.openedByMeOpen}
-                            icon="fa-light fa-folder-open"
-                            color="yellow"
-                        />
-                        <StatCard
-                            title="Resolved"
-                            value={stats.openedByMeResolved}
-                            icon="fa-light fa-check"
-                            color="teal"
-                        />
-                    </div>
-                </div>
-            </div>
-
-            {/* Row 4: Performance Metrics */}
-            <div className="tw-mb-6">
-                <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                    <i className="fa-light fa-gauge-high tw-mr-2"></i>Performance Metrics
-                </h3>
-                <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
-                    <StatCard
-                        title="Avg Resolution Time"
-                        value={formatTime(stats.averageResolutionTime)}
-                        icon="fa-light fa-stopwatch"
-                        color="purple"
-                        subtitle="Time to resolve"
-                    />
-                    <StatCard
-                        title="GPS Auto-Created"
-                        value={stats.gpsGeneratedIssues}
-                        icon="fa-light fa-satellite-dish"
-                        color="blue"
-                        subtitle="From GPS monitoring"
-                    />
-                    <StatCard
-                        title="Created Today"
-                        value={stats.createdToday}
-                        icon="fa-light fa-plus-circle"
-                        color="indigo"
-                        subtitle="New issues today"
-                    />
-                    <StatCard
-                        title="Opened by Me (Closed)"
-                        value={stats.openedByMeClosed}
-                        icon="fa-light fa-check-double"
-                        color="green"
-                        subtitle="My issues closed"
-                    />
-                </div>
-            </div>
-
-            {/* Activity Heatmap */}
-            <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-mb-6">
-                <IssueActivityHeatmap
-                    dates={allIssues.map((issue) => issue.openDate).filter(Boolean)}
-                    weeks={52}
-                    title={`${allIssues.length} issues in the last year`}
-                    colorScheme="green"
-                    showSummary={true}
-                />
-            </div>
-
-            {/* Charts Section */}
-            <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6 tw-mb-6">
-                {/* Issues by Week Chart */}
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-chart-bar tw-mr-2"></i>Issues by Week
-                    </h3>
-                    {dashboardData?.issuesByWeek?.length > 0 ? (
-                        <Chart dataSource={dashboardData.issuesByWeek} height={300}>
-                            <ArgumentAxis>
-                                <Label rotationAngle={-45} displayMode="rotate" />
-                            </ArgumentAxis>
-                            <ValueAxis />
-                            <CommonSeriesSettings argumentField="period" type="bar" />
-                            <Series valueField="openedCount" name="Opened" color="#3B82F6" />
-                            <Series valueField="closedCount" name="Closed" color="#10B981" />
-                            <Legend verticalAlignment="bottom" horizontalAlignment="center" />
-                            <Tooltip enabled={true} />
-                        </Chart>
-                    ) : (
-                        <div className="tw-flex tw-items-center tw-justify-center tw-h-64 tw-text-gray-500">
-                            <span>No data available for the selected period</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Issues by Category Chart */}
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-chart-pie tw-mr-2"></i>Issues by Category
-                    </h3>
-                    {dashboardData?.issuesByCategory?.length > 0 ? (
-                        <PieChart
-                            dataSource={dashboardData.issuesByCategory}
-                            height={300}
-                            palette="Material"
-                        >
-                            <PieSeries argumentField="categoryName" valueField="totalCount">
-                                <PieLabel visible={true} position="columns">
-                                    <Connector visible={true} width={0.5} />
-                                </PieLabel>
-                            </PieSeries>
-                            <PieLegend verticalAlignment="bottom" horizontalAlignment="center" />
-                            <PieTooltip
-                                enabled={true}
-                                customizeTooltip={(arg) => ({
-                                    text: `${arg.argumentText}: ${arg.value} (${arg.percentText})`
-                                })}
-                            />
-                        </PieChart>
-                    ) : (
-                        <div className="tw-flex tw-items-center tw-justify-center tw-h-64 tw-text-gray-500">
-                            <span>No category data available</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Additional Charts */}
-            <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6 tw-mb-6">
-                {/* Issues by Vehicle Chart */}
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-truck tw-mr-2"></i>Top Vehicles by Issues
-                    </h3>
-                    {dashboardData?.issuesByVehicle?.length > 0 ? (
-                        <Chart
-                            dataSource={dashboardData.issuesByVehicle.slice(0, 10)}
-                            height={300}
-                            rotated={true}
-                        >
-                            <ArgumentAxis>
-                                <Label />
-                            </ArgumentAxis>
-                            <ValueAxis />
-                            <CommonSeriesSettings argumentField="vehicleName" type="bar" />
-                            <Series valueField="totalCount" name="Issues" color="#8B5CF6" />
-                            <Tooltip enabled={true} />
-                        </Chart>
-                    ) : (
-                        <div className="tw-flex tw-items-center tw-justify-center tw-h-64 tw-text-gray-500">
-                            <span>No vehicle data available</span>
-                        </div>
-                    )}
-                </div>
-
-                {/* Issues by Site Chart */}
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4">
-                    <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700 tw-mb-4">
-                        <i className="fa-light fa-building tw-mr-2"></i>Top Sites by Issues
-                    </h3>
-                    {dashboardData?.issuesBySite?.length > 0 ? (
-                        <Chart
-                            dataSource={dashboardData.issuesBySite.slice(0, 10)}
-                            height={300}
-                            rotated={true}
-                        >
-                            <ArgumentAxis>
-                                <Label />
-                            </ArgumentAxis>
-                            <ValueAxis />
-                            <CommonSeriesSettings argumentField="siteName" type="bar" />
-                            <Series valueField="totalCount" name="Issues" color="#F59E0B" />
-                            <Tooltip enabled={true} />
-                        </Chart>
-                    ) : (
-                        <div className="tw-flex tw-items-center tw-justify-center tw-h-64 tw-text-gray-500">
-                            <span>No site data available</span>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            {/* Issue Lists - Button Tab Selector (Similar to TransactionHub) */}
-            <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
-                {/* Tab Header with Button Selector */}
-                <div className="tw-border-b tw-border-gray-200 tw-p-4">
-                    <div className="tw-flex tw-flex-col sm:tw-flex-row tw-justify-between tw-items-start sm:tw-items-center tw-gap-4">
-                        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-700">
-                            <i className="fa-light fa-list-ul tw-mr-2"></i>Issue Lists
-                        </h3>
-                        {/* Tab Buttons */}
-                        <div className="issue-dashboard__tab-buttons tw-flex tw-flex-wrap tw-gap-1">
-                            {tabConfig.map((tab) => (
-                                <Button
-                                    key={tab.id}
-                                    text={`${tab.label} (${tab.count})`}
-                                    icon={tab.icon}
-                                    type={selectedTab === tab.id ? 'default' : 'normal'}
-                                    stylingMode={selectedTab === tab.id ? 'contained' : 'outlined'}
-                                    onClick={() => setSelectedTab(tab.id)}
-                                    className={`issue-dashboard__tab-btn ${selectedTab === tab.id ? 'issue-dashboard__tab-btn--active' : ''}`}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                </div>
-
-                {/* DataGrid Content */}
-                <div className="tw-p-4">
-                    <DataGrid
-                        dataSource={getTabDataSource()}
-                        keyExpr="id"
-                        showBorders={true}
-                        showColumnLines={true}
-                        showRowLines={true}
-                        allowColumnResizing={true}
-                        columnAutoWidth={true}
-                        rowAlternationEnabled={true}
-                        height={450}
-                    >
-                        <FilterPanel visible={true} />
-                        <FilterRow visible={true} />
-                        <HeaderFilter visible={true} />
-                        <Sorting mode="multiple" />
-                        <Scrolling mode="virtual" />
-                        <Selection mode="multiple" />
-                        <Paging enabled={true} defaultPageSize={20} />
-                        <Pager
-                            visible={true}
-                            allowedPageSizes={[10, 20, 50, 100]}
-                            displayMode="full"
-                            showPageSizeSelector={true}
-                            showInfo={true}
-                            showNavigationButtons={true}
-                        />
-
-                        <Column dataField="id" caption="ID" width={70} defaultSortOrder="desc" />
-                        <Column dataField="problemTitle" caption="Title" minWidth={200} />
-                        <Column
-                            dataField="priorityName"
-                            caption="Priority"
-                            width={100}
-                            cellRender={renderPriorityCell}
-                        />
-                        <Column
-                            dataField="statusName"
-                            caption="Status"
-                            width={120}
-                            cellRender={renderStatusCell}
-                        />
-                        <Column dataField="categoryName" caption="Tags" width={150} />
-
-                        {/* Columns with visibility based on selected tab */}
-                        <Column
-                            dataField="vehicleNumber"
-                            caption="Vehicle"
-                            width={120}
-                            visible={selectedTab === 'assigned' || selectedTab === 'closed'}
-                        />
-                        <Column
-                            dataField="siteName"
-                            caption="Site"
-                            width={150}
-                            visible={selectedTab === 'assigned'}
-                        />
-                        <Column
-                            dataField="assignToUserName"
-                            caption="Assigned To"
-                            width={150}
-                            visible={selectedTab === 'opened'}
-                        />
-                        <Column
-                            dataField="openbyUserName"
-                            caption="Opened By"
-                            width={150}
-                            visible={selectedTab === 'closed'}
-                        />
-                        <Column
-                            dataField="openDate"
-                            caption="Opened"
-                            width={110}
-                            dataType="date"
-                            format="shortDate"
-                        />
-                        <Column
-                            dataField="dueDate"
-                            caption="Due Date"
-                            width={110}
-                            dataType="date"
-                            format="shortDate"
-                            visible={selectedTab === 'assigned'}
-                        />
-                        <Column
-                            dataField="closingDate"
-                            caption="Closed"
-                            width={110}
-                            dataType="date"
-                            format="shortDate"
-                            visible={selectedTab === 'opened' || selectedTab === 'closed'}
-                        />
-
-                        <Summary>
-                            <TotalItem
-                                column="id"
-                                summaryType="count"
-                                displayFormat="Total Issues: {0}"
-                            />
-                        </Summary>
-                    </DataGrid>
-                </div>
-            </div>
-
-            {/* Loading Overlay */}
+            {/* â”€â”€ Updating overlay â”€â”€ */}
             {loading && dashboardData && (
-                <div className="tw-fixed tw-inset-0 tw-bg-black tw-bg-opacity-20 tw-flex tw-items-center tw-justify-center tw-z-50">
-                    <div className="tw-bg-white tw-rounded-lg tw-p-4 tw-shadow-lg tw-flex tw-items-center">
+                <div className="fms-updating-overlay">
+                    <div className="fms-updating-overlay__box">
                         <LoadIndicator visible={true} />
-                        <span className="tw-ml-3 tw-text-gray-600">Updating...</span>
+                        <span>Updatingâ€¦</span>
                     </div>
                 </div>
             )}

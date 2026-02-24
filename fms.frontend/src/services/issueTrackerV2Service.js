@@ -339,6 +339,178 @@ class IssueTrackerV2Service {
   }
 
   // ============================================
+  // Template Actions API
+  // ============================================
+
+  /**
+   * Get all template actions for a template (admin)
+   * @param {number} templateId - Issue template ID
+   * @returns {Promise} List of template actions
+   */
+  async getTemplateActions(templateId) {
+    try {
+      const response = await axiosInstance.get(`${this.templatesURL}/${templateId}/actions`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching template actions for template ${templateId}:`, error);
+      throw this.handleError(error, 'Failed to fetch template actions');
+    }
+  }
+
+  /**
+   * Get active template actions for completion popup
+   * @param {number} templateId - Issue template ID
+   * @returns {Promise} List of active template actions
+   */
+  async getTemplateActionsForCompletion(templateId) {
+    try {
+      const response = await axiosInstance.get(`${this.templatesURL}/${templateId}/actions/for-completion`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching completion actions for template ${templateId}:`, error);
+      throw this.handleError(error, 'Failed to fetch completion actions');
+    }
+  }
+
+  /**
+   * Get a single template action by ID
+   * @param {number} templateId - Issue template ID
+   * @param {number} actionId - Template action ID
+   * @returns {Promise} Template action details
+   */
+  async getTemplateActionById(templateId, actionId) {
+    try {
+      const response = await axiosInstance.get(`${this.templatesURL}/${templateId}/actions/${actionId}`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching template action ${actionId}:`, error);
+      throw this.handleError(error, 'Failed to fetch template action');
+    }
+  }
+
+  /**
+   * Create a new template action
+   * @param {number} templateId - Issue template ID
+   * @param {Object} actionData - Template action data
+   * @returns {Promise} Created template action
+   */
+  async createTemplateAction(templateId, actionData) {
+    try {
+      const response = await axiosInstance.post(`${this.templatesURL}/${templateId}/actions`, actionData);
+      this.showNotification('Template action created successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error('Error creating template action:', error);
+      throw this.handleError(error, 'Failed to create template action');
+    }
+  }
+
+  /**
+   * Update an existing template action
+   * @param {number} templateId - Issue template ID
+   * @param {number} actionId - Template action ID
+   * @param {Object} actionData - Updated action data
+   * @returns {Promise} Updated template action
+   */
+  async updateTemplateAction(templateId, actionId, actionData) {
+    try {
+      const response = await axiosInstance.put(`${this.templatesURL}/${templateId}/actions/${actionId}`, actionData);
+      this.showNotification('Template action updated successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error updating template action ${actionId}:`, error);
+      throw this.handleError(error, 'Failed to update template action');
+    }
+  }
+
+  /**
+   * Delete a template action
+   * @param {number} templateId - Issue template ID
+   * @param {number} actionId - Template action ID
+   * @returns {Promise} Deletion result
+   */
+  async deleteTemplateAction(templateId, actionId) {
+    try {
+      const response = await axiosInstance.delete(`${this.templatesURL}/${templateId}/actions/${actionId}`);
+      this.showNotification('Template action deleted successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error deleting template action ${actionId}:`, error);
+      throw this.handleError(error, 'Failed to delete template action');
+    }
+  }
+
+  /**
+   * Toggle active status of a template action
+   * @param {number} templateId - Issue template ID
+   * @param {number} actionId - Template action ID
+   * @returns {Promise} Updated template action
+   */
+  async toggleTemplateActionActive(templateId, actionId) {
+    try {
+      const response = await axiosInstance.patch(`${this.templatesURL}/${templateId}/actions/${actionId}/toggle-active`);
+      this.showNotification('Template action status updated', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error toggling template action ${actionId}:`, error);
+      throw this.handleError(error, 'Failed to toggle template action status');
+    }
+  }
+
+  // ============================================
+  // Issue Completion & Reassignment API
+  // ============================================
+
+  /**
+   * Complete an issue with structured actions
+   * @param {number} issueId - Issue ID
+   * @param {Object} completionData - { actions: [...], notes? }
+   * @returns {Promise} Completion result
+   */
+  async completeWithActions(issueId, completionData) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/complete-with-actions`, completionData);
+      this.showNotification('Issue completed successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error completing issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to complete issue');
+    }
+  }
+
+  /**
+   * Reassign an issue to a different user
+   * @param {number} issueId - Issue ID
+   * @param {Object} reassignData - { newAssigneeId, newAssigneeUserName?, notes? }
+   * @returns {Promise} Reassignment result
+   */
+  async reassignIssue(issueId, reassignData) {
+    try {
+      const response = await axiosInstance.post(`${this.baseURL}/${issueId}/reassign`, reassignData);
+      this.showNotification('Issue reassigned successfully', 'success');
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error reassigning issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to reassign issue');
+    }
+  }
+
+  /**
+   * Get structured completion records for an issue
+   * @param {number} issueId - Issue ID
+   * @returns {Promise} List of completion records
+   */
+  async getCompletionRecords(issueId) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${issueId}/completion-records`);
+      return this.handleResponse(response);
+    } catch (error) {
+      console.error(`Error fetching completion records for issue ${issueId}:`, error);
+      throw this.handleError(error, 'Failed to fetch completion records');
+    }
+  }
+
+  // ============================================
   // Helper Methods
   // ============================================
 

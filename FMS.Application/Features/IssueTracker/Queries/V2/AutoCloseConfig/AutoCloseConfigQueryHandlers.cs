@@ -46,11 +46,8 @@ public class GetAutoCloseConfigByTemplateQueryHandler : IRequestHandler<GetAutoC
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
-            if (config == null)
-            {
-                return FMSResponse<IssueAutoCloseConfigDTO>.Failed($"Auto Close Config for Template {request.IssueTemplateId} not found.");
-            }
-
+            // Return success with null data when no config exists yet — the frontend
+            // initialises default values from this and shows a "Create" form.
             return FMSResponse<IssueAutoCloseConfigDTO>.Success(config);
         }
         catch (Exception ex)

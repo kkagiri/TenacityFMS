@@ -1194,11 +1194,15 @@ namespace FMS.Application.Features.Notification.Services
         {
             try
             {
+                // Strip HTML tags — MessageTemplate may contain rich HTML designed for email;
+                // system (SignalR) and push must receive clean plain text.
+                var plainMessage = StripHtml(notification.Message);
+
                 var notificationPayload = new
                 {
                     id = notification.NotificationId,
                     title = notification.Title,
-                    message = notification.Message,
+                    message = plainMessage,
                     type = notification.Type.ToLower(),
                     priority = notification.Priority,
                     // Ensure timestamp is in ISO 8601 UTC format with 'Z' suffix
@@ -1212,7 +1216,7 @@ namespace FMS.Application.Features.Notification.Services
                 await _signalRService.SendUserNotificationAsync(
                     recipient.UserId,
                     SystemConstants.Notifications.SystemNotificationType,
-                    notification.Message,
+                    plainMessage,
                     notificationPayload);
 
                 _logger.LogDebug("Sent targeted system notification {NotificationId} to user {UserId}",
@@ -1222,7 +1226,7 @@ namespace FMS.Application.Features.Notification.Services
                 // This ensures delivery even if user-targeted routing fails silently
                 await _signalRService.SendGlobalNotificationAsync(
                     SystemConstants.Notifications.SystemNotificationType,
-                    notification.Message,
+                    plainMessage,
                     notificationPayload);
 
                 _logger.LogDebug("Broadcast system notification {NotificationId} globally (target: {UserId})",
@@ -1367,6 +1371,27 @@ namespace FMS.Application.Features.Notification.Services
                     notification.NotificationId);
                 return new List<EmailAttachmentDto>();
             }
+        }
+
+        /// <summary>
+        /// Strips HTML tags and collapses whitespace to produce clean plain text.
+        /// Used for system (SignalR) and push channels where the MessageTemplate
+        /// may contain rich HTML intended for email rendering.
+        /// </summary>
+        private static string StripHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+            // Remove all HTML tags
+            var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+            // Decode common HTML entities
+            text = text.Replace("&amp;", "&")
+                       .Replace("&lt;", "<")
+                       .Replace("&gt;", ">")
+                       .Replace("&nbsp;", " ")
+                       .Replace("&quot;", "\"");
+            // Collapse multiple whitespace / newlines into a single space
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s{2,}", " ");
+            return text.Trim();
         }
 
         private string? TryGetCustomEmailBodyFromData(string? dataJson)
