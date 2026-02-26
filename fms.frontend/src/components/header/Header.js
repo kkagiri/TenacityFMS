@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 
-import v from "../user-panel/UserPanel";
+import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { AppDrawer } from "../app-drawer";
 import "./Header.scss";
