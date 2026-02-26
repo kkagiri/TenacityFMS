@@ -94,8 +94,16 @@ namespace FMS.WebClient.Services.Reporting
             _logger.LogInformation("JsReport letterhead logo path: {Path}", _branding.LogoPath);
 
             // ── jsreport setup (Handlebars engine ONLY — no Chrome, no PDF) ───────
-            var jsReportTempPath = Path.Combine(Path.GetTempPath(), "FMS_JsReport_Temp");
+            // Use C:\FMSData as the base working directory so jsreport has full
+            // write permissions (avoids EPERM under IIS / Windows\TEMP).
+            var fmsDataRoot = @"C:\FMSData";
+            var jsReportTempPath = Path.Combine(fmsDataRoot, "JsReport_Temp");
             Directory.CreateDirectory(jsReportTempPath);
+
+            // Point the fs-store data directory into the writable folder so
+            // jsreport doesn't try to mkdir inside the (read-only) IIS app root.
+            var jsReportDataPath = Path.Combine(jsReportTempPath, "data");
+            Directory.CreateDirectory(jsReportDataPath);
 
             _reportingService = new LocalReporting()
                 .UseBinary(jsreport.Binary.JsReportBinary.GetBinary())
@@ -103,7 +111,7 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     cfg.TrustUserCode = true;
                     cfg.TempDirectory = jsReportTempPath;
-                    cfg.FileSystemStore();
+                    cfg.FileSystemStore(new { DataDirectory = jsReportDataPath });
                     return cfg;
                 })
                 .AsUtility()

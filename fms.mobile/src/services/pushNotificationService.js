@@ -407,7 +407,7 @@ class PushNotificationService {
     try {
       const deviceInfo = {
         deviceToken: token,
-        deviceType: Platform.OS === "ios" ? "iOS" : "Android",
+        platform: Platform.OS === "ios" ? "ios" : "android",
         deviceName: await DeviceInfo.getDeviceName(),
         deviceModel: DeviceInfo.getModel(),
         osVersion: DeviceInfo.getSystemVersion(),

@@ -35,7 +35,6 @@ namespace FMS.WebClient.Controllers
     [ApiController]
     [Route("api/v1/push-devices")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    [RequirePermission(Permissions.Admin.Users)]
     public class PushDevicesController : ControllerBase
     {
         private readonly IPushNotificationService _pushService;
