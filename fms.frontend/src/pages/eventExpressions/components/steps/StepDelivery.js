@@ -1,16 +1,22 @@
 /**
  * File: StepDelivery.js
- * Purpose: Step 3 of Event Expression form — Notification delivery configuration.
+ * Purpose: Step 4 of Event Expression form — Notification delivery configuration.
  *          Channels (Email, SMS, In-App), rate limits, cooldown, timing, active event creation.
  *          These fields are saved to the linked NotificationPolicy.
  * Dependencies: devextreme-react NumberBox, parent policyData/handlers via props
- * Last Modified: 2026-02-14
+ * Last Modified: 2026-02-24
  *
  * Key Props:
  * - policyData: notification policy state (channels, rate limits, etc.)
  * - onPolicyChange(field, value): updates a policy field
- * - formData: expression-level overrides (cooldownMinutes, maxNotificationsPerDay, createActiveEvent)
+ * - formData: expression-level overrides (cooldownMinutes, maxNotificationsPerDay, maxNotificationsPerHour, createActiveEvent)
  * - onFieldChange(field, value): updates expression field
+ *
+ * Rate limit fields:
+ *   formData.cooldownMinutes         — min gap between triggers (per scope)
+ *   formData.maxNotificationsPerHour — NEW: hourly cap per tank/site scope
+ *   formData.maxNotificationsPerDay  — daily cap per tank/site scope
+ *   policyData.maxNotificationsPerHour — policy-level pipeline throttle (delivery channel cap)
  */
 
 import React from 'react';
@@ -107,8 +113,45 @@ const StepDelivery = ({ policyData, onPolicyChange, formData, onFieldChange }) =
                 <div className="tw-space-y-3">
                     <div>
                         <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                            Max per Day (0 = unlimited)
+                            Cooldown (minutes, 0 = off)
                         </label>
+                        <p className="tw-text-xs tw-text-gray-400 tw-mb-1">
+                            Minimum gap between triggers per scope. Tank A and Tank B each have their own independent timer.
+                        </p>
+                        <NumberBox
+                            value={formData.cooldownMinutes}
+                            onValueChanged={(e) => onFieldChange('cooldownMinutes', e.value)}
+                            min={0}
+                            max={10080}
+                            showSpinButtons={true}
+                            width="100%"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                            Max per Hour per Scope (0 = unlimited)
+                        </label>
+                        <p className="tw-text-xs tw-text-gray-400 tw-mb-1">
+                            Hourly cap per tank/site. “tank:1” has its own budget — won’t block “tank:2” from also triggering.
+                        </p>
+                        <NumberBox
+                            value={formData.maxNotificationsPerHour}
+                            onValueChanged={(e) => onFieldChange('maxNotificationsPerHour', e.value)}
+                            min={0}
+                            max={100}
+                            showSpinButtons={true}
+                            width="100%"
+                        />
+                    </div>
+
+                    <div>
+                        <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                            Max per Day per Scope (0 = unlimited)
+                        </label>
+                        <p className="tw-text-xs tw-text-gray-400 tw-mb-1">
+                            Daily cap per tank/site scope.
+                        </p>
                         <NumberBox
                             value={formData.maxNotificationsPerDay}
                             onValueChanged={(e) => onFieldChange('maxNotificationsPerDay', e.value)}
@@ -119,10 +162,16 @@ const StepDelivery = ({ policyData, onPolicyChange, formData, onFieldChange }) =
                         />
                     </div>
 
-                    <div>
+                    <div className="tw-border-t tw-border-gray-100 tw-pt-3">
+                        <p className="tw-text-xs tw-text-gray-400 tw-mb-1 tw-font-medium tw-text-gray-500">
+                            Policy-level channel throttle
+                        </p>
                         <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
-                            Max per Hour
+                            Max per Hour (delivery pipeline)
                         </label>
+                        <p className="tw-text-xs tw-text-gray-400 tw-mb-1">
+                            Hard cap on notification delivery across all channels for this policy.
+                        </p>
                         <NumberBox
                             value={policyData.maxNotificationsPerHour}
                             onValueChanged={(e) => onPolicyChange('maxNotificationsPerHour', e.value)}

@@ -28,10 +28,13 @@ export const FETCH_USER_SITES_FAILURE = 'FETCH_USER_SITES_FAILURE';
 export const UPDATE_USER_SITES_SUCCESS = 'UPDATE_USER_SITES_SUCCESS';
 export const RESTORE_USER_SUCCESS = 'RESTORE_USER_SUCCESS';
 export const SOFT_DELETE_USER_SUCCESS = 'SOFT_DELETE_USER_SUCCESS';
+export const CHANGE_PASSWORD_SUCCESS = 'CHANGE_PASSWORD_SUCCESS';
 export const FETCH_ALL_SITES_SUCCESS = 'FETCH_ALL_SITES_SUCCESS';
 export const FETCH_ALL_SITES_FAILURE = 'FETCH_ALL_SITES_FAILURE';
 export const FETCH_ALL_ACTIVITIES_SUCCESS = 'FETCH_ALL_ACTIVITIES_SUCCESS';
 export const FETCH_ALL_ACTIVITIES_FAILURE = 'FETCH_ALL_ACTIVITIES_FAILURE';
+export const FETCH_LOGIN_ACTIVITIES_SUCCESS = 'FETCH_LOGIN_ACTIVITIES_SUCCESS';
+export const FETCH_LOGIN_ACTIVITIES_FAILURE = 'FETCH_LOGIN_ACTIVITIES_FAILURE';
 export const FETCH_USER_ROLES_SUCCESS = 'FETCH_USER_ROLES_SUCCESS';
 export const FETCH_USER_ROLES_FAILURE = 'FETCH_USER_ROLES_FAILURE';
 export const FETCH_USER_PERMISSIONS_SUCCESS = 'FETCH_USER_PERMISSIONS_SUCCESS';
@@ -166,15 +169,49 @@ export const restoreUser = (userId) => async (dispatch) => {
 
 export const updateUser = (userId, userData) => async (dispatch) => {
     try {
+        // Map frontend field names to backend UserUpdateCommand properties
+        const deptRaw = userData.departmentId;
+        const deptId = (deptRaw === '' || deptRaw === null || deptRaw === undefined)
+            ? null
+            : Number(deptRaw) || null;
+
         const payload = {
-            ...userData,
-            UserId: userId
+            UserId: userId,
+            firstName: userData.firstName || null,
+            lastName: userData.lastName || null,
+            userName: userData.userName,
+            email: userData.email,
+            phone: userData.phone || null,
+            roleName: userData.roleName,
+            departmentId: deptId,
+            bypassLocationValidation: userData.bypassGps ?? false,
         };
         const response = await axiosInstance.put(`/user/${userId}`, payload);
         dispatch({ type: UPDATE_USER_SUCCESS, payload: response.data });
         return response.data;
     } catch (error) {
         throw new Error('Error updating user');
+    }
+};
+
+/**
+ * Change the currently authenticated user's own password.
+ * Calls PUT /api/v1/user/change-password — no admin permission required.
+ */
+export const changePassword = (currentPassword, newPassword) => async () => {
+    try {
+        const response = await axiosInstance.put('/user/change-password', {
+            currentPassword,
+            newPassword,
+        });
+        return response.data;
+    } catch (error) {
+        const msg =
+            error?.response?.data?.message ||
+            error?.response?.data?.title ||
+            error?.message ||
+            'Error changing password';
+        throw new Error(msg);
     }
 };
 
@@ -186,6 +223,24 @@ export const fetchUserActivities = (userId) => async (dispatch) => {
     } catch (error) {
         dispatch({ type: FETCH_USER_ACTIVITIES_FAILURE, payload: error.message });
         throw new Error('Error loading user activities');
+    }
+};
+
+export const fetchLoginActivities = (userId) => async (dispatch) => {
+    try {
+        const sevenDaysAgo = new Date();
+        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+        const params = new URLSearchParams({
+            UserId: userId,
+            StartDate: sevenDaysAgo.toISOString(),
+            PageSize: '100',
+        });
+        const response = await axiosInstance.get(`/useractivities/login?${params.toString()}`);
+        dispatch({ type: FETCH_LOGIN_ACTIVITIES_SUCCESS, payload: response.data });
+        return response.data;
+    } catch (error) {
+        dispatch({ type: FETCH_LOGIN_ACTIVITIES_FAILURE, payload: error.message });
+        throw new Error('Error loading login activities');
     }
 };
 

@@ -56,10 +56,12 @@ const VehicleMaintenanceHistory = ({ vehicleId }) => {
       );
 
       if (response.status === 200) {
-        const data = response.data;
+        // Extract array from FMSResponse wrapper or raw response
+        const raw = response.data;
+        const data = Array.isArray(raw) ? raw : Array.isArray(raw?.data) ? raw.data : [];
 
         // Process the data
-        const processedData = (data || []).map((item) => ({
+        const processedData = data.map((item) => ({
           ...item,
           scheduledDate: item.scheduledDate
             ? new Date(item.scheduledDate)

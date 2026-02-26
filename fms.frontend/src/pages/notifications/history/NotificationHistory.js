@@ -1,699 +1,483 @@
 /**
  * File: NotificationHistory.js
- * Purpose: Display notification delivery history with filters, retry actions, and trend chart.
- * Dependencies: react, devextreme-react, notificationsApi
- * Last Modified: 2026-02-07
+ * Purpose: Admin notification history page showing ALL system notifications
+ *          with M365 Admin Center Fluent design, filters, detail panel with HTML rendering.
+ * Dependencies: react, devextreme-react/data-grid, notificationsApi
+ * Last Modified: 2026-02-25
  *
  * Key Functions/Components:
- * - loadAll: Loads notification rows and chart data.
- * - handleRetry: Re-sends failed or pending notifications.
- * - renderStatus/renderType/renderPriority: Grid cell formatters.
+ * - loadNotifications: Loads all system notifications via admin-history endpoint.
+ * - handleViewDetails: Opens M365-styled detail panel with HTML body rendering.
+ * - renderStatusBadge/renderTypeBadge/renderPriorityBadge: Grid cell formatters (M365 badge style).
  */
-import React, { useState, useEffect } from 'react';
-import { DataGrid, Column } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
-import { SelectBox } from 'devextreme-react/select-box';
-import { DateBox } from 'devextreme-react/date-box';
-import { Chart, Series, ArgumentAxis, ValueAxis, Legend, Tooltip } from 'devextreme-react/chart';
-import notify from 'devextreme/ui/notify';
-import notificationsApi from '../../../dataservice/notificationsApi';
+import React, { useState, useEffect, useCallback } from "react";
+import { DataGrid, Column, Paging, Pager, Sorting } from "devextreme-react/data-grid";
+import notify from "devextreme/ui/notify";
+import notificationsApi from "../../../dataservice/notificationsApi";
+import SlidePanel from "../../../components/ui/SlidePanel";
+import "./NotificationHistory.scss";
 
-// No mocks: data loads from controller via notificationsApi
+const PAGE_SIZE = 25;
 
-const ensureArray = (value) => {
-  if (Array.isArray(value)) return value;
-  if (value && Array.isArray(value.items)) return value.items;
-  if (value && Array.isArray(value.data)) return value.data;
-  return [];
-};
-
-const normalizeDateValue = (value) => {
-  if (!value) return null;
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? null : date;
-};
-
-const normalizeStatsToChartRows = (statsPayload) => {
-  const directList = ensureArray(statsPayload);
-  if (directList.length > 0) {
-    return directList.map((s) => ({
-      date: s.date || s.day || s.bucket || s.dateString || new Date().toISOString(),
-      sent: s.sent ?? s.totalSent ?? s.count ?? 0,
-      delivered: s.delivered ?? s.totalDelivered ?? s.readCount ?? 0,
-      failed: s.failed ?? s.totalFailed ?? 0,
-    }));
-  }
-
-  const dailyList = ensureArray(statsPayload?.dailyStatistics || statsPayload?.DailyStatistics);
-  if (dailyList.length > 0) {
-    return dailyList.map((s) => ({
-      date: s.date || s.Date || s.dateString || s.DateString || new Date().toISOString(),
-      sent: s.sent ?? s.totalSent ?? s.count ?? s.Count ?? 0,
-      delivered: s.delivered ?? s.totalDelivered ?? s.readCount ?? s.ReadCount ?? 0,
-      failed: s.failed ?? s.totalFailed ?? 0,
-    }));
-  }
-
-  return [];
-};
-
-const resolveRecipientDisplay = (n) => {
-  return (
-    n.recipient ||
-    n.Recipient ||
-    n.to ||
-    n.To ||
-    n.userEmail ||
-    n.UserEmail ||
-    n.recipientEmail ||
-    n.RecipientEmail ||
-    n.siteName ||
-    n.SiteName ||
-    n.vehicleName ||
-    n.VehicleName ||
-    n.tankName ||
-    n.TankName ||
-    n.ptsDeviceName ||
-    n.PtsDeviceName ||
-    '-'
-  );
-};
-
-const resolveDeliveredAt = (n) => {
-  return (
-    n.deliveredAt ||
-    n.DeliveredAt ||
-    n.readAt ||
-    n.ReadAt ||
-    n.acknowledgedAt ||
-    n.AcknowledgedAt ||
-    null
-  );
-};
-
-const tryParseMetadata = (n) => {
-  if (n.metadata && typeof n.metadata === 'object') return n.metadata;
-  if (n.Metadata && typeof n.Metadata === 'object') return n.Metadata;
-  if (n.meta && typeof n.meta === 'object') return n.meta;
-  if (n.Meta && typeof n.Meta === 'object') return n.Meta;
-  if (n.data && typeof n.data === 'object') return n.data;
-  if (n.Data && typeof n.Data === 'object') return n.Data;
-  if (typeof n.data === 'string' && n.data.trim().startsWith('{')) {
-    try {
-      return JSON.parse(n.data);
-    } catch {
-      return null;
-    }
-  }
-  if (typeof n.Data === 'string' && n.Data.trim().startsWith('{')) {
-    try {
-      return JSON.parse(n.Data);
-    } catch {
-      return null;
-    }
-  }
-  return null;
-};
-
-const stripHtmlTags = (value) => {
-  if (!value) return '';
-  return String(value).replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-};
-
-const resolveReportViewLink = (metadata) => {
-  if (!metadata || typeof metadata !== 'object') return null;
-
-  const rawLink = metadata.reportViewPath ||
-    metadata.reportViewUrl ||
-    metadata.ReportViewPath ||
-    metadata.ReportViewUrl ||
-    null;
-
-  if (!rawLink || typeof rawLink !== 'string') return null;
-
-  const normalized = rawLink.trim();
-  if (!normalized) return null;
-
-  return /^https?:\/\//i.test(normalized)
-    ? normalized
-    : (normalized.startsWith('/') ? normalized : `/${normalized}`);
-};
-
-const resolveReportActionText = (metadata) => {
-  if (!metadata || typeof metadata !== 'object') {
-    return 'Click here to view report';
-  }
-
-  const rawValue = metadata.reportActionText || metadata.ReportActionText;
-  if (!rawValue || typeof rawValue !== 'string') {
-    return 'Click here to view report';
-  }
-
-  const normalized = rawValue.trim();
-  return normalized || 'Click here to view report';
-};
-
-const resolveNotificationFromCell = (cellInfoOrRow, rows) => {
-  if (!cellInfoOrRow) return null;
-
-  if (cellInfoOrRow.data && (cellInfoOrRow.data.id != null || cellInfoOrRow.data.subject)) {
-    return cellInfoOrRow.data;
-  }
-
-  if (cellInfoOrRow.row?.data && (cellInfoOrRow.row.data.id != null || cellInfoOrRow.row.data.subject)) {
-    return cellInfoOrRow.row.data;
-  }
-
-  if (cellInfoOrRow.id != null || cellInfoOrRow.subject) {
-    return cellInfoOrRow;
-  }
-
-  if (cellInfoOrRow.key != null && Array.isArray(rows)) {
-    const matched = rows.find((r) => String(r.id) === String(cellInfoOrRow.key));
-    if (matched) return matched;
-  }
-
-  return null;
-};
-
-const formatMetadataValue = (value) => {
-  if (value == null) return '-';
-  if (typeof value === 'object') {
-    try {
-      return JSON.stringify(value);
-    } catch {
-      return '[object]';
-    }
-  }
-  return String(value);
+const formatDateTime = (value) => {
+  if (!value) return "—";
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 };
 
 const NotificationHistory = () => {
   const [notifications, setNotifications] = useState([]);
-  const [selectedNotification, setSelectedNotification] = useState(null);
-  const [showDetailsPopup, setShowDetailsPopup] = useState(false);
-  const [chartData, setChartData] = useState([]);
-  const [filters, setFilters] = useState({
-    status: 'all',
-    type: 'all',
-    dateFrom: null,
-    dateTo: null
-  });
+  const [totalCount, setTotalCount] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [selectedNotification, setSelectedNotification] = useState(null);
+  const [panelOpen, setPanelOpen] = useState(false);
 
+  const [filters, setFilters] = useState({
+    status: "",
+    type: "",
+    priority: "",
+    search: "",
+    dateFrom: "",
+    dateTo: "",
+  });
 
+  const loadNotifications = useCallback(async () => {
+    setLoading(true);
+    try {
+      const result = await notificationsApi.getAdminNotificationHistory({
+        type: filters.type || undefined,
+        status: filters.status || undefined,
+        priority: filters.priority || undefined,
+        dateFrom: filters.dateFrom || undefined,
+        dateTo: filters.dateTo || undefined,
+        search: filters.search || undefined,
+        take: 200,
+      });
 
-  const statusOptions = [
-    { value: 'all', text: 'All Statuses' },
-    { value: 'sent', text: 'Sent' },
-    { value: 'delivered', text: 'Delivered' },
-    { value: 'failed', text: 'Failed' },
-    { value: 'pending', text: 'Pending' }
-  ];
-
-  const typeOptions = [
-    { value: 'all', text: 'All Types' },
-    { value: 'email', text: 'Email' },
-    { value: 'sms', text: 'SMS' },
-    { value: 'push', text: 'Push Notification' }
-  ];
-
-  useEffect(() => {
-    const loadAll = async () => {
-      setLoading(true);
-      try {
-        // 1) Fetch notifications from controller
-        const notifResult = await notificationsApi.getNotifications({
-          type: filters.type,
-          status: filters.status,
-          dateFrom: filters.dateFrom,
-          dateTo: filters.dateTo,
-        });
-
-        const items = notifResult.isSuccess ? ensureArray(notifResult.data) : [];
-        const mappedItems = items.map((n) => {
-          const metadata = tryParseMetadata(n);
-          const reportViewPath = resolveReportViewLink(metadata);
-          const reportActionText = resolveReportActionText(metadata);
-          const plainBody = stripHtmlTags(
-            n.message ||
-            n.Message ||
-            n.body ||
-            n.Body ||
-            ''
-          );
-
-          return ({
-            id: n.id ?? n.notificationId ?? n.Id,
-            type: (n.type || n.Type || n.channel || n.Channel || 'system').toString().toLowerCase(),
-            subject: n.subject || n.Subject || n.title || n.Title || 'Notification',
-            recipient: resolveRecipientDisplay(n),
-            status: (n.status || n.Status || 'pending').toString().toLowerCase(),
-            sentAt: n.sentAt || n.SentAt || n.createdAt || n.CreatedAt || n.timestamp || n.Timestamp,
-            deliveredAt: resolveDeliveredAt(n),
-            template: n.templateName || n.TemplateName || n.template || n.Template || '-',
-            policy: n.policyName || n.PolicyName || n.policy || n.Policy || '-',
-            priority: (n.priority || n.Priority || 'medium').toString().toLowerCase(),
-            retryCount: n.retryCount ?? n.RetryCount ?? 0,
-            errorMessage: n.errorMessage || n.ErrorMessage || n.error || n.Error || null,
-            metadata,
-            reportViewPath,
-            reportActionText,
-            body: reportViewPath ? 'Click here to view the report.' : (plainBody || null),
-          });
-        });
-
-        if (!notifResult.isSuccess) {
-          notify(notifResult.message || 'Failed to load notifications', 'error', 3000);
-        }
-        setNotifications(mappedItems);
-
-        // 2) Try fetching stats; fallback to local aggregation from mappedItems
-        const statsResult = await notificationsApi.getStatistics({
-          dateFrom: filters.dateFrom,
-          dateTo: filters.dateTo,
-        });
-
-        const normalizedStats = statsResult.isSuccess
-          ? normalizeStatsToChartRows(statsResult.data)
-          : [];
-
-        if (normalizedStats.length > 0) {
-          setChartData(normalizedStats);
-          return;
-        }
-
-        const now = new Date();
-        const days = [];
-        for (let i = 6; i >= 0; i--) {
-          const d = new Date(now);
-          d.setDate(now.getDate() - i);
-          days.push(new Date(d.getFullYear(), d.getMonth(), d.getDate()));
-        }
-
-        const buckets = days.map((d) => ({
-          key: d.toISOString(),
-          date: d,
-          sent: 0,
-          delivered: 0,
-          failed: 0,
-        }));
-
-        mappedItems.forEach((n) => {
-          const ts = normalizeDateValue(n.sentAt);
-          if (!ts) return;
-
-          const dayKey = new Date(ts.getFullYear(), ts.getMonth(), ts.getDate()).toISOString();
-          const bucket = buckets.find((b) => b.key === dayKey);
-          if (!bucket) return;
-
-          bucket.sent += 1;
-          if (n.status === 'delivered') bucket.delivered += 1;
-          if (n.status === 'failed') bucket.failed += 1;
-        });
-
-        setChartData(buckets.map(({ date, sent, delivered, failed }) => ({ date, sent, delivered, failed })));
-      } catch (error) {
-        console.error('Error loading notification history:', error);
-        notify('Error loading notification history', 'error', 3000);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadAll();
-  }, [filters]);
-
-  const handleViewDetails = (notificationOrCellInfo) => {
-    const resolved = resolveNotificationFromCell(notificationOrCellInfo, notifications);
-    if (!resolved) {
-      notify('No details available for this notification row', 'warning', 2500);
-      return;
-    }
-    setSelectedNotification(resolved);
-    setShowDetailsPopup(true);
-  };
-
-  const handleRetry = async (notificationOrCellInfo) => {
-    const notification = resolveNotificationFromCell(notificationOrCellInfo, notifications);
-    if (!notification) {
-      notify('Cannot retry. Notification row data is missing.', 'warning', 2500);
-      return;
-    }
-    if (notification.status === 'failed' || notification.status === 'pending') {
-      setLoading(true);
-      const result = await notificationsApi.sendNotification(notification.id);
       if (result.isSuccess) {
-        notify('Notification resend queued', 'success', 3000);
+        setNotifications(Array.isArray(result.data) ? result.data : []);
+        setTotalCount(result.totalCount || 0);
       } else {
-        notify(result.message || 'Failed to resend', 'error', 3000);
+        notify(result.message || "Failed to load notifications", "error", 3000);
+        setNotifications([]);
       }
+    } catch (error) {
+      console.error("Error loading notification history:", error);
+      notify("Error loading notification history", "error", 3000);
+    } finally {
       setLoading(false);
     }
+  }, [filters]);
+
+  useEffect(() => {
+    loadNotifications();
+  }, [loadNotifications]);
+
+  const handleFilterChange = (field, value) => {
+    setFilters((prev) => ({ ...prev, [field]: value }));
   };
 
-  const handleExport = () => {
-    // Simulate export functionality
-    notify('Export functionality coming soon!', 'info', 3000);
+  const handleClearFilters = () => {
+    setFilters({ status: "", type: "", priority: "", search: "", dateFrom: "", dateTo: "" });
   };
 
-  const renderActionButtons = (data) => {
+  const handleViewDetails = (notification) => {
+    setSelectedNotification(notification);
+    setPanelOpen(true);
+  };
+
+  const handleClosePanel = () => {
+    setPanelOpen(false);
+    setSelectedNotification(null);
+  };
+
+  const handleRowClick = (e) => {
+    if (e.data) {
+      handleViewDetails(e.data);
+    }
+  };
+
+  // Grid cell renderers — M365 badge style
+  const renderStatusBadge = (cellInfo) => {
+    const status = (cellInfo.value || "unknown").toLowerCase();
+    const config = {
+      sent: { cls: "m365-badge--primary", label: "Sent" },
+      delivered: { cls: "m365-badge--success", label: "Delivered" },
+      failed: { cls: "m365-badge--error", label: "Failed" },
+      pending: { cls: "m365-badge--warning", label: "Pending" },
+      read: { cls: "m365-badge--success", label: "Read" },
+      created: { cls: "m365-badge--neutral", label: "Created" },
+    };
+    const c = config[status] || { cls: "m365-badge--neutral", label: status };
+    return <span className={`m365-badge ${c.cls}`}>{c.label}</span>;
+  };
+
+  const renderTypeBadge = (cellInfo) => {
+    const type = (cellInfo.value || "system").toLowerCase();
+    const icons = {
+      email: "fa-light fa-envelope",
+      sms: "fa-light fa-message-sms",
+      push: "fa-light fa-bell",
+      system: "fa-light fa-gear",
+      inapp: "fa-light fa-window-maximize",
+    };
+    const icon = icons[type] || "fa-light fa-bell";
     return (
-      <div className="tw-flex tw-space-x-2">
-        <Button
-          icon="fa-solid fa-eye"
-          hint="View Details"
-          onClick={() => handleViewDetails(data)}
-          type="normal"
-          stylingMode="text"
-        />
-        {resolveNotificationFromCell(data, notifications)?.status === 'failed' && (
-          <Button
-            icon="fa-solid fa-redo"
-            hint="Retry"
-            onClick={() => handleRetry(data)}
-            type="normal"
-            stylingMode="text"
-          />
-        )}
+      <span className="m365-badge m365-badge--neutral">
+        <i className={icon}></i>
+        {type.charAt(0).toUpperCase() + type.slice(1)}
+      </span>
+    );
+  };
+
+  const renderPriorityBadge = (cellInfo) => {
+    const priority = (cellInfo.value || "medium").toLowerCase();
+    const config = {
+      critical: { cls: "m365-badge--error", label: "Critical" },
+      high: { cls: "m365-badge--warning", label: "High" },
+      medium: { cls: "m365-badge--primary", label: "Medium" },
+      low: { cls: "m365-badge--neutral", label: "Low" },
+    };
+    const c = config[priority] || { cls: "m365-badge--neutral", label: priority };
+    return <span className={`m365-badge ${c.cls}`}>{c.label}</span>;
+  };
+
+  const renderRecipientCount = (cellInfo) => {
+    const count = cellInfo.data?.recipientCount || 0;
+    const delivered = cellInfo.data?.deliveredCount || 0;
+    const failed = cellInfo.data?.failedCount || 0;
+    return (
+      <div className="nh-recipient-summary">
+        <span className="nh-recipient-summary__total">{count}</span>
+        {delivered > 0 && <span className="m365-badge m365-badge--success">{delivered} delivered</span>}
+        {failed > 0 && <span className="m365-badge m365-badge--error">{failed} failed</span>}
       </div>
     );
   };
 
-  const renderStatus = (data) => {
-    const statusConfig = {
-      sent: { bg: 'tw-bg-blue-100', text: 'tw-text-blue-800', icon: 'fa-solid fa-paper-plane' },
-      delivered: { bg: 'tw-bg-green-100', text: 'tw-text-green-800', icon: 'fa-solid fa-check' },
-      failed: { bg: 'tw-bg-red-100', text: 'tw-text-red-800', icon: 'fa-solid fa-times' },
-      pending: { bg: 'tw-bg-yellow-100', text: 'tw-text-yellow-800', icon: 'fa-solid fa-clock' }
-    };
+  const renderDateTime = (cellInfo) => {
+    return <span className="nh-datetime">{formatDateTime(cellInfo.value)}</span>;
+  };
 
-    const config = statusConfig[data.value] || statusConfig.pending;
-
+  const renderActions = (cellInfo) => {
     return (
-      <span className={`tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${config.bg} ${config.text}`}>
-        <i className={`${config.icon} tw-mr-1`}></i>
-        {data.value.charAt(0).toUpperCase() + data.value.slice(1)}
-      </span>
+      <button
+        className="m365-icon-btn"
+        title="View Details"
+        onClick={(e) => {
+          e.stopPropagation();
+          handleViewDetails(cellInfo.data);
+        }}
+      >
+        <i className="fa-light fa-eye"></i>
+      </button>
     );
   };
 
-  const renderType = (data) => {
-    const icons = {
-      email: 'fa-solid fa-envelope',
-      sms: 'fa-solid fa-sms',
-      push: 'fa-solid fa-bell'
-    };
-
-    return (
-      <span className="tw-flex tw-items-center">
-        <i className={`${icons[data.value]} tw-mr-2 tw-text-gray-600`}></i>
-        {data.value.toUpperCase()}
-      </span>
-    );
-  };
-
-  const renderPriority = (data) => {
-    const colors = {
-      high: 'tw-text-red-600',
-      medium: 'tw-text-yellow-600',
-      low: 'tw-text-green-600'
-    };
-
-    return (
-      <span className={`tw-font-medium ${colors[data.value]}`}>
-        {data.value.charAt(0).toUpperCase() + data.value.slice(1)}
-      </span>
-    );
-  };
-
-  const renderDateTime = (data) => {
-    if (!data.value) return '-';
-    const date = new Date(data.value);
-    return date.toLocaleString();
-  };
+  const hasActiveFilters = filters.status || filters.type || filters.priority || filters.search || filters.dateFrom || filters.dateTo;
 
   return (
-    <div className="tw-p-6">
-      {/* Statistics Chart */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-md tw-mb-6">
-        <div className="tw-p-6 tw-border-b tw-border-gray-200">
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
-            <i className="fa-solid fa-chart-line tw-mr-2 tw-text-blue-600"></i>
-            Notification Statistics (Last 7 Days)
-          </h3>
+    <div className="nh-page">
+      {/* M365 Page Header */}
+      <div className="m365-page-header">
+        <div className="m365-page-header__left">
+          <i className="fa-light fa-clock-rotate-left m365-page-header__icon"></i>
+          <h2 className="m365-page-header__title">
+            Notification History
+            <span className="m365-page-header__count">{totalCount}</span>
+          </h2>
         </div>
-        <div className="tw-p-6">
-          <Chart dataSource={chartData} height={300}>
-            <ArgumentAxis dataType="datetime" />
-            <ValueAxis />
-            <Series
-              valueField="sent"
-              argumentField="date"
-              name="Sent"
-              type="line"
-              color="#3b82f6"
-            />
-            <Series
-              valueField="delivered"
-              argumentField="date"
-              name="Delivered"
-              type="line"
-              color="#10b981"
-            />
-            <Series
-              valueField="failed"
-              argumentField="date"
-              name="Failed"
-              type="line"
-              color="#ef4444"
-            />
-            <Legend visible={true} />
-            <Tooltip enabled={true} />
-          </Chart>
+        <div className="m365-page-header__actions">
+          <button className="m365-btn m365-btn--ghost" onClick={loadNotifications} disabled={loading}>
+            <i className="fa-light fa-rotate-right"></i>
+            Refresh
+          </button>
         </div>
       </div>
 
-      {/* Notification History */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-md">
-        {/* Header with Filters */}
-        <div className="tw-p-6 tw-border-b tw-border-gray-200">
-          <div className="tw-flex tw-justify-between tw-items-start">
-            <div>
-              <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-                <i className="fa-solid fa-history tw-mr-2 tw-text-blue-600"></i>
-                Notification History
-              </h2>
-              <p className="tw-text-gray-600 tw-mt-1">
-                View and track all notification deliveries
-              </p>
-            </div>
-            <Button
-              text="Export"
-              icon="fa-solid fa-download"
-              type="normal"
-              onClick={handleExport}
-            />
-          </div>
-
-          {/* Filters */}
-          <div className="tw-flex tw-space-x-4 tw-mt-4">
-            <div className="tw-w-48">
-              <SelectBox
-                dataSource={statusOptions}
-                valueExpr="value"
-                displayExpr="text"
-                value={filters.status}
-                onValueChanged={(e) => setFilters(prev => ({ ...prev, status: e.value }))}
-                placeholder="Filter by Status"
-              />
-            </div>
-            <div className="tw-w-48">
-              <SelectBox
-                dataSource={typeOptions}
-                valueExpr="value"
-                displayExpr="text"
-                value={filters.type}
-                onValueChanged={(e) => setFilters(prev => ({ ...prev, type: e.value }))}
-                placeholder="Filter by Type"
-              />
-            </div>
-            <div className="tw-w-48">
-              <DateBox
-                value={filters.dateFrom}
-                onValueChanged={(e) => setFilters(prev => ({ ...prev, dateFrom: e.value }))}
-                placeholder="From Date"
-              />
-            </div>
-            <div className="tw-w-48">
-              <DateBox
-                value={filters.dateTo}
-                onValueChanged={(e) => setFilters(prev => ({ ...prev, dateTo: e.value }))}
-                placeholder="To Date"
-              />
-            </div>
-          </div>
+      {/* M365 Filter Bar */}
+      <div className="m365-filters">
+        <div className="m365-search">
+          <i className="fa-light fa-magnifying-glass m365-search__icon"></i>
+          <input
+            className="m365-search__input"
+            placeholder="Search notifications..."
+            value={filters.search}
+            onChange={(e) => handleFilterChange("search", e.target.value)}
+          />
         </div>
 
-        {/* Notifications Grid */}
-        <div className="tw-p-6">
+        <select
+          className="m365-select"
+          value={filters.status}
+          onChange={(e) => handleFilterChange("status", e.target.value)}
+        >
+          <option value="">All Statuses</option>
+          <option value="sent">Sent</option>
+          <option value="delivered">Delivered</option>
+          <option value="failed">Failed</option>
+          <option value="pending">Pending</option>
+          <option value="created">Created</option>
+        </select>
+
+        <select
+          className="m365-select"
+          value={filters.type}
+          onChange={(e) => handleFilterChange("type", e.target.value)}
+        >
+          <option value="">All Types</option>
+          <option value="email">Email</option>
+          <option value="sms">SMS</option>
+          <option value="push">Push</option>
+          <option value="system">System</option>
+        </select>
+
+        <select
+          className="m365-select"
+          value={filters.priority}
+          onChange={(e) => handleFilterChange("priority", e.target.value)}
+        >
+          <option value="">All Priorities</option>
+          <option value="critical">Critical</option>
+          <option value="high">High</option>
+          <option value="medium">Medium</option>
+          <option value="low">Low</option>
+        </select>
+
+        <input
+          type="date"
+          className="m365-date"
+          value={filters.dateFrom}
+          onChange={(e) => handleFilterChange("dateFrom", e.target.value)}
+          title="From Date"
+        />
+
+        <input
+          type="date"
+          className="m365-date"
+          value={filters.dateTo}
+          onChange={(e) => handleFilterChange("dateTo", e.target.value)}
+          title="To Date"
+        />
+
+        {hasActiveFilters && (
+          <button className="m365-btn m365-btn--text" onClick={handleClearFilters}>
+            <i className="fa-light fa-xmark"></i>
+            Clear
+          </button>
+        )}
+      </div>
+
+      {/* Notification Grid */}
+      <div className="nh-grid-container">
           <DataGrid
             dataSource={notifications}
-            showBorders={true}
+            showBorders={false}
             showRowLines={true}
             showColumnLines={false}
-            rowAlternationEnabled={true}
+            rowAlternationEnabled={false}
             columnAutoWidth={true}
+            hoverStateEnabled={true}
+            onRowClick={handleRowClick}
             loadPanel={{ enabled: loading }}
+            noDataText="No notifications found"
+            className="nh-datagrid"
           >
-            <Column dataField="id" caption="ID" width={80} />
-            <Column dataField="type" caption="Type" cellRender={renderType} width={100} />
-            <Column dataField="subject" caption="Subject" />
-            <Column dataField="recipient" caption="Recipient" />
-            <Column dataField="status" caption="Status" cellRender={renderStatus} width={120} />
-            <Column dataField="priority" caption="Priority" cellRender={renderPriority} width={100} />
-            <Column dataField="sentAt" caption="Sent At" cellRender={renderDateTime} width={150} />
-            <Column dataField="deliveredAt" caption="Delivered At" cellRender={renderDateTime} width={150} />
-            <Column caption="Actions" cellRender={renderActionButtons} width={120} allowSorting={false} />
+            <Sorting mode="multiple" />
+            <Paging defaultPageSize={PAGE_SIZE} />
+            <Pager
+              showPageSizeSelector={true}
+              allowedPageSizes={[25, 50, 100]}
+              showInfo={true}
+            />
+            <Column dataField="title" caption="Title" minWidth={200} />
+            <Column dataField="type" caption="Type" cellRender={renderTypeBadge} width={110} />
+            <Column dataField="status" caption="Status" cellRender={renderStatusBadge} width={110} />
+            <Column dataField="priority" caption="Priority" cellRender={renderPriorityBadge} width={100} />
+            <Column
+              caption="Recipients"
+              cellRender={renderRecipientCount}
+              width={180}
+              allowSorting={false}
+            />
+            <Column dataField="categoryName" caption="Category" width={130} />
+            <Column dataField="triggerSource" caption="Source" width={110} />
+            <Column dataField="createdAt" caption="Created" cellRender={renderDateTime} width={160} sortOrder="desc" />
+            <Column caption="" cellRender={renderActions} width={50} allowSorting={false} />
           </DataGrid>
         </div>
-      </div>
 
-      {/* Notification Details Popup */}
-      <Popup
-        visible={showDetailsPopup}
-        onHiding={() => setShowDetailsPopup(false)}
-        dragEnabled={false}
-        title="Notification Details"
-        width={700}
-        height={600}
-        showCloseButton={true}
-      >
-        {selectedNotification ? (
-          <div className="tw-p-4">
-            {/* Header Info */}
-            <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-mb-4">
-              <div className="tw-flex tw-justify-between tw-items-start">
-                <div>
-                  <h3 className="tw-font-semibold tw-text-lg tw-mb-2">{selectedNotification.subject}</h3>
-                  <div className="tw-flex tw-items-center tw-space-x-4 tw-text-sm tw-text-gray-600">
-                    <span><i className="fa-solid fa-user tw-mr-1"></i>{selectedNotification.recipient}</span>
-                    <span><i className="fa-solid fa-tag tw-mr-1"></i>{selectedNotification.template}</span>
-                    <span><i className="fa-solid fa-clock tw-mr-1"></i>{new Date(selectedNotification.sentAt).toLocaleString()}</span>
+      {/* Detail Panel — uses global SlidePanel (portal to body, below header) */}
+      <SlidePanel open={panelOpen} onClose={handleClosePanel} title="Notification Details" width={720}>
+        {selectedNotification && (
+          <div className="nh-panel-body">
+                {/* Title & Badges */}
+                <div className="nh-panel-section">
+                  <h4 className="nh-panel-title">{selectedNotification.title}</h4>
+                  <div className="nh-panel-badges">
+                    {renderStatusBadge({ value: selectedNotification.status })}
+                    {renderTypeBadge({ value: selectedNotification.type })}
+                    {renderPriorityBadge({ value: selectedNotification.priority })}
                   </div>
                 </div>
-                <div className="tw-text-right">
-                  {renderStatus({ value: selectedNotification.status })}
-                  <div className="tw-mt-2 tw-text-sm tw-text-gray-600">
-                    Priority: {renderPriority({ value: selectedNotification.priority })}
+
+                {/* Meta Info */}
+                <div className="nh-panel-section nh-panel-meta">
+                  <div className="nh-meta-row">
+                    <span className="nh-meta-label">
+                      <i className="fa-light fa-calendar"></i> Created
+                    </span>
+                    <span className="nh-meta-value">{formatDateTime(selectedNotification.createdAt)}</span>
                   </div>
-                </div>
-              </div>
-            </div>
-
-            {selectedNotification.body && (
-              <div className="tw-mb-4">
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Message:</label>
-                <div className="tw-bg-white tw-border tw-p-3 tw-rounded tw-text-sm tw-text-gray-800">
-                  {selectedNotification.body}
-                </div>
-              </div>
-            )}
-            {selectedNotification.reportViewPath && (
-              <div className="tw-mb-4">
-                <button
-                  type="button"
-                  className="tw-inline-flex tw-items-center tw-gap-2 tw-text-sm tw-text-blue-700 tw-font-medium hover:tw-text-blue-800 tw-underline"
-                  onClick={() => {
-                    window.open(selectedNotification.reportViewPath, '_blank', 'noopener,noreferrer');
-                  }}
-                >
-                  <i className="fa-light fa-link"></i>
-                  {selectedNotification.reportActionText || 'Click here to view report'}
-                </button>
-              </div>
-            )}
-
-            {/* Details Grid */}
-            <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mb-4">
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Type:</label>
-                <div className="tw-text-sm tw-text-gray-900">{selectedNotification.type.toUpperCase()}</div>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Policy:</label>
-                <div className="tw-text-sm tw-text-gray-900">{selectedNotification.policy}</div>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Sent At:</label>
-                <div className="tw-text-sm tw-text-gray-900">{new Date(selectedNotification.sentAt).toLocaleString()}</div>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Delivered At:</label>
-                <div className="tw-text-sm tw-text-gray-900">
-                  {selectedNotification.deliveredAt ? new Date(selectedNotification.deliveredAt).toLocaleString() : 'N/A'}
-                </div>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Retry Count:</label>
-                <div className="tw-text-sm tw-text-gray-900">{selectedNotification.retryCount}</div>
-              </div>
-              <div>
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Template:</label>
-                <div className="tw-text-sm tw-text-gray-900">{selectedNotification.template}</div>
-              </div>
-            </div>
-
-            {/* Error Message */}
-            {selectedNotification.errorMessage && (
-              <div className="tw-mb-4">
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">Error Message:</label>
-                <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-p-3 tw-rounded tw-text-sm tw-text-red-800">
-                  {selectedNotification.errorMessage}
-                </div>
-              </div>
-            )}
-
-            {/* Metadata */}
-            {selectedNotification.metadata && (
-              <div className="tw-mb-4">
-                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Metadata:</label>
-                <div className="tw-bg-gray-50 tw-border tw-p-3 tw-rounded">
-                  {Object.entries(selectedNotification.metadata).map(([key, value]) => (
-                    <div key={key} className="tw-flex tw-justify-between tw-py-1">
-                      <span className="tw-text-sm tw-font-medium tw-text-gray-600">{key}:</span>
-                      <span className="tw-text-sm tw-text-gray-900">{formatMetadataValue(value)}</span>
+                  {selectedNotification.sentAt && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-paper-plane"></i> Sent
+                      </span>
+                      <span className="nh-meta-value">{formatDateTime(selectedNotification.sentAt)}</span>
                     </div>
-                  ))}
+                  )}
+                  {selectedNotification.categoryName && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-tag"></i> Category
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.categoryName}</span>
+                    </div>
+                  )}
+                  {selectedNotification.policyName && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-shield"></i> Policy
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.policyName}</span>
+                    </div>
+                  )}
+                  {selectedNotification.triggerSource && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-bolt"></i> Source
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.triggerSource}</span>
+                    </div>
+                  )}
+                  {selectedNotification.siteName && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-location-dot"></i> Site
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.siteName}</span>
+                    </div>
+                  )}
+                  {selectedNotification.vehicleName && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-truck"></i> Vehicle
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.vehicleName}</span>
+                    </div>
+                  )}
+                  {selectedNotification.tankName && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-droplet"></i> Tank
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.tankName}</span>
+                    </div>
+                  )}
+                  {selectedNotification.sendAttempts > 0 && (
+                    <div className="nh-meta-row">
+                      <span className="nh-meta-label">
+                        <i className="fa-light fa-rotate"></i> Attempts
+                      </span>
+                      <span className="nh-meta-value">{selectedNotification.sendAttempts}</span>
+                    </div>
+                  )}
                 </div>
-              </div>
-            )}
 
-            <div className="tw-flex tw-justify-end tw-space-x-3">
-              {selectedNotification.status === 'failed' && (
-                <Button
-                  text="Retry Notification"
-                  icon="fa-solid fa-redo"
-                  type="default"
-                  onClick={() => {
-                    handleRetry(selectedNotification);
-                    setShowDetailsPopup(false);
-                  }}
-                />
-              )}
-              <Button
-                text="Close"
-                onClick={() => setShowDetailsPopup(false)}
-              />
-            </div>
-          </div>
-        ) : (
-          <div className="tw-p-4 tw-text-sm tw-text-gray-600">
-            No notification details available.
+                {/* Error message */}
+                {selectedNotification.errorMessage && (
+                  <div className="nh-panel-section">
+                    <div className="m365-info-banner m365-info-banner--error">
+                      <i className="fa-light fa-circle-exclamation m365-info-banner__icon"></i>
+                      <div className="m365-info-banner__content">
+                        <span className="m365-info-banner__text">{selectedNotification.errorMessage}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Message content */}
+                {selectedNotification.message && (
+                  <div className="nh-panel-section">
+                    <div className="nh-section-label">Message</div>
+                    <div className="nh-message-box">{selectedNotification.message}</div>
+                  </div>
+                )}
+
+                {/* JSON Metadata (Data field) */}
+                {selectedNotification.data && (
+                  <div className="nh-panel-section">
+                    <div className="nh-section-label">Event Data</div>
+                    <div className="nh-message-box nh-json-data">
+                      {(() => {
+                        try {
+                          return JSON.stringify(JSON.parse(selectedNotification.data), null, 2);
+                        } catch {
+                          return selectedNotification.data;
+                        }
+                      })()}
+                    </div>
+                  </div>
+                )}
+
+                {/* Recipients */}
+                {selectedNotification.recipients && selectedNotification.recipients.length > 0 && (
+                  <div className="nh-panel-section">
+                    <div className="nh-section-label">
+                      Recipients
+                      <span className="m365-page-header__count">{selectedNotification.recipients.length}</span>
+                    </div>
+                    <div className="nh-recipient-list">
+                      {selectedNotification.recipients.map((r, idx) => (
+                        <div key={idx} className="nh-recipient-item">
+                          <div className="nh-recipient-item__info">
+                            <i className="fa-light fa-user"></i>
+                            <span className="nh-recipient-item__name">{r.userName || r.email || r.userId || "Unknown"}</span>
+                            {r.email && r.userName && (
+                              <span className="nh-recipient-item__email">{r.email}</span>
+                            )}
+                          </div>
+                          <div className="nh-recipient-item__status">
+                            {r.deliveryMethod && (
+                              <span className="m365-badge m365-badge--neutral">{r.deliveryMethod}</span>
+                            )}
+                            {r.deliveryStatus && (
+                              <span className={`m365-badge ${r.deliveryStatus.toLowerCase() === "delivered" ? "m365-badge--success" :
+                                  r.deliveryStatus.toLowerCase() === "failed" ? "m365-badge--error" :
+                                    r.deliveryStatus.toLowerCase() === "sent" ? "m365-badge--primary" :
+                                      "m365-badge--neutral"
+                                }`}>
+                                {r.deliveryStatus}
+                              </span>
+                            )}
+                            {r.isRead && <span className="m365-badge m365-badge--success">Read</span>}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
           </div>
         )}
-      </Popup>
+      </SlidePanel>
     </div>
   );
 };

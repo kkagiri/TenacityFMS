@@ -465,12 +465,22 @@ class ReportingService {
    * Preview a JsReport template as HTML
    * @param {string} templateName - Template name
    * @param {Object} data - Data to render
+   * @param {Object} [options] - Optional request options
+   * @param {number} [options.timeoutMs] - Optional per-request timeout override in ms
    * @returns {Promise}
    */
-  async previewJsReport(templateName, data) {
+  async previewJsReport(templateName, data, options = {}) {
     try {
-      const response = await axiosInstance.post(`/ReportGenerator/preview/${templateName}`, data, {
+      const requestConfig = {
         responseType: 'text'
+      };
+
+      if (typeof options.timeoutMs === 'number' && options.timeoutMs > 0) {
+        requestConfig.timeout = options.timeoutMs;
+      }
+
+      const response = await axiosInstance.post(`/ReportGenerator/preview/${templateName}`, data, {
+        ...requestConfig
       });
       return {
         success: true,

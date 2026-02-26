@@ -309,7 +309,6 @@ namespace FMS.WebClient.Services.Reporting
                 <span class=""company-sub-title"">Fleet Management &amp; Fueling Operations</span>
             </div>
         </div>
-        <span class=""company-bar-right"">FMS System</span>
     </div>
 
     <!-- ═══════════════════════════════════════════
@@ -574,7 +573,8 @@ namespace FMS.WebClient.Services.Reporting
         private static string TankVolumeHistoryTemplate() => @"<!DOCTYPE html>
 <html>
 <head>
-    <title>{{reportTitle}} – Hyoung FMS System</title>
+    <meta charset=""UTF-8"">
+    <title>{{reportTitle}} - Hyoung FMS System</title>
     <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet"">
     <style>
         :root {
@@ -601,6 +601,28 @@ namespace FMS.WebClient.Services.Reporting
             line-height: 1.5;
         }
         .page { max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        /* ── Column widths for 10-column transaction table ── */
+        .data-table th:nth-child(1),
+        .data-table td:nth-child(1) { width: 3%; }        /* # */
+        .data-table th:nth-child(2),
+        .data-table td:nth-child(2) { width: 11%; }       /* Timestamp */
+        .data-table th:nth-child(3),
+        .data-table td:nth-child(3) { width: 10%; }       /* Site */
+        .data-table th:nth-child(4),
+        .data-table td:nth-child(4) { width: 10%; }       /* Tank */
+        .data-table th:nth-child(5),
+        .data-table td:nth-child(5) { width: 10%; }       /* Vehicle */
+        .data-table th:nth-child(6),
+        .data-table td:nth-child(6) { width: 11%; }       /* Type */
+        .data-table th:nth-child(7),
+        .data-table td:nth-child(7) { width: 10%; }       /* Vol. Change */
+        .data-table th:nth-child(8),
+        .data-table td:nth-child(8) { width: 10%; }       /* Balance After */
+        .data-table th:nth-child(9),
+        .data-table td:nth-child(9) { width: 10%; }       /* Operator */
+        .data-table th:nth-child(10),
+        .data-table td:nth-child(10) { width: 15%; min-width: 100px; }  /* Notes */
 
         /* ── Company Bar ── */
         .company-bar {
@@ -715,7 +737,7 @@ namespace FMS.WebClient.Services.Reporting
         .data-table thead th {
             background: var(--dark-header); color: #E5E7EB;
             padding: 10px 12px; text-align: left;
-            font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap;
+            font-weight: 700; font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.5px;
         }
         .data-table thead th.text-right  { text-align: right; }
         .data-table thead th.text-center { text-align: center; }
@@ -729,6 +751,11 @@ namespace FMS.WebClient.Services.Reporting
             color: var(--text-strong); padding: 8px 12px; border-bottom: 1px solid var(--border);
         }
         .data-table tbody tr.group-row:hover td { background: #F0F4FA; }
+        .data-table tbody tr.site-divider-row td {
+            background: #1F2937; color: #E5E7EB;
+            padding: 8px 14px; font-weight: 800; font-size: 10.5px;
+            letter-spacing: 0.8px; text-transform: uppercase; border-bottom: none;
+        }
         .data-table tbody tr.subtotal-row td {
             background: #FFF8E1; font-weight: 700; color: #92400E;
             border-top: 1px solid #FDE68A; border-bottom: 2px solid #FDE68A;
@@ -784,9 +811,14 @@ namespace FMS.WebClient.Services.Reporting
         .footer-sep    { color: var(--border); }
 
         @media print {
+            @page { size: A4 landscape; margin: 10mm; }
             body { background: white; }
-            .page { padding: 0; }
+            .page { max-width: none; padding: 0; }
+            .data-table { font-size: 10px; }
+            .data-table thead th { padding: 6px 8px; font-size: 9.5px; }
+            .data-table tbody td { padding: 6px 8px; }
             .data-table tbody tr:hover td { background: inherit; }
+            .summary-section { grid-template-columns: repeat(4, 1fr); }
         }
     </style>
 </head>
@@ -804,7 +836,6 @@ namespace FMS.WebClient.Services.Reporting
                 <span class=""company-sub-title"">Fleet Management &amp; Fueling Operations</span>
             </div>
         </div>
-        <span class=""company-bar-right"">FMS System</span>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -828,9 +859,9 @@ namespace FMS.WebClient.Services.Reporting
     <!-- ═══════════════════════════════════════════════════════
          SUMMARY CARDS
          {{summary.totalTransactions}}
-         {{summary.totalRefills}}       (Delivery + InTankDelivery)
-         {{summary.totalDispensed}}     (Dispensing + AutomatedDispensing)
-         {{summary.netBalanceChange}}
+         {{summary.totalDispensed}}     (Dispensing + AutoDispense)
+         {{summary.totalTransfer}}      (TransferIn + TransferOut)
+         {{summary.totalDelivery}}      (Delivery + GPSRefill + InTankDelivery)
     ═══════════════════════════════════════════════════════ -->
     <div class=""summary-section"">
         <div class=""summary-card accent"">
@@ -839,13 +870,6 @@ namespace FMS.WebClient.Services.Reporting
             </div>
             <div class=""card-value"">{{summary.totalTransactions}}</div>
             <div class=""card-label"">Total Transactions</div>
-        </div>
-        <div class=""summary-card"">
-            <div class=""card-icon"">
-                <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-1 14H9V8h2v8m4 0h-2V8h2v8z""/></svg>
-            </div>
-            <div class=""card-value positive"">+{{summary.totalRefills}} L</div>
-            <div class=""card-label"">Total Refills</div>
         </div>
         <div class=""summary-card danger"">
             <div class=""card-icon"">
@@ -858,8 +882,15 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2c-1.13 0-1.9.16-2.53.33C14.28 12.06 16 10 21 9l-4-1z""/></svg>
             </div>
-            <div class=""card-value"">{{summary.netBalanceChange}} L</div>
-            <div class=""card-label"">Net Balance Change</div>
+            <div class=""card-value"">{{summary.totalTransfer}} L</div>
+            <div class=""card-label"">Total Transfer</div>
+        </div>
+        <div class=""summary-card"">
+            <div class=""card-icon"">
+                <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-1 14H9V8h2v8m4 0h-2V8h2v8z""/></svg>
+            </div>
+            <div class=""card-value positive"">+{{summary.totalDelivery}} L</div>
+            <div class=""card-label"">Total Delivery</div>
         </div>
     </div>
 
@@ -881,10 +912,11 @@ namespace FMS.WebClient.Services.Reporting
            {{transfer.count}}
          {{/each}}
     ═══════════════════════════════════════════════════════ -->
+    {{#each siteGroups}}
     <div class=""tank-summary-section"">
         <div class=""tank-summary-header"">
-            <span class=""tank-summary-title"">Tank Summary</span>
-            <span class=""tank-summary-sub"">Balance &amp; activity by tank &mdash; {{dateFrom}} to {{dateTo}}</span>
+            <span class=""tank-summary-title"">{{siteName}}</span>
+            <span class=""tank-summary-sub"">Balance &amp; activity by tank &mdash; {{../dateFrom}} to {{../dateTo}}</span>
         </div>
 
         {{#each tanks}}
@@ -901,7 +933,7 @@ namespace FMS.WebClient.Services.Reporting
                     <span class=""bal-value highlight"">{{closingBalance}} L</span>
                     <span class=""bal-sep""></span>
                     <span class=""bal-label"">Expected</span>
-                    <span class=""bal-value expected{{#unless expectedMatch}} mismatch{{/unless}}"">
+                    {{#unless expectedMatch}}<span class=""bal-value expected mismatch"">{{else}}<span class=""bal-value expected"">{{/unless}}
                         {{#if expectedMatch}}&#10003;{{else}}&#9651;{{/if}} {{expectedClosing}} L
                     </span>
                 </div>
@@ -935,11 +967,12 @@ namespace FMS.WebClient.Services.Reporting
         </div>
         {{/each}}
     </div>
+    {{/each}}
 
     <!-- ═══════════════════════════════════════════════════════
          TRANSACTION TABLE
-         {{#if transactions}}
-         Per row: {{#each transactions}}
+            Conditional section: transactions
+            Per row (for each transaction):
            {{rowNumber}}           e.g. ""001""
            {{timestamp.date}}      e.g. ""24 Nov 2025""
            {{timestamp.time}}      e.g. ""07:02 AM""
@@ -965,9 +998,9 @@ namespace FMS.WebClient.Services.Reporting
            AutomatedReconciliation→ type-adjust    ""Auto Reconciliation""
            OpeningStock           → type-adjust    ""Opening Stock""
            ClosingStock           → type-adjust    ""Closing Stock""
-         {{/each}}
+                 End row loop
     ═══════════════════════════════════════════════════════ -->
-    {{#if transactions}}
+    {{#if siteGroups}}
     <div class=""table-wrapper"">
         <div class=""table-toolbar"">
             <span class=""table-toolbar-title"">Transaction Detail</span>
@@ -978,6 +1011,7 @@ namespace FMS.WebClient.Services.Reporting
                 <tr>
                     <th class=""text-center"">#</th>
                     <th>Timestamp</th>
+                    <th>Site</th>
                     <th>Tank</th>
                     <th>Vehicle</th>
                     <th>Type</th>
@@ -988,10 +1022,15 @@ namespace FMS.WebClient.Services.Reporting
                 </tr>
             </thead>
             <tbody>
+                {{#each siteGroups}}
+                <!-- Site divider -->
+                <tr class=""site-divider-row"">
+                    <td colspan=""10"">&#9660;&nbsp; {{siteName}}</td>
+                </tr>
                 {{#each transactionGroups}}
                 <!-- Group header -->
                 <tr class=""group-row"">
-                    <td colspan=""9"">&#9658;&nbsp; {{groupName}} &mdash; {{fuelType}}
+                    <td colspan=""10"">&#9658;&nbsp; {{groupName}} &mdash; {{fuelType}}
                         &nbsp;<span style=""font-weight:400;color:var(--text-muted);font-size:10px;"">| Opening Balance: {{openingBalance}} L</span>
                     </td>
                 </tr>
@@ -1004,34 +1043,19 @@ namespace FMS.WebClient.Services.Reporting
                             <span class=""time"">{{timestamp.time}}</span>
                         </div>
                     </td>
+                    <td class=""cell-muted"">{{siteName}}</td>
                     <td class=""cell-tank"">{{tankName}}</td>
                     <td><span class=""cell-plate"">{{vehiclePlate}}</span></td>
                     <td><span class=""type-badge {{changeReasonClass}}"">{{changeReasonLabel}}</span></td>
-                    <td class=""text-right {{#if isPositive}}cell-positive{{else}}cell-negative{{/if}}"">{{volumeChange}}</td>
+                    {{#if isPositive}}<td class=""text-right cell-positive"">{{else}}<td class=""text-right cell-negative"">{{/if}}{{volumeChange}}</td>
                     <td class=""text-right cell-balance"">{{balanceAfter}}</td>
                     <td>{{operatorName}}</td>
                     <td class=""cell-muted"">{{notes}}</td>
                 </tr>
                 {{/each}}
-                <!-- Group subtotal -->
-                <tr class=""subtotal-row"">
-                    <td colspan=""4"" class=""text-right"">{{groupName}} Subtotal</td>
-                    <td></td>
-                    <td class=""text-right"">{{groupNet}} L</td>
-                    <td class=""text-right"">{{closingBalance}} L</td>
-                    <td colspan=""2""></td>
-                </tr>
+                {{/each}}
                 {{/each}}
             </tbody>
-            <tfoot>
-                <tr>
-                    <td colspan=""4"" class=""text-right"">GRAND TOTALS ({{summary.totalTransactions}} transactions)</td>
-                    <td></td>
-                    <td class=""text-right"">{{summary.netBalanceChange}} L net</td>
-                    <td class=""text-right"">{{summary.grandClosingBalance}} L</td>
-                    <td colspan=""2""></td>
-                </tr>
-            </tfoot>
         </table>
     </div>
     {{else}}

@@ -1,0 +1,719 @@
+/**
+ * File:          VehicleDetailPanel.scss
+ * Purpose:       M365 Admin Center styles for the VehicleDetailPanel component.
+ *                Follows the same design language as SiteDetailPanel (sitePage.scss).
+ *                Includes M365 panel-specific classes needed for the vehicle context.
+ * Dependencies:  m365-shared.scss, CSS custom properties from :root (m365 tokens)
+ * Last Modified: 2026-02-26
+ */
+@import "../../../components/m365/m365-shared.scss";
+
+/* ═══════════════════════════════════════════════
+ * M365 Detail Panel — Shared patterns
+ * (Mirrored from _user-panel.scss for vehicle scope)
+ * ═══════════════════════════════════════════════ */
+
+/* ── Panel layout wrapper ── */
+.vdp-panel-layout {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: var(--m365-font, "Segoe UI", -apple-system, system-ui, sans-serif);
+}
+
+/* Override SlidePanel chrome for vehicle detail */
+.fms-slide-panel:has(.vdp-panel-layout) {
+  border-left: none;
+
+  .fms-slide-panel__header {
+    border-bottom: none;
+    padding: 8px 16px 0;
+  }
+
+  .fms-slide-panel__title:empty {
+    display: none;
+  }
+}
+
+/* ── Profile header ── */
+.m365-detail-profile {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: none;
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 4px;
+    line-height: 1.3;
+    word-break: break-word;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 10px;
+  }
+
+  &__email {
+    font-size: 13px;
+    color: var(--m365-text-secondary, #605e5c);
+    line-height: 1.4;
+  }
+
+  &__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-top: 4px;
+  }
+}
+
+/* ── Avatar (truck icon) ── */
+.vdp-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--m365-blue-bg, #deecf9);
+  color: var(--m365-primary, #0078d4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+/* ── Action link buttons (inline in profile header) ── */
+.m365-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border: none;
+  background: none;
+  font-size: 13px;
+  font-weight: 400;
+  color: var(--m365-primary, #0078d4);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+
+  i {
+    font-size: 13px;
+  }
+
+  &:hover {
+    background: var(--m365-bg-hover, #f3f2f1);
+    color: var(--m365-primary-hover, #106ebe);
+  }
+
+  &--danger {
+    color: var(--m365-danger, #d13438);
+
+    &:hover {
+      background: #fde7e9;
+      color: #a4262c;
+    }
+  }
+}
+
+/* ── Tab bar ── */
+.m365-detail-tabs {
+  display: flex;
+  border-bottom: none;
+  padding: 0 24px;
+  gap: 0;
+  flex-shrink: 0;
+}
+
+.m365-detail-tab {
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--m365-text-secondary, #605e5c);
+  background: none;
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: color 0.15s;
+  font-family: inherit;
+  white-space: nowrap;
+
+  &::after {
+    content: "";
+    position: absolute;
+    bottom: -1px;
+    left: 16px;
+    right: 16px;
+    height: 2px;
+    background: transparent;
+    border-radius: 2px 2px 0 0;
+    transition: background 0.15s;
+  }
+
+  &:hover {
+    color: var(--m365-text, #201f1e);
+  }
+
+  &--active {
+    color: var(--m365-primary, #0078d4);
+
+    &::after {
+      background: var(--m365-primary, #0078d4);
+    }
+  }
+}
+
+/* ── Scrollable body ── */
+.m365-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+/* ── Detail content wrapper ── */
+.vdp-panel-layout .m365-detail-content {
+  padding: 16px 24px 24px;
+}
+
+/* ── 2-column info grid ── */
+.vdp-panel-layout .m365-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 24px;
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  margin-bottom: 0;
+}
+
+.vdp-panel-layout .m365-info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0;
+  border: none;
+  min-width: 0;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    text-transform: none;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--m365-text-secondary, #605e5c);
+    word-break: break-word;
+    line-height: 1.5;
+  }
+
+  &__link {
+    font-size: 12px;
+    font-weight: 400;
+    color: var(--m365-primary, #0078d4);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    margin-top: 2px;
+
+    &:hover {
+      text-decoration: underline;
+      color: var(--m365-primary-hover, #106ebe);
+    }
+  }
+}
+
+/* ── Flat section divider ── */
+.vdp-panel-layout .m365-flat-section {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: none;
+  margin-bottom: 22px;
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 12px;
+    padding: 0 0 8px;
+  }
+
+  &--first {
+    margin-top: 0;
+    padding-top: 0;
+  }
+}
+
+/* ── Info tooltip ── */
+.m365-info-tooltip {
+  display: inline-flex;
+  margin-left: 4px;
+  color: var(--m365-text-tertiary, #a19f9d);
+  cursor: help;
+  font-size: 12px;
+
+  &:hover {
+    color: var(--m365-primary, #0078d4);
+  }
+}
+
+/* ── Edit form: uses TankFormPanel-style layout (m365-tank-form) ── */
+/* Shared styles for m365-tank-form, m365-toggle, m365-field, m365-input
+   are defined in tankPage.scss and m365-shared.scss respectively.
+   Only vehicle-specific overrides go here. */
+
+/* ── Empty / loading state ── */
+.m365-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 12px;
+  text-align: center;
+
+  &__icon {
+    font-size: 32px;
+    color: var(--m365-text-tertiary, #a19f9d);
+  }
+
+  &__text {
+    font-size: 13px;
+    color: var(--m365-text-secondary, #605e5c);
+    margin: 0;
+    max-width: 300px;
+    line-height: 1.5;
+  }
+}
+
+/* ── Footer bar ── */
+.m365-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--m365-border-light, #edebe9);
+  background: var(--m365-bg-card, #fff);
+  flex-shrink: 0;
+}
+
+/* ── M365 ghost button ── */
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 16px;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: var(--m365-font, "Segoe UI", -apple-system, system-ui, sans-serif);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+
+  &--ghost {
+    background: none;
+    border: 1px solid var(--m365-border, #8a8886);
+    color: var(--m365-text, #201f1e);
+
+    &:hover {
+      background: var(--m365-bg-hover, #f3f2f1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &--primary {
+    background: var(--m365-primary, #0078d4);
+    border: 1px solid var(--m365-primary, #0078d4);
+    color: #fff;
+
+    &:hover {
+      background: var(--m365-primary-hover, #106ebe);
+      border-color: var(--m365-primary-hover, #106ebe);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+/* ── Vehicle form panel (mirrors TankFormPanel layout) ── */
+.m365-tank-form {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--m365-font, "Segoe UI", -apple-system, system-ui, sans-serif);
+  background: #fff;
+
+  &__scroller {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 24px 16px;
+  }
+
+  .m365-section-group {
+    border: none;
+    border-radius: 0;
+    margin-bottom: 18px;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .m365-section-group__header {
+    padding: 0 0 8px;
+    border-bottom: none;
+  }
+
+  .m365-section-group__icon {
+    display: none;
+  }
+
+  .m365-section-group__title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m365-text-secondary, #605e5c);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0;
+  }
+
+  .m365-section-group__body {
+    padding: 0;
+  }
+
+  &__toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  /* DevExtreme SelectBox clear-button sizing */
+  .dx-selectbox.dx-editor-outlined,
+  .dx-selectbox.dx-editor-filled,
+  .dx-selectbox.dx-editor-underlined {
+    .dx-texteditor-buttons-container {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .dx-clear-button-area {
+      width: 26px !important;
+      min-width: 26px !important;
+      max-width: 26px !important;
+      height: 26px !important;
+      min-height: 26px !important;
+      max-height: 26px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dx-clear-button-area .dx-icon-clear {
+      width: 14px !important;
+      height: 14px !important;
+      font-size: 14px !important;
+      line-height: 14px !important;
+      color: var(--m365-text-secondary, #605e5c);
+      opacity: 0.9;
+    }
+  }
+
+  &__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 24px;
+    border-top: 1px solid var(--m365-border-light, #edebe9);
+    background: #fff;
+  }
+}
+
+/* ── Toggle switch (M365 style) ── */
+.m365-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+
+  &__track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--m365-border, #8a8886);
+    position: relative;
+    transition: background 0.2s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+  }
+
+  &--on .m365-toggle__track {
+    background: var(--m365-primary, #0078d4);
+
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+}
+
+/* ═══════════════════════════════════════════════
+ * Vehicle-specific components
+ * ═══════════════════════════════════════════════ */
+
+/* ── Tag list (inline badges) ── */
+.vdp-tag-list {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+/* ── Applications list (flat rows) ── */
+.vdp-app-list {
+  padding: 8px 0;
+}
+
+.vdp-app-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 24px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: var(--m365-font, "Segoe UI", -apple-system, system-ui, sans-serif);
+  text-align: left;
+
+  &:hover {
+    background: var(--m365-bg-hover, #f3f2f1);
+  }
+
+  &__icon {
+    font-size: 15px;
+    color: var(--m365-text-secondary, #605e5c);
+    width: 20px;
+    text-align: center;
+    flex-shrink: 0;
+  }
+
+  &__label {
+    flex: 1;
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--m365-text, #201f1e);
+  }
+
+  &__arrow {
+    font-size: 11px;
+    color: var(--m365-text-tertiary, #a19f9d);
+    transition: transform 0.12s;
+  }
+
+  &:hover &__arrow {
+    transform: translateX(2px);
+    color: var(--m365-primary, #0078d4);
+  }
+}
+
+/* ── Status summary card (GPS clickable) ── */
+.vdp-status-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 8px;
+  background: var(--m365-bg-card, #fff);
+  margin-bottom: 8px;
+
+  &--clickable {
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:hover {
+      background: var(--m365-bg-hover, #f3f2f1);
+      border-color: var(--m365-primary, #0078d4);
+    }
+  }
+
+  &__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    background: var(--m365-blue-bg, #deecf9);
+    color: var(--m365-primary, #0078d4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+  }
+
+  &__value {
+    font-size: 12px;
+    color: var(--m365-text-secondary, #605e5c);
+  }
+
+  &__arrow {
+    font-size: 12px;
+    color: var(--m365-text-tertiary, #a19f9d);
+    flex-shrink: 0;
+  }
+}
+
+/* ── Drill-down view ── */
+.vdp-drill-down {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    margin: 12px 24px 0;
+    border: none;
+    background: none;
+    cursor: pointer;
+    border-radius: 4px;
+    color: var(--m365-text-secondary, #605e5c);
+    font-size: 14px;
+    transition: background 0.15s, color 0.15s;
+
+    &:hover {
+      background: var(--m365-bg-hover, #f3f2f1);
+      color: var(--m365-primary, #0078d4);
+    }
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 4px 24px 12px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--m365-border-light, #edebe9);
+  }
+
+  &__content {
+    flex: 1;
+    padding: 0 24px 24px;
+    overflow-y: auto;
+  }
+}
+
+/* ═══════════════════════════════════════════════
+ * Responsive
+ * ═══════════════════════════════════════════════ */
+@media (max-width: 640px) {
+  .m365-detail-profile {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 16px;
+
+    &__meta {
+      justify-content: center;
+    }
+
+    &__actions {
+      justify-content: center;
+    }
+  }
+
+  .vdp-panel-layout .m365-info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .m365-detail-tabs {
+    padding: 0 16px;
+  }
+
+  .m365-detail-content {
+    padding: 12px 16px 16px;
+  }
+
+  .vdp-app-list {
+    padding: 8px 0;
+  }
+
+  .vdp-app-row {
+    padding: 10px 16px;
+  }
+
+  .vdp-drill-down {
+    &__back {
+      margin: 8px 16px 0;
+    }
+
+    &__title {
+      margin: 4px 16px 8px;
+    }
+
+    &__content {
+      padding: 0 16px 16px;
+    }
+  }
+}

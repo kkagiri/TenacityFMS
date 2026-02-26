@@ -19,8 +19,8 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { hasRole } = usePermissions();
-  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission('_Manage_ReportSchedules');
 
   // Page info from path
   const pageInfo = useMemo(() => {

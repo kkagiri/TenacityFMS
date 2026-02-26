@@ -15,6 +15,7 @@ using FMS.Application.Common; // FMSResponse
 using FMS.Application.Infrastructure.Services.Authentication;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries;
 using FMS.Application.Features.UserManagement.User.Queries;
+using FMS.Application.Features.UserManagement.User.Commands;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -408,4 +409,30 @@ public class UserController : ControllerBase
         var result = await _mediator.Send(command);
         return Ok(result);
     }
+
+    /// <summary>
+    /// Changes the authenticated user's own password.
+    /// Requires the current password for verification.
+    /// </summary>
+    [HttpPut("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordRequest request)
+    {
+        if (!TryGetCurrentUserId(out var userId))
+            return Unauthorized(FMSResponse<bool>.Failed("Not authenticated."));
+
+        var command = new ChangePasswordCommand(
+            UserId: userId,
+            CurrentPassword: request.CurrentPassword,
+            NewPassword: request.NewPassword);
+
+        var result = await _mediator.Send(command);
+
+        if (result.IsSuccess)
+            return Ok(result);
+
+        return BadRequest(result);
+    }
 }
+
+/// <summary>Request DTO for ChangePassword endpoint.</summary>
+public record ChangePasswordRequest(string CurrentPassword, string NewPassword);

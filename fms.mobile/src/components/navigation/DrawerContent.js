@@ -27,7 +27,8 @@ const DrawerContent = ({ navigation, state }) => {
   const unreadCount = useSelector((state) => state.notifications?.unreadCount || 0);
   const pendingApprovalCount = useSelector((state) => state.notifications?.pendingApprovalCount || 0);
   const currentRoute = state?.routes[state?.index]?.name;
-  const { isAdmin } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canAccessLocationSettings = hasPermission('_Manage_LocationValidation');
 
   // Build menu items dynamically based on user role
   const menuItems = [
@@ -100,8 +101,8 @@ const DrawerContent = ({ navigation, state }) => {
       id: "divider2",
       type: "divider",
     },
-    // Admin-only menu items
-    ...(isAdmin
+    // Location Settings - permission-based
+    ...(canAccessLocationSettings
       ? [
         {
           id: "locationSettings",
@@ -109,7 +110,6 @@ const DrawerContent = ({ navigation, state }) => {
           icon: "map-marker-alt",
           screen: "LocationSettings",
           description: "GPS & location validation",
-          adminOnly: true,
         },
         {
           id: "divider3",

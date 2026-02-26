@@ -57,7 +57,7 @@ namespace FMS.WebClient.Services.Reporting
         private static string InjectCss(string template)
         {
             const string styleEndTag = "</style>";
-            const string headEndTag  = "</head>";
+            const string headEndTag = "</head>";
             var css = LetterheadCss();
 
             var styleIdx = template.IndexOf(styleEndTag, StringComparison.OrdinalIgnoreCase);
@@ -96,7 +96,9 @@ namespace FMS.WebClient.Services.Reporting
             if (!string.IsNullOrWhiteSpace(_logoDataUri))
                 return $"<div class=\"fms-report-letterhead\">\n        <img src=\"{_logoDataUri}\" alt=\"Company Letterhead\" />\n    </div>";
 
-            return $"<div class=\"fms-report-letterhead fms-report-letterhead-missing\">\n        Letterhead logo not found. Place your letterhead image at:\n        <code>{_logoPath.Replace("\\", "/")}</code>\n    </div>";
+            // Silently skip letterhead when logo is not available
+            _logger.LogDebug("Letterhead logo not loaded — skipping branding block for this render.");
+            return string.Empty;
         }
 
         // ─── Logo loading ─────────────────────────────────────────────────────────
@@ -133,10 +135,10 @@ namespace FMS.WebClient.Services.Reporting
         private static string MimeTypeFor(string ext) => ext.ToLowerInvariant() switch
         {
             ".jpg" or ".jpeg" => "image/jpeg",
-            ".svg"            => "image/svg+xml",
-            ".gif"            => "image/gif",
-            ".webp"           => "image/webp",
-            _                 => "image/png",
+            ".svg" => "image/svg+xml",
+            ".gif" => "image/gif",
+            ".webp" => "image/webp",
+            _ => "image/png",
         };
     }
 }

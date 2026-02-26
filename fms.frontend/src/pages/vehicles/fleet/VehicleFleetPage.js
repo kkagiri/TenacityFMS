@@ -1,94 +1,116 @@
-import React, { useState, useEffect } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import { Popup } from 'devextreme-react/popup';
-import Button from 'devextreme-react/button';
-import VehicleDataGrid from './VehicleDataGrid';
-import VehicleAddForm from './VehicleAddForm';
-import { getVehicleDetailsRoute } from '../utils/navigationHelper';
-import './VehicleFleetPage.scss';
+/**
+ * File:          VehicleFleetPage.js
+ * Purpose:       M365 Admin Center style vehicle fleet page with SlidePanel details.
+ * Dependencies:  M365PageHeader, SlidePanel, VehicleDataGrid, VehicleDetailPanel
+ * Last Modified: 2026-02-26
+ *
+ * Key Components:
+ * - M365 page header with Add Vehicle action
+ * - VehicleDataGrid (row click opens detail panel)
+ * - VehicleDetailPanel (SlidePanel for viewing / editing)
+ * - Add Vehicle SlidePanel
+ */
+import React, { useState, useEffect, useCallback } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
+import M365PageHeader from "../../../components/m365/M365PageHeader";
+import SlidePanel from "../../../components/ui/SlidePanel";
+import VehicleDataGrid from "./VehicleDataGrid";
+import VehicleAddForm from "./VehicleAddForm";
+import VehicleDetailPanel from "./VehicleDetailPanel";
+
+import "./VehicleFleetPage.scss";
 
 const VehicleFleetPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const [showAddVehiclePopup, setShowAddVehiclePopup] = useState(false);
+  const vehicles = useSelector((state) => state.vehicle.vehicles);
 
-  // Check for hash navigation on mount and location changes
+  const [showAddPanel, setShowAddPanel] = useState(false);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(null);
+
+  // Check for hash navigation on mount
   useEffect(() => {
-    const hash = location.hash;
-    if (hash === '#vehicleaction') {
-      setShowAddVehiclePopup(true);
+    if (location.hash === "#vehicleaction") {
+      setShowAddPanel(true);
     }
   }, [location]);
 
-  // Handle popup close
-  const handleClosePopup = () => {
-    setShowAddVehiclePopup(false);
-    // Remove hash from URL without affecting browser history
-    if (location.hash === '#vehicleaction') {
+  /* ── Add Vehicle ── */
+  const handleAddVehicle = useCallback(() => {
+    setShowAddPanel(true);
+    navigate(`${location.pathname}#vehicleaction`, { replace: true });
+  }, [navigate, location.pathname]);
+
+  const handleCloseAddPanel = useCallback(() => {
+    setShowAddPanel(false);
+    if (location.hash === "#vehicleaction") {
       navigate(location.pathname, { replace: true });
     }
-  };
+  }, [navigate, location]);
 
-  // Handle successful vehicle creation
-  const handleVehicleSaved = (vehicleData) => {
-    handleClosePopup();
-    // Navigate to the new vehicle details page
-    if (vehicleData && vehicleData.vehicleId) {
-      navigate(getVehicleDetailsRoute(vehicleData.vehicleId));
-    }
-  };
+  const handleVehicleSaved = useCallback(
+    (vehicleData) => {
+      handleCloseAddPanel();
+      if (vehicleData?.vehicleId) {
+        setSelectedVehicleId(vehicleData.vehicleId);
+      }
+    },
+    [handleCloseAddPanel]
+  );
 
-  // Handle add vehicle button click
-  const handleAddVehicle = () => {
-    setShowAddVehiclePopup(true);
-    // Add hash to URL
-    navigate(`${location.pathname}#vehicleaction`, { replace: true });
-  };
+  /* ── Vehicle selection from grid ── */
+  const handleSelectVehicle = useCallback((vehicleId) => {
+    setSelectedVehicleId(vehicleId);
+  }, []);
+
+  const handleCloseDetailPanel = useCallback(() => {
+    setSelectedVehicleId(null);
+  }, []);
+
+  /* ── Refresh grid after updates ── */
+  const handleVehicleUpdated = useCallback(() => {
+    // DataGrid handles its own state via Redux — just close sub-panels
+  }, []);
 
   return (
-    <div className="tw-px-1 tw-pt-2 tw-pb-4 md:tw-p-3">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-4">
-        <div className="fleet-header tw-flex tw-justify-between tw-items-center tw-mb-4">
-          <div className="header-content">
-            <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-1">Vehicles</h2>
-            <p className="tw-text-gray-600">
-              Manage your vehicle fleet, assignments, and operational status.
-            </p>
-          </div>
-          <div className="header-actions add-vehicle-btn">
-            <Button
-              text="Add Vehicle"
-              type="default"
-              stylingMode="contained"
-              icon="fa-light fa-plus"
-              onClick={handleAddVehicle}
-              className="tw-bg-blue-600 hover:tw-bg-blue-700"
-            />
-          </div>
-        </div>
+    <div className="vehicle-fleet-m365">
+      {/* ── M365 Page Header ── */}
+      <M365PageHeader
+        title="Vehicles"
+        icon="fa-light fa-truck"
+        count={vehicles?.length}
+      >
+        <button className="m365-btn m365-btn--primary" onClick={handleAddVehicle}>
+          <i className="fa-light fa-plus" /> Add Vehicle
+        </button>
+      </M365PageHeader>
 
-        <VehicleDataGrid />
+      {/* ── DataGrid ── */}
+      <div className="vehicle-fleet-m365__grid">
+        <VehicleDataGrid onSelectVehicle={handleSelectVehicle} />
       </div>
 
-      {/* Add Vehicle Popup */}
-      <Popup
-        visible={showAddVehiclePopup}
-        onHiding={handleClosePopup}
-        showCloseButton={true}
-        width="auto"
-        height="auto"
-        maxWidth="900px"
-        maxHeight="90vh"
+      {/* ── Detail Panel ── */}
+      <VehicleDetailPanel
+        open={selectedVehicleId != null}
+        onClose={handleCloseDetailPanel}
+        vehicleId={selectedVehicleId}
+        onVehicleUpdated={handleVehicleUpdated}
+      />
+
+      {/* ── Add Vehicle Panel ── */}
+      <SlidePanel
+        open={showAddPanel}
+        onClose={handleCloseAddPanel}
         title="Add New Vehicle"
-        dragEnabled={false}
-        resizeEnabled={true}
-        className="vehicle-add-popup"
+        width={720}
       >
-        <VehicleAddForm
-          onSave={handleVehicleSaved}
-          onCancel={handleClosePopup}
-        />
-      </Popup>
+        <div className="tw-p-5">
+          <VehicleAddForm onSave={handleVehicleSaved} onCancel={handleCloseAddPanel} />
+        </div>
+      </SlidePanel>
     </div>
   );
 };

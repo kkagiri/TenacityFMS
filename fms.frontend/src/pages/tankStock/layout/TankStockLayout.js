@@ -9,9 +9,9 @@
  */
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { useSelector } from 'react-redux';
 import { tankStockRoutes, isActiveRoute } from '../utils/navigationHelper';
 import QuickActions from '../components/QuickActions';
+import { usePermissions } from '../../../hooks/usePermissions';
 import HeaderStockFilters from '../shared/components/HeaderStockFilters';
 import './TankStockLayout.scss';
 
@@ -19,9 +19,8 @@ const TankStockLayout = ({ children, currentPath, onDataRefresh, pageTitle, page
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { user } = useSelector((state) => state.auth);
-  const userRoles = Array.isArray(user?.roles) ? user.roles : [user?.roles].filter(Boolean);
-  const isAdmin = userRoles.some((role) => typeof role === 'string' && role.toLowerCase() === 'admin');
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission('_Update_TankStock');
 
   // 🚀 OPTIMIZATION: Memoize page info to avoid recalculating on every render
   const pageInfo = useMemo(() => {

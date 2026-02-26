@@ -15,7 +15,7 @@ import {
 
 const TankStockSettings = () => {
   const dispatch = useDispatch();
-  const { userInfo } = usePermissions();
+  const { userInfo, hasPermission } = usePermissions();
   const { configurations, loading } = useSelector((state) => state.systemConfig);
 
   const [selectedTabIndex, setSelectedTabIndex] = useState(0);
@@ -63,11 +63,8 @@ const TankStockSettings = () => {
   const [saving, setSaving] = useState(false);
   const [configMap, setConfigMap] = useState({});
 
-  // Check if user has admin role
-  const userRoles = Array.isArray(userInfo?.roles)
-    ? userInfo.roles.map(r => r.toLowerCase())
-    : (userInfo?.roles ? [userInfo.roles.toLowerCase()] : []);
-  const hasAdminPermission = userRoles.includes('admin');
+  // Check if user has settings permission
+  const hasAdminPermission = hasPermission('_Update_TankStock');
 
   // Fetch Tank Stock configurations
   useEffect(() => {

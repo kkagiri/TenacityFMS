@@ -190,9 +190,24 @@ namespace FMS.WebClient.Services.Reporting
                 try
                 {
                     var filePath = TemplatePath(name);
-                    if (!File.Exists(filePath))
+                    var embeddedContent = generator();
+
+                    // Always overwrite on-disk templates with the latest embedded version.
+                    // This prevents stale templates from causing missing sections / data.
+                    if (File.Exists(filePath))
                     {
-                        await File.WriteAllTextAsync(filePath, generator());
+                        var existing = await File.ReadAllTextAsync(filePath);
+                        if (existing != embeddedContent)
+                        {
+                            await File.WriteAllTextAsync(filePath, embeddedContent);
+                            _logger.LogInformation(
+                                "Updated template '{Template}' at {Path} (embedded version was newer)",
+                                name, filePath);
+                        }
+                    }
+                    else
+                    {
+                        await File.WriteAllTextAsync(filePath, embeddedContent);
                         _logger.LogInformation("Created default template '{Template}' at {Path}", name, filePath);
                     }
                 }

@@ -17,6 +17,10 @@ export const DELETE_SITE_REQUEST = "DELETE_SITE_REQUEST";
 export const DELETE_SITE_SUCCESS = "DELETE_SITE_SUCCESS";
 export const DELETE_SITE_FAILURE = "DELETE_SITE_FAILURE";
 
+export const FETCH_SITE_STATS_REQUEST = "FETCH_SITE_STATS_REQUEST";
+export const FETCH_SITE_STATS_SUCCESS = "FETCH_SITE_STATS_SUCCESS";
+export const FETCH_SITE_STATS_FAILURE = "FETCH_SITE_STATS_FAILURE";
+
 // Action creators
 export const fetchSitesRequest = () => ({
   type: FETCH_SITES_REQUEST,
@@ -92,10 +96,10 @@ const ensureArray = (payload) => {
   return [];
 };
 
-export const fetchSiteList = () => async (dispatch) => {
+export const fetchSiteList = (includeInactive = false) => async (dispatch) => {
   try {
     dispatch(fetchSitesRequest());
-    const response = await axiosInstance.get(`/site`); // NEW: GET /api/site
+    const response = await axiosInstance.get(`/site`, { params: { includeInactive } }); // NEW: GET /api/site
 
     const sitesData = ensureArray(response.data);
 
@@ -225,5 +229,18 @@ export const deleteSite = (siteId) => async (dispatch) => {
       message: errorMessage,
       validationErrors: validationErrors,
     };
+  }
+};
+
+export const fetchSiteStats = (siteId) => async (dispatch) => {
+  try {
+    dispatch({ type: FETCH_SITE_STATS_REQUEST });
+    const response = await axiosInstance.get(`/site/${siteId}/stats`);
+    dispatch({ type: FETCH_SITE_STATS_SUCCESS, payload: response.data });
+    return { success: true, data: response.data };
+  } catch (error) {
+    const errorMessage = error.response?.data?.message || error.message;
+    dispatch({ type: FETCH_SITE_STATS_FAILURE, payload: errorMessage });
+    return { success: false, message: errorMessage };
   }
 };

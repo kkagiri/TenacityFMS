@@ -2,7 +2,7 @@ import React, { useState, useRef } from "react";
 import { useSelector } from "react-redux";
 import Toolbar, { Item } from "devextreme-react/toolbar";
 
-import UserPanel from "../user-panel/UserPanel";
+import v from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { AppDrawer } from "../app-drawer";
 import "./Header.scss";
@@ -40,7 +40,7 @@ export default function Header({ menuToggleEnabled, title }) {
 
   return (
     <header className={"header-component"}>
-      <Toolbar  height className={"header-toolbar"}>
+      <Toolbar height className={"header-toolbar"}>
         <Item
           visible={true}
           location={"center"}
@@ -78,7 +78,7 @@ export default function Header({ menuToggleEnabled, title }) {
         />
 
 
-       {/* Todo: insert Theme selector . */}
+        {/* Todo: insert Theme selector . */}
 
         {/* //Cursor - Notification bell positioned on the right - moved to be first on right side */}
         <Item

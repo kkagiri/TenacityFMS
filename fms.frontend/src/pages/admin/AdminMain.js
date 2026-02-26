@@ -16,9 +16,7 @@ import AdminDashboard from "./AdminDashboard";
 // Import the existing component pages to be used in admin routes
 import UserPage from "../user/userPage";
 import UserDetailsPage from "../user/userDetailsPage";
-import UserEditPage from "../user/userEditPage";
 import UserActivitiesPage from "../user/userActivitiesPage";
-import UserSitesPage from "../user/userSitesPage";
 import Rolepage from "../Role/rolepage";
 import PermissionTreeListNonEdit from "../../components/PermissionTreeList/permissionTreeListNonEdit";
 import NavigationPage from "../Navigation/NavigationPage";
@@ -52,9 +50,7 @@ const AdminMain = () => {
         <Route path="users" element={<UserPage />} />
         <Route path="users/*" element={<UserPage />} />
         <Route path="users/:id" element={<UserDetailsPage />} />
-        <Route path="users/:id/edit" element={<UserEditPage />} />
         <Route path="users/:id/activities" element={<UserActivitiesPage />} />
-        <Route path="users/:id/sites" element={<UserSitesPage />} />
         <Route path="roles" element={<Rolepage />} />
         <Route path="roles/*" element={<Rolepage />} />
         <Route path="permissions" element={<PermissionTreeListNonEdit />} />

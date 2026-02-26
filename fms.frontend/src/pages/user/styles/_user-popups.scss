@@ -1,0 +1,141 @@
+/*
+ * File: _user-popups.scss
+ * Purpose: M365 popup / dialog styles for Create User, Department Management
+ * Dependencies: _user-m365-variables.scss
+ * Last Modified: 2026-02-25
+ */
+
+// -------------------------------------------------
+// DevExtreme Popup M365 overrides
+// -------------------------------------------------
+.m365-popup-wrap {
+  // Override DX popup title bar
+  .dx-popup-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m365-text);
+    background: var(--m365-bg-card);
+    border-bottom: 1px solid var(--m365-border-light);
+    padding: 16px 20px;
+  }
+
+  .dx-popup-content {
+    padding: 0 !important;
+  }
+}
+
+// -------------------------------------------------
+// Popup body layout
+// -------------------------------------------------
+.m365-popup-body {
+  padding: 20px;
+  overflow-y: auto;
+  max-height: calc(100vh - 160px);
+}
+
+.m365-popup-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--m365-border-light);
+  background: var(--m365-bg-surface);
+  flex-shrink: 0;
+}
+
+// -------------------------------------------------
+// Form fields inside popups
+// -------------------------------------------------
+.m365-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+
+  &__label {
+    font-size: var(--m365-font-body);
+    font-weight: 500;
+    color: var(--m365-text);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+
+    &--required::after {
+      content: ' *';
+      color: var(--m365-error);
+    }
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+  }
+
+  &__error {
+    font-size: 12px;
+    color: var(--m365-error);
+  }
+}
+
+// -------------------------------------------------
+// Department popup tab bar
+// -------------------------------------------------
+.m365-popup-tabs {
+  display: flex;
+  gap: 0;
+  border-bottom: 1px solid var(--m365-border-light);
+  padding: 0 20px;
+  background: var(--m365-bg-card);
+}
+
+.m365-popup-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 14px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 500;
+  color: var(--m365-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+
+  &:hover { color: var(--m365-text); }
+
+  &--active {
+    color: var(--m365-primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 4px;
+      right: 4px;
+      height: 2px;
+      background: var(--m365-primary);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+// -------------------------------------------------
+// Help tooltip
+// -------------------------------------------------
+.m365-help-tip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  font-size: 12px;
+  color: var(--m365-text-tertiary);
+  cursor: help;
+  margin-left: 4px;
+
+  &:hover { color: var(--m365-primary); }
+}

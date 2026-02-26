@@ -1,0 +1,507 @@
+/*
+ * File: _user-list.scss
+ * Purpose: M365 DataGrid list view & filter bar styles for User Management
+ * Dependencies: _user-m365-variables.scss
+ * Last Modified: 2026-02-25
+ */
+
+// -------------------------------------------------
+// Page Header
+// -------------------------------------------------
+.m365-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: var(--m365-bg-card);
+  border-bottom: 1px solid var(--m365-border-light);
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__icon {
+    font-size: 16px;
+    color: var(--m365-primary);
+  }
+
+  &__title {
+    font-size: var(--m365-font-heading);
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: var(--m365-bg-hover);
+    color: var(--m365-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// -------------------------------------------------
+// Stats Row (below page header)
+// -------------------------------------------------
+.m365-stats-row {
+  display: flex;
+  gap: 0;
+  padding: 0 24px;
+  background: var(--m365-bg-card);
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+.m365-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  min-width: 100px;
+  border-right: 1px solid var(--m365-border-light);
+
+  &:last-child {
+    border-right: none;
+  }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--m365-text);
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-secondary);
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+}
+
+// -------------------------------------------------
+// Tab Bar
+// -------------------------------------------------
+.m365-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  background: var(--m365-bg-card);
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+.m365-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 500;
+  color: var(--m365-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.15s;
+
+  &:hover {
+    color: var(--m365-text);
+  }
+
+  &--active {
+    color: var(--m365-primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background: var(--m365-primary);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+.m365-tab-badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--m365-error);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// -------------------------------------------------
+// Filter Bar
+// -------------------------------------------------
+.m365-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  padding: 10px 24px;
+  background: var(--m365-bg-card);
+  border-bottom: 1px solid var(--m365-bg-hover);
+}
+
+// -------------------------------------------------
+// Standard M365 controls (for non-DevExtreme)
+// -------------------------------------------------
+.m365-select {
+  height: var(--m365-control-height);
+  padding: 0 28px 0 10px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 400;
+  color: var(--m365-text);
+  background: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: var(--m365-radius-sm);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:hover { border-color: var(--m365-text-secondary); }
+  &:focus { border-color: var(--m365-primary); box-shadow: 0 0 0 1px var(--m365-primary); }
+  &:disabled { background: var(--m365-bg-hover); color: var(--m365-text-tertiary); cursor: not-allowed; }
+}
+
+.m365-input {
+  height: var(--m365-control-height);
+  padding: 0 10px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  color: var(--m365-text);
+  background: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: var(--m365-radius-sm);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder { color: var(--m365-text-tertiary); }
+  &:hover { border-color: var(--m365-text-secondary); }
+  &:focus { border-color: var(--m365-primary); box-shadow: 0 0 0 1px var(--m365-primary); }
+  &:disabled { background: var(--m365-bg-hover); color: var(--m365-text-tertiary); }
+}
+
+.m365-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 180px;
+
+  &__icon {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    color: var(--m365-text-tertiary);
+    pointer-events: none;
+  }
+
+  &__input {
+    @extend .m365-input;
+    padding-left: 32px;
+    width: 100%;
+  }
+}
+
+// -------------------------------------------------
+// M365 Stat Cards row
+// -------------------------------------------------
+.m365-stats-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  padding: 16px 24px;
+  background: var(--m365-bg-surface);
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+// -------------------------------------------------
+// List content area
+// -------------------------------------------------
+.m365-list-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px;
+  background: var(--m365-bg-surface);
+}
+
+// -------------------------------------------------
+// Card grid view
+// -------------------------------------------------
+.m365-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+// -------------------------------------------------
+// Empty state
+// -------------------------------------------------
+.m365-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  color: var(--m365-text-tertiary);
+  text-align: center;
+
+  &__icon {
+    font-size: 32px;
+    margin-bottom: 12px;
+  }
+
+  &__title {
+    font-size: var(--m365-font-body);
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    margin: 0 0 4px;
+  }
+
+  &__subtitle {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-tertiary);
+    margin: 0;
+  }
+}
+
+// -------------------------------------------------
+// DevExtreme DataGrid M365 overrides
+// -------------------------------------------------
+.m365-datagrid-wrap {
+  // Flat header
+  .dx-datagrid-headers {
+    background: var(--m365-bg-surface);
+    border-bottom: 1px solid var(--m365-border-light);
+
+    .dx-header-row {
+      .dx-datagrid-text-content {
+        font-size: var(--m365-font-meta);
+        font-weight: 600;
+        color: var(--m365-text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.3px;
+      }
+    }
+  }
+
+  // Rows
+  .dx-data-row {
+    font-size: var(--m365-font-body);
+    color: var(--m365-text);
+    cursor: pointer;
+    transition: background 0.1s;
+
+    td {
+      border-bottom: 1px solid var(--m365-border-light) !important;
+      vertical-align: middle;
+    }
+
+    &:hover td {
+      background: var(--m365-bg-hover) !important;
+    }
+
+    &.dx-selection td {
+      background: var(--m365-primary-tint) !important;
+    }
+  }
+
+  // Remove alternating row shading
+  .dx-row-alt td {
+    background: transparent !important;
+  }
+}
+
+// -------------------------------------------------
+// Buttons (M365 native)
+// -------------------------------------------------
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: var(--m365-control-height);
+  padding: 0 16px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 500;
+  border-radius: var(--m365-radius-sm);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &--primary { background: var(--m365-primary); color: #fff; &:hover { background: var(--m365-primary-hover); } }
+  &--ghost   { background: #fff; color: #323130; border: 1px solid var(--m365-border); &:hover { background: var(--m365-bg-hover); } }
+  &--text    { background: transparent; color: var(--m365-text-secondary); padding: 0 8px; &:hover { color: var(--m365-text); } }
+  &--danger  { background: var(--m365-error); color: #fff; &:hover { background: #a4262c; } }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  i { font-size: 14px; }
+}
+
+.m365-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--m365-text-tertiary);
+  background: transparent;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { color: var(--m365-primary); background: var(--m365-primary-tint); border-color: var(--m365-primary); }
+  &--danger:hover { color: var(--m365-error); background: var(--m365-error-tint); border-color: var(--m365-error); }
+}
+
+.m365-btn-group {
+  display: inline-flex;
+  border: 1px solid var(--m365-border);
+  border-radius: var(--m365-radius-sm);
+  overflow: hidden;
+  background: #fff;
+
+  &__item {
+    border: none;
+    border-radius: 0;
+    background: #fff;
+    color: #323130;
+    height: 32px;
+    padding: 0 12px;
+    font-family: var(--m365-font);
+    font-size: var(--m365-font-body);
+    font-weight: 500;
+    cursor: pointer;
+    position: relative;
+
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 16px;
+      background: var(--m365-border-light);
+    }
+
+    &:hover { background: var(--m365-bg-hover); color: var(--m365-primary); }
+    &--active { color: var(--m365-primary); background: var(--m365-primary-tint); }
+  }
+}
+
+// -------------------------------------------------
+// Badges
+// -------------------------------------------------
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+
+  &--neutral { background: var(--m365-bg-hover); color: var(--m365-text-secondary); }
+  &--primary { background: var(--m365-primary-tint); color: var(--m365-primary); }
+  &--success { background: var(--m365-success-tint); color: var(--m365-success); }
+  &--error   { background: var(--m365-error-tint); color: var(--m365-error); }
+  &--warning { background: var(--m365-warning-tint); color: var(--m365-warning); }
+}
+
+// -------------------------------------------------
+// Avatar
+// -------------------------------------------------
+.m365-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  flex-shrink: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+// -------------------------------------------------
+// Mobile responsive
+// -------------------------------------------------
+@media (max-width: 640px) {
+  .m365-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 16px;
+
+    &__actions { flex-wrap: wrap; }
+  }
+
+  .m365-filters {
+    padding: 8px 16px;
+
+    .m365-select,
+    .m365-search { flex: 1; min-width: 0; }
+  }
+
+  .m365-stats-row {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 12px 16px;
+  }
+
+  .m365-list-area {
+    padding: 12px 16px;
+  }
+
+  .m365-btn-group {
+    flex-direction: column;
+    border-radius: var(--m365-radius-sm);
+
+    &__item { width: 100%; }
+  }
+
+  .m365-tabs { padding: 0 16px; overflow-x: auto; }
+}

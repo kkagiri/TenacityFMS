@@ -76,6 +76,15 @@ namespace FMS.Domain.Entities
         /// </summary>
         public int ExecutionTimeMs { get; set; } = 0;
 
+        /// <summary>
+        /// Scope key for cooldown/rate-limit isolation.
+        /// Format: "tank:{TankId}" | "site:{SiteId}" | "global"
+        /// Allows per-tank or per-site cooldown — e.g. Tank A's NoTankEntry cooldown
+        /// does not block Tank B from also triggering the same expression.
+        /// </summary>
+        [MaxLength(50)]
+        public string ScopeKey { get; set; } = "global";
+
         // Navigation Properties
         public virtual EventExpression EventExpression { get; set; } = null!;
         public virtual Notification? Notification { get; set; }

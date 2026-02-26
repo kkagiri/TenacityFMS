@@ -35,6 +35,7 @@ namespace FMS.Application.Features.EventEngine.DTOs
         public string? AssignIssueTo { get; set; }
         public int CooldownMinutes { get; set; }
         public int MaxNotificationsPerDay { get; set; }
+        public int MaxNotificationsPerHour { get; set; }
         public bool EnableEscalation { get; set; }
         public string? EscalationRules { get; set; }
         public string? MessageTemplate { get; set; }

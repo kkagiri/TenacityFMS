@@ -31,6 +31,7 @@
   <ItemGroup>
     <PackageReference Include="AutoMapper" Version="12.0.1" />
     <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.0.1" />
+    <PackageReference Include="ClosedXML" Version="0.102.3" />
     <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="23.2.3" />
     <!-- JsReport for PDF/Excel report generation -->
     <PackageReference Include="jsreport.Local" Version="3.8.2" />
@@ -38,10 +39,11 @@
     <PackageReference Include="jsreport.Types" Version="3.9.4" />
     <!-- <PackageReference Include="DevExpress.AspNetCore.Reporting" Version="22.2.5" /> -->
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.4" />
+    <PackageReference Include="PuppeteerSharp" Version="21.1.1" />
     <PackageReference Include="Serilog.Expressions" Version="4.0.0" />
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.1.2" />
     <PackageReference Include="Microsoft.AspNetCore.SignalR.StackExchangeRedis" Version="8.0.4" />
-    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="5.0.0" />
+    <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.SpaProxy" Version="6.0.13" />
     <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="9.0.5" />
     <PackageReference Include="AspNetCore.HealthChecks.Redis" Version="8.0.0" />

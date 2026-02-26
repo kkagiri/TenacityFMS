@@ -13,6 +13,8 @@
  * Refactored: Components and hooks extracted to separate files in transactionHub folder
  */
 import React, { useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import DropDownButton from "devextreme-react/drop-down-button";
 import DataGrid, {
   Paging,
   Pager,
@@ -36,7 +38,7 @@ import { LoadPanel } from "devextreme-react/load-panel";
 import Button from "devextreme-react/button";
 import Popup from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
-import reportingService from "../../../../services/reportingService";
+import ChartView from "./ChartView";
 
 // Utilities and exports
 import { exportTransactionsToExcel } from "../utils/transactionExportUtils";
@@ -62,30 +64,20 @@ import {
   useDataGridGrouping,
 } from "./transactionHub/useTransactionHub";
 import { EditTransactionDialog } from "./transactionHub/EditTransactionDialog";
-import {
-  buildTransactionVolumeHistoryFileName,
-  buildTransactionVolumeHistoryReportData
-} from "./transactionHub/transactionHistoryReportUtils";
-import {
-  ScheduleReportEmailDialog,
-  createReportScheduleNotificationRequest,
-  createDefaultReportScheduleConfig,
-} from "../../../../components/Reporting/ReportScheduler";
-
 // Hooks
 import { usePermissions } from "../../../../hooks/usePermissions";
+import useReportJobTracking from "../../../../hooks/useReportJobTracking";
+import ReportJobTracker from "./transactionHub/ReportJobTracker";
 import "./TransactionHub.scss";
 
 const TransactionHub = () => {
   const dataGridRef = useRef(null);
 
   // Permission checks using JWT token
-  const { hasPermission, hasRole } = usePermissions();
+  const { hasPermission } = usePermissions();
   const canReadTankVolumeHistory = hasPermission("_Read_TankVolumeHistory");
   const canDeleteTankVolumeHistory = hasPermission("_Delete_TankVolumeHistory");
-  // Edit is admin-only feature
-  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
-  const canEditTankVolumeHistory = isAdmin;
+  const canEditTankVolumeHistory = hasPermission("_Update_TankVolumeHistory");
 
   // Use extracted hooks for data management
   const {
@@ -142,27 +134,25 @@ const TransactionHub = () => {
     handleToggleDispensingTotal,
   } = useDataGridGrouping(dataGridRef);
 
+  const navigate = useNavigate();
+
+  // Async report job tracking
+  const {
+    activeJob: reportJob,
+    isTracking: isReportTracking,
+    error: reportError,
+    cancelActiveJob: cancelReportJob,
+    downloadResult: downloadReport,
+    dismissJob: dismissReportJob,
+    emailWhenDone: emailWhenDoneReport,
+  } = useReportJobTracking();
+
   // Local state for manual refill form
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
-  const [showScheduleReportDialog, setShowScheduleReportDialog] = useState(false);
-  const [scheduleConfig, setScheduleConfig] = useState(() =>
-    createDefaultReportScheduleConfig({
-      siteIds: selectedSiteIds,
-      tankIds: selectedTankIds
-    })
-  );
-  const [isSchedulingReport, setIsSchedulingReport] = useState(false);
 
-  const reportTemplateName = "transaction-volume-history-report";
-
-  const areScheduleValuesEqual = useCallback((currentValue, nextValue) => {
-    if (Array.isArray(currentValue) && Array.isArray(nextValue)) {
-      if (currentValue.length !== nextValue.length) return false;
-      return currentValue.every((value, index) => value === nextValue[index]);
-    }
-
-    return currentValue === nextValue;
-  }, []);
+  // Chart view state
+  const [showChartView, setShowChartView] = useState(false);
+  const [selectedChartType, setSelectedChartType] = useState('candlestick');
 
   // Refresh data after successful manual refill
   const handleManualRefillSuccess = useCallback(() => {
@@ -176,204 +166,26 @@ const TransactionHub = () => {
     });
   }, [handleRefresh]);
 
-  const handleGenerateHistoryReport = useCallback(async () => {
-    if (!tankVolumeHistory || tankVolumeHistory.length === 0) {
-      notify({
-        message: "No transactions available for the selected range.",
-        type: "warning",
-        displayTime: 3000,
-        position: "top center"
-      });
-      return;
+  // Navigate to the report engine page with current filter params in the URL
+  const handleGenerateHistoryReport = useCallback(() => {
+    const params = new URLSearchParams();
+    if (headerStartDate) {
+      const start = headerStartDate instanceof Date ? headerStartDate.toISOString() : headerStartDate;
+      params.set('startDate', start);
     }
-
-    try {
-      const reportData = buildTransactionVolumeHistoryReportData({
-        tankVolumeHistory,
-        tanks,
-        sites,
-        headerStartDate,
-        headerEndDate,
-        selectedSiteIds,
-        selectedTankIds,
-        user
-      });
-
-      const result = await reportingService.renderJsReportPdf(reportTemplateName, reportData);
-      if (result.success) {
-        const fileName = buildTransactionVolumeHistoryFileName(headerStartDate, headerEndDate);
-        reportingService.downloadReportFile(result.blob, fileName);
-        notify({
-          message: "Transaction volume history report generated successfully",
-          type: "success",
-          displayTime: 3000,
-          position: "top center"
-        });
-      } else {
-        notify({
-          message: result.error || "Failed to generate report.",
-          type: "error",
-          displayTime: 3000,
-          position: "top center"
-        });
-      }
-    } catch (error) {
-      console.error("History report generation failed:", error);
-      notify({
-        message: "Failed to generate report. Please try again.",
-        type: "error",
-        displayTime: 3000,
-        position: "top center"
-      });
+    if (headerEndDate) {
+      const end = headerEndDate instanceof Date ? headerEndDate.toISOString() : headerEndDate;
+      params.set('endDate', end);
     }
-  }, [
-    tankVolumeHistory,
-    tanks,
-    sites,
-    headerStartDate,
-    headerEndDate,
-    selectedSiteIds,
-    selectedTankIds,
-    user
-  ]);
-
-  const handleScheduleConfigChange = useCallback((updates) => {
-    if (!updates || typeof updates !== "object") {
-      return;
+    if (selectedSiteIds && selectedSiteIds.length > 0) {
+      params.set('siteIds', selectedSiteIds.join(','));
     }
-
-    setScheduleConfig((prev) => {
-      const updateEntries = Object.entries(updates);
-      const hasActualChange = updateEntries.some(([key, nextValue]) => {
-        return !areScheduleValuesEqual(prev?.[key], nextValue);
-      });
-
-      if (!hasActualChange) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        ...updates
-      };
-    });
-  }, [areScheduleValuesEqual]);
-
-  const handleCloseScheduleDialog = useCallback(() => {
-    setShowScheduleReportDialog(false);
-  }, []);
-
-  const handleOpenScheduleDialog = useCallback(() => {
-    setScheduleConfig((prev) => {
-      const existingDayIds =
-        Array.isArray(prev.scheduleDayOfWeekIds) && prev.scheduleDayOfWeekIds.length
-          ? prev.scheduleDayOfWeekIds
-          : [prev.scheduleDayOfWeek || "monday"];
-
-      return createDefaultReportScheduleConfig({
-        siteIds: selectedSiteIds?.length ? selectedSiteIds : prev.siteIds || [],
-        tankIds: selectedTankIds?.length ? selectedTankIds : prev.tankIds || [],
-        recipientIds: prev.recipientIds || [],
-        periodType: prev.periodType || "daily",
-        format: prev.format || "pdf",
-        scheduleDayOfWeekIds: existingDayIds,
-        scheduleDayOfWeek: existingDayIds[0],
-        scheduleWeekOfMonth: prev.scheduleWeekOfMonth || "first",
-        scheduleTime: prev.scheduleTime || null,
-        reportName: prev.reportName || "Scheduled Report",
-        reportDescription: prev.reportDescription || ""
-      });
-    });
-    setShowScheduleReportDialog(true);
-  }, [selectedSiteIds, selectedTankIds]);
-
-  const handleScheduleReportEmail = useCallback(async () => {
-    const normalizedRecipients = (usersForFilter || [])
-      .map((recipient) => {
-        const rawId = recipient?.userId ?? recipient?.id;
-        if (rawId === null || rawId === undefined || rawId === "") {
-          return null;
-        }
-
-        return {
-          id: String(rawId),
-          name:
-            recipient?.userName ||
-            recipient?.username ||
-            recipient?.name ||
-            `User ${rawId}`,
-        };
-      })
-      .filter(Boolean);
-
-    const requestBuildResult = createReportScheduleNotificationRequest({
-      scheduleConfig,
-      reportDefinition: {
-        reportType: "TransactionVolumeHistory",
-        templateName: reportTemplateName,
-        triggerSource: "TransactionVolumeHistoryReportSchedule",
-        reportPath: "/reports/tank-volume-history",
-        reportNamePrefix: "TankVolumeHistory - ",
-        defaultDescription: "Scheduled tank volume history report delivery.",
-        supportsTankFilter: true,
-      },
-      sites,
-      tanks,
-      users: normalizedRecipients,
-      requestedBy: user?.userName || user?.username || "Unknown User",
-      windowOrigin: window.location.origin,
-    });
-
-    if (!requestBuildResult.success) {
-      notify({
-        message: requestBuildResult.error || "Unable to schedule report email.",
-        type: "warning",
-        displayTime: 3000,
-        position: "top center",
-      });
-      return;
+    if (selectedTankIds && selectedTankIds.length > 0) {
+      params.set('tankIds', selectedTankIds.join(','));
     }
-
-    setIsSchedulingReport(true);
-    try {
-      const scheduleResult = await reportingService.scheduleReportEmail(
-        requestBuildResult.request
-      );
-      if (scheduleResult.success) {
-        notify({
-          message: "Report email scheduled successfully",
-          type: "success",
-          displayTime: 3000,
-          position: "top center"
-        });
-        setShowScheduleReportDialog(false);
-      } else {
-        notify({
-          message: scheduleResult.error || "Failed to schedule report email.",
-          type: "error",
-          displayTime: 3000,
-          position: "top center"
-        });
-      }
-    } catch (error) {
-      console.error("Schedule report email failed:", error);
-      notify({
-        message: "Failed to schedule report email. Please try again.",
-        type: "error",
-        displayTime: 3000,
-        position: "top center"
-      });
-    } finally {
-      setIsSchedulingReport(false);
-    }
-  }, [
-    scheduleConfig,
-    tanks,
-    sites,
-    usersForFilter,
-    user,
-    reportTemplateName,
-  ]);
+    const url = `/reports/engine/tank-volume-history?${params.toString()}`;
+    navigate(url);
+  }, [navigate, headerStartDate, headerEndDate, selectedSiteIds, selectedTankIds]);
 
   // Handle row click to prevent errors with group rows
   const onRowClick = useCallback((e) => {
@@ -491,6 +303,40 @@ const TransactionHub = () => {
     }
   }, [tankVolumeHistory, tanks, sites, headerStartDate, headerEndDate, user]);
 
+  // Chart view items for the dropdown
+  const chartViewItems = [
+    { id: 'candlestick', text: '📈 Candlestick Chart', icon: 'fa-light fa-chart-line' },
+    { id: 'volume', text: '📊 Volume Chart', icon: 'fa-light fa-chart-bar' },
+    { id: 'multi-series', text: '🎯 Multi-Series Line', icon: 'fa-light fa-chart-area' },
+    { id: 'ohlc', text: '📉 OHLC Bars', icon: 'fa-light fa-chart-column' },
+  ];
+
+  // Action items for the Actions dropdown
+  const actionItems = [
+    { id: 'export-excel', text: 'Export to Excel', icon: 'fa-light fa-file-excel' },
+    { id: 'history-report', text: 'History Report', icon: 'fa-light fa-file-pdf' },
+    { id: 'analysis-report', text: 'Analysis Report', icon: 'fa-light fa-chart-mixed' },
+  ];
+
+  const handleActionItemClick = useCallback((e) => {
+    const id = e.itemData?.id;
+    if (id === 'export-excel') {
+      onExporting();
+    } else if (id === 'history-report') {
+      handleGenerateHistoryReport();
+    } else if (id === 'analysis-report') {
+      onExportingAnalysis();
+    }
+  }, [onExporting, handleGenerateHistoryReport, onExportingAnalysis]);
+
+  const handleChartViewItemClick = useCallback((e) => {
+    const type = e.itemData?.id;
+    if (type) {
+      setSelectedChartType(type);
+      setShowChartView(true);
+    }
+  }, []);
+
   // Custom summary calculation for dispensing totals
   const calculateCustomSummary = useCallback(
     (options) => {
@@ -546,7 +392,7 @@ const TransactionHub = () => {
                 />
               </div>
 
-              {/* Segmented Button Group: Refresh, Export */}
+              {/* Action Buttons: Refresh | Export | Actions | Chart Views */}
               <div className="transaction-hub__action-buttons">
                 <Button
                   text="Refresh"
@@ -558,44 +404,31 @@ const TransactionHub = () => {
                   className="transaction-hub__action-btn transaction-hub__action-btn--first"
                 />
 
-                <Button
-                  text="Export"
-                  icon="fa-light fa-file-excel"
-                  type="default"
+                <DropDownButton
+                  text="Actions"
+                  icon="fa-light fa-bolt"
+                  items={actionItems}
+                  displayExpr="text"
+                  keyExpr="id"
+                  onItemClick={handleActionItemClick}
                   stylingMode="outlined"
-                  onClick={onExporting}
-                  hint="Export to Excel"
-                  className="transaction-hub__action-btn transaction-hub__action-btn--excel"
-                />
-
-                <Button
-                  text="History Report"
-                  icon="fa-light fa-file-pdf"
                   type="default"
-                  stylingMode="outlined"
-                  onClick={handleGenerateHistoryReport}
-                  hint="Generate transaction volume history report"
+                  hint="Report actions"
                   className="transaction-hub__action-btn"
+                  dropDownOptions={{ width: 230 }}
                 />
 
-                <Button
-                  text="Schedule Email"
-                  icon="fa-light fa-envelope"
-                  type="default"
+                <DropDownButton
+                  text="Chart Views"
+                  icon="fa-light fa-chart-line"
+                  items={chartViewItems}
+                  displayExpr="text"
+                  keyExpr="id"
+                  onItemClick={handleChartViewItemClick}
                   stylingMode="outlined"
-                  onClick={handleOpenScheduleDialog}
-                  hint="Schedule report email delivery"
-                  className="transaction-hub__action-btn"
-                />
-
-                <Button
-                  text="Analysis Report"
-                  icon="fa-light fa-chart-mixed"
                   type="default"
-                  stylingMode="outlined"
-                  onClick={onExportingAnalysis}
-                  hint="Generate AI-style site analysis report"
-                  className="transaction-hub__action-btn transaction-hub__action-btn--analysis transaction-hub__action-btn--last"
+                  hint="Open a chart visualisation"
+                  className="transaction-hub__action-btn transaction-hub__action-btn--last"
                 />
               </div>
             </div>
@@ -658,9 +491,7 @@ const TransactionHub = () => {
             />
             <Selection mode="multiple" />
 
-            <Toolbar>
-              {/* Chart Views Dropdown - COMMENTED OUT FOR NOW */}
-            </Toolbar>
+            <Toolbar />
 
             {/* Columns */}
             <Column
@@ -981,17 +812,20 @@ const TransactionHub = () => {
         onCancel={handleCancelEdit}
       />
 
-      {/* Schedule Report Email Dialog */}
-      <ScheduleReportEmailDialog
-        visible={showScheduleReportDialog}
-        onHiding={handleCloseScheduleDialog}
-        sites={sites}
+      {/* Chart View Popup */}
+      <ChartView
+        visible={showChartView}
+        onClose={() => setShowChartView(false)}
+        tankVolumeHistory={tankVolumeHistory}
         tanks={tanks}
-        usersForFilter={usersForFilter}
-        scheduleConfig={scheduleConfig}
-        onScheduleConfigChange={handleScheduleConfigChange}
-        onSchedule={handleScheduleReportEmail}
-        isScheduling={isSchedulingReport}
+        sites={sites}
+        currentFilters={{
+          startDate: headerStartDate,
+          endDate: headerEndDate,
+          siteId: selectedSiteIds && selectedSiteIds.length === 1 ? selectedSiteIds[0] : null,
+          tankId: selectedTankIds && selectedTankIds.length === 1 ? selectedTankIds[0] : null,
+        }}
+        selectedChartType={selectedChartType}
       />
 
       {/* Page-level LoadPanel */}
@@ -1001,6 +835,17 @@ const TransactionHub = () => {
         showPane={true}
         text="Loading transaction data..."
         position="center"
+      />
+
+      {/* Async Report Job Tracker */}
+      <ReportJobTracker
+        activeJob={reportJob}
+        isTracking={isReportTracking}
+        error={reportError}
+        onCancel={cancelReportJob}
+        onDownload={downloadReport}
+        onDismiss={dismissReportJob}
+        onEmailWhenDone={emailWhenDoneReport}
       />
     </div>
   );

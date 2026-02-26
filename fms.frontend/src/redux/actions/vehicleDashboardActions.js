@@ -1,5 +1,26 @@
-// vehicleDashboardActions.js
+/**
+ * File: vehicleDashboardActions.js
+ * Purpose: Redux actions for vehicle dashboard metrics, analytics, and summary datasets.
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-02-25
+ *
+ * Key Functions:
+ * - fetchDashboardMetrics(): Loads top-level fleet KPI metrics.
+ * - fetchPerformanceMetrics(): Loads summary and per-vehicle performance data.
+ * - refreshDashboardData(): Refreshes all dashboard datasets in parallel.
+ */
 import axiosInstance from "./../../api/axiosInstance";
+
+const extractDashboardPayload = (response) => {
+  const responseData = response?.data;
+  return responseData?.data ?? responseData?.Data ?? responseData ?? null;
+};
+
+const isSuccessfulResponse = (response) => {
+  const responseData = response?.data;
+  const explicitSuccess = responseData?.success ?? responseData?.isSuccess ?? responseData?.Success ?? responseData?.IsSuccess;
+  return explicitSuccess ?? true;
+};
 
 // Action Types
 export const FETCH_DASHBOARD_ANALYTICS_REQUEST = 'FETCH_DASHBOARD_ANALYTICS_REQUEST';
@@ -42,16 +63,17 @@ export const fetchDashboardAnalytics = () => async (dispatch) => {
     dispatch({ type: FETCH_DASHBOARD_ANALYTICS_REQUEST });
 
     const response = await axiosInstance.get('/vehicle/dashboard/analytics');
+    const payload = extractDashboardPayload(response);
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Dashboard analytics fetched successfully'
     };
 
     dispatch({
       type: FETCH_DASHBOARD_ANALYTICS_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -77,16 +99,17 @@ export const fetchDashboardMetrics = () => async (dispatch) => {
     dispatch({ type: FETCH_DASHBOARD_METRICS_REQUEST });
 
     const response = await axiosInstance.get('/vehicle/dashboard/metrics');
+    const payload = extractDashboardPayload(response);
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Dashboard metrics fetched successfully'
     };
 
     dispatch({
       type: FETCH_DASHBOARD_METRICS_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -112,16 +135,17 @@ export const fetchStatusDistribution = () => async (dispatch) => {
     dispatch({ type: FETCH_STATUS_DISTRIBUTION_REQUEST });
 
     const response = await axiosInstance.get('/vehicle/dashboard/status-distribution');
+    const payload = extractDashboardPayload(response) || [];
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Status distribution fetched successfully'
     };
 
     dispatch({
       type: FETCH_STATUS_DISTRIBUTION_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -147,16 +171,17 @@ export const fetchFleetUtilization = (days = 30) => async (dispatch) => {
     dispatch({ type: FETCH_FLEET_UTILIZATION_REQUEST });
 
     const response = await axiosInstance.get(`/vehicle/dashboard/fleet-utilization?days=${days}`);
+    const payload = extractDashboardPayload(response);
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Fleet utilization fetched successfully'
     };
 
     dispatch({
       type: FETCH_FLEET_UTILIZATION_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -182,16 +207,17 @@ export const fetchMaintenanceAlerts = () => async (dispatch) => {
     dispatch({ type: FETCH_MAINTENANCE_ALERTS_REQUEST });
 
     const response = await axiosInstance.get('/vehicle/dashboard/maintenance-alerts');
+    const payload = extractDashboardPayload(response) || [];
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Maintenance alerts fetched successfully'
     };
 
     dispatch({
       type: FETCH_MAINTENANCE_ALERTS_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -217,16 +243,17 @@ export const fetchRecentActivities = (limit = 10) => async (dispatch) => {
     dispatch({ type: FETCH_RECENT_ACTIVITIES_REQUEST });
 
     const response = await axiosInstance.get(`/vehicle/dashboard/recent-activities?limit=${limit}`);
+    const payload = extractDashboardPayload(response) || [];
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Recent activities fetched successfully'
     };
 
     dispatch({
       type: FETCH_RECENT_ACTIVITIES_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;
@@ -252,16 +279,17 @@ export const fetchPerformanceMetrics = (days = 7) => async (dispatch) => {
     dispatch({ type: FETCH_PERFORMANCE_METRICS_REQUEST });
 
     const response = await axiosInstance.get(`/vehicle/dashboard/performance-metrics?days=${days}`);
+    const payload = extractDashboardPayload(response);
 
     const result = {
-      success: true,
-      data: response.data,
+      success: isSuccessfulResponse(response),
+      data: payload,
       message: 'Performance metrics fetched successfully'
     };
 
     dispatch({
       type: FETCH_PERFORMANCE_METRICS_SUCCESS,
-      payload: response.data
+      payload
     });
 
     return result;

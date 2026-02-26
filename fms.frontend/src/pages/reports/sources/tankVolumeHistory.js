@@ -25,7 +25,7 @@ const tankVolumeHistory = {
             required: true,
             defaultValue: () => {
                 const d = new Date();
-                d.setDate(d.getDate() - 30);
+                d.setDate(d.getDate() - 1);
                 return d;
             },
         },

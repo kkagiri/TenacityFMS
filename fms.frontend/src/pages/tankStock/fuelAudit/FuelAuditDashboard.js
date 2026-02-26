@@ -18,16 +18,13 @@ const FuelAuditDashboard = () => {
   const dispatch = useDispatch();
   const audits = useSelector(selectAudits);
   const loading = useSelector(selectLoading);
-  const { userInfo } = usePermissions();
+  const { hasPermission } = usePermissions();
 
   // Local state to track if initial load is complete (prevents DOM conflicts during first render)
   const [isInitialized, setIsInitialized] = useState(false);
 
-  // Check if user is admin
-  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
-  const isAdmin = userRoles.some(role =>
-    typeof role === 'string' && role.toLowerCase() === 'admin'
-  );
+  // Check if user has fuel audit permission
+  const isAdmin = hasPermission('_Create_FuelAudit');
 
   useEffect(() => {
     dispatch(fetchFuelAudits({ pageSize: 10 })).finally(() => {
@@ -271,11 +268,10 @@ const FuelAuditDashboard = () => {
 
                 <div className="tw-flex tw-items-center tw-gap-4">
                   {audit.variancePercentage !== null && (
-                    <div className={`variance-indicator ${
-                      Math.abs(audit.variancePercentage) < 1 ? 'low' :
-                      Math.abs(audit.variancePercentage) < 3 ? 'medium' :
-                      Math.abs(audit.variancePercentage) < 5 ? 'high' : 'critical'
-                    }`}>
+                    <div className={`variance-indicator ${Math.abs(audit.variancePercentage) < 1 ? 'low' :
+                        Math.abs(audit.variancePercentage) < 3 ? 'medium' :
+                          Math.abs(audit.variancePercentage) < 5 ? 'high' : 'critical'
+                      }`}>
                       <i className="fa-light fa-chart-mixed"></i>
                       {audit.variancePercentage?.toFixed(2)}%
                     </div>

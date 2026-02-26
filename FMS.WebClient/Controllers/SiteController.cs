@@ -54,9 +54,21 @@ namespace FMS.WebClient.Controllers
         /// </summary>
         [HttpGet]
         [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAll([FromQuery] bool includeInactive = false)
         {
-            FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSiteQuery());
+            FMSResponse<List<SiteDTO>> result = await _mediator.Send(new GetSiteQuery(includeInactive));
+            return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Message);
+        }
+
+        /// <summary>
+        /// Get quick stats for a site (tank, vehicle, employee, PTS device counts).
+        /// GET /api/v1/site/{id}/stats
+        /// </summary>
+        [HttpGet("{id:int}/stats")]
+        [RequirePermission(Permissions.Site.Read, Permissions.Admin.Site)]
+        public async Task<IActionResult> GetSiteStats(int id)
+        {
+            var result = await _mediator.Send(new GetSiteStatsQuery(id));
             return result.IsSuccess ? Ok(result.Data) : BadRequest(result.Message);
         }
 

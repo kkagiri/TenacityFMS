@@ -62,7 +62,11 @@ const VehicleTransactionsPanel = ({
       3: 'Transfer In',
       4: 'Transfer Out',
       5: 'Adjustment',
-      6: 'Dispensing'
+      6: 'Manual Dispensing',
+      7: 'Auto Dispense',
+      8: 'Reconciliation',
+      9: 'Auto Reconciliation',
+      10: 'In-Tank Delivery'
     };
 
     return reasonMap[cellData.value] || `Unknown (${cellData.value})`;

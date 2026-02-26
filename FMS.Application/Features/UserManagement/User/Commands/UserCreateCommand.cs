@@ -14,7 +14,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.UserManagement;
 
-public record UserCreateCommand(string Email, string Username, string Password, string RoleName, int? DepartmentId = null) : IRequest<FMSResponse<string>>;
+public record UserCreateCommand(string Email, string Username, string Password, string RoleName, string? FirstName = null, string? LastName = null, int? DepartmentId = null) : IRequest<FMSResponse<string>>;
 
 public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSResponse<string>>
 {
@@ -83,6 +83,8 @@ public class UserCreateCommandHandler : IRequestHandler<UserCreateCommand, FMSRe
             {
                 UserName = request.Username,
                 Email = request.Email,
+                FirstName = request.FirstName,
+                LastName = request.LastName,
                 IsDeleted = false,
                 DepartmentId = request.DepartmentId
             };

@@ -94,7 +94,17 @@ namespace FMS.Application.MappingProfile
                 .ForMember(d => d.NotificationCount, opt => opt.MapFrom(s => s.NotificationCount))
                 .ForMember(d => d.LastTriggered, opt => opt.MapFrom(s => s.LastNotificationAt))
                 .ForMember(d => d.CreatedBy, opt => opt.MapFrom(s => s.CreatedByNavigation != null ? s.CreatedByNavigation.UserName : s.CreatedBy))
-                .ForMember(d => d.ModifiedBy, opt => opt.MapFrom(s => s.ModifiedByNavigation != null ? s.ModifiedByNavigation.UserName : s.ModifiedBy));
+                .ForMember(d => d.ModifiedBy, opt => opt.MapFrom(s => s.ModifiedByNavigation != null ? s.ModifiedByNavigation.UserName : s.ModifiedBy))
+                .ForMember(d => d.RecipientRules, opt => opt.MapFrom(s => s.RecipientRules))
+                .ForMember(d => d.Recipients, opt => opt.MapFrom(s => s.PolicyRecipients
+                    .Where(r => r.IsActive)
+                    .Select(r => new PolicyRecipientItemDto
+                    {
+                        UserId = r.UserId,
+                        DeliveryMethods = r.DeliveryMethods,
+                        IsActive = r.IsActive
+                    })
+                    .ToList()));
         }
     }
 }

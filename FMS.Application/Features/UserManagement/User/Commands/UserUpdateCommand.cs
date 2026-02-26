@@ -19,6 +19,9 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
         string Email,
         string UserName,
         string RoleName,
+        string? FirstName = null,
+        string? LastName = null,
+        string? Phone = null,
         bool? BypassLocationValidation = null,
         int? DepartmentId = null) : IRequest<bool>;
 
@@ -55,6 +58,9 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement
 
                 user.Email = request.Email;
                 user.UserName = request.UserName;
+                user.FirstName = request.FirstName;
+                user.LastName = request.LastName;
+                user.PhoneNumber = request.Phone;
 
                 // Update bypass location validation if provided
                 if (request.BypassLocationValidation.HasValue)

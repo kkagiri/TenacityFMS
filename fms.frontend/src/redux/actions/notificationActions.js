@@ -14,6 +14,13 @@ export const ADD_IMPORT_PROGRESS = "ADD_IMPORT_PROGRESS";
 export const UPDATE_IMPORT_PROGRESS_STATUS = "UPDATE_IMPORT_PROGRESS_STATUS";
 export const CLEAR_IMPORT_PROGRESS = "CLEAR_IMPORT_PROGRESS";
 
+export const ADD_REPORT_PROGRESS = "ADD_REPORT_PROGRESS";
+export const UPDATE_REPORT_PROGRESS_STATUS = "UPDATE_REPORT_PROGRESS_STATUS";
+export const CLEAR_REPORT_PROGRESS = "CLEAR_REPORT_PROGRESS";
+export const ADD_COMPLETED_REPORT = "ADD_COMPLETED_REPORT";
+export const REMOVE_COMPLETED_REPORT = "REMOVE_COMPLETED_REPORT";
+export const CLEAR_COMPLETED_REPORTS = "CLEAR_COMPLETED_REPORTS";
+
 // Backend Notification Management Action Types
 export const FETCH_NOTIFICATIONS_REQUEST = "FETCH_NOTIFICATIONS_REQUEST";
 export const FETCH_NOTIFICATIONS_SUCCESS = "FETCH_NOTIFICATIONS_SUCCESS";
@@ -74,6 +81,36 @@ export const clearNotifications = () => ({
 export const updateNotification = (id, updates) => ({
   type: UPDATE_NOTIFICATION,
   payload: { id, updates },
+});
+
+// Report Progress Action Creators
+export const addReportProgress = (payload) => ({
+  type: ADD_REPORT_PROGRESS,
+  payload,
+});
+
+export const updateReportProgress = (id, updates) => ({
+  type: UPDATE_REPORT_PROGRESS_STATUS,
+  payload: { id, updates },
+});
+
+export const clearReportProgress = () => ({
+  type: CLEAR_REPORT_PROGRESS,
+});
+
+// Completed Reports History Action Creators
+export const addCompletedReport = (payload) => ({
+  type: ADD_COMPLETED_REPORT,
+  payload,
+});
+
+export const removeCompletedReport = (jobId) => ({
+  type: REMOVE_COMPLETED_REPORT,
+  payload: jobId,
+});
+
+export const clearCompletedReports = () => ({
+  type: CLEAR_COMPLETED_REPORTS,
 });
 
 // Backend Notification Management Actions

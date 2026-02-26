@@ -39,8 +39,8 @@ const IssueTicketListPage = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const dataGridRef = useRef(null);
-  const { hasRole, hasPermission } = usePermissions();
-  const canDeleteIssue = hasRole('Admin') || hasPermission('_Delete_Issues');
+  const { hasPermission } = usePermissions();
+  const canDeleteIssue = hasPermission('_Delete_Issues');
 
   // State management
   const [issues, setIssues] = useState([]);

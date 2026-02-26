@@ -164,6 +164,49 @@ public class VehicleTransferConfiguration : IEntityTypeConfiguration<VehicleTran
         builder.Property(e => e.DateModified)
             .HasColumnName("date_modified");
 
+        // GPS Device fields
+        builder.Property(e => e.GpsDeviceId)
+            .HasColumnName("GpsDeviceId")
+            .HasMaxLength(100);
+
+        builder.Property(e => e.GpsDeviceCondition)
+            .HasColumnName("GpsDeviceCondition")
+            .HasMaxLength(50);
+
+        builder.Property(e => e.GpsDeviceWorking)
+            .HasColumnName("GpsDeviceWorking")
+            .HasDefaultValue(true);
+
+        builder.Property(e => e.GpsDeviceRemarks)
+            .HasColumnName("GpsDeviceRemarks")
+            .HasMaxLength(500);
+
+        // Fuel Sensor fields
+        builder.Property(e => e.FuelSensorId)
+            .HasColumnName("FuelSensorId")
+            .HasMaxLength(100);
+
+        builder.Property(e => e.FuelSensorCondition)
+            .HasColumnName("FuelSensorCondition")
+            .HasMaxLength(50);
+
+        builder.Property(e => e.FuelSensorWorking)
+            .HasColumnName("FuelSensorWorking")
+            .HasDefaultValue(true);
+
+        builder.Property(e => e.FuelSensorRemarks)
+            .HasColumnName("FuelSensorRemarks")
+            .HasMaxLength(500);
+
+        // Vehicle details (denormalized)
+        builder.Property(e => e.VehicleManufacturer)
+            .HasColumnName("VehicleManufacturer")
+            .HasMaxLength(200);
+
+        builder.Property(e => e.VehicleModelName)
+            .HasColumnName("VehicleModelName")
+            .HasMaxLength(200);
+
         // Relationships
         builder.HasOne(e => e.Vehicle)
             .WithMany()

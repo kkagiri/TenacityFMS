@@ -1,3 +1,9 @@
+/**
+ * File: SiteConfiguration.cs
+ * Purpose: EF Core mapping for Site entity, including GPSGate tag/geofence configuration.
+ * Dependencies: Site, GpsGeofence.
+ * Last Modified: 2026-02-26
+ */
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -65,6 +71,40 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasDefaultValue(true)
                     .HasColumnName("auto_update_gps_gate_tag")
                     .HasComment("Whether to automatically update GPSGate tags when vehicles are transferred");
+
+                // GPSGate Geofence Configuration
+                builder.Property(e => e.GpsGeofenceId)
+                    .HasColumnType("int(11)")
+                    .HasColumnName("gps_geofence_id")
+                    .HasComment("Selected local GPS geofence ID from gps_geofence");
+
+                builder.Property(e => e.GpsGeofenceName)
+                    .HasMaxLength(200)
+                    .HasColumnName("gps_geofence_name")
+                    .HasComment("Selected GPS geofence display name snapshot");
+
+                builder.Property(e => e.GpsGeofenceType)
+                    .HasMaxLength(20)
+                    .HasColumnName("gps_geofence_type")
+                    .HasComment("Selected GPS geofence type snapshot: Circle, Polygon, Route");
+
+                builder.Property(e => e.GpsGeofenceCenterLatitude)
+                    .HasColumnType("decimal(10,7)")
+                    .HasColumnName("gps_geofence_center_latitude")
+                    .HasComment("Selected GPS geofence center latitude snapshot");
+
+                builder.Property(e => e.GpsGeofenceCenterLongitude)
+                    .HasColumnType("decimal(10,7)")
+                    .HasColumnName("gps_geofence_center_longitude")
+                    .HasComment("Selected GPS geofence center longitude snapshot");
+
+                builder.HasOne(d => d.GpsGeofence)
+                    .WithMany()
+                    .HasForeignKey(d => d.GpsGeofenceId)
+                    .OnDelete(DeleteBehavior.SetNull)
+                    .HasConstraintName("FK_Site_GpsGeofence");
+
+                builder.HasIndex(e => e.GpsGeofenceId, "IX_Site_GpsGeofence");
 
                 // Many-to-many relationship with User
                 // builder.HasMany(d => d.Users).WithMany(p => p.Sites)

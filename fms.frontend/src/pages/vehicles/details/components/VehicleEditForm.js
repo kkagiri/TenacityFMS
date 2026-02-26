@@ -36,6 +36,7 @@ const VehicleEditForm = ({
   vehicle,
   isEditing = false,
   onSave,
+  onCancel,
   isSaving,
   canEdit = true,
 }) => {
@@ -263,6 +264,7 @@ const VehicleEditForm = ({
                     onClick={() => {
                       setIsEditingInternal(false);
                       resetFormData();
+                      if (onCancel) onCancel();
                     }}
                     disabled={isSaving}
                     className="tw-border-gray-300 tw-text-gray-600 hover:tw-bg-gray-50 tw-min-w-24"

@@ -450,10 +450,140 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Get ALL notification history for admin view (not scoped to current user).
+        /// Shows every notification sent through the system with recipient details.
+        /// </summary>
+        [HttpGet("admin-history")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetAdminNotificationHistory(
+            [FromQuery] string? type = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? priority = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int skip = 0,
+            [FromQuery] int take = 100,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var safeTake = Math.Max(1, Math.Min(take, 500));
+                var safeSkip = Math.Max(0, skip);
+
+                var query = _context.Notifications
+                    .Include(n => n.Recipients)
+                        .ThenInclude(r => r.User)
+                    .Include(n => n.Site)
+                    .Include(n => n.Tank)
+                    .Include(n => n.Vehicle)
+                    .Include(n => n.PtsDevice)
+                    .Include(n => n.NotificationPolicy)
+                    .Include(n => n.NotificationCategory)
+                    .AsQueryable();
+
+                // Apply filters
+                if (!string.IsNullOrEmpty(type))
+                    query = query.Where(n => n.Type == type);
+
+                if (!string.IsNullOrEmpty(status))
+                    query = query.Where(n => n.Status == status);
+
+                if (!string.IsNullOrEmpty(category))
+                    query = query.Where(n => n.Category == category);
+
+                if (!string.IsNullOrEmpty(priority))
+                    query = query.Where(n => n.Priority == priority);
+
+                if (siteId.HasValue)
+                    query = query.Where(n => n.SiteId == siteId.Value);
+
+                if (fromDate.HasValue)
+                    query = query.Where(n => n.CreatedAt >= fromDate.Value);
+
+                if (toDate.HasValue)
+                    query = query.Where(n => n.CreatedAt <= toDate.Value);
+
+                if (!string.IsNullOrEmpty(search))
+                    query = query.Where(n =>
+                        n.Title.Contains(search) ||
+                        n.Message.Contains(search) ||
+                        n.NotificationId.Contains(search));
+
+                var totalCount = await query.CountAsync(cancellationToken);
+
+                var notifications = await query
+                    .OrderByDescending(n => n.CreatedAt)
+                    .Skip(safeSkip)
+                    .Take(safeTake)
+                    .Select(n => new FMS.Application.Features.Notification.DTOs.AdminNotificationHistoryDto
+                    {
+                        Id = n.Id,
+                        NotificationId = n.NotificationId,
+                        Type = n.Type,
+                        Category = n.Category,
+                        Priority = n.Priority,
+                        Title = n.Title,
+                        Message = n.Message,
+                        HtmlBody = null,
+                        Data = n.Data,
+                        Status = n.Status,
+                        TriggerSource = n.TriggerSource,
+                        TriggeredBy = n.TriggeredBy,
+                        CreatedAt = n.CreatedAt,
+                        SentAt = n.SentAt,
+                        SendAttempts = n.SendAttempts,
+                        ErrorMessage = n.ErrorMessage,
+                        SiteName = n.Site != null ? n.Site.Name : null,
+                        TankName = n.Tank != null ? n.Tank.Name : null,
+                        VehicleName = n.Vehicle != null ? n.Vehicle.HyoungNo : null,
+                        PtsDeviceName = n.PtsDevice != null ? n.PtsDevice.Ptsid : null,
+                        PolicyName = n.NotificationPolicy != null ? n.NotificationPolicy.Name : null,
+                        CategoryName = n.NotificationCategory != null ? n.NotificationCategory.Name : null,
+                        RecipientCount = n.Recipients.Count,
+                        DeliveredCount = n.Recipients.Count(r => r.DeliveryStatus == "Delivered" || r.DeliveryStatus == "Sent"),
+                        FailedCount = n.Recipients.Count(r => r.DeliveryStatus == "Failed"),
+                        Recipients = n.Recipients.Select(r => new FMS.Application.Features.Notification.DTOs.AdminNotificationRecipientDto
+                        {
+                            UserId = r.UserId,
+                            UserName = r.User != null ? r.User.UserName : null,
+                            Email = r.User != null ? r.User.Email : r.UserId,
+                            DeliveryMethod = r.DeliveryMethod,
+                            DeliveryStatus = r.DeliveryStatus,
+                            IsRead = r.IsRead,
+                            IsAcknowledged = r.IsAcknowledged,
+                            ReadAt = r.ReadAt,
+                            DeliveredAt = r.DeliveredAt
+                        }).ToList()
+                    })
+                    .ToListAsync(cancellationToken);
+
+                return Ok(new
+                {
+                    success = true,
+                    message = $"Retrieved {notifications.Count} of {totalCount} notifications",
+                    data = new
+                    {
+                        items = notifications,
+                        totalCount,
+                        skip = safeSkip,
+                        take = safeTake
+                    }
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting admin notification history");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// Get scheduled report email notifications for administrative monitoring.
         /// </summary>
         [HttpGet("scheduled-reports")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetScheduledReportEmails(
             [FromQuery] bool includeCompleted = true,
@@ -507,7 +637,6 @@ namespace FMS.WebClient.Controllers
         /// Update a scheduled report email timing/configuration.
         /// </summary>
         [HttpPut("scheduled-reports/{notificationId:int}")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UpdateScheduledReportEmail(
             int notificationId,
@@ -645,7 +774,6 @@ namespace FMS.WebClient.Controllers
         /// Cancel a scheduled report email notification.
         /// </summary>
         [HttpDelete("scheduled-reports/{notificationId:int}")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> CancelScheduledReportEmail(
             int notificationId,
@@ -692,7 +820,6 @@ namespace FMS.WebClient.Controllers
         /// Permanently delete a scheduled report email notification and its recipients.
         /// </summary>
         [HttpDelete("scheduled-reports/{notificationId:int}/permanent")]
-        [Authorize(Roles = "Admin,SuperAdmin")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> DeleteScheduledReportEmail(
             int notificationId,
@@ -1069,6 +1196,136 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
+        /// Get recipient candidates with rich filtering for the dual-pane recipient picker.
+        /// Returns users enriched with site assignments, department, and site admin status.
+        /// </summary>
+        /// <param name="siteId">Filter users assigned to this site via UserSites</param>
+        /// <param name="departmentId">Filter users in this department</param>
+        /// <param name="isSiteAdmin">Filter to only site administrators</param>
+        /// <param name="search">Search by username or email</param>
+        /// <param name="take">Maximum results (default 100)</param>
+        [HttpGet("recipient-candidates")]
+        [RequirePermission(Permissions.Admin.Users)]
+        public async Task<IActionResult> GetRecipientCandidates(
+            [FromQuery] int? siteId = null,
+            [FromQuery] int? departmentId = null,
+            [FromQuery] bool? isSiteAdmin = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int take = 100,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                // Start with all users
+                IQueryable<User> usersQuery = _userManager.Users
+                    .Where(u => u.IsDeleted != true);
+
+                // Filter by search term
+                if (!string.IsNullOrWhiteSpace(search))
+                {
+                    string term = search.Trim();
+                    usersQuery = usersQuery.Where(u =>
+                        (u.UserName != null && u.UserName.Contains(term)) ||
+                        (u.Email != null && u.Email.Contains(term)));
+                }
+
+                // Filter by department
+                if (departmentId.HasValue)
+                {
+                    usersQuery = usersQuery.Where(u => u.DepartmentId == departmentId.Value);
+                }
+
+                // Filter by site assignment via UserSites
+                if (siteId.HasValue)
+                {
+                    var userIdsAtSite = _context.UserSites
+                        .Where(us => us.SiteId == siteId.Value)
+                        .Select(us => us.UserId);
+                    usersQuery = usersQuery.Where(u => userIdsAtSite.Contains(u.Id));
+                }
+
+                // Get site admin user IDs (for filtering and display)
+                var siteAdminUserIds = await _context.Sites
+                    .Where(s => s.SiteAdministratorId != null)
+                    .Select(s => s.SiteAdministratorId!)
+                    .Distinct()
+                    .ToListAsync(cancellationToken);
+                var siteAdminSet = new HashSet<string>(siteAdminUserIds);
+
+                // Filter by site admin flag
+                if (isSiteAdmin == true)
+                {
+                    usersQuery = usersQuery.Where(u => siteAdminSet.Contains(u.Id));
+                }
+
+                // Execute user query
+                var users = await usersQuery
+                    .Take(take)
+                    .Select(u => new
+                    {
+                        u.Id,
+                        u.UserName,
+                        u.Email,
+                        u.DepartmentId
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var userIds = users.Select(u => u.Id).ToList();
+
+                // Batch-load site assignments for these users
+                var userSiteAssignments = await _context.UserSites
+                    .Where(us => userIds.Contains(us.UserId))
+                    .Join(_context.Sites, us => us.SiteId, s => s.Id, (us, s) => new { us.UserId, s.Id, s.Name })
+                    .ToListAsync(cancellationToken);
+
+                // Batch-load sites where these users are admins
+                var adminSites = await _context.Sites
+                    .Where(s => s.SiteAdministratorId != null && userIds.Contains(s.SiteAdministratorId))
+                    .Select(s => new { UserId = s.SiteAdministratorId!, s.Id, s.Name })
+                    .ToListAsync(cancellationToken);
+
+                // Batch-load department names
+                var departmentIds = users.Where(u => u.DepartmentId.HasValue).Select(u => u.DepartmentId!.Value).Distinct().ToList();
+                var deptLookup = new Dictionary<int, string>();
+                if (departmentIds.Any())
+                {
+                    var deptData = await _context.Departments
+                        .Where(d => departmentIds.Contains(d.DepartmentId))
+                        .Select(d => new { d.DepartmentId, d.Name })
+                        .ToListAsync(cancellationToken);
+                    foreach (var d in deptData) deptLookup[d.DepartmentId] = d.Name;
+                }
+
+                // Build result DTOs
+                var data = users.Select(u => new
+                {
+                    id = u.Id,
+                    userName = u.UserName,
+                    email = u.Email,
+                    departmentId = u.DepartmentId,
+                    departmentName = u.DepartmentId.HasValue && deptLookup.ContainsKey(u.DepartmentId.Value)
+                        ? deptLookup[u.DepartmentId.Value] : null,
+                    isSiteAdmin = siteAdminSet.Contains(u.Id),
+                    adminOfSites = adminSites
+                        .Where(a => a.UserId == u.Id)
+                        .Select(a => new { id = a.Id, name = a.Name })
+                        .ToList(),
+                    assignedSites = userSiteAssignments
+                        .Where(a => a.UserId == u.Id)
+                        .Select(a => new { id = a.Id, name = a.Name })
+                        .ToList()
+                }).ToList();
+
+                return Ok(new { success = true, data, total = data.Count });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching recipient candidates");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// Create notification policy
         /// </summary>
         /// <param name="request">Policy creation request</param>
@@ -1233,9 +1490,10 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                // Ensure user can only access their own preferences or is admin
+                // Ensure user can only access their own preferences or has manage permission
                 var currentUserId = GetCurrentUserIdOrDefault(string.Empty);
-                if (currentUserId != userId && !User.IsInRole("Admin"))
+                var canManageOthers = User.HasClaim("permissions", Permissions.Notification.ManagePreferences);
+                if (currentUserId != userId && !canManageOthers)
                 {
                     return StatusCode(403, new { success = false, message = "Access denied" });
                 }
@@ -1419,7 +1677,8 @@ namespace FMS.WebClient.Controllers
             try
             {
                 var currentUserId = GetCurrentUserIdOrDefault(string.Empty);
-                if (currentUserId != request.UserId && !User.IsInRole("Admin"))
+                var canManageOthers = User.HasClaim("permissions", Permissions.Notification.ManagePreferences);
+                if (currentUserId != request.UserId && !canManageOthers)
                 {
                     return StatusCode(403, new { success = false, message = "Access denied" });
                 }
@@ -1646,7 +1905,6 @@ namespace FMS.WebClient.Controllers
         /// <param name="cancellationToken">Cancellation token</param>
         /// <returns>Result</returns>
         [HttpDelete("admin/categories/{id}")]
-        [Authorize(Roles = "Admin")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> DeleteNotificationCategory(int id, CancellationToken cancellationToken = default)
         {

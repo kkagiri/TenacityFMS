@@ -1986,8 +1986,43 @@ namespace FMS.Application.Features.Notification.Services
                         : request.CreatedBy!
                 };
 
+                // Save RecipientRules JSON if provided
+                if (!string.IsNullOrWhiteSpace(request.RecipientRules))
+                {
+                    policy.RecipientRules = request.RecipientRules;
+                }
+
                 _context.NotificationPolicies.Add(policy);
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Save static recipients to notification_policy_recipient table
+                if (request.RecipientUserIds?.Any() == true)
+                {
+                    var createdBy = string.IsNullOrWhiteSpace(request.CreatedBy)
+                        ? SystemConstants.Defaults.SystemTriggeredBy
+                        : request.CreatedBy!;
+
+                    // Build delivery methods string from policy channel flags
+                    var deliveryMethods = BuildDeliveryMethodsFromPolicy(policy);
+
+                    foreach (var userId in request.RecipientUserIds.Distinct())
+                    {
+                        if (string.IsNullOrWhiteSpace(userId)) continue;
+
+                        _context.NotificationPolicyRecipients.Add(new NotificationPolicyRecipient
+                        {
+                            NotificationPolicyId = policy.Id,
+                            UserId = userId,
+                            DeliveryMethods = deliveryMethods,
+                            IsActive = true,
+                            CreatedAt = DateTime.UtcNow,
+                            CreatedBy = createdBy
+                        });
+                    }
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Saved {Count} static recipients for policy {PolicyId}",
+                        request.RecipientUserIds.Count, policy.Id);
+                }
 
                 return FMSResponse<int>.Success(policy.Id, "Notification policy created successfully");
             }
@@ -2082,7 +2117,52 @@ namespace FMS.Application.Features.Notification.Services
                     ? (policy.ModifiedBy ?? SystemConstants.Defaults.SystemTriggeredBy)
                     : request.ModifiedBy;
 
+                // Update RecipientRules JSON if provided
+                if (request.RecipientRules != null)
+                {
+                    policy.RecipientRules = string.IsNullOrWhiteSpace(request.RecipientRules) ? null : request.RecipientRules;
+                }
+
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Sync static recipients if the list was provided (null = leave unchanged)
+                if (request.RecipientUserIds != null)
+                {
+                    // Remove all existing recipients for this policy
+                    var existingRecipients = await _context.NotificationPolicyRecipients
+                        .Where(r => r.NotificationPolicyId == policyId)
+                        .ToListAsync(cancellationToken);
+                    _context.NotificationPolicyRecipients.RemoveRange(existingRecipients);
+
+                    // Add new recipients
+                    if (request.RecipientUserIds.Any())
+                    {
+                        var modifiedBy = string.IsNullOrWhiteSpace(request.ModifiedBy)
+                            ? (policy.CreatedBy ?? SystemConstants.Defaults.SystemTriggeredBy)
+                            : request.ModifiedBy;
+
+                        var deliveryMethods = BuildDeliveryMethodsFromPolicy(policy);
+
+                        foreach (var userId in request.RecipientUserIds.Distinct())
+                        {
+                            if (string.IsNullOrWhiteSpace(userId)) continue;
+
+                            _context.NotificationPolicyRecipients.Add(new NotificationPolicyRecipient
+                            {
+                                NotificationPolicyId = policyId,
+                                UserId = userId,
+                                DeliveryMethods = deliveryMethods,
+                                IsActive = true,
+                                CreatedAt = DateTime.UtcNow,
+                                CreatedBy = modifiedBy
+                            });
+                        }
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+                    _logger.LogInformation("Synced {Count} static recipients for policy {PolicyId}",
+                        request.RecipientUserIds.Count, policyId);
+                }
 
                 return FMSResponse.SuccessResponse("Notification policy updated successfully");
             }
@@ -2194,6 +2274,19 @@ namespace FMS.Application.Features.Notification.Services
             {
                 // Non-standard JSON or missing field — leave fields null
             }
+        }
+
+        /// <summary>
+        /// Builds a comma-separated delivery methods string from the policy's enabled channels.
+        /// Used when creating NotificationPolicyRecipient rows.
+        /// </summary>
+        private static string BuildDeliveryMethodsFromPolicy(NotificationPolicy policy)
+        {
+            var methods = new List<string>();
+            if (policy.EnableSystem) methods.Add("System");
+            if (policy.EnableEmail) methods.Add("Email");
+            if (policy.EnableSms) methods.Add("SMS");
+            return methods.Any() ? string.Join(",", methods) : "System";
         }
     }
 }

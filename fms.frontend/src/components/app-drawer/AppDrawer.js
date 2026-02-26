@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from "react";
+import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import "./AppDrawer.scss";
@@ -277,7 +278,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
 
   if (!isOpen) {
     return null;
-  } return (
+  } return ReactDOM.createPortal(
     <div
       ref={containerRef}
       className="app-drawer-container"
@@ -291,7 +292,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
         visibility: 'visible',
         opacity: 1,
         pointerEvents: 'auto',
-        zIndex: 999999,
+        zIndex: 100000,
         // Firefox-specific positioning overrides
         position: 'fixed',
         transform: 'none',
@@ -332,7 +333,8 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
           ))}
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

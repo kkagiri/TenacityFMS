@@ -1,6 +1,6 @@
 .app-drawer-container {
   position: fixed;
-  z-index: 999999; // Maximum z-index to ensure it appears above everything
+  z-index: 100000; // Above SlidePanel (9999) and other overlays
   margin: 0;
   padding: 0;
   // top and left will be set dynamically via inline styles
@@ -21,7 +21,7 @@
     // Firefox-specific styles
     position: fixed !important;
     display: block !important;
-    z-index: 9999999 !important;
+    z-index: 100000 !important;
   }
 }
 
@@ -229,7 +229,7 @@
     width: 260px;
     max-width: 95vw; // Ensure it fits on very small screens
     // Ensure drawer is always above other elements on small screens
-    z-index: 9999999;
+    z-index: 100000;
   }
 
   .module-item {

@@ -329,20 +329,13 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Updates a tank volume history transaction (admin only - direct volume edit)
+        /// Updates a tank volume history transaction (requires update permission)
         /// </summary>
         [HttpPut("{id}")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Update)]
         public async Task<IActionResult> UpdateTransaction(int id, [FromBody] UpdateTransactionRequest request)
         {
-            // var hasPermission = User.HasClaim("permissions", "_Update_tankVolumeHistory");
-            // if (!hasPermission) return Forbid();
-
-            // Check for admin role
-            var isAdmin = User.IsInRole("Admin") || User.IsInRole("SuperAdmin");
-            if (!isAdmin)
-                return Forbid("This operation requires admin privileges");
-
             if (id <= 0)
                 return BadRequest("Invalid transaction ID");
 

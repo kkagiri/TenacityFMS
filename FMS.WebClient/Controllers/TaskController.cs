@@ -286,11 +286,11 @@ namespace FMS.WebClient.Controllers
             try
             {
                 var userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
-                var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+                var hasManageAll = User.HasClaim("permissions", Permissions.Task.ManageAll);
 
                 var query = new GetTaskSummaryQuery
                 {
-                    UserId = userRole == "Admin" || userRole == "Supervisor" ? null : userId,
+                    UserId = hasManageAll ? null : userId,
                     SiteId = siteId,
                     StartDate = startDate,
                     EndDate = endDate
@@ -311,7 +311,7 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("overdue")]
         [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-        [Authorize(Roles = "Admin,Supervisor")]
+        [RequirePermission(Permissions.Task.ManageAll)]
         public async Task<IActionResult> GetOverdueTasks([FromQuery] int? siteId, [FromQuery] string? assignedTo)
         {
             try

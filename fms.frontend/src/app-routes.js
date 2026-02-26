@@ -20,9 +20,7 @@ import EditPTSDevice from "./pages/PTSDevice/EditPTSDevice";
 import ATGDashboard from "./pages/ATG/ATGDashboard";
 import UserDetailsPage from "./pages/user/userDetailsPage";
 import UserActivitiesPage from "./pages/user/userActivitiesPage";
-import UserSitesPage from "./pages/user/userSitesPage";
 import UserActivityDashboard from "./pages/user/userActivityDashboard";
-import UserEditPage from "./pages/user/userEditPage";
 import AutomatedReconciliationSystem from "./pages/automatedReconciliation/AutomatedReconciliationSystem";
 import TaskManagement from "./pages/taskManagement";
 //Cursor - Mission Control enhanced versions
@@ -105,12 +103,8 @@ const resolvedComponents = (pageName) => {
       return UserDetailsPage;
     case "user-activities":
       return UserActivitiesPage;
-    case "user-sites":
-      return UserSitesPage;
     case "activity-dashboard":
       return UserActivityDashboard;
-    case "user-edit":
-      return UserEditPage;
     case "vehicle-dashboard":
       return VehicleDashboard;
     case "vehicle-edit":

@@ -1,10 +1,12 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
+using FMS.Application.Features.Notification.DTOs.RecipientRules;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.Groups;
 using FMS.Domain.Entities;
@@ -120,6 +122,22 @@ namespace FMS.Application.Features.Notification.Services.RecipientResolver
                     });
                     addedUserIds.Add(siteAdminId);
                 }
+            }
+
+            // 2.5 Dynamic Recipient Rules from Policy (RecipientRules JSON)
+            // Resolves recipients dynamically based on rules stored on the policy:
+            //   - SiteUsers: all users assigned to the event's site via UserSites
+            //   - SiteAdmin: explicit opt-in for site administrator (handled above, but tracked here)
+            //   - RolesAtSite: users in specific roles who are also assigned to the event's site
+            if (request.NotificationPolicyId.HasValue)
+            {
+                await ResolveDynamicRecipientRulesAsync(
+                    request.NotificationPolicyId.Value,
+                    request.SiteId,
+                    request.Priority?.ToString() ?? "Medium",
+                    recipients,
+                    addedUserIds,
+                    cancellationToken);
             }
 
             // 3a. Business Function Groups (PRIMARY for internal business functions)
@@ -372,6 +390,114 @@ namespace FMS.Application.Features.Notification.Services.RecipientResolver
                 .Include(s => s.SiteAdministrator)
                 .FirstOrDefaultAsync(s => s.Id == siteId, cancellationToken);
             return site?.SiteAdministratorId;
+        }
+
+        /// <summary>
+        /// Parses the RecipientRules JSON from a notification policy and resolves
+        /// dynamic recipients based on the event's site context.
+        /// </summary>
+        private async Task ResolveDynamicRecipientRulesAsync(
+            int policyId,
+            int? siteId,
+            string priority,
+            List<NotificationRecipientDto> recipients,
+            HashSet<string> addedUserIds,
+            CancellationToken cancellationToken)
+        {
+            try
+            {
+                var policy = await _context.NotificationPolicies
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(p => p.Id == policyId, cancellationToken);
+
+                if (policy == null || string.IsNullOrWhiteSpace(policy.RecipientRules))
+                    return;
+
+                var rules = JsonSerializer.Deserialize<RecipientRulesDto>(policy.RecipientRules,
+                    new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+                if (rules?.DynamicRules == null || !rules.DynamicRules.Any())
+                    return;
+
+                _logger.LogInformation("Processing {Count} dynamic recipient rules for policy {PolicyId}, SiteId: {SiteId}",
+                    rules.DynamicRules.Count, policyId, siteId);
+
+                foreach (var rule in rules.DynamicRules)
+                {
+                    if (!rule.Enabled) continue;
+
+                    switch (rule.Type)
+                    {
+                        case "SiteUsers":
+                            if (!siteId.HasValue) break;
+                            var siteUserIds = await _context.UserSites
+                                .Where(us => us.SiteId == siteId.Value)
+                                .Select(us => us.UserId)
+                                .Distinct()
+                                .ToListAsync(cancellationToken);
+
+                            foreach (var userId in siteUserIds)
+                            {
+                                if (addedUserIds.Contains(userId)) continue;
+
+                                var methods = await GetDeliveryMethodsForUserAsync(userId, priority, cancellationToken);
+                                methods = ApplyPolicyChannelFlags(methods, policy);
+                                if (!methods.Any()) continue;
+
+                                recipients.Add(new NotificationRecipientDto
+                                {
+                                    UserId = userId,
+                                    DeliveryMethods = methods,
+                                    ResolvedFrom = "DynamicRule-SiteUsers"
+                                });
+                                addedUserIds.Add(userId);
+                            }
+                            _logger.LogInformation("DynamicRule-SiteUsers resolved {Count} users for site {SiteId}",
+                                siteUserIds.Count, siteId);
+                            break;
+
+                        case "SiteAdmin":
+                            // Site admin is already handled by step 2, but log for tracking
+                            _logger.LogDebug("DynamicRule-SiteAdmin: already handled by site admin resolution step");
+                            break;
+
+                        case "RolesAtSite":
+                            if (rule.RoleIds == null || !rule.RoleIds.Any()) break;
+
+                            foreach (var roleId in rule.RoleIds)
+                            {
+                                var usersInRole = await GetUsersByRoleAsync(roleId, siteId, cancellationToken);
+                                foreach (var userId in usersInRole)
+                                {
+                                    if (addedUserIds.Contains(userId)) continue;
+
+                                    var methods = await GetDeliveryMethodsForUserAsync(userId, priority, cancellationToken);
+                                    methods = ApplyPolicyChannelFlags(methods, policy);
+                                    if (!methods.Any()) continue;
+
+                                    recipients.Add(new NotificationRecipientDto
+                                    {
+                                        UserId = userId,
+                                        DeliveryMethods = methods,
+                                        ResolvedFrom = $"DynamicRule-RolesAtSite:{roleId}"
+                                    });
+                                    addedUserIds.Add(userId);
+                                }
+                            }
+                            _logger.LogInformation("DynamicRule-RolesAtSite resolved users for {Count} roles at site {SiteId}",
+                                rule.RoleIds.Count, siteId);
+                            break;
+
+                        default:
+                            _logger.LogWarning("Unknown dynamic recipient rule type: {Type}", rule.Type);
+                            break;
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error resolving dynamic recipient rules for policy {PolicyId}", policyId);
+            }
         }
 
         public async Task<List<string>> GetUsersByRoleAsync(string roleIdentifier, int? siteId, CancellationToken cancellationToken = default)

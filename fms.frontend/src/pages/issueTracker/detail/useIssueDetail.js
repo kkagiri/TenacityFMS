@@ -36,8 +36,8 @@ const useIssueDetail = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const dispatch = useDispatch();
-    const { hasRole, hasPermission } = usePermissions();
-    const canDeleteIssue = hasRole('Admin') || hasPermission(ISSUE_DELETE_PERMISSION);
+    const { hasPermission } = usePermissions();
+    const canDeleteIssue = hasPermission(ISSUE_DELETE_PERMISSION);
 
     // Redux selectors
     const usersState = useSelector((state) => state.user?.users);

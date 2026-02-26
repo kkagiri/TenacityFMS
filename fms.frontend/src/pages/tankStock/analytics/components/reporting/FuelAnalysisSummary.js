@@ -15,10 +15,11 @@ const changeReasonLabels = {
   3: 'Transfer In',
   4: 'Transfer Out',
   5: 'Adjustment',
-  6: 'Dispensing',
+  6: 'Manual Dispensing',
   7: 'Automated Dispensing',
   8: 'Reconciliation',
   9: 'Automated Reconciliation',
+  10: 'In-Tank Delivery',
   // String enum names (if sent as strings)
   'OpeningStock': 'Opening Stock',
   'ClosingStock': 'Closing Stock',
@@ -26,10 +27,11 @@ const changeReasonLabels = {
   'TransferIn': 'Transfer In',
   'TransferOut': 'Transfer Out',
   'Adjustment': 'Adjustment',
-  'Dispensing': 'Dispensing',
+  'Dispensing': 'Manual Dispensing',
   'AutomatedDispensing': 'Automated Dispensing',
   'Reconciliation': 'Reconciliation',
   'AutomatedReconciliation': 'Automated Reconciliation',
+  'InTankDelivery': 'In-Tank Delivery',
   'Unknown': 'Unknown'
 };
 

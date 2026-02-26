@@ -196,6 +196,78 @@ const VehicleTransferDetails = ({ transfer, onClose }) => {
         </div>
       </div>
 
+      {/* GPS Equipment Checkup */}
+      {(transfer.gpsDeviceId || transfer.fuelSensorId ||
+        transfer.gpsDeviceCondition || transfer.fuelSensorCondition) && (
+        <div className="tw-bg-white tw-border tw-rounded-lg tw-p-4 tw-mb-6">
+          <h3 className="tw-font-semibold tw-text-gray-800 tw-mb-4">
+            <i className="fa-light fa-satellite-dish tw-mr-2"></i>
+            GPS Equipment Checkup
+          </h3>
+          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
+            {/* GPS Device */}
+            <div className="tw-border tw-rounded-lg tw-p-3">
+              <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
+                <i className="fa-light fa-location-dot tw-mr-1"></i>
+                GPS Device
+              </h4>
+              <div className="tw-space-y-2">
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Device ID / Serial</span>
+                  <span className="tw-text-sm tw-font-medium">{transfer.gpsDeviceId || "-"}</span>
+                </div>
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Condition</span>
+                  <span className="tw-text-sm tw-font-medium">{transfer.gpsDeviceCondition || "-"}</span>
+                </div>
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Working</span>
+                  <span className={`tw-text-sm tw-font-medium ${transfer.gpsDeviceWorking ? "tw-text-green-600" : "tw-text-red-600"}`}>
+                    {transfer.gpsDeviceWorking ? "Yes" : "No"}
+                  </span>
+                </div>
+                {transfer.gpsDeviceRemarks && (
+                  <div className="tw-flex tw-justify-between">
+                    <span className="tw-text-sm tw-text-gray-500">Remarks</span>
+                    <span className="tw-text-sm tw-font-medium">{transfer.gpsDeviceRemarks}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Fuel Sensor */}
+            <div className="tw-border tw-rounded-lg tw-p-3">
+              <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-mb-3">
+                <i className="fa-light fa-gas-pump tw-mr-1"></i>
+                Fuel Sensor
+              </h4>
+              <div className="tw-space-y-2">
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Sensor ID / Serial</span>
+                  <span className="tw-text-sm tw-font-medium">{transfer.fuelSensorId || "-"}</span>
+                </div>
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Condition</span>
+                  <span className="tw-text-sm tw-font-medium">{transfer.fuelSensorCondition || "-"}</span>
+                </div>
+                <div className="tw-flex tw-justify-between">
+                  <span className="tw-text-sm tw-text-gray-500">Working</span>
+                  <span className={`tw-text-sm tw-font-medium ${transfer.fuelSensorWorking ? "tw-text-green-600" : "tw-text-red-600"}`}>
+                    {transfer.fuelSensorWorking ? "Yes" : "No"}
+                  </span>
+                </div>
+                {transfer.fuelSensorRemarks && (
+                  <div className="tw-flex tw-justify-between">
+                    <span className="tw-text-sm tw-text-gray-500">Remarks</span>
+                    <span className="tw-text-sm tw-font-medium">{transfer.fuelSensorRemarks}</span>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Checkup Items */}
       {transfer.checkupItems?.length > 0 && (
         <div className="tw-bg-white tw-border tw-rounded-lg tw-p-4 tw-mb-6">

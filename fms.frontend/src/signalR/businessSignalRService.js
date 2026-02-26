@@ -205,9 +205,11 @@ class BusinessSignalRService {
 
       this.connection = new HubConnectionBuilder()
         .withUrl(fullHubUrl, {
-          skipNegotiation: false,
-          transport:
-            HttpTransportType.WebSockets | HttpTransportType.LongPolling,
+          // skipNegotiation + WebSockets-only avoids the HTTP negotiate preflight
+          // that triggers CORS errors when reconnecting from a cross-origin page.
+          // WebSocket transport handles auth via the access_token query parameter.
+          skipNegotiation: true,
+          transport: HttpTransportType.WebSockets,
           accessTokenFactory: createAccessTokenFactory("Business"),
         })
         .withAutomaticReconnect([0, 2000, 5000, 10000, 30000])
@@ -690,6 +692,74 @@ class BusinessSignalRService {
         if (data) {
           console.error("[Business SignalR] GPS Fetch Error:", data);
           this.notifyListeners("GpsFetchError", data);
+        }
+      },
+      0
+    ); // No debounce for errors
+
+    // === Report Job Progress Events ===
+    registerEvent(
+      "ReportJobStarted",
+      (data) => {
+        if (data) {
+          console.log("[Business SignalR] Report Job Started:", data);
+          this.notifyListeners("reportJobStarted", data);
+          if (store) {
+            store.dispatch({
+              type: "REPORT_JOB_STARTED",
+              payload: data,
+            });
+          }
+        }
+      },
+      0
+    ); // No debounce for job start
+
+    registerEvent(
+      "ReportJobProgress",
+      (data) => {
+        if (data) {
+          this.notifyListeners("reportJobProgress", data);
+          if (store) {
+            store.dispatch({
+              type: "REPORT_JOB_PROGRESS",
+              payload: data,
+            });
+          }
+        }
+      },
+      0
+    ); // No debounce for progress updates
+
+    registerEvent(
+      "ReportJobCompleted",
+      (data) => {
+        if (data) {
+          console.log("[Business SignalR] Report Job Completed:", data);
+          this.notifyListeners("reportJobCompleted", data);
+          if (store) {
+            store.dispatch({
+              type: "REPORT_JOB_COMPLETED",
+              payload: data,
+            });
+          }
+        }
+      },
+      0
+    ); // No debounce for completion
+
+    registerEvent(
+      "ReportJobError",
+      (data) => {
+        if (data) {
+          console.error("[Business SignalR] Report Job Error:", data);
+          this.notifyListeners("reportJobError", data);
+          if (store) {
+            store.dispatch({
+              type: "REPORT_JOB_ERROR",
+              payload: data,
+            });
+          }
         }
       },
       0

@@ -3,11 +3,20 @@
  * Purpose: Core orchestrator that processes FMSEvents through EventExpressions.
  *          The ONLY path for triggering notifications from business operations.
  * Dependencies: GpsdataContext, ExpressionEvaluatorFactory,
- *               INotificationService, EventLogService
- * Last Modified: 2026-02-11
+ *               INotificationService, EventLogService, ExpressionCooldownService
+ * Last Modified: 2026-02-24
  *
  * Key Functions:
  * - ProcessAsync(): main entry point — find expressions, evaluate, notify, log
+ *
+ * Pipeline per expression:
+ *   SeverityFilter → ConditionsMet → CooldownCheck (Cooldown/HourlyCap/DailyCap) → CreateActiveEvent → SendNotification → Log
+ *
+ * ScopeKey convention:
+ *   "tank:{TankId}"  — cooldown isolated per tank  (NoTankEntry, StaleData, etc.)
+ *   "site:{SiteId}"  — cooldown isolated per site
+ *   "global"         — single shared budget for the whole expression
+ *   This ensures Tank A going offline does not burn Tank B's cooldown.
  */
 
 using System;
@@ -40,6 +49,7 @@ namespace FMS.Application.Features.EventEngine.Engine
         private readonly EventLogService _logService;
         private readonly INotificationService _notificationService;
         private readonly ILogger<EventExpressionEngine> _logger;
+        private readonly ExpressionCooldownService _cooldownService;
 
         // Severity ordering for MinimumSeverity filter
         private static readonly Dictionary<string, int> SeverityLevels = new(StringComparer.OrdinalIgnoreCase)
@@ -55,13 +65,15 @@ namespace FMS.Application.Features.EventEngine.Engine
             ExpressionEvaluatorFactory evaluatorFactory,
             EventLogService logService,
             INotificationService notificationService,
-            ILogger<EventExpressionEngine> logger)
+            ILogger<EventExpressionEngine> logger,
+            ExpressionCooldownService cooldownService)
         {
             _context = context;
             _evaluatorFactory = evaluatorFactory;
             _logService = logService;
             _notificationService = notificationService;
             _logger = logger;
+            _cooldownService = cooldownService;
         }
 
         public async Task<EventProcessingResult> ProcessAsync(FMSEvent fmsEvent, CancellationToken ct = default)
@@ -92,6 +104,10 @@ namespace FMS.Application.Features.EventEngine.Engine
 
                     try
                     {
+                        // Compute scope key once — used for cooldown scoping and execution log
+                        var scopeKey = BuildScopeKey(fmsEvent);
+                        detail.ScopeKey = scopeKey;
+
                         // 2a. Check severity filter
                         if (!PassesSeverityFilter(fmsEvent.Severity, expression.MinimumSeverity))
                         {
@@ -108,6 +124,26 @@ namespace FMS.Application.Features.EventEngine.Engine
                         if (!conditionsMet)
                         {
                             detail.SuppressedReason = "ConditionNotMet";
+                            result.SuppressedCount++;
+                            await LogExecutionAsync(expression, fmsEvent, detail, sw.ElapsedMilliseconds, ct);
+                            result.Details.Add(detail);
+                            continue;
+                        }
+
+                        // 2c. Cooldown / rate-limit check — scoped per tank/site/global.
+                        //     CooldownMinutes and MaxNotificationsPerDay have always been stored
+                        //     in DB but were never called until now. MaxNotificationsPerHour is new.
+                        var suppressReason = await _cooldownService.GetSuppressedReasonAsync(
+                            expression.Id,
+                            scopeKey,
+                            expression.CooldownMinutes,
+                            expression.MaxNotificationsPerHour,
+                            expression.MaxNotificationsPerDay,
+                            ct);
+
+                        if (suppressReason != null)
+                        {
+                            detail.SuppressedReason = suppressReason;
                             result.SuppressedCount++;
                             await LogExecutionAsync(expression, fmsEvent, detail, sw.ElapsedMilliseconds, ct);
                             result.Details.Add(detail);
@@ -219,6 +255,22 @@ namespace FMS.Application.Features.EventEngine.Engine
         }
 
         /// <summary>
+        /// Builds the scope key for cooldown/rate-limit isolation from an incoming FMSEvent.
+        /// Scoping ensures Tank A's cooldown budget is completely independent from Tank B's,
+        /// even if both are evaluated by the same expression.
+        /// </summary>
+        private static string BuildScopeKey(FMSEvent fmsEvent)
+        {
+            if (fmsEvent.TankId.HasValue)
+                return $"tank:{fmsEvent.TankId.Value}";
+
+            if (fmsEvent.SiteId.HasValue)
+                return $"site:{fmsEvent.SiteId.Value}";
+
+            return "global";
+        }
+
+        /// <summary>
         /// Check if the event severity meets the expression's MinimumSeverity.
         /// </summary>
         private static bool PassesSeverityFilter(string eventSeverity, string? minimumSeverity)
@@ -251,7 +303,8 @@ namespace FMS.Application.Features.EventEngine.Engine
                 SuppressedReason = detail.SuppressedReason,
                 NotificationId = detail.NotificationId,
                 Success = detail.SuppressedReason == null || !detail.SuppressedReason.StartsWith("Error"),
-                ExecutionTimeMs = (int)executionTimeMs
+                ExecutionTimeMs = (int)executionTimeMs,
+                ScopeKey = detail.ScopeKey ?? "global"
             };
 
             // Serialize event data snapshot

@@ -14,7 +14,7 @@ using System.Threading.Tasks;
 
 namespace FMS.Application.Features.Site.Queries
 {
-    public record GetSiteQuery() : IRequest<FMSResponse<List<SiteDTO>>>;
+    public record GetSiteQuery(bool IncludeInactive = false) : IRequest<FMSResponse<List<SiteDTO>>>;
 
     public class GetSiteQueryHandler : IRequestHandler<GetSiteQuery, FMSResponse<List<SiteDTO>>>
     {
@@ -33,8 +33,12 @@ namespace FMS.Application.Features.Site.Queries
         {
             try
             {
-                var sites = await _context.Sites
-                    .Where(s => s.IsActive) // Only return active sites
+                var query = _context.Sites.AsQueryable();
+                if (!request.IncludeInactive)
+                {
+                    query = query.Where(s => s.IsActive);
+                }
+                var sites = await query
                     .Include(s => s.SiteAdministrator)
                     .ToListAsync(cancellationToken);
                 var siteDTOs = _mapper.Map<List<SiteDTO>>(sites);

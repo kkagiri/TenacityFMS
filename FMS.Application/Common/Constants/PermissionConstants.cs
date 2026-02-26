@@ -300,6 +300,9 @@ namespace FMS.Application.Common.Constants
             /// <summary>Read tank volume history (Id: 63) - DB name: _Read_TankVolumeHistory</summary>
             public const string Read = "_Read_TankVolumeHistory";
 
+            /// <summary>[NEW] Update tank volume history - DB name: _Update_TankVolumeHistory</summary>
+            public const string Update = "_Update_TankVolumeHistory";
+
             /// <summary>Delete tank volume history (Id: 64) - DB name: _Delete_TankVolumeHistory</summary>
             public const string Delete = "_Delete_TankVolumeHistory";
         }
@@ -313,6 +316,15 @@ namespace FMS.Application.Common.Constants
         {
             /// <summary>Read site data (Id: TBD) - DB name: _Read_Site</summary>
             public const string Read = "_Read_Site";
+
+            /// <summary>[NEW] Create site - DB name: _Create_Site</summary>
+            public const string Create = "_Create_Site";
+
+            /// <summary>[NEW] Update site - DB name: _Update_Site</summary>
+            public const string Update = "_Update_Site";
+
+            /// <summary>[NEW] Delete site - DB name: _Delete_Site</summary>
+            public const string Delete = "_Delete_Site";
         }
 
         // ============================================================
@@ -426,6 +438,9 @@ namespace FMS.Application.Common.Constants
             public const string Edit = "_Edit_Task";
             public const string Delete = "_Delete_Task";
             public const string Assign = "_Assign_Task";
+
+            /// <summary>[NEW] Manage all tasks (view all users' tasks, manage overdue) - DB name: _ManageAll_Task</summary>
+            public const string ManageAll = "_ManageAll_Task";
         }
 
         /// <summary>
@@ -571,6 +586,9 @@ namespace FMS.Application.Common.Constants
             public const string Read = "_Read_Reporting";
             public const string Generate = "_Generate_Report";
             public const string ManageTemplates = "_Manage_ReportTemplates";
+
+            /// <summary>[NEW] Manage report schedules - DB name: _Manage_ReportSchedules</summary>
+            public const string ManageSchedules = "_Manage_ReportSchedules";
         }
 
         /// <summary>

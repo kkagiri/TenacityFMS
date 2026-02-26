@@ -1,4 +1,14 @@
-//Enhanced Vehicle Dashboard - Focus on analytics and insights
+/**
+ * File: VehicleDashboard.js
+ * Purpose: Fleet dashboard view for vehicle KPIs, trends, and quick navigation actions.
+ * Dependencies: Redux vehicleDashboard actions, DevExtreme chart/grid components, React Router.
+ * Last Modified: 2026-02-25
+ *
+ * Key Functions:
+ * - loadDashboardData(): Loads all dashboard sections.
+ * - navigateToFleet(): Opens fleet list.
+ * - navigateToVehicleDetails(): Opens selected vehicle details page.
+ */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
@@ -83,11 +93,19 @@ const VehicleDashboard = () => {
   };
 
   const navigateToMaintenanceAlerts = () => {
-    navigate('/vehicles/maintenance-alerts');
+    navigate('/vehicles/maintenance');
   };
 
   const navigateToTracking = () => {
     navigate('/vehicles/tracking');
+  };
+
+  const navigateToVehicleDetails = (vehicleRow) => {
+    const vehicleIdentifier = vehicleRow?.vehicleId ?? vehicleRow?.id ?? vehicleRow?.VehicleId ?? vehicleRow?.vehicleID;
+    if (!vehicleIdentifier) {
+      return;
+    }
+    navigate(`/vehicles/${vehicleIdentifier}/details`);
   };
 
   // Dashboard Metrics Component
@@ -351,6 +369,7 @@ const VehicleDashboard = () => {
           rowAlternationEnabled={true}
           columnAutoWidth={true}
           hoverStateEnabled={true}
+          onRowClick={(event) => navigateToVehicleDetails(event?.data)}
         >
           <Scrolling mode="standard" />
           <Paging defaultPageSize={5} />

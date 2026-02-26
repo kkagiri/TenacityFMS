@@ -11,6 +11,9 @@ import {
   DELETE_SITE_REQUEST,
   DELETE_SITE_SUCCESS,
   DELETE_SITE_FAILURE,
+  FETCH_SITE_STATS_REQUEST,
+  FETCH_SITE_STATS_SUCCESS,
+  FETCH_SITE_STATS_FAILURE,
 } from "../actions/siteActions";
 
 const initialState = {
@@ -20,6 +23,8 @@ const initialState = {
   creating: false,
   updating: false,
   deleting: false,
+  siteStats: null,
+  loadingStats: false,
 };
 
 const siteReducer = (state = initialState, action) => {
@@ -99,6 +104,24 @@ const siteReducer = (state = initialState, action) => {
         ...state,
         deleting: false,
         error: action.payload,
+      };
+
+    case FETCH_SITE_STATS_REQUEST:
+      return {
+        ...state,
+        loadingStats: true,
+      };
+    case FETCH_SITE_STATS_SUCCESS:
+      return {
+        ...state,
+        siteStats: action.payload,
+        loadingStats: false,
+      };
+    case FETCH_SITE_STATS_FAILURE:
+      return {
+        ...state,
+        siteStats: null,
+        loadingStats: false,
       };
 
     default:

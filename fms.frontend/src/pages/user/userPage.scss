@@ -1,9 +1,18 @@
 /*
  * File: userPage.scss
- * Purpose: Styles for admin user management page layout, filters, and badges
- * Dependencies: DevExtreme base styles, Tailwind utility classes
- * Last Modified: 2026-02-10
+ * Purpose: Styles for admin user management page — M365 Admin Center design (V2)
+ * Dependencies: M365 partial styles, DevExtreme base styles
+ * Last Modified: 2026-02-25
  */
+
+// ── M365 Design Token Partials ──────────────────────────────────────────────
+@import './styles/user-m365-variables';
+@import './styles/user-list';
+@import './styles/user-cards';
+@import './styles/user-panel';
+@import './styles/user-popups';
+
+// ── Root Layout ─────────────────────────────────────────────────────────────
 .view-wrapper-user-page {
     height: 100%;
     display: flex;

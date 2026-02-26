@@ -72,5 +72,26 @@ namespace FMS.Application.Features.Notification.DTOs
         public int GroupCount { get; set; }
         public int NotificationCount { get; set; }
         public DateTime? LastTriggered { get; set; }
+
+        /// <summary>
+        /// Dynamic recipient routing rules JSON (from NotificationPolicy.RecipientRules)
+        /// </summary>
+        public string? RecipientRules { get; set; }
+
+        /// <summary>
+        /// Static policy recipients (user IDs) loaded from notification_policy_recipient table.
+        /// Used by the EventExpression form to populate the recipient picker on edit.
+        /// </summary>
+        public System.Collections.Generic.List<PolicyRecipientItemDto>? Recipients { get; set; }
+    }
+
+    /// <summary>
+    /// Lightweight DTO for an individual policy recipient.
+    /// </summary>
+    public class PolicyRecipientItemDto
+    {
+        public string UserId { get; set; } = null!;
+        public string? DeliveryMethods { get; set; }
+        public bool IsActive { get; set; }
     }
 }

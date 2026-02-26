@@ -1,6 +1,13 @@
+/**
+ * File: UpdateSiteCommand.cs
+ * Purpose: Updates site records with optional GPSGate tag/geofence configuration.
+ * Dependencies: AutoMapper, GpsdataContext, MediatR, FMSResponse.
+ * Last Modified: 2026-02-26
+ */
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.Site.DTOs;
+using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -73,7 +80,44 @@ namespace FMS.Application.Features.Site.Commands
                     }
                 }
 
+                var selectedGeofence = default(GpsGeofence);
+                if (request.SiteDto.GpsGeofenceId.HasValue)
+                {
+                    selectedGeofence = await _context.GpsGeofences
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(
+                            g => g.Id == request.SiteDto.GpsGeofenceId.Value && g.IsActive,
+                            cancellationToken);
+
+                    if (selectedGeofence == null)
+                    {
+                        return FMSResponse<bool>.ValidationFailed(new List<string> { "Selected GPS geofence was not found or is inactive" });
+                    }
+
+                    if (selectedGeofence.GeofenceType != GpsGeofenceType.Polygon)
+                    {
+                        return FMSResponse<bool>.ValidationFailed(new List<string> { "Selected GPS geofence must be a Polygon type" });
+                    }
+                }
+
                 _mapper.Map(request.SiteDto, site);
+
+                if (selectedGeofence != null)
+                {
+                    site.GpsGeofenceId = selectedGeofence.Id;
+                    site.GpsGeofenceName = selectedGeofence.Name;
+                    site.GpsGeofenceType = selectedGeofence.GeofenceType.ToString();
+                    site.GpsGeofenceCenterLatitude = selectedGeofence.CenterLatitude;
+                    site.GpsGeofenceCenterLongitude = selectedGeofence.CenterLongitude;
+                }
+                else
+                {
+                    site.GpsGeofenceId = null;
+                    site.GpsGeofenceName = null;
+                    site.GpsGeofenceType = null;
+                    site.GpsGeofenceCenterLatitude = null;
+                    site.GpsGeofenceCenterLongitude = null;
+                }
 
                 await _context.SaveChangesAsync(cancellationToken);
 

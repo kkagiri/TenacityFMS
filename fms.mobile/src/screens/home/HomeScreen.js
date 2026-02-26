@@ -69,12 +69,17 @@ const HomeScreen = ({ navigation }) => {
   const [liveDataEnabled, setLiveDataEnabled] = useState(false);
 
   const { tanks } = useSelector((state) => state.tank);
-  const { isAdmin, hasRole } = usePermissions();
+  const { isAdmin, hasPermission, hasAnyPermission } = usePermissions();
 
-  // Check if user is power user
-  const isPowerUser = useMemo(() => {
-    return isAdmin || hasRole("PowerUser") || hasRole("Power User");
-  }, [isAdmin, hasRole]);
+  // Check if user can access issues (permission-based)
+  const canAccessIssues = useMemo(() => {
+    return hasAnyPermission(["_Read_Issues", "_View_Issue", "_Read_Issue", "_Edit_Issues", "_Approve_Issues", "_Delete_Issues"]);
+  }, [hasAnyPermission]);
+
+  // Check if user can access location settings
+  const canAccessLocationSettings = useMemo(() => {
+    return hasPermission("_Manage_LocationValidation");
+  }, [hasPermission]);
 
   // Fuel stats from tanks
   const fuelStats = useMemo(() => {
@@ -310,8 +315,8 @@ const HomeScreen = ({ navigation }) => {
       bgColor: "#ecfeff",
       onPress: () => navigation.navigate("VehicleDetails"),
     },
-    // Issue Tracker - admin & power user only
-    ...(isPowerUser
+    // Issue Tracker - permission-based
+    ...(canAccessIssues
       ? [
         {
           id: "issueTracker",
@@ -320,12 +325,11 @@ const HomeScreen = ({ navigation }) => {
           color: "#7c3aed",
           bgColor: "#f5f3ff",
           onPress: () => navigation.navigate("IssueList"),
-          badge: "Admin",
         },
       ]
       : []),
-    // Location Settings - admin only
-    ...(isAdmin
+    // Location Settings - permission-based
+    ...(canAccessLocationSettings
       ? [
         {
           id: "locationSettings",
@@ -334,7 +338,6 @@ const HomeScreen = ({ navigation }) => {
           color: "#ef4444",
           bgColor: "#fef2f2",
           onPress: () => navigation.navigate("LocationSettings"),
-          badge: "Admin",
         },
       ]
       : []),

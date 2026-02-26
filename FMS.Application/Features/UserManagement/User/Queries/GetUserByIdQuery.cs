@@ -51,6 +51,8 @@ public class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, UserDet
             return new UserDetailDto
             {
                 Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 UserName = user.UserName,
                 Email = user.Email,
                 IsDeleted = user.IsDeleted ?? false,

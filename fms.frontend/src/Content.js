@@ -17,6 +17,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { fetchNavigationItems } from "./redux/actions/navigationActions";
 import resolvedComponents from "./app-routes";
 import withRoleProtection from "./utils/withRoleProtection";
+import withPermissionProtection from "./utils/withPermissionProtection";
 import Unauthorized from "./pages/unauthorized";
 import FuelingProcess from "./pages/ATG/fuelingprocess/fuelingprocess";
 import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
@@ -136,13 +137,13 @@ export default function Content() {
         <Route
           path="/admin"
           element={React.createElement(
-            withRoleProtection(resolvedComponents("admin"), ["Admin"])
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
           )}
         />
         <Route
           path="/admin/*"
           element={React.createElement(
-            withRoleProtection(resolvedComponents("admin"), ["Admin"])
+            withPermissionProtection(resolvedComponents("admin"), ["_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"])
           )}
         />
 

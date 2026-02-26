@@ -2,11 +2,13 @@
  * File: UpdateNotificationPolicyRequestDTO.cs
  * Purpose: Defines request payload used to update notification policies.
  * Dependencies: None
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-25
  *
  * Key Classes:
  * - UpdateNotificationPolicyRequestDTO: Carries mutable policy settings from API to application layer.
  */
+using System.Collections.Generic;
+
 namespace FMS.Application.Features.Notification.DTOs
 {
     public class UpdateNotificationPolicyRequestDTO
@@ -36,5 +38,17 @@ namespace FMS.Application.Features.Notification.DTOs
         public string? ActiveAlarmFilter { get; set; }
         public bool IsActive { get; set; } = true;
         public string? ModifiedBy { get; set; }
+
+        /// <summary>
+        /// Static recipient user IDs. Replaces all existing notification_policy_recipient rows.
+        /// Pass null to leave recipients unchanged; pass empty list to clear all recipients.
+        /// </summary>
+        public List<string>? RecipientUserIds { get; set; }
+
+        /// <summary>
+        /// Dynamic recipient routing rules in JSON format.
+        /// Pass null to leave unchanged; pass empty string to clear.
+        /// </summary>
+        public string? RecipientRules { get; set; }
     }
 }

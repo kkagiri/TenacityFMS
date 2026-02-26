@@ -13,11 +13,11 @@
  * - ReportEngine: Full-page report runner with sidebar filters + preview
  */
 
-import React, { useState, useCallback, useMemo, useEffect } from 'react';
+import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
-import { LoadPanel } from 'devextreme-react/load-panel';
+import ProgressBar from 'devextreme-react/progress-bar';
 import notify from 'devextreme/ui/notify';
 import { getReportSource, getAllReportSources } from '../sources/reportSourceRegistry';
 import ReportParameterForm from './ReportParameterForm';
@@ -25,6 +25,9 @@ import ReportFormatSelector from './ReportFormatSelector';
 import ReportOutputViewer from './ReportOutputViewer';
 import buildJsReportPayload from './reportDataBuilder';
 import reportingService from '../../../services/reportingService';
+import useReportJobTracking from '../../../hooks/useReportJobTracking';
+import { ReportJobStatus } from '../../../hooks/useReportJobTracking';
+import RequestReportEmailPanel from '../../../components/Reporting/RequestReportEmailPanel';
 import './ReportEngine.scss';
 
 const ReportEngine = () => {
@@ -45,6 +48,71 @@ const ReportEngine = () => {
     const [generating, setGenerating] = useState(false);
     const [htmlContent, setHtmlContent] = useState('');
     const [lastGenerated, setLastGenerated] = useState(null);
+
+    // Email panel
+    const [emailPanelOpen, setEmailPanelOpen] = useState(false);
+
+    // Async report job tracking
+    const {
+        activeJob: reportJob,
+        isTracking: isReportTracking,
+        error: reportError,
+        submitJob: submitReportJob,
+        cancelActiveJob: cancelReportJob,
+        downloadResult: downloadReport,
+        fetchHtmlContent,
+        dismissJob: dismissReportJob,
+        emailWhenDone: emailWhenDoneReport,
+    } = useReportJobTracking();
+
+    // Email-when-done: show button after 10s of active tracking
+    const [emailVisible, setEmailVisible] = useState(false);
+    const emailTimerRef = useRef(null);
+    useEffect(() => {
+        if (isReportTracking) {
+            setEmailVisible(false);
+            emailTimerRef.current = setTimeout(() => setEmailVisible(true), 10000);
+        } else {
+            clearTimeout(emailTimerRef.current);
+            setEmailVisible(false);
+        }
+        return () => clearTimeout(emailTimerRef.current);
+    }, [isReportTracking]);
+
+    // Clear previous output when a new job starts so stale content isn't shown
+    useEffect(() => {
+        if (isReportTracking) {
+            setHtmlContent('');
+            setLastGenerated(null);
+        }
+    }, [isReportTracking]);
+
+    // Auto-render HTML (or auto-download PDF/Excel) when async job completes.
+    // Track by jobId instead of status so re-running the same report still triggers.
+    const prevCompletedJobIdRef = useRef(null);
+    useEffect(() => {
+        const status = reportJob?.status;
+        const jobId  = reportJob?.jobId;
+
+        if (
+            status === ReportJobStatus.Completed &&
+            jobId &&
+            prevCompletedJobIdRef.current !== jobId
+        ) {
+            prevCompletedJobIdRef.current = jobId;
+            if (selectedFormat === 'html') {
+                fetchHtmlContent().then((html) => {
+                    if (html) {
+                        setHtmlContent(html);
+                        setLastGenerated(new Date());
+                    }
+                });
+            } else {
+                // Auto-download PDF / Excel when background job finishes
+                downloadReport();
+            }
+        }
+    }, [reportJob?.status, reportJob?.jobId, selectedFormat, fetchHtmlContent, downloadReport]);
 
     // Sync source from URL params
     useEffect(() => {
@@ -144,7 +212,9 @@ const ReportEngine = () => {
     }, [activeSource, filters]);
 
     /**
-     * Fetch report data from the source's API endpoint, then render via template
+     * Generate report — pump-transaction uses sync flow, everything else
+     * submits an async background job so the progress bar + "Email When Done"
+     * appear immediately (no 30 s loading-spinner wait).
      */
     const handleGenerate = useCallback(async () => {
         if (!activeSource) {
@@ -168,16 +238,39 @@ const ReportEngine = () => {
             return;
         }
 
+        // Date range validation — works for any source that has two date-type parameters
+        const dateParams = (activeSource.parameters || []).filter((p) => p.type === 'date');
+        if (dateParams.length >= 2) {
+            const fromParam = dateParams[0];
+            const toParam   = dateParams[1];
+            const fromVal   = filters[fromParam.key];
+            const toVal     = filters[toParam.key];
+            if (!fromVal || !toVal) {
+                notify({ message: `Please select both ${fromParam.label} and ${toParam.label}`, type: 'warning' });
+                return;
+            }
+            const fromDate = fromVal instanceof Date ? fromVal : new Date(fromVal);
+            const toDate   = toVal   instanceof Date ? toVal   : new Date(toVal);
+            if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+                notify({ message: 'Invalid date selection — please re-select the dates', type: 'warning' });
+                return;
+            }
+            if (fromDate > toDate) {
+                notify({ message: `${fromParam.label} must be on or before ${toParam.label}`, type: 'warning' });
+                return;
+            }
+        }
+
         const templateName = templateOverride || activeSource.defaultTemplate;
         if (!templateName) {
             notify({ message: 'No template selected or configured for this report', type: 'warning' });
             return;
         }
 
-        setGenerating(true);
-        try {
-            // Use dedicated endpoint for pump transactions (has its own flow)
-            if (activeSource.id === 'pump-transaction') {
+        // ── Pump-transaction: dedicated sync endpoint ─────────────────────
+        if (activeSource.id === 'pump-transaction') {
+            setGenerating(true);
+            try {
                 const reportData = buildQueryParams();
                 const result = await reportingService.generatePumpTransactionReport({
                     ...reportData,
@@ -194,66 +287,123 @@ const ReportEngine = () => {
                 } else {
                     notify({ message: result.error || 'Error generating report', type: 'error' });
                 }
-                return;
+            } catch (err) {
+                console.error('Report generation error:', err);
+                notify({ message: 'Error generating report', type: 'error' });
+            } finally {
+                setGenerating(false);
             }
+            return;
+        }
 
-            // Step 1: Fetch actual report data from the source's API endpoint
-            const queryParams = buildQueryParams();
-            const dataResult = await reportingService.fetchReportData(activeSource.apiEndpoint, queryParams);
+        // Build params once for preview/async paths
+        const params = buildQueryParams();
 
-            if (!dataResult.success) {
-                notify({ message: dataResult.error || 'Error fetching report data', type: 'error' });
-                return;
-            }
+        // ── HTML preview: try sync preview, then auto-fallback to background on timeout ──
+        if (selectedFormat === 'html') {
+            setGenerating(true);
+            try {
+                const dataResult = await reportingService.fetchReportData(activeSource.apiEndpoint, params);
+                if (!dataResult.success) {
+                    notify({ message: dataResult.error || 'Error fetching report data', type: 'error' });
+                    return;
+                }
 
-            // Step 2: Normalize source response into template-ready payload
-            const reportData = buildJsReportPayload({
-                sourceId: activeSource.id,
-                sourceName: activeSource.name,
-                apiResponse: dataResult.data,
-                queryParams,
-            });
+                const reportData = buildJsReportPayload({
+                    sourceId: activeSource.id,
+                    sourceName: activeSource.name,
+                    apiResponse: dataResult.data,
+                    queryParams: params,
+                });
 
-            // Step 3: Render with template
-            let result;
-            switch (selectedFormat) {
-                case 'pdf':
-                    result = await reportingService.renderJsReportPdf(templateName, reportData);
-                    break;
-                case 'excel':
-                    result = await reportingService.renderJsReportExcel(templateName, reportData);
-                    break;
-                case 'csv':
-                    result = await reportingService.renderJsReportExcel(templateName, { ...reportData, outputFormat: 'csv' });
-                    if (result.success) {
-                        result.fileName = result.fileName?.replace('.xlsx', '.csv') || `${templateName}.csv`;
-                    }
-                    break;
-                default:
-                    result = await reportingService.previewJsReport(templateName, reportData);
-            }
+                // ── Large-payload bypass ──────────────────────────────────────
+                // Skip the synchronous preview entirely when the dataset is too
+                // large to render within the 12-second timeout window.  Instead,
+                // show an immediate informational message and fall through to the
+                // async background job path below.
+                const _recordArray = Array.isArray(dataResult.data?.data)
+                    ? dataResult.data.data
+                    : Array.isArray(dataResult.data) ? dataResult.data : [];
+                const _estimatedKb = JSON.stringify(reportData).length / 1024;
+                const _isLargePayload = _recordArray.length > 200 || _estimatedKb > 300;
 
-            if (result.success) {
-                if (selectedFormat === 'html') {
-                    setHtmlContent(result.html);
-                } else {
-                    reportingService.downloadReportFile(result.blob, result.fileName);
+                if (_isLargePayload) {
                     notify({
-                        message: `${selectedFormat.toUpperCase()} downloaded successfully`,
-                        type: 'success',
+                        message: `Large dataset (${_recordArray.length.toLocaleString()} records) — generating in background...`,
+                        type: 'info',
+                        displayTime: 3500,
+                    });
+                    // setGenerating(false) runs in finally; fall through to async submission
+                } else {
+                    const previewResult = await reportingService.previewJsReport(templateName, reportData, {
+                        timeoutMs: 12000,
+                    });
+
+                    if (previewResult.success) {
+                        setHtmlContent(previewResult.html);
+                        setLastGenerated(new Date());
+                        return;
+                    }
+
+                    const isTimeout =
+                        previewResult.error?.includes('timeout') ||
+                        previewResult.error?.includes('ECONNABORTED') ||
+                        previewResult.error?.includes('12000ms');
+
+                    if (!isTimeout) {
+                        notify({ message: previewResult.error || 'Error generating preview', type: 'error' });
+                        return;
+                    }
+
+                    notify({
+                        message: 'Preview is taking too long. Switching to background generation...',
+                        type: 'info',
+                        displayTime: 3500,
                     });
                 }
-                setLastGenerated(new Date());
-            } else {
-                notify({ message: result.error || 'Error generating report', type: 'error' });
+            } catch (err) {
+                const isTimeout = err?.message?.includes('timeout') || err?.code === 'ECONNABORTED';
+                if (!isTimeout) {
+                    console.error('HTML preview error:', err);
+                    notify({ message: 'Error generating preview', type: 'error' });
+                    return;
+                }
+
+                notify({
+                    message: 'Preview is taking too long. Switching to background generation...',
+                    type: 'info',
+                    displayTime: 3500,
+                });
+            } finally {
+                setGenerating(false);
             }
-        } catch (err) {
-            console.error('Report generation error:', err);
-            notify({ message: 'Error generating report', type: 'error' });
-        } finally {
-            setGenerating(false);
+            // continue to async submission below after timeout
         }
-    }, [activeSource, filters, selectedFormat, templateOverride, buildQueryParams]);
+
+        // ── PDF / Excel / CSV (and HTML-timeout fallback): async background job ──
+        const paramMap = {};
+        Object.entries(params).forEach(([k, v]) => {
+            paramMap[k] = Array.isArray(v) ? v.join(',') : String(v);
+        });
+
+        const result = await submitReportJob({
+            sourceId: activeSource.id,
+            templateName,
+            outputFormat: selectedFormat,
+            parameters: paramMap,
+            deliverByEmail: false,
+        });
+
+        if (result) {
+            notify({
+                message: 'Report generation started. Track progress below.',
+                type: 'info',
+                displayTime: 3000,
+            });
+        } else {
+            notify({ message: 'Failed to start report generation', type: 'error' });
+        }
+    }, [activeSource, filters, selectedFormat, templateOverride, buildQueryParams, submitReportJob]);
 
     const handleDownloadAs = useCallback(
         async (format) => {
@@ -265,7 +415,6 @@ const ReportEngine = () => {
 
             setGenerating(true);
             try {
-                // Fetch data from source API first
                 const queryParams = buildQueryParams();
 
                 if (activeSource.id === 'pump-transaction') {
@@ -276,31 +425,32 @@ const ReportEngine = () => {
                     } else {
                         notify({ message: result.error || 'Download failed', type: 'error' });
                     }
+                    return;
+                }
+
+                const dataResult = await reportingService.fetchReportData(activeSource.apiEndpoint, queryParams);
+                if (!dataResult.success) {
+                    notify({ message: dataResult.error || 'Error fetching report data', type: 'error' });
+                    return;
+                }
+
+                const reportData = buildJsReportPayload({
+                    sourceId: activeSource.id,
+                    sourceName: activeSource.name,
+                    apiResponse: dataResult.data,
+                    queryParams,
+                });
+
+                const result =
+                    format === 'pdf'
+                        ? await reportingService.renderJsReportPdf(templateName, reportData)
+                        : await reportingService.renderJsReportExcel(templateName, reportData);
+
+                if (result.success) {
+                    reportingService.downloadReportFile(result.blob, result.fileName);
+                    notify({ message: `${format.toUpperCase()} downloaded`, type: 'success' });
                 } else {
-                    const dataResult = await reportingService.fetchReportData(activeSource.apiEndpoint, queryParams);
-                    if (!dataResult.success) {
-                        notify({ message: dataResult.error || 'Error fetching report data', type: 'error' });
-                        return;
-                    }
-
-                    const reportData = buildJsReportPayload({
-                        sourceId: activeSource.id,
-                        sourceName: activeSource.name,
-                        apiResponse: dataResult.data,
-                        queryParams,
-                    });
-
-                    const result =
-                        format === 'pdf'
-                            ? await reportingService.renderJsReportPdf(templateName, reportData)
-                            : await reportingService.renderJsReportExcel(templateName, reportData);
-
-                    if (result.success) {
-                        reportingService.downloadReportFile(result.blob, result.fileName);
-                        notify({ message: `${format.toUpperCase()} downloaded`, type: 'success' });
-                    } else {
-                        notify({ message: result.error || 'Download failed', type: 'error' });
-                    }
+                    notify({ message: result.error || 'Download failed', type: 'error' });
                 }
             } catch (err) {
                 notify({ message: 'Download failed', type: 'error' });
@@ -314,9 +464,7 @@ const ReportEngine = () => {
 
     return (
         <div className="report-engine">
-            <LoadPanel visible={generating} />
-
-            {/* Header */}
+            {/* Header */}}
             <div className="engine-header">
                 <div className="tw-flex tw-items-center tw-gap-3">
                     <i className={`${activeSource?.icon || 'fa-light fa-file-chart-line'} tw-text-2xl tw-text-blue-600`}></i>
@@ -422,12 +570,22 @@ const ReportEngine = () => {
                         <div className="tw-p-4 tw-border-t tw-border-gray-200">
                             <Button
                                 icon="fa-light fa-play"
-                                text="Generate Report"
+                                text={isReportTracking ? 'Generating...' : 'Generate Report'}
                                 type="success"
                                 onClick={handleGenerate}
-                                disabled={generating}
+                                disabled={generating || isReportTracking}
                                 width="100%"
                             />
+                            {emailVisible && (
+                                <Button
+                                    icon="fa-light fa-envelope"
+                                    text="Email when done"
+                                    stylingMode="outlined"
+                                    onClick={emailWhenDoneReport}
+                                    width="100%"
+                                    elementAttr={{ class: 'tw-mt-2' }}
+                                />
+                            )}
                             <div className="tw-flex tw-gap-2 tw-mt-3">
                                 <Button
                                     icon="fa-light fa-calendar-clock"
@@ -437,12 +595,58 @@ const ReportEngine = () => {
                                     width="100%"
                                 />
                             </div>
+                            <div className="tw-flex tw-gap-2 tw-mt-2">
+                                <Button
+                                    icon="fa-light fa-envelope"
+                                    text="Request via Email"
+                                    stylingMode="outlined"
+                                    onClick={() => setEmailPanelOpen(true)}
+                                    width="100%"
+                                />
+                            </div>
                         </div>
                     )}
                 </div>
 
                 {/* Right Content - Output Viewer */}
                 <div className="engine-output">
+                    {/* Inline progress bar during async generation */}
+                    {isReportTracking && reportJob && (
+                        <div className="tw-px-4 tw-pt-3 tw-pb-2 tw-bg-blue-50 tw-border-b tw-border-blue-100">
+                            <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
+                                <span className="tw-text-sm tw-font-medium tw-text-blue-700">
+                                    <i className="fa-light fa-file-chart-column tw-mr-2" />
+                                    {reportJob?.statusMessage || 'Generating report...'}
+                                </span>
+                                <div className="tw-flex tw-items-center tw-gap-3">
+                                    <span className="tw-text-xs tw-text-blue-500 tw-tabular-nums">
+                                        {reportJob?.progressPercent || 0}%
+                                        {reportJob?.elapsedSeconds > 0 && (
+                                            <span className="tw-ml-2 tw-text-gray-400">
+                                                {Math.round(reportJob.elapsedSeconds)}s
+                                            </span>
+                                        )}
+                                    </span>
+                                    <button
+                                        type="button"
+                                        onClick={cancelReportJob}
+                                        title="Cancel report generation"
+                                        className="tw-text-xs tw-text-red-500 hover:tw-text-red-700 tw-flex tw-items-center tw-gap-1 tw-border tw-border-red-200 tw-rounded tw-px-2 tw-py-0.5 hover:tw-bg-red-50 tw-transition-colors"
+                                    >
+                                        <i className="fa-light fa-xmark" />
+                                        Cancel
+                                    </button>
+                                </div>
+                            </div>
+                            <ProgressBar
+                                min={0}
+                                max={100}
+                                value={reportJob?.progressPercent || 0}
+                                statusFormat={() => ''}
+                                width="100%"
+                            />
+                        </div>
+                    )}
                     <ReportOutputViewer
                         htmlContent={htmlContent}
                         selectedFormat={selectedFormat}
@@ -453,6 +657,13 @@ const ReportEngine = () => {
                     />
                 </div>
             </div>
+
+            {/* Email Report Panel */}
+            <RequestReportEmailPanel
+                open={emailPanelOpen}
+                onClose={() => setEmailPanelOpen(false)}
+                initialSourceId={activeSourceId}
+            />
         </div>
     );
 };

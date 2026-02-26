@@ -60,6 +60,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
+                builder.Property(e => e.MaxNotificationsPerHour)
+                    .HasColumnType("int(11)")
+                    .HasDefaultValue(0);
+
                 builder.Property(e => e.EscalationRules)
                     .HasColumnType("json");
 

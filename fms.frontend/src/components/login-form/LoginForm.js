@@ -9,7 +9,7 @@
  */
 
 import React, { useState, useRef, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import serviceFactory from '../../services/core/ServiceFactory.js';
 import Form, {
@@ -40,6 +40,7 @@ import './LoginForm.scss';
  */
 const LoginForm = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const dispatch = useDispatch(); // Temporarily keeping for Redux state updates
   const [loading, setLoading] = useState(false);
   const formData = useRef({ username: '', password: '' });
@@ -93,8 +94,17 @@ const LoginForm = () => {
         // Show success notification
         notify(`Welcome back, ${user.userName || user.username}!`, 'success', 2000);
 
-        console.log('✅ Sign in successful, navigating to home...');
-        navigate('/home', { replace: true });
+        const requestedRedirect = searchParams.get('redirect');
+        const isSafeInternalRedirect =
+          !!requestedRedirect &&
+          requestedRedirect.startsWith('/') &&
+          !requestedRedirect.startsWith('//') &&
+          !requestedRedirect.startsWith('/login');
+
+        const targetRoute = isSafeInternalRedirect ? requestedRedirect : '/home';
+
+        console.log('✅ Sign in successful, navigating to:', targetRoute);
+        navigate(targetRoute, { replace: true });
 
       } else {
         // Handle authentication failure
@@ -133,7 +143,7 @@ const LoginForm = () => {
     } finally {
       setLoading(false);
     }
-  }, [authService, navigate, dispatch]);
+  }, [authService, navigate, dispatch, searchParams]);
 
   // Handle form field changes for validation
   const onFieldDataChanged = useCallback((e) => {

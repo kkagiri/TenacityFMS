@@ -660,9 +660,123 @@ fms.frontend/src/
 
 ---
 
-## 10. Styling Guide — Fluent Design
+## 10. Styling Guide — Fluent Design (M365 Admin Center)
 
-> All new UI and edits must use **Microsoft Fluent Design language**: Segoe UI typography, Microsoft Blue (`#0078D4`) as the primary accent, rounded-corner components, subtle shadows, and depth layering consistent with M365 product aesthetics.
+> All new UI and edits must use **Microsoft 365 Admin Center flat design language**: Segoe UI typography, Microsoft Blue (`#0078D4`) as the primary accent, flat surfaces with 1px neutral borders, compact 34px controls, and the full M365 neutral chrome palette.
+> **Full design specification:** See `.agents/skills/design/SKILL.md` for the complete M365 design system reference (colors, controls, cards, panels, forms, badges, mobile rules).
+
+### M365 Color Tokens
+
+| Token | Hex | Usage |
+|---|---|---|
+| Primary | `#0078d4` | Active tabs, focus rings, primary buttons |
+| Success | `#107c10` | Acknowledge, green actions |
+| Error | `#d13438` | Delete, critical badges |
+| Warning | `#ca5010` | Warning badges |
+| Text | `#201f1e` | Primary text |
+| Secondary text | `#605e5c` | Descriptions, metadata |
+| Tertiary text | `#a19f9d` | Placeholders, disabled |
+| Border | `#c8c6c4` | Input borders (resting) |
+| Border light | `#edebe9` | Dividers, card borders |
+| Hover bg | `#f3f2f1` | Row hover, ghost buttons |
+| Surface bg | `#faf9f8` | Page backgrounds |
+
+### Flat Form Controls (M365 Admin)
+
+> **Rule:** Use native `<select>`, `<input type="text">`, `<input type="date">`, and `<input type="checkbox">` for simple controls. Only use DevExtreme `SelectBox` / `DateBox` when you need searchable dropdown (100+ items) or advanced calendar features.
+
+All flat controls share: **34px height · 13px font · 4px border-radius · `#c8c6c4` border · `#0078d4` focus ring**.
+
+```scss
+// Flat select — native <select> with custom chevron
+.m365-select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+  color: #201f1e;
+  background: #fff;
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  outline: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  &:hover { border-color: #605e5c; }
+  &:focus { border-color: #0078d4; box-shadow: 0 0 0 1px #0078d4; }
+}
+
+// Flat text input
+.m365-input {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: #201f1e;
+  background: #fff;
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  outline: none;
+  &::placeholder { color: #a19f9d; }
+  &:hover { border-color: #605e5c; }
+  &:focus { border-color: #0078d4; box-shadow: 0 0 0 1px #0078d4; }
+}
+
+// Flat date input
+.m365-date { @extend .m365-input; min-width: 130px; }
+```
+
+### Button Variants
+
+| Variant | Background | Text | Use For |
+|---|---|---|---|
+| `.m365-btn--primary` | `#0078d4` | white | Save, Create, Submit |
+| `.m365-btn--ghost` | white + `#c8c6c4` border | `#323130` | Cancel, Refresh |
+| `.m365-btn--text` | transparent | `#605e5c` | Clear, Reset |
+| `.m365-btn--danger` | `#d13438` | white | Delete, Remove |
+| `.m365-btn--success` | `#107c10` | white | Acknowledge, Approve |
+
+### Info / Help Sections
+
+```jsx
+{/* Info banner (blue) — also supports --warning, --error, --success variants */}
+<div className="m365-info-banner">
+    <i className="fa-light fa-circle-info m365-info-banner__icon" />
+    <span className="m365-info-banner__text">Message here</span>
+</div>
+
+{/* Inline help tooltip */}
+<span className="m365-help-tip" title="Explanation…">
+    <i className="fa-light fa-circle-question" />
+</span>
+```
+
+### Section Groups with Icons
+
+```jsx
+<div className="m365-section-group">
+    <div className="m365-section-group__header">
+        <i className="fa-light fa-shield-halved m365-section-group__icon" />
+        <h3 className="m365-section-group__title">Security Settings</h3>
+    </div>
+    <div className="m365-section-group__body">{/* content */}</div>
+</div>
+```
+
+### Page Headers (compact)
+
+```jsx
+<div className="m365-page-header">
+    <div className="m365-page-header__left">
+        <i className="fa-light fa-bell m365-page-header__icon" />
+        <h2 className="m365-page-header__title">My Notifications</h2>
+    </div>
+    <div className="m365-page-header__actions">
+        <button className="m365-btn m365-btn--primary"><i className="fa-light fa-plus" />Add</button>
+    </div>
+</div>
+```
+
+**Header rules:** Use `h2` (16px, 600 weight) · inline icon · 8px vertical padding · no subtitle · no large icon boxes.
 
 ### Segmented Button Groups
 

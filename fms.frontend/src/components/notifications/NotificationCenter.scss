@@ -1,27 +1,61 @@
+/* ═══ M365-Style Notification Center ═══ */
+
+// ── Animations ──────────────────────────────────────────────────────────────
+
+@keyframes bell-ring {
+  0%   { transform: rotate(0); }
+  10%  { transform: rotate(14deg); }
+  20%  { transform: rotate(-14deg); }
+  30%  { transform: rotate(10deg); }
+  40%  { transform: rotate(-8deg); }
+  50%  { transform: rotate(4deg); }
+  60%  { transform: rotate(-2deg); }
+  70%  { transform: rotate(0); }
+  100% { transform: rotate(0); }
+}
+
+@keyframes badge-pulse {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.15); }
+}
+
+@keyframes panel-slide-in {
+  from { opacity: 0; transform: translateX(16px) scale(0.98); }
+  to   { opacity: 1; transform: translateX(0) scale(1); }
+}
+
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+// ── Bell Button ─────────────────────────────────────────────────────────────
+
 .notification-center {
   position: relative;
 
   .bell-button-wrapper {
-    padding: 8px;
+    width: 40px;
+    height: 40px;
     border-radius: 50%;
-    background-color: transparent;
+    background: transparent;
     cursor: pointer;
-    transition: background-color 0.2s ease;
+    transition: background-color 0.15s ease;
     display: flex;
     align-items: center;
     justify-content: center;
     position: relative;
-    width: 40px;
-    height: 40px;
 
-    &:hover {
-      background-color: rgba(59, 130, 246, 0.1);
-    }
+    &:hover { background: rgba(0, 120, 212, 0.06); }
 
     &.has-unread {
       .bell-icon i {
-        color: #3b82f6;
-        animation: pulse 2s infinite;
+        color: #0078d4;
+        animation: bell-ring 2s ease-in-out infinite;
+        transform-origin: 50% 0%;
+      }
+      .notification-badge {
+        animation: badge-pulse 2s ease-in-out infinite;
       }
     }
 
@@ -32,235 +66,454 @@
       justify-content: center;
 
       i {
-        font-size: 20px;
-        color: #334155;
-        transition: transform 0.2s ease;
-      }
-
-      &:hover i {
-        transform: scale(1.1);
+        font-size: 18px;
+        color: #323130;
+        transition: color 0.15s ease;
       }
 
       .notification-badge {
         position: absolute;
         top: -8px;
-        right: -8px;
-        background-color: #ef4444;
-        border-radius: 50%;
-        height: 20px;
-        min-width: 20px;
-        padding: 0 4px;
+        right: -10px;
+        background: #d13438;
+        border-radius: 10px;
+        height: 18px;
+        min-width: 18px;
+        padding: 0 5px;
         display: flex;
         align-items: center;
         justify-content: center;
         color: white;
-        font-size: 11px;
+        font-size: 10px;
         font-weight: 600;
-        box-shadow: 0 2px 4px rgba(239, 68, 68, 0.5);
-        border: 1px solid white;
+        border: 2px solid white;
+        line-height: 1;
       }
     }
   }
 }
+
+// ── Panel (Desktop Popover) ─────────────────────────────────────────────────
 
 .notification-popover {
   position: absolute;
   top: 48px;
-  right: -20px; /* Nudged 20px to the left */
+  right: -20px;
+  width: 420px;
   border-radius: 8px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.15), 0 1px 4px rgba(0, 0, 0, 0.08);
   z-index: 1050;
-  width: 384px; /* Updated to match tw-w-96 */
-  background-color: white;
+  background: #fff;
+  animation: panel-slide-in 0.25s cubic-bezier(0.1, 0.9, 0.2, 1) forwards;
+  overflow: hidden;
 
-  .tw-bg-white {
-    width: 100%;
-    border-radius: 8px;
-    overflow: hidden;
+  // Portal-rendered desktop popover – escapes header stacking context
+  &.notification-popover--portal {
+    position: fixed;
+    z-index: 100000; // Above SlidePanel (9999) and DevExtreme overlays
+    // top and right are set via inline styles
   }
 
-  .notification-content {
-    max-height: 400px;
-    scrollbar-width: thin;
+  // ── Header ──
+  .m365-panel-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid #edebe9;
 
-    &::-webkit-scrollbar {
-      width: 4px;
+    h4 {
+      font-size: 18px;
+      font-weight: 600;
+      color: #201f1e;
+      margin: 0;
     }
 
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
+    .m365-header-actions {
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    &::-webkit-scrollbar-thumb {
-      background: #c1c1c1;
-      border-radius: 2px;
-    }
-  }
+    .m365-header-btn {
+      height: 32px;
+      padding: 0 10px;
+      border: none;
+      border-radius: 4px;
+      background: transparent;
+      color: #0078d4;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      transition: background-color 0.1s;
 
-  .clear-all-btn {
-    &.dx-button {
-      .dx-button-content {
+      &:hover { background: #f3f2f1; }
+      &:disabled { color: #a19f9d; cursor: not-allowed; }
+
+      &--icon-only {
+        width: 32px;
         padding: 0;
-
-        .dx-button-text {
-          font-size: 14px;
-          color: #3b82f6;
-          font-weight: 500;
-        }
+        justify-content: center;
+        color: #605e5c;
+        font-size: 14px;
       }
     }
   }
-}
 
-.notification-item {
-  padding: 0 16px;
-  transition: background-color 0.15s ease;
-  position: relative;
-  width: 100%;
-  box-sizing: border-box;
-
-  &:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+  // ── Tabs ──
+  .m365-tabs {
+    display: flex;
+    border-bottom: 1px solid #edebe9;
+    padding: 0 16px;
+    background: #faf9f8;
   }
 
-  &:last-child {
-    border-bottom: none;
-  }
-
-  button {
-    outline: none;
+  .m365-tab {
+    position: relative;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #605e5c;
+    background: none;
     border: none;
-    background: transparent;
     cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: color 0.15s;
+    white-space: nowrap;
+
+    &:hover { color: #201f1e; }
+
+    &--active {
+      color: #0078d4;
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 12px;
+        right: 12px;
+        height: 2px;
+        background: #0078d4;
+        border-radius: 2px 2px 0 0;
+      }
+    }
+  }
+
+  .m365-tab-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 9px;
+    font-size: 10px;
+    font-weight: 600;
+    line-height: 1;
+    background: #edebe9;
+    color: #605e5c;
+
+    &--active { background: #0078d4; color: #fff; }
+    &--alert  { background: #d13438; color: #fff; }
+  }
+
+  // ── Content ──
+  .m365-panel-content {
+    max-height: 440px;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    &::-webkit-scrollbar { width: 4px; }
+    &::-webkit-scrollbar-track { background: transparent; }
+    &::-webkit-scrollbar-thumb { background: #c8c6c4; border-radius: 2px; }
+  }
+
+  // ── Notification Item ──
+  .m365-notif-item {
+    position: relative;
+    display: flex;
+    gap: 12px;
+    padding: 12px 20px 12px 16px;
+    border-bottom: 1px solid #f3f2f1;
+    cursor: pointer;
+    transition: background-color 0.1s;
+
+    &:hover { background: #f3f2f1; }
+    &:last-child { border-bottom: none; }
+
+    // Unread accent
+    &--unread {
+      background: #f3f9ff;
+      border-left: 3px solid #0078d4;
+      padding-left: 13px;
+      &:hover { background: #e8f4fd; }
+    }
+
+    // Read state
+    &--read {
+      .m365-notif-title { font-weight: 500; color: #605e5c; }
+    }
+  }
+
+  // Circular type icon
+  .m365-notif-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    width: 24px;
-    height: 24px;
-
-    &:hover {
-      background-color: rgba(0, 0, 0, 0.05);
-    }
+    font-size: 15px;
   }
-}
 
-// Progress bar animation
-@keyframes progress-animation {
-  0% {
-    background-position: 0% 50%;
+  .m365-notif-body { flex: 1; min-width: 0; }
+
+  .m365-notif-title-row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 2px;
   }
-  50% {
-    background-position: 100% 50%;
+
+  .m365-notif-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #201f1e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  100% {
-    background-position: 0% 50%;
+
+  .m365-new-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 600;
+    background: #deecf9;
+    color: #0078d4;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    flex-shrink: 0;
   }
-}
 
-.progress-bar-animated {
-  background-color: #3b82f6; /* Fallback color */
-  background-image: linear-gradient(
-    45deg,
-    rgba(59, 130, 246, 1) 25%,
-    rgba(96, 165, 250, 1) 25%,
-    rgba(96, 165, 250, 1) 50%,
-    rgba(59, 130, 246, 1) 50%,
-    rgba(59, 130, 246, 1) 75%,
-    rgba(96, 165, 250, 1) 75%,
-    rgba(96, 165, 250, 1) 100%
-  );
-  background-size: 20px 20px;
-  animation: progress-animation 2s linear infinite;
-  transition: width 0.3s ease;
-}
-
-// Additional style for specific browsers
-@supports (-webkit-appearance: none) {
-  .progress-bar-animated {
-    background-size: 20px 20px !important;
+  .m365-notif-message {
+    font-size: 12px;
+    color: #605e5c;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 4px;
   }
-}
 
-.tw-bg-blue-500.tw-h-2 {
-  background-image: linear-gradient(
-    45deg,
-    rgba(59, 130, 246, 1) 25%,
-    rgba(96, 165, 250, 1) 25%,
-    rgba(96, 165, 250, 1) 50%,
-    rgba(59, 130, 246, 1) 50%,
-    rgba(59, 130, 246, 1) 75%,
-    rgba(96, 165, 250, 1) 75%,
-    rgba(96, 165, 250, 1) 100%
-  );
-  background-size: 20px 20px;
-  animation: progress-animation 2s linear infinite;
-}
+  .m365-notif-meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
 
-// Show More button styling
-.show-more-button {
-  border-top: 1px solid #e5e7eb;
+  .m365-notif-time {
+    font-size: 11px;
+    color: #a19f9d;
+  }
 
-  button {
-    background: transparent;
+  .m365-notif-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-size: 10px;
+    font-weight: 500;
+    background: #f3f2f1;
+    color: #605e5c;
+  }
+
+  .m365-notif-report-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    color: #0078d4;
+    background: #deecf9;
     border: none;
     cursor: pointer;
-    padding: 6px 12px;
-    width: auto;
-    height: auto;
-    border-radius: 4px;
+    transition: background 0.1s;
+    &:hover { background: #c7e0f4; }
+  }
 
-    &:hover {
-      background-color: rgba(59, 130, 246, 0.05);
+  // Mark read button
+  .m365-read-btn {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: 1.5px solid #0078d4;
+    background: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+    &:hover { background: #deecf9; }
+    i { font-size: 11px; color: #0078d4; }
+
+    &--read {
+      border-color: #107c10;
+      background: #dff6dd;
+      cursor: default;
+      i { color: #107c10; }
     }
+  }
 
-    span {
-      font-size: 14px;
+  // ── Import Progress ──
+  .m365-import-item {
+    padding: 14px 20px;
+    border-bottom: 1px solid #f3f2f1;
+    &:last-child { border-bottom: none; }
+  }
+
+  .m365-import-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+
+  .m365-import-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #201f1e;
+    flex: 1;
+  }
+
+  .m365-import-status {
+    font-size: 11px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 3px;
+  }
+
+  .m365-progress-bar {
+    height: 6px;
+    background: #edebe9;
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: 8px;
+  }
+
+  .m365-progress-fill {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.4s ease;
+    background: linear-gradient(90deg, #0078d4, #4ea8de);
+    background-size: 200% 100%;
+    animation: shimmer 2s linear infinite;
+    &--complete { background: #107c10; animation: none; }
+    &--failed   { background: #d13438; animation: none; }
+  }
+
+  .m365-import-stats {
+    display: flex;
+    gap: 10px;
+    font-size: 11px;
+    color: #605e5c;
+  }
+
+  .m365-import-stat {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    &--ok   { color: #107c10; }
+    &--skip { color: #8a8886; }
+    &--fail { color: #d13438; }
+    &--dup  { color: #c43e1c; }
+  }
+
+  // ── Show More ──
+  .m365-show-more {
+    padding: 10px 20px;
+    text-align: center;
+    border-top: 1px solid #f3f2f1;
+
+    button {
+      background: none;
+      border: none;
+      color: #0078d4;
+      font-size: 12px;
+      font-weight: 500;
+      cursor: pointer;
+      padding: 6px 16px;
+      border-radius: 4px;
+      transition: background 0.1s;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      &:hover { background: #f3f2f1; }
+    }
+  }
+
+  // ── Empty State ──
+  .m365-empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: #a19f9d;
+
+    i { font-size: 32px; margin-bottom: 12px; display: block; }
+    p { font-size: 13px; margin: 0; }
+  }
+
+  // ── Footer ──
+  .m365-panel-footer {
+    border-top: 1px solid #edebe9;
+    padding: 12px 20px;
+    text-align: center;
+
+    button {
+      background: none;
+      border: none;
+      color: #0078d4;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 4px;
+      transition: background 0.1s;
+      width: 100%;
+      justify-content: center;
+      &:hover { background: #f3f2f1; }
     }
   }
 }
 
-// Custom width classes
-.tw-max-w-\[220px\] {
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-  max-width: 220px;
-}
+// ── Mobile Full-Screen ──────────────────────────────────────────────────────
 
-.tw-w-\[230px\] {
-  max-width: 230px;
-  box-sizing: border-box;
-  width: 230px;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 1;
-  }
-  50% {
-    opacity: 0.6;
-  }
-  100% {
-    opacity: 1;
-  }
-}
-
-/* --------------------------------------------------
-   Mobile full-screen notification overlay (< 640px)
-   -------------------------------------------------- */
-
-// Mobile full-screen backdrop (rendered via portal at <body>)
 .notification-mobile-backdrop {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  top: 0; left: 0; right: 0; bottom: 0;
   background: rgba(0, 0, 0, 0.4);
   z-index: 10000;
 }
 
-// Mobile full-screen notification panel (rendered via portal at <body>)
 .notification-popover.notification-popover--mobile {
   position: fixed !important;
   top: 0 !important;
@@ -273,21 +526,12 @@
   border-radius: 0 !important;
   box-shadow: none !important;
   z-index: 10001;
-  background-color: #fff;
+  display: flex;
+  flex-direction: column;
 
-  .tw-bg-white {
-    border-radius: 0;
-    overflow: visible;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    width: 100%;
-  }
-
-  .notification-content {
+  .m365-panel-content {
     max-height: none !important;
     flex: 1 1 0;
-    overflow-y: auto;
     -webkit-overflow-scrolling: touch;
   }
 }

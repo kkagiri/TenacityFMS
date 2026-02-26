@@ -574,6 +574,9 @@ public static class FmsServiceCollectionExtensions
 
         // ========== EVENT EXPRESSION ENGINE (Phase 1) ==========
         services.AddSingleton<FMS.Application.Features.EventEngine.Expressions.ExpressionEvaluatorFactory>();
+        // ExpressionCooldownService gates cooldown / hourly cap / daily cap before any expression fires.
+        // Must be registered BEFORE EventExpressionEngine because the engine takes it as a constructor dep.
+        services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
         // Alert Configuration Service — cached, typed access to configurable alert thresholds
@@ -630,6 +633,10 @@ public static class FmsServiceCollectionExtensions
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
         services.AddHostedService<LogCleanupBackgroundService>();
+
+        // Async Report Job Services
+        services.AddSingleton<FMS.Application.Features.Reporting.Services.IReportJobProgressService, FMS.Application.Features.Reporting.Services.ReportJobProgressService>();
+        services.AddSingleton<FMS.Application.Features.Reporting.Services.IReportJobManager, FMS.WebClient.Services.ReportJobManager>();
     }
 
     private static string GetEnvRequired(string key)

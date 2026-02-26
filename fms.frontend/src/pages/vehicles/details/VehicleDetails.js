@@ -47,9 +47,9 @@ const VehicleDetails = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
-  // Permissions (admin-only editing for settings)
-  const { hasRole } = usePermissions();
-  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
+  // Permissions (editing gated by permission)
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission("_Edit_Vehicle");
 
   // Redux state
   const vehicles = useSelector((state) => state.vehicle.vehicles);

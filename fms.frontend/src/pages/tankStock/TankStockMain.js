@@ -21,13 +21,13 @@ import ReconciliationMain from "../reconciliation/ReconciliationMain";
 import FuelDataComparisonMain from "./fueldatacomparison/FuelDataComparisonMain";
 import FuelAuditMain from "./fuelAudit/FuelAuditMain";
 import VolumeCorrectionMain from "../tankManagement/volumeCorrection/VolumeCorrectionMain";
-import withRoleProtection from "../../utils/withRoleProtection";
+import withPermissionProtection from "../../utils/withPermissionProtection";
 
-const AdminStockAnalytics = withRoleProtection(StockAnalytics, ["Admin"]);
-const AdminReconciliationMain = withRoleProtection(ReconciliationMain, ["Admin"]);
-const AdminFuelDataComparisonMain = withRoleProtection(FuelDataComparisonMain, ["Admin"]);
-const AdminFuelAuditMain = withRoleProtection(FuelAuditMain, ["Admin"]);
-const AdminVolumeCorrectionMain = withRoleProtection(VolumeCorrectionMain, ["Admin"]);
+const AdminStockAnalytics = withPermissionProtection(StockAnalytics, ["_Read_TankStock"]);
+const AdminReconciliationMain = withPermissionProtection(ReconciliationMain, ["_Read_TankReconciliation", "_Read_TankStock"]);
+const AdminFuelDataComparisonMain = withPermissionProtection(FuelDataComparisonMain, ["_Read_FuelComparison", "_Read_TankStock"]);
+const AdminFuelAuditMain = withPermissionProtection(FuelAuditMain, ["_Read_FuelAudit", "_Read_TankStock"]);
+const AdminVolumeCorrectionMain = withPermissionProtection(VolumeCorrectionMain, ["_Read_TankVolumeDataCorrection", "_Read_TankStock"]);
 
 const TankStockMain = () => {
   return (

@@ -2,13 +2,13 @@
  * File: VehicleAddForm.js
  * Purpose: Vehicle creation form with dropdowns and validation
  * Dependencies: React, DevExtreme Form, Redux actions, notify
- * Last Modified: 2026-01-20
+ * Last Modified: 2026-02-26
  *
  * Key Components:
  * - VehicleAddForm: Handles vehicle creation and form submission
  */
 //Cursor - Created Vehicle Add Form component for adding new vehicles
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import Form, {
   GroupItem,
@@ -72,6 +72,53 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
+  const normalizeLookupOptions = (items, config) => {
+    const source = Array.isArray(items) ? items : [];
+    return source
+      .map((item) => {
+        const idValue = config.idKeys
+          .map((key) => item?.[key])
+          .find((value) => value !== undefined && value !== null && value !== '');
+        const id = Number(idValue);
+        if (!Number.isFinite(id)) return null;
+
+        const name = config.nameKeys
+          .map((key) => item?.[key])
+          .find((value) => typeof value === 'string' && value.trim().length > 0);
+        if (!name) return null;
+
+        return { id, name };
+      })
+      .filter(Boolean);
+  };
+
+  const normalizedVehicleTypes = useMemo(
+    () =>
+      normalizeLookupOptions(vehicleTypes, {
+        idKeys: ['id', 'vehicleTypeId', 'Id', 'VehicleTypeId'],
+        nameKeys: ['name', 'vehicleTypeName', 'Name', 'VehicleTypeName']
+      }),
+    [vehicleTypes]
+  );
+
+  const normalizedVehicleManufacturers = useMemo(
+    () =>
+      normalizeLookupOptions(vehicleManufacturers, {
+        idKeys: ['id', 'vehicleManufacturerId', 'Id', 'VehicleManufacturerId'],
+        nameKeys: ['name', 'vehicleManufacturerName', 'Name', 'VehicleManufacturerName']
+      }),
+    [vehicleManufacturers]
+  );
+
+  const normalizedVehicleModels = useMemo(
+    () =>
+      normalizeLookupOptions(vehicleModels, {
+        idKeys: ['id', 'vehicleModelId', 'Id', 'VehicleModelId'],
+        nameKeys: ['name', 'vehicleModelName', 'Name', 'VehicleModelName']
+      }),
+    [vehicleModels]
+  );
+
   // Load dropdown data
   useEffect(() => {
     const loadDropdownData = async () => {
@@ -134,9 +181,28 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
 
   // Handle field changes
   const handleFieldChange = (field, value) => {
+    const idFields = new Set([
+      'vehicleTypeId',
+      'vehicleModelId',
+      'vehicleManufacturerId',
+      'workingSiteId',
+      'defaultEmployeeId',
+      'defaultExptdAvgid'
+    ]);
+
+    let nextValue = value;
+    if (idFields.has(field)) {
+      if (value === '' || value === undefined || value === null) {
+        nextValue = null;
+      } else {
+        const numericValue = Number(value);
+        nextValue = Number.isFinite(numericValue) ? numericValue : value;
+      }
+    }
+
     setFormData(prev => ({
       ...prev,
-      [field]: value
+      [field]: nextValue
     }));
   };
 
@@ -221,7 +287,7 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
               caption="Vehicle Type"
               editorType="dxSelectBox"
               editorOptions={{
-                dataSource: vehicleTypes,
+                dataSource: normalizedVehicleTypes,
                 valueExpr: "id",
                 displayExpr: "name",
                 placeholder: "Select vehicle type",
@@ -234,7 +300,7 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
               caption="Manufacturer"
               editorType="dxSelectBox"
               editorOptions={{
-                dataSource: vehicleManufacturers,
+                dataSource: normalizedVehicleManufacturers,
                 valueExpr: "id",
                 displayExpr: "name",
                 placeholder: "Select manufacturer",
@@ -247,7 +313,7 @@ const VehicleAddForm = ({ onSave, onCancel }) => {
               caption="Model"
               editorType="dxSelectBox"
               editorOptions={{
-                dataSource: vehicleModels,
+                dataSource: normalizedVehicleModels,
                 valueExpr: "id",
                 displayExpr: "name",
                 placeholder: "Select model",

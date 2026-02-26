@@ -43,7 +43,8 @@ const BYPASS_TYPE_OPTIONS = [
 ];
 
 const LocationSettingsScreen = ({ navigation }) => {
-  const { isAdmin } = usePermissions();
+  const { hasPermission } = usePermissions();
+  const canManageLocation = hasPermission('_Manage_LocationValidation');
 
   // Loading states
   const [loading, setLoading] = useState(true);
@@ -162,7 +163,7 @@ const LocationSettingsScreen = ({ navigation }) => {
 
   // Initial data load
   useEffect(() => {
-    if (isAdmin) {
+    if (canManageLocation) {
       Promise.all([fetchOverviewData(), fetchBypassStatus()]).finally(() => {
         setLoading(false);
         setRefreshing(false);
@@ -170,7 +171,7 @@ const LocationSettingsScreen = ({ navigation }) => {
     } else {
       setLoading(false);
     }
-  }, [isAdmin, fetchOverviewData, fetchBypassStatus]);
+  }, [canManageLocation, fetchOverviewData, fetchBypassStatus]);
 
   // Countdown timer effect
   useEffect(() => {
@@ -220,7 +221,7 @@ const LocationSettingsScreen = ({ navigation }) => {
 
   // Enable bypass handler
   const handleEnableBypass = async () => {
-    if (!isAdmin) {
+    if (!canManageLocation) {
       Alert.alert("Error", "You do not have permission to enable bypass");
       return;
     }
@@ -343,7 +344,7 @@ const LocationSettingsScreen = ({ navigation }) => {
     (bypassStatus.userBypasses?.length || 0);
 
   // Access denied view
-  if (!isAdmin) {
+  if (!canManageLocation) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>

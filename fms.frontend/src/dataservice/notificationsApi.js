@@ -34,6 +34,37 @@ class NotificationsApi {
     }
   }
 
+  // Get ALL notification history for admin view (not user-scoped)
+  async getAdminNotificationHistory({ type, status, category, priority, siteId, dateFrom, dateTo, search, skip, take } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (type && type !== "all") params.append("type", type);
+      if (status && status !== "all") params.append("status", status);
+      if (category) params.append("category", category);
+      if (priority && priority !== "all") params.append("priority", priority);
+      if (siteId != null) params.append("siteId", String(siteId));
+      if (dateFrom) params.append("fromDate", new Date(dateFrom).toISOString());
+      if (dateTo) params.append("toDate", new Date(dateTo).toISOString());
+      if (search) params.append("search", search);
+      if (skip != null) params.append("skip", String(skip));
+      if (take != null) params.append("take", String(take));
+
+      const qs = params.toString();
+      const url = qs ? `${this.basePath}/admin-history?${qs}` : `${this.basePath}/admin-history`;
+      const response = await axiosInstance.get(url);
+      const respData = response.data?.data || response.data || {};
+      return {
+        isSuccess: true,
+        data: respData.items || respData || [],
+        totalCount: respData.totalCount || 0,
+        message: response.data?.message || "Admin history retrieved successfully",
+      };
+    } catch (error) {
+      console.error("Error fetching admin notification history:", error);
+      return { isSuccess: false, data: [], totalCount: 0, message: error.response?.data?.message || "Failed to fetch admin notification history" };
+    }
+  }
+
   // Get statistics for chart
   async getStatistics({ dateFrom, dateTo } = {}) {
     try {
@@ -235,6 +266,34 @@ class NotificationsApi {
       };
     } catch (error) {
       return { isSuccess: false, data: [], message: error.response?.data?.message || 'Failed to search users' };
+    }
+  }
+
+  // Get enriched user candidates for recipient dual-pane picker
+  async getRecipientCandidates({ siteId, departmentId, isSiteAdmin, search, take } = {}) {
+    try {
+      const params = new URLSearchParams();
+      if (siteId != null) params.append('siteId', String(siteId));
+      if (departmentId != null) params.append('departmentId', String(departmentId));
+      if (typeof isSiteAdmin === 'boolean') params.append('isSiteAdmin', String(isSiteAdmin));
+      if (search) params.append('search', search);
+      if (take != null) params.append('take', String(take));
+      const qs = params.toString();
+      const url = qs
+        ? `${this.basePath}/recipient-candidates?${qs}`
+        : `${this.basePath}/recipient-candidates`;
+      const response = await axiosInstance.get(url);
+      return {
+        isSuccess: response.data?.success !== false,
+        data: response.data?.data || [],
+        message: 'Recipient candidates loaded',
+      };
+    } catch (error) {
+      return {
+        isSuccess: false,
+        data: [],
+        message: error.response?.data?.message || 'Failed to load recipient candidates',
+      };
     }
   }
 

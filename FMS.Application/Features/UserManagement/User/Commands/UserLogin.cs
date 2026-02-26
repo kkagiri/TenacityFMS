@@ -158,6 +158,8 @@ namespace FMS.Application.Command.DatabaseCommand.UserManagement {
             // Build user detail DTO (matching GetUserByIdQuery output)
             var userDetail = new UserDetailDto {
                 Id = user.Id,
+                FirstName = user.FirstName,
+                LastName = user.LastName,
                 UserName = user.UserName,
                 Email = user.Email,
                 IsDeleted = user.IsDeleted ?? false,

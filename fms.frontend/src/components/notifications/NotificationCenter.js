@@ -14,7 +14,10 @@ import { useSelector, useDispatch } from "react-redux";
 import {
   fetchNotifications,
   markNotificationAsRead,
+  removeCompletedReport,
+  clearReportProgress,
 } from "../../redux/actions/notificationActions";
+import { cancelJob, downloadJobResult } from "../../api/reportJobApi";
 import { Button } from "devextreme-react";
 import "./NotificationCenter.scss";
 import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
@@ -124,6 +127,30 @@ const resolveReportViewLink = (data) => {
   return trimmedLink.startsWith("/") ? trimmedLink : `/${trimmedLink}`;
 };
 
+// ── M365 notification type → icon + color config ──
+const NOTIF_TYPE_CONFIG = {
+  success: { icon: 'fa-light fa-circle-check', bg: '#dff6dd', color: '#107c10' },
+  error: { icon: 'fa-light fa-circle-xmark', bg: '#fde7e9', color: '#d13438' },
+  warning: { icon: 'fa-light fa-triangle-exclamation', bg: '#fff4ce', color: '#c09a00' },
+  info: { icon: 'fa-light fa-circle-info', bg: '#deecf9', color: '#0078d4' },
+  alarm: { icon: 'fa-light fa-bell-exclamation', bg: '#fde7e9', color: '#d13438' },
+  report: { icon: 'fa-light fa-file-chart-column', bg: '#e0f2f1', color: '#00897b' },
+  import: { icon: 'fa-light fa-file-import', bg: '#e8eaf6', color: '#3949ab' },
+  default: { icon: 'fa-light fa-bell', bg: '#f3f2f1', color: '#605e5c' },
+};
+
+const getNotifTypeConfig = (type, idString = '', alarmType = '') => {
+  if (alarmType === 'VehicleGpsOfflineDuringFueling') {
+    return { icon: 'fa-light fa-location-slash', bg: '#fff3e0', color: '#e65100' };
+  }
+  if (typeof idString === 'string') {
+    if (idString.startsWith('pump-')) return { icon: 'fa-light fa-gas-pump', bg: '#e3f2fd', color: '#1565c0' };
+    if (idString.startsWith('tag-')) return { icon: 'fa-light fa-tag', bg: '#e8eaf6', color: '#3949ab' };
+    if (idString.startsWith('tank-')) return { icon: 'fa-light fa-tank-water', bg: '#fff3e0', color: '#e65100' };
+  }
+  return NOTIF_TYPE_CONFIG[type] || NOTIF_TYPE_CONFIG.default;
+};
+
 // Error boundary component
 class NotificationErrorBoundary extends React.Component {
   constructor(props) {
@@ -178,7 +205,7 @@ const NotificationCenter = () => {
   const isMobile = useIsMobile();
 
   // Get notifications and import progress from Redux store
-  const { notifications, importProgress, backendNotifications } = useSelector(
+  const { notifications, importProgress, reportProgress, completedReports, backendNotifications } = useSelector(
     (state) => state.notification
   );
 
@@ -188,6 +215,8 @@ const NotificationCenter = () => {
   const [visibleNotifications, setVisibleNotifications] = useState([]);
   const [preferencesPopupVisible, setPreferencesPopupVisible] = useState(false);
   const [isMarkingAllRead, setIsMarkingAllRead] = useState(false);
+  const [activeTab, setActiveTab] = useState('all');
+  const [popoverPosition, setPopoverPosition] = useState({ top: 0, right: 0 });
   const isMounted = useRef(true);
   const isLoading = useRef(false);
   const popoverRef = useRef(null);
@@ -413,14 +442,31 @@ const NotificationCenter = () => {
       (notification) => !isBackendNotificationRead(notification)
     ).length;
     const hasAnyUnread =
-      notifications.length > 0 || !!importProgress || unreadBackendCount > 0;
+      notifications.length > 0 || !!importProgress || !!reportProgress || completedReports?.length > 0 || unreadBackendCount > 0;
     setHasUnread(hasAnyUnread);
-  }, [notifications, importProgress, backendNotifications]);
+  }, [notifications, importProgress, reportProgress, completedReports, backendNotifications]);
 
   // Fetch backend notifications when component mounts
   useEffect(() => {
     dispatch(fetchNotifications({ take: 50 })); // Fetch all recent notifications
   }, [dispatch]);
+
+  // Calculate popover position from bell button for desktop portal
+  useEffect(() => {
+    if (!isOpen || isMobile) return;
+    const computePos = () => {
+      if (buttonRef.current) {
+        const rect = buttonRef.current.getBoundingClientRect();
+        setPopoverPosition({
+          top: rect.bottom + 8,
+          right: Math.max(window.innerWidth - rect.right - 20, 10),
+        });
+      }
+    };
+    computePos();
+    window.addEventListener('resize', computePos);
+    return () => window.removeEventListener('resize', computePos);
+  }, [isOpen, isMobile]);
 
   // Handle toggle notifications
   const toggleNotifications = useCallback(() => {
@@ -489,108 +535,195 @@ const NotificationCenter = () => {
     window.open(normalizedPath, "_blank", "noopener,noreferrer");
   }, []);
 
-  // Render import progress
+  // Render report progress – M365 style
+  const renderReportProgress = () => {
+    if (!reportProgress || !reportProgress.id) return null;
+    const percentage = Math.min(100, Math.max(0, reportProgress.percentage || 0));
+    const timeAgo = reportProgress.lastUpdated
+      ? formatTimeAgo(reportProgress.lastUpdated)
+      : formatTimeAgo(reportProgress.timestamp || Date.now());
+    let statusText = reportProgress.status || 'Processing';
+    let statusBg = '#deecf9'; let statusColor = '#0078d4';
+    if (statusText === 'Completed') { statusBg = '#dff6dd'; statusColor = '#107c10'; }
+    else if (statusText === 'Failed') { statusBg = '#fde7e9'; statusColor = '#d13438'; }
+    const isInProgress = reportProgress.inProgress !== false && statusText !== 'Completed' && statusText !== 'Failed' && statusText !== 'Cancelled';
+    const handleCancel = async () => {
+      if (!reportProgress.id) return;
+      try {
+        await cancelJob(reportProgress.id);
+        dispatch(clearReportProgress());
+      } catch (err) {
+        console.error('Cancel failed:', err);
+      }
+    };
+    return (
+      <div className="m365-import-item">
+        <div className="m365-import-header">
+          <div className="m365-notif-icon" style={{ background: '#e0f2f1', color: '#00897b', width: 32, height: 32, fontSize: 13 }}>
+            <i className="fa-light fa-file-chart-column"></i>
+          </div>
+          <span className="m365-import-title">
+            {reportProgress.reportTitle || reportProgress.outputFormat?.toUpperCase() || 'Report'} Generation
+          </span>
+          <span className="m365-notif-time">{timeAgo}</span>
+          {isInProgress && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              title="Cancel report generation"
+              style={{ marginLeft: 6, color: '#d13438', background: 'none', border: '1px solid #d13438', borderRadius: 4, padding: '1px 7px', fontSize: 11, cursor: 'pointer' }}
+            >
+              <i className="fa-light fa-xmark tw-mr-1"></i>Cancel
+            </button>
+          )}
+        </div>
+        <div style={{ marginLeft: 44 }}>
+          <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+            <span className="m365-import-status" style={{ background: statusBg, color: statusColor }}>
+              {statusText}
+            </span>
+            <span className="tw-text-xs" style={{ color: '#605e5c' }}>
+              {reportProgress.recordCount > 0 ? `${reportProgress.recordCount} records · ` : ''}{percentage}%
+            </span>
+          </div>
+          <div className="m365-progress-bar">
+            <div
+              className={`m365-progress-fill${statusText === 'Completed' ? ' m365-progress-fill--complete' : statusText === 'Failed' ? ' m365-progress-fill--failed' : ''}`}
+              style={{ width: `${Math.max(percentage, 2)}%` }}
+            />
+          </div>
+          {reportProgress.statusMessage && (
+            <div className="tw-text-[11px] tw-mt-1" style={{ color: '#605e5c' }}>
+              {reportProgress.statusMessage}
+            </div>
+          )}
+          <div className="tw-text-[10px] tw-mt-1" style={{ color: '#a19f9d' }}>
+            ID: {reportProgress.id}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Render completed reports history list
+  const renderCompletedReports = () => {
+    const reports = completedReports || [];
+    if (reports.length === 0) return null;
+    const handleView = async (jobId) => {
+      try {
+        const blob = await downloadJobResult(jobId);
+        const url = URL.createObjectURL(blob);
+        window.open(url, '_blank');
+        setTimeout(() => URL.revokeObjectURL(url), 120000);
+      } catch (err) {
+        console.error('Failed to open report:', err);
+      }
+    };
+    return (
+      <div>
+        {reports.map((rep) => {
+          const isCompleted = rep.status === 'Completed';
+          const isFailed = rep.status === 'Failed';
+          const isCancelled = rep.status === 'Cancelled';
+          let iconColor = '#00897b'; let iconBg = '#e0f2f1';
+          if (isFailed) { iconColor = '#d13438'; iconBg = '#fde7e9'; }
+          else if (isCancelled) { iconColor = '#605e5c'; iconBg = '#f3f2f1'; }
+          let statusBg = '#dff6dd'; let statusColor = '#107c10';
+          if (isFailed) { statusBg = '#fde7e9'; statusColor = '#d13438'; }
+          else if (isCancelled) { statusBg = '#f3f2f1'; statusColor = '#605e5c'; }
+          return (
+            <div key={rep.jobId} className="m365-import-item">
+              <div className="m365-import-header">
+                <div className="m365-notif-icon" style={{ background: iconBg, color: iconColor, width: 32, height: 32, fontSize: 13 }}>
+                  <i className={`fa-light ${isFailed ? 'fa-circle-xmark' : isCancelled ? 'fa-circle-x' : 'fa-file-chart-column'}`}></i>
+                </div>
+                <span className="m365-import-title">{rep.reportTitle || 'Report'}</span>
+                <span className="m365-notif-time">{rep.completedAt ? formatTimeAgo(rep.completedAt) : ''}</span>
+                <button
+                  type="button"
+                  onClick={() => dispatch(removeCompletedReport(rep.jobId))}
+                  title="Dismiss"
+                  style={{ marginLeft: 6, color: '#a19f9d', background: 'none', border: 'none', cursor: 'pointer', fontSize: 13 }}
+                >
+                  <i className="fa-light fa-xmark"></i>
+                </button>
+              </div>
+              <div style={{ marginLeft: 44 }} className="tw-flex tw-items-center tw-gap-3 tw-mt-1">
+                <span className="m365-import-status" style={{ background: statusBg, color: statusColor }}>
+                  {rep.status}
+                </span>
+                {rep.recordCount > 0 && (
+                  <span className="tw-text-xs" style={{ color: '#605e5c' }}>{rep.recordCount} records</span>
+                )}
+                {isCompleted && (
+                  <button
+                    type="button"
+                    onClick={() => handleView(rep.jobId)}
+                    style={{ marginLeft: 'auto', color: '#0078d4', background: 'none', border: '1px solid #c7e0f4', borderRadius: 4, padding: '2px 10px', fontSize: 11, cursor: 'pointer' }}
+                  >
+                    <i className="fa-light fa-arrow-up-right-from-square tw-mr-1"></i>View
+                  </button>
+                )}
+              </div>
+              {rep.errorMessage && (
+                <div className="tw-text-[11px] tw-mt-1" style={{ marginLeft: 44, color: '#d13438' }}>{rep.errorMessage}</div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    );
+  };
+
+  // Render import progress – M365 style
   const renderImportProgress = () => {
     if (!importProgress || !importProgress.id) return null;
 
-    // Calculate percentage, handle edge cases
-    const percentage = Math.min(
-      100,
-      Math.max(0, importProgress.percentage || 0)
-    );
-
-    // Get formatted time
+    const percentage = Math.min(100, Math.max(0, importProgress.percentage || 0));
     const timeAgo = importProgress.lastUpdated
       ? formatTimeAgo(importProgress.lastUpdated)
       : formatTimeAgo(importProgress.timestamp || Date.now());
-
     const processedRecords = importProgress.processedRecords || 0;
     const totalRecords = importProgress.totalRecords || 0;
-
-    // Determine status display and color
     let statusText = importProgress.status || "Processing";
-    let statusColor = "tw-text-blue-500";
-    let statusIcon = "fa-regular fa-clock";
-
-    if (statusText === "Completed") {
-      statusColor = "tw-text-green-500";
-      statusIcon = "fa-regular fa-check-circle";
-    } else if (statusText.includes("Failed")) {
-      statusColor = "tw-text-red-500";
-      statusIcon = "fa-regular fa-circle-xmark";
-    } else if (statusText === "Validating") {
-      statusIcon = "fa-regular fa-check";
-    } else if (statusText === "Saving") {
-      statusIcon = "fa-regular fa-database";
-      statusColor = "tw-text-teal-500";
-    }
+    let statusBg = '#deecf9';
+    let statusColor = '#0078d4';
+    if (statusText === 'Completed') { statusBg = '#dff6dd'; statusColor = '#107c10'; }
+    else if (statusText.includes('Failed')) { statusBg = '#fde7e9'; statusColor = '#d13438'; }
 
     return (
-      <div className="notification-item tw-pb-3 tw-mb-2 tw-border-b tw-border-gray-200">
-        <div className="tw-flex tw-items-center tw-mb-2">
-          <div className="tw-w-6 tw-h-6 tw-mr-2 tw-flex tw-items-center tw-justify-center">
-            <i className="fa-solid fa-file-import tw-text-blue-600"></i>
+      <div className="m365-import-item">
+        <div className="m365-import-header">
+          <div className="m365-notif-icon" style={{ background: '#e8eaf6', color: '#3949ab', width: 32, height: 32, fontSize: 13 }}>
+            <i className="fa-light fa-file-import"></i>
           </div>
-          <div className="tw-font-semibold tw-flex-grow">
-            Fuel Report Import
-          </div>
-          <div className="tw-text-xs tw-text-gray-500 tw-mr-2">{timeAgo}</div>
+          <span className="m365-import-title">Fuel Report Import</span>
+          <span className="m365-notif-time">{timeAgo}</span>
         </div>
-
-        <div className="tw-flex tw-items-center tw-justify-between tw-gap-2 tw-mb-2">
-          <div
-            className={`tw-ml-8 ${statusColor} tw-flex tw-items-center tw-min-w-0`}
-          >
-            <i className={`${statusIcon} tw-mr-2`}></i>
-            <span className="tw-truncate">{statusText}</span>
+        <div style={{ marginLeft: 44 }}>
+          <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
+            <span className="m365-import-status" style={{ background: statusBg, color: statusColor }}>
+              {statusText}
+            </span>
+            <span className="tw-text-xs" style={{ color: '#605e5c' }}>
+              {processedRecords}/{totalRecords} &middot; {percentage}%
+            </span>
           </div>
-          <div className="tw-text-xs tw-text-gray-600 tw-whitespace-nowrap tw-mr-2">
-            {processedRecords}/{totalRecords}  {percentage}%
+          <div className="m365-progress-bar">
+            <div
+              className={`m365-progress-fill${statusText === 'Completed' ? ' m365-progress-fill--complete' : statusText.includes('Failed') ? ' m365-progress-fill--failed' : ''}`}
+              style={{ width: `${Math.max(percentage, 2)}%` }}
+            />
           </div>
-        </div>
-
-        {/* Progress bar */}
-        <div className="tw-ml-8 tw-w-full tw-max-w-[230px] tw-bg-gray-200 tw-h-2 tw-mb-2 tw-rounded-full tw-overflow-hidden">
-          <div
-            className={`tw-h-2 tw-rounded-full ${statusText.includes("Failed")
-              ? "tw-bg-red-500"
-              : statusText === "Completed"
-                ? "tw-bg-green-500"
-                : "tw-bg-blue-500 progress-bar-animated"
-              }`}
-            style={{
-              width: `${Math.max(percentage, 2)}%`,
-              minWidth: percentage > 0 ? "8px" : "0",
-            }}
-          ></div>
-        </div>
-
-        {(importProgress.successCount > 0 ||
-          importProgress.skippedCount > 0 ||
-          importProgress.failureCount > 0) && (
-            <div className="tw-ml-8 tw-text-xs tw-text-gray-600 tw-mb-1">
-              {importProgress.successCount || 0} success,{" "}
-              {importProgress.skippedCount || 0} skipped,{" "}
-              {importProgress.failureCount || 0} failed
-            </div>
-          )}
-
-        {/* Display additional info based on status */}
-        {importProgress.failureCount > 0 && (
-          <div className="tw-ml-8 tw-text-xs tw-text-red-500 tw-mb-1">
-            Failed: {importProgress.failureCount} records
+          <div className="m365-import-stats">
+            {(importProgress.successCount > 0) && <span className="m365-import-stat m365-import-stat--ok"><i className="fa-light fa-check"></i> {importProgress.successCount} ok</span>}
+            {(importProgress.skippedCount > 0) && <span className="m365-import-stat m365-import-stat--skip"><i className="fa-light fa-forward"></i> {importProgress.skippedCount} skipped</span>}
+            {(importProgress.failureCount > 0) && <span className="m365-import-stat m365-import-stat--fail"><i className="fa-light fa-xmark"></i> {importProgress.failureCount} failed</span>}
+            {(importProgress.duplicateCount > 0) && <span className="m365-import-stat m365-import-stat--dup"><i className="fa-light fa-copy"></i> {importProgress.duplicateCount} dups</span>}
           </div>
-        )}
-
-        {importProgress.duplicateCount > 0 && (
-          <div className="tw-ml-8 tw-text-xs tw-text-rose-500 tw-mb-1">
-            Duplicates: {importProgress.duplicateCount} records
+          <div className="tw-text-[10px] tw-mt-1" style={{ color: '#a19f9d' }}>
+            ID: {importProgress.id || importProgress.reportId}
           </div>
-        )}
-
-        {/* Report ID */}
-        <div className="tw-ml-8 tw-text-xs tw-text-gray-500 tw-break-all">
-          Report ID: {importProgress.id || importProgress.reportId}
         </div>
       </div>
     );
@@ -615,153 +748,74 @@ const NotificationCenter = () => {
     }
   }, [markBackendNotificationAsRead]);
 
-  // Render notification item
+  // Render notification item – M365 style
   const renderNotificationItem = (item) => {
     if (!item || !item.id) return null;
 
-    const {
-      id,
-      title,
-      message,
-      type,
-      timestamp,
-      data,
-      isBackendNotification,
-      isRead,
-    } = item;
+    const { id, title, message, type, timestamp, data, isBackendNotification, isRead } = item;
+    const idString = String(id);
+    const alarmType = item.alarmType || data?.alarmType || '';
+    const typeConf = getNotifTypeConfig(type, idString, alarmType);
     const hasActionUrl = !!(data?.ActionUrl || data?.actionUrl || data?.IssueUrl || data?.issueUrl);
     const reportLink = resolveReportViewLink(data);
     const reportActionText = resolveReportActionText(data);
     const markReadId = resolveBackendNotificationDbId(item);
     const timeAgo = formatTimeAgo(timestamp || Date.now());
 
-    // Determine icon based on notification type
-    let icon = "fa-regular fa-bell";
-    let iconColor = "tw-text-blue-500";
-
-    if (type === "success") {
-      icon = "fa-regular fa-circle-check";
-      iconColor = "tw-text-green-500";
-    } else if (type === "error") {
-      icon = "fa-regular fa-circle-xmark";
-      iconColor = "tw-text-red-500";
-    } else if (type === "warning") {
-      icon = "fa-regular fa-triangle-exclamation";
-      iconColor = "tw-text-yellow-500";
-    } else if (type === "info") {
-      icon = "fa-regular fa-circle-info";
-      iconColor = "tw-text-blue-500";
-    } else if (type === "alarm") {
-      icon = "fa-regular fa-bell-exclamation";
-      iconColor = "tw-text-red-500";
-    }
-
-    // Check for specific notification types based on ID prefix
-    // Convert id to string to handle both string and number IDs
-    const idString = String(id);
-    const alarmType = item.alarmType || data?.alarmType || '';
-
-    // Check for GPS offline alarm
-    if (alarmType === 'VehicleGpsOfflineDuringFueling') {
-      icon = "fa-regular fa-location-slash";
-      iconColor = "tw-text-orange-500";
-    } else if (idString.startsWith("pump-")) {
-      icon = "fa-regular fa-gas-pump";
-      iconColor = type === "error" ? "tw-text-red-500" : "tw-text-blue-500";
-    } else if (idString.startsWith("tag-")) {
-      icon = "fa-regular fa-tag";
-      iconColor = "tw-text-indigo-500";
-    } else if (idString.startsWith("tank-")) {
-      icon = "fa-regular fa-tank";
-      iconColor = "tw-text-amber-600";
-    }
-
     return (
       <div
-        className={`notification-item tw-py-2 tw-px-2 tw-border-t tw-border-gray-200 ${isBackendNotification && !isRead ? "tw-bg-blue-50" : ""
-          } ${hasActionUrl ? "tw-cursor-pointer hover:tw-bg-gray-100" : ""}`}
+        className={`m365-notif-item${isBackendNotification && !isRead ? ' m365-notif-item--unread' : ' m365-notif-item--read'}${hasActionUrl ? ' tw-cursor-pointer' : ''}`}
         onClick={hasActionUrl ? () => handleNotificationClick(item) : undefined}
       >
-        <div className="tw-flex tw-gap-2">
-          {/* Icon */}
-          <div className="tw-flex-shrink-0 tw-w-5 tw-h-5 tw-flex tw-items-center tw-justify-center tw-mt-0.5">
-            <i className={`${icon} ${iconColor}`}></i>
+        {/* Circular type icon */}
+        <div className="m365-notif-icon" style={{ background: typeConf.bg, color: typeConf.color }}>
+          <i className={typeConf.icon}></i>
+        </div>
+
+        {/* Body */}
+        <div className="m365-notif-body">
+          <div className="m365-notif-title-row">
+            <span className="m365-notif-title">{title || 'Notification'}</span>
+            {isBackendNotification && !isRead && <span className="m365-new-badge">New</span>}
           </div>
-          {/* Content */}
-          <div className="tw-flex-1 tw-min-w-0">
-            {title && (
-              <div
-                className={`tw-text-sm tw-font-semibold tw-leading-tight ${isBackendNotification && !isRead
-                  ? "tw-text-gray-900"
-                  : "tw-text-gray-800"
-                  }`}
-              >
-                {title}
-              </div>
-            )}
-            <div className="tw-text-xs tw-text-gray-600 tw-leading-snug tw-mt-0.5">
-              {message || "Notification"}
-              {hasActionUrl && (
-                <span className="tw-text-blue-600 tw-font-medium tw-ml-1">
-                  View details {'\u2192'}
-                </span>
-              )}
+          <div className="m365-notif-message">
+            {message || 'Notification'}
+            {hasActionUrl && <span style={{ color: '#0078d4', fontWeight: 500, marginLeft: 4 }}>View {'\u2192'}</span>}
+          </div>
+          {/* Report download link */}
+          {reportLink && (
+            <button
+              type="button"
+              className="m365-notif-report-link"
+              onClick={(e) => { e.stopPropagation(); openReportLink(reportLink); markBackendNotificationAsRead(item); }}
+            >
+              <i className="fa-light fa-download"></i>
+              {reportActionText}
+            </button>
+          )}
+          {/* Metadata: time + chips */}
+          <div className="m365-notif-meta">
+            <span className="m365-notif-time">{timeAgo}</span>
+            {data?.source && <span className="m365-notif-chip"><i className="fa-light fa-signal-stream"></i> {data.source}</span>}
+            {data?.deviceId && <span className="m365-notif-chip"><i className="fa-light fa-microchip"></i> {data.deviceId}</span>}
+          </div>
+        </div>
+
+        {/* Mark read button */}
+        <div className="tw-flex-shrink-0">
+          {isBackendNotification && !isRead && markReadId ? (
+            <button
+              className="m365-read-btn"
+              onClick={(e) => { e.stopPropagation(); markBackendNotificationAsRead(item); }}
+              title="Mark as read"
+            >
+              <i className="fa-solid fa-check"></i>
+            </button>
+          ) : isBackendNotification && isRead && markReadId ? (
+            <div className="m365-read-btn m365-read-btn--read" title="Read">
+              <i className="fa-solid fa-check"></i>
             </div>
-            {reportLink && (
-              <div className="tw-mt-1">
-                <button
-                  type="button"
-                  className="tw-inline-flex tw-items-center tw-gap-1 tw-text-xs tw-text-blue-700 hover:tw-text-blue-800 tw-font-medium tw-underline"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openReportLink(reportLink);
-                    markBackendNotificationAsRead(item);
-                  }}
-                >
-                  <i className="fa-light fa-link"></i>
-                  {reportActionText}
-                </button>
-              </div>
-            )}
-            {/* Device ID */}
-            {data?.deviceId && (
-              <div className="tw-text-xs tw-text-blue-600 tw-mt-0.5">
-                Device: {data.deviceId}
-              </div>
-            )}
-            {/* Time + unread badge */}
-            <div className="tw-text-xs tw-text-gray-400 tw-mt-1 tw-flex tw-items-center tw-gap-2">
-              <span>{timeAgo}</span>
-              {isBackendNotification && !isRead && (
-                <span className="tw-px-1.5 tw-py-0.5 tw-rounded tw-text-[10px] tw-font-medium tw-bg-blue-100 tw-text-blue-700">
-                  New
-                </span>
-              )}
-            </div>
-          </div>
-          {/* Action button */}
-          <div className="tw-flex-shrink-0 tw-flex tw-items-start">
-            {isBackendNotification && !isRead && markReadId && (
-              <button
-                className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-blue-100 tw-text-blue-600 hover:tw-bg-blue-200 tw-rounded-full tw-border tw-border-blue-300 tw-text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  markBackendNotificationAsRead(item);
-                }}
-                title="Mark as read"
-              >
-                <i className="fa-solid fa-check"></i>
-              </button>
-            )}
-            {isBackendNotification && isRead && markReadId && (
-              <div
-                className="tw-w-6 tw-h-6 tw-flex tw-items-center tw-justify-center tw-bg-green-100 tw-text-green-500 tw-rounded-full tw-border tw-border-green-200 tw-text-xs tw-opacity-60"
-                title="Read"
-              >
-                <i className="fa-solid fa-check"></i>
-              </div>
-            )}
-          </div>
+          ) : null}
         </div>
       </div>
     );
@@ -799,172 +853,198 @@ const NotificationCenter = () => {
         {/* Popover / Full-screen for notifications */}
         {isOpen && (
           isMobile ? (
-            // Render mobile full-screen overlay via portal at <body> to escape overflow clipping
+            // Render mobile full-screen overlay – M365 style
             ReactDOM.createPortal(
               <>
-                <div
-                  className="notification-mobile-backdrop"
-                  onClick={() => setIsOpen(false)}
-                />
-                <div
-                  className="notification-popover notification-popover--mobile"
-                  ref={popoverRef}
-                >
-                  <div className="tw-bg-white tw-w-full tw-h-full tw-flex tw-flex-col">
-                    <div className="tw-flex tw-justify-between tw-items-center tw-p-3 tw-border-b tw-border-gray-200 tw-flex-shrink-0">
-                      <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-                        Notifications
-                      </h4>
-                      <div className="tw-flex tw-items-center tw-gap-2">
-                        {unreadBackendNotificationDbIds.length > 0 && (
-                          <button
-                            type="button"
-                            className="tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded tw-border tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-xs tw-font-medium tw-text-blue-700 hover:tw-bg-blue-100 disabled:tw-opacity-60 disabled:tw-cursor-not-allowed"
-                            onClick={handleMarkAllAsRead}
-                            disabled={isMarkingAllRead}
-                          >
-                            {isMarkingAllRead ? "Marking..." : "Read All"}
-                          </button>
+                <div className="notification-mobile-backdrop" onClick={() => setIsOpen(false)} />
+                <div className="notification-popover notification-popover--mobile" ref={popoverRef}>
+                  {/* Header */}
+                  <div className="m365-panel-header">
+                    <h4>Notifications</h4>
+                    <div className="m365-header-actions">
+                      {unreadBackendNotificationDbIds.length > 0 && (
+                        <button type="button" className="m365-header-btn" onClick={handleMarkAllAsRead} disabled={isMarkingAllRead}>
+                          {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
+                        </button>
+                      )}
+                      <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={handlePreferences} title="Settings">
+                        <i className="fa-light fa-gear"></i>
+                      </button>
+                      <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={() => setIsOpen(false)} aria-label="Close">
+                        <i className="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Tabs */}
+                  <div className="m365-tabs">
+                    <button type="button" className={`m365-tab${activeTab === 'all' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('all')}>
+                      All <span className={`m365-tab-badge${activeTab === 'all' ? ' m365-tab-badge--active' : ''}`}>{totalNotifications}</span>
+                    </button>
+                    <button type="button" className={`m365-tab${activeTab === 'unread' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('unread')}>
+                      Unread {unreadBackendCount > 0 && <span className="m365-tab-badge m365-tab-badge--alert">{unreadBackendCount}</span>}
+                    </button>
+                    {importProgress && (
+                      <button type="button" className={`m365-tab${activeTab === 'import' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('import')}>
+                        Import <span className="m365-tab-badge m365-tab-badge--active">{importProgress.percentage || 0}%</span>
+                      </button>
+                    )}
+                    {(reportProgress || completedReports?.length > 0) && (
+                      <button type="button" className={`m365-tab${activeTab === 'report' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('report')}>
+                        Reports
+                        {reportProgress
+                          ? <span className="m365-tab-badge m365-tab-badge--alert">{reportProgress.percentage || 0}%</span>
+                          : <span className="m365-tab-badge m365-tab-badge--active">{completedReports.length}</span>
+                        }
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="m365-panel-content">
+                    {activeTab === 'import' && importProgress ? (
+                      renderImportProgress()
+                    ) : activeTab === 'report' ? (
+                      <div>
+                        {renderReportProgress()}
+                        {renderCompletedReports()}
+                        {!reportProgress && !completedReports?.length && (
+                          <div className="m365-empty">
+                            <i className="fa-light fa-file-chart-column"></i>
+                            <p>No reports yet</p>
+                          </div>
                         )}
-                        <Button
-                          onClick={handlePreferences}
-                          stylingMode="text"
-                          className="preferences-btn"
-                          icon="fa-solid fa-cog"
-                          hint="Notification Preferences"
-                        />
-                        <button
-                          type="button"
-                          className="tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-gray-100 hover:tw-bg-gray-200 tw-text-gray-600 tw-border-0 tw-cursor-pointer"
-                          onClick={() => setIsOpen(false)}
-                          aria-label="Close notifications"
-                        >
-                          <i className="fa-solid fa-xmark tw-text-base"></i>
+                      </div>
+                    ) : (visibleNotifications.filter(n => activeTab === 'unread' ? !n.isRead : true).length === 0) ? (
+                      <div className="m365-empty">
+                        <i className="fa-light fa-bell-slash"></i>
+                        <p>{activeTab === 'unread' ? 'All caught up!' : 'No notifications'}</p>
+                      </div>
+                    ) : (
+                      visibleNotifications
+                        .filter(n => activeTab === 'unread' ? !n.isRead : true)
+                        .map((notification) => (
+                          <div key={notification.id}>{renderNotificationItem(notification)}</div>
+                        ))
+                    )}
+
+                    {activeTab !== 'import' && activeTab !== 'report' && hasMoreNotifications && (
+                      <div className="m365-show-more">
+                        <button onClick={toggleShowAllNotifications}>
+                          {showAllNotifications ? 'Show Less' : 'Show More'}
+                          <i className={`fa-light fa-chevron-${showAllNotifications ? 'up' : 'down'}`}></i>
                         </button>
                       </div>
-                    </div>
+                    )}
+                  </div>
 
-                    <div className="tw-overflow-auto tw-flex-1 notification-content">
-                      <div className="tw-p-2">
-                        {importProgress && renderImportProgress()}
-
-                        {visibleNotifications.length === 0 && !importProgress ? (
-                          <div className="tw-text-center tw-py-8 tw-text-gray-500">
-                            <i className="fa-regular fa-inbox-empty tw-text-3xl tw-block tw-mb-2"></i>
-                            <div>No notifications</div>
-                          </div>
-                        ) : (
-                          visibleNotifications.map((notification) => (
-                            <div key={notification.id}>
-                              {renderNotificationItem(notification)}
-                            </div>
-                          ))
-                        )}
-
-                        {/* Show More/Less button */}
-                        {hasMoreNotifications && (
-                          <div className="tw-text-center tw-py-3 tw-mt-2 tw-border-t tw-border-gray-200">
-                            <button
-                              className="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-border tw-border-gray-200 tw-rounded-full tw-px-4 tw-py-1.5 hover:tw-bg-gray-50"
-                              onClick={toggleShowAllNotifications}
-                            >
-                              <span className="tw-text-blue-500 tw-font-medium">
-                                {showAllNotifications ? "Show Less" : "Show More"}
-                              </span>
-                              <i
-                                className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
-                                  } tw-text-blue-500 tw-ml-1 tw-text-xs`}
-                              ></i>
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  {/* Footer */}
+                  <div className="m365-panel-footer">
+                    <button type="button" onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}>
+                      <i className="fa-light fa-bell"></i>
+                      View All Notifications
+                      <i className="fa-light fa-arrow-right"></i>
+                    </button>
                   </div>
                 </div>
               </>,
               document.body
             )
-          ) : (
-            // Desktop: render inline popover
-            <div className="notification-popover" ref={popoverRef}>
-              <div className="tw-bg-white tw-rounded tw-shadow-lg tw-w-96">
-                <div className="tw-flex tw-justify-between tw-items-center tw-p-3">
-                  <h4 className="tw-text-lg tw-font-semibold tw-m-0">
-                    Notifications
-                  </h4>
-                  <div className="tw-flex tw-gap-2">
-                    {unreadBackendNotificationDbIds.length > 0 && (
-                      <button
-                        type="button"
-                        className="tw-h-8 tw-inline-flex tw-items-center tw-justify-center tw-rounded tw-border tw-border-blue-200 tw-bg-blue-50 tw-px-3 tw-text-xs tw-font-medium tw-text-blue-700 hover:tw-bg-blue-100 disabled:tw-opacity-60 disabled:tw-cursor-not-allowed"
-                        onClick={handleMarkAllAsRead}
-                        disabled={isMarkingAllRead}
-                      >
-                        {isMarkingAllRead ? "Marking..." : "Read All"}
-                      </button>
-                    )}
-                    <Button
-                      onClick={handlePreferences}
-                      stylingMode="text"
-                      className="preferences-btn"
-                      icon="fa-solid fa-cog"
-                      hint="Notification Preferences"
-                    />
-                  </div>
-                </div>
-
-                <div className="tw-overflow-auto notification-content">
-                  <div className="tw-p-2">
-                    {importProgress && renderImportProgress()}
-
-                    {visibleNotifications.length === 0 && !importProgress ? (
-                      <div className="tw-text-center tw-py-8 tw-text-gray-500">
-                        <i className="fa-regular fa-inbox-empty tw-text-3xl tw-block tw-mb-2"></i>
-                        <div>No notifications</div>
-                      </div>
-                    ) : (
-                      visibleNotifications.map((notification) => (
-                        <div key={notification.id}>
-                          {renderNotificationItem(notification)}
-                        </div>
-                      ))
-                    )}
-
-                    {/* Show More/Less button */}
-                    {hasMoreNotifications && (
-                      <div className="tw-text-center tw-py-3 tw-mt-2 tw-border-t tw-border-gray-200">
-                        <button
-                          className="tw-flex tw-items-center tw-justify-center tw-mx-auto tw-border tw-border-gray-200 tw-rounded-full tw-px-4 tw-py-1.5 hover:tw-bg-gray-50"
-                          onClick={toggleShowAllNotifications}
-                        >
-                          <span className="tw-text-blue-500 tw-font-medium">
-                            {showAllNotifications ? "Show Less" : "Show More"}
-                          </span>
-                          <i
-                            className={`fa-solid fa-chevron-${showAllNotifications ? "up" : "down"
-                              } tw-text-blue-500 tw-ml-1 tw-text-xs`}
-                          ></i>
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* Footer: View All Notifications */}
-                <div className="tw-border-t tw-border-gray-100 tw-px-4 tw-py-3">
-                  <button
-                    type="button"
-                    onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}
-                    className="tw-flex tw-items-center tw-justify-center tw-gap-2 tw-text-sm tw-font-medium tw-text-blue-600 hover:tw-text-blue-800 tw-w-full tw-bg-transparent tw-border-0 tw-cursor-pointer tw-py-1"
-                  >
-                    <i className="fa-light fa-bell" />
-                    View All Notifications
-                    <i className="fa-light fa-arrow-right tw-text-xs" />
+          ) : ReactDOM.createPortal(
+            // Desktop: render popover via portal – above all panels
+            <div className="notification-popover notification-popover--portal" ref={popoverRef} style={{ top: `${popoverPosition.top}px`, right: `${popoverPosition.right}px` }}>
+              {/* Header */}
+              <div className="m365-panel-header">
+                <h4>Notifications</h4>
+                <div className="m365-header-actions">
+                  {unreadBackendNotificationDbIds.length > 0 && (
+                    <button type="button" className="m365-header-btn" onClick={handleMarkAllAsRead} disabled={isMarkingAllRead}>
+                      <i className="fa-light fa-envelope-open"></i>
+                      {isMarkingAllRead ? 'Marking...' : 'Mark all read'}
+                    </button>
+                  )}
+                  <button type="button" className="m365-header-btn m365-header-btn--icon-only" onClick={handlePreferences} title="Settings">
+                    <i className="fa-light fa-gear"></i>
                   </button>
                 </div>
               </div>
-            </div>
+
+              {/* Tabs */}
+              <div className="m365-tabs">
+                <button type="button" className={`m365-tab${activeTab === 'all' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('all')}>
+                  All
+                  <span className={`m365-tab-badge${activeTab === 'all' ? ' m365-tab-badge--active' : ''}`}>{totalNotifications}</span>
+                </button>
+                <button type="button" className={`m365-tab${activeTab === 'unread' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('unread')}>
+                  Unread
+                  {unreadBackendCount > 0 && <span className="m365-tab-badge m365-tab-badge--alert">{unreadBackendCount}</span>}
+                </button>
+                {importProgress && (
+                  <button type="button" className={`m365-tab${activeTab === 'import' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('import')}>
+                    Import
+                    <span className="m365-tab-badge m365-tab-badge--active">{importProgress.percentage || 0}%</span>
+                  </button>
+                )}
+                {(reportProgress || completedReports?.length > 0) && (
+                  <button type="button" className={`m365-tab${activeTab === 'report' ? ' m365-tab--active' : ''}`} onClick={() => setActiveTab('report')}>
+                    Reports
+                    {reportProgress
+                      ? <span className="m365-tab-badge m365-tab-badge--alert">{reportProgress.percentage || 0}%</span>
+                      : <span className="m365-tab-badge m365-tab-badge--active">{completedReports.length}</span>
+                    }
+                  </button>
+                )}
+              </div>
+
+              {/* Content */}
+              <div className="m365-panel-content">
+                {activeTab === 'import' && importProgress ? (
+                  renderImportProgress()
+                ) : activeTab === 'report' ? (
+                  <div>
+                    {renderReportProgress()}
+                    {renderCompletedReports()}
+                    {!reportProgress && !completedReports?.length && (
+                      <div className="m365-empty">
+                        <i className="fa-light fa-file-chart-column"></i>
+                        <p>No reports yet</p>
+                      </div>
+                    )}
+                  </div>
+                ) : (visibleNotifications.filter(n => activeTab === 'unread' ? !n.isRead : true).length === 0) ? (
+                  <div className="m365-empty">
+                    <i className="fa-light fa-bell-slash"></i>
+                    <p>{activeTab === 'unread' ? 'All caught up!' : 'No notifications'}</p>
+                  </div>
+                ) : (
+                  visibleNotifications
+                    .filter(n => activeTab === 'unread' ? !n.isRead : true)
+                    .map((notification) => (
+                      <div key={notification.id}>{renderNotificationItem(notification)}</div>
+                    ))
+                )}
+
+                {/* Show More/Less */}
+                {activeTab !== 'import' && activeTab !== 'report' && hasMoreNotifications && (
+                  <div className="m365-show-more">
+                    <button onClick={toggleShowAllNotifications}>
+                      {showAllNotifications ? 'Show Less' : 'Show More'}
+                      <i className={`fa-light fa-chevron-${showAllNotifications ? 'up' : 'down'}`}></i>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Footer */}
+              <div className="m365-panel-footer">
+                <button type="button" onClick={() => { setIsOpen(false); navigate('/my-notifications'); }}>
+                  <i className="fa-light fa-bell"></i>
+                  View All Notifications
+                  <i className="fa-light fa-arrow-right"></i>
+                </button>
+              </div>
+            </div>,
+            document.body
           )
         )}
 

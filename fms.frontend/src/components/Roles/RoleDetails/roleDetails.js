@@ -99,11 +99,12 @@ const RoleDetails = ({ roleId }) => {
         <AccordionItem title={`Role Details: ${roleDetails.name}`}>
           <RoleForm
             editData={roleDetails}
-            setRoleDetails={(data) => {
-              const updatedDetails = { ...data };
+            setRoleDetails={(e) => {
+              // e is the DevExtreme onFieldDataChanged event: { dataField, value, ... }
+              // Spread roleDetails to create a new object — never mutate state directly
               dispatch({
                 type: "UPDATE_ROLE_DETAILS_LOCALLY",
-                payload: updatedDetails,
+                payload: { ...roleDetails, [e.dataField]: e.value },
               });
             }}
           />

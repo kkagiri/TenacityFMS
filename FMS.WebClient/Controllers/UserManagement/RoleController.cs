@@ -4,6 +4,7 @@ using FMS.Application.Command.DatabaseCommand.UserManagement;
 using FMS.Application.Command.DatabaseCommand.UserManagement.PermisionCommands;
 using FMS.Application.Command.DatabaseCommand.UserManagement.RolesCommands;
 using FMS.Application.Features.FMS.UserManagement;
+using FMS.Application.Features.UserManagement.Role.Commands;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Permissions;
 using FMS.Application.Queries.Database.FMSQuery.UserManagement.Roles;
 using MediatR;
@@ -50,8 +51,9 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> RoleDeleteCommand(string id)
         {
             var result = await _mediator.Send(new RoleDeleteCommand(id));
-            if (!result) return NotFound();
-            return NoContent();
+            if (!result.IsSuccess)
+                return BadRequest(result);
+            return Ok(result);
         }
 
         [HttpGet("{id}")]
@@ -130,5 +132,31 @@ namespace FMS.WebClient.Controllers
             return Ok(result);
         }
 
+        /// <summary>
+        /// Clones an existing role with its permissions and navigation items.
+        /// Users are NOT copied.
+        /// </summary>
+        [HttpPost("{roleId}/clone")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        public async Task<IActionResult> CloneRole(string roleId, [FromBody] CloneRoleRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request?.NewRoleName))
+                return BadRequest(new { success = false, message = "New role name is required." });
+
+            var command = new CloneRoleCommand(roleId, request.NewRoleName, request.Description);
+            var result = await _mediator.Send(command);
+
+            return result.IsSuccess ? Ok(result) : BadRequest(result);
+        }
+
+    }
+
+    /// <summary>
+    /// Request body for the Clone Role endpoint
+    /// </summary>
+    public class CloneRoleRequest
+    {
+        public string NewRoleName { get; set; } = string.Empty;
+        public string? Description { get; set; }
     }
 }

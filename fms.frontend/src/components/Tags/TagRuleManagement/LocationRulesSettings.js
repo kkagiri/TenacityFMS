@@ -27,7 +27,7 @@ import LocationSettingsOverview from "./LocationSettingsOverview";
 
 const LocationRulesSettings = () => {
   const dispatch = useDispatch();
-  const { userInfo } = usePermissions();
+  const { hasPermission } = usePermissions();
   const { configurations, loading } = useSelector(
     (state) => state.systemConfig
   );
@@ -87,13 +87,8 @@ const LocationRulesSettings = () => {
   // Location settings overview popup state
   const [showSettingsOverviewPopup, setShowSettingsOverviewPopup] = useState(false);
 
-  // Check if user has admin role
-  const userRoles = Array.isArray(userInfo?.roles)
-    ? userInfo.roles.map((r) => r.toLowerCase())
-    : userInfo?.roles
-    ? [userInfo.roles.toLowerCase()]
-    : [];
-  const hasAdminPermission = userRoles.includes("admin");
+  // Check if user has admin permission for location rules
+  const hasAdminPermission = hasPermission("_Manage_LocationValidation");
 
   // Fetch FuelingRules configurations
   useEffect(() => {
@@ -437,7 +432,7 @@ const LocationRulesSettings = () => {
       if (response?.isSuccess) {
         const bypassTypeLabel = bypassType === "All" ? "system-wide" :
           bypassType === "Vehicle" ? `${selectedVehicleIds.length} vehicle(s)` :
-          `${selectedUserIds.length} user(s)`;
+            `${selectedUserIds.length} user(s)`;
         notify(
           `Location validation bypassed for ${bypassTypeLabel} for ${bypassDuration} minutes`,
           "success",
@@ -678,26 +673,23 @@ const LocationRulesSettings = () => {
 
         {/* Temporary Bypass Section */}
         <div
-          className={`tw-rounded-xl tw-p-5 tw-border ${
-            activeBypassCount > 0
+          className={`tw-rounded-xl tw-p-5 tw-border ${activeBypassCount > 0
               ? "tw-bg-gradient-to-r tw-from-red-50 tw-to-orange-50 tw-border-red-300"
               : "tw-bg-gradient-to-r tw-from-amber-50 tw-to-yellow-50 tw-border-amber-200"
-          }`}
+            }`}
         >
           {/* Header */}
           <div className="tw-flex tw-flex-col lg:tw-flex-row tw-items-start lg:tw-items-center tw-justify-between tw-gap-4 tw-mb-4">
             <div className="tw-flex tw-items-center tw-gap-4">
               <div
-                className={`tw-w-14 tw-h-14 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
-                  activeBypassCount > 0 ? "tw-bg-red-100" : "tw-bg-amber-100"
-                }`}
+                className={`tw-w-14 tw-h-14 tw-rounded-full tw-flex tw-items-center tw-justify-center ${activeBypassCount > 0 ? "tw-bg-red-100" : "tw-bg-amber-100"
+                  }`}
               >
                 <i
-                  className={`fa-light fa-shield-xmark tw-text-2xl ${
-                    activeBypassCount > 0
+                  className={`fa-light fa-shield-xmark tw-text-2xl ${activeBypassCount > 0
                       ? "tw-text-red-600"
                       : "tw-text-amber-600"
-                  }`}
+                    }`}
                 ></i>
               </div>
               <div>
@@ -932,8 +924,8 @@ const LocationRulesSettings = () => {
                 <strong>Warning:</strong> {bypassType === "All"
                   ? "System-wide bypass will disable ALL location validation checks for all vehicles and users."
                   : bypassType === "Vehicle"
-                  ? "Vehicle bypass will disable location validation only for the selected vehicles."
-                  : "User bypass will disable location validation only when the selected users are fueling."}
+                    ? "Vehicle bypass will disable location validation only for the selected vehicles."
+                    : "User bypass will disable location validation only when the selected users are fueling."}
                 {" "}Use only for emergency situations or troubleshooting.
               </p>
             </div>

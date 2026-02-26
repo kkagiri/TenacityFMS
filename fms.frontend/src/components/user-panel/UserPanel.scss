@@ -111,21 +111,41 @@
       align-items: center;
       padding: 10px 16px;
       cursor: pointer;
-      transition: background-color 0.2s ease;
+      transition: background-color 0.15s ease;
       color: $base-text-color;
 
       &:hover {
-        background-color: #f5f5f5;
+        background-color: #f3f2f1;
       }
 
+      // DevExtreme icons
       .dx-icon {
         margin-right: 12px;
-        font-size: 16px;
+        font-size: 15px;
         color: $base-text-color;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
+      }
+
+      // FontAwesome light icons
+      i[class*="fa-light"] {
+        margin-right: 12px;
+        font-size: 14px;
+        color: #605e5c;
+        width: 18px;
+        text-align: center;
+        flex-shrink: 0;
       }
 
       span {
-        font-size: 14px;
+        font-size: 13px;
+        font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+      }
+
+      // Divider before last item (Logout)
+      &:not(:last-child) {
+        border-bottom: 1px solid #f3f2f1;
       }
     }
   }

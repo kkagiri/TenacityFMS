@@ -1,24 +1,466 @@
+/**
+ * File: VehicleTransferForm.scss
+ * Purpose: Styles for the multi-step vehicle transfer wizard form.
+ *          Follows M365 Admin Center Fluent Design patterns.
+ * Dependencies: Tailwind (tw-), DevExtreme overrides
+ * Last Modified: 2026-02-26
+ */
+
+// ── Variables ─────────────────────────────────────────────
+$accent: #0078d4;
+$accent-hover: #106ebe;
+$success: #107c10;
+$error: #d13438;
+$neutral-bg: #faf9f8;
+$border: #edebe9;
+$text-primary: #323130;
+$text-secondary: #605e5c;
+$text-hint: #a19f9d;
+$radius: 6px;
+$step-dot-size: 32px;
+
+// ── Vehicle Transfer Form ─────────────────────────────────
 .vehicle-transfer-form {
+  @apply tw-bg-white tw-rounded-lg;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+
+  // DevExtreme control overrides
   .dx-textbox,
   .dx-numberbox,
   .dx-selectbox,
   .dx-datebox {
     @apply tw-w-full;
+    .dx-texteditor-input {
+      height: 34px;
+      font-size: 13px;
+    }
   }
 
   .dx-datagrid {
-    @apply tw-rounded;
+    border-radius: $radius;
+    .dx-header-row {
+      background: $neutral-bg;
+      font-size: 12px;
+      font-weight: 600;
+      color: $text-secondary;
+    }
+    .dx-data-row td {
+      font-size: 13px;
+    }
   }
 
   .dx-fileuploader-wrapper {
-    @apply tw-border-2 tw-border-dashed tw-border-gray-300 tw-rounded-lg tw-p-4;
-
+    @apply tw-border-2 tw-border-dashed tw-rounded-lg tw-p-4;
+    border-color: $border;
     &:hover {
-      @apply tw-border-blue-400;
+      border-color: $accent;
     }
   }
 
   .dx-fileuploader-input-wrapper {
     @apply tw-text-center;
+  }
+
+  .dx-switch {
+    .dx-switch-on .dx-switch-handle::before {
+      background-color: $success;
+    }
+  }
+}
+
+// ── Header ─────────────────────────────────────────────────
+.vtf-header {
+  @apply tw-rounded-lg tw-p-5 tw-mb-5;
+  background: linear-gradient(135deg, #f0f6fc 0%, #e8f0fe 100%);
+  border: 1px solid #c8d6e8;
+
+  &__title-row {
+    @apply tw-flex tw-items-center tw-gap-3 tw-mb-3;
+  }
+
+  &__icon {
+    font-size: 22px;
+    color: $accent;
+  }
+
+  &__title {
+    @apply tw-m-0;
+    font-size: 18px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__meta {
+    @apply tw-flex tw-flex-wrap tw-gap-6;
+    padding-top: 12px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+
+  &__meta-item {
+    @apply tw-flex tw-flex-col;
+  }
+
+  &__meta-label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: $text-hint;
+  }
+
+  &__meta-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+
+    &--success {
+      color: $success;
+    }
+  }
+}
+
+// ── Stepper ───────────────────────────────────────────────
+.vtf-stepper {
+  @apply tw-flex tw-items-center tw-justify-center tw-mb-6;
+  gap: 0;
+  padding: 16px 0;
+
+  &__step {
+    @apply tw-flex tw-items-center tw-gap-2;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: $radius;
+    transition: background 0.15s;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.04);
+    }
+
+    &--active {
+      .vtf-stepper__num {
+        background: $accent;
+        color: #fff;
+        box-shadow: 0 0 0 3px rgba($accent, 0.2);
+      }
+      .vtf-stepper__label {
+        color: $accent;
+        font-weight: 600;
+      }
+    }
+
+    &--done {
+      .vtf-stepper__num {
+        background: $success;
+        color: #fff;
+      }
+      .vtf-stepper__label {
+        color: $success;
+      }
+    }
+  }
+
+  &__num {
+    @apply tw-flex tw-items-center tw-justify-center;
+    width: $step-dot-size;
+    height: $step-dot-size;
+    border-radius: 50%;
+    background: #edebe9;
+    color: $text-secondary;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    transition: all 0.2s;
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__label {
+    font-size: 13px;
+    color: $text-secondary;
+    white-space: nowrap;
+    transition: color 0.15s;
+  }
+
+  &__line {
+    @apply tw-block;
+    width: 40px;
+    height: 2px;
+    background: #edebe9;
+    flex-shrink: 0;
+    transition: background 0.2s;
+
+    &--done {
+      background: $success;
+    }
+  }
+}
+
+// ── Step container ────────────────────────────────────────
+.vtf-step {
+  @apply tw-mb-4;
+  animation: vtf-fade-in 0.25s ease;
+}
+
+@keyframes vtf-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+// ── M365 Section Group ────────────────────────────────────
+.m365-section-group {
+  @apply tw-rounded-lg;
+  border: 1px solid $border;
+  background: #fff;
+  overflow: hidden;
+
+  &__header {
+    @apply tw-flex tw-items-center tw-gap-2;
+    padding: 12px 16px;
+    background: $neutral-bg;
+    border-bottom: 1px solid $border;
+  }
+
+  &__icon {
+    font-size: 15px;
+    color: $accent;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    @apply tw-m-0;
+    font-size: 14px;
+    font-weight: 600;
+    color: $text-primary;
+  }
+
+  &__body {
+    padding: 16px;
+  }
+}
+
+// ── M365 Field ──────────────────────────────────────────
+.m365-field {
+  @apply tw-mb-3;
+
+  &__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: $text-secondary;
+    margin-bottom: 4px;
+  }
+
+  &__hint {
+    display: block;
+    font-size: 11px;
+    color: $text-hint;
+    margin-top: 2px;
+    font-style: italic;
+  }
+}
+
+// ── M365 Badge ──────────────────────────────────────────
+.m365-badge {
+  @apply tw-inline-flex tw-items-center;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 12px;
+
+  &--neutral {
+    background: #edebe9;
+    color: $text-secondary;
+  }
+  &--success {
+    background: #dff6dd;
+    color: $success;
+  }
+  &--error {
+    background: #fde7e9;
+    color: $error;
+  }
+}
+
+// ── M365 Checkbox ───────────────────────────────────────
+.m365-checkbox {
+  @apply tw-flex tw-items-center tw-gap-2 tw-cursor-pointer;
+
+  input[type="checkbox"] {
+    @apply tw-w-4 tw-h-4;
+    accent-color: $accent;
+  }
+
+  &__label {
+    font-size: 13px;
+    color: $text-primary;
+  }
+}
+
+// ── M365 Buttons ────────────────────────────────────────
+.m365-btn {
+  @apply tw-inline-flex tw-items-center tw-gap-2;
+  height: 34px;
+  padding: 0 16px;
+  border-radius: $radius;
+  font-size: 13px;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+
+  &--primary {
+    background: $accent;
+    color: #fff;
+    &:hover:not(:disabled) {
+      background: $accent-hover;
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: $text-secondary;
+    border: 1px solid $border;
+    &:hover:not(:disabled) {
+      background: rgba(0, 0, 0, 0.04);
+    }
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+// ── M365 Info Banner ────────────────────────────────────
+.m365-info-banner {
+  @apply tw-flex tw-items-start tw-gap-3 tw-rounded-lg tw-p-4;
+  background: #f0f6fc;
+  border: 1px solid #c8d6e8;
+
+  &__icon {
+    font-size: 18px;
+    color: $accent;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &__text {
+    font-size: 13px;
+    color: $text-secondary;
+    line-height: 1.5;
+  }
+}
+
+// ── Subsection title ────────────────────────────────────
+.vtf-subsection-title {
+  @apply tw-m-0 tw-mb-3;
+  font-size: 13px;
+  font-weight: 600;
+  color: $text-primary;
+  padding-bottom: 6px;
+  border-bottom: 1px solid $border;
+}
+
+// ── Approval Flow Visual ────────────────────────────────
+.vtf-approval-flow {
+  @apply tw-flex tw-items-center tw-justify-between;
+  padding: 16px 8px;
+  background: $neutral-bg;
+  border-radius: $radius;
+
+  &__step {
+    @apply tw-flex tw-flex-col tw-items-center;
+    gap: 6px;
+  }
+
+  $dot-size: 36px;
+
+  &__dot {
+    @apply tw-flex tw-items-center tw-justify-center;
+    width: $dot-size;
+    height: $dot-size;
+    border-radius: 50%;
+    background: #edebe9;
+    color: $text-secondary;
+    font-size: 13px;
+    font-weight: 600;
+    transition: all 0.2s;
+
+    &--done {
+      background: $success;
+      color: #fff;
+    }
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: $text-hint;
+    text-align: center;
+    max-width: 80px;
+  }
+
+  &__line {
+    @apply tw-block;
+    flex: 1;
+    height: 2px;
+    background: #edebe9;
+    margin: 0 4px;
+    margin-bottom: 24px; // offset for label below dot
+  }
+}
+
+// ── Step Navigation Bar ──────────────────────────────────
+.vtf-nav {
+  @apply tw-flex tw-justify-between tw-items-center;
+  padding: 16px 0 0;
+  margin-top: 16px;
+  border-top: 1px solid $border;
+
+  &__left,
+  &__right {
+    @apply tw-flex tw-gap-3;
+  }
+}
+
+// ── Responsive ──────────────────────────────────────────
+@media (max-width: 768px) {
+  .vtf-stepper {
+    &__label {
+      display: none;
+    }
+    &__line {
+      width: 24px;
+    }
+  }
+
+  .vtf-header__meta {
+    @apply tw-grid tw-grid-cols-2 tw-gap-3;
+  }
+
+  .vtf-approval-flow {
+    &__label {
+      font-size: 10px;
+      max-width: 60px;
+    }
   }
 }

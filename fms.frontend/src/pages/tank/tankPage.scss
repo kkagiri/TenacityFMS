@@ -1,513 +1,770 @@
-// Cursor - Tank Page SCSS with beautiful styling
-$primary-color: #3b82f6;
-$secondary-color: #10b981;
-$danger-color: #ef4444;
-$warning-color: #f59e0b;
-$gray-light: #f3f4f6;
-$gray-medium: #9ca3af;
-$gray-dark: #374151;
-$white: #ffffff;
-$shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-$shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
-  0 2px 4px -1px rgba(0, 0, 0, 0.06);
-$shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
-  0 4px 6px -2px rgba(0, 0, 0, 0.05);
-$border-radius: 0.75rem;
-$transition: all 0.3s ease;
+/**
+ * File:          tankPage.scss
+ * Purpose:       M365 Admin Center themed styles for Tank Management V2 page
+ * Dependencies:  m365-shared.scss
+ * Last Modified: 2026-02-26
+ *
+ * Key Patterns:
+ * - Flat surfaces, 4px radius on controls, 8px on cards
+ * - Compact density (34px controls, 13px body text)
+ * - BEM naming with m365-tank- prefix
+ * - No gradients, shimmer, or transforms (M365 flat)
+ */
+@import "../../components/m365/m365-shared.scss";
 
-/* Segmented Button Groups - Tank Page */
-.tank-page__action-buttons {
-  display: inline-flex;
-  border: 1px solid #d1d5db;
-  border-radius: 6px;
+// ── Page Shell ──
+.m365-tank-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--m365-bg-surface);
+  font-family: var(--m365-font);
+}
+
+// ── Command Bar ──
+.m365-tank-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+// ── Body (tree + content) ──
+.m365-tank-body {
+  flex: 1;
+  display: flex;
+  min-height: 0;
   overflow: hidden;
-  background: #ffffff;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-
-  .dx-button {
-    border-radius: 0;
-    border: none;
-    background: #ffffff;
-    color: #374151;
-    position: relative;
-    min-height: 32px;
-    padding: 0 12px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    white-space: nowrap;
-
-    &:not(:last-child)::after {
-      content: "";
-      position: absolute;
-      right: 0;
-      top: 20%;
-      height: 60%;
-      width: 1px;
-      background: #e5e7eb;
-    }
-
-    &:hover:not(.dx-state-disabled) {
-      background: #f3f4f6;
-      color: #1f2937;
-    }
-
-    &:active:not(.dx-state-disabled) {
-      background: #e5e7eb;
-    }
-
-    &.dx-state-disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-      background: #f9fafb;
-      color: #9ca3af;
-    }
-
-    .dx-button-content {
-      padding: 6px 10px;
-    }
-
-    .dx-icon {
-      margin-right: 6px;
-      font-size: 14px;
-    }
-  }
-
-  // First button modifier
-  .tank-page__action-btn--first {
-    border-radius: 6px 0 0 6px;
-  }
-
-  // Last button modifier
-  .tank-page__action-btn--last {
-    border-radius: 0 6px 6px 0;
-
-    &::after {
-      display: none !important;
-    }
-  }
-
-  // Add button - make icon green
-  .tank-page__action-btn--add {
-    .dx-icon {
-      color: #10b981;
-    }
-
-    &:hover:not(.dx-state-disabled) {
-      background: #ecfdf5;
-    }
-  }
 }
 
-// Mobile responsiveness for segmented buttons
-@media (max-width: 768px) {
-  .tank-page__action-buttons {
-    flex-wrap: wrap;
-    width: 100%;
+// ── Tree Sidebar ──
+.m365-tank-sidebar {
+  width: 340px;
+  min-width: 260px;
+  max-width: 420px;
+  background: #fff;
+  border-right: 1px solid var(--m365-border-light);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 
-    .dx-button {
-      flex: 1 1 auto;
-      min-width: 0;
-
-      .dx-button-text {
-        display: none;
-      }
-
-      .dx-icon {
-        margin-right: 0;
-      }
-    }
-  }
-}
-
-@media (max-width: 480px) {
-  .tank-page__action-buttons {
-    .dx-button {
-      padding: 0 8px;
-
-      .dx-button-content {
-        padding: 6px 4px;
-      }
-    }
-  }
-}
-
-.tank-page {
-  // background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-  min-height: 100vh;
-
-  // DevExtreme TreeList customization
   .dx-treelist {
+    flex: 1;
     border: none;
-    border-radius: $border-radius;
-    overflow: hidden;
-    box-shadow: $shadow-md;
-
-    .dx-treelist-search-panel {
-      position: static;
-      padding: 0.85rem;
-      background-color: $white;
-      // border-bottom: 1px solid rgba($gray-medium, 0.2);
-      margin-bottom: 1.2rem;
-
-      .dx-texteditor {
-        width: 100%;
-        max-width: 350px;
-        margin-left: auto;
-        margin-right: 0;
-
-        input {
-          border-radius: 6px;
-          padding: 0.5rem 1.2rem;
-          border: 1px solid $gray-medium;
-          background-color: $gray-light;
-          transition: $transition;
-          width: 100%;
-          font-size: 1.08rem;
-
-          &:focus {
-            border-color: $primary-color;
-            background-color: $white;
-            box-shadow: 0 0 0 3px rgba($primary-color, 0.1);
-          }
-        }
-      }
-    }
+    font-family: var(--m365-font);
 
     .dx-treelist-headers {
-      background: linear-gradient(
-        to right,
-        $primary-color,
-        darken($primary-color, 10%)
-      );
-      color: $white;
+      background: var(--m365-bg-surface);
       font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-
-      .dx-header-row {
-        .dx-datagrid-text-content {
-          color: $white;
-        }
-      }
+      font-size: 12px;
+      color: var(--m365-text-secondary);
+      border-bottom: 1px solid var(--m365-border-light);
     }
 
-    .dx-treelist-rowsview {
-      .dx-row {
-        transition: $transition;
-
-        &.dx-state-hover {
-          background-color: rgba($primary-color, 0.05);
-          transform: translateX(5px);
-        }
-
-        &.dx-selection {
-          background-color: rgba($primary-color, 0.1);
-          border-left: 4px solid $primary-color;
-        }
-
-        // Hide IDs but keep functionality
-        &[aria-rowindex] {
-          .dx-treelist-text-content {
-            &:contains("site_"),
-            &:contains("tank_") {
-              visibility: hidden;
-              position: relative;
-
-              &::after {
-                content: attr(data-display-name);
-                visibility: visible;
-                position: absolute;
-                left: 0;
-              }
-            }
-          }
-        }
-      }
-    }
-  }
-
-  // Tank details styling
-  .tank-details-container {
-    animation: fadeIn 0.5s ease;
-
-    @keyframes fadeIn {
-      from {
-        opacity: 0;
-        transform: translateY(10px);
-      }
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-  }
-
-  // Site summary styling
-  .site-summary {
-    //Cursor - Fixed progress bar styling to work for both site-level and tank-level progress bars
-    // Progress bar styling for both site-level and tank-level progress bars
-    .progress-bar {
-      height: 12px;
-      background-color: $gray-light;
-      border-radius: 9999px;
-      overflow: hidden;
-      position: relative;
-      box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-
-      .progress-fill {
-        height: 100%;
-        transition: width 1s ease;
-        border-radius: 9999px;
-        position: relative;
-        overflow: hidden;
-
-        &::after {
-          content: "";
-          position: absolute;
-          top: 0;
-          left: 0;
-          bottom: 0;
-          right: 0;
-          background: linear-gradient(
-            90deg,
-            transparent,
-            rgba(255, 255, 255, 0.4),
-            transparent
-          );
-          animation: shimmer 2s infinite;
-        }
-
-        @keyframes shimmer {
-          0% {
-            transform: translateX(-100%);
-          }
-          100% {
-            transform: translateX(100%);
-          }
-        }
-
-        &.full {
-          background: linear-gradient(
-            to right,
-            $secondary-color,
-            darken($secondary-color, 10%)
-          );
-        }
-        &.medium {
-          background: linear-gradient(
-            to right,
-            $warning-color,
-            darken($warning-color, 10%)
-          );
-        }
-        &.low {
-          background: linear-gradient(
-            to right,
-            $danger-color,
-            darken($danger-color, 10%)
-          );
-        }
-      }
-    }
-
-    .tank-card {
-      background: $white;
-      border-radius: $border-radius;
-      padding: 1.5rem;
-      box-shadow: $shadow-sm;
-      transition: $transition;
-      border: 2px solid transparent;
+    .dx-treelist-rowsview .dx-row {
+      cursor: pointer;
+      font-size: 13px;
+      transition: background-color 0.12s;
 
       &:hover {
-        transform: translateY(-5px);
-        box-shadow: $shadow-lg;
-        border-color: $primary-color;
+        background-color: var(--m365-bg-hover);
       }
 
-      .tank-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 1.5rem;
-
-        &.full {
-          background-color: rgba($secondary-color, 0.1);
-          color: $secondary-color;
-        }
-        &.medium {
-          background-color: rgba($warning-color, 0.1);
-          color: $warning-color;
-        }
-        &.low {
-          background-color: rgba($danger-color, 0.1);
-          color: $danger-color;
-        }
-      }
-
-      // Tank-specific progress bar styling (smaller)
-      .progress-bar {
-        height: 8px;
-      }
-    }
-  }
-
-  // Button styling
-  .dx-button {
-    &.dx-button-mode-contained {
-      &.dx-button-default {
-        background: linear-gradient(
-          135deg,
-          $primary-color 0%,
-          darken($primary-color, 10%) 100%
-        );
-        border: none;
-        box-shadow: $shadow-sm;
-        transition: $transition;
+      &.dx-selection {
+        background-color: var(--m365-selected-bg) !important;
 
         &:hover {
-          transform: translateY(-2px);
-          box-shadow: $shadow-md;
+          background-color: #cce4f7 !important;
         }
       }
     }
 
-    &.dx-button-mode-text {
-      transition: $transition;
+    .dx-treelist-search-panel {
+      margin: 8px 12px;
+
+      .dx-textbox {
+        border-radius: var(--m365-radius);
+        height: 34px;
+      }
+    }
+  }
+}
+
+// ── Content Area ──
+.m365-tank-content {
+  flex: 1;
+  min-width: 0;
+  overflow-y: auto;
+  background: #fff;
+  padding: 20px 24px;
+}
+
+// ── Detail Panel (inline, not SlidePanel) ──
+.m365-tank-detail {
+  font-family: var(--m365-font);
+  background: #fff;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    margin-bottom: 20px;
+  }
+
+  &__icon-circle {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+
+    &--stationary {
+      background: var(--m365-blue-bg);
+      color: var(--m365-primary);
+    }
+
+    &--mobile {
+      background: var(--m365-orange-bg);
+      color: var(--m365-warning);
+    }
+  }
+
+  &__title-block {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 4px 0;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+    flex-wrap: wrap;
+  }
+
+  &__volume-bar {
+    margin-bottom: 20px;
+
+    &-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      font-size: 13px;
+      margin-bottom: 6px;
+    }
+
+    &-label {
+      font-weight: 500;
+      color: var(--m365-text-secondary);
+    }
+
+    &-value {
+      font-weight: 600;
+      color: var(--m365-text);
+    }
+  }
+
+  &__quick-actions {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+}
+
+// ── Site Summary ──
+.m365-tank-site-summary {
+  font-family: var(--m365-font);
+  background: #fff;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    margin-bottom: 20px;
+  }
+
+  &__name {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 2px 0;
+  }
+
+  &__title-block {
+    min-width: 0;
+  }
+
+  &__count {
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+  }
+
+  &__overall {
+    margin-bottom: 20px;
+  }
+
+  &__overall-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 13px;
+    margin-bottom: 6px;
+  }
+
+  &__grades {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  &__grade-card {
+    padding: 12px;
+    border: 1px solid var(--m365-border-light);
+    border-radius: var(--m365-radius-card);
+    background: #fff;
+
+    &-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--m365-text);
+      margin-bottom: 6px;
+    }
+
+    &-meta {
+      font-size: 12px;
+      color: var(--m365-text-secondary);
+    }
+  }
+}
+
+.m365-tank-detail .m365-flat-section,
+.m365-tank-site-summary .m365-flat-section {
+  border-top: none;
+  padding-top: 0;
+  margin-bottom: 22px;
+}
+
+.m365-tank-detail .m365-info-grid,
+.m365-tank-site-summary .m365-info-grid {
+  border: none;
+  border-radius: 0;
+  overflow: visible;
+  gap: 14px 24px;
+  margin-bottom: 0;
+}
+
+.m365-tank-detail .m365-info-cell,
+.m365-tank-site-summary .m365-info-cell {
+  border: none;
+  padding: 0;
+}
+
+// ── Compact Tank Cards ──
+.m365-tank-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.m365-tank-card {
+  display: flex;
+  flex-direction: column;
+  padding: 14px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  background: #fff;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+
+  &:hover {
+    border-color: var(--m365-primary);
+    background-color: var(--m365-selected-bg);
+  }
+
+  &__name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin-bottom: 6px;
+  }
+
+  &__stats {
+    display: flex;
+    justify-content: space-between;
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+    margin-bottom: 8px;
+  }
+
+  &__bar {
+    margin-top: auto;
+  }
+}
+
+// ── Empty State ──
+.m365-tank-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 24px;
+  color: var(--m365-text-tertiary);
+  text-align: center;
+
+  i {
+    font-size: 48px;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+    margin: 0 0 4px 0;
+  }
+
+  &__subtitle {
+    font-size: 13px;
+    color: var(--m365-text-tertiary);
+    margin: 0;
+  }
+}
+
+// ── Form Panel (inside SlidePanel) ──
+.m365-tank-form {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: var(--m365-font);
+  background: #fff;
+
+  &__scroller {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 20px 24px 16px;
+  }
+
+  .m365-section-group {
+    border: none;
+    border-radius: 0;
+    margin-bottom: 18px;
+    overflow: visible;
+    background: transparent;
+  }
+
+  .m365-section-group__header {
+    padding: 0 0 8px;
+    border-bottom: none;
+  }
+
+  .m365-section-group__icon {
+    display: none;
+  }
+
+  .m365-section-group__title {
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.3;
+    color: var(--m365-text);
+    text-transform: none;
+    letter-spacing: 0.1px;
+    margin: 0;
+  }
+
+  .m365-section-group__body {
+    padding: 0;
+  }
+
+  &__toggle-btn {
+    border: none;
+    background: transparent;
+    padding: 0;
+  }
+
+  // Override global DevExtreme clear-button sizing for tank form SelectBoxes only.
+  // Global dx-styles.scss forces compact clear buttons that misalign the X icon here.
+  .dx-selectbox.dx-editor-outlined,
+  .dx-selectbox.dx-editor-filled,
+  .dx-selectbox.dx-editor-underlined {
+    .dx-texteditor-buttons-container {
+      display: flex;
+      align-items: center;
+      gap: 0;
+    }
+
+    .dx-clear-button-area {
+      width: 26px !important;
+      min-width: 26px !important;
+      max-width: 26px !important;
+      height: 26px !important;
+      min-height: 26px !important;
+      max-height: 26px !important;
+      display: inline-flex !important;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .dx-clear-button-area .dx-icon-clear {
+      width: 14px !important;
+      height: 14px !important;
+      font-size: 14px !important;
+      line-height: 14px !important;
+      color: var(--m365-text-secondary);
+      opacity: 0.9;
+    }
+  }
+
+  &__two-col {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 16px;
+  }
+
+  &__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 2;
+    flex-shrink: 0;
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 12px 24px;
+    border-top: 1px solid var(--m365-border-light);
+    background: #fff;
+  }
+}
+
+// ── History Panel (inside SlidePanel) ──
+.m365-tank-history {
+  padding: 20px 24px;
+  font-family: var(--m365-font);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  &__filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--m365-bg-hover);
+    margin-bottom: 12px;
+  }
+
+  &__filter-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+  }
+
+  &__quick-range {
+    border: none;
+    background: transparent;
+    color: var(--m365-primary);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: var(--m365-radius);
+    font-family: var(--m365-font);
+
+    &:hover {
+      background: var(--m365-blue-bg);
+    }
+
+    &--active {
+      background: var(--m365-primary);
+      color: #fff;
 
       &:hover {
-        background-color: rgba($primary-color, 0.1);
+        background: var(--m365-primary-hover);
       }
     }
   }
 
-  // Popup styling
-  .dx-popup-wrapper {
-    .dx-popup-title {
-      background: linear-gradient(
-        to right,
-        $primary-color,
-        darken($primary-color, 10%)
-      );
-      color: $white;
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+
+  &__data {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+
+    .dx-datagrid {
+      border: none;
+      font-family: var(--m365-font);
+
+      .dx-datagrid-headers {
+        background: var(--m365-bg-surface);
+        font-weight: 600;
+        font-size: 12px;
+        color: var(--m365-text-secondary);
+      }
+
+      .dx-datagrid-rowsview .dx-row {
+        font-size: 13px;
+
+        &:hover {
+          background-color: var(--m365-bg-hover);
+        }
+      }
+    }
+  }
+}
+
+// ── PTS Link Panel (inside SlidePanel) ──
+.m365-pts-link-panel {
+  padding: 20px 24px;
+  font-family: var(--m365-font);
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding-top: 16px;
+    border-top: 1px solid var(--m365-border-light);
+    margin-top: 16px;
+  }
+}
+
+// ── PTS SignalR Status Bar ──
+.m365-pts-signalr-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-radius: var(--m365-radius-card);
+  margin-bottom: 16px;
+  font-size: 12px;
+  font-weight: 500;
+
+  &--ok {
+    background: var(--m365-green-bg);
+    color: var(--m365-success);
+  }
+
+  &--error {
+    background: var(--m365-red-bg);
+    color: var(--m365-error);
+  }
+
+  &--loading {
+    background: var(--m365-orange-bg);
+    color: var(--m365-warning);
+  }
+}
+
+// ── PTS Device Info ──
+.m365-pts-device-info {
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  margin-top: 12px;
+  margin-bottom: 16px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--m365-bg-surface);
+    border-bottom: 1px solid var(--m365-bg-hover);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__body {
+    padding: 8px 14px;
+  }
+
+  &__status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+
+    &--online { background: var(--m365-success); }
+    &--offline { background: var(--m365-text-tertiary); }
+  }
+}
+
+// ── PTS Toggle switch ──
+.m365-toggle {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+
+  &__track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--m365-border);
+    position: relative;
+    transition: background 0.2s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+  }
+
+  &--on .m365-toggle__track {
+    background: var(--m365-primary);
+
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+
+  &__label {
+    font-size: 13px;
+    color: var(--m365-text);
+  }
+}
+
+// ── PTS Binding Preview ──
+.m365-pts-preview {
+  padding: 12px 14px;
+  border: 1px dashed var(--m365-border);
+  border-radius: var(--m365-radius-card);
+  background: var(--m365-bg-surface);
+  margin-top: 16px;
+}
+
+// ── PTS Probe Section ──
+.m365-pts-probe-section {
+  margin-bottom: 16px;
+
+  &__toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+}
+
+// ── PTS Probe Card ──
+.m365-pts-probe-card {
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  overflow: hidden;
+  margin-top: 12px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--m365-bg-surface);
+    border-bottom: 1px solid var(--m365-bg-hover);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__body {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    padding: 12px;
+  }
+
+  &__stat {
+    &-label {
+      font-size: 11px;
+      color: var(--m365-text-tertiary);
+      margin-bottom: 2px;
+    }
+
+    &-value {
+      font-size: 14px;
       font-weight: 600;
-      padding: 1rem 1.5rem;
-    }
-
-    .dx-popup-content {
-      padding: 1.5rem;
-    }
-  }
-
-  // Responsive design
-  @media (max-width: 768px) {
-    .tw-flex-col-mobile {
-      flex-direction: column;
-    }
-
-    .tw-w-full-mobile {
-      width: 100%;
+      color: var(--m365-text);
     }
   }
 }
 
-// Tank Form Mobile Styles
-.tank-form {
-  .dx-form {
-    .dx-field-item {
-      padding: 0.5rem 0;
-    }
+// ── PTS Auto Stock Toggle ──
+.m365-pts-auto-stock {
+  padding: 12px 14px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  margin-top: 12px;
 
-    .dx-selectbox {
-      .dx-texteditor-input {
-        white-space: normal;
-        overflow: visible;
-        text-overflow: clip;
-      }
-
-      .dx-dropdowneditor-input-wrapper {
-        white-space: normal;
-      }
-    }
-
-    // Mobile responsive adjustments
-    @media (max-width: 768px) {
-      .dx-layout-manager .dx-field-item-content {
-        width: 100% !important;
-      }
-
-      .dx-selectbox {
-        width: 100% !important;
-
-        .dx-texteditor-input-container {
-          padding-right: 40px; // Space for dropdown button
-        }
-
-        .dx-texteditor-input {
-          font-size: 14px;
-          padding: 10px 12px;
-          line-height: 1.4;
-        }
-      }
-
-      // Make form single column on mobile
-      .dx-group-colcount-2 {
-        .dx-field-item {
-          width: 100% !important;
-        }
-      }
-    }
-  }
-
-  // Popup width adjustment for mobile
-  @media (max-width: 640px) {
-    .dx-popup-content {
-      padding: 1rem !important;
-    }
+  &__desc {
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+    margin-top: 6px;
   }
 }
 
-// Mobile menu dropdown animation
-@keyframes slideDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
+// ── Responsive ──
+@media (max-width: 768px) {
+  .m365-tank-body {
+    flex-direction: column;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-.tank-page {
-  // Mobile dropdown menu styling
-  .tw-absolute.tw-top-full {
-    animation: slideDown 0.2s ease;
+  .m365-tank-sidebar {
+    width: 100%;
+    max-width: 100%;
+    max-height: 280px;
+    border-right: none;
+    border-bottom: 1px solid var(--m365-border-light);
   }
-}
 
-// Font Awesome icon support
-.fas,
-.far,
-.fab {
-  font-family: "Font Awesome 5 Free";
-  font-weight: 900;
-}
-
-// Custom animations
-@keyframes fadeIn {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
+  .m365-tank-content {
+    padding: 16px;
   }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
 
-.tw-animate-fadeIn {
-  animation: fadeIn 0.5s ease;
+  .m365-tank-form__two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .m365-tank-form__scroller {
+    padding: 16px;
+  }
+
+  .m365-tank-form__actions {
+    padding: 10px 16px;
+  }
+
+  .m365-tank-history__filter {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .m365-tank-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .m365-tank-site-summary__grades {
+    grid-template-columns: 1fr;
+  }
 }

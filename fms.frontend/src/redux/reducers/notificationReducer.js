@@ -6,6 +6,12 @@ import {
   ADD_IMPORT_PROGRESS,
   UPDATE_IMPORT_PROGRESS_STATUS,
   CLEAR_IMPORT_PROGRESS,
+  ADD_REPORT_PROGRESS,
+  UPDATE_REPORT_PROGRESS_STATUS,
+  CLEAR_REPORT_PROGRESS,
+  ADD_COMPLETED_REPORT,
+  REMOVE_COMPLETED_REPORT,
+  CLEAR_COMPLETED_REPORTS,
   // Backend notification actions
   FETCH_NOTIFICATIONS_REQUEST,
   FETCH_NOTIFICATIONS_SUCCESS,
@@ -37,6 +43,8 @@ const initialState = {
   // UI notifications (toast)
   notifications: [],
   importProgress: null,
+  reportProgress: null,
+  completedReports: [], // history of completed/failed/cancelled report jobs
 
   // Backend notification data
   backendNotifications: [],
@@ -136,6 +144,57 @@ const notificationReducer = (state = initialState, action) => {
       return {
         ...state,
         importProgress: null,
+      };
+
+    // Report Progress Actions
+    case ADD_REPORT_PROGRESS:
+      return {
+        ...state,
+        reportProgress: {
+          ...action.payload,
+          id: action.payload.jobId,
+          inProgress: true,
+          timestamp: new Date().getTime(),
+        },
+      };
+
+    case UPDATE_REPORT_PROGRESS_STATUS:
+      if (state.reportProgress && state.reportProgress.id === action.payload.id) {
+        const updatedStatus = action.payload.updates.status;
+        return {
+          ...state,
+          reportProgress: {
+            ...state.reportProgress,
+            ...action.payload.updates,
+            inProgress: updatedStatus !== 'Completed' && updatedStatus !== 'Failed' && updatedStatus !== 'Cancelled',
+            lastUpdated: new Date().getTime(),
+          },
+        };
+      }
+      return state;
+
+    case CLEAR_REPORT_PROGRESS:
+      return {
+        ...state,
+        reportProgress: null,
+      };
+
+    case ADD_COMPLETED_REPORT:
+      return {
+        ...state,
+        completedReports: [action.payload, ...state.completedReports].slice(0, 10),
+      };
+
+    case REMOVE_COMPLETED_REPORT:
+      return {
+        ...state,
+        completedReports: state.completedReports.filter((r) => r.jobId !== action.payload),
+      };
+
+    case CLEAR_COMPLETED_REPORTS:
+      return {
+        ...state,
+        completedReports: [],
       };
 
     // Backend Notifications Actions

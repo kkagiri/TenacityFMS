@@ -10,7 +10,6 @@ import { useNavigate } from "react-router-dom";
 import {
   fetchVehicleList,
   updateVehicle,
-  getVehicleById,
   // createVehicle, // Moved to popup-based creation
 } from "../../../redux/actions/vehicleActions";
 import { fetchVehicleManufacturers } from "../../../redux/actions/vehicleManufacturerActions";
@@ -22,10 +21,10 @@ import { fetchUsers } from "../../../redux/actions/userActions";
 import { fetchpermissionbyUserId } from "../../../redux/actions/permissionActions";
 import { fetchTags } from "../../../redux/actions/tagActions";
 import notify from "devextreme/ui/notify";
-import { Popup } from "devextreme-react/popup";
+import { Popup } from "devextreme-react/popup"; // still used for tag assignment
 import LoadIndicator from "devextreme-react/load-indicator";
 import Button from "devextreme-react/button";
-import "./VehicleDataGrid.scss"; // Import the SCSS file
+import "./VehicleDataGrid.scss";
 import { Workbook } from 'exceljs';
 import saveAs from 'file-saver';
 import { exportDataGrid } from 'devextreme/excel_exporter';
@@ -51,10 +50,10 @@ import DataGrid, {
   LoadPanel,
 } from "devextreme-react/data-grid";
 import TagAssignmentForm from "../../../components/Tags/TagAssignmentForm/TagAssignmentForm";
-import VehicleEditForm from "../details/components/VehicleEditForm";
+// VehicleEditForm removed — editing handled via VehicleDetailPanel
 // import FuelRuleSetAssignmentForm from './../fuelingRule/assignmentForm/fuelRuleSetAssignmentForm';
 
-const VehicleDataGrid = () => {
+const VehicleDataGrid = ({ onSelectVehicle }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const vehicles = useSelector((state) => state.vehicle.vehicles);
@@ -77,8 +76,9 @@ const VehicleDataGrid = () => {
   const [saving, setSaving] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [showTagForm, setShowTagForm] = useState(false);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [editingVehicle, setEditingVehicle] = useState(null);
+  // Edit form state removed — editing handled via VehicleDetailPanel
+  // const [showEditForm, setShowEditForm] = useState(false);
+  // const [editingVehicle, setEditingVehicle] = useState(null);
   // const [showRuleSetForm, setShowRuleSetForm] = useState(false); // Not currently used
   const exportFormats = ["xlsx"];
 
@@ -314,9 +314,13 @@ const VehicleDataGrid = () => {
   //   setShowRuleSetForm(true);
   // }; // Removed - functionality not currently implemented
 
-  // Navigation handlers
+  // Navigation / selection handlers
   const handleViewDetails = (vehicle) => {
-    navigate(`/vehicles/${vehicle.vehicleId}/details`);
+    if (onSelectVehicle) {
+      onSelectVehicle(vehicle.vehicleId);
+    } else {
+      navigate(`/vehicles/${vehicle.vehicleId}/details`);
+    }
   };
 
   const handleRowClick = (e) => {
@@ -325,90 +329,16 @@ const VehicleDataGrid = () => {
     }
   };
 
-  // Edit handler
-  const handleEditClick = async (vehicle) => {
-    try {
-      setSaving(true); // Use saving state instead of loading to avoid hiding the grid
-      const response = await dispatch(getVehicleById(vehicle.vehicleId));
-      if (response && response.data) {
-        setEditingVehicle(response.data);
-        setShowEditForm(true);
-      } else {
-        notify('Failed to load vehicle details', 'error', 3000);
-      }
-    } catch (error) {
-      console.error('Error loading vehicle for edit:', error);
-      notify('Failed to load vehicle details', 'error', 3000);
-    } finally {
-      setSaving(false);
+  // Edit handler — opens the detail panel (which has its own edit sub-panel)
+  const handleEditClick = (vehicle) => {
+    if (onSelectVehicle) {
+      onSelectVehicle(vehicle.vehicleId);
+    } else {
+      navigate(`/vehicles/${vehicle.vehicleId}/details`);
     }
   };
 
-  // Save edited vehicle
-  const handleSaveEdit = async (formData) => {
-    try {
-      setSaving(true);
-      const response = await dispatch(updateVehicle(editingVehicle.vehicleId, formData));
-
-      if (response && response.success) {
-        notify('Vehicle updated successfully', 'success', 3000);
-
-        // Close popup and clear editing state ONLY on success
-        setShowEditForm(false);
-        setEditingVehicle(null);
-
-        // Refresh the grid
-        await dispatch(fetchVehicleList());
-      } else {
-        // Handle error response - don't close popup
-        const errorMessage = response?.message || 'Failed to update vehicle';
-        const requiredPerms = response?.requiredPermissions?.join(', ') || '';
-        const fullMessage = requiredPerms
-          ? `${errorMessage}\nRequired permissions: ${requiredPerms}`
-          : errorMessage;
-
-        notify(fullMessage, 'error', 5000);
-        // Don't close popup - let user try again or cancel manually
-      }
-    } catch (error) {
-      console.error('Error saving vehicle:', error);
-
-      // Handle different error types
-      let errorMessage = 'Failed to save vehicle';
-
-      if (error.response?.status === 400) {
-        // Handle validation errors
-        const validationErrors = error.response?.data?.errors;
-        if (validationErrors) {
-          const errorMessages = Object.entries(validationErrors)
-            .map(([field, messages]) => `${field}: ${Array.isArray(messages) ? messages.join(', ') : messages}`)
-            .join('\n');
-          errorMessage = `Validation Error:\n${errorMessages}`;
-        } else if (error.response?.data?.title) {
-          errorMessage = error.response.data.title;
-        } else if (error.response?.data?.message) {
-          errorMessage = error.response.data.message;
-        }
-      } else if (error.response?.status === 403) {
-        errorMessage = error.response?.data?.message || 'Access denied. Insufficient permissions.';
-        const requiredPerms = error.response?.data?.requiredPermissions?.join(', ') || '';
-        if (requiredPerms) {
-          errorMessage += `\nRequired permissions: ${requiredPerms}`;
-        }
-      } else if (error.response?.status === 401) {
-        errorMessage = 'Authentication failed. Please log in again.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      notify(errorMessage, 'error', 5000);
-      // Don't close popup on error - let user try again or cancel manually
-    } finally {
-      setSaving(false);
-    }
-  };
+  // Save edit removed — handled by VehicleDetailPanel
 
   const TagsCell = ({ data, handleAddNewTagClick }) => {
     const { tags } = data;
@@ -837,51 +767,7 @@ const VehicleDataGrid = () => {
         />
       </Popup>
 
-      {/* Edit Vehicle Popup */}
-      <Popup
-        visible={showEditForm}
-        onHiding={() => {
-          if (!saving) { // Prevent closing while saving
-            setShowEditForm(false);
-            setEditingVehicle(null);
-          }
-        }}
-        dragEnabled={false}
-        showTitle={true}
-        title={`Edit Vehicle - ${editingVehicle?.hyoungNo || ''}`}
-        width="90%"
-        height="90%"
-        showCloseButton={!saving}
-        closeOnOutsideClick={false}
-      >
-        {/* Loading Panel Overlay */}
-        {saving && (
-          <div className="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-z-50">
-            <div className="tw-flex tw-flex-col tw-items-center">
-              <LoadIndicator width="48px" height="48px" visible={true} />
-              <span className="tw-mt-4 tw-text-gray-700 tw-font-medium">Saving changes...</span>
-            </div>
-          </div>
-        )}
-
-        <div className="tw-p-4">
-          {editingVehicle ? (
-            <VehicleEditForm
-              vehicle={editingVehicle}
-              isEditing={true}
-              onSave={handleSaveEdit}
-              isSaving={saving}
-            />
-          ) : (
-            <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
-              <LoadIndicator visible={true} />
-              <span className="tw-ml-3 tw-text-gray-600">Loading vehicle data...</span>
-            </div>
-          )}
-        </div>
-      </Popup>
-
-      {/* {showRuleSetForm && <FuelRuleSetAssignmentForm vehicle={selectedVehicle} />} */}
+      {/* Edit / detail viewing handled by VehicleDetailPanel in parent */}
     </div>
   );
 };

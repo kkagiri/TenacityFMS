@@ -52,9 +52,17 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnType("int(11)")
                     .HasDefaultValue(0);
 
+                builder.Property(e => e.ScopeKey)
+                    .HasMaxLength(50)
+                    .HasDefaultValue("global");
+
                 // Indexes
                 builder.HasIndex(e => new { e.EventExpressionId, e.ExecutedAt })
                     .HasDatabaseName("IX_Executions_ExpressionId_ExecutedAt");
+
+                // Scope-specific cooldown queries: (ExpressionId, ScopeKey, ExecutedAt)
+                builder.HasIndex(e => new { e.EventExpressionId, e.ScopeKey, e.ExecutedAt })
+                    .HasDatabaseName("IX_Executions_ExpressionId_ScopeKey_ExecutedAt");
 
                 builder.HasIndex(e => new { e.EventType, e.ExecutedAt })
                     .HasDatabaseName("IX_Executions_EventType_ExecutedAt");

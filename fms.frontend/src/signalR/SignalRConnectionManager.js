@@ -35,6 +35,7 @@ const ROUTE_PATTERNS = {
     /^\/issue-tracker/,
     /^\/event-expressions/,
     /^\/stock/,
+    /^\/reports/,
     /^\/delivery/,
     /^\/consumption/,
     /^\/adjustment/,

@@ -1,0 +1,131 @@
+/**
+ * File: SlidePanel.scss
+ * Purpose: Styles for the global SlidePanel component.
+ *          Follows M365 Admin Center Fluent design.
+ * Last Modified: 2026-02-25
+ */
+
+// ── Design Tokens ──
+$sp-text: #201f1e;
+$sp-text-secondary: #605e5c;
+$sp-text-tertiary: #a19f9d;
+$sp-primary: #0078d4;
+$sp-border-light: #edebe9;
+$sp-bg-card: #ffffff;
+$sp-bg-hover: #f3f2f1;
+
+// ── Overlay ──
+.fms-slide-panel__overlay {
+  position: fixed;
+  // top is set inline (dynamic header height)
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 9998;
+  animation: fms-sp-overlay-fade 0.2s ease;
+}
+
+@keyframes fms-sp-overlay-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+// ── Panel ──
+.fms-slide-panel {
+  position: fixed;
+  // top is set inline (dynamic header height)
+  right: 0;
+  bottom: 0;
+  background: $sp-bg-card;
+  border-left: 1px solid $sp-border-light;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  z-index: 9999;
+  animation: fms-sp-slide 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+}
+
+@keyframes fms-sp-slide {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+// ── Header ──
+.fms-slide-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 24px;
+  border-bottom: 1px solid $sp-border-light;
+  flex-shrink: 0;
+}
+
+.fms-slide-panel__title {
+  font-size: 18px;
+  font-weight: 600;
+  color: $sp-text;
+  margin: 0;
+}
+
+.fms-slide-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fms-slide-panel__close {
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  color: $sp-text-tertiary;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    color: $sp-text;
+    background: $sp-bg-hover;
+  }
+}
+
+// ── Body ──
+.fms-slide-panel__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 0;
+}
+
+// ── Responsive ──
+
+// Ensure DevExtreme toasts appear above the slide panel
+.dx-overlay-wrapper.dx-toast,
+.dx-toast-wrapper,
+.dx-toast-stack {
+  z-index: 10001 !important;
+}
+.dx-toast-content {
+  z-index: 10001 !important;
+}
+
+// Ensure DevExtreme popups (dropdowns, date-pickers, tag-boxes) render above the slide panel
+body.fms-slide-panel-open > .dx-overlay-wrapper {
+  z-index: 10001 !important;
+}
+@media (max-width: 800px) {
+  .fms-slide-panel {
+    width: 100% !important;
+  }
+}

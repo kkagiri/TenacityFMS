@@ -61,13 +61,12 @@ const DeliveryManager = () => {
   // Get shared filters from header (site, tank, dates)
   const { startDate, endDate, selectedSiteIds, selectedTankIds } = useStockFilters();
 
-  // Delivery edit/delete is restricted to admin roles
-  const { hasRole } = usePermissions();
-  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+  // Delivery edit/delete is restricted by permission
+  const { hasPermission } = usePermissions();
   const canReadDelivery = true;
   const canCreateDelivery = true;
-  const canUpdateDelivery = isAdmin;
-  const canDeleteDelivery = isAdmin;
+  const canUpdateDelivery = hasPermission('_Update_Delivery');
+  const canDeleteDelivery = hasPermission('_Delete_Delivery');
 
   // Redux state
   const tanks = useSelector((state) => state.tank.tanks);

@@ -58,6 +58,32 @@ public class UserActivitiesController : ControllerBase
         }
     }
 
+    [HttpGet("login")]
+    [EnableCors("DevelopmentCorsPolicy")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    public async Task<IActionResult> GetLoginActivities([FromQuery] GetLoginActivitiesQuery query)
+    {
+        try
+        {
+            _logger.LogInformation("Received request for login activities: UserId={UserId}", query.UserId);
+
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
+
+            var loginActivities = await _mediator.Send(query);
+            _logger.LogInformation("Retrieved {Count} login activities", loginActivities.Count);
+
+            return Ok(loginActivities);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving login activities");
+            return StatusCode(500, new { error = "An error occurred while retrieving login activities" });
+        }
+    }
+
     [HttpPost]
     [EnableCors("DevelopmentCorsPolicy")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]

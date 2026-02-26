@@ -1,66 +1,86 @@
-import React, { useMemo } from 'react';
-import Chart, { Series, CommonSeriesSettings, ValueAxis, ArgumentAxis, Label, Legend, Tooltip } from 'devextreme-react/chart';
-import { siteColor, tankColor } from './shared';
+/**
+ * File: MultiSeriesLineChart.js
+ * Purpose: Multi-series line chart showing tank/site volumes over time using
+ *          DevExtreme Chart with SeriesTemplate for reliable multi-series rendering.
+ * Dependencies: devextreme-react/chart, shared chart utilities
+ * Last Modified: 2026-02-24
+ */
+import React, { useMemo, useCallback } from 'react';
+import Chart, {
+  CommonSeriesSettings,
+  ValueAxis,
+  ArgumentAxis,
+  Label,
+  Legend,
+  Tooltip,
+  SeriesTemplate,
+  Point,
+} from 'devextreme-react/chart';
+import { siteColorByName, tankColor } from './shared';
 
 const MultiSeriesLineChart = ({ data, groupBy = 'tank', tanks }) => {
-  const sorted = useMemo(() => (data || []).slice().sort((a,b) => new Date(a.timestamp || a.recordedDateTime) - new Date(b.timestamp || b.recordedDateTime)), [data]);
+  // Build a single flat data array with seriesName – DevExtreme SeriesTemplate
+  // auto-creates one line per unique seriesName value from the chart-level dataSource.
+  const { flatData, colorMap } = useMemo(() => {
+    const flat = [];
+    const colors = {};
+    const sorted = (data || []).slice().sort(
+      (a, b) => new Date(a.timestamp) - new Date(b.timestamp)
+    );
 
-  const seriesMap = useMemo(() => {
-    const map = new Map();
     sorted.forEach(item => {
-      const key = groupBy === 'site' ? `site-${item.siteId}` : `tank-${item.tankId}`;
-      const name = groupBy === 'site' ? item.site : (tanks?.find(t=>t.id===item.tankId)?.name || `Tank ${item.tankId}`);
-      const color = groupBy === 'site' ? siteColor(item.siteId) : tankColor(item.tankId);
-      if (!map.has(key)) map.set(key, { name, color, data: [] });
-      map.get(key).data.push({ ...item, timestamp: new Date(item.timestamp || item.recordedDateTime), value: item.newVolume });
-    });
-  const arr = Array.from(map.values());
-  try { console.log('[MultiSeriesLineChart] series:', arr.map(s=>({name:s.name, count:s.data.length}))); } catch {}
-  return arr;
-  }, [sorted, groupBy, tanks]);
+      const seriesName = groupBy === 'site'
+        ? (item.site || `Site ${item.siteId || 'Unknown'}`)
+        : (tanks?.find(t => t.id === item.tankId)?.name || item.tankName || `Tank ${item.tankId}`);
 
-  const ranges = useMemo(() => {
-    let vMin = Number.POSITIVE_INFINITY;
-    let vMax = Number.NEGATIVE_INFINITY;
-    let tMin = null;
-    let tMax = null;
-    (seriesMap || []).forEach(s => {
-      (s.data || []).forEach(p => {
-        const v = Number(p.value);
-        if (Number.isFinite(v)) {
-          if (v < vMin) vMin = v;
-          if (v > vMax) vMax = v;
-        }
-        const ts = p.timestamp instanceof Date ? p.timestamp : new Date(p.timestamp);
-        if (!tMin || ts < tMin) tMin = ts;
-        if (!tMax || ts > tMax) tMax = ts;
+      if (!colors[seriesName]) {
+        colors[seriesName] = groupBy === 'site'
+          ? siteColorByName(item.site)
+          : tankColor(item.tankId);
+      }
+
+      flat.push({
+        ...item,
+        timestamp: new Date(item.timestamp || item.recordedDateTime),
+        value: Number(item.newVolume),
+        seriesName,
       });
     });
-    if (!Number.isFinite(vMin) || !Number.isFinite(vMax)) return null;
-    const pad = (vMax - vMin) * 0.02 || 1;
-    return { vStart: vMin - pad, vEnd: vMax + pad, tStart: tMin, tEnd: tMax };
-  }, [seriesMap]);
 
-  const customizeTooltip = (info) => {
-    const d = info.point.data;
-    return { html: `<div><b>${d.site} - Tank ${d.tankId}</b><br/>Volume: ${(d.newVolume||0).toFixed(2)} L</div>` };
-  };
+    try {
+      console.log('[MultiSeriesLineChart] flat points:', flat.length, 'series:', Object.keys(colors));
+    } catch { /* ignore */ }
+    return { flatData: flat, colorMap: colors };
+  }, [data, groupBy, tanks]);
 
-  if (!seriesMap || seriesMap.length === 0) {
-    return <div className="tw-text-gray-500 tw-italic">No data to display</div>;
+  const customizeSeries = useCallback(
+    (seriesName) => ({ color: colorMap[seriesName] || '#6b7280' }),
+    [colorMap]
+  );
+
+  const customizeTooltip = useCallback((info) => {
+    const d = info.point?.data;
+    if (!d) return {};
+    return {
+      html: `<div style="padding:4px"><b>${d.seriesName}</b><br/>Volume: ${(d.value || 0).toLocaleString(undefined, { maximumFractionDigits: 2 })} L<br/>Time: ${new Date(d.timestamp).toLocaleString()}</div>`,
+    };
+  }, []);
+
+  if (!flatData || flatData.length === 0) {
+    return <div className="tw-text-gray-500 tw-italic tw-p-4">No data to display</div>;
   }
 
   return (
-    <Chart height={500} width="100%" title="Multi-Series Line">
-      <CommonSeriesSettings argumentField="timestamp" type="line" valueField="value" />
-      {seriesMap.map(s => (
-        <Series key={s.name} dataSource={s.data} name={s.name} color={s.color} width={2.5} point={{ visible: true, size: 5 }} />
-      ))}
-      <ValueAxis visualRange={ranges ? { startValue: ranges.vStart, endValue: ranges.vEnd } : undefined}>
+    <Chart dataSource={flatData} height={500}>
+      <CommonSeriesSettings type="line" argumentField="timestamp" valueField="value">
+        <Point visible={true} size={5} />
+      </CommonSeriesSettings>
+      <SeriesTemplate nameField="seriesName" customizeSeries={customizeSeries} />
+      <ValueAxis>
         <Label format="#,##0 L" />
       </ValueAxis>
-      <ArgumentAxis argumentType="datetime" visualRange={ranges ? { startValue: ranges.tStart, endValue: ranges.tEnd } : undefined}>
-        <Label customizeText={(e)=> new Date(e.value).toLocaleString()} rotationAngle={45} />
+      <ArgumentAxis argumentType="datetime">
+        <Label rotationAngle={45} />
       </ArgumentAxis>
       <Legend visible={true} />
       <Tooltip enabled={true} customizeTooltip={customizeTooltip} />

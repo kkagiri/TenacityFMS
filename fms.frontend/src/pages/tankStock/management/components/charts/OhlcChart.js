@@ -1,78 +1,88 @@
-import React, { useMemo } from 'react';
-import Chart, { Series, CommonSeriesSettings, ValueAxis, ArgumentAxis, Label, Legend, Tooltip } from 'devextreme-react/chart';
-import { groupByTime, siteColor, tankColor } from './shared';
+/**
+ * File: OhlcChart.js
+ * Purpose: OHLC (stock) chart showing tank level open-high-low-close using
+ *          DevExtreme Chart with SeriesTemplate for reliable multi-series rendering.
+ * Dependencies: devextreme-react/chart, shared chart utilities
+ * Last Modified: 2026-02-24
+ */
+import React, { useMemo, useCallback } from 'react';
+import Chart, {
+  CommonSeriesSettings,
+  ValueAxis,
+  ArgumentAxis,
+  Label,
+  Legend,
+  Tooltip,
+  SeriesTemplate,
+} from 'devextreme-react/chart';
+import { groupByTime, siteColorByName, tankColor } from './shared';
 
-const OhlcChart = ({ data, groupBy = 'site', tanks }) => {
-  const seriesMap = useMemo(() => {
-    const seriesBuckets = new Map();
+const OhlcChart = ({ data, groupBy = 'tank', tanks }) => {
+  // Build flat OHLC data with seriesName for SeriesTemplate
+  const { flatData, colorMap } = useMemo(() => {
+    const buckets = new Map();
     (data || []).forEach(item => {
-      const key = groupBy === 'tank' ? `tank-${item.tankId}` : `site-${item.siteId}`;
-      if (!seriesBuckets.has(key)) seriesBuckets.set(key, []);
-      seriesBuckets.get(key).push(item);
+      const seriesName = groupBy === 'tank'
+        ? (tanks?.find(t => t.id === item.tankId)?.name || item.tankName || `Tank ${item.tankId}`)
+        : (item.site || `Site ${item.siteId || 'Unknown'}`);
+      if (!buckets.has(seriesName)) buckets.set(seriesName, { items: [], sample: item });
+      buckets.get(seriesName).items.push(item);
     });
-    const arr = Array.from(seriesBuckets.entries()).map(([key, items]) => {
-      const grouped = groupByTime(items, 'hourly');
-      const sample = items[0] || {};
-      const name = groupBy === 'tank' ? (tanks?.find(t=>t.id===sample.tankId)?.name || `Tank ${sample.tankId}`) : sample.site;
-      const color = groupBy === 'tank' ? tankColor(sample.tankId) : siteColor(sample.siteId);
-      return { key, name, color, data: grouped };
-    });
-    try { console.log('[OhlcChart] series count:', arr.length, 'details:', arr.map(s => ({ name: s.name, dataCount: s.data.length, firstPoint: s.data[0] }))); } catch {}
-    return arr;
-  }, [data, groupBy, tanks]);
 
-  const ranges = useMemo(() => {
-    let vMin = Number.POSITIVE_INFINITY;
-    let vMax = Number.NEGATIVE_INFINITY;
-    let tMin = null;
-    let tMax = null;
-    (seriesMap || []).forEach(s => {
-      (s.data || []).forEach(p => {
-        const vals = [p.open, p.high, p.low, p.close].map(Number).filter(Number.isFinite);
-        vals.forEach(v => {
-          if (v < vMin) vMin = v;
-          if (v > vMax) vMax = v;
-        });
-        const ts = p.timestamp instanceof Date ? p.timestamp : new Date(p.timestamp);
-        if (!tMin || ts < tMin) tMin = ts;
-        if (!tMax || ts > tMax) tMax = ts;
+    const flat = [];
+    const colors = {};
+
+    buckets.forEach(({ items, sample }, seriesName) => {
+      colors[seriesName] = groupBy === 'tank'
+        ? tankColor(sample.tankId)
+        : siteColorByName(sample.site);
+
+      const grouped = groupByTime(items, 'hourly');
+      grouped.forEach(point => {
+        flat.push({ ...point, seriesName });
       });
     });
-    if (!Number.isFinite(vMin) || !Number.isFinite(vMax)) return null;
-    // add 2% padding
-    const pad = (vMax - vMin) * 0.02 || 1;
+
+    try {
+      console.log('[OhlcChart] flat OHLC points:', flat.length, 'series:', Object.keys(colors));
+    } catch { /* ignore */ }
+    return { flatData: flat, colorMap: colors };
+  }, [data, groupBy, tanks]);
+
+  const customizeSeries = useCallback(
+    (seriesName) => ({ color: colorMap[seriesName] || '#6b7280' }),
+    [colorMap]
+  );
+
+  const customizeTooltip = useCallback((info) => {
+    const d = info.point?.data;
+    if (!d) return {};
+    const fmt = (v) => (v != null ? Number(v).toLocaleString(undefined, { maximumFractionDigits: 2 }) : '–');
     return {
-      vStart: vMin - pad,
-      vEnd: vMax + pad,
-      tStart: tMin,
-      tEnd: tMax,
+      html: `<div style="padding:4px"><b>${d.seriesName}</b><br/>Open: ${fmt(d.open)} L<br/>High: ${fmt(d.high)} L<br/>Low: ${fmt(d.low)} L<br/>Close: ${fmt(d.close)} L<br/>Vol: ${fmt(d.volume)} L</div>`,
     };
-  }, [seriesMap]);
+  }, []);
 
-  const customizeTooltip = (info) => {
-    const d = info.point.data;
-    return { html: `<div><b>${d.site} - Tank ${d.tankId}</b><br/>Open: ${d.open?.toFixed(2)} L<br/>High: ${d.high?.toFixed(2)} L<br/>Low: ${d.low?.toFixed(2)} L<br/>Close: ${d.close?.toFixed(2)} L<br/>Vol: ${d.volume?.toFixed(2)} L</div>` };
-  };
-
-  if (!seriesMap || seriesMap.length === 0 || seriesMap.every(s=>!s.data?.length)) {
-    return <div className="tw-text-gray-500 tw-italic">No data to display</div>;
+  if (!flatData || flatData.length === 0) {
+    return <div className="tw-text-gray-500 tw-italic tw-p-4">No data to display</div>;
   }
 
   return (
-    <Chart height={500} width="100%" title="OHLC">
-      <CommonSeriesSettings argumentField="timestamp" type="stock" />
-      {seriesMap.map((s, idx) => (
-        <React.Fragment key={s.key || `${s.name}-${idx}`}>
-          <Series type="stock" dataSource={s.data} name={s.name} color={s.color} openValueField="open" highValueField="high" lowValueField="low" closeValueField="close" />
-          {/* Fallback scatter for single points */}
-          <Series type="scatter" dataSource={s.data} name={`${s.name} Points`} color={s.color} argumentField="timestamp" valueField="close" point={{ visible: true, size: 8, symbol: 'square' }} />
-        </React.Fragment>
-      ))}
-      <ValueAxis visualRange={ranges ? { startValue: ranges.vStart, endValue: ranges.vEnd } : undefined}>
+    <Chart dataSource={flatData} height={500}>
+      <CommonSeriesSettings
+        type="stock"
+        argumentField="timestamp"
+        openValueField="open"
+        highValueField="high"
+        lowValueField="low"
+        closeValueField="close"
+      />
+      <SeriesTemplate nameField="seriesName" customizeSeries={customizeSeries} />
+      <ValueAxis>
         <Label format="#,##0 L" />
       </ValueAxis>
-  <ArgumentAxis argumentType="datetime" visualRange={ranges ? { startValue: ranges.tStart, endValue: ranges.tEnd } : undefined}>
-        <Label customizeText={(e)=> new Date(e.value).toLocaleString()} rotationAngle={45} />
+      <ArgumentAxis argumentType="datetime">
+        <Label rotationAngle={45} />
       </ArgumentAxis>
       <Legend visible={true} />
       <Tooltip enabled={true} customizeTooltip={customizeTooltip} />

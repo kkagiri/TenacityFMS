@@ -37,9 +37,9 @@ import ScheduledEmailGrid from "./components/ScheduledEmailGrid";
 import RecipientDeliveryStatusPopup from "./components/RecipientDeliveryStatusPopup";
 import "./ReportScheduleSettings.scss";
 const ReportScheduleSettings = () => {
-  const { hasRole } = usePermissions();
+  const { hasPermission } = usePermissions();
   const authUser = useSelector((state) => state.auth?.user || null);
-  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
+  const isAdmin = hasPermission("_Manage_ReportSchedules");
   const [schedules, setSchedules] = useState([]);
   const [loading, setLoading] = useState(false);
   const [includeCompleted, setIncludeCompleted] = useState(true);

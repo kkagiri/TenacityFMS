@@ -213,12 +213,12 @@ const IssueCard = React.memo(({ issue, onPress }) => {
 // ===== MAIN SCREEN =====
 const IssueListScreen = () => {
   const navigation = useNavigation();
-  const { isAdmin, hasPermission, hasAnyPermission, hasRole, userInfo } = usePermissions();
+  const { hasPermission, hasAnyPermission, userInfo } = usePermissions();
 
-  // Permission check
+  // Permission check (no hardcoded role names)
   const canViewIssues = useMemo(
-    () => isAdmin || hasRole("PowerUser") || hasRole("Power User") || hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues"]),
-    [isAdmin, hasRole, hasAnyPermission]
+    () => hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues", "_Edit_Issues", "_Approve_Issues"]),
+    [hasAnyPermission]
   );
 
   const [issues, setIssues] = useState([]);

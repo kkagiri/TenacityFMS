@@ -1,0 +1,408 @@
+/**
+ * File: RequestReportEmailPanel.scss
+ * Purpose: Styles for the Request Report via Email slide panel.
+ *          Follows M365 Admin Center Fluent design tokens.
+ * Dependencies: SlidePanel.scss (base panel layout)
+ * Last Modified: 2026-02-27
+ */
+
+// ── Design Tokens (M365 Admin Center Fluent) ──
+$m365-primary: #0078d4;
+$m365-primary-hover: #106ebe;
+$m365-primary-active: #005a9e;
+$m365-text: #201f1e;
+$m365-text-secondary: #605e5c;
+$m365-text-tertiary: #a19f9d;
+$m365-border: #c8c6c4;
+$m365-border-light: #edebe9;
+$m365-bg-surface: #ffffff;
+$m365-bg-hover: #f3f2f1;
+$m365-bg-section: #faf9f8;
+$m365-success: #107c10;
+$m365-error: #a4262c;
+$m365-warning: #ca5010;
+$m365-radius: 4px;
+$m365-radius-lg: 8px;
+$m365-control-height: 34px;
+$m365-font-body: 13px;
+$m365-font-caption: 11px;
+$m365-font-subhead: 14px;
+$m365-font-title: 16px;
+
+// ── Panel Content ──
+.email-report-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+
+  // ── Scrollable Body ──
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px 24px;
+  }
+
+  // ── Section Grouping ──
+  &__section {
+    margin-bottom: 20px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__section-title {
+    font-size: $m365-font-caption;
+    font-weight: 600;
+    color: $m365-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin: 0 0 10px;
+  }
+
+  // ── Form Field ──
+  &__field {
+    margin-bottom: 14px;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  &__label {
+    display: block;
+    font-size: $m365-font-body;
+    font-weight: 600;
+    color: $m365-text;
+    margin-bottom: 4px;
+  }
+
+  &__hint {
+    font-size: $m365-font-caption;
+    color: $m365-text-tertiary;
+    margin-top: 3px;
+  }
+
+  // ── Email Recipients ──
+  &__recipients {
+    border: 1px solid $m365-border;
+    border-radius: $m365-radius;
+    padding: 8px;
+    min-height: 40px;
+    background: $m365-bg-surface;
+    transition: border-color 0.15s;
+
+    &:focus-within {
+      border-color: $m365-primary;
+      box-shadow: 0 0 0 1px $m365-primary;
+    }
+  }
+
+  &__recipient-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    margin-bottom: 4px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 6px 2px 10px;
+    border-radius: 10px;
+    font-size: $m365-font-caption;
+    font-weight: 500;
+    background: #deecf9;
+    color: $m365-primary;
+    max-width: 100%;
+
+    span {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      strong {
+        font-weight: 600;
+        color: $m365-text;
+      }
+    }
+  }
+
+  &__chip-email {
+    color: $m365-text-secondary;
+    font-weight: 400;
+    font-size: 10px;
+  }
+
+  &__chip-remove {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    font-size: 9px;
+    color: $m365-text-secondary;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: all 0.15s;
+    padding: 0;
+
+    &:hover {
+      background: rgba(0, 0, 0, 0.08);
+      color: $m365-text;
+    }
+  }
+
+  &__email-input {
+    width: 100%;
+    border: none;
+    outline: none;
+    font-size: $m365-font-body;
+    font-family: inherit;
+    color: $m365-text;
+    padding: 4px 2px;
+    background: transparent;
+
+    &::placeholder {
+      color: $m365-text-tertiary;
+    }
+  }
+
+  // ── Input Wrapper (for positioning suggestion dropdown) ──
+  &__input-wrapper {
+    position: relative;
+    width: 100%;
+  }
+
+  // ── Suggestion Dropdown ──
+  &__suggestions {
+    position: absolute;
+    top: calc(100% + 4px);
+    left: -9px;
+    right: -9px;
+    background: $m365-bg-surface;
+    border: 1px solid $m365-border-light;
+    border-radius: $m365-radius-lg;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    max-height: 260px;
+    overflow-y: auto;
+    z-index: 10;
+    padding: 4px 0;
+  }
+
+  &__suggestion-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font-family: inherit;
+    transition: background 0.1s;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+  }
+
+  &__suggestion-avatar {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: $m365-primary;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  &__suggestion-info {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    flex: 1;
+  }
+
+  &__suggestion-name {
+    font-size: $m365-font-body;
+    font-weight: 600;
+    color: $m365-text;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__suggestion-email {
+    font-size: $m365-font-caption;
+    color: $m365-text-secondary;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  &__suggestion-badge {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 1px 6px;
+    border-radius: 8px;
+    background: #deecf9;
+    color: $m365-primary;
+    flex-shrink: 0;
+  }
+
+  // ── Info Card ──
+  &__info-card {
+    background: $m365-bg-section;
+    border: 1px solid $m365-border-light;
+    border-radius: $m365-radius-lg;
+    padding: 12px 16px;
+    margin-top: 16px;
+  }
+
+  &__info-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 0;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid $m365-border-light;
+    }
+  }
+
+  &__info-label {
+    font-size: $m365-font-caption;
+    font-weight: 600;
+    color: $m365-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  &__info-value {
+    font-size: $m365-font-body;
+    font-weight: 600;
+    color: $m365-text;
+  }
+
+  // ── Format Radio Buttons ──
+  &__formats {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+  }
+
+  &__format-btn {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: $m365-radius;
+    border: 1px solid $m365-border;
+    background: $m365-bg-surface;
+    font-size: $m365-font-body;
+    font-family: inherit;
+    color: $m365-text;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    i {
+      font-size: 14px;
+    }
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+
+    &--active {
+      background: $m365-primary;
+      color: white;
+      border-color: $m365-primary;
+
+      &:hover {
+        background: $m365-primary-hover;
+        border-color: $m365-primary-hover;
+      }
+    }
+  }
+
+  // ── Footer (sticky) ──
+  &__footer {
+    padding: 16px 24px;
+    border-top: 1px solid $m365-border-light;
+    background: $m365-bg-surface;
+    flex-shrink: 0;
+    display: flex;
+    gap: 8px;
+  }
+
+  &__submit-btn {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    height: 36px;
+    border-radius: $m365-radius;
+    border: none;
+    font-size: $m365-font-body;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+    background: $m365-primary;
+    color: white;
+
+    &:hover:not(:disabled) {
+      background: $m365-primary-hover;
+    }
+
+    &:active:not(:disabled) {
+      background: $m365-primary-active;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__cancel-btn {
+    height: 36px;
+    padding: 0 16px;
+    border-radius: $m365-radius;
+    border: 1px solid $m365-border;
+    font-size: $m365-font-body;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    background: $m365-bg-surface;
+    color: $m365-text;
+    transition: all 0.15s;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+  }
+
+  // ── Validation ──
+  &__validation {
+    font-size: $m365-font-caption;
+    color: $m365-error;
+    margin-top: 4px;
+  }
+}

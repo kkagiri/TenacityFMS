@@ -2,7 +2,7 @@
  * File: UnifiedTankReconciliationService.cs
  * Purpose: Combined background service for all tank monitoring and reconciliation operations.
  * Dependencies: GpsdataContext, TankStockReconciliationService, AutomatedReconciliationService, ILogger
- * Last Modified: 2026-02-02
+ * Last Modified: 2026-02-24
  *
  * Consolidates:
  * - TankMonitoringService (tank level monitoring, stale data detection)
@@ -17,6 +17,7 @@
  * - Daily reconciliation (TankStock vs TankVolumeHistory): 2:00 AM
  */
 using System;
+using System.Collections.Concurrent;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -63,6 +64,11 @@ namespace FMS.BackgroundServices.TankReconciliation
         private DateTime _lastPolicyReconciliation = DateTime.MinValue;
         private DateTime _lastDailyAggregation = DateTime.MinValue;
         private DateTime _lastDailyReconciliation = DateTime.MinValue;
+
+        // Per-tank cooldown for StaleData events — prevents flooding the event engine every 5 minutes.
+        // Key = TankId, Value = UTC time the last stale event was fired for that tank.
+        private readonly ConcurrentDictionary<int, DateTime> _lastStaleEventFired = new();
+        private readonly TimeSpan _staleEventCooldown = TimeSpan.FromMinutes(60);
 
         public UnifiedTankReconciliationService(
             ILogger<UnifiedTankReconciliationService> logger,
@@ -211,8 +217,9 @@ namespace FMS.BackgroundServices.TankReconciliation
                 {
                     _logger.LogWarning("Tank {TankId} measurement is {Hours:F1} hours old", tank.Id, measurementAge.TotalHours);
 
-                    // Fire SystemEvent for stale data detection
-                    if (eventEngine != null)
+                    // Fire SystemEvent for stale data detection — but only once per cooldown period per tank.
+                    // Without this guard, a tank that's stale for 15 hours generates 180+ events (every 5 min).
+                    if (eventEngine != null && ShouldFireStaleEvent(tank.Id))
                     {
                         var staleEvent = new SystemEvent
                         {
@@ -226,9 +233,20 @@ namespace FMS.BackgroundServices.TankReconciliation
                         staleEvent.Data["MeasurementAgeHours"] = measurementAge.TotalHours;
                         staleEvent.Data["LastMeasurementTime"] = latestMeasurement.DateTime.ToString("yyyy-MM-dd HH:mm:ss");
                         await eventEngine.ProcessAsync(staleEvent, cancellationToken);
+                        _lastStaleEventFired[tank.Id] = DateTime.UtcNow;
+                        _logger.LogInformation("Stale data event fired for Tank {TankId}: last measurement {Hours:F1} hours ago",
+                            tank.Id, measurementAge.TotalHours);
                     }
-                    _logger.LogInformation("Stale data event detected for Tank {TankId}: last measurement {Hours:F1} hours ago",
-                        tank.Id, measurementAge.TotalHours);
+                    else
+                    {
+                        _logger.LogDebug("Stale data suppressed by cooldown for Tank {TankId}: last measurement {Hours:F1} hours ago",
+                            tank.Id, measurementAge.TotalHours);
+                    }
+                }
+                else
+                {
+                    // Tank is fresh — reset cooldown so next stale period fires immediately
+                    _lastStaleEventFired.TryRemove(tank.Id, out _);
                 }
 
                 // Check for low/high volume alarms
@@ -303,6 +321,22 @@ namespace FMS.BackgroundServices.TankReconciliation
             {
                 _logger.LogError(ex, "Error checking volume alarms for tank {TankId}", tank.Id);
             }
+        }
+
+        /// <summary>
+        /// Returns true if a StaleData event should be fired for this tank.
+        /// Prevents flooding the event engine with a new StaleData event every 5 minutes
+        /// for a tank that has been offline for hours. Once fired, the cooldown window
+        /// (_staleEventCooldown, default 60 min) must expire before firing again.
+        /// The cooldown is reset automatically when the tank comes back online.
+        /// </summary>
+        private bool ShouldFireStaleEvent(int tankId)
+        {
+            if (_lastStaleEventFired.TryGetValue(tankId, out var lastFired))
+            {
+                return DateTime.UtcNow - lastFired >= _staleEventCooldown;
+            }
+            return true; // Never fired before — go ahead
         }
 
         #endregion

@@ -1,49 +1,62 @@
 /**
  * File: JsReportService.cs
- * Purpose: Core jsreport rendering engine — PDF, Excel, HTML, and inline PDF.
- * Dependencies: jsreport.Local, jsreport.Binary, jsreport.Types, IWebHostEnvironment,
- *               JsReportTemplateManager, JsReportLetterheadBranding
- * Last Modified: 2026-02-18
+ * Purpose: Core report rendering engine — PDF, Excel, HTML, and inline PDF.
+ *          Uses jsreport ONLY as a Handlebars template engine (Recipe.Html).
+ *          PDF conversion is handled by PuppeteerSharp using the system Chrome/Edge.
+ * Dependencies: jsreport.Local, jsreport.Binary, jsreport.Types, PuppeteerSharp,
+ *               ClosedXML, IWebHostEnvironment, JsReportTemplateManager, JsReportLetterheadBranding
+ * Last Modified: 2026-02-25
  *
  * Key Functions:
- * - RenderPdfAsync        : Renders a named template to PDF bytes (Chrome PDF recipe)
- * - RenderExcelAsync      : Renders a named template to XLSX bytes (HtmlToXlsx recipe)
- * - RenderHtmlAsync       : Renders a named template to HTML string (preview)
- * - RenderInlinePdfAsync  : Renders an arbitrary HTML string to PDF bytes
+ * - RenderPdfAsync        : Template → HTML (jsreport) → PDF (PuppeteerSharp + system Chrome)
+ * - RenderExcelAsync      : Structured data → XLSX via ClosedXML (no Chrome needed)
+ * - RenderHtmlAsync       : Template → HTML string (preview)
+ * - RenderInlinePdfAsync  : Arbitrary HTML string → PDF (PuppeteerSharp)
  * - Template CRUD         : Delegates to JsReportTemplateManager
- * - Chrome config & daemon cleanup are handled in the constructor
+ *
+ * Architecture:
+ *   jsreport's Chrome-PDF recipe can't spawn Chrome from its pkg-bundled binary
+ *   ("spawn UNKNOWN" error). We bypass it entirely: jsreport renders Handlebars
+ *   templates to HTML, and PuppeteerSharp converts that HTML to PDF using the
+ *   system-installed Chrome or Edge browser.
  */
 using jsreport.Local;
 using jsreport.Types;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using PuppeteerSharp;
+using PuppeteerSharp.Media;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
+using ClosedXML.Excel;
 
 namespace FMS.WebClient.Services.Reporting
 {
     /// <summary>
-    /// JsReport rendering service. Produces PDF / Excel / HTML output from
-    /// Handlebars templates stored on disk. All template management is
-    /// delegated to <see cref="JsReportTemplateManager"/>.
+    /// Report rendering service. Renders Handlebars templates via jsreport (HTML only),
+    /// then converts to PDF using PuppeteerSharp with system Chrome/Edge.
+    /// Excel generation uses ClosedXML directly.
+    /// All template management is delegated to <see cref="JsReportTemplateManager"/>.
     /// </summary>
     public class JsReportService : IJsReportService, IAsyncDisposable
     {
         // ─── Constants ────────────────────────────────────────────────────────────
 
-        private const int DefaultRenderTimeoutMs      = 120_000;
+        private const int DefaultRenderTimeoutMs = 120_000;
         private const int LargePayloadRenderTimeoutMs = 300_000;
-        private const int LargePayloadThresholdBytes  = 750_000;
+        private const int LargePayloadThresholdBytes = 750_000;
 
         /// <summary>
         /// Known Chrome/Edge paths checked in priority order.
-        /// The first existing path is written into jsreport.config.json to avoid 'spawn UNKNOWN'.
+        /// The first existing path is used by PuppeteerSharp to launch the browser.
         /// </summary>
         private static readonly string[] ChromeExecutablePaths =
         [
@@ -61,6 +74,11 @@ namespace FMS.WebClient.Services.Reporting
         private readonly ILocalUtilityReportingService _reportingService;
         private readonly JsReportTemplateManager _templateManager;
         private readonly JsReportLetterheadBranding _branding;
+        private readonly string? _chromeExePath;
+
+        /// <summary>Shared browser instance — lazily created, reused across renders.</summary>
+        private IBrowser? _browser;
+        private readonly SemaphoreSlim _browserLock = new(1, 1);
 
         // ─── Constructor ──────────────────────────────────────────────────────────
 
@@ -75,27 +93,11 @@ namespace FMS.WebClient.Services.Reporting
             _logger.LogInformation("JsReport templates path: {Path}", _templateManager.TemplatesPath);
             _logger.LogInformation("JsReport letterhead logo path: {Path}", _branding.LogoPath);
 
+            // ── jsreport setup (Handlebars engine ONLY — no Chrome, no PDF) ───────
             var jsReportTempPath = Path.Combine(Path.GetTempPath(), "FMS_JsReport_Temp");
             Directory.CreateDirectory(jsReportTempPath);
 
-            // Route jsreport to system Chrome to avoid 'spawn UNKNOWN' from bundled Chromium.
-            var chromeExePath = ChromeExecutablePaths.FirstOrDefault(File.Exists);
-            if (chromeExePath != null)
-            {
-                _logger.LogInformation("JsReport will use system Chrome: {Path}", chromeExePath);
-                WriteJsReportChromeConfig(jsReportTempPath, chromeExePath);
-                WriteJsReportChromeConfig(
-                    Path.Combine(environment.ContentRootPath, "jsreport"), chromeExePath);
-            }
-            else
-            {
-                _logger.LogWarning("System Chrome not found — jsreport will attempt its bundled Chromium.");
-            }
-
-            // Kill stale daemons so they restart with the new Chrome config.
-            KillStaleJsReportDaemons(jsReportTempPath);
-
-            var localReporting = new LocalReporting()
+            _reportingService = new LocalReporting()
                 .UseBinary(jsreport.Binary.JsReportBinary.GetBinary())
                 .Configure(cfg =>
                 {
@@ -104,69 +106,122 @@ namespace FMS.WebClient.Services.Reporting
                     cfg.FileSystemStore();
                     return cfg;
                 })
-                .AsUtility();
+                .AsUtility()
+                .Create();
 
-            _reportingService = localReporting.Create();
+            // ── Chrome detection (for PuppeteerSharp PDF conversion) ──────────────
+            _chromeExePath = ChromeExecutablePaths.FirstOrDefault(File.Exists);
 
-            _logger.LogInformation("JsReport service initialized — templates: {Path}, temp: {Temp}",
+            if (_chromeExePath != null)
+            {
+                _logger.LogInformation("PuppeteerSharp will use system Chrome: {Path}", _chromeExePath);
+            }
+            else
+            {
+                _logger.LogWarning(
+                    "No system Chrome/Edge found. PDF rendering will fail. " +
+                    "Install Chrome or Edge to enable PDF output.");
+            }
+
+            _logger.LogInformation(
+                "JsReport service initialized (Handlebars engine only, PuppeteerSharp for PDF) " +
+                "— templates: {Path}, temp: {Temp}",
                 _templateManager.TemplatesPath, jsReportTempPath);
 
             _templateManager.EnsureSampleTemplatesAsync().Wait();
         }
 
-        // ─── Render Methods ───────────────────────────────────────────────────────
+        // ─── PDF Render (PuppeteerSharp) ──────────────────────────────────────────
 
-        public async Task<byte[]> RenderPdfAsync(string templateName, object data)
+        /// <summary>
+        /// Renders a Handlebars template to HTML via jsreport, then converts to PDF
+        /// using PuppeteerSharp with the system Chrome browser.
+        /// </summary>
+        public async Task<byte[]> RenderPdfAsync(string templateName, object data, bool landscape = false)
         {
             try
             {
-                var content = await LoadTemplate(templateName);
-                content = _branding.Apply(content);
+                // Step 1: Render Handlebars → HTML (jsreport, no Chrome involved)
+                var html = await RenderTemplateToHtml(templateName, data);
 
-                var report = await _reportingService.RenderAsync(new RenderRequest
-                {
-                    Template = new Template
-                    {
-                        Content = content,
-                        Engine  = Engine.Handlebars,
-                        Recipe  = Recipe.ChromePdf,
-                        Chrome  = BuildPdfChromeOptions()
-                    },
-                    Data    = data,
-                    Options = BuildRenderOptions(data)
-                });
-
-                using var ms = new MemoryStream();
-                await report.Content.CopyToAsync(ms);
-                return ms.ToArray();
+                // Step 2: Convert HTML → PDF (PuppeteerSharp + system Chrome)
+                return await ConvertHtmlToPdfAsync(html, landscape);
             }
             catch (Exception ex)
             {
+                if (IsTemplateParseError(ex) && TryGetEmbeddedTemplate(templateName, out var embeddedTemplate))
+                {
+                    _logger.LogWarning(ex,
+                        "Template parse error for {Template}. Falling back to embedded template.",
+                        templateName);
+
+                    await TryRepairTemplateFileAsync(templateName, embeddedTemplate);
+
+                    try
+                    {
+                        var fallbackHtml = await RenderRawHtml(embeddedTemplate, data);
+                        return await ConvertHtmlToPdfAsync(fallbackHtml, landscape);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        _logger.LogError(fallbackEx,
+                            "Fallback rendering with embedded template also failed for {Template}",
+                            templateName);
+                    }
+                }
+
                 _logger.LogError(ex, "Error rendering PDF for template {Template}. Payload: {Bytes} bytes",
                     templateName, EstimatePayloadSizeBytes(data));
                 throw;
             }
         }
 
+        /// <summary>
+        /// Renders an arbitrary HTML string (with Handlebars placeholders) to PDF.
+        /// </summary>
+        public async Task<byte[]> RenderInlinePdfAsync(string htmlTemplate, object data, bool landscape = false)
+        {
+            try
+            {
+                var html = await RenderRawHtml(htmlTemplate, data);
+                return await ConvertHtmlToPdfAsync(html, landscape);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error rendering inline PDF");
+                throw;
+            }
+        }
+
+        // ─── Excel Render (ClosedXML) ─────────────────────────────────────────────
+
         public async Task<byte[]> RenderExcelAsync(string templateName, object data)
         {
             try
             {
+                // ── Step 1: try ClosedXML native generation (uses structured payload) ──
+                var closedXmlBytes = TryBuildExcelWithClosedXml(data);
+                if (closedXmlBytes != null)
+                {
+                    _logger.LogInformation("Excel generated via ClosedXML for template {Template}", templateName);
+                    return closedXmlBytes;
+                }
+
+                // ── Step 2: fallback — render HTML and return those bytes ──
+                _logger.LogWarning("ClosedXML could not parse payload for {Template}; falling back to HTML bytes", templateName);
                 var content = await LoadTemplate(templateName);
                 content = _branding.Apply(content);
-
                 var report = await _reportingService.RenderAsync(new RenderRequest
                 {
                     Template = new Template
                     {
                         Content = content,
                         Engine = Engine.Handlebars,
-                        Recipe = Recipe.HtmlToXlsx
+                        Recipe = Recipe.Html
                     },
                     Data = data,
                     Options = BuildRenderOptions(data)
                 });
-
                 using var ms = new MemoryStream();
                 await report.Content.CopyToAsync(ms);
                 return ms.ToArray();
@@ -178,63 +233,232 @@ namespace FMS.WebClient.Services.Reporting
             }
         }
 
+        // ─── HTML Render (jsreport Handlebars only) ───────────────────────────────
+
         public async Task<string> RenderHtmlAsync(string templateName, object data)
         {
             try
             {
-                var content = await LoadTemplate(templateName);
-                content = _branding.Apply(content);
-
-                var report = await _reportingService.RenderAsync(new RenderRequest
-                {
-                    Template = new Template
-                    {
-                        Content = content,
-                        Engine  = Engine.Handlebars,
-                        Recipe  = Recipe.Html
-                    },
-                    Data    = data,
-                    Options = BuildRenderOptions(data)
-                });
-
-                using var reader = new StreamReader(report.Content);
-                return await reader.ReadToEndAsync();
+                return await RenderTemplateToHtml(templateName, data);
             }
             catch (Exception ex)
             {
+                if (IsTemplateParseError(ex) && TryGetEmbeddedTemplate(templateName, out var embeddedTemplate))
+                {
+                    _logger.LogWarning(ex,
+                        "Template parse error for {Template}. Falling back to embedded template.",
+                        templateName);
+
+                    await TryRepairTemplateFileAsync(templateName, embeddedTemplate);
+
+                    try
+                    {
+                        return await RenderRawHtml(embeddedTemplate, data);
+                    }
+                    catch (Exception fallbackEx)
+                    {
+                        _logger.LogError(fallbackEx,
+                            "Fallback rendering with embedded template also failed for {Template}",
+                            templateName);
+                    }
+                }
+
                 _logger.LogError(ex, "Error rendering HTML for template {Template}", templateName);
                 throw;
             }
         }
 
-        public async Task<byte[]> RenderInlinePdfAsync(string htmlTemplate, object data)
+        // ─── ClosedXML Excel builder ──────────────────────────────────────────────
+
+        private byte[]? TryBuildExcelWithClosedXml(object data)
         {
             try
             {
-                var branded = _branding.Apply(htmlTemplate);
-                var report = await _reportingService.RenderAsync(new RenderRequest
-                {
-                    Template = new Template
-                    {
-                        Content = branded,
-                        Engine  = Engine.Handlebars,
-                        Recipe  = Recipe.ChromePdf,
-                        Chrome  = BuildPdfChromeOptions()
-                    },
-                    Data    = data,
-                    Options = BuildRenderOptions(data)
-                });
+                // JToken (Newtonsoft) is NOT correctly serialized by System.Text.Json
+                // (it becomes an array instead of an object). Use Newtonsoft to serialize.
+                var json = data is JToken jt
+                    ? jt.ToString(Formatting.None)
+                    : JsonConvert.SerializeObject(data);
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
 
-                using var ms = new MemoryStream();
-                await report.Content.CopyToAsync(ms);
-                return ms.ToArray();
+                using var wb = new XLWorkbook();
+
+                // ── Site-grouped structure (TankVolumeHistory) ────────────────────
+                if (root.TryGetProperty("siteGroups", out var siteGroups) &&
+                    siteGroups.ValueKind == JsonValueKind.Array)
+                {
+                    BuildSummarySheet(wb, root);
+                    BuildTransactionsSheet(wb, root, siteGroups);
+                    using var ms = new MemoryStream();
+                    wb.SaveAs(ms);
+                    return ms.ToArray();
+                }
+
+                // ── Flat transactions array ───────────────────────────────────────
+                if (root.TryGetProperty("transactions", out var flatTxns) &&
+                    flatTxns.ValueKind == JsonValueKind.Array)
+                {
+                    BuildFlatSheet(wb, root, flatTxns);
+                    using var ms = new MemoryStream();
+                    wb.SaveAs(ms);
+                    return ms.ToArray();
+                }
+
+                return null;
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error rendering inline PDF");
-                throw;
+                _logger.LogWarning(ex, "ClosedXML generation skipped due to parse failure");
+                return null;
             }
         }
+
+        private static void BuildSummarySheet(XLWorkbook wb, JsonElement root)
+        {
+            var ws = wb.Worksheets.Add("Summary");
+            int row = 1;
+
+            ws.Cell(row, 1).Value = GetStr(root, "reportTitle");
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Font.FontSize = 14;
+            ws.Range(row, 1, row, 6).Merge();
+            row++;
+
+            ws.Cell(row, 1).Value = $"Period: {GetStr(root, "dateFrom")} – {GetStr(root, "dateTo")}";
+            ws.Range(row, 1, row, 6).Merge();
+            row++;
+            ws.Cell(row, 1).Value = $"Created by: {GetStr(root, "createdBy")}   |   Generated: {GetStr(root, "generatedAt")}";
+            ws.Range(row, 1, row, 6).Merge();
+            row += 2;
+
+            if (root.TryGetProperty("summary", out var s))
+            {
+                ApplyHeaderRow(ws, row, new[] { "Total Transactions", "Total Refills (L)", "Total Dispensed (L)", "Net Balance Change (L)", "Grand Closing Balance (L)" });
+                row++;
+                ws.Cell(row, 1).Value = GetStr(s, "totalTransactions");
+                ws.Cell(row, 2).Value = GetStr(s, "totalRefills");
+                ws.Cell(row, 3).Value = GetStr(s, "totalDispensed");
+                ws.Cell(row, 4).Value = GetStr(s, "netBalanceChange");
+                ws.Cell(row, 5).Value = GetStr(s, "grandClosingBalance");
+                row += 2;
+            }
+
+            if (root.TryGetProperty("siteGroups", out var sg) && sg.ValueKind == JsonValueKind.Array)
+            {
+                ApplyHeaderRow(ws, row, new[] { "Site", "Tank", "Fuel Type", "Opening Bal (L)", "Closing Bal (L)", "Expected Closing (L)", "Match", "Dispensing (L)", "Deliveries (L)", "Transfers (L)" });
+                row++;
+                foreach (var site in sg.EnumerateArray())
+                {
+                    if (!site.TryGetProperty("tanks", out var tanks)) continue;
+                    foreach (var t in tanks.EnumerateArray())
+                    {
+                        ws.Cell(row, 1).Value = GetStr(site, "siteName");
+                        ws.Cell(row, 2).Value = GetStr(t, "tankName");
+                        ws.Cell(row, 3).Value = GetStr(t, "fuelType");
+                        ws.Cell(row, 4).Value = GetStr(t, "openingBalance");
+                        ws.Cell(row, 5).Value = GetStr(t, "closingBalance");
+                        ws.Cell(row, 6).Value = GetStr(t, "expectedClosing");
+                        ws.Cell(row, 7).Value = t.TryGetProperty("expectedMatch", out var em) && em.GetBoolean() ? "✓" : "!";
+                        ws.Cell(row, 8).Value = t.TryGetProperty("dispensing", out var d) ? GetStr(d, "total") : "";
+                        ws.Cell(row, 9).Value = t.TryGetProperty("delivery", out var dv) ? GetStr(dv, "total") : "";
+                        ws.Cell(row, 10).Value = t.TryGetProperty("transfer", out var tr) ? GetStr(tr, "total") : "";
+                        row++;
+                    }
+                }
+            }
+
+            ws.Columns().AdjustToContents();
+        }
+
+        private static void BuildTransactionsSheet(XLWorkbook wb, JsonElement root, JsonElement siteGroups)
+        {
+            var ws = wb.Worksheets.Add("Transactions");
+            int row = 1;
+
+            ApplyHeaderRow(ws, row, new[] { "#", "Date", "Time", "Site", "Tank", "Vehicle", "Type", "Vol Change (L)", "Balance After (L)", "Operator", "Notes" });
+            row++;
+
+            foreach (var site in siteGroups.EnumerateArray())
+            {
+                if (!site.TryGetProperty("transactionGroups", out var groups)) continue;
+
+                foreach (var grp in groups.EnumerateArray())
+                {
+                    if (!grp.TryGetProperty("rows", out var rows)) continue;
+
+                    foreach (var r in rows.EnumerateArray())
+                    {
+                        ws.Cell(row, 1).Value = r.TryGetProperty("rowNumber", out var rn) ? rn.GetInt32().ToString() : "";
+                        var ts = r.TryGetProperty("timestamp", out var t) ? t : default;
+                        ws.Cell(row, 2).Value = ts.ValueKind != JsonValueKind.Undefined ? GetStr(ts, "date") : "";
+                        ws.Cell(row, 3).Value = ts.ValueKind != JsonValueKind.Undefined ? GetStr(ts, "time") : "";
+                        ws.Cell(row, 4).Value = GetStr(r, "siteName");
+                        ws.Cell(row, 5).Value = GetStr(r, "tankName");
+                        ws.Cell(row, 6).Value = GetStr(r, "vehiclePlate");
+                        ws.Cell(row, 7).Value = GetStr(r, "changeReasonLabel");
+                        ws.Cell(row, 8).Value = GetStr(r, "volumeChange");
+                        ws.Cell(row, 9).Value = GetStr(r, "balanceAfter");
+                        ws.Cell(row, 10).Value = GetStr(r, "operatorName");
+                        ws.Cell(row, 11).Value = GetStr(r, "notes");
+                        row++;
+                    }
+                }
+            }
+
+            if (root.TryGetProperty("summary", out var s))
+            {
+                row++;
+                ws.Cell(row, 7).Value = "TOTAL";
+                ws.Cell(row, 8).Value = GetStr(s, "netBalanceChange");
+                ws.Cell(row, 9).Value = GetStr(s, "grandClosingBalance");
+                ws.Range(row, 1, row, 11).Style.Font.Bold = true;
+                ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#1F2937");
+                ws.Range(row, 1, row, 11).Style.Font.FontColor = XLColor.White;
+            }
+
+            ws.Columns().AdjustToContents();
+        }
+
+        private static void BuildFlatSheet(XLWorkbook wb, JsonElement root, JsonElement rows)
+        {
+            var ws = wb.Worksheets.Add("Data");
+            int row = 1;
+
+            if (rows.GetArrayLength() == 0) return;
+            var first = rows[0];
+            var headers = first.EnumerateObject().Select(p => p.Name).ToArray();
+            ApplyHeaderRow(ws, row, headers);
+            row++;
+
+            foreach (var r in rows.EnumerateArray())
+            {
+                int col = 1;
+                foreach (var h in headers)
+                {
+                    ws.Cell(row, col).Value = r.TryGetProperty(h, out var v) ? v.ToString() : "";
+                    col++;
+                }
+                row++;
+            }
+            ws.Columns().AdjustToContents();
+        }
+
+        private static void ApplyHeaderRow(IXLWorksheet ws, int row, IEnumerable<string> headers)
+        {
+            int col = 1;
+            foreach (var h in headers)
+            {
+                ws.Cell(row, col).Value = h;
+                ws.Cell(row, col).Style.Font.Bold = true;
+                ws.Cell(row, col).Style.Fill.BackgroundColor = XLColor.FromHtml("#1F2937");
+                ws.Cell(row, col).Style.Font.FontColor = XLColor.White;
+                col++;
+            }
+        }
+
+        private static string GetStr(JsonElement el, string key)
+            => el.TryGetProperty(key, out var v) ? v.ToString() : "";
 
         // ─── Template CRUD (delegates to JsReportTemplateManager) ────────────────
 
@@ -250,15 +474,184 @@ namespace FMS.WebClient.Services.Reporting
         public Task<bool> DeleteTemplateAsync(string templateName)
             => _templateManager.DeleteTemplateAsync(templateName);
 
+        // ─── Dispose ──────────────────────────────────────────────────────────────
+
         public async ValueTask DisposeAsync()
         {
+            if (_browser != null)
+            {
+                try { await _browser.CloseAsync(); } catch { /* ignore */ }
+                try { _browser.Dispose(); } catch { /* ignore */ }
+                _browser = null;
+            }
+
             if (_reportingService != null)
                 await _reportingService.KillAsync();
         }
 
-        // ─── Private Helpers ──────────────────────────────────────────────────────
+        // ═══════════════════════════════════════════════════════════════════════════
+        //  PRIVATE HELPERS
+        // ═══════════════════════════════════════════════════════════════════════════
 
-        /// <summary>Loads template content; throws <see cref="FileNotFoundException"/> if missing.</summary>
+        // ─── jsreport Handlebars rendering (HTML only) ────────────────────────────
+
+        /// <summary>
+        /// Loads a named template from disk and renders it with jsreport using
+        /// the Handlebars engine + Html recipe. Returns the rendered HTML string.
+        /// </summary>
+        private async Task<string> RenderTemplateToHtml(string templateName, object data)
+        {
+            var content = await LoadTemplate(templateName);
+            content = _branding.Apply(content);
+            return await RenderRawHtml(content, data);
+        }
+
+        /// <summary>
+        /// Renders an arbitrary HTML+Handlebars string with jsreport (Html recipe only).
+        /// </summary>
+        private async Task<string> RenderRawHtml(string htmlContent, object data)
+        {
+            // Normalize: JToken → ExpandoObject so any downstream serializer
+            // (Newtonsoft or System.Text.Json) produces correct JSON.
+            var normalizedData = NormalizeDataForRendering(data);
+
+            _logger.LogDebug("RenderRawHtml: data type={Type}, template length={Len}",
+                normalizedData?.GetType().Name ?? "null", htmlContent?.Length ?? 0);
+
+            var report = await _reportingService.RenderAsync(new RenderRequest
+            {
+                Template = new Template
+                {
+                    Content = htmlContent,
+                    Engine = Engine.Handlebars,
+                    Recipe = Recipe.Html
+                },
+                Data = normalizedData,
+                Options = BuildRenderOptions(data)
+            });
+
+            using var reader = new StreamReader(report.Content);
+            var html = await reader.ReadToEndAsync();
+
+            // Debug: log a snippet of the rendered HTML to help diagnose data binding issues
+            if (html != null && html.Length > 0)
+            {
+                var hasSiteGroups = html.Contains("site-divider-row", StringComparison.OrdinalIgnoreCase);
+                var hasNoTransactions = html.Contains("No transactions found", StringComparison.OrdinalIgnoreCase);
+                _logger.LogInformation(
+                    "RenderRawHtml complete: {Len} chars, hasSiteGroups={HasSG}, hasNoTxn={HasNoTxn}",
+                    html.Length, hasSiteGroups, hasNoTransactions);
+            }
+
+            return html;
+        }
+
+        // ─── PuppeteerSharp HTML → PDF ────────────────────────────────────────────
+
+        /// <summary>
+        /// Converts rendered HTML to PDF using PuppeteerSharp with system Chrome/Edge.
+        /// Maintains a shared browser instance for efficiency.
+        /// </summary>
+        private async Task<byte[]> ConvertHtmlToPdfAsync(string html, bool landscape = false)
+        {
+            var browser = await GetOrCreateBrowserAsync();
+
+            await using var page = await browser.NewPageAsync();
+
+            // Set the content and wait for fonts/images to load
+            await page.SetContentAsync(html, new NavigationOptions
+            {
+                WaitUntil = [WaitUntilNavigation.Networkidle0],
+                Timeout = 30_000
+            });
+
+            var pdfBytes = await page.PdfDataAsync(new PdfOptions
+            {
+                Format = PaperFormat.A4,
+                Landscape = landscape,
+                PrintBackground = true,
+                DisplayHeaderFooter = true,
+                HeaderTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
+                    <span style=""font-weight:700; color:#1F2937; font-size:10px;"">Hyoung Fleet Management</span>
+                    <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
+                </div>",
+                FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
+                    <span>HYoung EA &mdash; Fleet Management &amp; Fueling Operations</span>
+                    <span>Page <span class=""pageNumber""></span> of <span class=""totalPages""></span></span>
+                </div>",
+                MarginOptions = new MarginOptions
+                {
+                    Top = "50px",
+                    Bottom = "50px",
+                    Left = "20px",
+                    Right = "20px"
+                }
+            });
+
+            return pdfBytes;
+        }
+
+        /// <summary>
+        /// Gets or lazily creates a shared Puppeteer browser instance.
+        /// Thread-safe via SemaphoreSlim.
+        /// </summary>
+        private async Task<IBrowser> GetOrCreateBrowserAsync()
+        {
+            if (_browser != null && _browser.IsConnected)
+                return _browser;
+
+            await _browserLock.WaitAsync();
+            try
+            {
+                // Double-check after acquiring lock
+                if (_browser != null && _browser.IsConnected)
+                    return _browser;
+
+                if (_chromeExePath == null)
+                {
+                    throw new InvalidOperationException(
+                        "No system Chrome or Edge browser found. Install Chrome or Edge to enable PDF rendering. " +
+                        "Checked paths: " + string.Join(", ", ChromeExecutablePaths));
+                }
+
+                _logger.LogInformation("Launching PuppeteerSharp browser: {Path}", _chromeExePath);
+
+                _browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                {
+                    ExecutablePath = _chromeExePath,
+                    Headless = true,
+                    Args =
+                    [
+                        "--no-sandbox",
+                        "--disable-setuid-sandbox",
+                        "--disable-dev-shm-usage",
+                        "--disable-gpu",
+                        "--disable-extensions",
+                        "--disable-background-networking",
+                        "--disable-default-apps",
+                        "--no-first-run",
+                        "--no-zygote"
+                    ]
+                });
+
+                _logger.LogInformation("PuppeteerSharp browser launched successfully (PID: {Pid})",
+                    _browser.Process?.Id ?? -1);
+
+                return _browser;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to launch PuppeteerSharp browser at {Path}", _chromeExePath);
+                throw;
+            }
+            finally
+            {
+                _browserLock.Release();
+            }
+        }
+
+        // ─── Shared helpers ───────────────────────────────────────────────────────
+
         private async Task<string> LoadTemplate(string templateName)
         {
             var content = await _templateManager.GetTemplateAsync(templateName);
@@ -278,111 +671,6 @@ namespace FMS.WebClient.Services.Reporting
             return new RenderOptions { Timeout = timeoutMs };
         }
 
-        /// <summary>
-        /// Writes a jsreport.config.json into the jsreport working directory so the Chrome PDF
-        /// recipe uses the system-installed browser instead of the bundled Chromium.
-        /// The bundled Chromium can fail to spawn on some Windows configurations (spawn UNKNOWN).
-        /// </summary>
-        private void WriteJsReportChromeConfig(string directoryPath, string chromeExePath)
-        {
-            try
-            {
-                if (!Directory.Exists(directoryPath))
-                {
-                    Directory.CreateDirectory(directoryPath);
-                }
-
-                // jsreport reads jsreport.config.json from its working directory
-                var configPath = Path.Combine(directoryPath, "jsreport.config.json");
-                var config = new
-                {
-                    chrome = new
-                    {
-                        launchOptions = new
-                        {
-                            executablePath = chromeExePath,
-                            args = new[] { "--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage" }
-                        }
-                    }
-                };
-                var json = System.Text.Json.JsonSerializer.Serialize(config, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
-                File.WriteAllText(configPath, json);
-                _logger.LogInformation("Written jsreport chrome config to: {Path}", configPath);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Could not write jsreport chrome config to {Path}. PDF rendering may fail.", directoryPath);
-            }
-        }
-
-        /// <summary>
-        /// Kills any stale jsreport daemon processes tracked in the wSock PID file.
-        /// Stale daemons from a previous app run keep their old configuration (without Chrome path)
-        /// and will continue to fail with 'spawn UNKNOWN' until they are restarted.
-        /// </summary>
-        private void KillStaleJsReportDaemons(string jsReportTempPath)
-        {
-            try
-            {
-                // jsreport writes the daemon PID into the wSock folder
-                var wSockDir = Path.Combine(jsReportTempPath, "cli", "wSock");
-                if (!Directory.Exists(wSockDir))
-                {
-                    return;
-                }
-
-                // Terminate any running processes whose PID is listed in the socket files
-                foreach (var pidFile in Directory.GetFiles(wSockDir, "*.pid", SearchOption.TopDirectoryOnly))
-                {
-                    var content = File.ReadAllText(pidFile).Trim();
-                    if (int.TryParse(content, out var pid))
-                    {
-                        try
-                        {
-                            var process = System.Diagnostics.Process.GetProcessById(pid);
-                            if (process != null && !process.HasExited)
-                            {
-                                _logger.LogInformation("Killing stale jsreport daemon (pid {Pid})", pid);
-                                process.Kill(entireProcessTree: true);
-                            }
-                        }
-                        catch (ArgumentException)
-                        {
-                            // Process not found — already gone
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogDebug(ex, "Could not kill stale jsreport daemon (pid {Pid})", pid);
-                        }
-
-                        File.Delete(pidFile);
-                    }
-                }
-
-                // Also delete the wSock directory so jsreport creates a fresh daemon
-                try { Directory.Delete(wSockDir, recursive: true); } catch { /* ignore */ }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogDebug(ex, "Could not clean up stale jsreport daemons.");
-            }
-        }
-
-        private Chrome BuildPdfChromeOptions() => new Chrome
-        {
-            MarginTop           = "20px",
-            MarginBottom        = "45px",
-            MarginLeft          = "20px",
-            MarginRight         = "20px",
-            Format              = "A4",
-            PrintBackground     = true,
-            DisplayHeaderFooter = true,
-            HeaderTemplate      = "<div></div>",
-            FooterTemplate      = @"<div style=""width:100%; padding:0 16px; font-size:9px; color:#6c757d; text-align:right;"">
-                    Page <span class=""pageNumber""></span> of <span class=""totalPages""></span>
-                </div>"
-        };
-
         private int EstimatePayloadSizeBytes(object data)
         {
             if (data == null) return 0;
@@ -394,9 +682,72 @@ namespace FMS.WebClient.Services.Reporting
             }
             catch (Exception ex)
             {
-                _logger.LogDebug(ex, "Failed to estimate JsReport payload size");
+                _logger.LogDebug(ex, "Failed to estimate payload size");
                 return 0;
             }
+        }
+
+        private static bool IsTemplateParseError(Exception ex)
+        {
+            var message = ex.ToString();
+            return message.Contains("parse error", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("OPEN_ENDBLOCK", StringComparison.OrdinalIgnoreCase)
+                || message.Contains("error when evaluating engine handlebars", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static bool TryGetEmbeddedTemplate(string templateName, out string content)
+        {
+            content = templateName switch
+            {
+                "pump-transaction-report" => JsReportHtmlTemplates.PumpTransaction(),
+                "vehicle-consumption-report" => JsReportHtmlTemplates.VehicleConsumption(),
+                "fuel-refill-report" => JsReportHtmlTemplates.FuelRefill(),
+                "fuel-delivery-report" => JsReportHtmlTemplates.FuelDelivery(),
+                "device-offline-report" => JsReportHtmlTemplates.DeviceOffline(),
+                "pts-device-status-report" => JsReportHtmlTemplates.PtsDeviceStatus(),
+                "tank-volume-history-report" => JsReportHtmlTemplates.TankVolumeHistory(),
+                "issue-tracker-report" => JsReportHtmlTemplates.IssueTracker(),
+                "consumption-by-refills-report" => JsReportHtmlTemplates.ConsumptionByRefills(),
+                _ => string.Empty
+            };
+
+            return !string.IsNullOrWhiteSpace(content);
+        }
+
+        private async Task TryRepairTemplateFileAsync(string templateName, string embeddedTemplate)
+        {
+            try
+            {
+                await _templateManager.SaveTemplateAsync(templateName, embeddedTemplate);
+                _logger.LogInformation("Template {Template} repaired using embedded default", templateName);
+            }
+            catch (Exception repairEx)
+            {
+                _logger.LogWarning(repairEx,
+                    "Failed to auto-repair template file for {Template}.",
+                    templateName);
+            }
+        }
+
+        /// <summary>
+        /// Converts JToken (Newtonsoft) data to a serialization-agnostic ExpandoObject.
+        /// This prevents issues when jsreport or System.Text.Json encounters a JToken —
+        /// System.Text.Json serializes JObject as an array of JProperty entries instead
+        /// of a proper JSON object, breaking Handlebars data bindings.
+        /// </summary>
+        private static object NormalizeDataForRendering(object data)
+        {
+            if (data is JToken jt)
+            {
+                // Round-trip: JToken → JSON string → ExpandoObject
+                // The ExpandoObjectConverter ensures objects → ExpandoObject, arrays → List<object>
+                var json = jt.ToString(Formatting.None);
+                var result = JsonConvert.DeserializeObject<System.Dynamic.ExpandoObject>(
+                    json, new Newtonsoft.Json.Converters.ExpandoObjectConverter());
+                return result!;
+            }
+
+            return data;
         }
     }
 }

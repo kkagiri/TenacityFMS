@@ -30,8 +30,8 @@ const VehicleTransferHistory = ({ vehicleId }) => {
   const [showFormPopup, setShowFormPopup] = useState(false);
   const [showDetailsPopup, setShowDetailsPopup] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
-  const { hasRole } = usePermissions();
-  const isAdmin = hasRole("Admin") || hasRole("SuperAdmin");
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission("_Create_VehicleTransfer");
 
   const loadTransferHistory = useCallback(async () => {
     if (!vehicleId) return;

@@ -65,22 +65,6 @@ const ReportOutputViewer = ({
                         disabled={!htmlContent}
                         elementAttr={{ class: 'tw-text-white' }}
                     />
-                    <Button
-                        icon="fa-light fa-file-pdf"
-                        text="PDF"
-                        onClick={() => onDownloadAs('pdf')}
-                        stylingMode="text"
-                        disabled={isGenerating}
-                        elementAttr={{ class: 'tw-text-white' }}
-                    />
-                    <Button
-                        icon="fa-light fa-file-excel"
-                        text="Excel"
-                        onClick={() => onDownloadAs('excel')}
-                        stylingMode="text"
-                        disabled={isGenerating}
-                        elementAttr={{ class: 'tw-text-white' }}
-                    />
                 </div>
             </div>
 

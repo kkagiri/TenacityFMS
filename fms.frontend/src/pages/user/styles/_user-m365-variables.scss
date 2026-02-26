@@ -1,0 +1,65 @@
+/*
+ * File: _user-m365-variables.scss
+ * Purpose: M365 Admin Center design token CSS custom properties for the User Management module
+ * Dependencies: None
+ * Last Modified: 2026-02-25
+ */
+
+:root {
+  // Primary
+  --m365-primary:          #0078d4;
+  --m365-primary-hover:    #106ebe;
+  --m365-primary-pressed:  #005a9e;
+  --m365-primary-tint:     #deecf9;
+
+  // Semantic
+  --m365-success:          #107c10;
+  --m365-success-tint:     #dff6dd;
+  --m365-error:            #d13438;
+  --m365-error-tint:       #fde7e9;
+  --m365-warning:          #ca5010;
+  --m365-warning-tint:     #fff4ce;
+  --m365-info-tint:        #f3f9ff;
+
+  // Text
+  --m365-text:             #201f1e;
+  --m365-text-secondary:   #605e5c;
+  --m365-text-tertiary:    #a19f9d;
+
+  // Borders
+  --m365-border:           #c8c6c4;
+  --m365-border-light:     #edebe9;
+
+  // Backgrounds
+  --m365-bg-hover:         #f3f2f1;
+  --m365-bg-surface:       #faf9f8;
+  --m365-bg-card:          #ffffff;
+
+  // Typography
+  --m365-font:             "Segoe UI", -apple-system, system-ui, sans-serif;
+  --m365-font-body:        13px;
+  --m365-font-heading:     16px;
+  --m365-font-label:       13px;
+  --m365-font-meta:        11px;
+
+  // Spacing
+  --m365-space-xs:         4px;
+  --m365-space-sm:         8px;
+  --m365-space-md:         12px;
+  --m365-space-lg:         16px;
+  --m365-space-xl:         24px;
+
+  // Control heights
+  --m365-control-height:   34px;
+  --m365-control-height-sm: 28px;
+
+  // Radii
+  --m365-radius-sm:        4px;
+  --m365-radius-md:        8px;
+  --m365-radius-lg:        12px;
+
+  // Shadows
+  --m365-shadow-panel:     -8px 0 32px rgba(0, 0, 0, 0.14);
+  --m365-shadow-popover:   0 4px 16px rgba(0, 0, 0, 0.12);
+  --m365-shadow-card:      0 2px 8px rgba(0, 0, 0, 0.08);
+}

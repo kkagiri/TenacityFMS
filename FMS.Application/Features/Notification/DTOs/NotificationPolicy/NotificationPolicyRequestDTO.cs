@@ -2,11 +2,13 @@
  * File: NotificationPolicyRequestDTO.cs
  * Purpose: Defines request payloads used to create notification policies.
  * Dependencies: None
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-02-25
  *
  * Key Classes:
  * - CreateNotificationPolicyRequestDTO: Carries policy settings from API to application layer.
  */
+using System.Collections.Generic;
+
 namespace FMS.Application.Features.Notification.DTOs
 {
     public class CreateNotificationPolicyRequestDTO
@@ -35,5 +37,18 @@ namespace FMS.Application.Features.Notification.DTOs
         /// </summary>
         public string? ActiveAlarmFilter { get; set; }
         public string? CreatedBy { get; set; }
+
+        /// <summary>
+        /// Static recipient user IDs to save to notification_policy_recipient table.
+        /// These users always receive notifications from this policy regardless of site context.
+        /// </summary>
+        public List<string>? RecipientUserIds { get; set; }
+
+        /// <summary>
+        /// Dynamic recipient routing rules in JSON format.
+        /// Stored in NotificationPolicy.RecipientRules column.
+        /// Example: {"dynamicRules":[{"type":"SiteUsers","enabled":true},{"type":"SiteAdmin","enabled":true}]}
+        /// </summary>
+        public string? RecipientRules { get; set; }
     }
 }

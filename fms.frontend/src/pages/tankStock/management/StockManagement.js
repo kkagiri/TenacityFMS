@@ -30,8 +30,8 @@ const StockManagement = () => {
 
   // Get filters from shared context (provided by TankStockLayout)
   const { dateRange } = useStockFilters();
-  const { hasRole } = usePermissions();
-  const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+  const { hasPermission } = usePermissions();
+  const isAdmin = hasPermission('_Update_TankStock');
 
   const [selectedSite] = useState(() => {
     const storedSite = localStorage.getItem('selectedSite');

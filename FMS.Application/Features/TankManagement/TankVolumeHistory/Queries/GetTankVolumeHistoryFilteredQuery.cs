@@ -224,7 +224,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                     VolumeChange = tankStock.ManualAmount ?? 0, // Use ManualAmount for manual dispensing
                     NewVolume = null, // TankStock doesn't track NewVolume for dispensing
                     ChangeReason = VolumeChangeReasonEnum.Dispensing,
-                    ChangeReasonDisplay = VolumeChangeReasonEnum.Dispensing.ToString(),
+                    ChangeReasonDisplay = "Manual Dispensing",
                     ReferenceId = null,
                     RecordedBy = tankStock.RecordedBy ?? "Unknown",
                     RecordedByUserName = tankStock.RecordedBy ?? "Unknown",
@@ -526,7 +526,9 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Queries
                 dto.TankName = history.Tank?.Name ?? "Unknown";
                 dto.Site = history.Tank?.Site?.Name ?? "Unknown";
                 dto.SiteId = history.Tank?.SiteId;
-                dto.ChangeReasonDisplay = history.ChangeReason.ToString();
+                dto.ChangeReasonDisplay = history.ChangeReason == VolumeChangeReasonEnum.Dispensing
+                    ? "Manual Dispensing"
+                    : history.ChangeReason.ToString();
 
                 // Set recorded by user name
                 dto.RecordedByUserName = history.RecordedByNavigation?.UserName ?? "Unknown";

@@ -1,5 +1,53 @@
 import deliveryApi from '../../api/deliveryApi';
 
+const formatLocalDateTimeForApi = (dateInput) => {
+    if (!dateInput) return null;
+
+    const toLocalDateTimeString = (dateValue) => {
+        if (!(dateValue instanceof Date) || Number.isNaN(dateValue.getTime())) {
+            return null;
+        }
+
+        const year = dateValue.getFullYear();
+        const month = String(dateValue.getMonth() + 1).padStart(2, '0');
+        const day = String(dateValue.getDate()).padStart(2, '0');
+        const hours = String(dateValue.getHours()).padStart(2, '0');
+        const minutes = String(dateValue.getMinutes()).padStart(2, '0');
+        const seconds = String(dateValue.getSeconds()).padStart(2, '0');
+
+        return `${year}-${month}-${day}T${hours}:${minutes}:${seconds}`;
+    };
+
+    if (dateInput instanceof Date) {
+        return toLocalDateTimeString(dateInput);
+    }
+
+    if (typeof dateInput === 'string') {
+        const trimmedDate = dateInput.trim();
+        if (!trimmedDate) return null;
+
+        // If an offset/Z is present, convert to local wall-clock time for consistent backend storage.
+        const hasTimezone = /Z$|[+-]\d{2}:?\d{2}$/.test(trimmedDate);
+        if (hasTimezone) {
+            return toLocalDateTimeString(new Date(trimmedDate));
+        }
+
+        // Already local datetime string; strip milliseconds if present.
+        if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$/.test(trimmedDate)) {
+            return trimmedDate.split('.')[0];
+        }
+
+        // Date-only input.
+        if (/^\d{4}-\d{2}-\d{2}$/.test(trimmedDate)) {
+            return `${trimmedDate}T00:00:00`;
+        }
+
+        return toLocalDateTimeString(new Date(trimmedDate));
+    }
+
+    return null;
+};
+
 export const FETCH_DELIVERIES_REQUEST = 'FETCH_DELIVERIES_REQUEST';
 export const FETCH_DELIVERIES_SUCCESS = 'FETCH_DELIVERIES_SUCCESS';
 export const FETCH_DELIVERIES_FAILURE = 'FETCH_DELIVERIES_FAILURE';
@@ -31,7 +79,7 @@ export const fetchDeliveries = () => async (dispatch) => {
     }
 };
 
-export const fetchDeliveriesbyDateRange = (startDate,endDate) => async (dispatch) => {
+export const fetchDeliveriesbyDateRange = (startDate, endDate) => async (dispatch) => {
     dispatch({ type: FETCH_DELIVERIES_REQUEST });
     try {
         const response = await deliveryApi.getDeliveriesByDateRange(startDate, endDate);
@@ -43,7 +91,7 @@ export const fetchDeliveriesbyDateRange = (startDate,endDate) => async (dispatch
     }
 };
 
-export const fetchDeliveriesbyDateRangebySiteId = (startDate,endDate,siteId) => async (dispatch) => {
+export const fetchDeliveriesbyDateRangebySiteId = (startDate, endDate, siteId) => async (dispatch) => {
     dispatch({ type: FETCH_DELIVERIES_REQUEST });
     try {
         const response = await deliveryApi.getDeliveriesByDateRangeAndSite(startDate, endDate, siteId);
@@ -58,32 +106,37 @@ export const fetchDeliveriesbyDateRangebySiteId = (startDate,endDate,siteId) => 
 export const createDelivery = (deliveryDTO) => async (dispatch) => {
     dispatch({ type: CREATE_DELIVERY_REQUEST });
     try {
+        const normalizedDeliveryDTO = {
+            ...deliveryDTO,
+            deliveryDate: formatLocalDateTimeForApi(deliveryDTO.deliveryDate),
+        };
+
         // Validate required fields before API call
-        if (!deliveryDTO.tankId || deliveryDTO.tankId <= 0) {
+        if (!normalizedDeliveryDTO.tankId || normalizedDeliveryDTO.tankId <= 0) {
             const error = 'Invalid Tank ID';
             dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
             return { success: false, message: error };
         }
 
-        if (!deliveryDTO.manualDeliveryAmount || deliveryDTO.manualDeliveryAmount <= 0) {
+        if (!normalizedDeliveryDTO.manualDeliveryAmount || normalizedDeliveryDTO.manualDeliveryAmount <= 0) {
             const error = 'Delivery amount must be greater than 0';
             dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
             return { success: false, message: error };
         }
 
-        if (!deliveryDTO.supplierId || deliveryDTO.supplierId <= 0) {
+        if (!normalizedDeliveryDTO.supplierId || normalizedDeliveryDTO.supplierId <= 0) {
             const error = 'Valid supplier is required';
             dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
             return { success: false, message: error };
         }
 
-        if (deliveryDTO.stockBeforeDelivery < 0) {
+        if (normalizedDeliveryDTO.stockBeforeDelivery < 0) {
             const error = 'Stock before delivery cannot be negative';
             dispatch({ type: CREATE_DELIVERY_FAILURE, payload: error });
             return { success: false, message: error };
         }
 
-        const response = await deliveryApi.createDelivery(deliveryDTO);
+        const response = await deliveryApi.createDelivery(normalizedDeliveryDTO);
 
         if (response.success) {
             dispatch({ type: CREATE_DELIVERY_SUCCESS, payload: response });
@@ -103,7 +156,12 @@ export const createDelivery = (deliveryDTO) => async (dispatch) => {
 export const updateDelivery = (originalDeliveryId, correctionData) => async (dispatch) => {
     dispatch({ type: UPDATE_DELIVERY_REQUEST });
     try {
-        const response = await deliveryApi.updateDelivery(originalDeliveryId, correctionData);
+        const normalizedCorrectionData = {
+            ...correctionData,
+            deliveryDate: formatLocalDateTimeForApi(correctionData.deliveryDate),
+        };
+
+        const response = await deliveryApi.updateDelivery(originalDeliveryId, normalizedCorrectionData);
         if (response.success) {
             dispatch({ type: UPDATE_DELIVERY_SUCCESS, payload: response });
             return response;

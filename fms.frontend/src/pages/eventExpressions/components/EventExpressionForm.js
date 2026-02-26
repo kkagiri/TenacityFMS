@@ -38,6 +38,7 @@ import {
     clearErrors
 } from '../../../redux/slices/eventExpressionSlice';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
+import { fetchAllDepartments } from '../../../redux/actions/userActions';
 import notificationsApi from '../../../dataservice/notificationsApi';
 import axiosInstance from '../../../api/axiosInstance';
 import StepBasicInfo from './steps/StepBasicInfo';
@@ -85,6 +86,7 @@ const EventExpressionForm = () => {
         notificationPolicyId: null,
         cooldownMinutes: 30,
         maxNotificationsPerDay: 0,
+        maxNotificationsPerHour: 0,
         priority: 'Medium',
         createActiveEvent: true,
         messageTemplate: '',
@@ -105,8 +107,13 @@ const EventExpressionForm = () => {
 
     // ─── Recipients ───
     const [selectedUserIds, setSelectedUserIds] = useState([]);
-    const [selectedRoleIds, setSelectedRoleIds] = useState([]);
-    const [users, setUsers] = useState([]);
+    const [recipientRules, setRecipientRules] = useState({
+        dynamicRules: [
+            { type: 'SiteUsers', enabled: false },
+            { type: 'SiteAdmin', enabled: true },
+            { type: 'RolesAtSite', enabled: false, roleIds: [] }
+        ]
+    });
     const [roles, setRoles] = useState([]);
     const [loadingRecipients, setLoadingRecipients] = useState(true);
 
@@ -120,28 +127,19 @@ const EventExpressionForm = () => {
 
     // Lookup data from Redux store
     const sites = useSelector((state) => state.site?.sites || []);
+    const departments = useSelector((state) => state.user?.allDepartments || []);
 
     // ─── Load types, sites, and recipient options on mount ───
     useEffect(() => {
         dispatch(fetchEventExpressionTypes());
         dispatch(fetchSiteList());
+        dispatch(fetchAllDepartments());
 
-        // Load user/role lists for recipient picker
+        // Load role list for dynamic-rule role picker
         (async () => {
             setLoadingRecipients(true);
             try {
-                const [usersRes, rolesRes] = await Promise.all([
-                    notificationsApi.searchUsers('', 200),
-                    notificationsApi.searchRoles('', 100)
-                ]);
-                if (usersRes.isSuccess) {
-                    setUsers(
-                        (usersRes.data || []).map((u) => ({
-                            value: u.id,
-                            text: u.userName || u.email || u.id
-                        }))
-                    );
-                }
+                const rolesRes = await notificationsApi.searchRoles('', 100);
                 if (rolesRes.isSuccess) {
                     setRoles(
                         (rolesRes.data || []).map((r) => ({
@@ -151,7 +149,7 @@ const EventExpressionForm = () => {
                     );
                 }
             } catch (err) {
-                console.error('Failed to load recipients:', err);
+                console.error('Failed to load roles:', err);
             } finally {
                 setLoadingRecipients(false);
             }
@@ -213,6 +211,7 @@ const EventExpressionForm = () => {
                 notificationPolicyId: selectedExpression.notificationPolicyId,
                 cooldownMinutes: selectedExpression.cooldownMinutes || 30,
                 maxNotificationsPerDay: selectedExpression.maxNotificationsPerDay || 0,
+                maxNotificationsPerHour: selectedExpression.maxNotificationsPerHour || 0,
                 priority: selectedExpression.priority || 'Medium',
                 createActiveEvent: selectedExpression.createActiveEvent ?? true,
                 messageTemplate: selectedExpression.messageTemplate || '',
@@ -238,14 +237,20 @@ const EventExpressionForm = () => {
                                 titleTemplate: p.titleTemplate || '',
                                 isActive: p.isActive ?? true
                             });
-                            // Load existing recipients
+                            // Load existing static recipients
                             if (p.recipients && Array.isArray(p.recipients)) {
                                 setSelectedUserIds(
                                     p.recipients.filter((r) => r.userId).map((r) => r.userId)
                                 );
-                                setSelectedRoleIds(
-                                    p.recipients.filter((r) => r.roleId).map((r) => r.roleId)
-                                );
+                            }
+                            // Load existing dynamic routing rules
+                            if (p.recipientRules) {
+                                try {
+                                    const parsed = JSON.parse(p.recipientRules);
+                                    if (parsed && parsed.dynamicRules) {
+                                        setRecipientRules(parsed);
+                                    }
+                                } catch { /* ignore bad JSON */ }
                             }
                         }
                     } catch (err) {
@@ -493,7 +498,7 @@ const EventExpressionForm = () => {
                     requireAcknowledgment: policyData.requireAcknowledgment,
                     isActive: policyData.isActive,
                     recipientUserIds: selectedUserIds,
-                    recipientRoleIds: selectedRoleIds
+                    recipientRules: JSON.stringify(recipientRules)
                 };
 
                 let policyId = formData.notificationPolicyId;
@@ -551,6 +556,7 @@ const EventExpressionForm = () => {
                     notificationPolicyId: policyId,
                     cooldownMinutes: formData.cooldownMinutes,
                     maxNotificationsPerDay: formData.maxNotificationsPerDay,
+                    maxNotificationsPerHour: formData.maxNotificationsPerHour,
                     priority: formData.priority,
                     createActiveEvent: formData.createActiveEvent,
                     messageTemplate: formData.messageTemplate,
@@ -590,7 +596,7 @@ const EventExpressionForm = () => {
             formData,
             policyData,
             selectedUserIds,
-            selectedRoleIds,
+            recipientRules,
             selectedTypeMetadata,
             id,
             isEditing,
@@ -702,10 +708,11 @@ const EventExpressionForm = () => {
                         <StepRecipients
                             selectedUserIds={selectedUserIds}
                             onUserIdsChange={setSelectedUserIds}
-                            selectedRoleIds={selectedRoleIds}
-                            onRoleIdsChange={setSelectedRoleIds}
-                            users={users}
+                            recipientRules={recipientRules}
+                            onRecipientRulesChange={setRecipientRules}
                             roles={roles}
+                            sites={sites}
+                            departments={departments}
                             loadingData={loadingRecipients}
                         />
                     </AccordionItem>

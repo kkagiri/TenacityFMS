@@ -1,0 +1,536 @@
+/**
+ * File:          m365-shared.scss
+ * Purpose:       M365 Admin Center design tokens and shared component styles
+ * Dependencies:  None
+ * Last Modified: 2026-02-25
+ *
+ * Key Patterns:
+ * - CSS custom properties for M365 color tokens
+ * - BEM naming: m365-* prefix
+ * - Compact density: 34px control heights, 13px body text
+ */
+
+// ── M365 Design Tokens ──
+:root {
+  --m365-primary: #0078d4;
+  --m365-primary-hover: #106ebe;
+  --m365-primary-pressed: #005a9e;
+  --m365-success: #107c10;
+  --m365-error: #d13438;
+  --m365-warning: #ca5010;
+  --m365-info: #0078d4;
+
+  --m365-text: #201f1e;
+  --m365-text-secondary: #605e5c;
+  --m365-text-tertiary: #a19f9d;
+  --m365-border: #c8c6c4;
+  --m365-border-light: #edebe9;
+  --m365-bg-hover: #f3f2f1;
+  --m365-bg-surface: #faf9f8;
+  --m365-bg-card: #ffffff;
+  --m365-selected-bg: #e5f1fb;
+
+  --m365-blue-bg: #deecf9;
+  --m365-red-bg: #fde7e9;
+  --m365-green-bg: #dff6dd;
+  --m365-orange-bg: #fff4ce;
+  --m365-teal-bg: #e0f2f1;
+  --m365-purple-bg: #f3e8fd;
+
+  --m365-font:  "Segoe UI", -apple-system, system-ui, sans-serif;
+  --m365-radius: 4px;
+  --m365-radius-card: 8px;
+
+  // Extended radii
+  --m365-radius-sm:       4px;
+  --m365-radius-md:       8px;
+  --m365-radius-lg:       12px;
+
+  // Tint aliases (matching user page design tokens)
+  --m365-primary-tint:    #deecf9;
+  --m365-success-tint:    #dff6dd;
+  --m365-error-tint:      #fde7e9;
+  --m365-warning-tint:    #fff4ce;
+
+  // Typography scale
+  --m365-font-body:       13px;
+  --m365-font-heading:    16px;
+  --m365-font-label:      13px;
+  --m365-font-meta:       11px;
+
+  // Spacing scale
+  --m365-space-xs:        4px;
+  --m365-space-sm:        8px;
+  --m365-space-md:        12px;
+  --m365-space-lg:        16px;
+  --m365-space-xl:        24px;
+
+  // Control heights
+  --m365-control-height:     34px;
+  --m365-control-height-sm:  28px;
+
+  // Shadows
+  --m365-shadow-panel:    -8px 0 32px rgba(0, 0, 0, 0.14);
+  --m365-shadow-popover:  0 4px 16px rgba(0, 0, 0, 0.12);
+  --m365-shadow-card:     0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+// ── Buttons ──
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  font-family: var(--m365-font);
+  border-radius: var(--m365-radius);
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+
+  &--primary  { background: var(--m365-primary); color: #fff; &:hover { background: var(--m365-primary-hover); } }
+  &--ghost    { background: #fff; color: #323130; border: 1px solid var(--m365-border); &:hover { background: var(--m365-bg-hover); } }
+  &--text     { background: transparent; color: var(--m365-text-secondary); padding: 0 8px; &:hover { color: var(--m365-text); } }
+  &--danger   { background: var(--m365-error); color: #fff; &:hover { background: #a4262c; } }
+  &--success  { background: var(--m365-success); color: #fff; &:hover { background: #0b6a0b; } }
+
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+  i { font-size: 14px; }
+}
+
+// ── Icon-Only Button ──
+.m365-icon-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--m365-text-tertiary);
+  background: transparent;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover { color: var(--m365-primary); background: var(--m365-blue-bg); border-color: var(--m365-primary); }
+  &--danger:hover { color: var(--m365-error); background: var(--m365-red-bg); border-color: var(--m365-error); }
+  &--success:hover { color: var(--m365-success); background: var(--m365-green-bg); border-color: var(--m365-success); }
+}
+
+// ── Form Controls ──
+.m365-input {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--m365-font);
+  color: var(--m365-text);
+  background: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: var(--m365-radius);
+  outline: none;
+  transition: border-color 0.15s;
+
+  &::placeholder { color: var(--m365-text-tertiary); }
+  &:hover { border-color: var(--m365-text-secondary); }
+  &:focus { border-color: var(--m365-primary); box-shadow: 0 0 0 1px var(--m365-primary); }
+  &:disabled { background: var(--m365-bg-hover); color: var(--m365-text-tertiary); }
+  &--error   { border-color: var(--m365-error); &:focus { box-shadow: 0 0 0 1px var(--m365-error); } }
+}
+
+.m365-select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+  font-weight: 400;
+  font-family: var(--m365-font);
+  color: var(--m365-text);
+  background: #fff;
+  border: 1px solid var(--m365-border);
+  border-radius: var(--m365-radius);
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:hover { border-color: var(--m365-text-secondary); }
+  &:focus { border-color: var(--m365-primary); box-shadow: 0 0 0 1px var(--m365-primary); }
+  &:disabled { background: var(--m365-bg-hover); color: var(--m365-text-tertiary); cursor: not-allowed; }
+}
+
+.m365-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--m365-text);
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--m365-primary);
+    cursor: pointer;
+  }
+}
+
+// ── Search ──
+.m365-search {
+  position: relative;
+  display: flex;
+  align-items: center;
+
+  &__icon {
+    position: absolute;
+    left: 10px;
+    font-size: 13px;
+    color: var(--m365-text-tertiary);
+    pointer-events: none;
+  }
+
+  &__input {
+    @extend .m365-input;
+    padding-left: 32px;
+    width: 100%;
+  }
+}
+
+// ── Badges ──
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+
+  &--neutral { background: var(--m365-bg-hover);    color: var(--m365-text-secondary); }
+  &--primary { background: var(--m365-blue-bg);    color: var(--m365-primary); }
+  &--success { background: var(--m365-green-bg);   color: var(--m365-success); }
+  &--error   { background: var(--m365-red-bg);     color: var(--m365-error); }
+  &--warning { background: var(--m365-orange-bg);  color: var(--m365-warning); }
+  &--danger  { background: var(--m365-red-bg);     color: var(--m365-error); }   // alias: same as error
+  &--info    { background: var(--m365-blue-bg);    color: var(--m365-primary); }  // alias: same as primary
+}
+
+// ── Page Header ──
+.m365-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--m365-border-light);
+
+  &__left   { display: flex; align-items: center; gap: 10px; }
+  &__icon   { font-size: 16px; color: var(--m365-primary); }
+  &__title  { font-size: 16px; font-weight: 600; color: var(--m365-text); margin: 0; display: flex; align-items: center; gap: 8px; }
+  &__count  {
+    min-width: 20px; height: 20px; padding: 0 6px; border-radius: 10px;
+    font-size: 11px; font-weight: 600; background: var(--m365-border-light); color: var(--m365-text-secondary);
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+  &__actions { display: flex; align-items: center; gap: 8px; }
+}
+
+// ── Tabs ──
+.m365-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+.m365-tab {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 16px;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--m365-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: var(--m365-font);
+
+  &:hover { color: var(--m365-text); }
+
+  &--active {
+    color: var(--m365-primary);
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background: var(--m365-primary);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+.m365-tab-count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--m365-border-light);
+  color: var(--m365-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// ── Filter Bar ──
+.m365-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: #fff;
+  border-bottom: 1px solid var(--m365-bg-hover);
+}
+
+// ── Section Group ──
+.m365-section-group {
+  background: #fff;
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  margin-bottom: 16px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--m365-bg-hover);
+  }
+
+  &__icon  { font-size: 15px; color: var(--m365-primary); }
+  &__title { font-size: 14px; font-weight: 600; color: var(--m365-text); margin: 0; flex: 1; }
+  &__body  { padding: 16px; }
+  &__actions { display: flex; gap: 4px; }
+}
+
+// ── Info Row ──
+.m365-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--m365-bg-hover);
+  font-size: 13px;
+
+  &:last-child { border-bottom: none; }
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--m365-text-secondary);
+
+    i { width: 16px; text-align: center; font-size: 13px; }
+  }
+
+  &__value {
+    font-weight: 500;
+    color: var(--m365-text);
+  }
+}
+
+// ── Field ──
+.m365-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
+    display: flex;
+    align-items: center;
+  }
+
+  &__required { color: var(--m365-error); margin-left: 2px; }
+  &__hint  { font-size: 12px; color: var(--m365-text-tertiary); }
+  &__error { font-size: 12px; color: var(--m365-error); }
+}
+
+// ── Responsive ──
+// ── Command Bar Divider ──────────────────────────────────────────────────────
+.m365-cmd-divider {
+  width: 1px;
+  height: 20px;
+  background: var(--m365-border-light);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+
+// ── Stats Row ─────────────────────────────────────────────────────────────────
+.m365-stats-row {
+  display: flex;
+  gap: 0;
+  padding: 0 24px;
+  background: var(--m365-bg-card);
+  border-bottom: 1px solid var(--m365-border-light);
+}
+
+.m365-stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 12px 24px;
+  min-width: 100px;
+  border-right: 1px solid var(--m365-border-light);
+
+  &:last-child { border-right: none; }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--m365-text);
+    line-height: 1.2;
+  }
+
+  &__label {
+    font-size: 11px;
+    color: var(--m365-text-secondary);
+    margin-top: 2px;
+    white-space: nowrap;
+  }
+}
+
+// ── Info Grid (2-col label/value layout — M365 Admin Center style) ─────────────
+.m365-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-card);
+  overflow: hidden;
+  margin-bottom: 8px;
+
+  @media (max-width: 480px) { grid-template-columns: 1fr; }
+}
+
+.m365-info-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--m365-border-light);
+  border-right: 1px solid var(--m365-border-light);
+
+  &:nth-child(2n)      { border-right: none; }      // right column — no right border
+  &:nth-last-child(-n+2) { border-bottom: none; }    // last row — no bottom border
+
+  &__label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    margin-bottom: 4px;
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
+  }
+
+  &__link {
+    margin-top: 4px;
+    font-size: 12px;
+    color: var(--m365-primary);
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    text-align: left;
+    font-family: var(--m365-font);
+    &:hover { text-decoration: underline; }
+  }
+}
+
+// ── Flat Section (borderless heading above info grid) ─────────────────────────
+.m365-flat-section {
+  margin-bottom: 20px;
+  padding-top: 16px;
+  border-top: 1px solid var(--m365-border-light);
+
+  &:first-of-type {
+    padding-top: 0;
+    border-top: none;
+  }
+
+  &__title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    margin: 0 0 10px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    i { color: var(--m365-primary); font-size: 13px; }
+  }
+}
+
+// ── Detail Content wrapper ────────────────────────────────────────────────────
+.m365-detail-content {
+  padding: 0;
+}
+
+// ── Empty State (generic — override per-module for custom icons) ──────────────
+.m365-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 24px;
+  text-align: center;
+
+  &__icon  { font-size: 48px; color: var(--m365-border); margin-bottom: 16px; }
+  &__title { font-size: 16px; font-weight: 600; color: var(--m365-text); margin: 0 0 8px; }
+  &__subtitle,
+  &__hint,
+  &__text  { font-size: 13px; color: var(--m365-text-secondary); margin: 0; max-width: 420px; }
+}
+
+@media (max-width: 640px) {
+  .m365-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 16px;
+  }
+
+  .m365-filters {
+    padding: 8px 16px;
+    .m365-select, .m365-input { flex: 1; min-width: 0; }
+  }
+
+  .m365-tabs {
+    padding: 0 16px;
+    overflow-x: auto;
+  }
+}

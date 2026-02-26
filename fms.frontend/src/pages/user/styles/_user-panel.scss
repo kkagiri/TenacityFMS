@@ -1,0 +1,1036 @@
+/*
+ * File: _user-panel.scss
+ * Purpose: M365 slide-in panel / detail panel styles for User Management
+ * Dependencies: _user-m365-variables.scss
+ * Last Modified: 2026-02-25
+ */
+
+// -------------------------------------------------
+// Slide-in panel overlay
+// -------------------------------------------------
+.m365-panel-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 400;
+  animation: m365-overlay-fade 0.2s ease;
+}
+
+@keyframes m365-overlay-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.m365-panel {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 420px;
+  max-width: 100vw;
+  height: 100vh;
+  background: var(--m365-bg-card);
+  box-shadow: var(--m365-shadow-panel);
+  display: flex;
+  flex-direction: column;
+  z-index: 401;
+  animation: m365-panel-slide 0.25s cubic-bezier(0.1, 0.9, 0.2, 1);
+
+  &--wide { width: 560px; }
+}
+
+@keyframes m365-panel-slide {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+// -------------------------------------------------
+// Panel header
+// -------------------------------------------------
+.m365-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--m365-border-light);
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__title {
+    font-size: var(--m365-font-heading);
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+  }
+
+  &__subtitle {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-secondary);
+    margin: 2px 0 0;
+  }
+}
+
+// -------------------------------------------------
+// Panel body (scrollable)
+// -------------------------------------------------
+.m365-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+// -------------------------------------------------
+// Panel footer (actions)
+// -------------------------------------------------
+.m365-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--m365-border-light);
+  flex-shrink: 0;
+  background: var(--m365-bg-surface);
+}
+
+// -------------------------------------------------
+// Section group inside panel (bordered — used in edit mode)
+// -------------------------------------------------
+.m365-section-group {
+  background: var(--m365-bg-card);
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-md);
+  margin-bottom: 16px;
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--m365-bg-hover);
+  }
+
+  &__icon {
+    font-size: 15px;
+    color: var(--m365-primary);
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+    flex: 1;
+  }
+
+  &__body {
+    padding: 16px;
+  }
+}
+
+// -------------------------------------------------
+// Flat section title (M365 style — no border/card)
+// -------------------------------------------------
+.m365-flat-section {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--m365-border-light);
+
+  &__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--m365-text);
+    margin: 0 0 12px;
+  }
+}
+
+// -------------------------------------------------
+// Info grid — 2-column layout (M365 Account tab)
+// -------------------------------------------------
+.m365-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.m365-info-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 12px 4px;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin-bottom: 2px;
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--m365-text-secondary);
+    line-height: 1.5;
+    word-break: break-word;
+  }
+
+  &__link {
+    background: none;
+    border: none;
+    padding: 0;
+    margin-top: 2px;
+    font-size: 13px;
+    color: var(--m365-primary);
+    cursor: pointer;
+    text-align: left;
+    font-weight: 400;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+}
+
+// -------------------------------------------------
+// Info row (label + value) — legacy, used in some views
+// -------------------------------------------------
+.m365-info-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 6px 0;
+  font-size: var(--m365-font-body);
+
+  &:last-child { border-bottom: none; }
+
+  &__label {
+    color: var(--m365-text-secondary);
+    flex: 0 0 140px;
+    font-size: var(--m365-font-meta);
+  }
+
+  &__value {
+    color: var(--m365-text);
+    flex: 1;
+    font-weight: 500;
+  }
+}
+
+// -------------------------------------------------
+// User detail avatar header
+// -------------------------------------------------
+.m365-user-detail-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  background: var(--m365-bg-surface);
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-md);
+  margin-bottom: 16px;
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+  }
+
+  &__email {
+    font-size: var(--m365-font-body);
+    color: var(--m365-text-secondary);
+    margin: 2px 0 0;
+  }
+
+  &__badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+}
+
+// -------------------------------------------------
+// Detail panel — close row
+// -------------------------------------------------
+.m365-detail-close-row {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px 0;
+  flex-shrink: 0;
+}
+
+// -------------------------------------------------
+// Detail panel — profile header (M365 horizontal)
+// -------------------------------------------------
+.m365-detail-profile {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--m365-border-light);
+  flex-shrink: 0;
+
+  &__body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 2px;
+    line-height: 1.3;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+
+  &__email {
+    font-size: var(--m365-font-body);
+    color: var(--m365-text-secondary);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    flex-wrap: wrap;
+    margin-top: 4px;
+  }
+}
+
+.m365-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 500;
+  color: var(--m365-primary);
+  background: none;
+  border: none;
+  border-radius: var(--m365-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  white-space: nowrap;
+
+  i { font-size: 14px; }
+
+  &:hover {
+    background: var(--m365-primary-tint);
+    color: var(--m365-primary-hover);
+  }
+
+  &--danger {
+    color: var(--m365-error);
+
+    &:hover {
+      background: var(--m365-error-tint);
+      color: var(--m365-error);
+    }
+  }
+}
+
+// -------------------------------------------------
+// Detail panel — tabs
+// -------------------------------------------------
+.m365-detail-tabs {
+  display: flex;
+  gap: 0;
+  padding: 0 16px;
+  border-bottom: 1px solid var(--m365-border-light);
+  flex-shrink: 0;
+  background: var(--m365-bg-card);
+}
+
+.m365-detail-tab {
+  position: relative;
+  padding: 10px 16px;
+  font-family: var(--m365-font);
+  font-size: var(--m365-font-body);
+  font-weight: 500;
+  color: var(--m365-text-secondary);
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.15s;
+  white-space: nowrap;
+
+  &:hover {
+    color: var(--m365-text);
+  }
+
+  &--active {
+    color: var(--m365-primary);
+
+    &::after {
+      content: '';
+      position: absolute;
+      bottom: -1px;
+      left: 12px;
+      right: 12px;
+      height: 2px;
+      background: var(--m365-primary);
+      border-radius: 2px 2px 0 0;
+    }
+  }
+}
+
+// -------------------------------------------------
+// Detail panel — content area
+// -------------------------------------------------
+.m365-detail-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+}
+
+// -------------------------------------------------
+// Detail panel — edit form
+// -------------------------------------------------
+.m365-edit-form {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px 20px;
+
+  .m365-form-group {
+    margin-bottom: 14px;
+
+    label {
+      display: block;
+      font-size: var(--m365-font-label);
+      font-weight: 500;
+      color: var(--m365-text-secondary);
+      margin-bottom: 4px;
+    }
+
+    input, select {
+      width: 100%;
+      height: var(--m365-control-height);
+      padding: 0 10px;
+      font-family: var(--m365-font);
+      font-size: var(--m365-font-body);
+      color: var(--m365-text);
+      background: var(--m365-bg-card);
+      border: 1px solid var(--m365-border);
+      border-radius: var(--m365-radius-sm);
+      outline: none;
+      transition: border-color 0.15s;
+      box-sizing: border-box;
+
+      &:focus {
+        border-color: var(--m365-primary);
+      }
+    }
+  }
+
+  .m365-checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-top: 14px;
+
+    input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--m365-primary);
+    }
+
+    label {
+      font-size: var(--m365-font-body);
+      color: var(--m365-text);
+      margin: 0;
+      cursor: pointer;
+    }
+  }
+}
+
+// Error state for inputs
+.m365-input--error,
+.m365-select--error {
+  border-color: var(--m365-error) !important;
+}
+
+// -------------------------------------------------
+// Info tooltip icon (i) — custom tooltip above panel
+// -------------------------------------------------
+.m365-info-tooltip {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 4px;
+  color: var(--m365-text-tertiary);
+  cursor: help;
+  font-size: 13px;
+  position: relative;
+
+  &:hover {
+    color: var(--m365-primary);
+  }
+
+  &[data-tip] {
+    &::after {
+      content: attr(data-tip);
+      position: absolute;
+      bottom: calc(100% + 6px);
+      left: 50%;
+      transform: translateX(-50%);
+      white-space: nowrap;
+      padding: 6px 10px;
+      font-size: 12px;
+      font-weight: 400;
+      color: #fff;
+      background: #323130;
+      border-radius: 4px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.22);
+      z-index: 10010;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.15s;
+    }
+
+    &:hover::after {
+      opacity: 1;
+    }
+  }
+}
+
+// -------------------------------------------------
+// Edit fields container (flat, no border)
+// -------------------------------------------------
+.m365-edit-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+// -------------------------------------------------
+// Site admin badge
+// -------------------------------------------------
+.m365-site-row__admin-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: 8px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--m365-primary);
+  background: var(--m365-primary-tint);
+  border-radius: 9px;
+  white-space: nowrap;
+
+  i { font-size: 10px; }
+}
+
+// Small button variant
+.m365-btn--sm {
+  height: var(--m365-control-height-sm);
+  padding: 0 12px;
+  font-size: var(--m365-font-meta);
+}
+
+// -------------------------------------------------
+// Activities tab
+// -------------------------------------------------
+.m365-activities-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+// Sign-in summary card
+.m365-signin-summary {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  background: var(--m365-info-tint, #deecf9);
+  border: 1px solid var(--m365-primary-tint);
+  border-radius: var(--m365-radius-md);
+
+  &--clickable {
+    cursor: pointer;
+    transition: background 0.15s, box-shadow 0.15s;
+
+    &:hover {
+      background: #cfe0f0;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--m365-primary-tint);
+    color: var(--m365-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  &__content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-primary);
+  }
+
+  &__last {
+    font-weight: 400;
+    color: var(--m365-text-secondary);
+  }
+
+  &__arrow {
+    color: var(--m365-text-secondary);
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+}
+
+// ── Sign-in detail view (M365 table) ───────────────────────────────────
+.m365-signin-detail {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+
+  &__back {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--m365-text-secondary);
+    font-size: 16px;
+    padding: 4px 0;
+    align-self: flex-start;
+    margin-bottom: 12px;
+
+    &:hover {
+      color: var(--m365-primary);
+    }
+  }
+
+  &__title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 8px 0;
+  }
+
+  &__desc {
+    font-size: 13px;
+    color: var(--m365-text-secondary);
+    line-height: 1.5;
+    margin: 0 0 16px 0;
+  }
+
+  &__stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+  }
+
+  &__stat {
+    font-size: 13px;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    &--success {
+      color: var(--m365-success, #107c10);
+    }
+
+    &--failure {
+      color: var(--m365-error, #a4262c);
+    }
+  }
+}
+
+// Sign-in table (M365-style)
+.m365-signin-table {
+  border-top: 1px solid var(--m365-border);
+
+  &__header {
+    display: flex;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--m365-border);
+  }
+
+  &__header &__col {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    text-transform: none;
+  }
+
+  &__row {
+    display: flex;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--m365-border-light, #f3f2f1);
+    align-items: flex-start;
+
+    &:hover {
+      background: var(--m365-hover);
+    }
+  }
+
+  &__col {
+    font-size: 13px;
+    color: var(--m365-text);
+
+    &--date {
+      flex: 2;
+      min-width: 0;
+    }
+
+    &--status {
+      flex: 1;
+      font-weight: 600;
+    }
+
+    &--ip {
+      flex: 1;
+      color: var(--m365-text-secondary);
+    }
+  }
+}
+
+.m365-signin-status {
+  &--success {
+    color: var(--m365-success, #107c10);
+  }
+
+  &--failure {
+    color: var(--m365-error, #a4262c);
+  }
+}
+
+// Activity day group
+.m365-activity-day {
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 0 0 6px;
+    border-bottom: 1px solid var(--m365-border-light);
+    margin-bottom: 4px;
+  }
+}
+
+// Activity list (timeline)
+.m365-activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.m365-activity-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 10px 4px;
+  border-bottom: 1px solid var(--m365-border-light);
+  transition: background 0.12s;
+
+  &:last-child { border-bottom: none; }
+
+  &:hover {
+    background: var(--m365-bg-hover);
+    border-radius: var(--m365-radius-sm);
+  }
+
+  &__icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 50%;
+    background: var(--m365-primary-tint);
+    color: var(--m365-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+  }
+
+  &__content {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__action {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__controller,
+  &__ip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+
+    i { font-size: 11px; }
+  }
+
+  &__detail {
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+  }
+
+  &__time {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+    white-space: nowrap;
+    flex-shrink: 0;
+    margin-top: 4px;
+  }
+}
+
+// -------------------------------------------------
+// Sites tab
+// -------------------------------------------------
+.m365-sites-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+
+  &__summary {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 14px;
+    background: var(--m365-info-tint);
+    border: 1px solid var(--m365-primary-tint);
+    border-radius: var(--m365-radius-md);
+    font-size: var(--m365-font-body);
+    font-weight: 500;
+    color: var(--m365-primary);
+
+    i { font-size: 16px; }
+  }
+}
+
+.m365-sites-section {
+  &__title {
+    font-size: var(--m365-font-body);
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    i { font-size: 13px; }
+  }
+
+  &__count {
+    font-size: var(--m365-font-meta);
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+    background: var(--m365-bg-hover);
+    padding: 1px 8px;
+    border-radius: 9px;
+    margin-left: 2px;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__empty {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 16px;
+    background: var(--m365-bg-surface);
+    border: 1px dashed var(--m365-border);
+    border-radius: var(--m365-radius-sm);
+    font-size: var(--m365-font-body);
+    color: var(--m365-text-secondary);
+
+    i { color: var(--m365-text-tertiary); }
+  }
+}
+
+.m365-site-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  border: 1px solid var(--m365-border-light);
+  border-radius: var(--m365-radius-sm);
+  font-size: var(--m365-font-body);
+  background: var(--m365-bg-card);
+  transition: background 0.12s, border-color 0.12s;
+
+  &:hover {
+    background: var(--m365-bg-hover);
+    border-color: var(--m365-border);
+  }
+
+  &__icon-wrap {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: var(--m365-primary-tint);
+    color: var(--m365-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    flex-shrink: 0;
+
+    &--muted {
+      background: var(--m365-bg-hover);
+      color: var(--m365-text-tertiary);
+    }
+  }
+
+  &__info {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+  }
+
+  &__name {
+    font-size: var(--m365-font-body);
+    font-weight: 500;
+    color: var(--m365-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__location {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__action {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    background: none;
+    border: none;
+    border-radius: var(--m365-radius-sm);
+    font-size: 16px;
+    flex-shrink: 0;
+    transition: all 0.15s;
+
+    &--remove {
+      color: var(--m365-text-tertiary);
+      &:hover {
+        color: var(--m365-error);
+        background: var(--m365-error-tint);
+      }
+    }
+
+    &--add {
+      color: var(--m365-text-tertiary);
+      &:hover {
+        color: var(--m365-primary);
+        background: var(--m365-primary-tint);
+      }
+    }
+  }
+
+  &--available {
+    border-style: dashed;
+  }
+}
+
+// -------------------------------------------------
+// Empty state
+// -------------------------------------------------
+.m365-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 16px;
+  text-align: center;
+
+  &__icon {
+    font-size: 32px;
+    color: var(--m365-text-tertiary);
+    margin-bottom: 12px;
+  }
+
+  &__text {
+    font-size: var(--m365-font-body);
+    color: var(--m365-text-secondary);
+    margin: 0;
+  }
+
+  &__sub {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-tertiary);
+    margin: 4px 0 0;
+  }
+}
+
+// Mobile
+@media (max-width: 640px) {
+  .m365-panel {
+    width: 100vw;
+    &--wide { width: 100vw; }
+  }
+}

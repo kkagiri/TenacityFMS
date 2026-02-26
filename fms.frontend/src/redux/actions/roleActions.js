@@ -104,3 +104,46 @@ export const updateRole = (roleId, roleDetails) => async (dispatch) => {
     return { success: false, message: error.message || "Error updating role" };
   }
 };
+
+export const cloneRole = (roleId, newRoleName, description) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.post(`/role/${roleId}/clone`, {
+      newRoleName,
+      description,
+    });
+    // Refresh the roles list after cloning
+    dispatch(fetchRoles());
+    return response.data;
+  } catch (error) {
+    return { isSuccess: false, message: error.response?.data?.message || error.message || "Error cloning role" };
+  }
+};
+
+export const createRole = (roleName, description) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.post(`/role`, {
+      roleName,
+      description,
+    });
+    dispatch(fetchRoles());
+    return { isSuccess: true, data: response.data, message: "Role created successfully" };
+  } catch (error) {
+    return { isSuccess: false, message: error.response?.data?.message || error.message || "Error creating role" };
+  }
+};
+
+export const deleteRole = (roleId) => async (dispatch) => {
+  try {
+    const response = await axiosInstance.delete(`/role/${roleId}`);
+    const data = response.data;
+    if (data?.isSuccess) {
+      dispatch(fetchRoles());
+      dispatch(setSelectedRole(null));
+      return { isSuccess: true, message: data.message || "Role deleted successfully" };
+    }
+    return { isSuccess: false, message: data?.message || "Failed to delete role" };
+  } catch (error) {
+    const msg = error.response?.data?.message || error.message || "Error deleting role";
+    return { isSuccess: false, message: msg };
+  }
+};

@@ -4,26 +4,40 @@ import Popover from "devextreme-react/popover";
 import List from "devextreme-react/list";
 import "./UserPanel.scss";
 import { logout } from "../../redux/actions/AuthActions";
+import ChangePasswordPopup from "./ChangePasswordPopup";
 
 export default function UserPanel({ menuMode }) {
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user);
   const [popoverVisible, setPopoverVisible] = useState(false);
+  const [changePasswordVisible, setChangePasswordVisible] = useState(false);
 
   const handleLogout = useCallback(() => {
     setPopoverVisible(false);
     dispatch(logout());
   }, [dispatch]);
 
+  const handleOpenChangePassword = useCallback(() => {
+    setPopoverVisible(false);
+    setChangePasswordVisible(true);
+  }, []);
+
   const menuItems = useMemo(
     () => [
       {
+        text: "Change Password",
+        icon: "key",
+        faIcon: "fa-light fa-key",
+        onClick: handleOpenChangePassword,
+      },
+      {
         text: "Logout",
         icon: "runner",
+        faIcon: "fa-light fa-arrow-right-from-bracket",
         onClick: handleLogout,
       },
     ],
-    [handleLogout]
+    [handleLogout, handleOpenChangePassword]
   );
 
   // Listen for user button clicks to toggle popover
@@ -71,7 +85,7 @@ export default function UserPanel({ menuMode }) {
                   className="user-menu-item"
                   onClick={item.onClick}
                 >
-                  <i className={`dx-icon dx-icon-${item.icon}`}></i>
+                  <i className={item.faIcon || `dx-icon dx-icon-${item.icon}`}></i>
                   <span>{item.text}</span>
                 </div>
               ))}
@@ -82,6 +96,11 @@ export default function UserPanel({ menuMode }) {
       {menuMode === "list" && (
         <List className={"dx-toolbar-menu-action"} items={menuItems} />
       )}
+
+      <ChangePasswordPopup
+        visible={changePasswordVisible}
+        onClose={() => setChangePasswordVisible(false)}
+      />
     </div>
   );
 }

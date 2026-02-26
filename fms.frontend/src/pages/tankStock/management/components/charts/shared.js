@@ -44,7 +44,20 @@ export const groupByTime = (data, mode = 'hourly') => {
 
 export const colorForIndex = (idx, palette) => palette[idx % palette.length];
 
+// Hash a string to a stable integer index for consistent palette assignment
+export const stringHash = (str) => {
+  if (!str) return 0;
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = ((h << 5) - h) + str.charCodeAt(i);
+    h |= 0;
+  }
+  return Math.abs(h);
+};
+
 export const siteColor = (siteId) => colorForIndex(siteId, ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899']);
+// Use site name string instead of numeric id for reliable color assignment
+export const siteColorByName = (siteName) => colorForIndex(stringHash(siteName), ['#3b82f6','#ef4444','#10b981','#f59e0b','#8b5cf6','#ec4899']);
 export const tankColor = (tankId) => colorForIndex(tankId, ['#1f77b4','#ff7f0e','#2ca02c','#d62728','#9467bd','#8c564b']);
 export const typeColor = (reason) => ({
   0: '#10b981',

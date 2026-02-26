@@ -469,10 +469,11 @@ const TANK_CHANGE_REASON_MAP = {
     3: 'TransferIn',
     4: 'TransferOut',
     5: 'Adjustment',
-    6: 'Dispensing',
+    6: 'Manual Dispensing',
     7: 'AutomatedDispensing',
     8: 'Reconciliation',
     9: 'AutomatedReconciliation',
+    10: 'InTankDelivery',
 };
 
 const resolveTankTransactionType = (record) => {
@@ -503,62 +504,193 @@ const isTankEventMatch = (eventType, patterns) => {
     return patterns.some((p) => value.includes(p));
 };
 
+/**
+ * Maps a VolumeChangeReasonEnum string name to the CSS class used in the template.
+ * Template classes: type-dispense | type-refill | type-transfer | type-adjust
+ */
+const getChangeReasonClass = (transactionType) => {
+    const t = String(transactionType || '').toLowerCase();
+    if (t.includes('dispensing') || t === 'dispensed') return 'type-dispense';
+    if (t.includes('delivery') || t.includes('intankdelivery')) return 'type-refill';
+    if (t.includes('transfer')) return 'type-transfer';
+    return 'type-adjust'; // OpeningStock, ClosingStock, Adjustment, Reconciliation, etc.
+};
+
+/**
+ * Transforms raw TankVolumeHistoryDTO[] records into the shape expected by
+ * the 'tank-volume-history-report' jsReport Handlebars template.
+ *
+ * Template expectations (must match backend BuildTankVolumeHistoryPayload):
+ *   summary.totalTransactions, summary.totalDispensed, summary.totalTransfer,
+ *   summary.totalDelivery, summary.netBalanceChange, summary.grandClosingBalance
+ *   siteGroups[]  ({{#each siteGroups}} → siteName, tanks[], transactionGroups[])
+ *     tanks[] per site: tankName, fuelType, openingBalance, closingBalance,
+ *       expectedClosing, expectedMatch,
+ *       dispensing.{total,count}, delivery.{total,count}, transfer.{total,count}
+ *     transactionGroups[] per site: groupName, fuelType, openingBalance,
+ *       closingBalance, groupNet, rows[]
+ *       each row: rowNumber, siteName, tankName, vehiclePlate,
+ *         timestamp.{date,time}, changeReasonClass, changeReasonLabel,
+ *         volumeChange, balanceAfter, operatorName, notes, isPositive
+ */
 const mapTankVolumeHistory = (rawRecords, container) => {
-    const mapped = rawRecords.map((record, index) => {
+    // ── 1. Map each DTO record to a normalised row object ──────────────────────
+    let globalRowNumber = 1;
+    const allRows = rawRecords.map((record) => {
         const transactionType = resolveTankTransactionType(record);
-        const timestamp = getValue(record, ['timestamp', 'periodStart', 'dateTime']);
-        const volumeChangeValue = numberOrZero(getValue(record, ['volumeChange', 'totalVolume', 'volume']));
-        const newVolumeValue = numberOrZero(getValue(record, ['newVolume', 'totalVolume']));
-        const siteId = getValue(record, ['siteId']);
-        const tankId = getValue(record, ['tankId']);
+        const ts = getValue(record, ['timestamp', 'periodStart', 'dateTime']);
+        const volumeChangeRaw = numberOrZero(getValue(record, ['volumeChange', 'totalVolume', 'volume']));
+        const newVolumeRaw = numberOrZero(getValue(record, ['newVolume', 'totalVolume']));
+        const tankId = getValue(record, ['tankId']) || 'unknown';
+        const tankName = normalizeText(
+            getValue(record, ['tankName']) || (tankId !== 'unknown' ? `Tank #${tankId}` : '-'),
+        );
+        const changeReasonDisplay = normalizeText(getValue(record, ['changeReasonDisplay']), '');
 
         return {
-            rowNumber: index + 1,
-            dateTime: formatUtcDateTimeToLocal(timestamp),
-            date: formatDate(timestamp),
-            time: formatTime(parseDateAssumeUtc(timestamp) || timestamp),
-            tankName: normalizeText(getValue(record, ['tankName']) || (tankId ? `Tank #${tankId}` : '-')),
-            siteName: normalizeText(getValue(record, ['siteName', 'site']) || (siteId ? `Site #${siteId}` : '-')),
+            // Internal grouping keys (not rendered directly by template)
+            _tankId: tankId,
+            _volumeChangeRaw: volumeChangeRaw,
+            _newVolumeRaw: newVolumeRaw,
+            // Template row fields
+            rowNumber: globalRowNumber++,
+            tankName,
+            siteName: normalizeText(getValue(record, ['siteName', 'site']), '-'),
+            vehiclePlate: normalizeText(getValue(record, ['vehicleName', 'vehicleHyoungNo']), ''),
+            operatorName: normalizeText(getValue(record, ['recordedByUserName', 'recordedBy']), '-'),
+            timestamp: {
+                date: formatDate(ts),
+                time: formatTime(parseDateAssumeUtc(ts) || ts),
+                raw: ts,
+            },
+            changeReasonClass: getChangeReasonClass(transactionType),
+            changeReasonLabel: changeReasonDisplay || transactionType,
             transactionType,
-            vehicleName: normalizeText(getValue(record, ['vehicleName']), ''),
-            vehicleType: normalizeText(getValue(record, ['vehicleType']), ''),
-            transferTankName: normalizeText(getValue(record, ['transferTankName']), ''),
-            transferTankSite: normalizeText(getValue(record, ['transferTankSite']), ''),
-            volumeChange: formatNumber(volumeChangeValue),
-            newVolume: formatNumber(newVolumeValue),
-            transactionCount: numberOrZero(getValue(record, ['transactionCount'])) || 1,
-            referenceType: normalizeText(getValue(record, ['referenceType']), ''),
-            isOpeningOrClosing: isTankEventMatch(transactionType, ['openingstock', 'closingstock']),
-            isDelivery: isTankEventMatch(transactionType, ['delivery']),
+            volumeChange: formatNumber(volumeChangeRaw),
+            balanceAfter: formatNumber(newVolumeRaw),
+            notes: normalizeText(getValue(record, ['referenceType']), ''),
+            isPositive: volumeChangeRaw >= 0,
+            // Type flags used for group sub-totals
+            isDelivery: isTankEventMatch(transactionType, ['delivery', 'intankdelivery']),
             isDispensing: isTankEventMatch(transactionType, ['dispensing']),
-            isNegativeVolume: volumeChangeValue < 0,
+            isTransfer: isTankEventMatch(transactionType, ['transfer']),
         };
     });
 
-    const parseMappedNumber = (value) => numberOrZero(String(value || '0').replace(/,/g, ''));
-    const deliveries = mapped
-        .filter((r) => isTankEventMatch(r.transactionType, ['delivery', 'transferin']))
-        .reduce((sum, r) => sum + Math.abs(parseMappedNumber(r.volumeChange)), 0);
-    const dispensed = mapped
-        .filter((r) => isTankEventMatch(r.transactionType, ['dispensing', 'transferout']))
-        .reduce((sum, r) => sum + Math.abs(parseMappedNumber(r.volumeChange)), 0);
-    const openingOrClosingCount = mapped
-        .filter((r) => r.isOpeningOrClosing)
-        .length;
-    const totalTransactions = mapped.reduce((sum, r) => sum + numberOrZero(r.transactionCount), 0);
-    const totalVolumeChange = mapped.reduce((sum, r) => sum + Math.abs(parseMappedNumber(r.volumeChange)), 0);
+    // ── 2. Group rows by tank, then by site ────────────────────────────────────
+    // First group by tankId → tankName + rows
+    const tankGroupMap = new Map();
+    allRows.forEach((row) => {
+        const key = row._tankId !== 'unknown' ? row._tankId : row.tankName;
+        if (!tankGroupMap.has(key)) {
+            tankGroupMap.set(key, { tankName: row.tankName, siteName: row.siteName, rows: [] });
+        }
+        tankGroupMap.get(key).rows.push(row);
+    });
+
+    // Build per-tank data objects (tankEntry + txGroup), keyed by site
+    const siteMap = new Map(); // siteName → { tanks: [], transactionGroups: [] }
+    let grandClosingBalanceRaw = 0;
+
+    tankGroupMap.forEach(({ tankName, siteName, rows }) => {
+        const firstRow = rows[0];
+        const lastRow = rows[rows.length - 1];
+
+        // Opening balance = balance before the first recorded change
+        const openingBalanceRaw = firstRow
+            ? firstRow._newVolumeRaw - firstRow._volumeChangeRaw
+            : 0;
+        const closingBalanceRaw = lastRow ? lastRow._newVolumeRaw : 0;
+        grandClosingBalanceRaw += closingBalanceRaw;
+
+        const groupNetRaw = rows.reduce((sum, r) => sum + r._volumeChangeRaw, 0);
+
+        // Per-type sub-totals
+        const dispensingRows = rows.filter((r) => r.isDispensing);
+        const deliveryRows = rows.filter((r) => r.isDelivery);
+        const transferRows = rows.filter((r) => r.isTransfer);
+
+        const dispensingTotal = dispensingRows.reduce((s, r) => s + Math.abs(r._volumeChangeRaw), 0);
+        const deliveryTotal = deliveryRows.reduce((s, r) => s + r._volumeChangeRaw, 0);
+        const transferTotal = transferRows.reduce((s, r) => s + r._volumeChangeRaw, 0);
+
+        // Expected closing = opening + deliveries + net transfers (positive=in, negative=out) - dispensing
+        const expectedClosingRaw = openingBalanceRaw + deliveryTotal + transferTotal - dispensingTotal;
+        const expectedMatch = Math.abs(expectedClosingRaw - closingBalanceRaw) < 1;
+
+        const tankEntry = {
+            tankName,
+            fuelType: '',
+            openingBalance: formatNumber(openingBalanceRaw),
+            closingBalance: formatNumber(closingBalanceRaw),
+            expectedClosing: formatNumber(expectedClosingRaw),
+            expectedMatch,
+            dispensing: {
+                total: formatNumber(dispensingTotal),
+                count: dispensingRows.length,
+            },
+            delivery: {
+                total: formatNumber(deliveryTotal),
+                count: deliveryRows.length,
+            },
+            transfer: {
+                total: formatNumber(Math.abs(transferTotal)),
+                count: transferRows.length,
+            },
+        };
+
+        const txGroup = {
+            groupName: tankName,
+            fuelType: '',
+            openingBalance: formatNumber(openingBalanceRaw),
+            closingBalance: formatNumber(closingBalanceRaw),
+            groupNet: formatNumber(groupNetRaw),
+            rows, // already numbered globally
+        };
+
+        if (!siteMap.has(siteName)) {
+            siteMap.set(siteName, { tanks: [], transactionGroups: [] });
+        }
+        siteMap.get(siteName).tanks.push(tankEntry);
+        siteMap.get(siteName).transactionGroups.push(txGroup);
+    });
+
+    // ── 3. Build siteGroups array (matches backend structure) ──────────────────
+    const siteGroups = [];
+    siteMap.forEach((siteData, siteName) => {
+        siteGroups.push({
+            siteName,
+            tanks: siteData.tanks,
+            transactionGroups: siteData.transactionGroups,
+        });
+    });
+    siteGroups.sort((a, b) => a.siteName.localeCompare(b.siteName));
+
+    // ── 4. Build top-level summary ─────────────────────────────────────────────
+    const totalDeliveryRaw = allRows
+        .filter((r) => r.isDelivery)
+        .reduce((s, r) => s + Math.abs(r._volumeChangeRaw), 0);
+    const totalDispensedRaw = allRows
+        .filter((r) => r.isDispensing)
+        .reduce((s, r) => s + Math.abs(r._volumeChangeRaw), 0);
+    const totalTransferRaw = allRows
+        .filter((r) => r.isTransfer)
+        .reduce((s, r) => s + Math.abs(r._volumeChangeRaw), 0);
+    const netBalanceChange = totalDeliveryRaw + totalTransferRaw - totalDispensedRaw;
 
     return {
-        records: mapped,
+        records: allRows,
+        siteGroups,
         summary: {
-            totalRecords: mapped.length,
-            totalTransactions,
-            totalVolumeChange: formatNumber(totalVolumeChange),
-            totalDelivered: formatNumber(deliveries),
-            totalConsumed: formatNumber(dispensed),
-            openingClosingCount: openingOrClosingCount,
-            sitesMonitored: new Set(mapped.map((r) => r.siteName).filter(Boolean)).size,
-            tanksMonitored: new Set(mapped.map((r) => r.tankName).filter(Boolean)).size,
+            totalRecords: allRows.length,
+            totalTransactions: allRows.length,
+            totalDispensed: formatNumber(totalDispensedRaw),
+            totalTransfer: formatNumber(totalTransferRaw),
+            totalDelivery: formatNumber(totalDeliveryRaw),
+            netBalanceChange: formatNumber(netBalanceChange),
+            grandClosingBalance: formatNumber(grandClosingBalanceRaw),
+            tanksMonitored: tankGroupMap.size,
+            sitesMonitored: siteMap.size,
         },
     };
 };
@@ -676,10 +808,16 @@ export const buildJsReportPayload = ({ sourceId, sourceName, apiResponse, queryP
         ...transformed.summary,
     };
 
+    // Pull out any extra top-level keys returned by source-specific transformers
+    // (e.g., siteGroups from mapTankVolumeHistory) so the jsReport Handlebars
+    // template can access them directly.
+    const { records: _r, summary: _s, ...extraTransformed } = transformed;
+
     return {
         ...identity,
         ...queryParams,
         ...dateAliases,
+        ...extraTransformed,
         records,
         data: records,
         items: records,

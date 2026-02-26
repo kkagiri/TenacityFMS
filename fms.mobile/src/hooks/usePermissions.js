@@ -61,35 +61,13 @@ export const usePermissions = () => {
     return jwtHasRole(token, role);
   }, [token]);
 
-  // Check if user is admin (Admin or SuperAdmin role)
+  // Check if user is admin via permissions (no hardcoded role names)
+  // A user is considered "admin" if they have broad admin permissions
   const isAdmin = useMemo(() => {
-    if (token && (jwtHasRole(token, "Admin") || jwtHasRole(token, "SuperAdmin"))) {
-      return true;
-    }
-
-    const roleCandidates = [
-      user?.roleName,
-      user?.role,
-      ...(Array.isArray(user?.roles)
-        ? user.roles
-        : user?.roles
-          ? [user.roles]
-          : []),
-    ];
-
-    return roleCandidates.some((role) => {
-      if (!role || typeof role !== "string") return false;
-      const normalized = role.toLowerCase();
-      return (
-        normalized === "admin" ||
-        normalized === "superadmin" ||
-        normalized === "super admin" ||
-        normalized === "superadministrator" ||
-        normalized === "super administrator" ||
-        normalized === "administrator"
-      );
-    });
-  }, [token, user]);
+    return permissionSet.has('_manage_users') ||
+           permissionSet.has('_manage_roles') ||
+           permissionSet.has('_manage_site');
+  }, [permissionSet]);
 
   // Check if user can edit vehicles (has _Edit_Vehicle permission)
   const canEditVehicle = useMemo(() => {

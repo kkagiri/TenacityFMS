@@ -25,6 +25,8 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
+using FMS.Application.Features.Reporting.Services;
+using FMS.Application.Features.Reporting.DTOs;
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
 
@@ -42,15 +44,18 @@ namespace FMS.WebClient.Controllers.Reporting
         private readonly IJsReportService _reportService;
         private readonly IMediator _mediator;
         private readonly ILogger<ReportGeneratorController> _logger;
+        private readonly IReportJobManager _reportJobManager;
 
         public ReportGeneratorController(
             IJsReportService reportService,
             IMediator mediator,
-            ILogger<ReportGeneratorController> logger)
+            ILogger<ReportGeneratorController> logger,
+            IReportJobManager reportJobManager)
         {
             _reportService = reportService;
             _mediator = mediator;
             _logger = logger;
+            _reportJobManager = reportJobManager;
         }
 
         #region Template Management
@@ -199,6 +204,151 @@ namespace FMS.WebClient.Controllers.Reporting
                 _logger.LogError(ex, "Error rendering inline PDF");
                 return StatusCode(500, FMSResponse<string>.Failed($"Error rendering report: {ex.Message}"));
             }
+        }
+
+        #endregion
+
+        #region Async Report Generation
+
+        /// <summary>
+        /// Submit an async report generation job. Returns immediately with a Job ID.
+        /// Progress is broadcast via SignalR (ReportJobStarted, ReportJobProgress, ReportJobCompleted, ReportJobError).
+        /// </summary>
+        [HttpPost("generate-async")]
+        public async Task<IActionResult> GenerateAsync([FromBody] SubmitReportJobDTO request)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(request.SourceId))
+                {
+                    return BadRequest(FMSResponse<string>.Failed("SourceId is required"));
+                }
+                if (string.IsNullOrWhiteSpace(request.TemplateName))
+                {
+                    return BadRequest(FMSResponse<string>.Failed("TemplateName is required"));
+                }
+
+                var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                    ?? User.FindFirst("sub")?.Value ?? "unknown";
+                var userName = User.FindFirst("name")?.Value
+                    ?? User.FindFirst(System.Security.Claims.ClaimTypes.Name)?.Value
+                    ?? User.Identity?.Name ?? "Unknown";
+                var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value ?? "";
+
+                var job = await _reportJobManager.SubmitJobAsync(request, userId, userName, userEmail);
+                return Ok(FMSResponse<ReportJobDTO>.Success(job, "Report job submitted. Track progress via SignalR."));
+            }
+            catch (InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<string>.Failed(ex.Message));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error submitting async report job");
+                return StatusCode(500, FMSResponse<string>.Failed($"Error submitting report job: {ex.Message}"));
+            }
+        }
+
+        /// <summary>
+        /// Get the status of an async report job
+        /// </summary>
+        [HttpGet("jobs/{jobId}")]
+        public IActionResult GetJobStatus(string jobId)
+        {
+            var job = _reportJobManager.GetJobStatus(jobId);
+            if (job == null)
+            {
+                return NotFound(FMSResponse<string>.Failed($"Job '{jobId}' not found"));
+            }
+            return Ok(FMSResponse<ReportJobDTO>.Success(job));
+        }
+
+        /// <summary>
+        /// Download the result of a completed async report job
+        /// </summary>
+        [HttpGet("jobs/{jobId}/download")]
+        public IActionResult DownloadJobResult(string jobId)
+        {
+            var job = _reportJobManager.GetJobStatus(jobId);
+            if (job == null)
+            {
+                return NotFound(FMSResponse<string>.Failed($"Job '{jobId}' not found"));
+            }
+            if (job.Status != ReportJobStatus.Completed && job.Status != ReportJobStatus.EmailSent)
+            {
+                return BadRequest(FMSResponse<string>.Failed($"Job is not completed yet. Status: {job.Status}"));
+            }
+
+            var fileBytes = _reportJobManager.GetJobResult(jobId);
+            if (fileBytes == null)
+            {
+                return Gone(FMSResponse<string>.Failed("Report result has expired. Please regenerate."));
+            }
+
+            var ext = job.OutputFormat?.ToLower() switch { "excel" => "xlsx", _ => "pdf" };
+            var contentType = ext switch
+            {
+                "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                _ => "application/pdf"
+            };
+            var fileName = $"{SanitizeFileName(job.ReportTitle)}_{job.CreatedAtUtc:yyyyMMdd}.{ext}";
+
+            return File(fileBytes, contentType, fileName);
+        }
+
+        /// <summary>
+        /// Cancel a running async report job
+        /// </summary>
+        [HttpPost("jobs/{jobId}/cancel")]
+        public IActionResult CancelJob(string jobId)
+        {
+            var cancelled = _reportJobManager.CancelJob(jobId);
+            if (!cancelled)
+            {
+                return NotFound(FMSResponse<string>.Failed($"Job '{jobId}' not found or already completed"));
+            }
+            return Ok(FMSResponse<string>.Success("Job cancelled"));
+        }
+
+        /// <summary>
+        /// Enable email delivery on a running or completed report job
+        /// </summary>
+        [HttpPost("jobs/{jobId}/email")]
+        public IActionResult RequestEmailDelivery(string jobId)
+        {
+            var userEmail = User.FindFirst(System.Security.Claims.ClaimTypes.Email)?.Value
+                ?? User.FindFirst("email")?.Value ?? string.Empty;
+
+            var result = _reportJobManager.SetEmailDelivery(jobId, userEmail);
+            if (!result)
+            {
+                return NotFound(FMSResponse<string>.Failed($"Job '{jobId}' not found or cannot enable email"));
+            }
+            return Ok(FMSResponse<string>.Success("Email delivery enabled. You will receive the report when ready."));
+        }
+
+        /// <summary>
+        /// Get active report jobs for the current user
+        /// </summary>
+        [HttpGet("jobs")]
+        public IActionResult GetActiveJobs()
+        {
+            var userId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+                ?? User.FindFirst("sub")?.Value ?? "unknown";
+            var jobs = _reportJobManager.GetActiveJobs(userId);
+            return Ok(FMSResponse<IEnumerable<ReportJobDTO>>.Success(jobs));
+        }
+
+        private IActionResult Gone(FMSResponse<string> response)
+        {
+            return StatusCode(410, response);
+        }
+
+        private static string SanitizeFileName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "Report";
+            var invalid = System.IO.Path.GetInvalidFileNameChars();
+            return string.Join("_", name.Split(invalid, StringSplitOptions.RemoveEmptyEntries)).Trim();
         }
 
         #endregion

@@ -88,5 +88,7 @@ namespace FMS.Application.Features.EventEngine.Events
         public bool WasTriggered { get; set; }
         public string? SuppressedReason { get; set; }
         public int? NotificationId { get; set; }
+        /// <summary>Scope key used for this evaluation ("tank:1", "site:2", "global")</summary>
+        public string ScopeKey { get; set; } = "global";
     }
 }

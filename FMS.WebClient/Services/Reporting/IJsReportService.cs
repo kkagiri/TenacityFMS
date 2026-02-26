@@ -10,7 +10,8 @@ namespace FMS.WebClient.Services.Reporting
         /// <summary>
         /// Render a report template to PDF
         /// </summary>
-        Task<byte[]> RenderPdfAsync(string templateName, object data);
+        /// <param name="landscape">When true, renders in A4 landscape orientation.</param>
+        Task<byte[]> RenderPdfAsync(string templateName, object data, bool landscape = false);
 
         /// <summary>
         /// Render a report template to Excel
@@ -25,7 +26,8 @@ namespace FMS.WebClient.Services.Reporting
         /// <summary>
         /// Render inline HTML template to PDF
         /// </summary>
-        Task<byte[]> RenderInlinePdfAsync(string htmlTemplate, object data);
+        /// <param name="landscape">When true, renders in A4 landscape orientation.</param>
+        Task<byte[]> RenderInlinePdfAsync(string htmlTemplate, object data, bool landscape = false);
 
         /// <summary>
         /// Get list of available report templates

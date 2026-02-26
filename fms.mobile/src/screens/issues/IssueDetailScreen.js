@@ -178,11 +178,11 @@ const IssueDetailScreen = () => {
   const navigation = useNavigation();
   const route = useRoute();
   const { issueId } = route.params;
-  const { isAdmin, hasPermission, hasAnyPermission, hasRole, userInfo } = usePermissions();
+  const { hasPermission, hasAnyPermission, userInfo } = usePermissions();
 
   const canView = useMemo(
-    () => isAdmin || hasRole("PowerUser") || hasRole("Power User") || hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues"]),
-    [isAdmin, hasRole, hasAnyPermission]
+    () => hasAnyPermission(["_View_Issue", "_Read_Issue", "_Read_Issues", "_Edit_Issues", "_Approve_Issues"]),
+    [hasAnyPermission]
   );
 
   // State
@@ -483,20 +483,20 @@ const IssueDetailScreen = () => {
     return ["complete", "completed", "close", "closed", "resolved", "done"].includes(s);
   }, [issue?.statusName]);
 
-  // Permission-based action guards
+  // Permission-based action guards (no hardcoded role bypass)
   const canEdit = useMemo(
-    () => isAdmin || hasAnyPermission(["_Edit_Issues", "_Edit_Issue"]),
-    [isAdmin, hasAnyPermission]
+    () => hasAnyPermission(["_Edit_Issues", "_Edit_Issue"]),
+    [hasAnyPermission]
   );
 
   const canApprove = useMemo(
-    () => isAdmin || hasAnyPermission(["_Approve_Issues", "_Approve_Issue"]),
-    [isAdmin, hasAnyPermission]
+    () => hasAnyPermission(["_Approve_Issues", "_Approve_Issue"]),
+    [hasAnyPermission]
   );
 
   const canDelete = useMemo(
-    () => isAdmin || hasAnyPermission(["_Delete_Issues", "_Delete_Issue"]),
-    [isAdmin, hasAnyPermission]
+    () => hasAnyPermission(["_Delete_Issues", "_Delete_Issue"]),
+    [hasAnyPermission]
   );
 
   const isIssueOpener = useMemo(() => {

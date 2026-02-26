@@ -48,8 +48,8 @@ const TABS = [
 ];
 
 const VehicleDetailsScreen = ({ navigation, route }) => {
-  // Permissions - tank editing is admin-only in mobile UI
-  const { isAdmin } = usePermissions();
+  // Permissions - use canEditVehicle (permission-based)
+  const { canEditVehicle } = usePermissions();
 
   // State
   const [selectedVehicle, setSelectedVehicle] = useState(null);
@@ -217,7 +217,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         return (
           <VehicleInformation
             vehicle={selectedVehicle}
-            canEdit={isAdmin}
+            canEdit={canEditVehicle}
             onVehicleUpdated={handleVehicleUpdated}
           />
         );
@@ -231,7 +231,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         return (
           <VehicleInformation
             vehicle={selectedVehicle}
-            canEdit={isAdmin}
+            canEdit={canEditVehicle}
             onVehicleUpdated={handleVehicleUpdated}
           />
         );

@@ -1,6 +1,13 @@
-﻿using System;
+/**
+ * File: Site.cs
+ * Purpose: Site aggregate for project/workspace configuration and related operational data.
+ * Dependencies: User, GPSGate geofence, fuel/tank/vehicle entities.
+ * Last Modified: 2026-02-26
+ */
+using System;
 using System.Collections.Generic;
 using FMS.Domain.Entities.Features.FuelRule;
+using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 
 namespace FMS.Domain.Entities;
 
@@ -38,6 +45,31 @@ public partial class Site
     /// </summary>
     public bool AutoUpdateGpsGateTag { get; set; } = true;
 
+    /// <summary>
+    /// Selected GPSGate geofence local ID from cached gps_geofence table.
+    /// </summary>
+    public int? GpsGeofenceId { get; set; }
+
+    /// <summary>
+    /// Selected GPSGate geofence display name snapshot.
+    /// </summary>
+    public string? GpsGeofenceName { get; set; }
+
+    /// <summary>
+    /// Selected GPSGate geofence type snapshot (Circle, Polygon, Route).
+    /// </summary>
+    public string? GpsGeofenceType { get; set; }
+
+    /// <summary>
+    /// Selected GPSGate geofence center latitude snapshot.
+    /// </summary>
+    public decimal? GpsGeofenceCenterLatitude { get; set; }
+
+    /// <summary>
+    /// Selected GPSGate geofence center longitude snapshot.
+    /// </summary>
+    public decimal? GpsGeofenceCenterLongitude { get; set; }
+
     public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport>();
 
     public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule>();
@@ -64,9 +96,11 @@ public partial class Site
 
     public virtual ICollection<User> Users { get; set; } = new List<User>();
 
-    // Add this to the Site entity navigation properties:
     public virtual ICollection<StockAdjustment> StockAdjustments { get; set; } = new List<StockAdjustment>();
 
     // Navigation property for Site Administrator
     public virtual User? SiteAdministrator { get; set; }
+
+    // Navigation property for selected GPS geofence
+    public virtual GpsGeofence? GpsGeofence { get; set; }
 }

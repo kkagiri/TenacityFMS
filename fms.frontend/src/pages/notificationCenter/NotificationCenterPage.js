@@ -10,8 +10,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Popup } from 'devextreme-react/popup';
-import { SelectBox } from 'devextreme-react/select-box';
-import { DateBox } from 'devextreme-react/date-box';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import {
@@ -54,30 +52,32 @@ const resolveField = (obj, ...keys) => {
 };
 
 const PRIORITY_CONFIG = {
-    Critical: { color: '#dc2626', bg: '#fef2f2', label: 'Critical' },
-    High: { color: '#ea580c', bg: '#fff7ed', label: 'High' },
-    Medium: { color: '#d97706', bg: '#fefce8', label: 'Medium' },
-    Low: { color: '#16a34a', bg: '#f0fdf4', label: 'Low' },
+    Critical: { color: '#d13438', bg: '#fde7e9', label: 'Critical' },
+    High: { color: '#ca5010', bg: '#fff4ce', label: 'High' },
+    Medium: { color: '#c09a00', bg: '#fff8e1', label: 'Medium' },
+    Low: { color: '#107c10', bg: '#dff6dd', label: 'Low' },
 };
 
-const TYPE_ICONS = {
-    Alert: 'fa-light fa-triangle-exclamation',
-    Warning: 'fa-light fa-circle-exclamation',
-    Info: 'fa-light fa-circle-info',
-    Success: 'fa-light fa-circle-check',
-    Fuel: 'fa-light fa-gas-pump',
-    Vehicle: 'fa-light fa-car',
-    Task: 'fa-light fa-list-check',
-    Issue: 'fa-light fa-bug',
-    Report: 'fa-light fa-file-chart-column',
-    Maintenance: 'fa-light fa-wrench',
+const TYPE_CONFIG = {
+    Alert: { icon: 'fa-light fa-triangle-exclamation', bg: '#fde7e9', color: '#d13438' },
+    Warning: { icon: 'fa-light fa-circle-exclamation', bg: '#fff4ce', color: '#ca5010' },
+    Info: { icon: 'fa-light fa-circle-info', bg: '#deecf9', color: '#0078d4' },
+    Success: { icon: 'fa-light fa-circle-check', bg: '#dff6dd', color: '#107c10' },
+    Fuel: { icon: 'fa-light fa-gas-pump', bg: '#fff4ce', color: '#ca5010' },
+    Vehicle: { icon: 'fa-light fa-car', bg: '#deecf9', color: '#0078d4' },
+    Task: { icon: 'fa-light fa-list-check', bg: '#e8eaf6', color: '#3949ab' },
+    Issue: { icon: 'fa-light fa-bug', bg: '#fde7e9', color: '#d13438' },
+    Report: { icon: 'fa-light fa-file-chart-column', bg: '#e0f2f1', color: '#00796b' },
+    Maintenance: { icon: 'fa-light fa-wrench', bg: '#f3e8fd', color: '#6b21a8' },
 };
 
-const getTypeIcon = (type) =>
-    TYPE_ICONS[type] || TYPE_ICONS[Object.keys(TYPE_ICONS).find(k => type?.toLowerCase().includes(k.toLowerCase()))] || 'fa-light fa-bell';
+const DEFAULT_TYPE_CONFIG = { icon: 'fa-light fa-bell', bg: '#f3f2f1', color: '#605e5c' };
+
+const getTypeConfig = (type) =>
+    TYPE_CONFIG[type] || TYPE_CONFIG[Object.keys(TYPE_CONFIG).find(k => type?.toLowerCase().includes(k.toLowerCase()))] || DEFAULT_TYPE_CONFIG;
 
 const getPriorityConfig = (priority) =>
-    PRIORITY_CONFIG[priority] || { color: '#6b7280', bg: '#f3f4f6', label: priority || 'Normal' };
+    PRIORITY_CONFIG[priority] || { color: '#605e5c', bg: '#f3f2f1', label: priority || 'Normal' };
 
 // ─── Notification Card ───────────────────────────────────────────────────────
 
@@ -87,10 +87,13 @@ const NotificationCard = ({ notification, onPress, onMarkRead, onAcknowledge }) 
     const type = resolveField(notification, 'type', 'Type', 'notificationType') || 'Info';
     const priority = resolveField(notification, 'priority', 'Priority') || 'Low';
     const category = resolveField(notification, 'category', 'Category', 'categoryName') || '';
+    const source = resolveField(notification, 'source', 'Source', 'sourceName') || '';
+    const deviceId = resolveField(notification, 'deviceId', 'DeviceId', 'deviceName') || '';
     const createdAt = resolveField(notification, 'createdAt', 'CreatedAt', 'sentAt', 'SentAt', 'timestamp');
     const isRead = notification.isRead || notification.IsRead;
     const isAcknowledged = notification.isAcknowledged || notification.IsAcknowledged;
     const pConf = getPriorityConfig(priority);
+    const tConf = getTypeConfig(type);
 
     return (
         <div
@@ -100,15 +103,20 @@ const NotificationCard = ({ notification, onPress, onMarkRead, onAcknowledge }) 
             tabIndex={0}
             onKeyDown={(e) => e.key === 'Enter' && onPress(notification)}
         >
-            {!isRead && <div className="nc-card__unread-dot" />}
-
-            <div className="nc-card__icon">
-                <i className={getTypeIcon(type)} />
+            {/* Circular type icon */}
+            <div
+                className="nc-card__icon"
+                style={{ backgroundColor: tConf.bg, color: tConf.color }}
+            >
+                <i className={tConf.icon} />
             </div>
 
             <div className="nc-card__body">
                 <div className="nc-card__header-row">
-                    <span className="nc-card__title">{title}</span>
+                    <span className="nc-card__title">
+                        {title}
+                        {!isRead && <span className="nc-card__new-badge">New</span>}
+                    </span>
                     <span className="nc-card__time">{formatTimestamp(createdAt)}</span>
                 </div>
                 {message && (
@@ -116,12 +124,25 @@ const NotificationCard = ({ notification, onPress, onMarkRead, onAcknowledge }) 
                 )}
                 <div className="nc-card__meta-row">
                     {category && <span className="nc-card__badge nc-card__badge--category">{category}</span>}
+                    <span className="nc-card__badge nc-card__badge--type">
+                        <i className={`${tConf.icon} tw-mr-1`} style={{ fontSize: '10px' }} />{type}
+                    </span>
                     <span
                         className="nc-card__badge"
                         style={{ color: pConf.color, backgroundColor: pConf.bg }}
                     >
                         {pConf.label}
                     </span>
+                    {source && (
+                        <span className="nc-card__badge nc-card__badge--category">
+                            <i className="fa-light fa-satellite-dish tw-mr-1" style={{ fontSize: '10px' }} />{source}
+                        </span>
+                    )}
+                    {deviceId && (
+                        <span className="nc-card__badge nc-card__badge--category">
+                            <i className="fa-light fa-microchip tw-mr-1" style={{ fontSize: '10px' }} />{deviceId}
+                        </span>
+                    )}
                     {isAcknowledged && (
                         <span className="nc-card__badge nc-card__badge--ack">
                             <i className="fa-light fa-circle-check tw-mr-1" />Acknowledged
@@ -170,6 +191,7 @@ const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, on
     const isRead = notification.isRead || notification.IsRead;
     const isAcknowledged = notification.isAcknowledged || notification.IsAcknowledged;
     const pConf = getPriorityConfig(priority);
+    const tConf = getTypeConfig(type);
     const nId = notification.id || notification.Id;
 
     return (
@@ -185,7 +207,7 @@ const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, on
             <div className="nc-detail">
                 <div className="nc-detail__badges">
                     <span className="nc-card__badge nc-card__badge--type">
-                        <i className={`${getTypeIcon(type)} tw-mr-1`} />{type}
+                        <i className={`${tConf.icon} tw-mr-1`} />{type}
                     </span>
                     {category && <span className="nc-card__badge nc-card__badge--category">{category}</span>}
                     <span className="nc-card__badge" style={{ color: pConf.color, backgroundColor: pConf.bg }}>
@@ -199,23 +221,23 @@ const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, on
                 <div className="nc-detail__timestamps">
                     {createdAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-clock tw-text-gray-400 tw-mr-2" />
-                            <span className="tw-text-gray-500 tw-text-sm">Sent:</span>
-                            <span className="tw-text-gray-700 tw-text-sm tw-ml-1">{parseDateToLocal(createdAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-clock tw-mr-2" style={{ color: '#a19f9d' }} />
+                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Sent:</span>
+                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(createdAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                     {readAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-envelope-open tw-text-gray-400 tw-mr-2" />
-                            <span className="tw-text-gray-500 tw-text-sm">Read:</span>
-                            <span className="tw-text-gray-700 tw-text-sm tw-ml-1">{parseDateToLocal(readAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-envelope-open tw-mr-2" style={{ color: '#a19f9d' }} />
+                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Read:</span>
+                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(readAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                     {acknowledgedAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-circle-check tw-text-green-500 tw-mr-2" />
-                            <span className="tw-text-gray-500 tw-text-sm">Acknowledged:</span>
-                            <span className="tw-text-gray-700 tw-text-sm tw-ml-1">{parseDateToLocal(acknowledgedAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-circle-check tw-mr-2" style={{ color: '#107c10' }} />
+                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Acknowledged:</span>
+                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(acknowledgedAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                 </div>
@@ -357,16 +379,11 @@ const NotificationCenterPage = () => {
             {/* ── Header ── */}
             <div className="nc-header">
                 <div className="nc-header__left">
-                    <div className="nc-header__icon-wrap">
-                        <i className="fa-light fa-bell" />
-                    </div>
-                    <div>
-                        <h1 className="nc-header__title">
-                            My Notifications
-                            {unreadCount > 0 && <span className="nc-header__badge">{unreadCount}</span>}
-                        </h1>
-                        <p className="nc-header__subtitle">View and manage your notifications</p>
-                    </div>
+                    <i className="fa-light fa-bell nc-header__icon" />
+                    <h2 className="nc-header__title">
+                        Notifications
+                        {unreadCount > 0 && <span className="nc-header__badge">{unreadCount}</span>}
+                    </h2>
                 </div>
                 <div className="nc-header__actions">
                     {unreadCount > 0 && (
@@ -412,43 +429,39 @@ const NotificationCenterPage = () => {
                     />
                 </div>
 
-                <SelectBox
-                    dataSource={CATEGORY_OPTIONS}
-                    displayExpr="text"
-                    valueExpr="value"
+                <select
+                    className="nc-select"
                     value={filterCategory}
-                    onValueChanged={(e) => { setFilterCategory(e.value); setPage(0); }}
-                    placeholder="Category"
-                    width={160}
-                    showClearButton={true}
-                />
+                    onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}
+                >
+                    {CATEGORY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.text}</option>
+                    ))}
+                </select>
 
-                <SelectBox
-                    dataSource={PRIORITY_OPTIONS}
-                    displayExpr="text"
-                    valueExpr="value"
+                <select
+                    className="nc-select"
                     value={filterPriority}
-                    onValueChanged={(e) => { setFilterPriority(e.value); setPage(0); }}
-                    placeholder="Priority"
-                    width={140}
-                    showClearButton={true}
-                />
+                    onChange={(e) => { setFilterPriority(e.target.value); setPage(0); }}
+                >
+                    {PRIORITY_OPTIONS.map((o) => (
+                        <option key={o.value} value={o.value}>{o.text}</option>
+                    ))}
+                </select>
 
-                <DateBox
-                    value={filterDateFrom}
-                    onValueChanged={(e) => { setFilterDateFrom(e.value); setPage(0); }}
-                    placeholder="From date"
-                    displayFormat="dd/MM/yyyy"
-                    width={140}
-                    showClearButton={true}
+                <input
+                    type="date"
+                    className="nc-date-input"
+                    value={filterDateFrom ? (filterDateFrom instanceof Date ? filterDateFrom.toISOString().slice(0, 10) : filterDateFrom) : ''}
+                    onChange={(e) => { setFilterDateFrom(e.target.value ? new Date(e.target.value) : null); setPage(0); }}
+                    placeholder="From"
                 />
-                <DateBox
-                    value={filterDateTo}
-                    onValueChanged={(e) => { setFilterDateTo(e.value); setPage(0); }}
-                    placeholder="To date"
-                    displayFormat="dd/MM/yyyy"
-                    width={140}
-                    showClearButton={true}
+                <input
+                    type="date"
+                    className="nc-date-input"
+                    value={filterDateTo ? (filterDateTo instanceof Date ? filterDateTo.toISOString().slice(0, 10) : filterDateTo) : ''}
+                    onChange={(e) => { setFilterDateTo(e.target.value ? new Date(e.target.value) : null); setPage(0); }}
+                    placeholder="To"
                 />
 
                 {hasFilters && (
@@ -463,7 +476,7 @@ const NotificationCenterPage = () => {
                 {isLoading ? (
                     <div className="nc-state nc-state--loading">
                         <LoadIndicator visible={true} height={40} width={40} />
-                        <span className="tw-text-gray-500 tw-mt-3">Loading notifications…</span>
+                        <span style={{ color: '#605e5c', marginTop: '12px' }}>Loading notifications…</span>
                     </div>
                 ) : filteredNotifications.length === 0 ? (
                     <div className="nc-state nc-state--empty">

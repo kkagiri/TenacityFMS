@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { adminRoutes, isActiveRoute } from "../utils/navigationHelper";
 import "./AdminLayout.scss";
@@ -7,6 +7,10 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [notificationExpanded, setNotificationExpanded] = useState(() => {
+    // Auto-expand if currently on a notification route
+    return location.pathname.includes("/notification");
+  });
 
   // Determine page title and subtitle based on current route
   const getPageInfo = () => {
@@ -146,14 +150,55 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       path: adminRoutes.providers,
       badge: null,
     },
+  ];
+
+  // Notification sub-menu items
+  const notificationMainItems = [
     {
-      id: "notification",
-      title: "Notifications",
-      icon: "fa-light fa-bell",
-      path: adminRoutes.notification,
-      badge: null,
+      id: "notif-dashboard",
+      title: "Dashboard",
+      icon: "fa-light fa-chart-line",
+      path: adminRoutes.notificationDashboard,
+    },
+    {
+      id: "notif-history",
+      title: "History",
+      icon: "fa-light fa-clock-rotate-left",
+      path: adminRoutes.notificationHistory,
     },
   ];
+
+  const notificationSettingsItems = [
+    {
+      id: "notif-email",
+      title: "Email Settings",
+      icon: "fa-light fa-envelope-open-text",
+      path: adminRoutes.notificationEmailSettings,
+    },
+    {
+      id: "notif-categories",
+      title: "Categories",
+      icon: "fa-light fa-tags",
+      path: adminRoutes.notificationCategories,
+    },
+    {
+      id: "notif-thresholds",
+      title: "Alert Thresholds",
+      icon: "fa-light fa-sliders",
+      path: adminRoutes.notificationAlertThresholds,
+    },
+  ];
+
+  const isNotificationActive = currentPath.includes("/notification");
+
+  const handleToggleNotifications = useCallback(() => {
+    if (sidebarCollapsed) {
+      // On collapsed sidebar, navigate to notification dashboard
+      navigate(adminRoutes.notificationDashboard);
+      return;
+    }
+    setNotificationExpanded((prev) => !prev);
+  }, [sidebarCollapsed, navigate]);
 
   const systemItems = [
     {
@@ -299,6 +344,67 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
               })}
             </nav>
           </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Notifications Expandable Section */}
+          <div className="nav-group">
+            <div
+              className={`nav-item nav-item--expandable ${isNotificationActive ? "active" : ""}`}
+              onClick={handleToggleNotifications}
+              title={sidebarCollapsed ? "Notifications" : ""}
+            >
+              <div className="nav-item-content">
+                <i className="fa-light fa-bell"></i>
+                {!sidebarCollapsed && <span>Notifications</span>}
+              </div>
+              {!sidebarCollapsed && (
+                <i className={`fa-light ${notificationExpanded ? "fa-chevron-up" : "fa-chevron-down"} nav-expand-icon`}></i>
+              )}
+            </div>
+            {!sidebarCollapsed && notificationExpanded && (
+              <nav className="nav-submenu">
+                {notificationMainItems.map((item) => {
+                  const isActive = isActiveRoute(currentPath, item.path) &&
+                    (item.id !== "notif-dashboard" || !currentPath.includes("/notification/"));
+                  // For dashboard, only active if exactly on /admin/notification
+                  const isDashboardActive = item.id === "notif-dashboard" &&
+                    (currentPath === adminRoutes.notificationDashboard ||
+                      currentPath === adminRoutes.notificationDashboard + "/");
+                  const isItemActive = item.id === "notif-dashboard" ? isDashboardActive : isActive;
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleNavigation(item.path)}
+                      className={`nav-item nav-item--sub ${isItemActive ? "active" : ""}`}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        <span>{item.title}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+                <div className="sub-group-label">Settings</div>
+                {notificationSettingsItems.map((item) => {
+                  const isActive = isActiveRoute(currentPath, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleNavigation(item.path)}
+                      className={`nav-item nav-item--sub ${isActive ? "active" : ""}`}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        <span>{item.title}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </nav>
+            )}
+          </div>
+
           <div className="nav-separator"></div>
           <div className="nav-group">
             {!sidebarCollapsed && (

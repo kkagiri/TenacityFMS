@@ -95,6 +95,16 @@ class DashboardSignalRService {
     this.forceLegacy = localStorage.getItem("forceLegacy") === "true";
   }
 
+  /**
+   * Check whether current route actually needs Dashboard SignalR.
+   * Prevents endless reconnect loops when user navigates to non-dashboard modules.
+   */
+  isDashboardRouteActive() {
+    if (typeof window === "undefined" || !window.location) return true;
+    const path = (window.location.pathname || "").toLowerCase();
+    return path === "/" || path === "/home" || path.startsWith("/dashboard");
+  }
+
   setDashboardOverviewWidgetId(widgetInstanceId) {
     if (typeof widgetInstanceId !== "number" || widgetInstanceId <= 0) {
       return false;
@@ -392,6 +402,15 @@ class DashboardSignalRService {
    */
   handleConnectionError = (error) => {
     console.error("[Dashboard SignalR] Connection error:", error);
+
+    if (!this.isDashboardRouteActive()) {
+      console.log(
+        "[Dashboard SignalR] Skipping reconnect: current route does not require dashboard SignalR"
+      );
+      this.state = ConnectionState.DISCONNECTED;
+      return;
+    }
+
     this.state = ConnectionState.ERROR;
 
     // Immediate retry for network errors

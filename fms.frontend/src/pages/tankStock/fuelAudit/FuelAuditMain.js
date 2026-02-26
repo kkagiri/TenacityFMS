@@ -26,13 +26,10 @@ const FuelAuditMain = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [activeTabIndex, setActiveTabIndex] = useState(0);
-  const { userInfo } = usePermissions();
+  const { hasPermission } = usePermissions();
 
-  // Check if user is admin
-  const userRoles = Array.isArray(userInfo?.roles) ? userInfo.roles : [userInfo?.roles].filter(Boolean);
-  const isAdmin = userRoles.some(role =>
-    typeof role === 'string' && role.toLowerCase() === 'admin'
-  );
+  // Check if user has fuel audit permission
+  const isAdmin = hasPermission('_Create_FuelAudit');
 
 
   // Delay mounting of DevExtreme components to prevent DOM conflicts

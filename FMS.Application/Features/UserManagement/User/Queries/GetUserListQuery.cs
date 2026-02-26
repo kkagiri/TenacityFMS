@@ -62,6 +62,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                     userDtos.Add(new UserDto
                     {
                         Id = user.Id,
+                        FirstName = user.FirstName,
+                        LastName = user.LastName,
                         UserName = user.UserName,
                         Email = user.Email,
                         DepartmentId = user.DepartmentId,

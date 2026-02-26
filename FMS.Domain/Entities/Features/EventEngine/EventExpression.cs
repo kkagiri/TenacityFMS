@@ -115,6 +115,13 @@ namespace FMS.Domain.Entities
         public int MaxNotificationsPerDay { get; set; } = 0;
 
         /// <summary>
+        /// Maximum notifications per hour for this expression (per unique scope: tank/site/global). 0 = unlimited.
+        /// This is scoped per-tank or per-site when the event carries a TankId or SiteId,
+        /// preventing a single-tank event from burning the shared daily/cooldown budget for other tanks.
+        /// </summary>
+        public int MaxNotificationsPerHour { get; set; } = 0;
+
+        /// <summary>
         /// Whether to escalate if the event persists
         /// </summary>
         public bool EnableEscalation { get; set; } = false;

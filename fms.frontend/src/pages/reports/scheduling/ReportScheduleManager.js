@@ -59,8 +59,8 @@ const REPORT_TYPE_LABELS = {
 
 const ReportScheduleManager = () => {
     const [searchParams] = useSearchParams();
-    const { hasRole } = usePermissions();
-    const isAdmin = hasRole('Admin') || hasRole('SuperAdmin');
+    const { hasPermission } = usePermissions();
+    const isAdmin = hasPermission('_Manage_ReportSchedules');
     const authUser = useSelector((state) => state.auth?.user || null);
     const currentUserName = authUser?.userName || authUser?.username || 'Unknown';
 
