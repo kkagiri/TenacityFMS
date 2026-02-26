@@ -111,7 +111,7 @@ namespace FMS.WebClient.Services.Reporting
                 {
                     cfg.TrustUserCode = true;
                     cfg.TempDirectory = jsReportTempPath;
-                    cfg.FileSystemStore(new { DataDirectory = jsReportDataPath });
+                    cfg.FileSystemStore();
                     return cfg;
                 })
                 .AsUtility()
