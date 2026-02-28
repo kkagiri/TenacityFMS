@@ -8,7 +8,7 @@
  * - Edit controls are gated via `canEdit` (admin-only).
  * - Fixed-location settings were removed from the domain Vehicle entity.
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useSelector, useDispatch } from "react-redux";
 import store from "../../../../store"; // Import the Redux store directly
 import Form, {
@@ -172,6 +172,86 @@ const VehicleEditForm = ({
       [field]: value,
     }));
   }, []);
+
+  const filteredVehicleModels = useMemo(() => {
+    const selectedManufacturerId = Number(formData?.vehicleManufacturerId);
+    const models = Array.isArray(vehicleModels) ? vehicleModels : [];
+    const manufacturers = Array.isArray(vehicleManufacturers)
+      ? vehicleManufacturers
+      : [];
+
+    if (!Number.isFinite(selectedManufacturerId)) {
+      return [];
+    }
+
+    const byId = models.filter((model) => {
+      const modelManufacturerId = Number(
+        model?.manufacturerId ??
+        model?.vehicleManufacturerId ??
+        model?.ManufacturerId ??
+        model?.VehicleManufacturerId
+      );
+      return Number.isFinite(modelManufacturerId) && modelManufacturerId === selectedManufacturerId;
+    });
+    if (byId.length > 0) return byId;
+
+    const selectedManufacturerName = manufacturers
+      .find((manufacturer) => {
+        const manufacturerId = Number(
+          manufacturer?.id ??
+          manufacturer?.vehicleManufacturerId ??
+          manufacturer?.Id ??
+          manufacturer?.VehicleManufacturerId
+        );
+        return Number.isFinite(manufacturerId) && manufacturerId === selectedManufacturerId;
+      })
+      ?.name
+      ?.trim()
+      ?.toLowerCase();
+
+    if (selectedManufacturerName) {
+      const byName = models.filter((model) => {
+        const modelManufacturerName =
+          model?.manufacturer?.name ??
+          model?.vehicleManufacturer?.name ??
+          model?.manufacturerName ??
+          model?.vehicleManufacturerName ??
+          model?.ManufacturerName ??
+          model?.VehicleManufacturerName;
+        return (
+          typeof modelManufacturerName === "string" &&
+          modelManufacturerName.trim().toLowerCase() === selectedManufacturerName
+        );
+      });
+
+      if (byName.length > 0) return byName;
+    }
+
+    // Fallback for payloads without manufacturer linkage.
+    return models;
+  }, [vehicleModels, vehicleManufacturers, formData?.vehicleManufacturerId]);
+
+  useEffect(() => {
+    if (!formData?.vehicleModelId) return;
+
+    const selectedModelId = Number(formData.vehicleModelId);
+    const modelStillValid = filteredVehicleModels.some((model) => {
+      const modelId = Number(
+        model?.id ??
+        model?.vehicleModelId ??
+        model?.Id ??
+        model?.VehicleModelId
+      );
+      return Number.isFinite(modelId) && modelId === selectedModelId;
+    });
+
+    if (!modelStillValid) {
+      setFormData((prev) => ({
+        ...prev,
+        vehicleModelId: null,
+      }));
+    }
+  }, [formData?.vehicleManufacturerId, formData?.vehicleModelId, filteredVehicleModels]);
 
   // Memoize reset function
   const resetFormData = useCallback(() => {
@@ -409,13 +489,15 @@ const VehicleEditForm = ({
               caption="Model"
               editorType="dxSelectBox"
               editorOptions={{
-                dataSource: vehicleModels,
+                dataSource: filteredVehicleModels,
                 valueExpr: "id",
                 displayExpr: "name",
-                placeholder: "Select model",
+                placeholder: formData?.vehicleManufacturerId
+                  ? "Select model"
+                  : "Select manufacturer first",
                 onValueChanged: (e) =>
                   handleFieldChange("vehicleModelId", e.value),
-                readOnly: isFormDisabled,
+                readOnly: isFormDisabled || !formData?.vehicleManufacturerId,
                 stylingMode: isFormDisabled ? "outlined" : "outlined",
               }}
             />

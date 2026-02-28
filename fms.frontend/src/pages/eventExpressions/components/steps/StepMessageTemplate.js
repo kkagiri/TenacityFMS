@@ -18,6 +18,7 @@
 import React, { useState, useCallback, useMemo, useRef, useEffect } from 'react';
 import HtmlEditor, { Toolbar, Item as ToolbarItem } from 'devextreme-react/html-editor';
 import { TextBox } from 'devextreme-react/text-box';
+import DeliveryEventTemplate from '../DeliveryEventTemplate';
 
 // ─── Placeholder definitions per event type ───
 // Base placeholders available for ALL event types (from FMSEvent.GetTemplateVariables + engine additions)
@@ -150,6 +151,44 @@ const EVENT_TYPE_PLACEHOLDERS = {
         { key: 'VehicleName', label: 'Vehicle Name', description: 'Vehicle name', sample: 'Truck 007' },
         { key: 'TagName', label: 'Tag Name', description: 'RFID/NFC tag name', sample: 'Tag-A1234' },
         { key: 'Location', label: 'Location', description: 'Scan location', sample: 'Entry Gate' },
+    ],
+    InTankDelivery: [
+        { key: 'DeliveryId', label: 'Delivery ID', description: 'Auto-detected delivery identifier', sample: '1042' },
+        { key: 'PtsDeviceName', label: 'PTS Device', description: 'PTS controller that detected the delivery', sample: 'PTS-01 Depot' },
+        { key: 'TankName', label: 'Tank Name', description: 'Tank where delivery was detected', sample: 'Tank 01 - Diesel' },
+        { key: 'SiteName', label: 'Site Name', description: 'Site name', sample: 'Main Depot' },
+        { key: 'FuelGrade', label: 'Fuel Grade', description: 'Fuel grade / product type', sample: 'Diesel 50ppm' },
+        { key: 'Volume', label: 'Volume (L)', description: 'Delivered volume in liters', sample: '12,500.00' },
+        { key: 'PreDeliveryLevel', label: 'Pre-Delivery Level', description: 'Tank level before delivery (L)', sample: '18,200.00' },
+        { key: 'PostDeliveryLevel', label: 'Post-Delivery Level', description: 'Tank level after delivery (L)', sample: '30,700.00' },
+        { key: 'TankCapacity', label: 'Tank Capacity', description: 'Total tank capacity (L)', sample: '50,000.00' },
+        { key: 'VolumePercentage', label: 'Fill %', description: 'Percentage of capacity filled by delivery', sample: '25.0' },
+        { key: 'MatchedManualDeliveryId', label: 'Matched Manual ID', description: 'Matched manual delivery ID (if matched)', sample: '305' },
+        { key: 'Status', label: 'Status', description: 'Detection status', sample: 'Detected' },
+        { key: 'StartTime', label: 'Start Time', description: 'Delivery start timestamp', sample: '2026-02-19 06:15:00' },
+        { key: 'EndTime', label: 'End Time', description: 'Delivery end timestamp', sample: '2026-02-19 06:48:00' },
+        { key: 'DetectedAt', label: 'Detected At', description: 'When system detected the delivery', sample: '2026-02-19 06:50:12' },
+    ],
+    ManualDelivery: [
+        { key: 'DeliveryId', label: 'Delivery ID', description: 'Manual delivery record ID', sample: '305' },
+        { key: 'LpoNumber', label: 'LPO Number', description: 'Local purchase order number', sample: 'LPO-2026-0045' },
+        { key: 'TankName', label: 'Tank Name', description: 'Destination tank', sample: 'Tank 01 - Diesel' },
+        { key: 'SiteName', label: 'Site Name', description: 'Site name', sample: 'Main Depot' },
+        { key: 'ProductName', label: 'Product Name', description: 'Fuel product name', sample: 'Diesel 50ppm' },
+        { key: 'SupplierName', label: 'Supplier', description: 'Fuel supplier name', sample: 'TotalEnergies SA' },
+        { key: 'ManualDeliveryAmount', label: 'Manual Amount (L)', description: 'Manually entered delivery volume', sample: '15,000.00' },
+        { key: 'SensorDeliveryAmount', label: 'Sensor Amount (L)', description: 'Sensor-measured volume (if available)', sample: '14,850.00' },
+        { key: 'StockBeforeDelivery', label: 'Stock Before', description: 'Tank volume before delivery (L)', sample: '22,400.00' },
+        { key: 'StockAfterDelivery', label: 'Stock After', description: 'Tank volume after delivery (L)', sample: '37,400.00' },
+        { key: 'TankCapacity', label: 'Tank Capacity', description: 'Total tank capacity (L)', sample: '50,000.00' },
+        { key: 'FillPercentage', label: 'Fill %', description: 'Post-delivery fill percentage', sample: '74.8' },
+        { key: 'PricePerLiter', label: 'Price / Liter', description: 'Cost per liter', sample: '21.50' },
+        { key: 'TotalCost', label: 'Total Cost', description: 'Total delivery cost', sample: '322,500.00' },
+        { key: 'DeliveryTemperature', label: 'Temperature (°C)', description: 'Fuel temperature at delivery', sample: '22.5' },
+        { key: 'DeliveryDensity', label: 'Density', description: 'Fuel density at delivery', sample: '0.845' },
+        { key: 'DeliveryDate', label: 'Delivery Date', description: 'Date of delivery', sample: '2026-02-19' },
+        { key: 'IsSameDay', label: 'Same Day?', description: 'Whether entered on delivery date', sample: 'Yes' },
+        { key: 'RecordedByName', label: 'Recorded By', description: 'User who recorded the delivery', sample: 'Jane Smith' },
     ],
     System: [
         { key: 'SubType', label: 'Sub Type', description: 'System event sub-type', sample: 'ScheduledCheck' },
@@ -628,12 +667,70 @@ const StepMessageTemplate = ({
                                 Sensor Variance — Table Layout
                             </button>
                         )}
+                        {eventType === 'InTankDelivery' && (
+                            <button
+                                type="button"
+                                onClick={() => onFieldChange('messageTemplate',
+                                    '<p><strong>In-Tank Delivery Detected</strong></p>' +
+                                    '<p>Site: <strong>{{SiteName}}</strong> | Tank: <strong>{{TankName}}</strong> | PTS: <strong>{{PtsDeviceName}}</strong></p>' +
+                                    '<table style="border-collapse:collapse;width:100%;margin:8px 0">' +
+                                    '<tr style="background:#f0fdf4"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Delivery Details</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Fuel Grade</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><strong>{{FuelGrade}}</strong></td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Volume Delivered</td><td style="padding:4px 8px;border:1px solid #e5e7eb;color:#059669"><strong>{{Volume}}</strong> L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Fill %</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{VolumePercentage}}% of capacity</td></tr>' +
+                                    '<tr style="background:#f0fdf4"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Tank Levels</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Pre-Delivery Level</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{PreDeliveryLevel}} L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Post-Delivery Level</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><strong>{{PostDeliveryLevel}}</strong> L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Tank Capacity</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{TankCapacity}} L</td></tr>' +
+                                    '<tr style="background:#f0fdf4"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Timing</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Start</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{StartTime}}</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">End</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{EndTime}}</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Detected</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{DetectedAt}}</td></tr>' +
+                                    '</table>' +
+                                    '<p style="font-size:12px;color:#6b7280">Status: {{Status}} | Matched Manual ID: {{MatchedManualDeliveryId}} | Delivery #{{DeliveryId}}</p>'
+                                )}
+                                className="tw-text-left tw-w-full tw-p-2 tw-rounded tw-border tw-border-dashed tw-border-gray-300 tw-text-xs tw-text-gray-600 hover:tw-bg-green-50 hover:tw-border-green-300 tw-cursor-pointer tw-transition-colors"
+                            >
+                                <i className="fa-light fa-truck-ramp-box tw-mr-1 tw-text-green-500" />
+                                In-Tank Delivery — Detection Card
+                            </button>
+                        )}
+                        {eventType === 'ManualDelivery' && (
+                            <button
+                                type="button"
+                                onClick={() => onFieldChange('messageTemplate',
+                                    '<p><strong>Manual Delivery Entry</strong> — {{DeliveryDate}}</p>' +
+                                    '<p>Site: <strong>{{SiteName}}</strong> | Tank: <strong>{{TankName}}</strong></p>' +
+                                    '<table style="border-collapse:collapse;width:100%;margin:8px 0">' +
+                                    '<tr style="background:#eff6ff"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Delivery Information</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">LPO Number</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><strong>{{LpoNumber}}</strong></td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Supplier</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{SupplierName}}</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Product</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><strong>{{ProductName}}</strong></td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Same Day Entry?</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{IsSameDay}}</td></tr>' +
+                                    '<tr style="background:#eff6ff"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Volume</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Manual Amount</td><td style="padding:4px 8px;border:1px solid #e5e7eb;color:#2563eb"><strong>{{ManualDeliveryAmount}}</strong> L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Sensor Amount</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{SensorDeliveryAmount}} L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Stock Before</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{StockBeforeDelivery}} L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Stock After</td><td style="padding:4px 8px;border:1px solid #e5e7eb"><strong>{{StockAfterDelivery}}</strong> L</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Fill %</td><td style="padding:4px 8px;border:1px solid #e5e7eb">{{FillPercentage}}%</td></tr>' +
+                                    '<tr style="background:#eff6ff"><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600" colspan="2">Costing</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb">Price / Liter</td><td style="padding:4px 8px;border:1px solid #e5e7eb">R {{PricePerLiter}}</td></tr>' +
+                                    '<tr><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600">Total Cost</td><td style="padding:4px 8px;border:1px solid #e5e7eb;font-weight:600;color:#2563eb">R {{TotalCost}}</td></tr>' +
+                                    '</table>' +
+                                    '<p style="font-size:12px;color:#6b7280">Temp: {{DeliveryTemperature}}°C | Density: {{DeliveryDensity}} | Recorded by: {{RecordedByName}} | Delivery #{{DeliveryId}}</p>'
+                                )}
+                                className="tw-text-left tw-w-full tw-p-2 tw-rounded tw-border tw-border-dashed tw-border-gray-300 tw-text-xs tw-text-gray-600 hover:tw-bg-blue-50 hover:tw-border-blue-300 tw-cursor-pointer tw-transition-colors"
+                            >
+                                <i className="fa-light fa-file-invoice tw-mr-1 tw-text-blue-500" />
+                                Manual Delivery — Full Detail Card
+                            </button>
+                        )}
                         {!eventType && (
                             <p className="tw-text-xs tw-text-gray-400 tw-italic">
                                 Select an event type to see quick-start templates.
                             </p>
                         )}
-                        {eventType && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && (
+                        {eventType && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && eventType !== 'InTankDelivery' && eventType !== 'ManualDelivery' && (
                             <button
                                 type="button"
                                 onClick={() => onFieldChange('messageTemplate',
@@ -648,6 +745,17 @@ const StepMessageTemplate = ({
                             </button>
                         )}
                     </div>
+
+                    {/* Delivery template preview card */}
+                    {(eventType === 'InTankDelivery' || eventType === 'ManualDelivery') && (
+                        <div className="tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-100">
+                            <h5 className="tw-text-xs tw-font-semibold tw-text-gray-600 tw-mb-2">
+                                <i className="fa-light fa-eye tw-mr-1 tw-text-green-500" />
+                                Sample Delivery Card
+                            </h5>
+                            <DeliveryEventTemplate eventType={eventType} />
+                        </div>
+                    )}
                 </div>
             </div>
         </div>

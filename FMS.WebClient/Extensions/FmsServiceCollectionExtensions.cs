@@ -459,6 +459,9 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateDirectoryService, FMS.Application.Features.GPSGate.Services.GPSGateDirectoryService>();
         services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();
 
+        // Vehicle Transfer Notification Service
+        services.AddScoped<FMS.Application.Features.VehicleTransfer.Services.IVehicleTransferNotificationService, FMS.Application.Features.VehicleTransfer.Services.VehicleTransferNotificationService>();
+
         // GPSGate Report Processors
         services.AddScoped<FMS.Application.Features.GPSGate.Processors.FuelConsumptionReportProcessor>();
         services.AddScoped<FMS.Application.Features.GPSGate.Processors.RefuelingReportProcessor>();
@@ -545,6 +548,9 @@ public static class FmsServiceCollectionExtensions
 
         // GPSGate Vehicle Location Tag Monitoring Service - monitors vehicle tags at 8:00 AM daily
         services.AddHostedService<GPSGateVehicleLocationTagMonitoringService>();
+
+        // Vehicle Transfer InTransit reminder service - sends daily reminders to receivers
+        services.AddHostedService<FMS.BackgroundServices.TransferReminderBackgroundService>();
 
         // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
         // Consumes GPS position updates from GPSGate and broadcasts to connected clients

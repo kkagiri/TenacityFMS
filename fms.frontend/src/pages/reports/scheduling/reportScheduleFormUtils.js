@@ -11,6 +11,7 @@
 
 import { getReportSource } from '../sources/reportSourceRegistry';
 import { getNextRunDateTime } from '../../../components/Reporting/ReportScheduler/reportEmailScheduleUtils';
+import { getScheduledReportTypeDefinition } from '../utils/scheduledReportEmailPageUtils';
 
 /**
  * Capitalise first letter of a string.
@@ -98,8 +99,11 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
     const scheduleName = formData.scheduleName || `${source.name} - Scheduled Report`;
     const description = formData.description || source.description || 'Scheduled report delivery.';
 
-    const reportType = source.id; // e.g. 'device-offline', 'tank-volume-history'
-    const triggerSource = `${source.id.replace(/-/g, '')}ReportSchedule`;
+    // Resolve the canonical PascalCase reportType from the report type definitions
+    // so it matches the backend ScheduledReportDeliveryService expectations
+    const reportTypeDef = getScheduledReportTypeDefinition(source.id);
+    const reportType = reportTypeDef?.reportType || source.id;
+    const triggerSource = reportTypeDef?.triggerSource || `${reportType}ReportSchedule`;
 
     const recipientNames = recipientEmails.map((email) => {
         const match = recipientList.find(

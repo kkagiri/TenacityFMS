@@ -30,6 +30,7 @@ namespace FMS.Application.Features.Notification.Services
     public class ScheduledReportDeliveryService : IScheduledReportDeliveryService
     {
         private const string TransactionVolumeHistoryReportType = "TransactionVolumeHistory";
+        private const string TransactionVolumeHistoryReportTypeKebab = "tank-volume-history";
         private const string DefaultTemplateName = "transaction-volume-history-report";
         private const int MaxAttachmentBytes = 7 * 1024 * 1024;
 
@@ -71,7 +72,8 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var reportType = metadata.Value<string>("reportType");
-            if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase))
+            if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase))
             {
                 return null;
             }
@@ -532,7 +534,8 @@ namespace FMS.Application.Features.Notification.Services
 
             try
             {
-                if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase))
+                if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Unsupported event report attachment type: {ReportType}", reportType);
                     return attachments;

@@ -598,7 +598,7 @@ namespace FMS.WebClient.Services
                     dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
                     generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                    summary = new { totalTransactions = 0, totalDispensed = "0.00", totalTransfer = "0.00", totalDelivery = "0.00", netBalanceChange = "0.00", grandClosingBalance = "0.00" },
+                    summary = new { totalTransactions = 0, totalDispensed = "0.00", totalTransfer = "0.00", totalDelivery = "0.00", netBalanceChange = "0.00", grandClosingBalance = "0.00", totalVariance = new { value = "0.00", formatted = "+0.00", isNegative = false } },
                     siteGroups = Array.Empty<object>(),
                 };
                 return JToken.FromObject(emptyPayload);
@@ -631,6 +631,7 @@ namespace FMS.WebClient.Services
             var siteMap = new Dictionary<string, (List<object> Tanks, List<object> TxGroups)>(
                 StringComparer.OrdinalIgnoreCase);
             decimal grandClosingBalance = 0m;
+            decimal globalTotalVariance = 0m;
             int globalRowNumber = 1;
 
             foreach (var group in tankGroups)
@@ -665,6 +666,11 @@ namespace FMS.WebClient.Services
                 var expectedMatch = Math.Abs(expectedClosing - closingBal) < 1m;
                 var transferCount = transferInCount + transferOutCount;
 
+                // Variance = Actual Closing − Expected Closing
+                // Negative = loss/shortage, Positive = gain/overage
+                var tankVariance = closingBal - expectedClosing;
+                globalTotalVariance += tankVariance;
+
                 var tankEntry = new
                 {
                     tankName = tankName,
@@ -673,6 +679,15 @@ namespace FMS.WebClient.Services
                     closingBalance = closingBal.ToString("N2"),
                     expectedClosing = expectedClosing.ToString("N2"),
                     expectedMatch,
+                    variance = new
+                    {
+                        value = tankVariance.ToString("N2"),
+                        formatted = tankVariance.ToString("+0.00;-0.00;0.00"),
+                        isNegative = tankVariance < 0,
+                        percentage = openingBal != 0m
+                            ? ((tankVariance / openingBal) * 100m).ToString("N1")
+                            : "0.0",
+                    },
                     dispensing = new { total = dispensingTotal.ToString("N2"), count = dispensingCount },
                     delivery = new { total = deliveryTotal.ToString("N2"), count = deliveryCount },
                     transfer = new { total = Math.Abs(transferInTotal - transferOutTotal).ToString("N2"), count = transferCount },
@@ -776,6 +791,12 @@ namespace FMS.WebClient.Services
                     totalDelivery = globalDelivery.ToString("N2"),
                     netBalanceChange = netBalanceChange.ToString("+0.00;-0.00;0.00"),
                     grandClosingBalance = grandClosingBalance.ToString("N2"),
+                    totalVariance = new
+                    {
+                        value = globalTotalVariance.ToString("N2"),
+                        formatted = globalTotalVariance.ToString("+0.00;-0.00;0.00"),
+                        isNegative = globalTotalVariance < 0,
+                    },
                 },
                 siteGroups = siteGroupsPayload,
             };

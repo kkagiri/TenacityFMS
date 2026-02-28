@@ -1,3 +1,9 @@
+/**
+ * File: VehicleTransferDTO.cs
+ * Purpose: Data contracts for vehicle transfer aggregate and child inspection details.
+ * Dependencies: None
+ * Last Modified: 2026-02-26
+ */
 using System;
 using System.Collections.Generic;
 
@@ -34,7 +40,7 @@ public class VehicleTransferDTO
     public bool AntiTheftCheckedDeparture { get; set; }
     public bool AntiTheftCheckedArrival { get; set; }
     public bool KeysInEnvelopeChecked { get; set; }
-    public string Status { get; set; } = "Pending";
+    public string Status { get; set; } = "Draft";
     public string? Remarks { get; set; }
     public string? ServiceFilterParts { get; set; }
     public string? SenderName { get; set; }
@@ -43,6 +49,16 @@ public class VehicleTransferDTO
     public string? ReceiverFunction { get; set; }
     public string? ApprovedBy { get; set; }
     public string? WorkshopManagerSign { get; set; }
+
+    // Notification workflow fields
+    public string? ReceiverUserId { get; set; }
+    public string? ReceiverUserName { get; set; }
+    public string? ApproverUserId { get; set; }
+    public string? ApproverUserName { get; set; }
+    public DateTime? DispatchedAt { get; set; }
+    public DateTime? ReceivedAt { get; set; }
+    public int ReminderCount { get; set; }
+
     public string? DocumentUrl { get; set; }
     public string? DocumentFileName { get; set; }
     public bool EmailSent { get; set; }

@@ -213,21 +213,49 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                 var tankName = tank?.Name ?? $"Probe #{delivery.Tank}";
                 var fuelGrade = delivery.FuelGradeName ?? $"Grade {delivery.FuelGradeId}";
 
-                // Fire SystemEvent for in-tank delivery through the event expression engine
-                var itdEvent = new SystemEvent
+                // Fire typed InTankDeliveryEvent through the event expression engine
+                var preLevel = delivery.StartProductVolume.HasValue ? (decimal)delivery.StartProductVolume.Value : 0m;
+                var postLevel = delivery.EndProductVolume.HasValue ? (decimal)delivery.EndProductVolume.Value : 0m;
+                var tankCapacity = tank?.TankVolume ?? 0m;
+                var volumePct = tankCapacity > 0 ? (absoluteVolume / tankCapacity) * 100m : 0m;
+
+                var site = tank?.SiteId != null
+                    ? await _context.Sites.FindAsync(new object[] { tank.SiteId }, cancellationToken)
+                    : null;
+
+                var itdEvent = new InTankDeliveryEvent
                 {
                     SiteId = tank?.SiteId ?? delivery.SiteId,
                     TankId = tank?.Id,
                     Severity = "Medium",
-                    SubType = "InTankDelivery",
-                    SourceComponent = "InTankDeliveryDetection",
                     Message = $"In-tank delivery detected: Tank {tankName}, Volume {absoluteVolume:N0}L, Fuel Grade {fuelGrade}",
-                    ReferenceId = delivery.DeliveryId,
-                    ReferenceType = "InTankDelivery",
+
+                    // Delivery identification
+                    DeliveryId = delivery.DeliveryId,
+                    PtsDeviceName = delivery.Pts?.PtsName ?? delivery.Ptsid.ToString(),
+
+                    // Tank / Site
+                    TankName = tankName,
+                    SiteName = site?.Name ?? $"Site {tank?.SiteId ?? delivery.SiteId}",
+                    FuelGrade = fuelGrade,
+
+                    // Volume
+                    Volume = absoluteVolume,
+                    PreDeliveryLevel = preLevel,
+                    PostDeliveryLevel = postLevel,
+                    TankCapacity = tankCapacity,
+                    VolumePercentage = volumePct,
+
+                    // Matching
+                    MatchedManualDeliveryId = delivery.MatchedDeliveryId,
+                    Status = delivery.Status ?? "Detected",
+
+                    // Timestamps
+                    StartTime = delivery.StartDateTime,
+                    EndTime = delivery.EndDateTime,
+                    DetectedAt = delivery.DetectedAt ?? DateTime.UtcNow
                 };
-                itdEvent.Data["TankName"] = tankName;
-                itdEvent.Data["Volume"] = absoluteVolume;
-                itdEvent.Data["FuelGrade"] = fuelGrade;
+
                 await _eventEngine.ProcessAsync(itdEvent, cancellationToken);
                 _logger.LogInformation(
                     "ITD event detected for DeliveryId {DeliveryId}: Tank={Tank}, Volume={Volume}L, FuelGrade={FuelGrade}",

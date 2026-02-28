@@ -28,6 +28,7 @@ import VehicleDocumentsList from "./documents/VehicleDocumentsList";
 
 // Transfers
 import VehicleTransferListPage from "./transfers/VehicleTransferListPage";
+import VehicleTransferCreatePage from "./transfers/VehicleTransferCreatePage";
 
 // Reports
 import VehicleReportsPage from "./reports/VehicleReportsPage";
@@ -55,6 +56,7 @@ const VehicleMain = () => {
           element={<VehicleDocumentsList />}
         />
         <Route path="transfers" element={<VehicleTransferListPage />} />
+        <Route path="transfers/new" element={<VehicleTransferCreatePage />} />
         <Route path="reports" element={<VehicleReportsPage />} />
         <Route path="settings" element={<VehicleSettingsPage />} />
 

@@ -34,7 +34,7 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
 import Button from 'devextreme-react/button';
-import Popup from 'devextreme-react/popup';
+import M365SidePanel from '../../../../components/common/M365SidePanel';
 import notify from 'devextreme/ui/notify';
 import { confirm } from 'devextreme/ui/dialog';
 import { Workbook } from 'exceljs';
@@ -531,17 +531,12 @@ const DeliveryManager = () => {
         </Summary>
       </DataGrid>
 
-      {/* Delivery Form Popup */}
-      <Popup
+      {/* Delivery Form Side Panel */}
+      <M365SidePanel
         visible={showDeliveryForm}
-        onHiding={() => setShowDeliveryForm(false)}
-        dragEnabled={false}
-        closeOnOutsideClick={false}
-        showTitle={true}
+        onClose={() => setShowDeliveryForm(false)}
         title={isEditMode ? 'Edit Delivery' : 'New Delivery'}
-        width={700}
-        height="auto"
-        maxHeight="90vh"
+        width={1000}
       >
         <DeliveryForm
           delivery={selectedDelivery}
@@ -549,7 +544,7 @@ const DeliveryManager = () => {
           onSubmit={handleFormSubmit}
           onCancel={() => setShowDeliveryForm(false)}
         />
-      </Popup>
+      </M365SidePanel>
     </div>
   );
 };

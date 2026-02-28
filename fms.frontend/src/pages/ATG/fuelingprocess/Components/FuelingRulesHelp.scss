@@ -1,38 +1,60 @@
-/* FuelingRulesHelp.scss */
+/* FuelingRulesHelp.scss — M365 Flat Design */
 
-.fueling-rules-help {
-  .help-sidebar {
-    @apply tw-w-48 tw-border-r tw-border-gray-200 tw-bg-gray-50 tw-p-3;
+/* Sidebar */
+.fueling-rules-help-sidebar {
+  width: 180px;
+  flex-shrink: 0;
+  border-right: 1px solid #edebe9;
+  background: #faf9f8;
+  padding: 8px;
+}
+
+.fueling-rules-help-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fueling-rules-help-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border-radius: 4px;
+  border: none;
+  background: transparent;
+  color: #605e5c;
+  font-size: 13px;
+  font-weight: 400;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+
+  i {
+    font-size: 14px;
+    width: 16px;
+    text-align: center;
   }
 
-  .help-content {
-    @apply tw-flex-1 tw-p-6 tw-overflow-y-auto;
+  &:hover {
+    background: #f3f2f1;
+    color: #201f1e;
   }
 
-  .help-nav-item {
-    @apply tw-w-full tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-left tw-text-sm tw-transition-colors;
+  &--active {
+    background: #deecf9;
+    color: #0078d4;
+    font-weight: 500;
 
     &:hover {
-      @apply tw-bg-gray-100;
-    }
-
-    &.active {
-      @apply tw-bg-blue-100 tw-text-blue-700 tw-font-medium;
+      background: #deecf9;
+      color: #0078d4;
     }
   }
+}
 
-  .priority-bar {
-    &.priority-100 {
-      @apply tw-bg-purple-100 tw-border-2 tw-border-purple-300;
-    }
-    &.priority-80 {
-      @apply tw-bg-orange-50 tw-border tw-border-orange-200;
-    }
-    &.priority-50 {
-      @apply tw-bg-green-50 tw-border tw-border-green-200;
-    }
-    &.priority-10 {
-      @apply tw-bg-blue-50 tw-border tw-border-blue-200;
-    }
-  }
+/* Content area */
+.fueling-rules-help-container {
+  height: 100%;
 }

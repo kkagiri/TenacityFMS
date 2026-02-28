@@ -20,6 +20,25 @@
   border: 1px solid #ddd !important;
   border-radius: 4px !important;
   margin-top: 2px !important;
+  background: #fff !important;
+}
+
+/* Ensure dropdown list fills full width - no left gap */
+.searchable-selector .dx-list {
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.searchable-selector .dx-overlay-content {
+  padding: 0 !important;
+  background: #fff !important;
+}
+
+.searchable-selector .dx-scrollable-wrapper,
+.searchable-selector .dx-scrollable-container,
+.searchable-selector .dx-scrollable {
+  padding: 0 !important;
+  margin: 0 !important;
 }
 
 /* Scoped scrollable content */

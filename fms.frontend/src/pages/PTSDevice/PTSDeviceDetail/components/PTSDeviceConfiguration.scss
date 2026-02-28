@@ -1,83 +1,265 @@
-.pts-device-configuration {
-  .config-header {
-    @apply tw-flex tw-justify-between tw-items-start tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
+/**
+ * File: PTSDeviceConfiguration.scss
+ * Purpose: M365-styled accordion config page for PTS devices
+ * Dependencies: m365-shared.scss design tokens
+ * Last Modified: 2026-02-27
+ */
+@import "../../../../components/m365/m365-shared.scss";
 
-    .connection-badge {
-      @apply tw-flex tw-items-center tw-px-3 tw-py-1 tw-bg-green-100 tw-text-green-700 tw-rounded-full tw-text-sm tw-font-medium;
+/* ── Config Page Shell ── */
+.m365-device-config {
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    margin-bottom: 20px;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 2px 0;
+  }
+
+  &__subtitle {
+    font-size: 13px;
+    color: var(--m365-text-secondary, #605e5c);
+    margin: 0;
+  }
+
+  &__status {
+    flex-shrink: 0;
+  }
+
+  /* ── Warning Banner ── */
+  &__warning {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 12px 16px;
+    margin-bottom: 16px;
+    background: var(--m365-orange-bg, #fff4ce);
+    border: 1px solid #f2c661;
+    border-radius: var(--m365-radius, 4px);
+    font-size: 13px;
+    color: #6b5b00;
+
+    > i {
+      font-size: 18px;
+      color: var(--m365-warning, #ca5010);
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    strong {
+      display: block;
+      margin-bottom: 2px;
+      color: #4d4000;
+    }
+
+    p { margin: 0; line-height: 1.5; }
+  }
+
+  /* ── Info banner inside accordion ── */
+  &__info-banner {
+    font-size: 13px;
+    color: var(--m365-text-secondary, #605e5c);
+    padding: 10px 14px;
+    background: var(--m365-blue-bg, #deecf9);
+    border-radius: var(--m365-radius, 4px);
+    margin-bottom: 14px;
+    line-height: 1.5;
+  }
+
+  /* ── Planned section grid ── */
+  &__planned-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 10px;
+  }
+
+  /* ── Info grid (device info) ── */
+  &__info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+  }
+
+  /* ── Docs grid ── */
+  &__docs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+}
+
+/* ── Accordion ── */
+.m365-accordion {
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: var(--m365-radius, 4px);
+  margin-bottom: 8px;
+  background: var(--m365-bg-card, #ffffff);
+  overflow: hidden;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 12px 16px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+    transition: background 0.15s;
+
+    &:hover {
+      background: var(--m365-bg-hover, #f3f2f1);
     }
   }
 
-  .info-banner {
-    @apply tw-flex tw-gap-4 tw-p-4 tw-mb-6 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg;
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
 
     i {
-      @apply tw-text-blue-600 tw-text-2xl tw-mt-1;
+      font-size: 14px;
+      color: var(--m365-primary, #0078d4);
     }
   }
 
-  .config-sections {
-    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4 tw-mb-6;
-
-    .config-card {
-      @apply tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-flex tw-gap-4;
-
-      .card-icon {
-        @apply tw-flex tw-items-center tw-justify-center tw-w-12 tw-h-12 tw-bg-blue-100 tw-rounded-lg tw-shrink-0;
-
-        i {
-          @apply tw-text-blue-600 tw-text-xl;
-        }
-      }
-
-      .card-content {
-        @apply tw-flex-1;
-
-        .status-badge {
-          @apply tw-inline-flex tw-items-center tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium;
-
-          &.planned {
-            @apply tw-bg-gray-100 tw-text-gray-600;
-          }
-        }
-      }
-
-      .card-actions {
-        @apply tw-flex tw-items-center;
-      }
-    }
+  &__badge {
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 10px;
+    background: var(--m365-blue-bg, #deecf9);
+    color: var(--m365-primary, #0078d4);
   }
 
-  .config-footer {
-    @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-6 tw-mb-6 tw-p-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg;
-
-    .footer-section {
-      h4 {
-        @apply tw-flex tw-items-center;
-
-        i {
-          @apply tw-text-gray-600;
-        }
-      }
-    }
+  &__chevron {
+    font-size: 12px;
+    color: var(--m365-text-secondary, #605e5c);
+    transition: transform 0.2s;
   }
 
-  .current-config {
-    @apply tw-p-4 tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg;
+  &__body {
+    padding: 4px 16px 16px;
+    border-top: 1px solid var(--m365-border-light, #edebe9);
+  }
 
-    .config-grid {
-      @apply tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4;
-
-      .config-item {
-        @apply tw-flex tw-flex-col tw-p-3 tw-bg-gray-50 tw-rounded;
-
-        label {
-          @apply tw-text-xs tw-text-gray-500 tw-mb-1;
-        }
-
-        span {
-          @apply tw-text-sm tw-font-semibold tw-text-gray-900;
-        }
-      }
+  &--open {
+    .m365-accordion__header {
+      background: var(--m365-bg-surface, #faf9f8);
     }
+  }
+}
+
+/* ── Planned Card ── */
+.m365-planned-card {
+  display: flex;
+  gap: 10px;
+  padding: 12px;
+  background: var(--m365-bg-surface, #faf9f8);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: var(--m365-radius, 4px);
+  opacity: 0.65;
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--m365-bg-hover, #f3f2f1);
+    border-radius: var(--m365-radius, 4px);
+    flex-shrink: 0;
+
+    i { font-size: 14px; color: var(--m365-text-secondary, #605e5c); }
+  }
+
+  &__body {
+    h4 {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--m365-text, #201f1e);
+      margin: 0 0 2px 0;
+    }
+    p {
+      font-size: 11px;
+      color: var(--m365-text-secondary, #605e5c);
+      margin: 0 0 6px 0;
+      line-height: 1.4;
+    }
+  }
+}
+
+/* ── Info Item ── */
+.m365-info-item {
+  padding: 10px 12px;
+  background: var(--m365-bg-surface, #faf9f8);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: var(--m365-radius, 4px);
+
+  &__label {
+    display: block;
+    font-size: 11px;
+    color: var(--m365-text-tertiary, #a19f9d);
+    margin-bottom: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  &__value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    font-family: monospace;
+
+    &--success { color: var(--m365-success, #107c10); }
+    &--error   { color: var(--m365-error, #d13438); }
+  }
+}
+
+/* ── Doc Card ── */
+.m365-doc-card {
+  padding: 14px 16px;
+  background: var(--m365-bg-surface, #faf9f8);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: var(--m365-radius, 4px);
+
+  h4 {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 6px 0;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+
+    i { color: var(--m365-text-secondary, #605e5c); }
+  }
+
+  p, ul {
+    font-size: 12px;
+    color: var(--m365-text-secondary, #605e5c);
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  ul {
+    padding-left: 16px;
+    li { margin-bottom: 2px; }
   }
 }

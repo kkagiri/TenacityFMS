@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { quickSearchVehicles } from '../../redux/actions/vehicleSearchActions';
 import axiosInstance from '../../api/axiosInstance';
 import './SearchableSelector.css';
@@ -17,8 +18,22 @@ const VehicleSearchableSelector = ({
   const [showDropdown, setShowDropdown] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
   const searchTimeoutRef = useRef(null);
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
+
+  // Recalculate dropdown position whenever it opens or the window scrolls/resizes
+  const updateDropdownPosition = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom + 2,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
 
   const performSearch = useCallback(async (term) => {
     if (!term || term.length < 2) {
@@ -145,22 +160,39 @@ const VehicleSearchableSelector = ({
     }
   }, [searchTerm, vehicles.length, isLoading, performSearch]);
 
-  // Handle click outside
+  // Handle click outside (check both the input container and the portal dropdown)
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      const inContainer = containerRef.current && containerRef.current.contains(event.target);
+      const inDropdown = dropdownRef.current && dropdownRef.current.contains(event.target);
+      if (!inContainer && !inDropdown) {
         setShowDropdown(false);
       }
     };
 
     if (showDropdown) {
       document.addEventListener('mousedown', handleClickOutside);
+      updateDropdownPosition();
     }
 
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, [showDropdown]);
+  }, [showDropdown, updateDropdownPosition]);
+
+  // Reposition dropdown on scroll (any ancestor) and resize
+  useEffect(() => {
+    if (!showDropdown) return;
+
+    const handleReposition = () => updateDropdownPosition();
+    window.addEventListener('scroll', handleReposition, true);
+    window.addEventListener('resize', handleReposition);
+
+    return () => {
+      window.removeEventListener('scroll', handleReposition, true);
+      window.removeEventListener('resize', handleReposition);
+    };
+  }, [showDropdown, updateDropdownPosition]);
 
   // Load selected vehicle by id when value changes
   useEffect(() => {
@@ -274,14 +306,25 @@ const VehicleSearchableSelector = ({
         </div>
       )}
 
-      {showDropdown && (
-        <div className="dx-overlay-wrapper dx-selectbox-popup-wrapper" style={{ position: 'absolute', zIndex: 1501, width: '100%', top: '100%' }}>
+      {showDropdown && ReactDOM.createPortal(
+        <div
+          ref={dropdownRef}
+          className="dx-overlay-wrapper dx-selectbox-popup-wrapper searchable-selector"
+          style={{
+            position: 'fixed',
+            zIndex: 10005,
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <div className="dx-overlay-content dx-popup-content dx-selectbox-popup">
             <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
               <div className="dx-scrollable-wrapper">
                 <div className="dx-scrollable-container">
                   <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
-                    <div className="dx-list dx-list-select-decorator-enabled dx-widget">
+                    <div className="dx-list dx-widget">
                       {vehicles.length > 0 ? (
                         vehicles.map((vehicle, index) => (
                           <div
@@ -295,29 +338,29 @@ const VehicleSearchableSelector = ({
                               borderBottom: index !== vehicles.length - 1 ? '1px solid #e6e6e6' : 'none'
                             }}
                           >
-                          <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <div style={{ flex: 1 }}>
-                                <div style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '12px',
-                                  fontSize: '14px',
-                                  lineHeight: '1.3'
-                                }}>
-                                  <span style={{ fontWeight: '600', color: '#337ab7' }}>
-                                    {vehicle.hyoungNo}
-                                  </span>
-                                  <span style={{ color: '#666' }}>
-                                    {vehicle.vehicleName || vehicle.numberPlate}
-                                  </span>
+                            <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '12px',
+                                    fontSize: '14px',
+                                    lineHeight: '1.3'
+                                  }}>
+                                    <span style={{ fontWeight: '600', color: '#337ab7' }}>
+                                      {vehicle.hyoungNo}
+                                    </span>
+                                    <span style={{ color: '#666' }}>
+                                      {vehicle.vehicleName || vehicle.numberPlate}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
+                                  {vehicle.siteName}
                                 </div>
                               </div>
-                              <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
-                                {vehicle.siteName}
-                              </div>
                             </div>
-                          </div>
                           </div>
                         ))
                       ) : (
@@ -354,7 +397,8 @@ const VehicleSearchableSelector = ({
               </div>
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

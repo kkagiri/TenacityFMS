@@ -76,8 +76,9 @@ const VolumeChangeReasonEnum = [
   { id: 9, name: "Auto Reconciliation", color: "#8B5CF6", icon: "sync-alt" },
 ];
 
-const TankTransactionHubScreen = ({ navigation }) => {
+const TankTransactionHubScreen = ({ navigation, route }) => {
   const dispatch = useDispatch();
+  const routeSiteId = route?.params?.siteId || null;
 
   // Redux state
   const { transactions, isLoading, isRefreshing, error, filters, summary } =
@@ -116,17 +117,19 @@ const TankTransactionHubScreen = ({ navigation }) => {
       59
     );
 
+    const initialSiteId = routeSiteId || selectedSite?.id || null;
+
     const initialFilters = {
       startDate: formatLocalDateForApi(startOfDay),
       endDate: formatLocalDateForApi(endOfDay),
-      siteId: selectedSite?.id || null,
+      siteId: initialSiteId,
       tankId: null,
       take: 100,
       includeVehicleNames: true,
     };
 
     setTempFilters({
-      siteId: initialFilters.siteId,
+      siteId: initialSiteId,
       tankId: null,
       startDate: startOfDay,
       endDate: endOfDay,
@@ -134,7 +137,10 @@ const TankTransactionHubScreen = ({ navigation }) => {
 
     dispatch(setFilters(initialFilters));
     dispatch(fetchSiteList());
-  }, []);
+    if (initialSiteId) {
+      dispatch(fetchTanksBySite(initialSiteId));
+    }
+  }, [routeSiteId]);
 
   // Fetch tanks when site changes
   useEffect(() => {
@@ -707,7 +713,7 @@ const TankTransactionHubScreen = ({ navigation }) => {
                   style={styles.picker}
                 >
                   <Picker.Item label="All Sites" value={null} />
-                  {sites?.map((site) => (
+                  {sites?.filter((site) => site.isActive !== false).map((site) => (
                     <Picker.Item
                       key={site.id}
                       label={site.name}

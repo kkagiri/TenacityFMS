@@ -9,6 +9,7 @@ const normalizeSite = (s) => ({
   address: s.Address || s.address || "",
   city: s.City || s.city || "",
   country: s.Country || s.country || "",
+  isActive: s.IsActive ?? s.isActive ?? true,
 });
 
 export const fetchSiteList = createAsyncThunk(

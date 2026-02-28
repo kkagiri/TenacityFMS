@@ -1,8 +1,15 @@
-﻿using System;
+/**
+ * File: EmployeeCreateCmd.cs
+ * Purpose: Creates employees and persists employee-to-vehicle assignments.
+ * Dependencies: MediatR, EF Core, AutoMapper, GpsdataContext
+ * Last Modified: 2026-02-26
+ *
+ * Key Functions/Components:
+ * - EmployeeCreateCmdHandler.Handle(): Validates payload and saves employee + vehicle links.
+ */
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Security.Policy;
-using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -36,6 +43,7 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd {
                 if (string.IsNullOrWhiteSpace (request.EmployeeDto.Employeestatus)) return new EmployeeCreateResponse (false, "Employee Status cannot be empty. It should be either 'Active' or 'Terminated'.", null);
                 string status = request.EmployeeDto.Employeestatus.Trim ();
                 if (status != "Active" && status != "Terminated") return new EmployeeCreateResponse (false, "Invalid Employee Status. It should be either 'Active' or 'Terminated'.", null);
+
                 var employee = new Employee {
                     SiteId = request.EmployeeDto.SiteId,
                     FullName = request.EmployeeDto.FullName.ToUpper (),
@@ -47,15 +55,40 @@ namespace FMS.Application.Command.DatabaseCommand.EmployeeCmd {
                     DateModified = DateTime.UtcNow,
                     IsModified = false ? (sbyte) 1 : (sbyte) 0,
                     ModifiedBy = request.EmployeeDto.ModifiedBy,
-                    CreatedBy = request.EmployeeDto.CreatedBy,
-                    Vehicles = new List<Vehicle> ()
+                    CreatedBy = request.EmployeeDto.CreatedBy
                 };
 
-                // Validate and add vehicles
-                foreach (var vehicleId in request.EmployeeDto.Vehicles) {
-                    var result = await _context.Vehicles.FirstOrDefaultAsync (i => i.VehicleId == vehicleId);
-                    if (result == null) return new EmployeeCreateResponse (false, $"Vehicle with ID {vehicleId} not found", null);
-                    employee.Vehicles.Add (result);
+                // Validate and add vehicle links through explicit join table mapping.
+                var requestedVehicleIds = request.EmployeeDto.Vehicles?
+                    .Distinct ()
+                    .ToList () ?? new List<int> ();
+
+                if (requestedVehicleIds.Any ()) {
+                    var existingVehicleIds = await _context.Vehicles
+                        .Where (v => requestedVehicleIds.Contains (v.VehicleId))
+                        .Select (v => v.VehicleId)
+                        .ToListAsync (cancellationToken);
+
+                    var missingVehicleIds = requestedVehicleIds.Except (existingVehicleIds).ToList ();
+                    if (missingVehicleIds.Any ()) {
+                        return new EmployeeCreateResponse (
+                            false,
+                            $"Vehicle with ID {missingVehicleIds.First ()} not found",
+                            null
+                        );
+                    }
+
+                    foreach (var vehicleId in existingVehicleIds) {
+                        employee.EmployeeVehicles.Add (new EmployeeVehicle {
+                            VehicleId = vehicleId,
+                            Employee = employee
+                        });
+                    }
+
+                    // Keep DTO mapping behavior consistent (EmployeeMappingProfile maps from Employee.Vehicles).
+                    employee.Vehicles = existingVehicleIds
+                        .Select (id => new Vehicle { VehicleId = id })
+                        .ToList ();
                 }
 
                 _context.Employees.Add (employee);

@@ -31,6 +31,7 @@ namespace FMS.Application.Features.Notification.Enums
         Reconciliation = 15,        // DB: "Reconciliation"
         IssueTracker = 16,          // DB: "IssueTracker"
         TankVariance = 17,          // DB: "TankVariance"
+        VehicleTransfer = 18,       // DB: "VehicleTransfer" — transfer lifecycle notifications
 
         // ==========================================
         // IDs that do NOT yet exist in the database.

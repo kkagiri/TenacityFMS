@@ -103,5 +103,6 @@ CREATE TABLE IF NOT EXISTS vehicle_transfer_battery_details (
 -- These are used to populate the checkup form
 -- =============================================
 
--- Note: These are not stored in database, they are returned from API endpoint
--- The template is defined in VehicleTransferController.GetCheckupTemplate()
+-- Note: As of 2026-02-26, reusable template rows are persisted in
+-- `vehicle_transfer_checkup_templates` via migration:
+-- `2026-02-26_create_vehicle_transfer_checkup_templates.sql`

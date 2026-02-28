@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
+import ReactDOM from 'react-dom';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
 import { TextBox } from 'devextreme-react/text-box';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -32,6 +33,19 @@ const EmployeeSearchableSelector = ({
   const [isSaving, setIsSaving] = useState(false);
   const searchTimeoutRef = useRef(null);
   const containerRef = useRef(null);
+  const dropdownRef = useRef(null);
+  const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0, width: 0 });
+
+  const updateDropdownPosition = useCallback(() => {
+    if (containerRef.current) {
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPos({
+        top: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+      });
+    }
+  }, []);
 
   // Get sites from Redux store
   const sites = useSelector((state) => state.site?.sites || []);
@@ -236,7 +250,10 @@ const EmployeeSearchableSelector = ({
   // Handle click outside
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (containerRef.current && !containerRef.current.contains(event.target)) {
+      if (
+        containerRef.current && !containerRef.current.contains(event.target) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(event.target))
+      ) {
         setShowDropdown(false);
       }
     };
@@ -249,6 +266,18 @@ const EmployeeSearchableSelector = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, [showDropdown]);
+
+  // Re-position dropdown on scroll / resize
+  useEffect(() => {
+    if (!showDropdown) return;
+    updateDropdownPosition();
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    window.addEventListener('resize', updateDropdownPosition);
+    return () => {
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+      window.removeEventListener('resize', updateDropdownPosition);
+    };
+  }, [showDropdown, updateDropdownPosition]);
 
   // Load selected employee by id when value changes
   useEffect(() => {
@@ -360,14 +389,25 @@ const EmployeeSearchableSelector = ({
         </div>
       )}
 
-      {showDropdown && (
-        <div className="dx-overlay-wrapper dx-selectbox-popup-wrapper" style={{ position: 'absolute', zIndex: 1501, width: '100%', top: '100%' }}>
+      {showDropdown && ReactDOM.createPortal(
+        <div
+          ref={dropdownRef}
+          className="dx-overlay-wrapper dx-selectbox-popup-wrapper searchable-selector"
+          style={{
+            position: 'fixed',
+            zIndex: 10005,
+            top: dropdownPos.top,
+            left: dropdownPos.left,
+            width: dropdownPos.width,
+          }}
+          onMouseDown={(e) => e.preventDefault()}
+        >
           <div className="dx-overlay-content dx-popup-content dx-selectbox-popup">
             <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
               <div className="dx-scrollable-wrapper">
                 <div className="dx-scrollable-container">
                   <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
-                    <div className="dx-list dx-list-select-decorator-enabled dx-widget">
+                    <div className="dx-list dx-widget">
                       {employees.length > 0 ? (
                         employees.map((employee, index) => (
                           <div
@@ -449,7 +489,7 @@ const EmployeeSearchableSelector = ({
             </div>
           </div>
         </div>
-      )}
+      , document.body)}
 
       {/* Add New Employee Popup */}
       <Popup

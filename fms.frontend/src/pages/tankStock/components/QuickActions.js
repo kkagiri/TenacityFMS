@@ -12,7 +12,7 @@
 import React, { useState, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { DropDownButton } from "devextreme-react/drop-down-button";
-import { Popup } from "devextreme-react/popup";
+import M365SidePanel from "../../../components/common/M365SidePanel";
 import notify from "devextreme/ui/notify";
 import "./QuickActions.scss";
 
@@ -32,44 +32,23 @@ const POPUP_CONFIG = {
   openingStock: {
     title: "Opening Stock",
     Form: OpeningStockForm,
-    width: "90%",
-    maxWidth: "650px",
-    // Use viewport-relative height to allow internal scrolling
-    maxHeight: "80vh",
-    height: "auto",
+    width: 750,
   },
   closingStock: {
     title: "Closing Stock",
     Form: ClosingStockForm,
-    width: "90%",
-    maxWidth: "600px",
-    maxHeight: "80vh",
-    height: "auto",
   },
   delivery: {
     title: "Delivery",
     Form: TankDeliveryForm,
-    width: "100%",
-    maxWidth: "1050px",
-    maxHeight: "80vh",
-    height: "auto",
   },
   transfer: {
     title: "Transfer",
     Form: TankTransferForm,
-    width: "90%",
-    maxWidth: "800px",
-    maxHeight: "80vh",
-    height: "auto",
   },
   manualRefill: {
     title: "Manual Refill",
     Form: ManualRefillForm,
-    width: "90%",
-    maxWidth: "700px",
-    maxHeight: "85vh",
-
-    height: "auto",
   },
 };
 
@@ -260,21 +239,11 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     }
 
     return (
-      <Popup
+      <M365SidePanel
         visible={popupVisibility[currentForm]}
-        onHiding={() => handlePopupVisibility(currentForm, false)}
+        onClose={() => handlePopupVisibility(currentForm, false)}
         title={config.title}
-        width={config.width}
-        maxWidth={config.maxWidth}
-        maxHeight={config.maxHeight}
-        height={config.height}
-        showCloseButton={true}
-        dragEnabled={true}
-        resizeEnabled={false}
-        position={{ my: "center", at: "center", of: window }}
-        wrapperAttr={{
-          class: "stock-management-popup",
-        }}
+        width={config.width || 1000}
       >
         <FormComponent
           onSubmit={submitHandler}
@@ -287,7 +256,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
             currentForm === "closingStock" ? prefilledFormData : undefined
           }
         />
-      </Popup>
+      </M365SidePanel>
     );
   };
 

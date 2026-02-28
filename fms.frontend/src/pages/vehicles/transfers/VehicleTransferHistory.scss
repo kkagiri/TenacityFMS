@@ -1,17 +1,83 @@
+@import "../../../components/m365/m365-shared.scss";
+
 .vehicle-transfer-history {
-  .dx-datagrid {
-    @apply tw-rounded-lg;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  padding: 16px 20px;
+
+  /* ── Header ── */
+  .transfer-history__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
   }
 
-  .dx-datagrid-header-panel {
-    @apply tw-bg-gray-50;
+  .transfer-history__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m365-text-primary, #323130);
+    margin: 0;
+
+    i {
+      margin-right: 8px;
+      color: var(--m365-primary, #0078d4);
+    }
+  }
+
+  .transfer-history__header-actions {
+    display: flex;
+    gap: 8px;
+  }
+
+  /* ── DataGrid overrides ── */
+  .dx-datagrid {
+    border: 1px solid var(--m365-border-light, #edebe9);
+    border-radius: 8px;
+    overflow: hidden;
   }
 
   .dx-datagrid-headers {
-    @apply tw-bg-gray-100;
+    background: var(--m365-bg-surface, #faf9f8);
+
+    .dx-header-row td {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--m365-text-secondary, #605e5c);
+      border-bottom: 1px solid var(--m365-border-light, #edebe9);
+    }
   }
 
-  .dx-button.dx-button-has-icon:not(.dx-button-has-text) {
-    @apply tw-w-8 tw-h-8;
+  .dx-data-row {
+    &:hover {
+      background: var(--m365-bg-hover, #f3f2f1);
+    }
+
+    td {
+      font-size: 13px;
+      color: var(--m365-text-primary, #323130);
+      border-bottom: 1px solid var(--m365-border-light, #edebe9);
+      padding: 8px 10px;
+    }
+  }
+
+  .dx-datagrid-search-panel {
+    margin: 8px;
+  }
+
+  /* ── Inline action buttons ── */
+  .transfer-history__actions {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+
+    .m365-icon-btn {
+      width: 28px;
+      height: 28px;
+      font-size: 14px;
+    }
   }
 }

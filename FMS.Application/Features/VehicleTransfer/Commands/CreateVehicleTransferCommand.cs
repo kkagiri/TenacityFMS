@@ -1,3 +1,13 @@
+/**
+ * File: CreateVehicleTransferCommand.cs
+ * Purpose: Creates a new vehicle transfer record and related inspection data.
+ * Dependencies: AutoMapper, EF Core, file handling service
+ * Last Modified: 2026-02-26
+ *
+ * Key Components:
+ * - CreateVehicleTransferCommand: Request contract for transfer creation.
+ * - CreateVehicleTransferCommandHandler: Persists transfer and child entities.
+ */
 using System;
 using System.Text.Json;
 using System.Threading;
@@ -96,7 +106,7 @@ public class CreateVehicleTransferCommandHandler : IRequestHandler<CreateVehicle
                 AntiTheftCheckedDeparture = dto.AntiTheftCheckedDeparture,
                 AntiTheftCheckedArrival = dto.AntiTheftCheckedArrival,
                 KeysInEnvelopeChecked = dto.KeysInEnvelopeChecked,
-                Status = "Pending",
+                Status = "Draft",
                 Remarks = dto.Remarks,
                 SenderName = dto.SenderName,
                 SenderFunction = dto.SenderFunction,

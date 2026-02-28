@@ -3,7 +3,7 @@
  * Purpose: Maps EventType strings to their IExpressionEvaluator implementations.
  *          When adding a new event type, register its evaluator here.
  * Dependencies: IExpressionEvaluator, all evaluator implementations
- * Last Modified: 2026-02-11
+ * Last Modified: 2026-02-27
  *
  * Key Functions:
  * - GetEvaluator(): returns the evaluator for an event type
@@ -38,6 +38,8 @@ namespace FMS.Application.Features.EventEngine.Expressions
             Register(new ReconciliationEvaluator());
             Register(new TagMonitoringEvaluator());
             Register(new IssueTrackerEvaluator());
+            Register(new InTankDeliveryEvaluator());
+            Register(new ManualDeliveryEvaluator());
         }
 
         /// <summary>

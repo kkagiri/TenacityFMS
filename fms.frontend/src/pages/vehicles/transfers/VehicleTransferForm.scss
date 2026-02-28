@@ -250,9 +250,41 @@ $step-dot-size: 32px;
   }
 }
 
+.m365-section-group--allow-overflow {
+  overflow: visible;
+
+  .m365-section-group__body {
+    overflow: visible;
+  }
+}
+
+.vehicle-transfer-form .m365-section-group--allow-overflow .searchable-selector {
+  position: relative;
+  z-index: 30;
+}
+
+.vehicle-transfer-form .m365-section-group--allow-overflow .searchable-selector .dx-selectbox-popup-wrapper {
+  z-index: 10005 !important;
+}
+
 // ── M365 Field ──────────────────────────────────────────
 .m365-field {
   @apply tw-mb-3;
+
+  &--error {
+    .dx-texteditor,
+    .dx-numberbox,
+    .dx-selectbox,
+    .dx-datebox {
+      border-color: $error !important;
+      box-shadow: 0 0 0 1px rgba($error, 0.2);
+    }
+
+    .searchable-selector .dx-texteditor {
+      border: 1px solid $error !important;
+      box-shadow: 0 0 0 1px rgba($error, 0.2);
+    }
+  }
 
   &__label {
     display: block;
@@ -260,6 +292,14 @@ $step-dot-size: 32px;
     font-weight: 600;
     color: $text-secondary;
     margin-bottom: 4px;
+  }
+
+  &__error {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: $error;
+    margin-top: 4px;
   }
 
   &__hint {

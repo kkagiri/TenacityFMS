@@ -46,11 +46,12 @@ namespace FMS.Application.Features.Site.Queries
                     return FMSResponse<List<SiteDTO>>.ValidationFailed(validationErrors);
                 }
 
-                // Get sites associated with the user
+                // Get active sites associated with the user
                 var userSites = await _context.UserSites
                     .Where(us => us.UserId == request.UserId)
                     .Include(us => us.Site)
                     .Select(us => us.Site)
+                    .Where(s => s.IsActive)
                     .ToListAsync(cancellationToken);
 
                 var siteDTOs = _mapper.Map<List<SiteDTO>>(userSites);

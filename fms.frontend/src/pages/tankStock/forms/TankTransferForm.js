@@ -12,22 +12,16 @@
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Form,
-  SimpleItem,
-  Label,
-  RequiredRule,
-  NumericRule,
-} from "devextreme-react/form";
-import { Button } from "devextreme-react";
-import ScrollView from "devextreme-react/scroll-view";
+import { SelectBox } from "devextreme-react/select-box";
+import { DateBox } from "devextreme-react/date-box";
+import { NumberBox } from "devextreme-react/number-box";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchTanks } from "../../../redux/actions/tankActions";
 import { createTankTransfer } from "../../../redux/actions/tankStockAction";
 import { prepareTankTransferDTO } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
-import "./TankTransferForm.scss";
+import "./_m365-form-common.scss";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 
 // Future records validation imports
@@ -569,402 +563,379 @@ const TankTransferForm = ({
   ]);
 
   return (
-    <div className="tank-transfer-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView
-        showScrollbar="onScroll"
-        scrollByThumb={true}
-        useNative={false}
-      >
-        <div className="tw-p-6">
-          {/* Header */}
-          <div className="tw-mb-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-2">
-              <i className="fa-light fa-exchange tw-mr-2 tw-text-blue-600"></i>
-              Tank Transfer Entry
-            </h3>
-            <p className="tw-text-gray-600 tw-text-sm">
-              Transfer fuel between tanks within the same site or across
-              different sites.
-            </p>
-          </div>
+    <div className="m365-form-body">
+      <div className="m365-form-body__scroll">
 
-          {/* Loading indicator while fetching initial data */}
-          {!dataLoaded &&
-            (sitesAvailable.length === 0 || tanksAvailable.length === 0) && (
-              <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-bg-blue-50 tw-rounded-lg tw-mb-4">
-                <LoadIndicator width={"32px"} height={"32px"} visible={true} />
-                <span className="tw-ml-3 tw-text-blue-700">
-                  Loading form data...
-                </span>
+        {/* Loading indicator while fetching initial data */}
+        {!dataLoaded &&
+          (sitesAvailable.length === 0 || tanksAvailable.length === 0) && (
+            <div className="m365-info-banner">
+              <LoadIndicator width={"24px"} height={"24px"} visible={true} />
+              <div className="m365-info-banner__content">
+                <span className="m365-info-banner__text">Loading form data...</span>
+              </div>
+            </div>
+          )}
+
+        {loading && (
+          <div className="m365-info-banner">
+            <LoadIndicator width={"24px"} height={"24px"} visible={true} />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">Loading...</span>
+            </div>
+          </div>
+        )}
+
+        {/* ── Transfer Type ──────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-arrow-right-arrow-left m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Transfer Type</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-toggle-group">
+              <button
+                className={`m365-toggle-btn ${formData.transferType === "InterTank" ? "m365-toggle-btn--active" : ""}`}
+                onClick={() => handleTransferTypeChange({ value: "InterTank" })}
+                disabled={isLoading}
+                type="button"
+              >
+                <i className="fa-light fa-arrows-rotate"></i> Tank to Tank
+              </button>
+              <button
+                className={`m365-toggle-btn ${formData.transferType === "InterSite" ? "m365-toggle-btn--active" : ""}`}
+                onClick={() => handleTransferTypeChange({ value: "InterSite" })}
+                disabled={isLoading}
+                type="button"
+              >
+                <i className="fa-light fa-building-circle-arrow-right"></i> Site to Site
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Source ──────────────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-arrow-right-from-bracket m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Source</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Source Site <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  items={sitesAvailable}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.sourceSiteId}
+                  onValueChanged={handleSourceSiteChange}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  disabled={isLoading}
+                  placeholder="Select source site"
+                  dropDownOptions={{ container: "body" }}
+                  isValid={hasAttemptedSubmit ? !validationErrors.sourceSiteId : true}
+                  validationError={validationErrors.sourceSiteId ? { message: validationErrors.sourceSiteId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.sourceSiteId && (
+                  <span className="m365-field__error">{validationErrors.sourceSiteId}</span>
+                )}
+              </div>
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Source Tank <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  items={filteredSourceTanks}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.sourceTankId}
+                  onValueChanged={handleSourceTankChange}
+                  disabled={!formData.sourceSiteId || isLoading}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  placeholder={
+                    !formData.sourceSiteId
+                      ? "Select source site first"
+                      : filteredSourceTanks.length === 0
+                        ? "No tanks available"
+                        : "Select source tank"
+                  }
+                  dropDownOptions={{ container: "body" }}
+                  isValid={hasAttemptedSubmit ? !validationErrors.sourceTankId : true}
+                  validationError={validationErrors.sourceTankId ? { message: validationErrors.sourceTankId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.sourceTankId && (
+                  <span className="m365-field__error">{validationErrors.sourceTankId}</span>
+                )}
+              </div>
+            </div>
+
+            {/* Source Tank Info Panel */}
+            {formData.sourceTankId && showSourceTankInfo && (
+              <div className="m365-tank-info">
+                <div className="m365-tank-info__header">
+                  <i className="fa-light fa-gas-pump m365-section-group__icon"></i>
+                  <span>Source Tank Overview</span>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowSourceTankInfo(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark"></i>
+                  </button>
+                </div>
+                <div className="m365-tank-info__item">
+                  <span className="m365-tank-info__label">Book Balance</span>
+                  <span className="m365-tank-info__value">
+                    {formData.sourceTankCurrentStock != null
+                      ? `${Number(formData.sourceTankCurrentStock).toLocaleString()} L`
+                      : "N/A"}
+                  </span>
+                </div>
               </div>
             )}
+          </div>
+        </div>
 
-          {loading && (
-            <div className="tw-flex tw-justify-center tw-py-8">
-              <LoadIndicator width={"48px"} height={"48px"} visible={true} />
-            </div>
-          )}
-
-          {/* Source Tank Info Panel */}
-          {formData.sourceTankId && showSourceTankInfo && (
-            <div className="tw-mb-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-gas-pump tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <h4 className="tw-font-medium tw-text-gray-800 tw-mb-1">
-                    Source Tank Overview
-                  </h4>
-                  <div className="tw-text-sm">
-                    <span className="tw-text-gray-600">Book Balance: </span>
-                    <span className="tw-ml-1 tw-font-medium">
-                      {formData.sourceTankCurrentStock != null
-                        ? `${Number(
-                          formData.sourceTankCurrentStock
-                        ).toLocaleString()} L`
-                        : "N/A"}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowSourceTankInfo(false)}
-                  className="tw-ml-3 tw-text-gray-500 hover:tw-text-gray-700 tw-transition-colors"
-                  title="Dismiss"
-                >
-                  <i className="fa-light fa-times"></i>
-                </button>
+        {/* ── Destination ────────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-arrow-right-to-bracket m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Destination</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Destination Site <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  key={`destination-site-${formData.destinationSiteId || "empty"}-${formData.transferType}`}
+                  items={sitesAvailable}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.destinationSiteId}
+                  onValueChanged={handleDestinationSiteChange}
+                  searchEnabled={true}
+                  disabled={formData.transferType === "InterTank" || isLoading}
+                  showClearButton={true}
+                  width="100%"
+                  placeholder="Select destination site"
+                  dropDownOptions={{ container: "body" }}
+                  isValid={hasAttemptedSubmit ? !validationErrors.destinationSiteId : true}
+                  validationError={validationErrors.destinationSiteId ? { message: validationErrors.destinationSiteId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.destinationSiteId && (
+                  <span className="m365-field__error">{validationErrors.destinationSiteId}</span>
+                )}
+                {formData.transferType === "InterTank" && (
+                  <span className="m365-field__hint">Auto-set to source site for tank-to-tank transfers</span>
+                )}
+              </div>
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Destination Tank <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  items={destinationTankItems}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.destinationTankId}
+                  onValueChanged={handleDestinationTankChange}
+                  disabled={!formData.destinationSiteId || isLoading}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  placeholder="Select destination tank"
+                  dropDownOptions={{ container: "body" }}
+                  isValid={hasAttemptedSubmit ? !validationErrors.destinationTankId : true}
+                  validationError={validationErrors.destinationTankId ? { message: validationErrors.destinationTankId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.destinationTankId && (
+                  <span className="m365-field__error">{validationErrors.destinationTankId}</span>
+                )}
               </div>
             </div>
-          )}
-          <Form
-            readOnly={isLoading}
-            formData={formData}
-            showColonAfterLabel={true}
-            labelLocation="top"
-            onFieldDataChanged={handleChange}
-            colCount={2}
-            className="tw-mb-6"
-            scrollingEnabled={false}
-          >
-            <SimpleItem
-              dataField="date"
-              editorType="dxDateBox"
-              cssClass="datebox-full-width"
-              colSpan={2}
-              editorOptions={{
-                value: formData.date,
-                max: new Date(),
-                displayFormat: "yyyy-MM-dd HH:mm",
-                type: "datetime",
-                onValueChanged: handleDateChange,
-                width: "100%",
-                dropDownOptions: {
+          </div>
+        </div>
+
+        {/* ── Transfer Details ───────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-list-check m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Transfer Details</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field m365-field--full">
+              <label className="m365-field__label">
+                Date &amp; Time <span className="m365-required">*</span>
+              </label>
+              <DateBox
+                value={formData.date}
+                max={new Date()}
+                displayFormat="yyyy-MM-dd HH:mm"
+                type="datetime"
+                pickerType="calendar"
+                width="100%"
+                disabled={isLoading}
+                onValueChanged={handleDateChange}
+                dropDownOptions={{
                   width: "auto",
                   minWidth: 380,
                   maxWidth: 520,
                   wrapperAttr: { class: "datebox-wide" },
-                },
-                elementAttr: { class: "datebox-full-width-popup" },
-                isValid: hasAttemptedSubmit ? !validationErrors.date : true,
-                validationError: validationErrors.date
-                  ? { message: validationErrors.date }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Date & Time" />
-              <RequiredRule message="Date is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="transferType"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: transferTypeOptions,
-                displayExpr: "name",
-                valueExpr: "id",
-                onValueChanged: handleTransferTypeChange,
-                placeholder: "Select transfer type",
-                width: "100%",
-              }}
-            >
-              <Label text="Transfer Type" />
-              <RequiredRule message="Transfer type is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="sourceSiteId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: sitesAvailable,
-                displayExpr: "name",
-                valueExpr: "id",
-                value: formData.sourceSiteId,
-                onValueChanged: handleSourceSiteChange,
-                placeholder: "Select source site",
-                searchEnabled: true,
-                showClearButton: true,
-                width: "100%",
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit
-                  ? !validationErrors.sourceSiteId
-                  : true,
-                validationError: validationErrors.sourceSiteId
-                  ? { message: validationErrors.sourceSiteId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Source Site" />
-              <RequiredRule message="Source site is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="sourceTankId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: filteredSourceTanks,
-                displayExpr: "name",
-                valueExpr: "id",
-                onValueChanged: handleSourceTankChange,
-                disabled: !formData.sourceSiteId,
-                placeholder: !formData.sourceSiteId
-                  ? "Select source site first"
-                  : filteredSourceTanks.length === 0
-                    ? "No tanks available"
-                    : "Select source tank",
-                searchEnabled: true,
-                showClearButton: true,
-                width: "100%",
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit
-                  ? !validationErrors.sourceTankId
-                  : true,
-                validationError: validationErrors.sourceTankId
-                  ? { message: validationErrors.sourceTankId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Source Tank" />
-              <RequiredRule message="Source tank is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              key={`destination-site-${formData.destinationSiteId || "empty"}-${formData.transferType
-                }`}
-              dataField="destinationSiteId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: sitesAvailable,
-                displayExpr: "name",
-                valueExpr: "id",
-                value: formData.destinationSiteId,
-                onValueChanged: handleDestinationSiteChange,
-                searchEnabled: true,
-                disabled: formData.transferType === "InterTank",
-                placeholder: "Select destination site",
-                showClearButton: true,
-                width: "100%",
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit
-                  ? !validationErrors.destinationSiteId
-                  : true,
-                validationError: validationErrors.destinationSiteId
-                  ? { message: validationErrors.destinationSiteId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Destination Site" />
-              <RequiredRule message="Destination site is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="destinationTankId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: destinationTankItems,
-                displayExpr: "name",
-                valueExpr: "id",
-                value: formData.destinationTankId,
-                onValueChanged: handleDestinationTankChange,
-                disabled: !formData.destinationSiteId,
-                placeholder: "Select destination tank",
-                searchEnabled: true,
-                showClearButton: true,
-                width: "100%",
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit
-                  ? !validationErrors.destinationTankId
-                  : true,
-                validationError: validationErrors.destinationTankId
-                  ? { message: validationErrors.destinationTankId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Destination Tank" />
-              <RequiredRule message="Destination tank is required" />
-            </SimpleItem>
-
-            <SimpleItem
-              dataField="amount"
-              editorType="dxNumberBox"
-              editorOptions={{
-                showSpinButtons: true,
-                value: formData.amount,
-                onValueChanged: handleAmountChange,
-                placeholder: "Enter transfer amount",
-                width: "100%",
-                ...(formData.amount !== null &&
-                  formData.amount !== undefined && { format: "#,##0.00" }),
-                isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
-                validationError: validationErrors.amount
-                  ? { message: validationErrors.amount }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Transfer Amount (Liters)" />
-              <RequiredRule message="Amount is required" />
-              <NumericRule message="Must be a valid number" />
-            </SimpleItem>
-
-            {/* Reason removed as not required */}
-          </Form>
-
-          {/* Historical Entry Information Notice */}
-          {formData.date &&
-            formData.fromTankId &&
-            !showWarning &&
-            !validationError &&
-            showHistoricalNotice &&
-            (() => {
-              const selectedDate = new Date(formData.date);
-              const today = new Date();
-              const isHistorical =
-                selectedDate < new Date(today.setHours(0, 0, 0, 0));
-
-              if (isHistorical) {
-                return (
-                  <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                    <div className="tw-flex tw-items-start tw-justify-between">
-                      <div className="tw-flex tw-items-start tw-flex-1">
-                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                        <div className="tw-flex-1">
-                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                            Historical Entry Detected
-                          </h4>
-                          <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a tank transfer for{" "}
-                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
-                            (backdated entry).
-                          </p>
-                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate both
-                            tanks' current stock and affect all subsequent
-                            records.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowHistoricalNotice(false)}
-                        className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                        title="Dismiss"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: 0,
-                          fontSize: "16px",
-                        }}
-                      >
-                        <i className="fa-light fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-          {/* Future Records Warning */}
-          {(showWarning || validationError) && (
-            <div className="tw-mb-4">
-              <FutureRecordsWarning
-                validationResult={validationResult}
-                onConfirm={confirmProceed}
-                onCancel={cancelProceed}
-                isVisible={showWarning}
+                }}
+                isValid={hasAttemptedSubmit ? !validationErrors.date : true}
+                validationError={validationErrors.date ? { message: validationErrors.date } : null}
+                validationMessageMode="always"
               />
-              {validationError && (
-                <div className="tw-mt-2 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded tw-text-red-700">
-                  <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
-                  {validationError}
-                </div>
+              {hasAttemptedSubmit && validationErrors.date && (
+                <span className="m365-field__error">{validationErrors.date}</span>
               )}
             </div>
-          )}
-
-          {/* Information Notice - Moved to bottom */}
-          {showInfoNotice && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <p className="tw-text-blue-700 tw-text-sm">
-                    Transfer fuel between tanks. Amount will be deducted from
-                    source tank and added to destination tank. Choose 'Between
-                    Tanks' for same site transfers or 'Between Sites' for
-                    cross-site transfers.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowInfoNotice(false)}
-                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                  title="Close information"
-                >
-                  <i className="fa-light fa-times tw-text-lg"></i>
-                </button>
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Transfer Amount (Liters) <span className="m365-required">*</span>
+                </label>
+                <NumberBox
+                  showSpinButtons={true}
+                  value={formData.amount}
+                  onValueChanged={handleAmountChange}
+                  placeholder="Enter transfer amount"
+                  width="100%"
+                  disabled={isLoading}
+                  {...(formData.amount !== null &&
+                    formData.amount !== undefined && { format: "#,##0.00" })}
+                  isValid={hasAttemptedSubmit ? !validationErrors.amount : true}
+                  validationError={validationErrors.amount ? { message: validationErrors.amount } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.amount && (
+                  <span className="m365-field__error">{validationErrors.amount}</span>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Form Actions */}
-          <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-6 tw-border-t tw-border-gray-200">
-            <Button
-              text="Cancel"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="tw-min-w-24"
-              stylingMode="outlined"
-            >
-              <i className="fa-light fa-times tw-mr-2"></i>
-              Cancel
-            </Button>
-            <Button
-              text="Save Transfer"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !canSubmit}
-              loading={isSubmitting}
-              className="tw-min-w-32"
-              type="default"
-            >
-              <i className="fa-light fa-save tw-mr-2"></i>
-              Save Transfer
-            </Button>
           </div>
         </div>
-      </ScrollView>
+
+        {/* Historical Entry Information Notice */}
+        {formData.date &&
+          formData.fromTankId &&
+          !showWarning &&
+          !validationError &&
+          showHistoricalNotice &&
+          (() => {
+            const selectedDate = new Date(formData.date);
+            const today = new Date();
+            const isHistorical =
+              selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+            if (isHistorical) {
+              return (
+                <div className="m365-info-banner m365-info-banner--warning">
+                  <i className="fa-light fa-calendar-clock m365-info-banner__icon"></i>
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__title">Historical Entry Detected</span>
+                    <span className="m365-info-banner__text">
+                      You are creating a tank transfer for{" "}
+                      <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                      (backdated entry).
+                    </span>
+                    <span className="m365-info-banner__text">
+                      <strong>Impact:</strong> This will recalculate both
+                      tanks' current stock and affect all subsequent records.
+                    </span>
+                  </div>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowHistoricalNotice(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark"></i>
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {/* Future Records Warning */}
+        {(showWarning || validationError) && (
+          <FutureRecordsWarning
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+          />
+        )}
+
+        {/* Validation Error */}
+        {validationError && (
+          <div className="m365-info-banner m365-info-banner--error">
+            <i className="fa-light fa-circle-exclamation m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">{validationError}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Information Notice */}
+        {showInfoNotice && (
+          <div className="m365-info-banner">
+            <i className="fa-light fa-circle-info m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                Transfer fuel between tanks. Amount will be deducted from
+                source tank and added to destination tank. Choose 'Tank to Tank'
+                for same site transfers or 'Site to Site' for cross-site transfers.
+              </span>
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setShowInfoNotice(false)}
+              title="Dismiss"
+            >
+              <i className="fa-light fa-xmark"></i>
+            </button>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── Form Actions ───────────────────────────────── */}
+      <div className="m365-form-actions">
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+          type="button"
+        >
+          Cancel
+        </button>
+        <button
+          className="m365-btn m365-btn--primary"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !canSubmit}
+          type="button"
+        >
+          {isSubmitting ? (
+            <><i className="fa-light fa-spinner fa-spin"></i> Saving...</>
+          ) : (
+            "Save Transfer"
+          )}
+        </button>
+      </div>
     </div>
   );
 };

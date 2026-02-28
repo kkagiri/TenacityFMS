@@ -191,6 +191,38 @@ public class VehicleTransfer
     public string? WorkshopManagerSign { get; set; }
 
     /// <summary>
+    /// System user ID of the designated receiver (FK to AspNetUsers)
+    /// </summary>
+    [MaxLength(450)]
+    public string? ReceiverUserId { get; set; }
+
+    /// <summary>
+    /// System user ID of the approver (FK to AspNetUsers)
+    /// </summary>
+    [MaxLength(450)]
+    public string? ApproverUserId { get; set; }
+
+    /// <summary>
+    /// Timestamp when sender dispatched the vehicle (Approved → InTransit)
+    /// </summary>
+    public DateTime? DispatchedAt { get; set; }
+
+    /// <summary>
+    /// Timestamp when receiver confirmed receipt (InTransit → Completed)
+    /// </summary>
+    public DateTime? ReceivedAt { get; set; }
+
+    /// <summary>
+    /// When the last daily InTransit reminder was sent to the receiver
+    /// </summary>
+    public DateTime? LastReminderSentAt { get; set; }
+
+    /// <summary>
+    /// Number of daily reminders sent while InTransit
+    /// </summary>
+    public int ReminderCount { get; set; }
+
+    /// <summary>
     /// Transfer document file URL
     /// </summary>
     [MaxLength(500)]

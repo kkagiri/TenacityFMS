@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Popup } from "devextreme-react/popup";
+import M365SidePanel from "../../common/M365SidePanel";
 import { Form, SimpleItem, GroupItem } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
 import { RadioGroup } from "devextreme-react/radio-group";
@@ -75,9 +75,8 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
       </div>
 
       <Form
-        key={`daily-monthly-${formData.ruleId ?? "new"}-${
-          formData.ruleSetId ?? "unset"
-        }`}
+        key={`daily-monthly-${formData.ruleId ?? "new"}-${formData.ruleSetId ?? "unset"
+          }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
@@ -155,14 +154,12 @@ const DailyMonthlyForm = ({ formData, onFieldChange, validationErrors }) => {
               className="tw-sr-only"
             />
             <div
-              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
-                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
-              }`}
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+                }`}
             ></div>
             <div
-              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
-                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
-              }`}
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+                }`}
             ></div>
           </div>
         </label>
@@ -208,9 +205,8 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
       </div>
 
       <Form
-        key={`refill-count-${formData.ruleId ?? "new"}-${
-          formData.ruleSetId ?? "unset"
-        }`}
+        key={`refill-count-${formData.ruleId ?? "new"}-${formData.ruleSetId ?? "unset"
+          }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
@@ -288,14 +284,12 @@ const RefillCountForm = ({ formData, onFieldChange, validationErrors }) => {
               className="tw-sr-only"
             />
             <div
-              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
-                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
-              }`}
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+                }`}
             ></div>
             <div
-              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
-                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
-              }`}
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+                }`}
             ></div>
           </div>
         </label>
@@ -340,9 +334,8 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
       </div>
 
       <Form
-        key={`time-window-${formData.ruleId ?? "new"}-${
-          formData.ruleSetId ?? "unset"
-        }`}
+        key={`time-window-${formData.ruleId ?? "new"}-${formData.ruleSetId ?? "unset"
+          }`}
         formData={formData}
         labelLocation="top"
         showColonAfterLabel={true}
@@ -430,14 +423,12 @@ const TimeWindowForm = ({ formData, onFieldChange, validationErrors }) => {
               className="tw-sr-only"
             />
             <div
-              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${
-                formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
-              }`}
+              className={`tw-w-11 tw-h-6 tw-rounded-full tw-transition-colors ${formData.isActive ? "tw-bg-blue-500" : "tw-bg-gray-300"
+                }`}
             ></div>
             <div
-              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${
-                formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
-              }`}
+              className={`tw-absolute tw-top-0.5 tw-left-0.5 tw-w-5 tw-h-5 tw-bg-white tw-rounded-full tw-shadow tw-transition-transform ${formData.isActive ? "tw-translate-x-5" : "tw-translate-x-0"
+                }`}
             ></div>
           </div>
         </label>
@@ -802,7 +793,7 @@ const RuleDetailForm = ({
       } else {
         notify(
           result?.error ||
-            `Failed to ${editMode === "add" ? "create" : "update"} rule`,
+          `Failed to ${editMode === "add" ? "create" : "update"} rule`,
           "error",
           3000
         );
@@ -872,19 +863,14 @@ const RuleDetailForm = ({
   }
 
   return (
-    <Popup
+    <M365SidePanel
       visible={isVisible}
-      onHiding={onClose}
-      title={`${editMode === "add" ? "Add" : "Edit"} Rule for "${
-        ruleSet?.name || "Rule Set"
-      }"`}
-      showCloseButton={true}
-      width={600}
-      height="auto"
-      maxHeight="90vh"
-      className="rule-detail-form-popup"
+      onClose={onClose}
+      title={`${editMode === "add" ? "Add" : "Edit"} Rule for "${ruleSet?.name || "Rule Set"
+        }"`}
+      width={480}
     >
-      <div className="rule-detail-form-container">
+      <div className="rule-detail-form-container tw-p-5 tw-overflow-y-auto" style={{ maxHeight: "calc(100vh - 64px)" }}>
         {editMode === "add" && (
           <div className="rule-type-selector tw-mb-4">
             <label className="tw-block tw-mb-3 tw-font-semibold tw-text-gray-700">
@@ -894,20 +880,18 @@ const RuleDetailForm = ({
               {RULE_TYPES.map((ruleType) => (
                 <div
                   key={ruleType.id}
-                  className={`rule-type-card tw-p-3 tw-border-2 tw-rounded-lg tw-cursor-pointer tw-transition-all ${
-                    selectedRuleType === ruleType.id
-                      ? "tw-border-blue-500 tw-bg-blue-50"
-                      : "tw-border-gray-200 tw-bg-white hover:tw-border-gray-300"
-                  }`}
+                  className={`rule-type-card tw-p-3 tw-border-2 tw-rounded-lg tw-cursor-pointer tw-transition-all ${selectedRuleType === ruleType.id
+                    ? "tw-border-blue-500 tw-bg-blue-50"
+                    : "tw-border-gray-200 tw-bg-white hover:tw-border-gray-300"
+                    }`}
                   onClick={() => handleRuleTypeChange(ruleType.id)}
                 >
                   <div className="tw-flex tw-items-start tw-gap-3">
                     <div
-                      className={`tw-flex-shrink-0 tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${
-                        selectedRuleType === ruleType.id
-                          ? "tw-bg-blue-500 tw-text-white"
-                          : "tw-bg-gray-100 tw-text-gray-600"
-                      }`}
+                      className={`tw-flex-shrink-0 tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center ${selectedRuleType === ruleType.id
+                        ? "tw-bg-blue-500 tw-text-white"
+                        : "tw-bg-gray-100 tw-text-gray-600"
+                        }`}
                     >
                       <span key={`icon-${ruleType.id}-${selectedRuleType}`}>
                         <i className={`${ruleType.icon} tw-text-lg`}></i>
@@ -916,11 +900,10 @@ const RuleDetailForm = ({
                     <div className="tw-flex-1">
                       <div className="tw-flex tw-items-center tw-gap-2">
                         <h4
-                          className={`tw-text-sm tw-font-semibold tw-m-0 ${
-                            selectedRuleType === ruleType.id
-                              ? "tw-text-blue-700"
-                              : "tw-text-gray-800"
-                          }`}
+                          className={`tw-text-sm tw-font-semibold tw-m-0 ${selectedRuleType === ruleType.id
+                            ? "tw-text-blue-700"
+                            : "tw-text-gray-800"
+                            }`}
                         >
                           {ruleType.name}
                         </h4>
@@ -1020,7 +1003,7 @@ const RuleDetailForm = ({
         showPane={true}
         message={editMode === "edit" ? "Saving..." : "Creating..."}
       />
-    </Popup>
+    </M365SidePanel>
   );
 };
 

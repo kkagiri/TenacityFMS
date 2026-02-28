@@ -1,3 +1,12 @@
+/**
+ * File: VehicleConfiguration.cs
+ * Purpose: Maps Vehicle entity fields and relationships to database schema.
+ * Dependencies: EF Core, Vehicle and related domain entities
+ * Last Modified: 2026-02-26
+ *
+ * Key Functions/Components:
+ * - Configure(): Defines table/column mapping and relationship constraints for Vehicle.
+ */
 using System;
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -152,8 +161,9 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(d => d.WorkingSiteId)
                     .HasConstraintName("vehicle_site");
 
-                // Many-to-many relationship is already configured through EmployeeVehicleConfiguration
-                // We don't need to duplicate it here, as it could cause conflicts
+                // Prevent implicit many-to-many join table creation (EmployeesId/VehiclesVehicleId).
+                // Vehicle-employee links are managed explicitly by EmployeeVehicleConfiguration.
+                builder.Ignore(v => v.Employees);
             }
             catch (Exception ex)
             {

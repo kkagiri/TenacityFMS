@@ -1,0 +1,96 @@
+/**
+ * File: _M365SidePanel.scss
+ * Purpose: M365 Admin Center side panel styles — slide-in from right with overlay
+ * Dependencies: None
+ * Last Modified: 2026-02-10
+ */
+
+.m365-side-panel-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  justify-content: flex-end;
+  animation: m365-overlay-fade 0.2s ease;
+}
+
+@keyframes m365-overlay-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.m365-side-panel {
+  height: 100vh;
+  background: #fff;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.14);
+  display: flex;
+  flex-direction: column;
+  animation: m365-panel-slide 0.3s cubic-bezier(0.1, 0.9, 0.2, 1);
+  outline: none;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid #edebe9;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: #201f1e;
+    margin: 0;
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+  }
+
+  &__close {
+    width: 32px;
+    height: 32px;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    color: #605e5c;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    &:hover {
+      background: #f3f2f1;
+      color: #201f1e;
+    }
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+  }
+}
+
+@keyframes m365-panel-slide {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+// Mobile: full width
+@media (max-width: 640px) {
+  .m365-side-panel {
+    width: 100vw !important;
+    max-width: 100vw !important;
+  }
+}
+
+// Ensure DevExtreme dropdowns (SelectBox, DateBox, etc.) render above the side panel overlay
+// DX dropdowns use container:"body" and default to z-index ~1500, which is below our 9999 overlay
+.dx-overlay-wrapper.dx-dropdowneditor-overlay,
+.dx-overlay-wrapper.dx-popup-wrapper {
+  z-index: 10001 !important;
+}

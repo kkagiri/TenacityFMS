@@ -1,0 +1,256 @@
+/**
+ * File: DeliveryEventTemplate.scss
+ * Purpose: M365 Admin Center–style card for InTankDelivery & ManualDelivery event templates.
+ *          Uses BEM naming, M365 tokens, Segoe UI, 13px body, 4px/8px radius.
+ * Dependencies: none (self-contained)
+ * Last Modified: 2026-02-27
+ */
+
+/* ─── Delivery Template Card ─── */
+.delivery-template {
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  color: #201f1e;
+  background: #ffffff;
+  border: 1px solid #edebe9;
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 520px;
+
+  /* ─── Header ─── */
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #f3f2f1;
+
+    &--itd {
+      background: linear-gradient(135deg, #f0fdf4 0%, #ffffff 100%);
+    }
+    &--manual {
+      background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+    }
+  }
+
+  &__header-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    flex-shrink: 0;
+
+    .delivery-template--itd & {
+      background: #dff6dd;
+      color: #107c10;
+    }
+    .delivery-template--manual & {
+      background: #deecf9;
+      color: #0078d4;
+    }
+  }
+
+  &__header-text {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #201f1e;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: #605e5c;
+    display: block;
+    margin-top: 2px;
+  }
+
+  /* ─── Location Strip ─── */
+  &__strip {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 16px;
+    background: #faf9f8;
+    border-bottom: 1px solid #f3f2f1;
+    font-size: 12px;
+    color: #605e5c;
+  }
+
+  &__strip-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    white-space: nowrap;
+
+    i {
+      font-size: 12px;
+      color: #a19f9d;
+    }
+  }
+
+  &__strip-sep {
+    color: #c8c6c4;
+    font-size: 10px;
+  }
+
+  /* ─── Body ─── */
+  &__body {
+    padding: 12px 16px 4px;
+  }
+
+  /* ─── Section ─── */
+  &__section {
+    margin-bottom: 12px;
+    border: 1px solid #edebe9;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    background: #faf9f8;
+    border-bottom: 1px solid #f3f2f1;
+    font-size: 12px;
+    font-weight: 600;
+    color: #605e5c;
+
+    i {
+      font-size: 13px;
+      color: #0078d4;
+
+      .delivery-template--itd & {
+        color: #107c10;
+      }
+    }
+  }
+
+  /* ─── Fields grid ─── */
+  &__fields {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    padding: 6px 10px;
+    border-bottom: 1px solid #f3f2f1;
+
+    &:nth-child(odd) {
+      border-right: 1px solid #f3f2f1;
+    }
+
+    /* Remove bottom border from last row */
+    &:nth-last-child(-n+2) {
+      border-bottom: none;
+    }
+
+    /* Full-width for single-item rows */
+    &:last-child:nth-child(odd) {
+      grid-column: 1 / -1;
+      border-right: none;
+    }
+  }
+
+  &__field-label {
+    font-size: 11px;
+    font-weight: 500;
+    color: #a19f9d;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 2px;
+  }
+
+  &__field-value {
+    font-size: 13px;
+    font-weight: 400;
+    color: #201f1e;
+
+    &--success {
+      color: #107c10;
+      font-weight: 600;
+    }
+    &--primary {
+      color: #0078d4;
+      font-weight: 600;
+    }
+    &--error {
+      color: #d13438;
+      font-weight: 600;
+    }
+    &--bold {
+      font-weight: 700;
+      font-size: 14px;
+    }
+  }
+
+  /* ─── Footer ─── */
+  &__footer {
+    padding: 8px 16px;
+    border-top: 1px solid #edebe9;
+    background: #faf9f8;
+  }
+
+  &__footer-meta {
+    font-size: 11px;
+    color: #a19f9d;
+  }
+}
+
+/* ─── Badge tokens (imported from global but repeated for isolation) ─── */
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+  flex-shrink: 0;
+
+  &--neutral { background: #f3f2f1; color: #605e5c; }
+  &--primary { background: #deecf9; color: #0078d4; }
+  &--success { background: #dff6dd; color: #107c10; }
+  &--error   { background: #fde7e9; color: #d13438; }
+  &--warning { background: #fff4ce; color: #ca5010; }
+}
+
+/* ─── Responsive ─── */
+@media (max-width: 640px) {
+  .delivery-template {
+    max-width: 100%;
+
+    &__fields {
+      grid-template-columns: 1fr;
+    }
+
+    &__field {
+      &:nth-child(odd) {
+        border-right: none;
+      }
+    }
+
+    &__strip {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+
+    &__strip-sep {
+      display: none;
+    }
+  }
+}

@@ -78,13 +78,10 @@ const TagRuleManagement = () => {
         .map((tag) => tag.name || tag.tagName)
         .join(", ");
       notify({
-        message: `Cannot delete rule set "${
-          ruleSet.name
-        }". It is currently assigned to ${
-          assignedTags.length
-        } tag(s): ${tagNames.substring(0, 50)}${
-          tagNames.length > 50 ? "..." : ""
-        }. Please unassign it first.`,
+        message: `Cannot delete rule set "${ruleSet.name
+          }". It is currently assigned to ${assignedTags.length
+          } tag(s): ${tagNames.substring(0, 50)}${tagNames.length > 50 ? "..." : ""
+          }. Please unassign it first.`,
         type: "error",
         displayTime: 6000,
         width: 450,
@@ -95,9 +92,8 @@ const TagRuleManagement = () => {
     // Confirm deletion
     const confirmed = window.confirm(
       `Are you sure you want to delete the rule set "${ruleSet.name}"?\n\n` +
-        `This rule set contains ${
-          ruleSet.rules?.length || 0
-        } rule(s). This action cannot be undone.`
+      `This rule set contains ${ruleSet.rules?.length || 0
+      } rule(s). This action cannot be undone.`
     );
 
     if (!confirmed) {
@@ -177,7 +173,7 @@ const TagRuleManagement = () => {
       } else {
         notify(
           result.error ||
-            `Failed to ${editMode === "add" ? "create" : "update"} rule set`,
+          `Failed to ${editMode === "add" ? "create" : "update"} rule set`,
           "error",
           3000
         );
@@ -414,18 +410,10 @@ const TagRuleManagement = () => {
 
   return (
     <div className="tag-rule-management tw-p-4">
-      <div className="section-header tw-flex tw-flex-col sm:tw-flex-row tw-items-start sm:tw-items-center tw-justify-between tw-mb-4 tw-gap-3">
-        <div>
-          <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-m-0 tw-flex tw-items-center tw-gap-2">
-            <span>
-              <i className="fa-light fa-layer-group tw-text-blue-600"></i>
-            </span>
-            Fueling Rule Sets
-          </h2>
-          <p className="tw-text-sm tw-text-gray-600 tw-mt-1 tw-mb-0">
-            Create and manage rule sets to control fuel dispensing
-          </p>
-        </div>
+      <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
+        <span className="tw-text-sm tw-text-gray-500">
+          Create and manage rule sets to control fuel dispensing
+        </span>
         <div className="ruleset-action-buttons">
           <Button
             text="Add Rule Set"
@@ -476,13 +464,14 @@ const TagRuleManagement = () => {
         ref={dataGridRef}
         dataSource={ruleSets || []}
         keyExpr="id"
-        showBorders={true}
+        showBorders={false}
+        showRowLines={true}
+        showColumnLines={false}
         columnAutoWidth={true}
         hoverStateEnabled={true}
         noDataText="No rule sets available"
         repaintChangesOnly={false}
         remoteOperations={false}
-        onContentReady={() => console.log("DataGrid content ready")}
       >
         <SearchPanel
           visible={true}

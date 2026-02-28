@@ -1,7 +1,13 @@
 /**
- * VehicleTransferHistory.js
- * Component to display vehicle transfer history
- * Uses DevExtreme DataGrid with pagination
+ * File:          VehicleTransferHistory.js
+ * Purpose:       M365-styled vehicle transfer history tab with SlidePanel details
+ * Dependencies:  DataGrid (DevExtreme), SlidePanel, VehicleTransferForm, VehicleTransferDetails
+ * Last Modified: 2026-02-02
+ *
+ * Key Components:
+ * - Transfer history DataGrid
+ * - SlidePanel for form creation (1200px)
+ * - SlidePanel for detail view (1200px)
  */
 
 import React, { useState, useEffect, useCallback } from "react";
@@ -14,10 +20,9 @@ import {
   Export,
   LoadPanel,
 } from "devextreme-react/data-grid";
-import Button from "devextreme-react/button";
-import { Popup, ScrollView } from "devextreme-react";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
+import SlidePanel from "../../../components/ui/SlidePanel";
 import VehicleTransferForm from "./VehicleTransferForm";
 import VehicleTransferDetails from "./VehicleTransferDetails";
 import { usePermissions } from "../../../hooks/usePermissions";
@@ -27,8 +32,8 @@ import "./VehicleTransferHistory.scss";
 const VehicleTransferHistory = ({ vehicleId }) => {
   const [transferData, setTransferData] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [showFormPopup, setShowFormPopup] = useState(false);
-  const [showDetailsPopup, setShowDetailsPopup] = useState(false);
+  const [showFormPanel, setShowFormPanel] = useState(false);
+  const [showDetailsPanel, setShowDetailsPanel] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
   const { hasPermission } = usePermissions();
   const isAdmin = hasPermission("_Create_VehicleTransfer");
@@ -85,16 +90,21 @@ const VehicleTransferHistory = ({ vehicleId }) => {
       return;
     }
     setSelectedTransfer(null);
-    setShowFormPopup(true);
+    setShowFormPanel(true);
   };
 
   const handleViewDetails = (transfer) => {
     setSelectedTransfer(transfer);
-    setShowDetailsPopup(true);
+    setShowDetailsPanel(true);
+  };
+
+  const handleCloseDetailsPanel = () => {
+    setShowDetailsPanel(false);
+    setSelectedTransfer(null);
   };
 
   const handleFormSuccess = () => {
-    setShowFormPopup(false);
+    setShowFormPanel(false);
     loadTransferHistory();
     notify("Vehicle transfer created successfully", "success", 3000);
   };
@@ -147,61 +157,57 @@ const VehicleTransferHistory = ({ vehicleId }) => {
     }
   };
 
-  const getStatusBadgeClass = (status) => {
-    switch (status?.toLowerCase()) {
-      case "completed":
-        return "tw-bg-green-100 tw-text-green-800";
-      case "intransit":
-        return "tw-bg-blue-100 tw-text-blue-800";
-      case "cancelled":
-        return "tw-bg-red-100 tw-text-red-800";
-      case "pending":
-      default:
-        return "tw-bg-yellow-100 tw-text-yellow-800";
-    }
+  // ── Status badge helper ──
+  const getStatusBadge = (status) => {
+    const s = status?.toLowerCase();
+    const map = {
+      completed:       { cls: "m365-badge--success",  text: "Completed" },
+      approved:        { cls: "m365-badge--primary",   text: "Approved" },
+      intransit:       { cls: "m365-badge--primary",   text: "In Transit" },
+      pendingapproval: { cls: "m365-badge--warning",   text: "Pending Approval" },
+      draft:           { cls: "m365-badge--neutral",   text: "Draft" },
+      cancelled:       { cls: "m365-badge--error",     text: "Cancelled" },
+      rejected:        { cls: "m365-badge--error",     text: "Rejected" },
+      pending:         { cls: "m365-badge--warning",   text: "Pending" },
+    };
+    const info = map[s] || { cls: "m365-badge--neutral", text: status || "—" };
+    return <span className={`m365-badge ${info.cls}`}>{info.text}</span>;
   };
 
-  const renderStatusCell = (cellInfo) => {
-    const status = cellInfo.value || "Pending";
-    return (
-      <span
-        className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${getStatusBadgeClass(
-          status
-        )}`}
-      >
-        {status}
-      </span>
-    );
-  };
+  const renderStatusCell = (cellInfo) => getStatusBadge(cellInfo.value || "Pending");
 
   const renderActionsCell = (cellInfo) => {
     return (
-      <div className="tw-flex tw-gap-1">
-        <Button
-          icon="fa-light fa-eye"
-          hint="View Details"
-          stylingMode="text"
+      <div className="transfer-history__actions">
+        <button
+          className="m365-icon-btn"
+          title="View Details"
           onClick={() => handleViewDetails(cellInfo.data)}
-        />
-        <Button
-          icon="fa-light fa-file-pdf"
-          hint="Download PDF Report"
-          stylingMode="text"
+        >
+          <i className="fa-light fa-eye" />
+        </button>
+        <button
+          className="m365-icon-btn"
+          title="Download PDF"
           onClick={() => handleDownloadPdf(cellInfo.data.transferId)}
-        />
-        <Button
-          icon="fa-light fa-envelope"
-          hint="Send Email Report"
-          stylingMode="text"
+        >
+          <i className="fa-light fa-file-pdf" />
+        </button>
+        <button
+          className="m365-icon-btn"
+          title="Send Email"
           onClick={() => handleSendEmail(cellInfo.data.transferId)}
-        />
+        >
+          <i className="fa-light fa-envelope" />
+        </button>
         {cellInfo.data.documentUrl && (
-          <Button
-            icon="fa-light fa-file-arrow-down"
-            hint="View Uploaded Document"
-            stylingMode="text"
+          <button
+            className="m365-icon-btn"
+            title="View Uploaded Document"
             onClick={() => window.open(cellInfo.data.documentUrl, "_blank")}
-          />
+          >
+            <i className="fa-light fa-file-arrow-down" />
+          </button>
         )}
       </div>
     );
@@ -209,36 +215,39 @@ const VehicleTransferHistory = ({ vehicleId }) => {
 
   return (
     <div className="vehicle-transfer-history">
-      {/* Header */}
-      <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
-          <i className="fa-light fa-truck-moving tw-mr-2"></i>
+      {/* ── Header ── */}
+      <div className="transfer-history__header">
+        <h3 className="transfer-history__title">
+          <i className="fa-light fa-truck-moving" />
           Transfer History
         </h3>
-        {isAdmin && (
-          <Button
-            text="New Transfer"
-            icon="fa-light fa-plus"
-            type="default"
-            stylingMode="contained"
-            onClick={handleAddTransfer}
-          />
-        )}
+        <div className="transfer-history__header-actions">
+          <button className="m365-btn m365-btn--ghost" onClick={loadTransferHistory}>
+            <i className="fa-light fa-arrows-rotate" /> Refresh
+          </button>
+          {isAdmin && (
+            <button className="m365-btn m365-btn--primary" onClick={handleAddTransfer}>
+              <i className="fa-light fa-plus" /> New Transfer
+            </button>
+          )}
+        </div>
       </div>
 
-      {/* Data Grid */}
+      {/* ── Data Grid ── */}
       <DataGrid
         dataSource={transferData}
-        showBorders={true}
+        showBorders={false}
+        showRowLines={true}
         columnAutoWidth={true}
-        rowAlternationEnabled={true}
+        rowAlternationEnabled={false}
         allowColumnResizing={true}
         keyExpr="transferId"
-        className="tw-rounded-lg"
+        hoverStateEnabled={true}
+        onRowDblClick={(e) => handleViewDetails(e.data)}
       >
         <LoadPanel enabled={isLoading} />
-        <FilterRow visible={true} />
-        <SearchPanel visible={true} width={240} placeholder="Search..." />
+        <FilterRow visible={false} />
+        <SearchPanel visible={true} width={240} placeholder="Search…" />
         <Paging defaultPageSize={10} />
         <Export enabled={true} allowExportSelectedData={false} />
 
@@ -265,64 +274,56 @@ const VehicleTransferHistory = ({ vehicleId }) => {
           customizeText={(cellInfo) =>
             cellInfo.value
               ? `${cellInfo.value} ${cellInfo.data?.readingUnit || "hrs"}`
-              : "-"
+              : "—"
           }
         />
         <Column
           dataField="status"
           caption="Status"
-          width={100}
+          width={130}
           cellRender={renderStatusCell}
         />
         <Column
           caption="Actions"
-          width={100}
+          width={120}
           cellRender={renderActionsCell}
           allowFiltering={false}
           allowSorting={false}
         />
       </DataGrid>
 
-      {/* Transfer Form Popup */}
-      <Popup
-        visible={showFormPopup}
-        onHiding={() => setShowFormPopup(false)}
-        dragEnabled={false}
-        showTitle={true}
+      {/* ── Create Transfer SlidePanel ── */}
+      <SlidePanel
+        open={showFormPanel}
+        onClose={() => setShowFormPanel(false)}
         title="Create Vehicle Transfer"
-        width="90%"
-        height="90%"
-        maxWidth={1200}
-        showCloseButton={true}
+        width={1200}
       >
-        <ScrollView width="100%" height="100%">
-          <VehicleTransferForm
-            vehicleId={vehicleId}
-            onClose={() => setShowFormPopup(false)}
-            onSuccess={handleFormSuccess}
-          />
-        </ScrollView>
-      </Popup>
+        <VehicleTransferForm
+          vehicleId={vehicleId}
+          onClose={() => setShowFormPanel(false)}
+          onSuccess={handleFormSuccess}
+        />
+      </SlidePanel>
 
-      {/* Transfer Details Popup */}
-      <Popup
-        visible={showDetailsPopup}
-        onHiding={() => setShowDetailsPopup(false)}
-        dragEnabled={false}
-        showTitle={true}
-        title={`Transfer Details - ${selectedTransfer?.deliveryNoteNumber || ""}`}
-        width="90%"
-        height="90%"
-        maxWidth={1000}
-        showCloseButton={true}
+      {/* ── Transfer Details SlidePanel ── */}
+      <SlidePanel
+        open={showDetailsPanel}
+        onClose={handleCloseDetailsPanel}
+        title={`Transfer Details — ${selectedTransfer?.deliveryNoteNumber || ""}`}
+        width={1200}
       >
-        <ScrollView width="100%" height="100%">
+        {selectedTransfer && (
           <VehicleTransferDetails
             transfer={selectedTransfer}
-            onClose={() => setShowDetailsPopup(false)}
+            onClose={handleCloseDetailsPanel}
+            onRefresh={() => {
+              handleCloseDetailsPanel();
+              loadTransferHistory();
+            }}
           />
-        </ScrollView>
-      </Popup>
+        )}
+      </SlidePanel>
     </div>
   );
 };

@@ -10,10 +10,12 @@
  * - DownloadTransferReport(): Generates transfer checkup PDFs.
  */
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleTransfer.Commands;
+using FMS.Application.Features.VehicleTransfer.Constants;
 using FMS.Application.Features.VehicleTransfer.DTOs;
 using FMS.Application.Features.VehicleTransfer.Queries;
 using FMS.Application.Features.Notification.Services;
@@ -122,8 +124,11 @@ public class VehicleTransferController : ControllerBase
             return BadRequest(result);
         }
 
-        // Send email notification if requested
-        if (createTransferDto.SendEmail && !string.IsNullOrEmpty(createTransferDto.EmailRecipients) && result.Data != null)
+        // Draft creation should not trigger approval email directly.
+        if (createTransferDto.SendEmail
+            && !string.IsNullOrEmpty(createTransferDto.EmailRecipients)
+            && result.Data != null
+            && !string.Equals(result.Data.Status, "Draft", System.StringComparison.OrdinalIgnoreCase))
         {
             await SendTransferEmailNotification(result.Data, createTransferDto.EmailRecipients);
         }
@@ -132,7 +137,85 @@ public class VehicleTransferController : ControllerBase
     }
 
     /// <summary>
-    /// Update transfer status (Pending, InTransit, Completed, Cancelled)
+    /// Save or update transfer draft.
+    /// </summary>
+    [HttpPost("draft")]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> SaveTransferDraft([FromForm] SaveTransferDraftDTO draftDto)
+    {
+        draftDto.UserId = GetCurrentUserId();
+        var result = await _mediator.Send(new SaveTransferDraftCommand(draftDto));
+
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Submit draft transfer for workshop manager approval.
+    /// </summary>
+    [HttpPost("{id}/submit-approval")]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> SubmitForApproval(int id, [FromBody] SubmitForApprovalRequest request)
+    {
+        var result = await _mediator.Send(new SubmitForApprovalCommand(
+            id,
+            GetCurrentUserId(),
+            request.WorkshopManagerEmail,
+            request.WorkshopManagerName,
+            request.ApprovalBaseUrl));
+
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Approve transfer as workshop manager.
+    /// </summary>
+    [HttpPost("{id}/approve")]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> ApproveTransfer(int id, [FromBody] ApproveTransferRequest request)
+    {
+        var result = await _mediator.Send(new ApproveTransferCommand(
+            id,
+            GetCurrentUserId(),
+            request.ApproverName,
+            request.CreatorEmail));
+
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Reject transfer approval request and return to draft.
+    /// </summary>
+    [HttpPost("{id}/reject")]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> RejectTransfer(int id, [FromBody] RejectTransferRequest request)
+    {
+        var result = await _mediator.Send(new RejectTransferCommand(
+            id,
+            GetCurrentUserId(),
+            request.Reason,
+            request.CreatorEmail));
+
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Update transfer status (Draft, PendingApproval, Approved, InTransit, Completed, Cancelled)
     /// </summary>
     [HttpPut("{id}/status")]
     public async Task<ActionResult<FMSResponse<bool>>> UpdateTransferStatus(int id, [FromBody] UpdateTransferStatusRequest request)
@@ -144,6 +227,38 @@ public class VehicleTransferController : ControllerBase
             return BadRequest(result);
         }
         return Ok(result);
+    }
+
+    /// <summary>
+    /// Dispatch an approved transfer (Approved → InTransit). Sends notification to receiver.
+    /// </summary>
+    [HttpPost("{id}/dispatch")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> DispatchTransfer(int id)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _mediator.Send(new DispatchTransferCommand(id, userId));
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Confirm vehicle receipt at destination (InTransit → Completed). Updates vehicle site.
+    /// </summary>
+    [HttpPost("{id}/confirm-receipt")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<VehicleTransferDTO>>> ConfirmReceipt(int id, [FromBody] ConfirmReceiptRequest? request)
+    {
+        var userId = GetCurrentUserId();
+        var result = await _mediator.Send(new ConfirmReceiptCommand(id, userId, request?.Remarks));
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>
@@ -431,13 +546,130 @@ public class VehicleTransferController : ControllerBase
     }
 
     /// <summary>
-    /// Get default checkup items template
+    /// Returns the list of valid CheckType values for checkup templates.
+    /// </summary>
+    [HttpGet("checkup-template/check-types")]
+    public ActionResult<FMSResponse<IReadOnlyList<string>>> GetCheckTypes()
+    {
+        return Ok(FMSResponse<IReadOnlyList<string>>.Success(CheckTypeConstants.All, "Check types fetched successfully"));
+    }
+
+    /// <summary>
+    /// Get checkup items template (optionally matched to vehicle criteria).
     /// </summary>
     [HttpGet("checkup-template")]
-    public ActionResult<List<CreateCheckupItemDTO>> GetCheckupTemplate()
+    public async Task<ActionResult<FMSResponse<List<CreateCheckupItemDTO>>>> GetCheckupTemplate(
+        [FromQuery] int? vehicleTypeId = null,
+        [FromQuery] int? vehicleModelId = null,
+        [FromQuery] bool? hasGps = null)
     {
-        // Standard Plant Equipment Transfer Checkup items
-        var template = new List<CreateCheckupItemDTO>
+        var result = await _mediator.Send(new GetVehicleTransferCheckupTemplatesQuery(
+            vehicleTypeId,
+            vehicleModelId,
+            hasGps,
+            IncludeInactive: false,
+            ApplyVehicleMatching: true));
+
+        if (result.IsSuccess && result.Data != null && result.Data.Count > 0)
+        {
+            var mappedTemplate = result.Data
+                .Select(item => new CreateCheckupItemDTO
+                {
+                    SerialNo = item.SerialNo,
+                    Description = item.Description,
+                    CheckType = item.CheckType
+                })
+                .ToList();
+
+            return Ok(FMSResponse<List<CreateCheckupItemDTO>>.Success(mappedTemplate, "Checkup template fetched successfully"));
+        }
+
+        // Backward-compatible fallback for environments where DB migration is pending
+        if (!result.IsSuccess)
+        {
+            _logger.LogWarning("Falling back to default checkup template. Reason: {Reason}", result.Message);
+        }
+
+        var fallbackTemplate = BuildDefaultCheckupTemplate();
+        return Ok(FMSResponse<List<CreateCheckupItemDTO>>.Success(fallbackTemplate, "Using default checkup template"));
+    }
+
+    /// <summary>
+    /// Get checkup template rows for admin management.
+    /// </summary>
+    [HttpGet("checkup-template/admin")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<List<VehicleTransferCheckupTemplateItemDTO>>>> GetCheckupTemplateAdmin(
+        [FromQuery] int? vehicleTypeId = null,
+        [FromQuery] int? vehicleModelId = null,
+        [FromQuery] bool includeInactive = true)
+    {
+        var result = await _mediator.Send(new GetVehicleTransferCheckupTemplatesQuery(
+            vehicleTypeId,
+            vehicleModelId,
+            HasGps: null,
+            IncludeInactive: includeInactive,
+            ApplyVehicleMatching: false));
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Create new checkup template row.
+    /// </summary>
+    [HttpPost("checkup-template")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<VehicleTransferCheckupTemplateItemDTO>>> CreateCheckupTemplateItem([FromBody] UpsertVehicleTransferCheckupTemplateDTO dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(FMSResponse<VehicleTransferCheckupTemplateItemDTO>.Failed("Invalid model state"));
+        }
+
+        var result = await _mediator.Send(new CreateVehicleTransferCheckupTemplateCommand(dto, GetCurrentUserId()));
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Update existing checkup template row.
+    /// </summary>
+    [HttpPut("checkup-template/{id}")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<VehicleTransferCheckupTemplateItemDTO>>> UpdateCheckupTemplateItem(int id, [FromBody] UpsertVehicleTransferCheckupTemplateDTO dto)
+    {
+        if (!ModelState.IsValid)
+        {
+            return BadRequest(FMSResponse<VehicleTransferCheckupTemplateItemDTO>.Failed("Invalid model state"));
+        }
+
+        var result = await _mediator.Send(new UpdateVehicleTransferCheckupTemplateCommand(id, dto, GetCurrentUserId()));
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Remove checkup template row (soft-delete).
+    /// </summary>
+    [HttpDelete("checkup-template/{id}")]
+    [RequirePermission(Permissions.Vehicle.Edit)]
+    public async Task<ActionResult<FMSResponse<bool>>> DeleteCheckupTemplateItem(int id)
+    {
+        var result = await _mediator.Send(new DeleteVehicleTransferCheckupTemplateCommand(id, GetCurrentUserId()));
+        if (!result.IsSuccess && string.Equals(result.ErrorCode, "NOT_FOUND", System.StringComparison.OrdinalIgnoreCase))
+        {
+            return NotFound(result);
+        }
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    private static List<CreateCheckupItemDTO> BuildDefaultCheckupTemplate()
+    {
+        return new List<CreateCheckupItemDTO>
         {
             new() { SerialNo = 1, Description = "SUSPENSION", CheckType = "CHECK" },
             new() { SerialNo = 2, Description = "BRAKES, INDICATORS, GAUGES & FAN BELT", CheckType = "CHECK & TEST" },
@@ -466,8 +698,6 @@ public class VehicleTransferController : ControllerBase
             new() { SerialNo = 25, Description = "BATTERIES & POLARITY CONDITION", CheckType = "TEST & CHECK" },
             new() { SerialNo = 26, Description = "UPHOLSTERY & CAB ACCESSORIES CONDITION", CheckType = "CHECK" }
         };
-
-        return Ok(template);
     }
 }
 
@@ -485,4 +715,12 @@ public class UpdateTransferStatusRequest
 public class SendEmailRequest
 {
     public string Recipients { get; set; } = string.Empty;
+}
+
+/// <summary>
+/// Request model for confirming vehicle receipt at destination
+/// </summary>
+public class ConfirmReceiptRequest
+{
+    public string? Remarks { get; set; }
 }

@@ -19,8 +19,9 @@ const STORAGE_KEYS = {
   PUSH_ENABLED: "fms_push_enabled",
 };
 
-// Firebase messaging - will be loaded lazily
-let messaging = null;
+// Firebase messaging - loaded lazily via v22+ modular API
+let messaging = null; // Messaging instance from getMessaging()
+let fbApi = {};       // Modular API functions { getToken, requestPermission, ... }
 let notifee = null;
 let AndroidImportance = { HIGH: 4 };
 
@@ -35,7 +36,7 @@ const AuthorizationStatus = {
 class PushNotificationService {
   constructor() {
     this.isInitialized = false;
-    this.isInitializing = false; // Lock to prevent concurrent initialization
+    this._initPromise = null; // Shared promise — concurrent callers wait for same result
     this.currentToken = null;
     this.authToken = null;
     this.userId = null;
@@ -44,8 +45,8 @@ class PushNotificationService {
   }
 
   /**
-   * Initialize the push notification service
-   * Call this after user authentication
+   * Initialize the push notification service.
+   * Concurrent callers will wait for the same result (no duplicate runs).
    * @param {string} authToken - JWT token for API authentication
    * @param {string} userId - Current user's ID
    */
@@ -55,77 +56,82 @@ class PushNotificationService {
       return true;
     }
 
-    // Prevent concurrent initialization
-    if (this.isInitializing) {
-      console.log("[PushNotification] Initialization already in progress, skipping...");
-      return false;
+    // If initialization is already running, let concurrent callers
+    // wait for the same result instead of returning false.
+    if (this._initPromise) {
+      console.log("[PushNotification] Initialization in progress, waiting for result...");
+      return this._initPromise;
     }
 
-    this.isInitializing = true;
-    console.log("[PushNotification] Initializing...");
-    this.authToken = authToken;
-    this.userId = userId;
+    this._initPromise = this._executeInit(authToken, userId);
+    return this._initPromise;
+  }
 
-    // Check if push is enabled in settings
-    const pushEnabled = await this.isPushEnabled();
-    if (!pushEnabled) {
-      console.log("[PushNotification] Push notifications disabled by user");
-      this.isInitializing = false;
-      return false;
-    }
+  /** @private – actual initialization logic */
+  async _executeInit(authToken, userId) {
+    try {
+      console.log("[PushNotification] Initializing...");
+      this.authToken = authToken;
+      this.userId = userId;
 
-    // Try to load Firebase messaging
-    if (!messaging) {
-      try {
-        const firebaseMessaging = require("@react-native-firebase/messaging");
-
-        // React Native Firebase v22+ uses getMessaging() for modular API
-        // but also provides default() for backward compatibility
-        if (typeof firebaseMessaging.getMessaging === 'function') {
-          messaging = firebaseMessaging.getMessaging();
-          console.log("[PushNotification] Firebase messaging loaded (modular API)");
-        } else if (firebaseMessaging.default) {
-          messaging = firebaseMessaging.default();
-          console.log("[PushNotification] Firebase messaging loaded (legacy API)");
-        } else {
-          throw new Error("Could not get messaging instance");
-        }
-      } catch (e) {
-        console.warn(
-          "[PushNotification] @react-native-firebase/messaging not available:",
-          e.message
-        );
-        console.warn(
-          "[PushNotification] To enable push notifications, install Firebase:"
-        );
-        console.warn(
-          "  npm install @react-native-firebase/app @react-native-firebase/messaging"
-        );
-        this.isInitializing = false;
+      // Check if push is enabled in settings
+      const pushEnabled = await this.isPushEnabled();
+      if (!pushEnabled) {
+        console.log("[PushNotification] Push notifications disabled by user");
         return false;
       }
-    }
 
-    // Try to load notifee for displaying notifications
-    if (!notifee) {
-      try {
-        const notifeeModule = require("@notifee/react-native");
-        notifee = notifeeModule.default;
-        if (notifeeModule.AndroidImportance) {
-          AndroidImportance = notifeeModule.AndroidImportance;
+      // Load Firebase messaging modular API (v22+)
+      if (!messaging) {
+        try {
+          const mod = require("@react-native-firebase/messaging");
+
+          // Extract modular API functions to avoid deprecated namespaced calls
+          fbApi = {
+            getMessaging: mod.getMessaging,
+            getToken: mod.getToken,
+            requestPermission: mod.requestPermission,
+            onMessage: mod.onMessage,
+            onTokenRefresh: mod.onTokenRefresh,
+            onNotificationOpenedApp: mod.onNotificationOpenedApp,
+            getInitialNotification: mod.getInitialNotification,
+            setBackgroundMessageHandler: mod.setBackgroundMessageHandler,
+            registerDeviceForRemoteMessages: mod.registerDeviceForRemoteMessages,
+          };
+
+          if (typeof fbApi.getMessaging === "function") {
+            messaging = fbApi.getMessaging();
+            console.log("[PushNotification] Firebase messaging loaded (modular API)");
+          } else {
+            throw new Error("getMessaging not available — unsupported version");
+          }
+        } catch (e) {
+          console.warn(
+            "[PushNotification] @react-native-firebase/messaging not available:",
+            e.message
+          );
+          return false;
         }
-        console.log("[PushNotification] Notifee loaded for notification display");
-      } catch (e) {
-        console.warn("[PushNotification] @notifee/react-native not available");
       }
-    }
 
-    try {
+      // Try to load notifee for displaying notifications
+      if (!notifee) {
+        try {
+          const notifeeModule = require("@notifee/react-native");
+          notifee = notifeeModule.default;
+          if (notifeeModule.AndroidImportance) {
+            AndroidImportance = notifeeModule.AndroidImportance;
+          }
+          console.log("[PushNotification] Notifee loaded for notification display");
+        } catch (e) {
+          console.warn("[PushNotification] @notifee/react-native not available");
+        }
+      }
+
       // Request permission
       const hasPermission = await this.requestPermission();
       if (!hasPermission) {
         console.log("[PushNotification] Permission not granted");
-        this.isInitializing = false;
         return false;
       }
 
@@ -142,18 +148,17 @@ class PushNotificationService {
         this.subscribeToForegroundMessages();
 
         this.isInitialized = true;
-        this.isInitializing = false;
         console.log("[PushNotification] ✅ Initialization complete");
         return true;
       }
 
       console.log("[PushNotification] Failed to get FCM token");
-      this.isInitializing = false;
       return false;
     } catch (error) {
       console.error("[PushNotification] Initialization failed:", error);
-      this.isInitializing = false;
       return false;
+    } finally {
+      this._initPromise = null;
     }
   }
 
@@ -162,10 +167,10 @@ class PushNotificationService {
    * @returns {Promise<boolean>} Whether permission was granted
    */
   async requestPermission() {
-    if (!messaging) return false;
+    if (!messaging || !fbApi.requestPermission) return false;
 
     try {
-      const authStatus = await messaging.requestPermission();
+      const authStatus = await fbApi.requestPermission(messaging);
 
       const enabled =
         authStatus === AuthorizationStatus.AUTHORIZED ||
@@ -219,14 +224,14 @@ class PushNotificationService {
       console.log("[PushNotification] Registering device for remote messages...");
 
       // registerDeviceForRemoteMessages is primarily for iOS
-      if (Platform.OS === 'ios' && messaging.registerDeviceForRemoteMessages) {
-        await withTimeout(messaging.registerDeviceForRemoteMessages(), 10000);
+      if (Platform.OS === 'ios' && fbApi.registerDeviceForRemoteMessages) {
+        await withTimeout(fbApi.registerDeviceForRemoteMessages(messaging), 10000);
       }
 
       console.log("[PushNotification] Getting FCM token...");
 
       // Get token with 15 second timeout
-      const token = await withTimeout(messaging.getToken(), 15000);
+      const token = await withTimeout(fbApi.getToken(messaging), 15000);
 
       if (!token) {
         console.warn("[PushNotification] No token returned from Firebase");
@@ -265,7 +270,7 @@ class PushNotificationService {
   subscribeToTokenRefresh() {
     if (!messaging) return;
 
-    this.unsubscribeTokenRefresh = messaging.onTokenRefresh(async (newToken) => {
+    this.unsubscribeTokenRefresh = fbApi.onTokenRefresh(messaging, async (newToken) => {
       console.log("[PushNotification] Token refreshed");
       this.currentToken = newToken;
       await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, newToken);
@@ -281,7 +286,7 @@ class PushNotificationService {
   subscribeToForegroundMessages() {
     if (!messaging) return;
 
-    this.unsubscribeMessage = messaging.onMessage(async (remoteMessage) => {
+    this.unsubscribeMessage = fbApi.onMessage(messaging, async (remoteMessage) => {
       console.log("[PushNotification] Foreground message received:", remoteMessage);
 
       // Display notification using notifee if available
@@ -303,13 +308,13 @@ class PushNotificationService {
 
     try {
       // Handle notification opened from background state
-      messaging.onNotificationOpenedApp((remoteMessage) => {
+      fbApi.onNotificationOpenedApp(messaging, (remoteMessage) => {
         console.log("[PushNotification] Notification opened from background:", remoteMessage);
         this.handleNotificationOpen(remoteMessage);
       });
 
       // Handle notification opened from quit state
-      const initialNotification = await messaging.getInitialNotification();
+      const initialNotification = await fbApi.getInitialNotification(messaging);
       if (initialNotification) {
         console.log("[PushNotification] App opened from quit state by notification:", initialNotification);
         // Small delay to ensure navigation is ready
@@ -503,6 +508,7 @@ class PushNotificationService {
     } else if (this.authToken && this.userId) {
       // Re-initialize when enabled
       this.isInitialized = false;
+      this._initPromise = null;
       await this.initialize(this.authToken, this.userId);
     }
   }
@@ -528,6 +534,7 @@ class PushNotificationService {
 
     // Clear state
     this.isInitialized = false;
+    this._initPromise = null;
     this.currentToken = null;
     this.authToken = null;
     this.userId = null;
@@ -559,21 +566,30 @@ export default pushNotificationService;
  */
 export function setupBackgroundMessageHandler() {
   try {
-    const firebaseMessaging = require("@react-native-firebase/messaging");
+    const mod = require("@react-native-firebase/messaging");
 
-    // Get messaging instance for background handler
-    let messaging;
-    if (typeof firebaseMessaging.getMessaging === 'function') {
-      messaging = firebaseMessaging.getMessaging();
-    } else if (firebaseMessaging.default) {
-      messaging = firebaseMessaging.default();
-    }
-
-    if (messaging && messaging.setBackgroundMessageHandler) {
-      messaging.setBackgroundMessageHandler(async (remoteMessage) => {
+    if (typeof mod.getMessaging === "function" && typeof mod.setBackgroundMessageHandler === "function") {
+      const bgMessaging = mod.getMessaging();
+      mod.setBackgroundMessageHandler(bgMessaging, async (remoteMessage) => {
         console.log("[PushNotification] Background message:", remoteMessage);
-        // Background messages are automatically displayed as notifications by FCM
       });
+
+      // Pre-populate module-level refs so initialize() can skip loading
+      if (!messaging) {
+        messaging = bgMessaging;
+        fbApi = {
+          getMessaging: mod.getMessaging,
+          getToken: mod.getToken,
+          requestPermission: mod.requestPermission,
+          onMessage: mod.onMessage,
+          onTokenRefresh: mod.onTokenRefresh,
+          onNotificationOpenedApp: mod.onNotificationOpenedApp,
+          getInitialNotification: mod.getInitialNotification,
+          setBackgroundMessageHandler: mod.setBackgroundMessageHandler,
+          registerDeviceForRemoteMessages: mod.registerDeviceForRemoteMessages,
+        };
+      }
+
       console.log("[PushNotification] Background message handler registered");
     }
   } catch (e) {

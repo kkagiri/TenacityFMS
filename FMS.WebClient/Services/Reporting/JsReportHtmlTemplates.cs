@@ -655,7 +655,7 @@ namespace FMS.WebClient.Services.Reporting
         }
 
         /* ── Summary Cards ── */
-        .summary-section { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .summary-section { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; margin-bottom: 24px; }
         .summary-card {
             background: var(--surface); border: 1px solid var(--border);
             border-radius: 8px; padding: 18px 20px 16px;
@@ -673,6 +673,8 @@ namespace FMS.WebClient.Services.Reporting
         .accent .card-icon svg { fill: var(--primary-dark); }
         .danger .card-icon { background: #FEF2F2; }
         .danger .card-icon svg { fill: var(--danger); }
+        .warning .card-icon { background: #FFFBEB; }
+        .warning .card-icon svg { fill: var(--warning); }
         .card-value { font-size: 24px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.5px; line-height: 1; margin-bottom: 4px; }
         .card-value.positive { color: var(--success); }
         .card-value.negative { color: var(--danger); }
@@ -714,6 +716,9 @@ namespace FMS.WebClient.Services.Reporting
         .bal-value.highlight { color: var(--primary); }
         .bal-value.expected  { color: var(--success); font-size: 11px; }
         .bal-value.expected.mismatch { color: var(--warning); }
+        .bal-value.variance { font-weight: 800; font-size: 11px; }
+        .bal-value.variance.loss { color: var(--danger); }
+        .bal-value.variance.gain { color: var(--success); }
         .bal-sep { width: 1px; height: 14px; background: var(--border); display: inline-block; margin: 0 2px; vertical-align: middle; }
 
         .tank-type-grid { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -814,11 +819,15 @@ namespace FMS.WebClient.Services.Reporting
             @page { size: A4 landscape; margin: 10mm; }
             body { background: white; }
             .page { max-width: none; padding: 0; }
+            /* Hide in-body company bar — Puppeteer HeaderTemplate handles branding on every page */
+            .company-bar { display: none !important; }
+            /* Transaction Detail always starts on a fresh page */
+            .table-wrapper { page-break-before: always; }
             .data-table { font-size: 10px; }
             .data-table thead th { padding: 6px 8px; font-size: 9.5px; }
             .data-table tbody td { padding: 6px 8px; }
             .data-table tbody tr:hover td { background: inherit; }
-            .summary-section { grid-template-columns: repeat(4, 1fr); }
+            .summary-section { grid-template-columns: repeat(5, 1fr); }
         }
     </style>
 </head>
@@ -862,6 +871,8 @@ namespace FMS.WebClient.Services.Reporting
          {{summary.totalDispensed}}     (Dispensing + AutoDispense)
          {{summary.totalTransfer}}      (TransferIn + TransferOut)
          {{summary.totalDelivery}}      (Delivery + GPSRefill + InTankDelivery)
+         {{summary.totalVariance.formatted}}  (Actual Closing − Expected, per tank sum)
+         {{summary.totalVariance.isNegative}} true if total variance is a loss
     ═══════════════════════════════════════════════════════ -->
     <div class=""summary-section"">
         <div class=""summary-card accent"">
@@ -892,6 +903,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-value positive"">+{{summary.totalDelivery}} L</div>
             <div class=""card-label"">Total Delivery</div>
         </div>
+        <div class=""summary-card {{#if summary.totalVariance.isNegative}}danger{{else}}warning{{/if}}"">
+            <div class=""card-icon"">
+                <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z""/></svg>
+            </div>
+            <div class=""card-value {{#if summary.totalVariance.isNegative}}negative{{/if}}"">{{summary.totalVariance.formatted}} L</div>
+            <div class=""card-label"">Total Variance</div>
+        </div>
     </div>
 
     <!-- ═══════════════════════════════════════════════════════
@@ -903,6 +921,10 @@ namespace FMS.WebClient.Services.Reporting
            {{closingBalance}}    e.g. ""16,734""
            {{expectedClosing}}   e.g. ""16,819""
            {{expectedMatch}}     true/false
+           {{variance.value}}       e.g. ""-140.97""
+           {{variance.formatted}}   e.g. ""-140.97""
+           {{variance.isNegative}}  true if loss/shortage
+           {{variance.percentage}}  e.g. ""-6.2""
            Grouped activity:
            {{dispensing.total}}  Dispensing + AutomatedDispensing net
            {{dispensing.count}}
@@ -936,6 +958,9 @@ namespace FMS.WebClient.Services.Reporting
                     {{#unless expectedMatch}}<span class=""bal-value expected mismatch"">{{else}}<span class=""bal-value expected"">{{/unless}}
                         {{#if expectedMatch}}&#10003;{{else}}&#9651;{{/if}} {{expectedClosing}} L
                     </span>
+                    <span class=""bal-sep""></span>
+                    <span class=""bal-label"">Variance</span>
+                    <span class=""bal-value variance {{#if variance.isNegative}}loss{{else}}gain{{/if}}"">{{variance.formatted}} L ({{variance.percentage}}%)</span>
                 </div>
             </div>
             <div class=""tank-type-grid"">

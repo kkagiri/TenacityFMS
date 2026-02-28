@@ -13,7 +13,7 @@ import DataGrid, {
   Popup as GridPopup,
   Form,
 } from "devextreme-react/data-grid";
-import { Popup } from "devextreme-react/popup";
+import M365SidePanel from "../../../components/common/M365SidePanel";
 import { SelectBox } from "devextreme-react/select-box";
 import { NumberBox } from "devextreme-react/number-box";
 import { CheckBox } from "devextreme-react/check-box";
@@ -311,8 +311,7 @@ const RuleSetAssignmentManager = () => {
       if (result.success) {
         const data = result.data?.data || result.data;
         notify(
-          `Bulk assignment complete: ${data.successCount || 0} created, ${
-            data.skippedCount || 0
+          `Bulk assignment complete: ${data.successCount || 0} created, ${data.skippedCount || 0
           } skipped`,
           "success",
           4000
@@ -437,10 +436,9 @@ const RuleSetAssignmentManager = () => {
   return (
     <div className="tw-p-4 rule-set-assignment-manager">
       <div className="tw-mb-4 tw-flex tw-justify-between tw-items-center">
-        <h2 className="tw-text-xl tw-font-semibold">
-          <i className="fa-light fa-link tw-mr-2"></i>
-          Rule Set Assignments
-        </h2>
+        <span className="tw-text-sm tw-text-gray-500">
+          Assign rule sets to sites, vehicle types, tags, or specific vehicles
+        </span>
         <div className="assignment-action-buttons">
           <Button
             text="Add Assignment"
@@ -542,8 +540,11 @@ const RuleSetAssignmentManager = () => {
       ) : (
         <DataGrid
           dataSource={assignments}
-          showBorders
+          showBorders={false}
+          showRowLines={true}
+          showColumnLines={false}
           columnAutoWidth
+          hoverStateEnabled
           rowAlternationEnabled
           keyExpr="id"
           height={500}
@@ -598,14 +599,12 @@ const RuleSetAssignmentManager = () => {
         </DataGrid>
       )}
 
-      {/* Add/Edit Popup */}
-      <Popup
+      {/* Add/Edit Side Panel */}
+      <M365SidePanel
         visible={showAddPopup}
-        onHiding={() => setShowAddPopup(false)}
+        onClose={() => setShowAddPopup(false)}
         title={isEditing ? "Edit Assignment" : "Add Assignment"}
-        width={500}
-        height="auto"
-        showCloseButton
+        width={480}
       >
         <div className="tw-p-4">
           <div className="tw-mb-4">
@@ -704,16 +703,14 @@ const RuleSetAssignmentManager = () => {
             />
           </div>
         </div>
-      </Popup>
+      </M365SidePanel>
 
-      {/* Bulk Add Popup */}
-      <Popup
+      {/* Bulk Add Side Panel */}
+      <M365SidePanel
         visible={showBulkPopup}
-        onHiding={() => setShowBulkPopup(false)}
+        onClose={() => setShowBulkPopup(false)}
         title="Bulk Assign Rule Set"
-        width={550}
-        height="auto"
-        showCloseButton
+        width={480}
       >
         <div className="tw-p-4">
           <div className="tw-mb-4">
@@ -816,7 +813,7 @@ const RuleSetAssignmentManager = () => {
             />
           </div>
         </div>
-      </Popup>
+      </M365SidePanel>
     </div>
   );
 };

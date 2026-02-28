@@ -1,66 +1,267 @@
-.pts-device-detail-page {
-  @apply tw-p-6;
+/**
+ * File: PTSDeviceDetailPage.scss
+ * Purpose: M365-styled detail page — FluentStat summary tiles, underline tabs, tank cards
+ * Dependencies: m365-shared.scss design tokens
+ * Last Modified: 2026-02-27
+ */
+@import "../../../components/m365/m365-shared.scss";
+
+/* ── Page Shell ── */
+.m365-detail-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  background: var(--m365-bg-surface, #faf9f8);
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
 }
 
-.pts-device-detail-page .device-detail-header {
-  @apply tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
-  @apply tw-flex tw-justify-between tw-items-start;
+/* ── Page-level loading ── */
+.m365-detail-page-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 100vh;
+  color: var(--m365-text-secondary, #605e5c);
+  font-size: 14px;
+
+  i { font-size: 28px; color: var(--m365-primary, #0078d4); }
 }
 
-.pts-device-detail-page .device-detail-header .connection-status {
-  @apply tw-inline-flex tw-items-center tw-text-sm;
+/* ── Empty / Not Found ── */
+.m365-detail-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 64px 24px;
+  text-align: center;
+  color: var(--m365-text-secondary, #605e5c);
+
+  i { font-size: 40px; color: var(--m365-warning, #ca5010); }
+  h2 { font-size: 18px; font-weight: 600; color: var(--m365-text, #201f1e); margin: 0; }
+  p  { font-size: 13px; margin: 0; }
 }
 
-.pts-device-detail-page .device-detail-header .connection-status.connected {
-  @apply tw-text-green-600;
+/* ── Tab Content Loader ── */
+.m365-detail-loader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 64px 0;
+  color: var(--m365-text-secondary, #605e5c);
+  font-size: 13px;
+
+  i { font-size: 24px; color: var(--m365-primary, #0078d4); }
 }
 
-.pts-device-detail-page .device-detail-header .connection-status.disconnected {
-  @apply tw-text-gray-500;
+/* ── Header ── */
+.m365-detail-header {
+  background: var(--m365-bg-card, #ffffff);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+  &__nav {
+    margin-bottom: 8px;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+
+  &__info { flex: 1; min-width: 0; }
+
+  &__title {
+    font-size: 20px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 2px 0;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    font-size: 13px;
+    color: var(--m365-text-secondary, #605e5c);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
 }
 
-.pts-device-detail-page .device-detail-header .device-quick-info {
-  @apply tw-flex tw-gap-6;
+/* ── Summary Stat Tiles (FluentStat) ── */
+.pts-detail-stat-section {
+  background: var(--m365-bg-surface, #faf9f8);
+  padding: 14px 24px;
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
 }
 
-.pts-device-detail-page
-  .device-detail-header
-  .device-quick-info
-  .quick-info-item {
-  @apply tw-flex tw-flex-col;
+.pts-detail-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 12px;
 }
 
-.pts-device-detail-page
-  .device-detail-header
-  .device-quick-info
-  .quick-info-item
-  label {
-  @apply tw-text-xs tw-text-gray-500 tw-mb-1;
+.pts-detail-stat {
+  background: var(--m365-bg-card, #ffffff);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 6px;
+  padding: 12px 14px 10px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.15s, border-color 0.15s;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    border-color: var(--m365-border, #c8c6c4);
+  }
+
+  &__bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m365-text-tertiary, #a19f9d);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+
+  &__value {
+    font-size: 15px;
+    font-weight: 600;
+    line-height: 1.3;
+    word-break: break-all;
+  }
+
+  &__ghost {
+    display: none;
+  }
 }
 
-.pts-device-detail-page
-  .device-detail-header
-  .device-quick-info
-  .quick-info-item
-  span {
-  @apply tw-text-sm tw-font-medium;
+/* ── Connected Tanks ── */
+.m365-detail-tanks {
+  background: var(--m365-bg-card, #ffffff);
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+  &__heading {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 12px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i { color: var(--m365-primary, #0078d4); font-size: 14px; }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 10px;
+  }
 }
 
-.pts-device-detail-page .device-detail-tabs {
-  @apply tw-mb-4;
+.m365-tank-card {
+  background: var(--m365-blue-bg, #deecf9);
+  border: 1px solid #b3d7f2;
+  border-radius: var(--m365-radius, 4px);
+  padding: 10px 12px;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+
+    i { color: var(--m365-primary, #0078d4); }
+  }
+
+  &__details {
+    font-size: 11px;
+    color: var(--m365-text-secondary, #605e5c);
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+
+  &__label {
+    color: var(--m365-text-tertiary, #a19f9d);
+  }
 }
 
-.pts-device-detail-page .device-detail-content {
-  @apply tw-bg-white tw-rounded-lg tw-p-6 tw-min-h-[500px];
+/* ── Tab Content ── */
+.m365-detail-content {
+  flex: 1;
+  background: var(--m365-bg-card, #ffffff);
+  padding: 28px 32px;
+  min-height: 400px;
 }
 
-/* Responsive adjustments */
+/* ── Tab Bar Override — extra top/left padding ── */
+.m365-detail-page .m365-tabs {
+  padding: 12px 32px 0;
+}
+
+/* ── Terminal border fix ── */
+.m365-detail-content .pts-device-terminal {
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 8px;
+}
+
+@media (max-width: 1100px) {
+  .pts-detail-stat-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* ── Responsive ── */
 @media (max-width: 768px) {
-  .pts-device-detail-page .device-detail-header {
-    @apply tw-flex-col tw-gap-4;
+  .m365-detail-header {
+    padding: 12px 16px;
+
+    &__title-row { flex-direction: column; }
+    &__actions { align-self: flex-end; }
   }
 
-  .pts-device-detail-page .device-detail-header .device-quick-info {
-    @apply tw-flex-col tw-gap-2;
+  .pts-detail-stat-section { padding: 12px 16px; }
+
+  .pts-detail-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
   }
+
+  .m365-detail-tanks { padding: 12px 16px; }
+  .m365-detail-content { padding: 16px; }
+
+  .m365-detail-page .m365-tabs { padding: 8px 16px 0; }
+}
+
+@media (max-width: 480px) {
+  .pts-detail-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pts-detail-stat__value { font-size: 14px; }
 }

@@ -23,6 +23,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
     device ? JSON.parse(JSON.stringify(device)) : {}
   );
   const [saving, setSaving] = React.useState(false);
+  const [isEditing, setIsEditing] = React.useState(false);
 
   // Fetch sites on mount
   React.useEffect(() => {
@@ -112,16 +113,30 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
     if (device) {
       setFormData(JSON.parse(JSON.stringify(device)));
     }
-    notify("Changes reset", "info", 2000);
+    setIsEditing(false);
+    notify("Changes discarded", "info", 2000);
   };
 
   return (
     <div className="pts-device-edit-form">
       <div className="form-header">
-        <h3 className="tw-text-lg tw-font-semibold">Device Settings</h3>
-        <p className="tw-text-sm tw-text-gray-600">
-          Update device configuration and connection settings
-        </p>
+        <div className="form-header__row">
+          <div>
+            <h3 className="form-header__title">Device Settings</h3>
+            <p className="form-header__subtitle">
+              {isEditing ? "Edit device configuration and connection settings" : "View device configuration and connection settings"}
+            </p>
+          </div>
+          {!isEditing ? (
+            <button className="m365-btn m365-btn--primary" onClick={() => setIsEditing(true)}>
+              <i className="fa-light fa-pen"></i> Edit
+            </button>
+          ) : (
+            <button className="m365-btn m365-btn--ghost" onClick={handleReset}>
+              <i className="fa-light fa-xmark"></i> Cancel
+            </button>
+          )}
+        </div>
       </div>
 
       <Form
@@ -129,6 +144,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
         onFieldDataChanged={handleFieldChange}
         labelMode="floating"
         colCount={2}
+        readOnly={!isEditing}
       >
         <SimpleItem dataField="ptsid" editorOptions={{ readOnly: true }}>
           <Label text="PTS ID" />
@@ -344,21 +360,23 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
         </GroupItem>
 
         <GroupItem colSpan={2}>
-          <div className="form-actions">
-            <Button
-              text="Reset"
-              type="normal"
-              onClick={handleReset}
-              disabled={saving}
-            />
-            <Button
-              text="Save Changes"
-              type="success"
-              onClick={handleSave}
-              disabled={saving}
-              icon={saving ? "refresh" : "save"}
-            />
-          </div>
+          {isEditing && (
+            <div className="form-actions">
+              <Button
+                text="Cancel"
+                type="normal"
+                onClick={handleReset}
+                disabled={saving}
+              />
+              <Button
+                text="Save Changes"
+                type="success"
+                onClick={handleSave}
+                disabled={saving}
+                icon={saving ? "refresh" : "save"}
+              />
+            </div>
+          )}
         </GroupItem>
       </Form>
     </div>

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Popup } from "devextreme-react/popup";
+import M365SidePanel from "../../common/M365SidePanel";
 import { Form, SimpleItem } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
 import { TextArea } from "devextreme-react/text-area";
@@ -72,16 +72,13 @@ const RuleSetForm = ({ isVisible, onClose, onSave, ruleSet, editMode }) => {
   };
 
   return (
-    <Popup
+    <M365SidePanel
       visible={isVisible}
-      onHiding={onClose}
+      onClose={onClose}
       title={editMode === "add" ? "Add Rule Set" : "Edit Rule Set"}
-      showCloseButton={true}
-      width={500}
-      height={400}
-      className="rule-set-form-popup"
+      width={480}
     >
-      <div className="rule-set-form-container">
+      <div className="rule-set-form-container tw-p-5">
         <Form
           formData={formData}
           labelLocation="top"
@@ -119,7 +116,7 @@ const RuleSetForm = ({ isVisible, onClose, onSave, ruleSet, editMode }) => {
           </p>
         </div>
 
-        <div className="form-actions">
+        <div className="form-actions tw-flex tw-justify-end tw-gap-2 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
           <Button
             text="Cancel"
             stylingMode="outlined"
@@ -144,7 +141,7 @@ const RuleSetForm = ({ isVisible, onClose, onSave, ruleSet, editMode }) => {
         showPane={true}
         message="Saving..."
       />
-    </Popup>
+    </M365SidePanel>
   );
 };
 

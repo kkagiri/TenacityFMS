@@ -2,7 +2,7 @@ import React, { useState, useCallback } from 'react';
 import PropTypes from 'prop-types';
 import { Tabs } from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
-import { Popup } from 'devextreme-react/popup';
+import M365SidePanel from '../../../../components/common/M365SidePanel';
 import { useStockManagement } from '../../../../hooks/useStockManagement';
 import StockAdjustmentForm from '../../forms/StockAdjustmentForm';
 import StockAdjustmentList from '../../components/StockAdjustmentList';
@@ -107,10 +107,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
             <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6">
               {/* Physical Count Card */}
               <div className="tw-bg-gradient-to-br tw-from-green-50 tw-to-emerald-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 1, adjustmentType: 2 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 1, adjustmentType: 2 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-clipboard-check tw-text-2xl tw-text-green-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-green-800">Physical Count</h3>
@@ -126,10 +126,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
 
               {/* System Correction Card */}
               <div className="tw-bg-gradient-to-br tw-from-yellow-50 tw-to-amber-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 2, adjustmentType: 2 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 2, adjustmentType: 2 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-wrench tw-text-2xl tw-text-yellow-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-yellow-800">System Correction</h3>
@@ -145,10 +145,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
 
               {/* Emergency Adjustment Card */}
               <div className="tw-bg-gradient-to-br tw-from-red-50 tw-to-rose-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 5, adjustmentType: 1 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 5, adjustmentType: 1 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-triangle-exclamation tw-text-2xl tw-text-red-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-red-800">Spillage/Loss</h3>
@@ -164,10 +164,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
 
               {/* Calibration Adjustment Card */}
               <div className="tw-bg-gradient-to-br tw-from-blue-50 tw-to-cyan-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 3, adjustmentType: 2 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 3, adjustmentType: 2 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-gauge tw-text-2xl tw-text-blue-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-blue-800">Calibration</h3>
@@ -183,10 +183,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
 
               {/* Temperature Compensation Card */}
               <div className="tw-bg-gradient-to-br tw-from-purple-50 tw-to-violet-50 tw-border tw-border-purple-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 4, adjustmentType: 2 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 4, adjustmentType: 2 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-thermometer-half tw-text-2xl tw-text-purple-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-purple-800">Temperature Compensation</h3>
@@ -202,10 +202,10 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
 
               {/* Custom Adjustment Card */}
               <div className="tw-bg-gradient-to-br tw-from-gray-50 tw-to-slate-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-6 tw-hover:shadow-md tw-transition-all tw-cursor-pointer"
-                   onClick={() => {
-                     setEditingAdjustment({ reasonCode: 99 });
-                     setShowAdjustmentForm(true);
-                   }}>
+                onClick={() => {
+                  setEditingAdjustment({ reasonCode: 99 });
+                  setShowAdjustmentForm(true);
+                }}>
                 <div className="tw-flex tw-items-center tw-mb-4">
                   <i className="fa-light fa-gear tw-text-2xl tw-text-gray-600 tw-mr-3"></i>
                   <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">Custom Adjustment</h3>
@@ -297,19 +297,12 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
         </div>
       </div>
 
-      {/* Stock Adjustment Form Popup */}
-      <Popup
+      {/* Stock Adjustment Form Side Panel */}
+      <M365SidePanel
         visible={showAdjustmentForm}
-        onHiding={handleFormCancel}
-        dragEnabled={false}
-        closeOnOutsideClick={false}
-        showCloseButton={true}
+        onClose={handleFormCancel}
         title={editingAdjustment?.id ? "Edit Stock Adjustment" : "Create Stock Adjustment"}
-        width="auto"
-        height="auto"
-        maxWidth="800px"
-        maxHeight="90vh"
-        position={{ my: "center", at: "center", of: window }}
+        width={1000}
       >
         <StockAdjustmentForm
           onSubmit={handleFormSubmit}
@@ -317,7 +310,7 @@ const AdjustmentCenter = ({ adjustments, selectedSite, dateRange, onAdjustmentCo
           isVisible={showAdjustmentForm}
           initialData={editingAdjustment}
         />
-      </Popup>
+      </M365SidePanel>
     </div>
   );
 };

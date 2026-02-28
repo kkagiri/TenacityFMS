@@ -2,18 +2,29 @@
  * File: HomeScreen.js
  * Purpose: Main dashboard with fuel overview, grouped quick action icons,
  *          and recent transaction hub entries. No drawer - all navigation via quick actions.
- * Dependencies: react-native, react-redux, apiService, signalRService, usePermissions
- * Last Modified: 2026-02-12
+ *          All features are gated by mobile-specific permissions (_Mobile_*).
+ * Dependencies: react-native, react-redux, apiService, signalRService, usePermissions, mobilePermissions
+ * Last Modified: 2026-02-28
  *
  * Key Sections:
  * - Welcome header + notification bell
  * - Site badge
  * - Fuel summary card
- * - Quick Actions (small circular icon tiles, grouped):
+ * - Quick Actions (small circular icon tiles, grouped, permission-gated):
  *     Fuel Activity: Fueling, Transaction Hub, Transactions, Stock Management
- *     Apps: Vehicle Details, Issue Tracker (admin/poweruser), Location Settings (admin)
+ *     Apps: Vehicle Details, Issue Tracker, Location Settings
  *     Tank Levels: Tank Stock (with live data toggle)
  * - Recent Transaction Hub (last 3 + See More)
+ *
+ * Permissions (from MobileAppModule in DB):
+ * - _Mobile_Fueling: Fueling tile + bottom tab
+ * - _Mobile_TransactionHub: Transaction Hub tile
+ * - _Mobile_Transactions: Transactions tile + bottom tab
+ * - _Mobile_Stocks: Stocks tile
+ * - _Mobile_Vehicles: Vehicles tile
+ * - _Mobile_Issues: Issues tile
+ * - _Mobile_Location: Location tile
+ * - _Mobile_TankLevels: Tank Levels section
  */
 import React, { useEffect, useState, useMemo } from "react";
 import {
@@ -36,6 +47,7 @@ import apiService from "../../services/apiService";
 import signalRService from "../../services/signalRService";
 import { NotificationBell } from "../../components/notifications";
 import { usePermissions } from "../../hooks/usePermissions";
+import MOBILE_PERMISSIONS from "../../constants/mobilePermissions";
 
 const { width } = Dimensions.get("window");
 
@@ -71,14 +83,37 @@ const HomeScreen = ({ navigation }) => {
   const { tanks } = useSelector((state) => state.tank);
   const { isAdmin, hasPermission, hasAnyPermission } = usePermissions();
 
-  // Check if user can access issues (permission-based)
-  const canAccessIssues = useMemo(() => {
-    return hasAnyPermission(["_Read_Issues", "_View_Issue", "_Read_Issue", "_Edit_Issues", "_Approve_Issues", "_Delete_Issues"]);
-  }, [hasAnyPermission]);
+  // ─── Mobile Feature Permission Checks ────────────────────────────
+  const canAccessFueling = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.FUELING);
+  }, [hasPermission]);
 
-  // Check if user can access location settings
+  const canAccessTransactionHub = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.TRANSACTION_HUB);
+  }, [hasPermission]);
+
+  const canAccessTransactions = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.TRANSACTIONS);
+  }, [hasPermission]);
+
+  const canAccessStocks = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.STOCKS);
+  }, [hasPermission]);
+
+  const canAccessVehicles = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.VEHICLES);
+  }, [hasPermission]);
+
+  const canAccessIssues = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.ISSUES);
+  }, [hasPermission]);
+
   const canAccessLocationSettings = useMemo(() => {
-    return hasPermission("_Manage_LocationValidation");
+    return hasPermission(MOBILE_PERMISSIONS.LOCATION);
+  }, [hasPermission]);
+
+  const canAccessTankLevels = useMemo(() => {
+    return hasPermission(MOBILE_PERMISSIONS.TANK_LEVELS);
   }, [hasPermission]);
 
   // Fuel stats from tanks
@@ -270,51 +305,61 @@ const HomeScreen = ({ navigation }) => {
     );
   };
 
-  // ─── Quick Action Items (grouped) ──────────────────────────────────
+  // ─── Quick Action Items (grouped, permission-gated) ─────────────
   const fuelActivityItems = [
-    {
-      id: "fueling",
-      name: "Fueling",
-      icon: "gas-pump",
-      color: "#2563eb",
-      bgColor: "#eff6ff",
-      onPress: () => navigation.navigate("Devices"),
-    },
-    {
-      id: "transactionHub",
-      name: "Transaction Hub",
-      icon: "exchange-alt",
-      color: "#f59e0b",
-      bgColor: "#fffbeb",
-      onPress: () => navigation.navigate("TankTransactionHub"),
-    },
-    {
-      id: "transactions",
-      name: "Transactions",
-      icon: "history",
-      color: "#10b981",
-      bgColor: "#ecfdf5",
-      onPress: () => navigation.navigate("History"),
-    },
-    {
-      id: "stocks",
-      name: "Stocks",
-      icon: "warehouse",
-      color: "#059669",
-      bgColor: "#ecfdf5",
-      onPress: () => navigation.navigate("ManageStocks"),
-    },
+    ...(canAccessFueling
+      ? [{
+        id: "fueling",
+        name: "Fueling",
+        icon: "gas-pump",
+        color: "#2563eb",
+        bgColor: "#eff6ff",
+        onPress: () => navigation.navigate("Devices"),
+      }]
+      : []),
+    ...(canAccessTransactionHub
+      ? [{
+        id: "transactionHub",
+        name: "Transaction Hub",
+        icon: "exchange-alt",
+        color: "#f59e0b",
+        bgColor: "#fffbeb",
+        onPress: () => navigation.navigate("TankTransactionHub"),
+      }]
+      : []),
+    ...(canAccessTransactions
+      ? [{
+        id: "transactions",
+        name: "Transactions",
+        icon: "history",
+        color: "#10b981",
+        bgColor: "#ecfdf5",
+        onPress: () => navigation.navigate("History"),
+      }]
+      : []),
+    ...(canAccessStocks
+      ? [{
+        id: "stocks",
+        name: "Stocks",
+        icon: "warehouse",
+        color: "#059669",
+        bgColor: "#ecfdf5",
+        onPress: () => navigation.navigate("ManageStocks"),
+      }]
+      : []),
   ];
 
   const appItems = [
-    {
-      id: "vehicleDetails",
-      name: "Vehicles",
-      icon: "car",
-      color: "#0891b2",
-      bgColor: "#ecfeff",
-      onPress: () => navigation.navigate("VehicleDetails"),
-    },
+    ...(canAccessVehicles
+      ? [{
+        id: "vehicleDetails",
+        name: "Vehicles",
+        icon: "car",
+        color: "#0891b2",
+        bgColor: "#ecfeff",
+        onPress: () => navigation.navigate("VehicleDetails"),
+      }]
+      : []),
     // Issue Tracker - permission-based
     ...(canAccessIssues
       ? [
@@ -543,58 +588,64 @@ const HomeScreen = ({ navigation }) => {
       <View style={styles.quickActionsSection}>
         <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-        {/* Fuel Activity Group */}
-        <View style={styles.groupContainer}>
-          <Text style={styles.groupLabel}>Fuel Activity</Text>
-          <View style={styles.quickTileRow}>
-            {fuelActivityItems.map(renderQuickActionTile)}
-          </View>
-        </View>
-
-        {/* Apps Group */}
-        <View style={styles.groupContainer}>
-          <Text style={styles.groupLabel}>Apps</Text>
-          <View style={styles.quickTileRow}>
-            {appItems.map(renderQuickActionTile)}
-          </View>
-        </View>
-
-        {/* Sites Group - TankStock */}
-        <View style={styles.groupContainer}>
-          <View style={styles.groupLabelRow}>
-            <Text style={styles.groupLabel}>Tank Levels</Text>
-            <View style={styles.liveDataToggle}>
-              <Text style={styles.liveDataLabel}>Live Data</Text>
-              <Switch
-                value={liveDataEnabled}
-                onValueChange={handleLiveDataToggle}
-                trackColor={{ false: "#d1d5db", true: "#bfdbfe" }}
-                thumbColor={liveDataEnabled ? "#2563eb" : "#9ca3af"}
-                style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
-              />
+        {/* Fuel Activity Group - only show if user has any fuel permissions */}
+        {fuelActivityItems.length > 0 && (
+          <View style={styles.groupContainer}>
+            <Text style={styles.groupLabel}>Fuel Activity</Text>
+            <View style={styles.quickTileRow}>
+              {fuelActivityItems.map(renderQuickActionTile)}
             </View>
           </View>
-          <View style={styles.quickTileRow}>
-            <TouchableOpacity
-              style={styles.quickTile}
-              onPress={() => navigation.navigate("TankStock")}
-              activeOpacity={0.7}
-            >
-              <View
-                style={[
-                  styles.quickTileIcon,
-                  { backgroundColor: "#f5f3ff" },
-                ]}
-              >
-                <Icon name="industry" size={22} color="#8b5cf6" />
-                {liveDataEnabled && (
-                  <View style={styles.liveDot} />
-                )}
-              </View>
-              <Text style={styles.quickTileName}>Tank Levels</Text>
-            </TouchableOpacity>
+        )}
+
+        {/* Apps Group - only show if user has any app permissions */}
+        {appItems.length > 0 && (
+          <View style={styles.groupContainer}>
+            <Text style={styles.groupLabel}>Apps</Text>
+            <View style={styles.quickTileRow}>
+              {appItems.map(renderQuickActionTile)}
+            </View>
           </View>
-        </View>
+        )}
+
+        {/* Sites Group - TankStock - permission-gated */}
+        {canAccessTankLevels && (
+          <View style={styles.groupContainer}>
+            <View style={styles.groupLabelRow}>
+              <Text style={styles.groupLabel}>Tank Levels</Text>
+              <View style={styles.liveDataToggle}>
+                <Text style={styles.liveDataLabel}>Live Data</Text>
+                <Switch
+                  value={liveDataEnabled}
+                  onValueChange={handleLiveDataToggle}
+                  trackColor={{ false: "#d1d5db", true: "#bfdbfe" }}
+                  thumbColor={liveDataEnabled ? "#2563eb" : "#9ca3af"}
+                  style={{ transform: [{ scaleX: 0.8 }, { scaleY: 0.8 }] }}
+                />
+              </View>
+            </View>
+            <View style={styles.quickTileRow}>
+              <TouchableOpacity
+                style={styles.quickTile}
+                onPress={() => navigation.navigate("TankStock")}
+                activeOpacity={0.7}
+              >
+                <View
+                  style={[
+                    styles.quickTileIcon,
+                    { backgroundColor: "#f5f3ff" },
+                  ]}
+                >
+                  <Icon name="industry" size={22} color="#8b5cf6" />
+                  {liveDataEnabled && (
+                    <View style={styles.liveDot} />
+                  )}
+                </View>
+                <Text style={styles.quickTileName}>Tank Levels</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        )}
       </View>
 
       {/* ─── Recent Transaction Hub ───────────────────────────────── */}

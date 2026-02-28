@@ -1,76 +1,547 @@
-.pts-dashboard {
-  .dashboard-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
+/**
+ * File: PTSDashboard.scss
+ * Purpose: M365 Admin Center styles for PTS Device list page — large summary tiles,
+ *          per-device stat cards, sorting, search controls
+ * Last Modified: 2026-02-27
+ */
+@import "../../components/m365/m365-shared.scss";
 
-    h2 {
-      margin: 0;
-    }
+// ── Page Shell ──
+.m365-pts-page {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  background: var(--m365-bg-surface);
+  font-family: var(--m365-font);
+}
 
-    .live-controls {
-      display: flex;
-      align-items: center;
-      gap: 1rem;
+// ── Command Bar ──
+.m365-pts-command-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
 
-      .live-indicator {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
+// ══════════════════════════════════════════════════════
+// ── Large Summary Stat Tiles (FluentStat pattern) ──
+// ══════════════════════════════════════════════════════
+.pts-stat-section {
+  padding: 16px 24px 8px;
+  background: var(--m365-bg-surface);
+}
 
-        .status-dot {
-          width: 10px;
-          height: 10px;
-          border-radius: 50%;
-          display: inline-block;
+.pts-stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
 
-          &.active {
-            background-color: #28a745;
-            box-shadow: 0 0 8px #28a745;
-            animation: pulse 2s infinite;
-          }
+@keyframes pts-fadeUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
 
-          &.inactive {
-            background-color: #dc3545;
-          }
-        }
-      }
+.pts-stat {
+  background: #fff;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  padding: 16px 18px;
+  position: relative;
+  overflow: hidden;
+  cursor: default;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  animation: pts-fadeUp 0.2s ease both;
 
-      .frequency-selector {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-
-      .live-toggle-btn {
-        min-width: 150px;
-      }
-    }
+  &[role="button"] { cursor: pointer; }
+  &[role="button"]:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    border-color: var(--m365-border);
   }
 
-  .cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
-    gap: 15px;
-    margin-bottom: 30px;
+  &__bar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+  }
 
-    &.compact {
-      .ticker {
-        padding: 12px;
-      }
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    margin-bottom: 6px;
+  }
+
+  &__value {
+    font-size: 28px;
+    font-weight: 300;
+    letter-spacing: -0.5px;
+    line-height: 1;
+    margin-bottom: 5px;
+  }
+
+  &__sub {
+    font-size: 11px;
+    color: var(--m365-text-tertiary, #a19f9d);
+  }
+
+  &__ghost {
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.06;
+    i { font-size: 42px; }
+  }
+}
+
+// ── Tab count badge ──
+.m365-tab__count {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--m365-border-light);
+  color: var(--m365-text-secondary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: 6px;
+}
+
+// ══════════════════════════════════════════════════════
+// ── Search + Sort Controls ──
+// ══════════════════════════════════════════════════════
+.m365-search {
+  position: relative;
+  flex: 1;
+  max-width: 340px;
+
+  &__clear {
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    color: var(--m365-text-tertiary, #a19f9d);
+    cursor: pointer;
+    font-size: 12px;
+    padding: 4px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      color: var(--m365-text);
+      background: var(--m365-bg-hover);
     }
   }
 }
 
-@keyframes pulse {
-  0% {
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7);
+.pts-sort-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: auto;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    i { font-size: 13px; }
   }
-  70% {
-    box-shadow: 0 0 0 6px rgba(40, 167, 69, 0);
+
+  .m365-select {
+    min-width: 130px;
   }
-  100% {
-    box-shadow: 0 0 0 0 rgba(40, 167, 69, 0);
+
+  &__dir {
+    padding: 0 10px !important;
+    i { font-size: 14px; }
+  }
+}
+
+.pts-result-count {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--m365-text-tertiary, #a19f9d);
+  white-space: nowrap;
+  margin-left: 8px;
+}
+
+// ── View Toggle (Card / List) ──
+.pts-view-toggle {
+  display: flex;
+  align-items: center;
+  margin-left: 8px;
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 4px;
+  overflow: hidden;
+
+  &__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 30px;
+    border: none;
+    background: transparent;
+    color: var(--m365-text-tertiary, #a19f9d);
+    cursor: pointer;
+    font-size: 14px;
+    transition: background 0.12s, color 0.12s;
+
+    &:hover { background: var(--m365-bg-hover, #f3f2f1); color: var(--m365-text); }
+
+    &--active {
+      background: var(--m365-primary, #0078d4);
+      color: #fff;
+
+      &:hover { background: var(--m365-primary-dark, #106ebe); color: #fff; }
+    }
+
+    & + & { border-left: 1px solid var(--m365-border-light, #edebe9); }
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ── Device Tile Grid ──
+// ══════════════════════════════════════════════════════
+.pts-device-grid-area {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 16px 24px 24px;
+}
+
+.pts-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 14px;
+}
+
+// ── Simple DataGrid List View ──
+.pts-list-view {
+  background: var(--m365-bg-card, #ffffff);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 6px;
+  overflow: hidden;
+
+  .pts-list-datagrid {
+    .dx-datagrid-headers {
+      background: var(--m365-bg-surface, #faf9f8);
+      border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+      .dx-header-row td {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--m365-text-secondary, #605e5c);
+        text-transform: uppercase;
+        letter-spacing: 0.4px;
+        padding: 10px 12px;
+      }
+    }
+
+    .dx-data-row {
+      cursor: pointer;
+      transition: background 0.1s;
+
+      td { padding: 10px 12px; font-size: 13px; color: var(--m365-text, #201f1e); }
+
+      &:hover td { background: var(--m365-bg-hover, #f3f2f1); }
+    }
+
+    .dx-datagrid-rowsview .dx-row-lines > td {
+      border-bottom: 1px solid var(--m365-border-light, #edebe9);
+    }
+
+    // Pager
+    .dx-pager {
+      border-top: 1px solid var(--m365-border-light, #edebe9);
+      padding: 8px 12px;
+    }
+  }
+}
+
+.pts-list-name {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+
+  &__text { font-weight: 600; font-size: 13px; color: var(--m365-text); }
+  &__id   { font-size: 11px; color: var(--m365-text-tertiary, #a19f9d); }
+}
+
+.pts-list-activity {
+  font-size: 12px;
+  color: var(--m365-text-secondary, #605e5c);
+}
+
+// ── Empty state ──
+.pts-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  color: var(--m365-text-tertiary, #a19f9d);
+
+  i {
+    font-size: 48px;
+    margin-bottom: 16px;
+    opacity: 0.4;
+  }
+
+  p {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    margin: 0 0 4px;
+  }
+
+  span {
+    font-size: 12px;
+  }
+}
+
+// ══════════════════════════════════════════════════════
+// ── Single Device Card ──
+// ══════════════════════════════════════════════════════
+.pts-device-card {
+  background: #fff;
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  padding: 0;
+  position: relative;
+  overflow: hidden;
+  cursor: pointer;
+  transition: box-shadow 0.15s, border-color 0.15s;
+  animation: pts-fadeUp 0.22s ease both;
+
+  &:hover {
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.09);
+    border-color: var(--m365-border);
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--m365-primary);
+    outline-offset: -2px;
+  }
+
+  // Accent bar (top edge)
+  &__bar {
+    height: 3px;
+    width: 100%;
+  }
+
+  &--online .pts-device-card__bar { background: #107c10; }
+  &--offline .pts-device-card__bar { background: #d13438; }
+
+  // Header
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    padding: 14px 16px 0;
+    gap: 12px;
+  }
+
+  &__title-group {
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__name {
+    display: block;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m365-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.3;
+  }
+
+  &__id {
+    display: block;
+    font-size: 11px;
+    color: var(--m365-text-tertiary, #a19f9d);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+    letter-spacing: 0.2px;
+  }
+
+  // Stats grid (2×2)
+  &__stats {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    padding: 12px 16px;
+  }
+
+  &__stat {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 6px 0;
+
+    > i {
+      font-size: 13px;
+      color: var(--m365-text-tertiary, #a19f9d);
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    > div {
+      min-width: 0;
+    }
+  }
+
+  &__stat-label {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--m365-text-tertiary, #a19f9d);
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    line-height: 1.3;
+  }
+
+  &__stat-value {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    line-height: 1.4;
+  }
+
+  // Footer
+  &__footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 16px 12px;
+    border-top: 1px solid var(--m365-border-light);
+    gap: 8px;
+  }
+
+  &__activity-ts {
+    font-size: 11px;
+    color: var(--m365-text-tertiary, #a19f9d);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // Ghost icon (background watermark)
+  &__ghost {
+    position: absolute;
+    right: 16px;
+    top: 12px;
+    opacity: 0.04;
+    pointer-events: none;
+    i { font-size: 52px; }
+  }
+}
+
+// ── Unknown Row ──
+.m365-unknown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--m365-bg-surface);
+  border: 1px solid var(--m365-border-light);
+  border-radius: 8px;
+  margin-bottom: 8px;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
+  }
+}
+
+// ── Info Banner (inline) ──
+.m365-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 16px;
+  background: #f3f9ff;
+  border: 1px solid #bfdff5;
+  border-radius: 4px;
+
+  &__icon { color: var(--m365-primary); font-size: 15px; margin-top: 1px; flex-shrink: 0; }
+  &__text { font-size: 13px; color: var(--m365-text); }
+}
+
+// ══════════════════════════════════════════════════════
+// ── Responsive ──
+// ══════════════════════════════════════════════════════
+@media (max-width: 1100px) {
+  .pts-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .pts-stat-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+  }
+
+  .pts-device-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .m365-filters {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .m365-search {
+    max-width: 100%;
+  }
+
+  .pts-sort-controls {
+    margin-left: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .pts-stat-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .pts-stat-section {
+    padding: 12px 16px 6px;
+  }
+
+  .pts-device-grid-area {
+    padding: 12px 16px 16px;
+  }
+
+  .pts-device-card__stats {
+    grid-template-columns: 1fr;
   }
 }

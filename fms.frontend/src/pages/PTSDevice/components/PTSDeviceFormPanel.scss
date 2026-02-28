@@ -1,0 +1,232 @@
+/**
+ * File: PTSDeviceFormPanel.scss
+ * Purpose: M365-styled form panel styles for PTS device add/edit
+ * Dependencies: m365-shared.scss design tokens
+ * Last Modified: 2026-02-27
+ */
+@import "../../../components/m365/m365-shared.scss";
+
+/* ── Form Loading ── */
+.m365-form-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 48px 24px;
+  color: var(--m365-text-secondary, #605e5c);
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+  font-size: 13px;
+}
+
+/* ── Form ── */
+.m365-device-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  height: 100%;
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+}
+
+/* ── Sections ── */
+.m365-form-section {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--m365-divider, #edebe9);
+
+  &:last-of-type {
+    border-bottom: none;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin: 0 0 16px 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+
+    i {
+      color: var(--m365-primary, #0078d4);
+      font-size: 14px;
+    }
+  }
+}
+
+/* ── Fields ── */
+.m365-field {
+  margin-bottom: 14px;
+
+  &__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    margin-bottom: 4px;
+    line-height: 1.4;
+  }
+}
+
+.m365-input,
+.m365-select {
+  width: 100%;
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+  color: var(--m365-text, #201f1e);
+  background: var(--m365-surface, #ffffff);
+  border: 1px solid var(--m365-border, #8a8886);
+  border-radius: 2px;
+  outline: none;
+  box-sizing: border-box;
+  transition: border-color 0.15s;
+
+  &:hover {
+    border-color: var(--m365-text, #201f1e);
+  }
+
+  &:focus {
+    border-color: var(--m365-primary, #0078d4);
+    border-bottom-width: 2px;
+  }
+
+  &[readonly] {
+    background: var(--m365-bg, #f3f2f1);
+    color: var(--m365-text-secondary, #605e5c);
+    cursor: default;
+  }
+
+  &::placeholder {
+    color: var(--m365-text-disabled, #a19f9d);
+  }
+}
+
+.m365-select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M2.5 4.5L6 8l3.5-3.5' stroke='%23605e5c' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  padding-right: 28px;
+}
+
+.m365-form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* ── Checkboxes ── */
+.m365-form-checks {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.m365-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--m365-text, #201f1e);
+  user-select: none;
+
+  input[type="checkbox"] {
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    border: 1px solid var(--m365-border, #8a8886);
+    border-radius: 2px;
+    background: var(--m365-surface, #ffffff);
+    cursor: pointer;
+    position: relative;
+    flex-shrink: 0;
+    transition: all 0.15s;
+
+    &:hover {
+      border-color: var(--m365-primary, #0078d4);
+    }
+
+    &:checked {
+      background: var(--m365-primary, #0078d4);
+      border-color: var(--m365-primary, #0078d4);
+
+      &::after {
+        content: "";
+        display: block;
+        position: absolute;
+        top: 1px;
+        left: 4px;
+        width: 5px;
+        height: 9px;
+        border: solid #ffffff;
+        border-width: 0 2px 2px 0;
+        transform: rotate(45deg);
+      }
+    }
+  }
+
+  span {
+    line-height: 1.4;
+  }
+}
+
+/* ── Actions ── */
+.m365-form-actions {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 16px 24px;
+  background: var(--m365-surface, #ffffff);
+  border-top: 1px solid var(--m365-divider, #edebe9);
+  margin-top: auto;
+}
+
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 20px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+  border-radius: 2px;
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &--primary {
+    background: var(--m365-primary, #0078d4);
+    color: #ffffff;
+
+    &:hover:not(:disabled) {
+      background: var(--m365-primary-dark, #106ebe);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: var(--m365-text, #201f1e);
+    border: 1px solid var(--m365-border, #8a8886);
+
+    &:hover:not(:disabled) {
+      background: var(--m365-bg, #f3f2f1);
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}

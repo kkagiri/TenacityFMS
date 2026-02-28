@@ -13,25 +13,18 @@
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import {
-  Form,
-  SimpleItem,
-  GroupItem,
-  Label,
-  RequiredRule,
-  NumericRule,
-} from "devextreme-react/form";
-import { Button } from "devextreme-react";
+import { SelectBox } from "devextreme-react/select-box";
+import { DateBox } from "devextreme-react/date-box";
+import { NumberBox } from "devextreme-react/number-box";
 import notify from "devextreme/ui/notify";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import {
   fetchTanks,
   fetctTankbySiteId,
 } from "../../../redux/actions/tankActions";
-import { fetchSuppliers } from "../../../redux/actions/SupplierActions"; // Assuming you have this action
+import { fetchSuppliers } from "../../../redux/actions/SupplierActions";
 import { createDelivery } from "../../../redux/actions/DeliveryActions";
-//import './deliveryForm.scss';
-import ScrollView from "devextreme-react/scroll-view";
+import "./_m365-form-common.scss";
 import LoadIndicator from "devextreme-react/load-indicator";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
@@ -397,319 +390,322 @@ const TankDeliveryForm = ({
   );
 
   return (
-    <div className="tank-transfer-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView showScrollbar="always" scrollByThumb={true}>
-        <div className="tw-p-6">
-          <Form
-            formData={formData}
-            readOnly={combinedLoading}
-            showColonAfterLabel={true}
-            labelLocation="top"
-            onFieldDataChanged={handleChange}
-          >
-            <GroupItem caption="General Details" colCount={2}>
-              <SimpleItem
-                dataField="deliveryDate"
-                editorType="dxDateBox"
-                editorOptions={{
-                  value: formData.deliveryDate,
-                  max: new Date(),
-                  displayFormat: "yyyy-MM-dd HH:mm",
-                  type: "datetime",
-                  pickerType: "calendar",
-                  width: "100%",
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.deliveryDate
-                    : true,
-                  validationError: validationErrors.deliveryDate
-                    ? { message: validationErrors.deliveryDate }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Delivery Date & Time" />
-                <RequiredRule message="Date and time are required" />
-              </SimpleItem>
-              <SimpleItem
-                key={`site-${formData.siteId || "empty"}`}
-                dataField="siteId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: sitesAvailable,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.siteId,
-                  onValueChanged: handleSiteChange,
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  placeholder: combinedLoading
-                    ? "Loading sites..."
-                    : sitesAvailable.length > 0
-                    ? "Select site"
-                    : "No sites available",
-                  isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
-                  validationError: validationErrors.siteId
-                    ? { message: validationErrors.siteId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Site" />
-                <RequiredRule message="Site is required" />
-              </SimpleItem>
-              <SimpleItem
-                key={`tank-${formData.siteId || "empty"}-${
-                  formData.tankId || "none"
-                }`}
-                dataField="tankId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: filteredTanks,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.tankId,
-                  disabled: !formData.siteId,
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  placeholder: !formData.siteId
-                    ? "Select site first"
-                    : filteredTanks.length > 0
-                    ? "Select tank"
-                    : "No tanks available",
-                  isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
-                  validationError: validationErrors.tankId
-                    ? { message: validationErrors.tankId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Tank" />
-                <RequiredRule message="Tank is required" />
-              </SimpleItem>
-            </GroupItem>
-            <GroupItem caption="Delivery Details" colCount={2}>
-              <SimpleItem
-                dataField="manualDeliveryAmount"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  value: formData.manualDeliveryAmount,
-                  width: "100%",
-                  format: "#,##0.00",
-                  placeholder: "Enter manual delivery amount",
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.manualDeliveryAmount
-                    : true,
-                  validationError: validationErrors.manualDeliveryAmount
-                    ? { message: validationErrors.manualDeliveryAmount }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Manual Delivery Amount (L)" />
-                <RequiredRule message="Manual Delivery Amount is required" />
-                <NumericRule
-                  min={0.01}
-                  message="Amount must be greater than 0"
+    <div className="m365-form-body">
+      <div className="m365-form-body__scroll">
+
+        {/* ── General Details ─────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-circle-info m365-section-group__icon"></i>
+            <span className="m365-section-group__title">General Details</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Delivery Date &amp; Time <span className="m365-required">*</span>
+                </label>
+                <DateBox
+                  value={formData.deliveryDate}
+                  max={new Date()}
+                  displayFormat="yyyy-MM-dd HH:mm"
+                  type="datetime"
+                  pickerType="calendar"
+                  width="100%"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "deliveryDate", value: e.value })}
+                  isValid={hasAttemptedSubmit ? !validationErrors.deliveryDate : true}
+                  validationError={validationErrors.deliveryDate ? { message: validationErrors.deliveryDate } : null}
+                  validationMessageMode="always"
                 />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="sensorDeliveryAmount"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  value: formData.sensorDeliveryAmount,
-                  width: "100%",
-                  format: "#,##0.00",
-                  placeholder: "Enter sensor delivery amount (optional)",
-                }}
-              >
-                <Label text="Sensor Delivery Amount (L)" />
-                <NumericRule min={0} message="Value cannot be negative" />
-              </SimpleItem>
-            </GroupItem>
-            <GroupItem caption="Delivery Measurements" colCount={2}>
-              <SimpleItem
-                dataField="deliveryTemperature"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  value: formData.deliveryTemperature,
-                  width: "100%",
-                  format: "#,##0.00",
-                  placeholder: "Enter temperature (optional)",
-                }}
-              >
-                <Label text="Delivery Temperature (°C)" />
-                <NumericRule min={0} message="Value cannot be negative" />
-              </SimpleItem>
-              <SimpleItem
-                dataField="deliveryDensity"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  value: formData.deliveryDensity,
-                  width: "100%",
-                  format: "#,##0.0000",
-                  placeholder: "Enter density (optional)",
-                }}
-              >
-                <Label text="Delivery Density (kg/L)" />
-                <NumericRule min={0} message="Value cannot be negative" />
-              </SimpleItem>
-              <SimpleItem
-                dataField="deliveryMass"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  value: formData.deliveryMass,
-                  width: "100%",
-                  format: "#,##0.00",
-                  placeholder: "Enter mass (optional)",
-                }}
-              >
-                <Label text="Delivery Mass (kg)" />
-                <NumericRule min={0} message="Value cannot be negative" />
-              </SimpleItem>
-            </GroupItem>
-            <GroupItem caption="Supplier Details" colCount={2}>
-              <SimpleItem
-                dataField="supplierId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: suppliers,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  value: formData.supplierId,
-                  searchEnabled: true,
-                  showClearButton: true,
-                  width: "100%",
-                  placeholder: "Select supplier",
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.supplierId
-                    : true,
-                  validationError: validationErrors.supplierId
-                    ? { message: validationErrors.supplierId }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Supplier" />
-                <RequiredRule message="Supplier is required" />
-              </SimpleItem>
-            </GroupItem>
-          </Form>
-
-          {/* Historical Entry Information Notice */}
-          {formData.deliveryDate &&
-            formData.tankId &&
-            !isValidating &&
-            !showWarning &&
-            !validationError &&
-            (() => {
-              const selectedDate = new Date(formData.deliveryDate);
-              const today = new Date();
-              const isHistorical =
-                selectedDate < new Date(today.setHours(0, 0, 0, 0));
-
-              if (isHistorical && showHistoricalNotice) {
-                return (
-                  <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                    <div className="tw-flex tw-items-start tw-justify-between">
-                      <div className="tw-flex tw-items-start tw-flex-1">
-                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                        <div className="tw-flex-1">
-                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                            Historical Entry Detected
-                          </h4>
-                          <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating a tank delivery for{" "}
-                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
-                            (backdated entry).
-                          </p>
-                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate the
-                            tank's current stock and affect all subsequent
-                            records.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowHistoricalNotice(false)}
-                        className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                        title="Dismiss"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: 0,
-                          fontSize: "16px",
-                        }}
-                      >
-                        <i className="fa-light fa-times"></i>
-                      </button>
-                    </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-          {/* Future Records Warning */}
-          {(showWarning || validationError) && (
-            <FutureRecordsWarning
-              validationResult={validationResult}
-              onConfirm={confirmProceed}
-              onCancel={cancelProceed}
-              isVisible={showWarning || !!validationError}
-              className="tw-mb-4"
-            />
-          )}
-
-          {/* Validating indicator */}
-          {isValidating && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
-              <LoadIndicator height={20} width={20} />
-              <span className="tw-text-blue-700 tw-text-sm">
-                Validating historical entry...
-              </span>
-            </div>
-          )}
-
-          {/* Backend Error Display */}
-          {backendError && (
-            <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-circle-exclamation tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">
-                    Error Creating Delivery
-                  </h4>
-                  <p className="tw-text-red-700 tw-text-sm">
-                    {backendError.message}
-                  </p>
-                </div>
+                {hasAttemptedSubmit && validationErrors.deliveryDate && (
+                  <span className="m365-field__error">{validationErrors.deliveryDate}</span>
+                )}
+              </div>
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Site <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  key={`site-${formData.siteId || "empty"}`}
+                  items={sitesAvailable}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.siteId}
+                  onValueChanged={handleSiteChange}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  disabled={combinedLoading}
+                  placeholder={
+                    combinedLoading
+                      ? "Loading sites..."
+                      : sitesAvailable.length > 0
+                        ? "Select site"
+                        : "No sites available"
+                  }
+                  isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
+                  validationError={validationErrors.siteId ? { message: validationErrors.siteId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.siteId && (
+                  <span className="m365-field__error">{validationErrors.siteId}</span>
+                )}
               </div>
             </div>
-          )}
-
-          {/* Action Buttons */}
-          <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-            <Button
-              text="Cancel"
-              onClick={onCancel}
-              disabled={combinedLoading}
-              className="tw-min-w-32"
-              stylingMode="outlined"
-            />
-            <Button
-              text={isSubmitting ? "Saving Delivery..." : "Save Delivery"}
-              onClick={handleSubmit}
-              disabled={combinedLoading || isValidating || !canSubmitForm}
-              className="tw-min-w-32"
-              type="default"
-            />
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Tank <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  key={`tank-${formData.siteId || "empty"}-${formData.tankId || "none"}`}
+                  items={filteredTanks}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.tankId}
+                  disabled={!formData.siteId || combinedLoading}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  placeholder={
+                    !formData.siteId
+                      ? "Select site first"
+                      : filteredTanks.length > 0
+                        ? "Select tank"
+                        : "No tanks available"
+                  }
+                  onValueChanged={(e) => handleChange({ dataField: "tankId", value: e.value })}
+                  isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
+                  validationError={validationErrors.tankId ? { message: validationErrors.tankId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.tankId && (
+                  <span className="m365-field__error">{validationErrors.tankId}</span>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </ScrollView>
+
+        {/* ── Delivery Details ────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-truck-ramp-box m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Delivery Details</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Manual Delivery Amount (L) <span className="m365-required">*</span>
+                </label>
+                <NumberBox
+                  value={formData.manualDeliveryAmount}
+                  width="100%"
+                  format="#,##0.00"
+                  placeholder="Enter manual delivery amount"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "manualDeliveryAmount", value: e.value })}
+                  isValid={hasAttemptedSubmit ? !validationErrors.manualDeliveryAmount : true}
+                  validationError={validationErrors.manualDeliveryAmount ? { message: validationErrors.manualDeliveryAmount } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.manualDeliveryAmount && (
+                  <span className="m365-field__error">{validationErrors.manualDeliveryAmount}</span>
+                )}
+              </div>
+              <div className="m365-field">
+                <label className="m365-field__label">Sensor Delivery Amount (L)</label>
+                <NumberBox
+                  value={formData.sensorDeliveryAmount}
+                  width="100%"
+                  format="#,##0.00"
+                  placeholder="Enter sensor delivery amount (optional)"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "sensorDeliveryAmount", value: e.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Delivery Measurements ───────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-ruler-combined m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Delivery Measurements</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">Delivery Temperature (°C)</label>
+                <NumberBox
+                  value={formData.deliveryTemperature}
+                  width="100%"
+                  format="#,##0.00"
+                  placeholder="Enter temperature (optional)"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "deliveryTemperature", value: e.value })}
+                />
+              </div>
+              <div className="m365-field">
+                <label className="m365-field__label">Delivery Density (kg/L)</label>
+                <NumberBox
+                  value={formData.deliveryDensity}
+                  width="100%"
+                  format="#,##0.0000"
+                  placeholder="Enter density (optional)"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "deliveryDensity", value: e.value })}
+                />
+              </div>
+            </div>
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">Delivery Mass (kg)</label>
+                <NumberBox
+                  value={formData.deliveryMass}
+                  width="100%"
+                  format="#,##0.00"
+                  placeholder="Enter mass (optional)"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "deliveryMass", value: e.value })}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Supplier Details ────────────────────────────── */}
+        <div className="m365-section-group">
+          <div className="m365-section-group__header">
+            <i className="fa-light fa-building m365-section-group__icon"></i>
+            <span className="m365-section-group__title">Supplier Details</span>
+          </div>
+          <div className="m365-section-group__body">
+            <div className="m365-field-row">
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Supplier <span className="m365-required">*</span>
+                </label>
+                <SelectBox
+                  items={suppliers}
+                  displayExpr="name"
+                  valueExpr="id"
+                  value={formData.supplierId}
+                  searchEnabled={true}
+                  showClearButton={true}
+                  width="100%"
+                  placeholder="Select supplier"
+                  disabled={combinedLoading}
+                  onValueChanged={(e) => handleChange({ dataField: "supplierId", value: e.value })}
+                  isValid={hasAttemptedSubmit ? !validationErrors.supplierId : true}
+                  validationError={validationErrors.supplierId ? { message: validationErrors.supplierId } : null}
+                  validationMessageMode="always"
+                />
+                {hasAttemptedSubmit && validationErrors.supplierId && (
+                  <span className="m365-field__error">{validationErrors.supplierId}</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* ── Historical Entry Notice ─────────────────────── */}
+        {formData.deliveryDate &&
+          formData.tankId &&
+          !isValidating &&
+          !showWarning &&
+          !validationError &&
+          (() => {
+            const selectedDate = new Date(formData.deliveryDate);
+            const today = new Date();
+            const isHistorical =
+              selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+            if (isHistorical && showHistoricalNotice) {
+              return (
+                <div className="m365-info-banner m365-info-banner--warning">
+                  <i className="fa-light fa-calendar-clock m365-info-banner__icon"></i>
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__title">Historical Entry Detected</span>
+                    <span className="m365-info-banner__text">
+                      You are creating a tank delivery for{" "}
+                      <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                      (backdated entry).
+                      <br />
+                      <strong>Impact:</strong> This will recalculate the tank's
+                      current stock and affect all subsequent records.
+                    </span>
+                  </div>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowHistoricalNotice(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark"></i>
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {/* Future Records Warning */}
+        {(showWarning || validationError) && (
+          <FutureRecordsWarning
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+          />
+        )}
+
+        {/* Validating indicator */}
+        {isValidating && (
+          <div className="m365-info-banner m365-info-banner--loading">
+            <LoadIndicator height={20} width={20} />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">Validating historical entry...</span>
+            </div>
+          </div>
+        )}
+
+        {/* Backend Error Display */}
+        {backendError && (
+          <div className="m365-info-banner m365-info-banner--error">
+            <i className="fa-light fa-circle-exclamation m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__title">Error Creating Delivery</span>
+              <span className="m365-info-banner__text">{backendError.message}</span>
+            </div>
+          </div>
+        )}
+
+      </div>
+
+      {/* ── Form Actions ───────────────────────────────── */}
+      <div className="m365-form-actions">
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={onCancel}
+          disabled={combinedLoading}
+        >
+          Cancel
+        </button>
+        <button
+          className="m365-btn m365-btn--primary"
+          onClick={handleSubmit}
+          disabled={combinedLoading || isValidating || !canSubmitForm}
+        >
+          {isSubmitting ? (
+            <><i className="fa-light fa-spinner fa-spin"></i> Saving...</>
+          ) : (
+            "Save Delivery"
+          )}
+        </button>
+      </div>
     </div>
   );
 };

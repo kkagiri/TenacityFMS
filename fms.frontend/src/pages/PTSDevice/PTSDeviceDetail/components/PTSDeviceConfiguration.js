@@ -1,75 +1,68 @@
 /**
- * PTSDeviceConfiguration.js
- * Main configuration page for PTS devices
- * Uses refactored configuration components with HTML-based controls
+ * File: PTSDeviceConfiguration.js
+ * Purpose: M365-styled configuration page with collapsible accordion sections
+ * Dependencies: WebSocketConfig, PumpServiceConfig, StatusBadge, m365-shared
+ * Last Modified: 2026-02-27
+ *
+ * Key Components:
+ * - AccordionSection: Reusable collapsible section with M365 styling
+ * - WebSocketConfig / PumpServiceConfig: Active config sections
+ * - Planned sections: Future configuration features
  */
-
 import React, { useCallback, useState } from "react";
 import { WebSocketConfig, PumpServiceConfig } from "./configuration";
 import { StatusBadge } from "./configuration/controls";
 import "./PTSDeviceConfiguration.scss";
 
+/** Reusable M365-styled accordion section */
+const AccordionSection = ({ title, icon, badge, defaultOpen = false, children }) => {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className={`m365-accordion${isOpen ? " m365-accordion--open" : ""}`}>
+      <button
+        className="m365-accordion__header"
+        onClick={() => setIsOpen((p) => !p)}
+        type="button"
+      >
+        <div className="m365-accordion__title">
+          {icon && <i className={icon}></i>}
+          <span>{title}</span>
+          {badge && <span className="m365-accordion__badge">{badge}</span>}
+        </div>
+        <i className={`fa-light fa-chevron-${isOpen ? "up" : "down"} m365-accordion__chevron`}></i>
+      </button>
+      {isOpen && <div className="m365-accordion__body">{children}</div>}
+    </div>
+  );
+};
+
 const PTSDeviceConfiguration = ({ device, isConnected }) => {
   const [refreshKey, setRefreshKey] = useState(0);
 
-  // Trigger refresh for all config sections
   const handleConfigChange = useCallback(() => {
-    setRefreshKey(prev => prev + 1);
+    setRefreshKey((prev) => prev + 1);
   }, []);
 
-  // Planned configuration sections (future features)
   const plannedSections = [
-    {
-      title: "Tank Configuration",
-      icon: "fa-light fa-truck-container",
-      description: "Set up tank probes, alarms, and capacity settings",
-    },
-    {
-      title: "Reader Settings",
-      icon: "fa-light fa-tag",
-      description: "Configure RFID readers and tag authentication",
-    },
-    {
-      title: "Fuel Grades",
-      icon: "fa-light fa-dollar-sign",
-      description: "Manage fuel grade prices and blending ratios",
-    },
-    {
-      title: "Firmware Update",
-      icon: "fa-light fa-microchip",
-      description: "Check and apply firmware updates",
-    },
-    {
-      title: "Network Settings",
-      icon: "fa-light fa-network-wired",
-      description: "Configure IP address, port, and connection settings",
-    },
+    { title: "Tank Configuration", icon: "fa-light fa-truck-container", description: "Set up tank probes, alarms, and capacity settings" },
+    { title: "Reader Settings", icon: "fa-light fa-tag", description: "Configure RFID readers and tag authentication" },
+    { title: "Fuel Grades", icon: "fa-light fa-dollar-sign", description: "Manage fuel grade prices and blending ratios" },
+    { title: "Firmware Update", icon: "fa-light fa-microchip", description: "Check and apply firmware updates" },
+    { title: "Network Settings", icon: "fa-light fa-network-wired", description: "Configure IP address, port, and connection settings" },
   ];
 
-  // Key mapping for future reference
-  const keyMapping = {
-    uploadStatus: 'websocketsUploadStatus',
-    uploadPumpTransactions: 'websocketsUploadPumpTransactions',
-    uploadTankMeasurements: 'websocketsUploadTankMeasurements',
-    uploadInTankDeliveries: 'websocketsUploadInTankDeliveries',
-    uploadGpsRecords: 'websocketsUploadGpsRecords',
-    uploadAlertRecords: 'websocketsUploadAlertRecords',
-    statusPeriodSeconds: 'websocketsUploadStatusRequestsPeriodSeconds',
-  };
-
   return (
-    <div className="pts-device-configuration">
-      {/* Header */}
-      <div className="tw-flex tw-items-center tw-justify-between tw-mb-6">
+    <div className="m365-device-config">
+      {/* Section Header */}
+      <div className="m365-device-config__header">
         <div>
-          <h2 className="tw-text-xl tw-font-bold tw-text-gray-800 tw-mb-1">
-            Device Configuration
-          </h2>
-          <p className="tw-text-sm tw-text-gray-500">
+          <h2 className="m365-device-config__title">Device Configuration</h2>
+          <p className="m365-device-config__subtitle">
             Advanced configuration settings based on firmware capabilities
           </p>
         </div>
-        <div className="tw-flex tw-items-center tw-gap-3">
+        <div className="m365-device-config__status">
           {isConnected ? (
             <StatusBadge status="success" label="Connected" />
           ) : (
@@ -78,132 +71,126 @@ const PTSDeviceConfiguration = ({ device, isConnected }) => {
         </div>
       </div>
 
-      {/* Not Connected Warning */}
+      {/* Disconnected Warning */}
       {!isConnected && (
-        <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4 tw-mb-6">
-          <div className="tw-flex tw-items-start tw-gap-3">
-            <span className="tw-text-yellow-600 tw-text-xl">
-              <i className="fa-light fa-circle-exclamation"></i>
-            </span>
-            <div>
-              <h4 className="tw-font-semibold tw-text-yellow-800 tw-mb-1">Device Not Connected</h4>
-              <p className="tw-text-sm tw-text-yellow-700">
-                Connect to the device via WebSocket to access configuration settings.
-                Some features require an active connection to read and modify settings.
-              </p>
-            </div>
+        <div className="m365-device-config__warning">
+          <i className="fa-light fa-circle-exclamation"></i>
+          <div>
+            <strong>Device Not Connected</strong>
+            <p>Connect to the device via WebSocket to access configuration settings.</p>
           </div>
         </div>
       )}
 
-      {/* WebSocket Configuration - Active */}
-      <WebSocketConfig
-        key={`ws-config-${refreshKey}`}
-        device={device}
-        isConnected={isConnected}
-        onConfigChange={handleConfigChange}
-      />
+      {/* Active Config Sections — Accordion */}
+      <AccordionSection
+        title="WebSocket Configuration"
+        icon="fa-light fa-plug"
+        badge={isConnected ? "Active" : null}
+        defaultOpen={true}
+      >
+        <WebSocketConfig
+          key={`ws-config-${refreshKey}`}
+          device={device}
+          isConnected={isConnected}
+          onConfigChange={handleConfigChange}
+        />
+      </AccordionSection>
 
-      {/* Pump Service Configuration - Active */}
-      <PumpServiceConfig
-        key={`pump-config-${refreshKey}`}
-        device={device}
-        isConnected={isConnected}
-        onConfigChange={handleConfigChange}
-      />
+      <AccordionSection
+        title="Pump Service Configuration"
+        icon="fa-light fa-gas-pump"
+        badge={isConnected ? "Active" : null}
+        defaultOpen={true}
+      >
+        <PumpServiceConfig
+          key={`pump-config-${refreshKey}`}
+          device={device}
+          isConnected={isConnected}
+          onConfigChange={handleConfigChange}
+        />
+      </AccordionSection>
 
-      {/* Planned Features Section */}
-      <div className="tw-mt-6">
-        <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-mb-4">
-          <div className="tw-flex tw-items-start tw-gap-3">
-            <span className="tw-text-blue-600 tw-text-xl">
-              <i className="fa-light fa-circle-info"></i>
-            </span>
-            <div>
-              <h4 className="tw-font-semibold tw-text-blue-800 tw-mb-1">Additional Configuration - Coming Soon</h4>
-              <p className="tw-text-sm tw-text-blue-700">
-                The following sections will allow you to configure additional device settings based on firmware version and capabilities.
-              </p>
-            </div>
-          </div>
+      {/* Planned Features — Accordion */}
+      <AccordionSection
+        title="Additional Configuration"
+        icon="fa-light fa-circle-info"
+        badge="Coming Soon"
+        defaultOpen={false}
+      >
+        <div className="m365-device-config__info-banner">
+          The following sections will allow you to configure additional device settings
+          based on firmware version and capabilities.
         </div>
-
-        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
+        <div className="m365-device-config__planned-grid">
           {plannedSections.map((section, idx) => (
-            <div
-              key={idx}
-              className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4 tw-opacity-60"
-            >
-              <div className="tw-flex tw-items-start tw-gap-3">
-                <div className="tw-w-10 tw-h-10 tw-bg-gray-100 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-flex-shrink-0">
-                  <span><i className={`${section.icon} tw-text-gray-500`}></i></span>
-                </div>
-                <div>
-                  <h4 className="tw-font-medium tw-text-gray-800 tw-mb-1">{section.title}</h4>
-                  <p className="tw-text-xs tw-text-gray-500 tw-mb-2">{section.description}</p>
-                  <StatusBadge status="neutral" label="Planned" />
-                </div>
+            <div key={idx} className="m365-planned-card">
+              <div className="m365-planned-card__icon">
+                <i className={section.icon}></i>
+              </div>
+              <div className="m365-planned-card__body">
+                <h4>{section.title}</h4>
+                <p>{section.description}</p>
+                <StatusBadge status="neutral" label="Planned" />
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </AccordionSection>
 
-      {/* Current Device Information */}
-      <div className="tw-mt-6 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-        <h4 className="tw-font-semibold tw-text-gray-800 tw-mb-4 tw-flex tw-items-center tw-gap-2">
-          <span><i className="fa-light fa-info-circle"></i></span>
-          Current Device Information
-        </h4>
-        <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-4 tw-gap-4">
-          <div className="tw-bg-white tw-p-3 tw-rounded-lg tw-border tw-border-gray-200">
-            <span className="tw-text-xs tw-text-gray-500 tw-block tw-mb-1">Configuration ID</span>
-            <span className="tw-font-mono tw-text-sm tw-text-gray-800">{device?.configurationId || "N/A"}</span>
+      {/* Device Information — Accordion */}
+      <AccordionSection
+        title="Current Device Information"
+        icon="fa-light fa-info-circle"
+        defaultOpen={false}
+      >
+        <div className="m365-device-config__info-grid">
+          <div className="m365-info-item">
+            <span className="m365-info-item__label">Configuration ID</span>
+            <span className="m365-info-item__value">{device?.configurationId || "N/A"}</span>
           </div>
-          <div className="tw-bg-white tw-p-3 tw-rounded-lg tw-border tw-border-gray-200">
-            <span className="tw-text-xs tw-text-gray-500 tw-block tw-mb-1">Firmware Date</span>
-            <span className="tw-font-mono tw-text-sm tw-text-gray-800">
+          <div className="m365-info-item">
+            <span className="m365-info-item__label">Firmware Date</span>
+            <span className="m365-info-item__value">
               {device?.firmwareDateTime ? new Date(device.firmwareDateTime).toLocaleDateString() : "N/A"}
             </span>
           </div>
-          <div className="tw-bg-white tw-p-3 tw-rounded-lg tw-border tw-border-gray-200">
-            <span className="tw-text-xs tw-text-gray-500 tw-block tw-mb-1">WebSocket Capable</span>
-            <span className={`tw-font-medium tw-text-sm ${device?.webSocketCapable ? "tw-text-green-600" : "tw-text-red-600"}`}>
+          <div className="m365-info-item">
+            <span className="m365-info-item__label">WebSocket Capable</span>
+            <span className={`m365-info-item__value ${device?.webSocketCapable ? "m365-info-item__value--success" : "m365-info-item__value--error"}`}>
               {device?.webSocketCapable ? "Yes" : "No"}
             </span>
           </div>
-          <div className="tw-bg-white tw-p-3 tw-rounded-lg tw-border tw-border-gray-200">
-            <span className="tw-text-xs tw-text-gray-500 tw-block tw-mb-1">Direct Commands</span>
-            <span className={`tw-font-medium tw-text-sm ${device?.allowedForDirectCommands ? "tw-text-green-600" : "tw-text-red-600"}`}>
+          <div className="m365-info-item">
+            <span className="m365-info-item__label">Direct Commands</span>
+            <span className={`m365-info-item__value ${device?.allowedForDirectCommands ? "m365-info-item__value--success" : "m365-info-item__value--error"}`}>
               {device?.allowedForDirectCommands ? "Allowed" : "Not Allowed"}
             </span>
           </div>
         </div>
-      </div>
+      </AccordionSection>
 
-      {/* Documentation Footer */}
-      <div className="tw-mt-6 tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-          <h4 className="tw-font-semibold tw-text-gray-800 tw-mb-2 tw-flex tw-items-center tw-gap-2">
-            <span><i className="fa-light fa-book"></i></span>
-            Documentation
-          </h4>
-          <p className="tw-text-sm tw-text-gray-600">
-            Configuration requests follow the PTS protocol specification. See documentation for details on firmware-specific configuration options.
-          </p>
+      {/* Documentation Footer — Accordion */}
+      <AccordionSection
+        title="Documentation & Prerequisites"
+        icon="fa-light fa-book"
+        defaultOpen={false}
+      >
+        <div className="m365-device-config__docs-grid">
+          <div className="m365-doc-card">
+            <h4><i className="fa-light fa-book"></i> Documentation</h4>
+            <p>Configuration requests follow the PTS protocol specification. See documentation for details on firmware-specific configuration options.</p>
+          </div>
+          <div className="m365-doc-card">
+            <h4><i className="fa-light fa-road-barrier"></i> Prerequisites</h4>
+            <ul>
+              <li>Device must be connected via WebSocket</li>
+              <li>Firmware must support configuration protocol</li>
+              <li>User must have configuration permissions</li>
+            </ul>
+          </div>
         </div>
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-          <h4 className="tw-font-semibold tw-text-gray-800 tw-mb-2 tw-flex tw-items-center tw-gap-2">
-            <span><i className="fa-light fa-road-barrier"></i></span>
-            Prerequisites
-          </h4>
-          <ul className="tw-text-sm tw-text-gray-600 tw-list-disc tw-list-inside tw-space-y-1">
-            <li>Device must be connected via WebSocket</li>
-            <li>Firmware must support configuration protocol</li>
-            <li>User must have configuration permissions</li>
-          </ul>
-        </div>
-      </div>
+      </AccordionSection>
     </div>
   );
 };

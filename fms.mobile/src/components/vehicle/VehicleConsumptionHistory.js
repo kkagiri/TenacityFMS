@@ -15,6 +15,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
+import CustomDateTimePicker from "../common/CustomDateTimePicker";
 
 const VehicleConsumptionHistory = ({ vehicle }) => {
   const [consumptionData, setConsumptionData] = useState([]);
@@ -25,6 +26,8 @@ const VehicleConsumptionHistory = ({ vehicle }) => {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState("from");
   const [summary, setSummary] = useState({
     totalFuel: 0,
     totalDistance: 0,
@@ -272,16 +275,55 @@ const VehicleConsumptionHistory = ({ vehicle }) => {
         </View>
       </View>
 
-      {/* Date Range Indicator */}
+      {/* Date Range Selector */}
       <View style={styles.dateRangeContainer}>
         <Icon name="calendar" size={14} color="#6b7280" />
-        <Text style={styles.dateRangeText}>
-          {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
-        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setDatePickerTarget("from");
+            setShowDatePicker(true);
+          }}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>{formatDate(dateRange.from)}</Text>
+        </TouchableOpacity>
+        <Text style={styles.dateSeparator}>-</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setDatePickerTarget("to");
+            setShowDatePicker(true);
+          }}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>{formatDate(dateRange.to)}</Text>
+        </TouchableOpacity>
         <Text style={styles.recordCountText}>
           ({summary.recordCount} records)
         </Text>
       </View>
+
+      <CustomDateTimePicker
+        visible={showDatePicker}
+        value={datePickerTarget === "from" ? dateRange.from : dateRange.to}
+        onConfirm={(date) => {
+          setShowDatePicker(false);
+          setDateRange((prev) => {
+            const updated = { ...prev, [datePickerTarget]: date };
+            // Ensure from <= to
+            if (updated.from > updated.to) {
+              if (datePickerTarget === "from") updated.to = date;
+              else updated.from = date;
+            }
+            return updated;
+          });
+          // Re-fetch data with new date range
+          setTimeout(() => loadConsumptionData(), 100);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+        showTimePicker={false}
+        maximumDate={datePickerTarget === "from" ? dateRange.to : new Date()}
+        minimumDate={datePickerTarget === "to" ? dateRange.from : null}
+      />
 
       {/* List */}
       {consumptionData.length === 0 ? (
@@ -396,10 +438,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  dateRangeText: {
+  dateButton: {
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  dateButtonText: {
+    fontSize: 13,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  dateSeparator: {
     fontSize: 13,
     color: "#6b7280",
-    marginLeft: 8,
   },
   recordCountText: {
     fontSize: 12,

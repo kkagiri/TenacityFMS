@@ -12,9 +12,9 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Form, SimpleItem, Label, GroupItem } from "devextreme-react/form";
-import { Button } from "devextreme-react";
-import ScrollView from "devextreme-react/scroll-view";
+import SelectBox from "devextreme-react/select-box";
+import DateBox from "devextreme-react/date-box";
+import NumberBox from "devextreme-react/number-box";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import {
   fetchTanks,
@@ -26,7 +26,7 @@ import notify from "devextreme/ui/notify";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import { useTankStockFormData } from "../shared/context/TankStockFormContext";
-import "./OpeningStockForm.scss";
+import "./_m365-form-common.scss";
 
 const OpeningStockForm = ({
   updateFormData,
@@ -625,499 +625,453 @@ const OpeningStockForm = ({
   ]);
 
   return (
-    <div className="opening-stock-form tw-h-full tw-flex tw-flex-col">
-      <ScrollView
-        showScrollbar="onScroll"
-        scrollByThumb={true}
-        useNative={false}
-      >
-        <div className="tw-p-6">
-          {/* Header */}
-          <div className="tw-mb-6">
-            <p className="tw-text-gray-600 tw-text-sm">
-              Record the opening stock amount for the selected tank and date.
-            </p>
-          </div>
+    <div className="m365-form-body">
+      <div className="m365-form-body__scroll">
+        {/* Description */}
+        <p style={{ fontSize: 13, color: "#605e5c", marginBottom: 16 }}>
+          Record the opening stock amount for the selected tank and date.
+        </p>
 
-          {/* Loading indicator */}
-          {!dataLoaded &&
-            (sitesAvailable.length === 0 || tanksAvailable.length === 0) && (
-              <div className="tw-flex tw-justify-center tw-items-center tw-py-8 tw-bg-blue-50 tw-rounded-lg tw-mb-4">
-                <LoadIndicator width={"32px"} height={"32px"} visible={true} />
-                <span className="tw-ml-3 tw-text-blue-700">
+        {/* Loading indicator */}
+        {!dataLoaded &&
+          (sitesAvailable.length === 0 || tanksAvailable.length === 0) && (
+            <div className="m365-info-banner">
+              <LoadIndicator width={"32px"} height={"32px"} visible={true} />
+              <div className="m365-info-banner__content">
+                <span className="m365-info-banner__text">
                   Loading form data...
                 </span>
               </div>
-            )}
-
-          {loading && (
-            <div className="tw-flex tw-justify-center tw-py-8">
-              <LoadIndicator width={"48px"} height={"48px"} visible={true} />
             </div>
           )}
 
-          <Form
-            formData={formData}
-            readOnly={isLoading}
-            showColonAfterLabel={true}
-            labelLocation="top"
-            onFieldDataChanged={handleChange}
-            colCount={2}
-            className="tw-mb-6"
-            scrollingEnabled={true}
+        {loading && (
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "center",
+              padding: "24px 0",
+            }}
           >
-            <GroupItem colCount={1} colSpan={2}>
-              <SimpleItem
-                dataField="date"
-                editorType="dxDateBox"
-                cssClass="datebox-full-width"
-                editorOptions={{
-                  value: formData.date,
-                  max: new Date(),
-                  ...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" }),
-                  type: "datetime",
-                  onValueChanged: handleDateChange,
-                  width: "100%",
-                  className: "datebox-full-width",
-                  // Ensure the dropdown/popup is wide enough and not constrained
-                  dropDownOptions: {
-                    width: "auto",
-                    minWidth: 380,
-                    maxWidth: 520,
-                    wrapperAttr: { class: "datebox-wide" },
-                  },
-                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
-                  validationError: validationErrors.date
-                    ? { message: validationErrors.date }
-                    : null,
-                  validationMessageMode: "always",
-                  // Add date validation to prevent invalid date formatting
-                  acceptCustomValue: false,
-                  openOnFieldClick: true,
-                  // Add custom CSS class for enhanced datetime picker styling
-                  elementAttr: {
-                    class: "datebox-full-width-popup",
-                  },
-                }}
-              >
-                <Label text="Date & Time" />
-              </SimpleItem>
-            </GroupItem>
+            <LoadIndicator width={"48px"} height={"48px"} visible={true} />
+          </div>
+        )}
 
-            <SimpleItem
-              dataField="siteId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: sitesAvailable,
-                displayExpr: "name",
-                valueExpr: "id",
-                onValueChanged: handleSiteChange,
-                placeholder:
-                  sitesAvailable.length === 0
-                    ? "Loading sites..."
-                    : "Select a site",
-                width: "100%",
-                searchEnabled: true,
-                showClearButton: true,
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
-                validationError: validationErrors.siteId
-                  ? { message: validationErrors.siteId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Site" />
-            </SimpleItem>
+        {/* Date & Time — full width */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Date &amp; Time</label>
+          <DateBox
+            value={formData.date}
+            max={new Date()}
+            {...(formData.date && { displayFormat: "yyyy-MM-dd HH:mm" })}
+            type="datetime"
+            onValueChanged={handleDateChange}
+            width="100%"
+            className="datebox-full-width"
+            dropDownOptions={{
+              width: "auto",
+              minWidth: 380,
+              maxWidth: 520,
+              wrapperAttr: { class: "datebox-wide" },
+            }}
+            isValid={hasAttemptedSubmit ? !validationErrors.date : true}
+            validationError={
+              validationErrors.date
+                ? { message: validationErrors.date }
+                : null
+            }
+            validationMessageMode="always"
+            acceptCustomValue={false}
+            openOnFieldClick={true}
+            elementAttr={{ class: "datebox-full-width-popup" }}
+          />
+        </div>
 
-            <SimpleItem
-              dataField="tankId"
-              editorType="dxSelectBox"
-              editorOptions={{
-                items: filteredTanks,
-                displayExpr: "name",
-                valueExpr: "id",
-                onValueChanged: handleTankChange,
-                disabled: !formData.siteId,
-                placeholder: !formData.siteId
-                  ? "Select a site first"
-                  : filteredTanks.length > 0
+        {/* Site */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Site</label>
+          <SelectBox
+            items={sitesAvailable}
+            displayExpr="name"
+            valueExpr="id"
+            value={formData.siteId}
+            onValueChanged={handleSiteChange}
+            placeholder={
+              sitesAvailable.length === 0
+                ? "Loading sites..."
+                : "Select a site"
+            }
+            width="100%"
+            searchEnabled={true}
+            showClearButton={true}
+            dropDownOptions={{ container: "body" }}
+            isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
+            validationError={
+              validationErrors.siteId
+                ? { message: validationErrors.siteId }
+                : null
+            }
+            validationMessageMode="always"
+          />
+        </div>
+
+        {/* Tank */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Tank</label>
+          <SelectBox
+            items={filteredTanks}
+            displayExpr="name"
+            valueExpr="id"
+            value={formData.tankId}
+            onValueChanged={handleTankChange}
+            disabled={!formData.siteId}
+            placeholder={
+              !formData.siteId
+                ? "Select a site first"
+                : filteredTanks.length > 0
                   ? "Select a tank"
-                  : "No tanks available",
-                width: "100%",
-                searchEnabled: true,
-                showClearButton: true,
-                dropDownOptions: {
-                  container: "body",
-                },
-                isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
-                validationError: validationErrors.tankId
-                  ? { message: validationErrors.tankId }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Tank" />
-            </SimpleItem>
+                  : "No tanks available"
+            }
+            width="100%"
+            searchEnabled={true}
+            showClearButton={true}
+            dropDownOptions={{ container: "body" }}
+            isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
+            validationError={
+              validationErrors.tankId
+                ? { message: validationErrors.tankId }
+                : null
+            }
+            validationMessageMode="always"
+          />
+        </div>
 
-            {/* Book Balance Display (Read-only) */}
+        {/* Read-only: Book Balance & Physical Stock Value */}
+        {(formData.bookBalance != null || formData.tankId) && (
+          <div className="m365-field-row">
             {formData.bookBalance !== null &&
               formData.bookBalance !== undefined && (
-                <SimpleItem
-                  dataField="bookBalance"
-                  editorType="dxTextBox"
-                  editorOptions={{
-                    value:
-                      formData.bookBalance != null
-                        ? Number(formData.bookBalance).toLocaleString() + " L"
-                        : "0 L",
-                    readOnly: true,
-                    width: "100%",
-                    stylingMode: "filled",
-                  }}
-                >
-                  <Label text="Current Book Balance (Calculated)" />
-                </SimpleItem>
+                <div className="m365-field">
+                  <label className="m365-field__label">
+                    Current Book Balance (Calculated)
+                  </label>
+                  <div
+                    className="m365-input"
+                    style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
+                  >
+                    {formData.bookBalance != null
+                      ? Number(formData.bookBalance).toLocaleString() + " L"
+                      : "0 L"}
+                  </div>
+                </div>
               )}
 
-            {/* Physical Stock Value Display (Read-only) */}
             {formData.tankId && (
-              <SimpleItem
-                dataField="physicalStockValue"
-                editorType="dxTextBox"
-                editorOptions={{
-                  value:
-                    formData.physicalStockValue != null
-                      ? Number(formData.physicalStockValue).toLocaleString() +
-                        " L"
-                      : "No physical reading available",
-                  readOnly: true,
-                  width: "100%",
-                  stylingMode: "filled",
-                }}
-              >
-                <Label text="Current Physical Stock Value (Last Recorded)" />
-              </SimpleItem>
-            )}
-
-            <SimpleItem
-              dataField="amount"
-              editorType="dxNumberBox"
-              editorOptions={{
-                showSpinButtons: true,
-                value: formData.amount || null,
-                onValueChanged: handleAmountChange,
-                placeholder: "Enter physical stock measurement",
-                width: "100%",
-                ...(formData.amount !== null &&
-                  formData.amount !== undefined && { format: "#,##0" }),
-                isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
-                validationError: validationErrors.amount
-                  ? { message: validationErrors.amount }
-                  : null,
-                validationMessageMode: "always",
-              }}
-            >
-              <Label text="Physical Stock Amount (Liters)" />
-            </SimpleItem>
-
-            {/* Opening Meter Reading (Optional) */}
-            <SimpleItem
-              dataField="openingMeter"
-              editorType="dxNumberBox"
-              editorOptions={{
-                showSpinButtons: true,
-                value: formData.openingMeter || null,
-                placeholder: "Enter opening meter reading (optional)",
-                width: "100%",
-                ...(formData.openingMeter !== null &&
-                  formData.openingMeter !== undefined && {
-                    format: "#,##0.00",
-                  }),
-              }}
-            >
-              <Label text="Opening Meter Reading (Optional)" />
-            </SimpleItem>
-
-            {/* Discrepancy Indicator */}
-            {formData.amount != null &&
-              (formData.bookBalance != null ||
-                formData.physicalStockValue != null) && (
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Current Physical Stock Value (Last Recorded)
+                </label>
                 <div
-                  className="discrepancy-indicator"
-                  style={{
-                    padding: "10px",
-                    marginTop: "10px",
-                    borderRadius: "4px",
-                    backgroundColor: "#f8f9fa",
-                    border: "1px solid #dee2e6",
-                  }}
+                  className="m365-input"
+                  style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
                 >
-                  <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
-                    Stock Comparison:
-                  </div>
-                  <div>
-                    New Physical Stock:{" "}
-                    {Number(formData.amount).toLocaleString()} L
-                  </div>
+                  {formData.physicalStockValue != null
+                    ? Number(formData.physicalStockValue).toLocaleString() +
+                    " L"
+                    : "No physical reading available"}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
 
-                  {formData.bookBalance != null && (
-                    <>
-                      <div>
-                        Current Book Balance:{" "}
-                        {Number(formData.bookBalance).toLocaleString()} L
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          color:
-                            Math.abs(formData.amount - formData.bookBalance) >
+        {/* Physical Stock Amount */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">
+            Physical Stock Amount (Liters)
+          </label>
+          <NumberBox
+            showSpinButtons={true}
+            value={formData.amount || null}
+            onValueChanged={handleAmountChange}
+            placeholder="Enter physical stock measurement"
+            width="100%"
+            {...(formData.amount !== null &&
+              formData.amount !== undefined && { format: "#,##0" })}
+            isValid={hasAttemptedSubmit ? !validationErrors.amount : true}
+            validationError={
+              validationErrors.amount
+                ? { message: validationErrors.amount }
+                : null
+            }
+            validationMessageMode="always"
+          />
+        </div>
+
+        {/* Opening Meter Reading */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">
+            Opening Meter Reading (Optional)
+          </label>
+          <NumberBox
+            showSpinButtons={true}
+            value={formData.openingMeter || null}
+            onValueChanged={(e) =>
+              handleChange({ dataField: "openingMeter", value: e.value })
+            }
+            placeholder="Enter opening meter reading (optional)"
+            width="100%"
+            {...(formData.openingMeter !== null &&
+              formData.openingMeter !== undefined && {
+              format: "#,##0.00",
+            })}
+          />
+        </div>
+
+        {/* Discrepancy Indicator */}
+        {formData.amount != null &&
+          (formData.bookBalance != null ||
+            formData.physicalStockValue != null) && (
+            <div className="m365-section-group" style={{ marginBottom: 16 }}>
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-scale-balanced m365-section-group__icon" />
+                <h3 className="m365-section-group__title">Stock Comparison</h3>
+              </div>
+              <div
+                className="m365-section-group__body"
+                style={{ fontSize: 13, color: "#201f1e", lineHeight: "1.8" }}
+              >
+                <div>
+                  New Physical Stock:{" "}
+                  {Number(formData.amount).toLocaleString()} L
+                </div>
+
+                {formData.bookBalance != null && (
+                  <>
+                    <div>
+                      Current Book Balance:{" "}
+                      {Number(formData.bookBalance).toLocaleString()} L
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          Math.abs(formData.amount - formData.bookBalance) >
                             formData.bookBalance * 0.05
-                              ? "#f44336"
-                              : "#4caf50",
-                        }}
-                      >
-                        Book Balance Discrepancy:{" "}
-                        {Number(
-                          formData.amount - formData.bookBalance
-                        ).toLocaleString()}{" "}
-                        L (
-                        {formData.bookBalance > 0
-                          ? (
-                              ((formData.amount - formData.bookBalance) /
-                                formData.bookBalance) *
-                              100
-                            ).toFixed(2)
-                          : "100"}
-                        %)
-                      </div>
-                    </>
-                  )}
+                            ? "#d13438"
+                            : "#107c10",
+                      }}
+                    >
+                      Book Balance Discrepancy:{" "}
+                      {Number(
+                        formData.amount - formData.bookBalance
+                      ).toLocaleString()}{" "}
+                      L (
+                      {formData.bookBalance > 0
+                        ? (
+                          ((formData.amount - formData.bookBalance) /
+                            formData.bookBalance) *
+                          100
+                        ).toFixed(2)
+                        : "100"}
+                      %)
+                    </div>
+                  </>
+                )}
 
-                  {formData.physicalStockValue != null && (
-                    <>
-                      <div>
-                        Current Physical Stock:{" "}
-                        {Number(formData.physicalStockValue).toLocaleString()} L
-                      </div>
-                      <div
-                        style={{
-                          fontWeight: "bold",
-                          color:
-                            Math.abs(
-                              formData.amount - formData.physicalStockValue
-                            ) >
+                {formData.physicalStockValue != null && (
+                  <>
+                    <div>
+                      Current Physical Stock:{" "}
+                      {Number(formData.physicalStockValue).toLocaleString()} L
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          Math.abs(
+                            formData.amount - formData.physicalStockValue
+                          ) >
                             formData.physicalStockValue * 0.05
-                              ? "#ff9800"
-                              : "#4caf50",
-                        }}
-                      >
-                        Physical Stock Change:{" "}
-                        {Number(
-                          formData.amount - formData.physicalStockValue
-                        ).toLocaleString()}{" "}
-                        L (
-                        {formData.physicalStockValue > 0
-                          ? (
-                              ((formData.amount - formData.physicalStockValue) /
-                                formData.physicalStockValue) *
-                              100
-                            ).toFixed(2)
-                          : "100"}
-                        %)
-                      </div>
-                    </>
-                  )}
-                </div>
-              )}
-          </Form>
-
-          {/* Historical Entry Information Notice */}
-          {formData.date &&
-            formData.tankId &&
-            !isValidating &&
-            !showWarning &&
-            !validationError &&
-            showHistoricalNotice &&
-            (() => {
-              const selectedDate = new Date(formData.date);
-              const today = new Date();
-              const isHistorical =
-                selectedDate < new Date(today.setHours(0, 0, 0, 0));
-
-              if (isHistorical) {
-                return (
-                  <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                    <div className="tw-flex tw-items-start tw-justify-between">
-                      <div className="tw-flex tw-items-start tw-flex-1">
-                        <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                        <div className="tw-flex-1">
-                          <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                            Historical Entry Detected
-                          </h4>
-                          <p className="tw-text-blue-700 tw-text-sm">
-                            You are creating an opening stock entry for{" "}
-                            <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
-                            (backdated entry).
-                          </p>
-                          <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                            <strong>Impact:</strong> This will recalculate the
-                            tank's current stock and affect all subsequent
-                            records.
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => setShowHistoricalNotice(false)}
-                        className="tw-ml-2 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-flex-shrink-0"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          cursor: "pointer",
-                          padding: "0",
-                          fontSize: "16px",
-                        }}
-                        title="Dismiss"
-                      >
-                        <i className="fa-light fa-times"></i>
-                      </button>
+                            ? "#ca5010"
+                            : "#107c10",
+                      }}
+                    >
+                      Physical Stock Change:{" "}
+                      {Number(
+                        formData.amount - formData.physicalStockValue
+                      ).toLocaleString()}{" "}
+                      L (
+                      {formData.physicalStockValue > 0
+                        ? (
+                          ((formData.amount - formData.physicalStockValue) /
+                            formData.physicalStockValue) *
+                          100
+                        ).toFixed(2)
+                        : "100"}
+                      %)
                     </div>
-                  </div>
-                );
-              }
-              return null;
-            })()}
-
-          {/* Future Records Validation Warning */}
-          {(showWarning || validationError) && (
-            <FutureRecordsWarning
-              validationResult={validationResult}
-              onConfirm={confirmProceed}
-              onCancel={cancelProceed}
-              isVisible={showWarning || !!validationError}
-              className="tw-mb-4"
-            />
-          )}
-
-          {/* Backend Error Display with Enhanced Closing Stock Guidance */}
-          {backendError && (
-            <div className="tw-mb-4 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <h4 className="tw-font-medium tw-text-red-800 tw-mb-1">
-                    Opening Stock Validation Error
-                  </h4>
-
-                  {/* Enhanced error description for unclosed opening stock */}
-                  {backendError?.message?.includes(
-                    "opening stock already exists"
-                  ) &&
-                  backendError?.message?.includes(
-                    "without a subsequent closing stock"
-                  ) ? (
-                    <div className="tw-bg-white tw-rounded tw-p-3 tw-border tw-border-red-100">
-                      <p className="tw-text-red-800 tw-text-sm tw-font-medium tw-mb-2">
-                        <i className="fa-light fa-info-circle tw-mr-2"></i>
-                        What happened?
-                      </p>
-                      <p className="tw-text-red-700 tw-text-sm">
-                        {backendError?.message}
-                      </p>
-                    </div>
-                  ) : (
-                    <p className="tw-text-red-700 tw-text-sm tw-mb-3">
-                      {backendError?.message || "An error occurred"}
-                    </p>
-                  )}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setBackendError(null)}
-                  className="tw-ml-3 tw-text-red-600 hover:tw-text-red-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                  title="Close error message"
-                >
-                  <i className="fa-light fa-times tw-text-lg"></i>
-                </button>
+                  </>
+                )}
               </div>
             </div>
           )}
 
-          {/* Loading indicator for validation */}
-          {isValidating && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
-              <LoadIndicator height={20} width={20} />
-              <span className="tw-text-blue-700 tw-text-sm">
+        {/* Historical Entry Information Notice */}
+        {formData.date &&
+          formData.tankId &&
+          !isValidating &&
+          !showWarning &&
+          !validationError &&
+          showHistoricalNotice &&
+          (() => {
+            const selectedDate = new Date(formData.date);
+            const today = new Date();
+            const isHistorical =
+              selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+            if (isHistorical) {
+              return (
+                <div className="m365-info-banner m365-info-banner--warning">
+                  <i className="fa-light fa-calendar-clock m365-info-banner__icon" />
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__text">
+                      <strong>Historical Entry Detected</strong> — You are
+                      creating an opening stock entry for{" "}
+                      <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                      (backdated entry). This will recalculate the tank's
+                      current stock and affect all subsequent records.
+                    </span>
+                  </div>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowHistoricalNotice(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark" />
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {/* Future Records Validation Warning */}
+        {(showWarning || validationError) && (
+          <FutureRecordsWarning
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+          />
+        )}
+
+        {/* Backend Error Display */}
+        {backendError && (
+          <div className="m365-info-banner m365-info-banner--error">
+            <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Opening Stock Validation Error</strong>
+              </span>
+              {backendError?.message?.includes(
+                "opening stock already exists"
+              ) &&
+                backendError?.message?.includes(
+                  "without a subsequent closing stock"
+                ) ? (
+                <span
+                  className="m365-info-banner__text"
+                  style={{ display: "block", marginTop: 4 }}
+                >
+                  <i
+                    className="fa-light fa-circle-info"
+                    style={{ marginRight: 6 }}
+                  />
+                  {backendError?.message}
+                </span>
+              ) : (
+                <span
+                  className="m365-info-banner__text"
+                  style={{ display: "block", marginTop: 4 }}
+                >
+                  {backendError?.message || "An error occurred"}
+                </span>
+              )}
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setBackendError(null)}
+              title="Close error message"
+            >
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
+
+        {/* Validating indicator */}
+        {isValidating && (
+          <div
+            className="m365-info-banner"
+            style={{ alignItems: "center" }}
+          >
+            <LoadIndicator height={20} width={20} />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
                 Validating historical entry...
               </span>
             </div>
-          )}
-
-          {/* Information Notice - Moved to bottom */}
-          {showInfoNotice && (
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                <div className="tw-flex-1">
-                  <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                    Opening Stock Information
-                  </h4>
-                  <p className="tw-text-blue-700 tw-text-sm">
-                    Opening stock that is not today's will affect the tank
-                    current stock.
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setShowInfoNotice(false)}
-                  className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                  title="Close information"
-                >
-                  <i className="fa-light fa-times tw-text-lg"></i>
-                </button>
-              </div>
-            </div>
-          )}
-
-          {/* Form Actions */}
-          <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-            <Button
-              text="Cancel"
-              onClick={onCancel}
-              disabled={isSubmitting}
-              className="tw-min-w-24"
-              stylingMode="outlined"
-            >
-              <i className="fa-light fa-times tw-mr-2"></i>
-              Cancel
-            </Button>
-            <Button
-              text="Save and New"
-              onClick={handleSaveAndNew}
-              disabled={isSubmitting || !canSubmitForm || isValidating}
-              loading={isSubmitting}
-              className="tw-min-w-32"
-              stylingMode="outlined"
-            >
-              <i className="fa-light fa-plus tw-mr-2"></i>
-              Save and New
-            </Button>
-            <Button
-              text="Save and Close"
-              onClick={handleSubmit}
-              disabled={isSubmitting || !canSubmitForm || isValidating}
-              loading={isSubmitting}
-              className="tw-min-w-32"
-              type="default"
-            >
-              <i className="fa-light fa-save tw-mr-2"></i>
-              Save and Close
-            </Button>
           </div>
-        </div>
-      </ScrollView>
+        )}
+
+        {/* Information Notice */}
+        {showInfoNotice && (
+          <div className="m365-info-banner">
+            <i className="fa-light fa-circle-info m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Opening Stock Information</strong> — Opening stock that
+                is not today's will affect the tank current stock.
+              </span>
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setShowInfoNotice(false)}
+              title="Close information"
+            >
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Form Actions */}
+      <div className="m365-form-actions">
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          <i className="fa-light fa-xmark" />
+          Cancel
+        </button>
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={handleSaveAndNew}
+          disabled={isSubmitting || !canSubmitForm || isValidating}
+        >
+          <i className="fa-light fa-plus" />
+          Save and New
+        </button>
+        <button
+          className="m365-btn m365-btn--primary"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !canSubmitForm || isValidating}
+        >
+          <i className="fa-light fa-floppy-disk" />
+          Save and Close
+        </button>
+      </div>
     </div>
   );
 };

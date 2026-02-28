@@ -1,0 +1,484 @@
+/**
+ * File: CheckupTemplateManagementPage.scss
+ * Purpose: M365 Admin Center Fluent Design styles for checkup template management page.
+ *          Includes detail-view (info-grid) and edit-form panel styles.
+ * Dependencies: M365 design tokens, SlidePanel, DataGrid
+ * Last Modified: 2026-02-27
+ */
+
+// ── Design Tokens ──
+$m365-text: #201f1e;
+$m365-text-secondary: #605e5c;
+$m365-text-tertiary: #a19f9d;
+$m365-primary: #0078d4;
+$m365-primary-hover: #106ebe;
+$m365-error: #d13438;
+$m365-error-hover: #a4262c;
+$m365-success: #107c10;
+$m365-border: #c8c6c4;
+$m365-border-light: #edebe9;
+$m365-bg-surface: #faf9f8;
+$m365-bg-card: #ffffff;
+$m365-bg-hover: #f3f2f1;
+
+// ── Page Container ──
+.checkup-template-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: $m365-bg-surface;
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+}
+
+// ── Page Header ──
+.m365-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 24px;
+  background: $m365-bg-card;
+  border-bottom: 1px solid $m365-border-light;
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__icon {
+    font-size: 16px;
+    color: $m365-primary;
+  }
+
+  &__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: $m365-text;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__count {
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 600;
+    background: $m365-border-light;
+    color: $m365-text-secondary;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// ── Buttons ──
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+
+  &--primary {
+    background: $m365-primary;
+    color: #fff;
+    &:hover { background: $m365-primary-hover; }
+  }
+
+  &--ghost {
+    background: $m365-bg-card;
+    color: #323130;
+    border: 1px solid $m365-border;
+    &:hover { background: $m365-bg-hover; }
+  }
+
+  &--text {
+    background: transparent;
+    color: $m365-text-secondary;
+    padding: 0 8px;
+    height: 28px;
+    font-size: 12px;
+    &:hover { color: $m365-text; background: $m365-bg-hover; border-radius: 4px; }
+  }
+
+  &--danger {
+    background: $m365-error;
+    color: #fff;
+    &:hover { background: $m365-error-hover; }
+  }
+
+  &--success {
+    background: $m365-success;
+    color: #fff;
+    &:hover { background: darken($m365-success, 8%); }
+  }
+
+  &:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+
+  i { font-size: 13px; }
+}
+
+// ── Filter Bar ──
+.m365-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 24px;
+  background: $m365-bg-card;
+  border-bottom: 1px solid $m365-bg-hover;
+  flex-shrink: 0;
+}
+
+// ── Native Select ──
+.m365-select {
+  height: 34px;
+  padding: 0 28px 0 10px;
+  font-size: 13px;
+  font-weight: 400;
+  color: $m365-text;
+  background: $m365-bg-card;
+  border: 1px solid $m365-border;
+  border-radius: 4px;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+
+  &:hover { border-color: $m365-text-secondary; }
+  &:focus { border-color: $m365-primary; box-shadow: 0 0 0 1px $m365-primary; }
+  &:disabled { background: $m365-bg-hover; color: $m365-text-tertiary; cursor: not-allowed; }
+}
+
+// ── Native Checkbox ──
+.m365-checkbox {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: $m365-text;
+
+  input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: $m365-primary;
+    cursor: pointer;
+  }
+
+  &__label {
+    user-select: none;
+  }
+}
+
+// ── Native Input ──
+.m365-input {
+  height: 34px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: $m365-text;
+  background: $m365-bg-card;
+  border: 1px solid $m365-border;
+  border-radius: 4px;
+  outline: none;
+  transition: border-color 0.15s;
+  font-family: inherit;
+  width: 100%;
+  box-sizing: border-box;
+
+  &::placeholder { color: $m365-text-tertiary; }
+  &:hover { border-color: $m365-text-secondary; }
+  &:focus { border-color: $m365-primary; box-shadow: 0 0 0 1px $m365-primary; }
+  &:disabled { background: $m365-bg-hover; color: $m365-text-tertiary; }
+}
+
+// ── Badges ──
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 500;
+
+  &--neutral { background: $m365-bg-hover; color: $m365-text-secondary; }
+  &--success { background: #dff6dd; color: $m365-success; }
+  &--error   { background: #fde7e9; color: $m365-error; }
+}
+
+// ── Data Grid Area ──
+.checkup-template-page__grid {
+  flex: 1;
+  min-height: 0;
+  background: $m365-bg-card;
+
+  // Flatten DataGrid borders to match M365 aesthetic
+  .dx-datagrid {
+    border: none;
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    color: $m365-text;
+  }
+
+  .dx-datagrid-headers {
+    border-bottom: 1px solid $m365-border-light;
+
+    .dx-header-row td {
+      font-size: 12px;
+      font-weight: 600;
+      color: $m365-text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      padding: 8px 12px;
+    }
+  }
+
+  .dx-data-row {
+    cursor: pointer;
+
+    td {
+      padding: 6px 12px;
+      border-bottom: 1px solid $m365-border-light;
+      vertical-align: middle;
+    }
+
+    &:hover td {
+      background: $m365-bg-hover;
+    }
+  }
+
+  .dx-datagrid-search-panel {
+    margin-left: auto;
+  }
+
+  .dx-toolbar {
+    padding: 8px 12px;
+    border-bottom: 1px solid $m365-border-light;
+  }
+}
+
+// ── Panel Command-Bar Buttons (M365 flat icon+text style) ──
+.m365-cmd-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 8px;
+  font-size: 13px;
+  font-weight: 400;
+  color: $m365-text;
+  background: none;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.12s;
+  font-family: inherit;
+  white-space: nowrap;
+
+  &:hover { background: $m365-bg-hover; }
+
+  i { font-size: 14px; }
+
+  &--danger {
+    color: $m365-error;
+    i { color: $m365-error; }
+    &:hover { background: #fde7e9; }
+  }
+
+  &--success {
+    color: $m365-success;
+    i { color: $m365-success; }
+    &:hover { background: #dff6dd; }
+  }
+}
+
+.checkup-template__panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+// ── Detail View (read-only info-grid) ──
+.checkup-detail-view {
+  padding: 24px;
+
+  .m365-flat-section {
+    margin-top: 24px;
+    padding-top: 24px;
+    border-top: none;
+
+    &__title {
+      font-size: 14px;
+      font-weight: 600;
+      color: $m365-text;
+      margin: 0 0 16px;
+    }
+  }
+
+  .m365-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px 32px;
+  }
+
+  .m365-info-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 8px 0;
+    border: none;
+    border-bottom: none;
+    border-right: none;
+
+    &__label {
+      font-size: 12px;
+      font-weight: 400;
+      color: $m365-text-secondary;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    &__value {
+      font-size: 14px;
+      font-weight: 400;
+      color: $m365-text;
+    }
+  }
+}
+
+// ── Form Panel Content ──
+.checkup-panel-form {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .m365-flat-section {
+    margin-top: 20px;
+    padding-top: 20px;
+    border-top: 1px solid $m365-border-light;
+
+    &__title {
+      font-size: 14px;
+      font-weight: 600;
+      color: $m365-text;
+      margin: 0 0 12px;
+    }
+  }
+
+  .m365-edit-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .m365-field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-bottom: 16px;
+
+    &__label {
+      font-size: 13px;
+      font-weight: 500;
+      color: $m365-text;
+      display: flex;
+      align-items: center;
+
+      &--required::after {
+        content: " *";
+        color: $m365-error;
+      }
+    }
+
+    &__hint {
+      font-size: 12px;
+      color: $m365-text-tertiary;
+    }
+
+    &__error {
+      font-size: 12px;
+      color: $m365-error;
+    }
+  }
+
+  .m365-select {
+    width: 100%;
+  }
+
+  &__row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+}
+
+// ── Panel Footer ──
+.m365-panel-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid $m365-border-light;
+  flex-shrink: 0;
+  background: $m365-bg-surface;
+  margin-top: auto;
+}
+
+// ── Responsive ──
+@media (max-width: 640px) {
+  .m365-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    padding: 8px 16px;
+  }
+
+  .m365-filters {
+    padding: 8px 16px;
+
+    .m365-select {
+      flex: 1;
+      min-width: 0;
+    }
+  }
+
+  .checkup-panel-form__row {
+    grid-template-columns: 1fr;
+  }
+
+  .checkup-detail-view .m365-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

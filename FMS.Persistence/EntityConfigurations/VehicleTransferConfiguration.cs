@@ -136,6 +136,29 @@ public class VehicleTransferConfiguration : IEntityTypeConfiguration<VehicleTran
             .HasColumnName("workshop_manager_sign")
             .HasMaxLength(200);
 
+        // ── Notification workflow fields ──
+
+        builder.Property(e => e.ReceiverUserId)
+            .HasColumnName("receiver_user_id")
+            .HasMaxLength(450);
+
+        builder.Property(e => e.ApproverUserId)
+            .HasColumnName("approver_user_id")
+            .HasMaxLength(450);
+
+        builder.Property(e => e.DispatchedAt)
+            .HasColumnName("dispatched_at");
+
+        builder.Property(e => e.ReceivedAt)
+            .HasColumnName("received_at");
+
+        builder.Property(e => e.LastReminderSentAt)
+            .HasColumnName("last_reminder_sent_at");
+
+        builder.Property(e => e.ReminderCount)
+            .HasColumnName("reminder_count")
+            .HasDefaultValue(0);
+
         builder.Property(e => e.DocumentUrl)
             .HasColumnName("document_url")
             .HasMaxLength(500);

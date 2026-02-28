@@ -5,7 +5,7 @@
  */
 
 import React, { useState } from "react";
-import { Popup } from "devextreme-react/popup";
+import M365SidePanel from "../../../../components/common/M365SidePanel";
 import "./FuelingRulesHelp.scss";
 
 const FuelingRulesHelp = ({ visible, onClose }) => {
@@ -451,9 +451,9 @@ const FuelingRulesHelp = ({ visible, onClose }) => {
   const contentRender = () => {
     return (
       <div className="tw-flex tw-h-full fueling-rules-help-container">
-        {/* Sidebar Navigation */}
-        <div className="tw-w-48 tw-flex-shrink-0 tw-border-r tw-border-gray-200 tw-bg-gray-50 tw-p-3">
-          <nav className="tw-space-y-1">
+        {/* Sidebar Navigation — M365 flat style */}
+        <div className="fueling-rules-help-sidebar">
+          <nav className="fueling-rules-help-nav">
             {sections.map((section) => (
               <button
                 key={section.id}
@@ -463,10 +463,8 @@ const FuelingRulesHelp = ({ visible, onClose }) => {
                   e.stopPropagation();
                   setActiveSection(section.id);
                 }}
-                className={`tw-w-full tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-rounded-lg tw-text-left tw-text-sm tw-transition-colors tw-cursor-pointer ${
-                  activeSection === section.id
-                    ? "tw-bg-blue-100 tw-text-blue-700 tw-font-medium"
-                    : "tw-text-gray-600 hover:tw-bg-gray-100"
+                className={`fueling-rules-help-nav__item ${
+                  activeSection === section.id ? "fueling-rules-help-nav__item--active" : ""
                 }`}
               >
                 <i className={`fa-light ${section.icon}`}></i>
@@ -511,18 +509,14 @@ const FuelingRulesHelp = ({ visible, onClose }) => {
   };
 
   return (
-    <Popup
+    <M365SidePanel
       visible={visible}
-      onHiding={onClose}
+      onClose={onClose}
       title="Fueling Rules Help"
-      showTitle={true}
-      showCloseButton={true}
-      width={800}
-      height={600}
-      dragEnabled={true}
-      closeOnOutsideClick={true}
-      contentRender={contentRender}
-    />
+      width={680}
+    >
+      {contentRender()}
+    </M365SidePanel>
   );
 };
 

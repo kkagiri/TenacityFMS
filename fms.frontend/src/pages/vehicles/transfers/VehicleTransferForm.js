@@ -8,7 +8,7 @@
  * Key Components:
  * - TransferStepDetails: Step 1 (site transfer, driver, equipment reading, departure/arrival)
  * - TransferStepInspection: Step 2 (checkup items, GPS equipment conditional, service filters)
- * - TransferStepApproval: Step 3 (signatures, document upload, options, remarks)
+ * - TransferStepApproval: Step 3 (signatures, document upload, options)
  *
  * GPS Logic: GPS Equipment section only renders when vehicle.hasGPSInstalled is truthy.
  *            Device info is auto-fetched from /api/v1/providers/mappings?vehicleId=X.
@@ -18,41 +18,55 @@ import React, { useState, useEffect, useCallback, useMemo } from "react";
 import notify from "devextreme/ui/notify";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
+import { fetchUsers } from "../../../redux/actions/userActions";
 import axiosInstance from "../../../api/axiosInstance";
 import TransferStepDetails from "./components/TransferStepDetails";
 import TransferStepInspection from "./components/TransferStepInspection";
 import TransferStepApproval from "./components/TransferStepApproval";
+import useVehicleResolution from "./hooks/useVehicleResolution";
+import {
+  getEmployeePhoneNumber,
+  getUserDisplayName,
+  getUserId,
+  validateTransferDetails,
+} from "./vehicleTransferFormUtils";
 
 import "./VehicleTransferForm.scss";
 
-// ── Step definitions ──────────────────────────────────────────
 const STEPS = [
   { key: 0, label: "Transfer Details", icon: "fa-light fa-exchange-alt" },
   { key: 1, label: "Equipment Inspection", icon: "fa-light fa-clipboard-check" },
   { key: 2, label: "Approval & Submit", icon: "fa-light fa-signature" },
 ];
 
+const EDIT_VEHICLE_PERMISSION = "_edit_vehicle";
+
 const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
   const dispatch = useDispatch();
-  const sites = useSelector((state) => state.site.sites);
-  const vehicles = useSelector((state) => state.vehicle.vehicles);
+  const sites = useSelector((state) => state.site?.sites || []);
+  const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
+  const users = useSelector((state) => state.user?.users || []);
+  const myPermissions = useSelector((state) => state.auth?.myPermissions || []);
 
-  // ── Wizard state ──────────────────────────────────────────
+  const isStandaloneMode = !vehicleId;
+  const canManageCheckupTemplates = Array.isArray(myPermissions)
+    ? myPermissions.some(
+      (permission) =>
+        String(permission || "").toLowerCase() === EDIT_VEHICLE_PERMISSION
+    )
+    : false;
+
   const [activeStep, setActiveStep] = useState(0);
-
-  // ── Form state ────────────────────────────────────────────
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [vehicle, setVehicle] = useState(null);
-  const [hasGps, setHasGps] = useState(false);
-  const [gpsMapping, setGpsMapping] = useState(null);
-  const [checkupItems, setCheckupItems] = useState([]);
+  const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId ? parseInt(vehicleId, 10) : null);
   const [tyreDetails, setTyreDetails] = useState([]);
   const [batteryDetails, setBatteryDetails] = useState([]);
   const [serviceFilterParts, setServiceFilterParts] = useState([]);
   const [documentFile, setDocumentFile] = useState(null);
+  const [validationErrors, setValidationErrors] = useState({});
 
   const [formData, setFormData] = useState({
-    vehicleId: vehicleId,
+    vehicleId: vehicleId ? parseInt(vehicleId, 10) : null,
     deliveryNoteNumber: "",
     fromSiteId: null,
     toSiteId: null,
@@ -79,7 +93,9 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
     receiverName: "",
     receiverFunction: "",
     approvedBy: "",
+    workshopManagerId: null,
     workshopManagerSign: "",
+    receiverUserId: null,
     sendEmail: true,
     emailRecipients: "",
     updateOdometer: true,
@@ -97,119 +113,209 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
     vehicleModelName: "",
   });
 
-  // ── Load sites & checkup template ─────────────────────────
+  useEffect(() => {
+    const parsedVehicleId = vehicleId ? parseInt(vehicleId, 10) : null;
+    setSelectedVehicleId(parsedVehicleId);
+    setFormData((prev) => ({
+      ...prev,
+      vehicleId: parsedVehicleId,
+    }));
+  }, [vehicleId]);
+
+  const { vehicle, hasGps, gpsMapping, checkupItems, setCheckupItems } =
+    useVehicleResolution(selectedVehicleId, vehicles, setFormData);
+
   useEffect(() => {
     dispatch(fetchSiteList());
-    loadCheckupTemplate();
   }, [dispatch]);
 
-  // ── Resolve vehicle info ──────────────────────────────────
   useEffect(() => {
-    if (vehicleId && vehicles.length > 0) {
-      const v = vehicles.find((v) => v.vehicleId === parseInt(vehicleId));
-      if (v) {
-        setVehicle(v);
-        const isEquipment =
-          v.vehicleType?.name?.toLowerCase()?.includes("generator") ||
-          v.vehicleType?.name?.toLowerCase()?.includes("excavator") ||
-          v.vehicleType?.name?.toLowerCase()?.includes("loader") ||
-          v.vehicleType?.name?.toLowerCase()?.includes("dozer") ||
-          v.vehicleType?.name?.toLowerCase()?.includes("crane") ||
-          v.vehicleType?.name?.toLowerCase()?.includes("forklift");
+    if (users.length === 0) {
+      dispatch(fetchUsers());
+    }
+  }, [dispatch, users.length]);
 
-        setFormData((prev) => ({
-          ...prev,
-          fromSiteId: v.workingSiteId,
-          makeModel: `${v.vehicleManufacturer?.name || ""} ${v.vehicleModel?.name || ""}`.trim(),
-          vehicleManufacturer: v.vehicleManufacturer?.name || "",
-          vehicleModelName: v.vehicleModel?.name || "",
-          currentReading: v.currentPhysicalReading ? parseFloat(v.currentPhysicalReading) : null,
-          readingUnit: isEquipment ? "hrs" : "km",
-        }));
+  const clearValidationErrorsForFields = useCallback((fields) => {
+    setValidationErrors((prev) => {
+      const next = { ...prev };
+      let changed = false;
 
-        // Check GPS flag and fetch mapping
-        const gpsInstalled = !!v.hasGPSInstalled;
-        setHasGps(gpsInstalled);
-        if (gpsInstalled) {
-          fetchGpsMapping(v.vehicleId);
+      fields.forEach((field) => {
+        if (next[field]) {
+          delete next[field];
+          changed = true;
         }
-      }
-    }
-  }, [vehicleId, vehicles]);
+      });
 
-  // ── Fetch GPS provider mapping ────────────────────────────
-  const fetchGpsMapping = async (vId) => {
-    try {
-      const res = await axiosInstance.get("/providers/mappings", { params: { vehicleId: vId } });
-      const mappings = res.data?.data || res.data?.Data || [];
-      const active = Array.isArray(mappings) ? mappings.find((m) => m.isActive) : null;
-      if (active) {
-        setGpsMapping(active);
-        setFormData((prev) => ({
-          ...prev,
-          gpsDeviceId: active.externalDeviceId || active.deviceIMEI || "",
-          fuelSensorId: active.hasFuelSensor ? (active.fuelSensorType || "Installed") : "",
-        }));
-      }
-    } catch (err) {
-      console.warn("Could not fetch GPS mapping:", err);
-    }
-  };
+      return changed ? next : prev;
+    });
+  }, []);
 
-  const loadCheckupTemplate = async () => {
-    try {
-      const response = await axiosInstance.get("/vehicletransfers/checkup-template");
-      if (response.data) {
-        setCheckupItems(
-          response.data.map((item) => ({
-            ...item,
-            isGood: true,
-            isFair: false,
-            isDamaged: false,
-            isWorn: false,
-            wornPercentage: null,
-            remarks: "",
-          }))
-        );
-      }
-    } catch {
-      setDefaultCheckupItems();
-    }
-  };
-
-  const setDefaultCheckupItems = () => {
-    const defaults = [
-      { serialNo: 1, description: "SUSPENSION", checkType: "CHECK" },
-      { serialNo: 2, description: "BRAKES, INDICATORS, GAUGES & FAN BELT", checkType: "CHECK & TEST" },
-      { serialNo: 3, description: "COOLING SYSTEM, COOLANT LEVEL & LEAKS", checkType: "CHECK" },
-      { serialNo: 4, description: "ENGINE OIL LEVEL & LEAKS", checkType: "CHECK" },
-    ].map((item) => ({ ...item, isGood: true, isFair: false, isDamaged: false, isWorn: false, wornPercentage: null, remarks: "" }));
-    setCheckupItems(defaults);
-  };
-
-  const handleFieldChange = (field, value) => {
+  const handleFieldChange = useCallback((field, value) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-  };
 
-  // ── Step validation ───────────────────────────────────────
-  const validateStep = (step) => {
-    if (step === 0) {
-      if (!formData.fromSiteId) { notify("Please select the 'From Site'", "warning", 3000); return false; }
-      if (!formData.toSiteId) { notify("Please select the 'To Site'", "warning", 3000); return false; }
-      if (formData.fromSiteId === formData.toSiteId) { notify("Cannot transfer to the same site", "warning", 3000); return false; }
-      if (!formData.transferDate) { notify("Please select the transfer date", "warning", 3000); return false; }
+    const fieldsToClear = [field];
+
+    if (field === "fromSiteId" || field === "toSiteId") {
+      fieldsToClear.push("fromSiteId", "toSiteId");
     }
+
+    if (field === "departureTime" || field === "arrivalTime") {
+      fieldsToClear.push("departureTime", "arrivalTime");
+    }
+
+    if (field === "currentReading" || field === "nextServiceReading") {
+      fieldsToClear.push("currentReading", "nextServiceReading");
+    }
+
+    clearValidationErrorsForFields(fieldsToClear);
+  }, [clearValidationErrorsForFields]);
+
+  const validateStep = useCallback((step) => {
+    if (step !== 0) {
+      return true;
+    }
+
+    const errors = validateTransferDetails(formData, isStandaloneMode);
+
+    setValidationErrors(errors);
+
+    if (Object.keys(errors).length > 0) {
+      notify("Please fix validation errors in Transfer Details", "warning", 3000);
+      return false;
+    }
+
     return true;
-  };
+  }, [formData, isStandaloneMode]);
 
   const goNext = () => {
-    if (validateStep(activeStep)) setActiveStep((s) => Math.min(s + 1, STEPS.length - 1));
+    if (validateStep(activeStep)) {
+      setActiveStep((step) => Math.min(step + 1, STEPS.length - 1));
+    }
   };
-  const goBack = () => setActiveStep((s) => Math.max(s - 1, 0));
 
-  // ── Submit ────────────────────────────────────────────────
+  const goBack = () => {
+    setActiveStep((step) => Math.max(step - 1, 0));
+  };
+
+  const handleVehicleSelected = useCallback((event) => {
+    const nextVehicleId = event?.value ? parseInt(event.value, 10) : null;
+    const normalizedVehicleId = Number.isNaN(nextVehicleId) ? null : nextVehicleId;
+
+    setSelectedVehicleId(normalizedVehicleId);
+    setFormData((prev) => ({
+      ...prev,
+      vehicleId: normalizedVehicleId,
+    }));
+
+    clearValidationErrorsForFields(["vehicleId"]);
+  }, [clearValidationErrorsForFields]);
+
+  const handleDriverChange = useCallback(async (event) => {
+    const selectedDriverId = event?.value || null;
+
+    if (!selectedDriverId) {
+      setFormData((prev) => ({
+        ...prev,
+        driverId: null,
+        driverName: "",
+        driverPhone: "",
+      }));
+      clearValidationErrorsForFields(["driverPhone"]);
+      return;
+    }
+
+    try {
+      const response = await axiosInstance.get(`/employee/${selectedDriverId}`);
+      const employee = response.data?.data || response.data?.Data || response.data;
+
+      setFormData((prev) => ({
+        ...prev,
+        driverId: selectedDriverId,
+        driverName: employee?.fullName || employee?.name || "",
+        driverPhone: getEmployeePhoneNumber(employee),
+      }));
+
+      clearValidationErrorsForFields(["driverPhone"]);
+    } catch (error) {
+      console.warn("Unable to resolve selected driver:", error);
+      setFormData((prev) => ({
+        ...prev,
+        driverId: selectedDriverId,
+        driverName: "",
+        driverPhone: "",
+      }));
+      notify("Unable to load driver phone number", "warning", 3000);
+    }
+  }, [clearValidationErrorsForFields]);
+
+  const workshopManagerUsers = useMemo(
+    () =>
+      (Array.isArray(users) ? users : [])
+        .filter((user) => user && typeof user === "object")
+        .map((user) => ({
+          ...user,
+          id: getUserId(user),
+          displayName: getUserDisplayName(user),
+        }))
+        .filter((user) => user.id !== null && !user?.isDeleted && user.displayName),
+    [users]
+  );
+
+  const handleWorkshopManagerChange = useCallback((event) => {
+    const selectedManagerId = event?.value ?? null;
+
+    if (selectedManagerId === null || selectedManagerId === undefined || selectedManagerId === "") {
+      setFormData((prev) => ({
+        ...prev,
+        workshopManagerId: null,
+        workshopManagerSign: "",
+      }));
+      return;
+    }
+
+    const selectedManager = workshopManagerUsers.find(
+      (user) => String(user.id) === String(selectedManagerId)
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      workshopManagerId: selectedManagerId,
+      workshopManagerSign: selectedManager?.displayName || "",
+    }));
+  }, [workshopManagerUsers]);
+
+  const handleReceiverUserChange = useCallback((event) => {
+    const selectedUserId = event?.value ?? null;
+
+    if (selectedUserId === null || selectedUserId === undefined || selectedUserId === "") {
+      setFormData((prev) => ({
+        ...prev,
+        receiverUserId: null,
+      }));
+      return;
+    }
+
+    const selectedUser = workshopManagerUsers.find(
+      (user) => String(user.id) === String(selectedUserId)
+    );
+
+    setFormData((prev) => ({
+      ...prev,
+      receiverUserId: selectedUserId,
+      receiverName: selectedUser?.displayName || prev.receiverName,
+    }));
+  }, [workshopManagerUsers]);
+
+  const openCheckupTemplateManager = useCallback(() => {
+    window.open("/admin/checkup-templates", "_blank", "noopener,noreferrer");
+  }, []);
+
   const handleSubmit = async () => {
-    if (!validateStep(0)) { setActiveStep(0); return; }
+    if (!validateStep(0)) {
+      setActiveStep(0);
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -220,6 +326,7 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
           submitData.append(key, formData[key] instanceof Date ? formData[key].toISOString() : formData[key]);
         }
       });
+
       submitData.append("checkupItems", JSON.stringify(checkupItems));
       if (tyreDetails.length > 0) submitData.append("tyreDetails", JSON.stringify(tyreDetails));
       if (batteryDetails.length > 0) submitData.append("batteryDetails", JSON.stringify(batteryDetails));
@@ -231,7 +338,9 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
       });
 
       if (response.data?.isSuccess) {
-        onSuccess && onSuccess(response.data.data);
+        if (onSuccess) {
+          onSuccess(response.data.data);
+        }
       } else {
         throw new Error(response.data?.message || "Failed to create transfer");
       }
@@ -242,27 +351,13 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
     }
   };
 
-  // ── Callbacks for child step components ──────────────────
-  const handleDriverChange = useCallback((employeeId, employee) => {
-    setFormData((prev) => ({
-      ...prev,
-      driverId: employeeId,
-      driverName: employee?.fullName || employee?.name || "",
-      driverPhone: employee?.phoneNumber || "",
-    }));
-  }, []);
-
   const filteredSites = useMemo(
-    () => sites.filter((s) => s.id !== formData.fromSiteId),
+    () => sites.filter((site) => site.id !== formData.fromSiteId),
     [sites, formData.fromSiteId]
   );
 
-  // ═══════════════════════════════════════════════════════════
-  //  RENDER
-  // ═══════════════════════════════════════════════════════════
   return (
     <div className="vehicle-transfer-form">
-      {/* ── Vehicle Info Banner ─────────────────────────────── */}
       <div className="vtf-header">
         <div className="vtf-header__title-row">
           <i className="fa-light fa-file-lines vtf-header__icon" />
@@ -280,55 +375,61 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
             </div>
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Make / Model</span>
-              <span className="vtf-header__meta-value">{formData.makeModel || "—"}</span>
+              <span className="vtf-header__meta-value">{formData.makeModel || "-"}</span>
             </div>
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">Current Site</span>
               <span className="vtf-header__meta-value">
-                {sites.find((s) => s.id === vehicle.workingSiteId)?.name || "N/A"}
+                {sites.find((site) => site.id === vehicle.workingSiteId)?.name || "N/A"}
               </span>
             </div>
             <div className="vtf-header__meta-item">
               <span className="vtf-header__meta-label">GPS</span>
               <span className={`vtf-header__meta-value ${hasGps ? "vtf-header__meta-value--success" : ""}`}>
-                {hasGps ? "Installed" : "Not installed"}
+                {hasGps ? "GPS Installed" : "GPS Not Installed"}
               </span>
             </div>
           </div>
         )}
       </div>
 
-      {/* ── Stepper ────────────────────────────────────────── */}
       <div className="vtf-stepper">
-        {STEPS.map((step, idx) => (
+        {STEPS.map((step, index) => (
           <React.Fragment key={step.key}>
             <button
-              className={`vtf-stepper__step ${activeStep === idx ? "vtf-stepper__step--active" : ""} ${activeStep > idx ? "vtf-stepper__step--done" : ""}`}
-              onClick={() => { if (idx < activeStep || validateStep(activeStep)) setActiveStep(idx); }}
+              className={`vtf-stepper__step ${activeStep === index ? "vtf-stepper__step--active" : ""} ${activeStep > index ? "vtf-stepper__step--done" : ""}`}
+              onClick={() => {
+                if (index < activeStep || validateStep(activeStep)) {
+                  setActiveStep(index);
+                }
+              }}
               type="button"
             >
               <span className="vtf-stepper__num">
-                {activeStep > idx ? <i className="fa-light fa-check" /> : idx + 1}
+                {activeStep > index ? <i className="fa-light fa-check" /> : index + 1}
               </span>
               <span className="vtf-stepper__label">{step.label}</span>
             </button>
-            {idx < STEPS.length - 1 && <span className={`vtf-stepper__line ${activeStep > idx ? "vtf-stepper__line--done" : ""}`} />}
+            {index < STEPS.length - 1 && (
+              <span className={`vtf-stepper__line ${activeStep > index ? "vtf-stepper__line--done" : ""}`} />
+            )}
           </React.Fragment>
         ))}
       </div>
 
-      {/* ═══ STEP 1 — Transfer Details ═══════════════════════ */}
       {activeStep === 0 && (
         <TransferStepDetails
           formData={formData}
           sites={sites}
           filteredSites={filteredSites}
+          validationErrors={validationErrors}
+          isStandaloneMode={isStandaloneMode}
           onFieldChange={handleFieldChange}
+          onVehicleSelected={handleVehicleSelected}
           onDriverChange={handleDriverChange}
         />
       )}
 
-      {/* ═══ STEP 2 — Equipment Inspection ═══════════════════ */}
       {activeStep === 1 && (
         <TransferStepInspection
           formData={formData}
@@ -339,20 +440,24 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
           onFieldChange={handleFieldChange}
           onCheckupItemsChange={setCheckupItems}
           onServiceFilterPartsChange={setServiceFilterParts}
+          canManageTemplates={canManageCheckupTemplates}
+          onManageTemplates={openCheckupTemplateManager}
         />
       )}
 
-      {/* ═══ STEP 3 — Approval & Submit ══════════════════════ */}
       {activeStep === 2 && (
         <TransferStepApproval
           formData={formData}
+          workshopManagerUsers={workshopManagerUsers}
+          receiverUsers={workshopManagerUsers}
           documentFile={documentFile}
           onFieldChange={handleFieldChange}
           onDocumentChange={setDocumentFile}
+          onWorkshopManagerChange={handleWorkshopManagerChange}
+          onReceiverUserChange={handleReceiverUserChange}
         />
       )}
 
-      {/* ── Step Navigation ────────────────────────────────── */}
       <div className="vtf-nav">
         <div className="vtf-nav__left">
           {activeStep > 0 && (
@@ -372,9 +477,13 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
           ) : (
             <button className="m365-btn m365-btn--primary" onClick={handleSubmit} disabled={isSubmitting} type="button">
               {isSubmitting ? (
-                <><i className="fa-light fa-spinner fa-spin" /> Submitting...</>
+                <>
+                  <i className="fa-light fa-spinner fa-spin" /> Submitting...
+                </>
               ) : (
-                <><i className="fa-light fa-check" /> Create Transfer</>
+                <>
+                  <i className="fa-light fa-check" /> Create Transfer
+                </>
               )}
             </button>
           )}

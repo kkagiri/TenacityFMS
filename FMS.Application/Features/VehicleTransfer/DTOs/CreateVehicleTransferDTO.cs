@@ -62,6 +62,16 @@ public class CreateVehicleTransferDTO
     public string? WorkshopManagerSign { get; set; }
 
     /// <summary>
+    /// System user ID of the designated receiver
+    /// </summary>
+    public string? ReceiverUserId { get; set; }
+
+    /// <summary>
+    /// System user ID of the specific approver (optional — auto-resolved if null)
+    /// </summary>
+    public string? ApproverUserId { get; set; }
+
+    /// <summary>
     /// PDF document file
     /// </summary>
     public IFormFile? DocumentFile { get; set; }

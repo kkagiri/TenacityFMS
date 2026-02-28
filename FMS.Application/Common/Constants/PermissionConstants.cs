@@ -748,5 +748,40 @@ namespace FMS.Application.Common.Constants
             public const string Register = "_Register_PushDevice";
             public const string Manage = "_Manage_PushDevice";
         }
+
+        // ============================================================
+        // MOBILE APP PERMISSIONS
+        // Parent: MobileAppModule (Id: 226)
+        // Controls visibility of features/screens in the mobile app.
+        // Assign these to roles so users only see the mobile features
+        // they need.
+        // ============================================================
+
+        public static class MobileApp
+        {
+            /// <summary>Access fueling / device list screen (Id: 227) - DB name: _Mobile_Fueling</summary>
+            public const string Fueling = "_Mobile_Fueling";
+
+            /// <summary>Access tank transaction hub screen (Id: 228) - DB name: _Mobile_TransactionHub</summary>
+            public const string TransactionHub = "_Mobile_TransactionHub";
+
+            /// <summary>Access transaction history screen (Id: 229) - DB name: _Mobile_Transactions</summary>
+            public const string Transactions = "_Mobile_Transactions";
+
+            /// <summary>Access stock management screens (Id: 230) - DB name: _Mobile_Stocks</summary>
+            public const string Stocks = "_Mobile_Stocks";
+
+            /// <summary>Access vehicle details screen (Id: 231) - DB name: _Mobile_Vehicles</summary>
+            public const string Vehicles = "_Mobile_Vehicles";
+
+            /// <summary>Access issue tracker screens (Id: 232) - DB name: _Mobile_Issues</summary>
+            public const string Issues = "_Mobile_Issues";
+
+            /// <summary>Access location settings screen (Id: 233) - DB name: _Mobile_Location</summary>
+            public const string Location = "_Mobile_Location";
+
+            /// <summary>Access tank levels / site overview screen (Id: 234) - DB name: _Mobile_TankLevels</summary>
+            public const string TankLevels = "_Mobile_TankLevels";
+        }
     }
 }

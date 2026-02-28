@@ -1,0 +1,304 @@
+/**
+ * File: employeePage.scss
+ * Purpose: Microsoft-style list and side-panel styles for EmployeePage.
+ * Dependencies: m365-shared.scss
+ * Last Modified: 2026-02-26
+ */
+@import "../../components/m365/m365-shared.scss";
+
+.employee-page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  height: 100%;
+  min-height: 0;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    background: #fff;
+    border: 1px solid var(--m365-border-light);
+    border-radius: var(--m365-radius-card);
+    padding: 16px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__subtitle {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--m365-text-secondary);
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  &__grid-shell {
+    flex: 1;
+    min-height: 0;
+    background: #fff;
+    border: 1px solid var(--m365-border-light);
+    border-radius: var(--m365-radius-card);
+    overflow: hidden;
+  }
+}
+
+.employee-page-loading {
+  height: 70vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.employee-grid {
+  height: 100%;
+  font-family: var(--m365-font);
+
+  &--simple {
+    .dx-datagrid-headers {
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: 1px solid var(--m365-border-light) !important;
+      background: #fff;
+    }
+
+    .dx-datagrid-headers .dx-header-row > td {
+      border: none !important;
+      color: var(--m365-text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .dx-datagrid-rowsview {
+      border: none !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row > td {
+      border-left: none !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: 1px solid #f3f2f1 !important;
+      font-size: 13px;
+      color: var(--m365-text);
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td {
+      background: var(--m365-bg-hover) !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row:last-child > td {
+      border-bottom: none !important;
+    }
+
+    .dx-datagrid-content .dx-datagrid-table .dx-row > td:first-child {
+      padding-left: 14px;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__action-link {
+    border: none;
+    background: transparent;
+    color: var(--m365-primary);
+    font-size: 12px;
+    font-weight: 600;
+    padding: 0;
+    cursor: pointer;
+
+    &:hover {
+      text-decoration: underline;
+    }
+  }
+
+  &__muted {
+    color: var(--m365-text-tertiary);
+  }
+}
+
+.employee-panel {
+  padding: 18px 22px 0;
+  font-family: var(--m365-font);
+
+  &__empty {
+    min-height: 320px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--m365-text-tertiary);
+    font-size: 14px;
+  }
+
+  &__muted {
+    margin: 0;
+    font-size: 13px;
+    color: var(--m365-text-tertiary);
+  }
+}
+
+.employee-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.m365-flat-section {
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--m365-border-light);
+
+  &__title {
+    margin: 0 0 12px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--m365-text);
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+}
+
+.m365-flat-section--no-border {
+  border-top: none;
+}
+
+.m365-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0;
+}
+
+.m365-info-cell {
+  display: flex;
+  flex-direction: column;
+  padding: 10px 4px;
+
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    margin-bottom: 2px;
+  }
+
+  &__value {
+    font-size: 13px;
+    color: var(--m365-text);
+    line-height: 1.4;
+    word-break: break-word;
+  }
+}
+
+.m365-health-pill {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 22px;
+  padding: 0 8px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  white-space: nowrap;
+
+  &--success {
+    color: var(--m365-success);
+    background: var(--m365-success-tint, #dff6dd);
+    border-color: #cce8c7;
+  }
+
+  &--warning {
+    color: var(--m365-warning);
+    background: var(--m365-warning-tint, #fff4ce);
+    border-color: #f2dda2;
+  }
+}
+
+.m365-field {
+  display: flex;
+  flex-direction: column;
+
+  &__label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+    margin-bottom: 4px;
+
+    &--required::after {
+      content: " *";
+      color: var(--m365-error, #d13438);
+    }
+  }
+
+  &__error {
+    font-size: 12px;
+    color: var(--m365-error, #d13438);
+    margin-top: 2px;
+  }
+}
+
+.m365-panel-footer {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 0;
+  margin-top: 12px;
+  background: #fff;
+  border-top: 1px solid var(--m365-border-light);
+}
+
+.employee-vehicle-tags {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.employee-vehicle-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--m365-primary-tint);
+  color: var(--m365-primary);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+@media (max-width: 900px) {
+  .employee-page__header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .employee-form-grid,
+  .m365-info-grid {
+    grid-template-columns: 1fr;
+  }
+}

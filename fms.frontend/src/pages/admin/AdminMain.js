@@ -26,7 +26,6 @@ import TankPage from "../tank/tankPage";
 import DeviceDashboard from "../PTSDevice/DeviceDashboard";
 import PTSDeviceDetailPage from "../PTSDevice/PTSDeviceDetail/PTSDeviceDetailPage";
 // PTSAutomationConfigPage removed - migrated to SystemConfiguration
-import ConfigurationPage from "./configuration";
 import SystemConfiguration from "./systemConfig/SystemConfigPage";
 import PTSServiceControl from "./ptsService/PTSServiceControl";
 import NotificationSystem from "../notifications";
@@ -34,6 +33,7 @@ import ProviderManagementMain from "../providermanagement/ProviderManagementMain
 import TaskManagement from "../taskManagement";
 import LogManagementPage from "./logManagement/LogManagementPage";
 import ExpectedAverageManagementPage from "./expectedaverages/ExpectedAverageManagementPage";
+import CheckupTemplateManagementPage from "./checkupTemplates/CheckupTemplateManagementPage";
 import { FuelingRulesMain } from "./fuelingRules";
 import { LocationValidationLogPage } from "./locationValidation";
 const AdminMain = () => {
@@ -79,8 +79,6 @@ const AdminMain = () => {
         {/* ptsconfig routes removed - migrated to systemconfig */}
         <Route path="systemconfig" element={<SystemConfiguration />} />
         <Route path="systemconfig/*" element={<SystemConfiguration />} />
-        <Route path="configuration" element={<ConfigurationPage />} />
-        <Route path="configuration/*" element={<ConfigurationPage />} />
 
         {/* PTS Service Control Route */}
         <Route path="pts-service" element={<PTSServiceControl />} />
@@ -98,6 +96,16 @@ const AdminMain = () => {
         <Route
           path="expected-averages/*"
           element={<ExpectedAverageManagementPage />}
+        />
+
+        {/* Vehicle Transfer Checkup Templates Route */}
+        <Route
+          path="checkup-templates"
+          element={<CheckupTemplateManagementPage />}
+        />
+        <Route
+          path="checkup-templates/*"
+          element={<CheckupTemplateManagementPage />}
         />
 
         {/* Fueling Rules Management Route */}

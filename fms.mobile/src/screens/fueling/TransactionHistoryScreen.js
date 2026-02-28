@@ -30,6 +30,7 @@ import {
 import { useDispatch, useSelector } from "react-redux";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { Picker } from "@react-native-picker/picker";
+import ApiService from "../../services/apiService";
 
 import {
   fetchTransactionHistory,
@@ -144,19 +145,19 @@ const getConsumptionMetric = (item) => {
   if (value === null) {
     const metricCandidates = isKmPerLiter
       ? [
-          item?.consumption,
-          item?.avgEfficiency,
-          item?.averageConsumption,
-          item?.kmPerLiter,
-          item?.efficiency,
-        ]
+        item?.consumption,
+        item?.avgEfficiency,
+        item?.averageConsumption,
+        item?.kmPerLiter,
+        item?.efficiency,
+      ]
       : [
-          item?.consumption,
-          item?.avgEfficiency,
-          item?.averageConsumption,
-          item?.literPerHour,
-          item?.efficiency,
-        ];
+        item?.consumption,
+        item?.avgEfficiency,
+        item?.averageConsumption,
+        item?.literPerHour,
+        item?.efficiency,
+      ];
 
     value = metricCandidates
       .map(normalizeNumber)
@@ -216,6 +217,38 @@ const TransactionHistoryScreen = ({ navigation }) => {
     userId: null,
     processedOnly: null,
   });
+
+  // Vehicle search state (for backend-powered vehicle search)
+  const [vehicleSearchTerm, setVehicleSearchTerm] = useState("");
+  const [vehicleSearchResults, setVehicleSearchResults] = useState([]);
+  const [isSearchingVehicles, setIsSearchingVehicles] = useState(false);
+  const [selectedVehicleName, setSelectedVehicleName] = useState("");
+
+  // Debounced vehicle search from backend
+  const vehicleSearchTimeout = React.useRef(null);
+  const handleVehicleSearch = useCallback((text) => {
+    setVehicleSearchTerm(text);
+    if (vehicleSearchTimeout.current) {
+      clearTimeout(vehicleSearchTimeout.current);
+    }
+    if (!text || text.length < 2) {
+      setVehicleSearchResults([]);
+      setIsSearchingVehicles(false);
+      return;
+    }
+    setIsSearchingVehicles(true);
+    vehicleSearchTimeout.current = setTimeout(async () => {
+      try {
+        const results = await ApiService.searchVehicles(text, 20);
+        setVehicleSearchResults(results || []);
+      } catch (err) {
+        console.warn("Vehicle search failed:", err);
+        setVehicleSearchResults([]);
+      } finally {
+        setIsSearchingVehicles(false);
+      }
+    }, 400);
+  }, []);
 
   const normalizeId = (value) => {
     if (value === null || value === undefined || value === "") return null;
@@ -382,6 +415,9 @@ const TransactionHistoryScreen = ({ navigation }) => {
       userId: null,
       processedOnly: null,
     });
+    setSelectedVehicleName("");
+    setVehicleSearchTerm("");
+    setVehicleSearchResults([]);
   };
 
   useEffect(() => {
@@ -534,7 +570,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
     // Don't allow future dates
     const today = new Date();
     if (newYear > today.getFullYear() ||
-        (newYear === today.getFullYear() && newMonth > today.getMonth() + 1)) {
+      (newYear === today.getFullYear() && newMonth > today.getMonth() + 1)) {
       return;
     }
 
@@ -1110,8 +1146,8 @@ const TransactionHistoryScreen = ({ navigation }) => {
                 </View>
                 {getFuelingLocation(selectedTransaction).latitude &&
                   getFuelingLocation(selectedTransaction).longitude && (
-                  <Icon name="external-link-alt" size={16} color="#2563eb" />
-                )}
+                    <Icon name="external-link-alt" size={16} color="#2563eb" />
+                  )}
               </TouchableOpacity>
             </View>
 
@@ -1255,45 +1291,45 @@ const TransactionHistoryScreen = ({ navigation }) => {
             {/* Vehicle Info */}
             {(selectedTransaction.vehicleName ||
               selectedTransaction.vehicleNumberPlate) && (
-              <View style={styles.auditSection}>
-                <Text style={styles.auditSectionTitle}>
-                  Vehicle Information
-                </Text>
-                <View style={styles.auditCard}>
-                  <View style={styles.auditRow}>
-                    <Text style={styles.auditLabel}>Vehicle</Text>
-                    <Text style={styles.auditValue}>
-                      {selectedTransaction.vehicleName ||
-                        selectedTransaction.vehicleNumberPlate}
-                    </Text>
+                <View style={styles.auditSection}>
+                  <Text style={styles.auditSectionTitle}>
+                    Vehicle Information
+                  </Text>
+                  <View style={styles.auditCard}>
+                    <View style={styles.auditRow}>
+                      <Text style={styles.auditLabel}>Vehicle</Text>
+                      <Text style={styles.auditValue}>
+                        {selectedTransaction.vehicleName ||
+                          selectedTransaction.vehicleNumberPlate}
+                      </Text>
+                    </View>
+                    {selectedTransaction.vehicleNumberPlate && selectedTransaction.vehicleName && (
+                      <View style={styles.auditRow}>
+                        <Text style={styles.auditLabel}>Plate Number</Text>
+                        <Text style={styles.auditValue}>
+                          {selectedTransaction.vehicleNumberPlate}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedTransaction.employeeName && (
+                      <View style={styles.auditRow}>
+                        <Text style={styles.auditLabel}>Assigned Employee</Text>
+                        <Text style={[styles.auditValue, { color: "#059669", fontWeight: "600" }]}>
+                          {selectedTransaction.employeeName}
+                        </Text>
+                      </View>
+                    )}
+                    {selectedTransaction.tag && (
+                      <View style={styles.auditRow}>
+                        <Text style={styles.auditLabel}>Tag</Text>
+                        <Text style={styles.auditValue}>
+                          {selectedTransaction.tag}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  {selectedTransaction.vehicleNumberPlate && selectedTransaction.vehicleName && (
-                    <View style={styles.auditRow}>
-                      <Text style={styles.auditLabel}>Plate Number</Text>
-                      <Text style={styles.auditValue}>
-                        {selectedTransaction.vehicleNumberPlate}
-                      </Text>
-                    </View>
-                  )}
-                  {selectedTransaction.employeeName && (
-                    <View style={styles.auditRow}>
-                      <Text style={styles.auditLabel}>Assigned Employee</Text>
-                      <Text style={[styles.auditValue, { color: "#059669", fontWeight: "600" }]}>
-                        {selectedTransaction.employeeName}
-                      </Text>
-                    </View>
-                  )}
-                  {selectedTransaction.tag && (
-                    <View style={styles.auditRow}>
-                      <Text style={styles.auditLabel}>Tag</Text>
-                      <Text style={styles.auditValue}>
-                        {selectedTransaction.tag}
-                      </Text>
-                    </View>
-                  )}
                 </View>
-              </View>
-            )}
+              )}
 
             <View style={{ height: 32 }} />
           </ScrollView>
@@ -1338,29 +1374,81 @@ const TransactionHistoryScreen = ({ navigation }) => {
             records
           </Text>
 
-          {/* Vehicle Filter */}
+          {/* Vehicle Filter - Backend Search */}
           <View style={styles.filterSection}>
             <Text style={styles.filterLabel}>
               <Icon name="truck" size={12} color="#6b7280" /> Vehicle
             </Text>
-            <View style={styles.pickerContainer}>
-              <Picker
-                selectedValue={clientFilters.vehicleId}
-                onValueChange={(value) =>
-                  setClientFilters((prev) => ({ ...prev, vehicleId: value }))
-                }
-                style={styles.picker}
-              >
-                <Picker.Item label="All Vehicles" value={null} />
-                {filterOptions.vehicles.map((v) => (
-                  <Picker.Item
-                    key={v.id}
-                    label={v.name + (v.plate ? ` (${v.plate})` : "")}
-                    value={v.id}
+            {clientFilters.vehicleId && selectedVehicleName ? (
+              <View style={styles.selectedVehicleRow}>
+                <Text style={styles.selectedVehicleText} numberOfLines={1}>
+                  {selectedVehicleName}
+                </Text>
+                <TouchableOpacity
+                  onPress={() => {
+                    setClientFilters((prev) => ({ ...prev, vehicleId: null }));
+                    setSelectedVehicleName("");
+                    setVehicleSearchTerm("");
+                    setVehicleSearchResults([]);
+                  }}
+                >
+                  <Icon name="times-circle" size={16} color="#ef4444" solid />
+                </TouchableOpacity>
+              </View>
+            ) : (
+              <View>
+                <View style={styles.pickerContainer}>
+                  <TextInput
+                    style={styles.vehicleSearchInput}
+                    placeholder="Search vehicle name or plate..."
+                    placeholderTextColor="#9ca3af"
+                    value={vehicleSearchTerm}
+                    onChangeText={handleVehicleSearch}
+                    autoCapitalize="none"
                   />
-                ))}
-              </Picker>
-            </View>
+                  {isSearchingVehicles && (
+                    <ActivityIndicator
+                      size="small"
+                      color="#2563eb"
+                      style={{ position: "absolute", right: 12, top: 10 }}
+                    />
+                  )}
+                </View>
+                {vehicleSearchResults.length > 0 && (
+                  <View style={styles.vehicleSearchResults}>
+                    {vehicleSearchResults.map((v) => (
+                      <TouchableOpacity
+                        key={v.vehicleId || v.id}
+                        style={styles.vehicleSearchItem}
+                        onPress={() => {
+                          const id = v.vehicleId || v.id;
+                          const name =
+                            (v.hyoungNo || v.vehicleName || v.name || "") +
+                            (v.numberPlate ? ` (${v.numberPlate})` : v.plate ? ` (${v.plate})` : "");
+                          setClientFilters((prev) => ({
+                            ...prev,
+                            vehicleId: id,
+                          }));
+                          setSelectedVehicleName(name);
+                          setVehicleSearchTerm("");
+                          setVehicleSearchResults([]);
+                        }}
+                      >
+                        <Icon name="truck" size={12} color="#6b7280" />
+                        <Text style={styles.vehicleSearchItemText}>
+                          {v.hyoungNo || v.vehicleName || v.name || "Unknown"}
+                          {v.numberPlate
+                            ? ` (${v.numberPlate})`
+                            : v.plate
+                              ? ` (${v.plate})`
+                              : ""}
+                        </Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                )}
+              </View>
+            )}
           </View>
 
           {/* PTS Device Filter */}
@@ -1569,7 +1657,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
                   style={[
                     styles.sortButtonText,
                     tempFilters.sortOrder === "desc" &&
-                      styles.sortButtonTextActive,
+                    styles.sortButtonTextActive,
                   ]}
                 >
                   Newest First
@@ -1593,7 +1681,7 @@ const TransactionHistoryScreen = ({ navigation }) => {
                   style={[
                     styles.sortButtonText,
                     tempFilters.sortOrder === "asc" &&
-                      styles.sortButtonTextActive,
+                    styles.sortButtonTextActive,
                   ]}
                 >
                   Oldest First
@@ -2228,6 +2316,52 @@ const styles = StyleSheet.create({
   },
   picker: {
     height: 50,
+  },
+  vehicleSearchInput: {
+    height: 44,
+    paddingHorizontal: 12,
+    fontSize: 14,
+    color: "#1f2937",
+  },
+  vehicleSearchResults: {
+    backgroundColor: "white",
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+    borderRadius: 8,
+    marginTop: 4,
+    maxHeight: 180,
+  },
+  vehicleSearchItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  vehicleSearchItemText: {
+    fontSize: 14,
+    color: "#1f2937",
+    marginLeft: 8,
+    flex: 1,
+  },
+  selectedVehicleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#eff6ff",
+    borderWidth: 1,
+    borderColor: "#bfdbfe",
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  selectedVehicleText: {
+    fontSize: 14,
+    color: "#2563eb",
+    fontWeight: "500",
+    flex: 1,
+    marginRight: 8,
   },
   sortOrderContainer: {
     flexDirection: "row",

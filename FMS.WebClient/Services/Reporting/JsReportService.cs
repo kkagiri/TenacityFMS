@@ -579,7 +579,7 @@ namespace FMS.WebClient.Services.Reporting
                 Landscape = landscape,
                 PrintBackground = true,
                 DisplayHeaderFooter = true,
-                HeaderTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
+                HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
                     <span style=""font-weight:700; color:#1F2937; font-size:10px;"">Hyoung Fleet Management</span>
                     <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
                 </div>",
@@ -589,7 +589,7 @@ namespace FMS.WebClient.Services.Reporting
                 </div>",
                 MarginOptions = new MarginOptions
                 {
-                    Top = "50px",
+                    Top = "60px",
                     Bottom = "50px",
                     Left = "20px",
                     Right = "20px"
@@ -662,6 +662,18 @@ namespace FMS.WebClient.Services.Reporting
 
         private async Task<string> LoadTemplate(string templateName)
         {
+            // Always prefer embedded (compiled) templates over disk files.
+            // Disk files may be stale from a previous deployment and miss
+            // new fields (e.g. variance). If the embedded template exists,
+            // use it and silently repair the disk copy.
+            if (TryGetEmbeddedTemplate(templateName, out var embedded))
+            {
+                // Fire-and-forget repair so disk stays in sync for external editors
+                _ = TryRepairTemplateFileAsync(templateName, embedded);
+                return embedded;
+            }
+
+            // No embedded template — use disk file (custom / user-uploaded templates)
             var content = await _templateManager.GetTemplateAsync(templateName);
             if (string.IsNullOrEmpty(content))
                 throw new FileNotFoundException($"Template '{templateName}' not found.");

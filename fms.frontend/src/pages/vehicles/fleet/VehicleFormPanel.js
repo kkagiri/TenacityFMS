@@ -1,6 +1,6 @@
 /**
  * File:          VehicleFormPanel.js
- * Purpose:       M365 native edit form for vehicles, rendered inside the VehicleDetailPanel.
+ * Purpose:       M365 native form for vehicle create/edit, rendered in detail and add panels.
  *                Uses native M365 inputs; DevExtreme SelectBox only for
  *                searchable dropdowns (types, models, manufacturers, sites, employees).
  *                Mirrors the TankFormPanel design pattern.
@@ -8,12 +8,14 @@
  * Last Modified: 2026-02-26
  *
  * Props:
- * - vehicle      (object): The vehicle to edit
+ * - vehicle      (object): The vehicle to edit (null for create mode)
  * - onSubmit     (func):   Called with formData on successful validation
  * - onCancel     (func):   Called when user cancels editing
  * - isSaving     (bool):   Whether a save is in progress
+ * - submitLabel  (string): Footer submit button text
+ * - savingLabel  (string): Footer submit button text while saving
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { useDispatch } from "react-redux";
 import { SelectBox } from "devextreme-react/select-box";
 import M365SectionCard from "../../../components/m365/M365SectionCard";
@@ -38,6 +40,7 @@ const buildFormData = (v) => ({
     defaultEmployeeId: v?.defaultEmployeeId || null,
     defaultExptdAvgid: v?.defaultExptdAvgid || null,
     fuelTankCapacity: v?.fuelTankCapacity || null,
+    capacity: v?.capacity || "",
     isFullTankPolicy: v?.isFullTankPolicy || v?.IsFullTankPolicy || false,
     passenger: v?.passenger || "",
     currentPhysicalReading: v?.currentPhysicalReading || "",
@@ -49,7 +52,14 @@ const buildFormData = (v) => ({
     gpsgategeneratedId: v?.gpsgategeneratedId || false,
 });
 
-const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
+const VehicleFormPanel = ({
+    vehicle,
+    onSubmit,
+    onCancel,
+    isSaving,
+    submitLabel = "Save Changes",
+    savingLabel = "Saving...",
+}) => {
     const dispatch = useDispatch();
 
     const [form, setForm] = useState(() => buildFormData(vehicle));
@@ -64,10 +74,133 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
     const [employees, setEmployees] = useState([]);
     const [expectedAverages, setExpectedAverages] = useState([]);
 
+    const normalizeLookupOptions = (items, config) => {
+        const source = Array.isArray(items) ? items : [];
+        return source
+            .map((item) => {
+                const idValue = config.idKeys
+                    .map((key) => item?.[key])
+                    .find((value) => value !== undefined && value !== null && value !== "");
+                const id = Number(idValue);
+                if (!Number.isFinite(id)) return null;
+
+                const name = config.nameKeys
+                    .map((key) => item?.[key])
+                    .find((value) => typeof value === "string" && value.trim().length > 0);
+                if (!name) return null;
+
+                return { id, name };
+            })
+            .filter(Boolean);
+    };
+
+    const normalizedVehicleTypes = useMemo(
+        () =>
+            normalizeLookupOptions(vehicleTypes, {
+                idKeys: ["id", "vehicleTypeId", "Id", "VehicleTypeId"],
+                nameKeys: ["name", "vehicleTypeName", "Name", "VehicleTypeName"],
+            }),
+        [vehicleTypes]
+    );
+
+    const normalizedVehicleManufacturers = useMemo(
+        () =>
+            normalizeLookupOptions(vehicleManufacturers, {
+                idKeys: ["id", "vehicleManufacturerId", "Id", "VehicleManufacturerId"],
+                nameKeys: [
+                    "name",
+                    "vehicleManufacturerName",
+                    "Name",
+                    "VehicleManufacturerName",
+                ],
+            }),
+        [vehicleManufacturers]
+    );
+
+    const normalizedVehicleModels = useMemo(() => {
+        const source = Array.isArray(vehicleModels) ? vehicleModels : [];
+        return source
+            .map((item) => {
+                const idValue = ["id", "vehicleModelId", "Id", "VehicleModelId"]
+                    .map((key) => item?.[key])
+                    .find((value) => value !== undefined && value !== null && value !== "");
+                const id = Number(idValue);
+                if (!Number.isFinite(id)) return null;
+
+                const name = ["name", "vehicleModelName", "Name", "VehicleModelName"]
+                    .map((key) => item?.[key])
+                    .find((value) => typeof value === "string" && value.trim().length > 0);
+                if (!name) return null;
+
+                const manufacturerIdValue = [
+                    "manufacturerId",
+                    "vehicleManufacturerId",
+                    "ManufacturerId",
+                    "VehicleManufacturerId",
+                ]
+                    .map((key) => item?.[key])
+                    .find((value) => value !== undefined && value !== null && value !== "");
+                const manufacturerId = Number(manufacturerIdValue);
+                const manufacturerName = [
+                    "manufacturerName",
+                    "vehicleManufacturerName",
+                    "ManufacturerName",
+                    "VehicleManufacturerName",
+                    "name",
+                ]
+                    .map((key) => item?.manufacturer?.[key] ?? item?.vehicleManufacturer?.[key] ?? item?.[key])
+                    .find((value) => typeof value === "string" && value.trim().length > 0);
+
+                return {
+                    id,
+                    name,
+                    manufacturerId: Number.isFinite(manufacturerId)
+                        ? manufacturerId
+                        : null,
+                    manufacturerName: manufacturerName || null,
+                };
+            })
+            .filter(Boolean);
+    }, [vehicleModels]);
+
+    const filteredVehicleModels = useMemo(() => {
+        const selectedManufacturerId = Number(form.vehicleManufacturerId);
+        if (!Number.isFinite(selectedManufacturerId)) {
+            return [];
+        }
+
+        const byId = normalizedVehicleModels.filter(
+            (model) => Number(model.manufacturerId) === selectedManufacturerId
+        );
+        if (byId.length > 0) return byId;
+
+        const selectedManufacturerName = normalizedVehicleManufacturers
+            .find((manufacturer) => Number(manufacturer.id) === selectedManufacturerId)
+            ?.name?.trim()
+            ?.toLowerCase();
+
+        if (selectedManufacturerName) {
+            const byName = normalizedVehicleModels.filter(
+                (model) =>
+                    typeof model.manufacturerName === "string" &&
+                    model.manufacturerName.trim().toLowerCase() === selectedManufacturerName
+            );
+            if (byName.length > 0) return byName;
+        }
+
+        // Fallback for payloads without manufacturer linkage.
+        return normalizedVehicleModels;
+    }, [
+        normalizedVehicleModels,
+        normalizedVehicleManufacturers,
+        form.vehicleManufacturerId,
+    ]);
+
     /* ── Initialise form when vehicle changes ── */
     useEffect(() => {
-        if (vehicle) setForm(buildFormData(vehicle));
-    }, [vehicle?.vehicleId]); // eslint-disable-line react-hooks/exhaustive-deps
+        setForm(buildFormData(vehicle));
+        setErrors({});
+    }, [vehicle]);
 
     /* ── Load dropdown data once ── */
     useEffect(() => {
@@ -118,9 +251,42 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
 
     /* ── Field setter ── */
     const set = useCallback((field, value) => {
-        setForm((p) => ({ ...p, [field]: value }));
+        const idFields = new Set([
+            "vehicleTypeId",
+            "vehicleModelId",
+            "vehicleManufacturerId",
+            "workingSiteId",
+            "defaultEmployeeId",
+            "defaultExptdAvgid",
+        ]);
+
+        let nextValue = value;
+        if (idFields.has(field)) {
+            if (value === "" || value === undefined || value === null) {
+                nextValue = null;
+            } else {
+                const numericValue = Number(value);
+                nextValue = Number.isFinite(numericValue) ? numericValue : value;
+            }
+        }
+
+        setForm((p) => ({ ...p, [field]: nextValue }));
         setErrors((p) => ({ ...p, [field]: "" }));
     }, []);
+
+    useEffect(() => {
+        if (!form.vehicleModelId) return;
+
+        const selectedModelId = Number(form.vehicleModelId);
+        const stillValid = filteredVehicleModels.some(
+            (model) => Number(model.id) === selectedModelId
+        );
+
+        if (!stillValid) {
+            setForm((prev) => ({ ...prev, vehicleModelId: null }));
+            setErrors((prev) => ({ ...prev, vehicleModelId: "" }));
+        }
+    }, [form.vehicleManufacturerId, form.vehicleModelId, filteredVehicleModels]);
 
     /* ── Validation ── */
     const validate = () => {
@@ -221,7 +387,7 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
                             <div>
                                 <label className="m365-field__label">Vehicle Type</label>
                                 <SelectBox
-                                    dataSource={vehicleTypes}
+                                    dataSource={normalizedVehicleTypes}
                                     value={form.vehicleTypeId}
                                     valueExpr="id"
                                     displayExpr="name"
@@ -238,7 +404,7 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
                             <div>
                                 <label className="m365-field__label">Manufacturer</label>
                                 <SelectBox
-                                    dataSource={vehicleManufacturers}
+                                    dataSource={normalizedVehicleManufacturers}
                                     value={form.vehicleManufacturerId}
                                     valueExpr="id"
                                     displayExpr="name"
@@ -257,14 +423,19 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
                             <div>
                                 <label className="m365-field__label">Model</label>
                                 <SelectBox
-                                    dataSource={vehicleModels}
+                                    dataSource={filteredVehicleModels}
                                     value={form.vehicleModelId}
                                     valueExpr="id"
                                     displayExpr="name"
                                     onValueChanged={(e) => set("vehicleModelId", e.value)}
-                                    placeholder="Select model"
+                                    placeholder={
+                                        form.vehicleManufacturerId
+                                            ? "Select model"
+                                            : "Select manufacturer first"
+                                    }
                                     searchEnabled
                                     showClearButton
+                                    disabled={!form.vehicleManufacturerId}
                                     height={34}
                                     stylingMode="outlined"
                                 />
@@ -280,6 +451,15 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
                                     onChange={(e) => set("passenger", e.target.value)}
                                 />
                             </div>
+                        </div>
+                        <div>
+                            <label className="m365-field__label">Cargo Capacity</label>
+                            <input
+                                className="m365-input"
+                                placeholder="Enter cargo capacity"
+                                value={form.capacity}
+                                onChange={(e) => set("capacity", e.target.value)}
+                            />
                         </div>
                     </div>
                 </M365SectionCard>
@@ -484,7 +664,7 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
                     onClick={handleSubmit}
                     disabled={isSaving}
                 >
-                    {isSaving ? "Saving…" : "Save Changes"}
+                    {isSaving ? savingLabel : submitLabel}
                 </button>
             </div>
         </div>
@@ -492,3 +672,4 @@ const VehicleFormPanel = ({ vehicle, onSubmit, onCancel, isSaving }) => {
 };
 
 export default VehicleFormPanel;
+

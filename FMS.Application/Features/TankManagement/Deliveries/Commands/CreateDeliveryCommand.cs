@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Application.Features.EventEngine.Engine;
+using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.FMS.Delivery.cs;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
@@ -28,8 +30,9 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
         //Cursor - Added TankVolumeHistoryIntegrationService dependency
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
+        private readonly IEventExpressionEngine _eventEngine;
 
-        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService)
+        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine)
         {
             _context = context;
             _logger = logger;
@@ -37,6 +40,7 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
             _mediator = mediator;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
+            _eventEngine = eventEngine;
         }
 
         public async Task<FMSResponseMessage> Handle(CreateDeliveryCommand request, CancellationToken cancellationToken)
@@ -197,6 +201,73 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                 {
                     _logger.LogWarning("Failed to update tank volume history: {Message}", volumeUpdateResult.Message);
                     // We continue even if volume history update fails, but log the error
+                }
+
+                // Fire ManualDeliveryEvent through the event expression engine
+                try
+                {
+                    var isSameDay = deliveryDate.Date == DateTime.UtcNow.Date;
+                    var fillPct = tank.TankVolume > 0
+                        ? (request.DeliveryDTO.ManualDeliveryAmount / tank.TankVolume) * 100m
+                        : 0m;
+
+                    var site = await _context.Sites.FindAsync(new object[] { tank.SiteId }, cancellationToken);
+
+                    var deliveryEvent = new ManualDeliveryEvent
+                    {
+                        SiteId = tank.SiteId,
+                        TankId = tank.Id,
+                        Severity = isSameDay ? "Low" : "Medium",
+                        TriggeredBy = request.DeliveryDTO.RecordedBy,
+                        Message = $"Manual delivery recorded: {request.DeliveryDTO.ManualDeliveryAmount:N0}L of {tank.FuelGradeName ?? "fuel"} to {tank.Name ?? $"Tank {tank.Id}"}" +
+                                  (isSameDay ? " (same-day entry)" : $" (historical: {deliveryDate:yyyy-MM-dd})"),
+
+                        // Delivery identification
+                        DeliveryId = delivery.Id,
+                        LpoNumber = request.DeliveryDTO.Lponumber ?? string.Empty,
+
+                        // Tank / Site
+                        TankName = tank.Name ?? $"Tank {tank.Id}",
+                        SiteName = site?.Name ?? $"Site {tank.SiteId}",
+                        ProductName = tank.FuelGradeName ?? "Unknown",
+
+                        // Supplier
+                        SupplierName = supplier.Name ?? $"Supplier {supplier.Id}",
+                        SupplierId = supplier.Id,
+
+                        // Volume
+                        ManualDeliveryAmount = request.DeliveryDTO.ManualDeliveryAmount,
+                        SensorDeliveryAmount = request.DeliveryDTO.SensorDeliveryAmount,
+                        StockBeforeDelivery = request.DeliveryDTO.StockBeforeDelivery,
+                        StockAfterDelivery = request.DeliveryDTO.StockAfterDelivery,
+                        TankCapacity = tank.TankVolume,
+                        FillPercentage = fillPct,
+
+                        // Cost
+                        PricePerLiter = request.DeliveryDTO.PricePerLiter,
+                        TotalCost = request.DeliveryDTO.PricePerLiter.HasValue
+                            ? request.DeliveryDTO.PricePerLiter.Value * request.DeliveryDTO.ManualDeliveryAmount
+                            : null,
+
+                        // Temperature / Density
+                        DeliveryTemperature = request.DeliveryDTO.DeliveryTemperature,
+                        DeliveryDensity = request.DeliveryDTO.DeliveryDensity,
+
+                        // Timing
+                        DeliveryDate = deliveryDate,
+                        IsSameDay = isSameDay,
+                        RecordedByName = user.UserName ?? request.DeliveryDTO.RecordedBy
+                    };
+
+                    await _eventEngine.ProcessAsync(deliveryEvent, cancellationToken);
+                    _logger.LogInformation(
+                        "ManualDelivery event fired for DeliveryId {DeliveryId}: Tank={Tank}, Volume={Volume}L, SameDay={SameDay}",
+                        delivery.Id, tank.Name, request.DeliveryDTO.ManualDeliveryAmount, isSameDay);
+                }
+                catch (Exception eventEx)
+                {
+                    // Event engine failure should never block delivery creation
+                    _logger.LogWarning(eventEx, "Failed to fire ManualDelivery event for DeliveryId {DeliveryId}", delivery.Id);
                 }
 
                 return new FMSResponseMessage(true, "Delivery created successfully");

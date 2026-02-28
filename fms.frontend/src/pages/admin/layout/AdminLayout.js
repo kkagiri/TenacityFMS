@@ -1,3 +1,12 @@
+/**
+ * File: AdminLayout.js
+ * Purpose: Shared admin shell layout with sidebar navigation and contextual page titles.
+ * Dependencies: react-router-dom, admin navigation helper
+ * Last Modified: 2026-02-26
+ *
+ * Key Components:
+ * - AdminLayout: Renders admin sidebar groups and hosts routed admin content.
+ */
 import React, { useState, useCallback } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { adminRoutes, isActiveRoute } from "../utils/navigationHelper";
@@ -10,6 +19,9 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const [notificationExpanded, setNotificationExpanded] = useState(() => {
     // Auto-expand if currently on a notification route
     return location.pathname.includes("/notification");
+  });
+  const [fuelingRulesExpanded, setFuelingRulesExpanded] = useState(() => {
+    return location.pathname.includes("/fueling-rules");
   });
 
   // Determine page title and subtitle based on current route
@@ -51,11 +63,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "PTS Device Management",
         subtitle: "Configure point-of-sale devices",
       };
-    } else if (pathname.includes("/ptsconfig")) {
-      return {
-        title: "PTS Configuration",
-        subtitle: "Advanced PTS automation settings",
-      };
     } else if (pathname.includes("/configuration")) {
       return {
         title: "Configuration Management",
@@ -92,10 +99,25 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: "Expected Fuel Average Management",
         subtitle: "Configure expected fuel consumption benchmarks",
       };
+    } else if (pathname.includes("/checkup-templates")) {
+      return {
+        title: "Checkup Templates",
+        subtitle: "Manage vehicle transfer inspection template items",
+      };
+    } else if (pathname.includes("/fueling-rules/rulesets")) {
+      return {
+        title: "Rule Sets",
+        subtitle: "Manage fueling rule sets, assignments, and simulation",
+      };
+    } else if (pathname.includes("/fueling-rules/location-geofence")) {
+      return {
+        title: "Location & Geofence",
+        subtitle: "Configure location-based rules and geofence boundaries",
+      };
     } else if (pathname.includes("/fueling-rules")) {
       return {
-        title: "Fueling Rules Management",
-        subtitle: "Create rule sets and assign fueling restrictions",
+        title: "Fueling Rules",
+        subtitle: "Manage fueling rules, assignments, and restrictions",
       };
     } else if (pathname.includes("/location-validation")) {
       return {
@@ -190,15 +212,38 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   ];
 
   const isNotificationActive = currentPath.includes("/notification");
+  const isFuelingRulesActive = currentPath.includes("/fueling-rules");
 
   const handleToggleNotifications = useCallback(() => {
     if (sidebarCollapsed) {
-      // On collapsed sidebar, navigate to notification dashboard
       navigate(adminRoutes.notificationDashboard);
       return;
     }
     setNotificationExpanded((prev) => !prev);
   }, [sidebarCollapsed, navigate]);
+
+  const handleToggleFuelingRules = useCallback(() => {
+    if (sidebarCollapsed) {
+      navigate(adminRoutes.fuelingRulesRulesets);
+      return;
+    }
+    setFuelingRulesExpanded((prev) => !prev);
+  }, [sidebarCollapsed, navigate]);
+
+  const fuelingRulesSubItems = [
+    {
+      id: "fr-rulesets",
+      title: "Rule Sets",
+      icon: "fa-light fa-layer-group",
+      path: adminRoutes.fuelingRulesRulesets,
+    },
+    {
+      id: "fr-location-geofence",
+      title: "Location & Geofence",
+      icon: "fa-light fa-map-location-dot",
+      path: adminRoutes.fuelingRulesLocationGeofence,
+    },
+  ];
 
   const systemItems = [
     {
@@ -206,12 +251,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "Tags",
       icon: "fa-light fa-barcode",
       path: adminRoutes.tags,
-    },
-    {
-      id: "fueling-rules",
-      title: "Fueling Rules",
-      icon: "fa-light fa-gas-pump",
-      path: adminRoutes.fuelingRules,
     },
     {
       id: "sites",
@@ -250,6 +289,12 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       path: adminRoutes.expectedAverages,
     },
     {
+      id: "checkup-templates",
+      title: "Checkup Templates",
+      icon: "fa-light fa-list-check",
+      path: adminRoutes.checkupTemplates,
+    },
+    {
       id: "location-validation",
       title: "Location Logs",
       icon: "fa-light fa-location-crosshairs",
@@ -269,12 +314,6 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       title: "PTS Devices",
       icon: "fa-light fa-meter",
       path: adminRoutes.ptsdevice,
-    },
-    {
-      id: "ptsconfig",
-      title: "PTS Configuration",
-      icon: "fa-light fa-gears",
-      path: adminRoutes.ptsconfig,
     },
   ];
 
@@ -387,6 +426,44 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
                 })}
                 <div className="sub-group-label">Settings</div>
                 {notificationSettingsItems.map((item) => {
+                  const isActive = isActiveRoute(currentPath, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={() => handleNavigation(item.path)}
+                      className={`nav-item nav-item--sub ${isActive ? "active" : ""}`}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        <span>{item.title}</span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </nav>
+            )}
+          </div>
+
+          <div className="nav-separator"></div>
+
+          {/* Fueling Rules Expandable Section */}
+          <div className="nav-group">
+            <div
+              className={`nav-item nav-item--expandable ${isFuelingRulesActive ? "active" : ""}`}
+              onClick={handleToggleFuelingRules}
+              title={sidebarCollapsed ? "Fueling Rules" : ""}
+            >
+              <div className="nav-item-content">
+                <i className="fa-light fa-gas-pump"></i>
+                {!sidebarCollapsed && <span>Fueling Rules</span>}
+              </div>
+              {!sidebarCollapsed && (
+                <i className={`fa-light ${fuelingRulesExpanded ? "fa-chevron-up" : "fa-chevron-down"} nav-expand-icon`}></i>
+              )}
+            </div>
+            {!sidebarCollapsed && fuelingRulesExpanded && (
+              <nav className="nav-submenu">
+                {fuelingRulesSubItems.map((item) => {
                   const isActive = isActiveRoute(currentPath, item.path);
                   return (
                     <div

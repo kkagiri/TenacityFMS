@@ -69,13 +69,15 @@ const formatLastUpdated = (dateValue) => {
   const date = parseDateValue(dateValue);
   if (!date || Number.isNaN(date.getTime())) return "-";
 
-  return date.toLocaleString("en-US", {
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  let hrs = date.getHours();
+  const ampm = hrs >= 12 ? "PM" : "AM";
+  hrs = hrs % 12 || 12;
+  const hh = String(hrs).padStart(2, "0");
+  const mm = String(date.getMinutes()).padStart(2, "0");
+  return `${y}/${m}/${d} ${hh}:${mm} ${ampm}`;
 };
 
 const resolveLedgerSource = (tx) => {
@@ -397,9 +399,6 @@ const SiteOverviewScreen = () => {
 
     return (
       <View key={tank.id} style={styles.tankItem}>
-        <View style={styles.tankIcon}>
-          <Icon name="database" size={16} color="#6366f1" />
-        </View>
         <View style={styles.tankDetails}>
           <View style={styles.tankHeader}>
             <Text style={styles.tankName}>{tank.name}</Text>
@@ -428,10 +427,16 @@ const SiteOverviewScreen = () => {
               ]}
             />
           </View>
-          <Text style={styles.tankUpdateText}>
-            Last Updated: {formatLastUpdated(updateInfo.updatedAt)}
-            {updateInfo.source ? ` • ${updateInfo.source}` : ""}
-          </Text>
+          <View style={styles.tankUpdateRow}>
+            <Text style={styles.tankUpdateText}>
+              {formatLastUpdated(updateInfo.updatedAt)}
+            </Text>
+            {updateInfo.source ? (
+              <Text style={styles.tankSourceText}>
+                Source: {updateInfo.source}
+              </Text>
+            ) : null}
+          </View>
         </View>
       </View>
     );
@@ -450,67 +455,60 @@ const SiteOverviewScreen = () => {
           activeOpacity={0.7}
         >
           <View style={styles.siteInfo}>
-            <View style={styles.siteIconContainer}>
-              <Icon name="map-marker-alt" size={18} color="#2563eb" />
-            </View>
-            <View style={styles.siteTextContainer}>
-              <Text style={styles.siteName}>{site.name}</Text>
-              <Text style={styles.siteSubtext}>
-                {stats.tankCount} tanks • {formatVolume(stats.totalStock)}{" "}
-                stored
+            <Text style={styles.siteName}>{site.name}</Text>
+            <View style={styles.siteTankCountRow}>
+              <Text style={styles.siteTankCount}>
+                {stats.tankCount} {stats.tankCount === 1 ? "tank" : "tanks"}
               </Text>
-              <Text style={styles.siteUpdateText}>
-                Last Updated: {formatLastUpdated(siteUpdateInfo.updatedAt)}
-                {siteUpdateInfo.source ? ` • ${siteUpdateInfo.source}` : ""}
-              </Text>
+              <Icon
+                name={isExpanded ? "chevron-up" : "chevron-down"}
+                size={12}
+                color="#9ca3af"
+              />
             </View>
           </View>
-          <Icon
-            name={isExpanded ? "chevron-up" : "chevron-down"}
-            size={14}
-            color="#9ca3af"
-          />
         </TouchableOpacity>
+
+        {/* Site Update Row */}
+        <View style={styles.siteUpdateRow}>
+          <Text style={styles.siteUpdateText}>
+            {formatLastUpdated(siteUpdateInfo.updatedAt)}
+          </Text>
+          {siteUpdateInfo.source ? (
+            <Text style={styles.siteSourceText}>
+              Source: {siteUpdateInfo.source}
+            </Text>
+          ) : null}
+        </View>
 
         {/* Site Stats Row */}
         <View style={styles.siteStatsRow}>
           <View style={styles.siteStat}>
-            <View style={[styles.siteStatIcon, { backgroundColor: "#dcfce7" }]}>
-              <Icon name="gas-pump" size={12} color="#22c55e" />
-            </View>
-            <View>
-              <Text style={styles.siteStatValue}>
-                {formatVolume(stats.totalStock)}
-              </Text>
-              <Text style={styles.siteStatLabel}>Current Stock</Text>
-            </View>
+            <Text style={styles.siteStatValue}>
+              {formatVolume(stats.totalStock)}
+            </Text>
+            <Text style={styles.siteStatLabel}>Current Stock</Text>
           </View>
 
-          <View style={styles.siteStat}>
-            <View style={[styles.siteStatIcon, { backgroundColor: "#e0e7ff" }]}>
-              <Icon name="percentage" size={12} color="#6366f1" />
-            </View>
-            <View>
-              <Text
-                style={[
-                  styles.siteStatValue,
-                  { color: getFillColor(stats.percentFull) },
-                ]}
-              >
-                {stats.percentFull}%
-              </Text>
-              <Text style={styles.siteStatLabel}>Capacity</Text>
-            </View>
-          </View>
+          <View style={styles.siteStatDivider} />
 
           <View style={styles.siteStat}>
-            <View style={[styles.siteStatIcon, { backgroundColor: "#fef3c7" }]}>
-              <Icon name="exchange-alt" size={12} color="#f59e0b" />
-            </View>
-            <View>
-              <Text style={styles.siteStatValue}>{stats.transactionCount}</Text>
-              <Text style={styles.siteStatLabel}>Today</Text>
-            </View>
+            <Text
+              style={[
+                styles.siteStatValue,
+                { color: getFillColor(stats.percentFull) },
+              ]}
+            >
+              {stats.percentFull}%
+            </Text>
+            <Text style={styles.siteStatLabel}>Capacity</Text>
+          </View>
+
+          <View style={styles.siteStatDivider} />
+
+          <View style={styles.siteStat}>
+            <Text style={styles.siteStatValue}>{stats.transactionCount}</Text>
+            <Text style={styles.siteStatLabel}>Today</Text>
           </View>
         </View>
 
@@ -590,7 +588,6 @@ const SiteOverviewScreen = () => {
         <Text style={styles.summaryTitle}>Overall Fuel Status</Text>
         <View style={styles.summaryStats}>
           <View style={styles.summaryStat}>
-            <Icon name="gas-pump" size={24} color="#22c55e" />
             <Text style={styles.summaryValue}>
               {formatVolume(overallStats.totalStock)}
             </Text>
@@ -598,11 +595,6 @@ const SiteOverviewScreen = () => {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryStat}>
-            <Icon
-              name="tachometer-alt"
-              size={24}
-              color={getFillColor(overallStats.percentFull)}
-            />
             <Text
               style={[
                 styles.summaryValue,
@@ -615,7 +607,6 @@ const SiteOverviewScreen = () => {
           </View>
           <View style={styles.summaryDivider} />
           <View style={styles.summaryStat}>
-            <Icon name="exchange-alt" size={24} color="#f59e0b" />
             <Text style={styles.summaryValue}>
               {overallStats.transactionCount}
             </Text>
@@ -683,13 +674,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     margin: 16,
     marginBottom: 8,
-    borderRadius: 12,
+    borderRadius: 8,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   summaryTitle: {
     fontSize: 16,
@@ -711,7 +699,6 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "700",
     color: "#1f2937",
-    marginTop: 8,
   },
   summaryLabel: {
     fontSize: 12,
@@ -729,14 +716,11 @@ const styles = StyleSheet.create({
   },
   siteCard: {
     backgroundColor: "#ffffff",
-    borderRadius: 12,
+    borderRadius: 8,
     marginBottom: 12,
     padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 2,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
   },
   siteHeader: {
     flexDirection: "row",
@@ -746,34 +730,39 @@ const styles = StyleSheet.create({
   siteInfo: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "space-between",
     flex: 1,
   },
-  siteIconContainer: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#eff6ff",
-    justifyContent: "center",
+  siteTankCountRow: {
+    flexDirection: "row",
     alignItems: "center",
-    marginRight: 12,
+    gap: 6,
   },
-  siteTextContainer: {
-    flex: 1,
+  siteTankCount: {
+    fontSize: 13,
+    color: "#6b7280",
   },
+
+
   siteName: {
     fontSize: 16,
     fontWeight: "600",
     color: "#1f2937",
   },
-  siteSubtext: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginTop: 2,
+
+  siteUpdateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 8,
   },
   siteUpdateText: {
     fontSize: 11,
     color: "#9ca3af",
-    marginTop: 4,
+  },
+  siteSourceText: {
+    fontSize: 11,
+    color: "#9ca3af",
   },
   siteStatsRow: {
     flexDirection: "row",
@@ -784,16 +773,13 @@ const styles = StyleSheet.create({
     borderTopColor: "#f3f4f6",
   },
   siteStat: {
-    flexDirection: "row",
     alignItems: "center",
+    flex: 1,
   },
-  siteStatIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 8,
+  siteStatDivider: {
+    width: 1,
+    height: 30,
+    backgroundColor: "#e5e7eb",
   },
   siteStatValue: {
     fontSize: 14,
@@ -836,20 +822,9 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   tankItem: {
-    flexDirection: "row",
-    alignItems: "flex-start",
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: "#f9fafb",
-  },
-  tankIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 8,
-    backgroundColor: "#eef2ff",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
+    borderBottomColor: "#f3f4f6",
   },
   tankDetails: {
     flex: 1,
@@ -899,10 +874,19 @@ const styles = StyleSheet.create({
     height: "100%",
     borderRadius: 2,
   },
+  tankUpdateRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 6,
+  },
   tankUpdateText: {
     fontSize: 11,
     color: "#9ca3af",
-    marginTop: 6,
+  },
+  tankSourceText: {
+    fontSize: 11,
+    color: "#9ca3af",
   },
   noTanksText: {
     fontSize: 13,

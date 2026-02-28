@@ -82,9 +82,10 @@ const LoginScreen = ({ navigation }) => {
       ).unwrap();
 
       if (result.user) {
+        const displayName = result.user.FullName || result.user.fullName || result.user.UserName || result.user.userName || result.user.username || result.user.name || "User";
         Alert.alert(
           "Login Successful",
-          `Welcome back, ${result.user.name || result.user.username}!`,
+          `Welcome back, ${displayName}!`,
           [{ text: "OK" }]
         );
       }

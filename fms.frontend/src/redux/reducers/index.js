@@ -33,7 +33,6 @@ import automatedReconciliationReducer from "./automatedReconciliationReducer";
 import fuelReportReducer from "./fuelReportReducer";
 import notificationReducer from "./notificationReducer";
 import stockManagementReducer from "./stockManagementReducer";
-import configurationReducer from "./configurationReducer";
 import systemConfigReducer from "./systemConfigReducer";
 import vehicleDashboardReducer from "./vehicleDashboardReducer";
 import issueTrackerReducer from "./issueTrackerReducer";
@@ -88,7 +87,6 @@ const rootReducer = combineReducers({
   fuelReport: fuelReportReducer,
   notification: notificationReducer,
   stockManagement: stockManagementReducer,
-  configuration: configurationReducer,
   systemConfig: systemConfigReducer,
   vehicleDashboard: vehicleDashboardReducer,
   issueTracker: issueTrackerReducer,

@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
+import CustomDateTimePicker from "../common/CustomDateTimePicker";
 
 const VehicleFuelingHistory = ({ vehicle }) => {
   const [fuelingData, setFuelingData] = useState([]);
@@ -28,6 +29,8 @@ const VehicleFuelingHistory = ({ vehicle }) => {
     from: new Date(new Date().setDate(new Date().getDate() - 30)),
     to: new Date(),
   });
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [datePickerTarget, setDatePickerTarget] = useState("from");
   const [summary, setSummary] = useState({
     totalRefills: 0,
     totalFuel: 0,
@@ -249,34 +252,34 @@ const VehicleFuelingHistory = ({ vehicle }) => {
               {/* Meter Readings */}
               {(selectedRecord.previousMeterReading > 0 ||
                 selectedRecord.currentMeterReading > 0) && (
-                <View style={styles.detailSection}>
-                  <Text style={styles.detailSectionTitle}>Meter Readings</Text>
-                  <View style={styles.meterCompare}>
-                    <View style={styles.meterBox}>
-                      <Text style={styles.meterLabel}>Previous</Text>
-                      <Text style={styles.meterValue}>
-                        {selectedRecord.previousMeterReading.toLocaleString()}
-                      </Text>
+                  <View style={styles.detailSection}>
+                    <Text style={styles.detailSectionTitle}>Meter Readings</Text>
+                    <View style={styles.meterCompare}>
+                      <View style={styles.meterBox}>
+                        <Text style={styles.meterLabel}>Previous</Text>
+                        <Text style={styles.meterValue}>
+                          {selectedRecord.previousMeterReading.toLocaleString()}
+                        </Text>
+                      </View>
+                      <Icon name="arrow-right" size={14} color="#9ca3af" />
+                      <View style={styles.meterBox}>
+                        <Text style={styles.meterLabel}>Current</Text>
+                        <Text style={styles.meterValue}>
+                          {selectedRecord.currentMeterReading.toLocaleString()}
+                        </Text>
+                      </View>
                     </View>
-                    <Icon name="arrow-right" size={14} color="#9ca3af" />
-                    <View style={styles.meterBox}>
-                      <Text style={styles.meterLabel}>Current</Text>
-                      <Text style={styles.meterValue}>
-                        {selectedRecord.currentMeterReading.toLocaleString()}
-                      </Text>
-                    </View>
+                    {selectedRecord.distanceOrEngineHours > 0 && (
+                      <View style={styles.distanceRow}>
+                        <Icon name="road" size={12} color="#3b82f6" />
+                        <Text style={styles.distanceText}>
+                          Distance/Hours:{" "}
+                          {selectedRecord.distanceOrEngineHours.toFixed(1)}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  {selectedRecord.distanceOrEngineHours > 0 && (
-                    <View style={styles.distanceRow}>
-                      <Icon name="road" size={12} color="#3b82f6" />
-                      <Text style={styles.distanceText}>
-                        Distance/Hours:{" "}
-                        {selectedRecord.distanceOrEngineHours.toFixed(1)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-              )}
+                )}
 
               {/* Efficiency */}
               {selectedRecord.consumption > 0 && (
@@ -371,13 +374,50 @@ const VehicleFuelingHistory = ({ vehicle }) => {
         </View>
       </View>
 
-      {/* Date Range Indicator */}
+      {/* Date Range Selector */}
       <View style={styles.dateRangeContainer}>
         <Icon name="calendar" size={14} color="#6b7280" />
-        <Text style={styles.dateRangeText}>
-          {formatDate(dateRange.from)} - {formatDate(dateRange.to)}
-        </Text>
+        <TouchableOpacity
+          onPress={() => {
+            setDatePickerTarget("from");
+            setShowDatePicker(true);
+          }}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>{formatDate(dateRange.from)}</Text>
+        </TouchableOpacity>
+        <Text style={styles.dateSeparator}>-</Text>
+        <TouchableOpacity
+          onPress={() => {
+            setDatePickerTarget("to");
+            setShowDatePicker(true);
+          }}
+          style={styles.dateButton}
+        >
+          <Text style={styles.dateButtonText}>{formatDate(dateRange.to)}</Text>
+        </TouchableOpacity>
       </View>
+
+      <CustomDateTimePicker
+        visible={showDatePicker}
+        value={datePickerTarget === "from" ? dateRange.from : dateRange.to}
+        onConfirm={(date) => {
+          setShowDatePicker(false);
+          setDateRange((prev) => {
+            const updated = { ...prev, [datePickerTarget]: date };
+            if (updated.from > updated.to) {
+              if (datePickerTarget === "from") updated.to = date;
+              else updated.from = date;
+            }
+            return updated;
+          });
+          setTimeout(() => loadFuelingData(), 100);
+        }}
+        onCancel={() => setShowDatePicker(false)}
+        showTimePicker={false}
+        maximumDate={datePickerTarget === "from" ? dateRange.to : new Date()}
+        minimumDate={datePickerTarget === "to" ? dateRange.from : null}
+      />
 
       {/* List */}
       {fuelingData.length === 0 ? (
@@ -494,10 +534,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingBottom: 12,
   },
-  dateRangeText: {
+  dateButton: {
+    backgroundColor: "#f3f4f6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 6,
+    marginHorizontal: 4,
+    borderWidth: 1,
+    borderColor: "#e5e7eb",
+  },
+  dateButtonText: {
+    fontSize: 13,
+    color: "#2563eb",
+    fontWeight: "500",
+  },
+  dateSeparator: {
     fontSize: 13,
     color: "#6b7280",
-    marginLeft: 8,
   },
   listContent: {
     paddingHorizontal: 16,

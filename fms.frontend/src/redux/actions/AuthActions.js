@@ -1,5 +1,4 @@
 import axiosInstance from './../../api/axiosInstance';
-import { fetchConfigurations } from './configurationActions';
 import { fetchMyPermissions } from './permissionActions';
 import store from '../../store'; // Import store to check fueling status
 import { setSessionUserId, clearSessionUserId } from '../../utils/crossTabAuthSync';
@@ -122,14 +121,6 @@ export const signIn = (username, password) => async (dispatch) => {
 
         // Fetch user permissions from backend (not from JWT)
         dispatch(fetchMyPermissions());
-
-        // Load configurations after successful login
-        try {
-            dispatch(fetchConfigurations());
-        } catch (configError) {
-            console.warn('Failed to load configurations on login:', configError);
-            // Don't fail login if configuration loading fails
-        }
 
         return { isOk: true };
     } catch (error) {

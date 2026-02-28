@@ -1,6 +1,6 @@
 {
   "name": "fms-mobile",
-  "version": "1.2.12",
+  "version": "1.2.15",
   "private": true,
   "scripts": {
     "android": "react-native run-android",
@@ -9,7 +9,8 @@
     "start": "react-native start",
     "test": "jest",
     "clean": "react-native clean",
-    "pod-install": "cd ios && pod install"
+    "pod-install": "cd ios && pod install",
+    "postinstall": "node scripts/patch-firebase-imports.js"
   },
   "dependencies": {
     "@microsoft/signalr": "^7.0.13",

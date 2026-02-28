@@ -12,8 +12,9 @@
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Form, SimpleItem, Label } from "devextreme-react/form";
-import { Button } from "devextreme-react";
+import SelectBox from "devextreme-react/select-box";
+import DateBox from "devextreme-react/date-box";
+import NumberBox from "devextreme-react/number-box";
 import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 import DataGrid, {
   Column,
@@ -39,7 +40,7 @@ import { createClosingStock } from "../../../redux/actions/ClosingStockActions";
 import { prepareOpeningClosingStockParams } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
-import "./ClosingStockForm.scss";
+import "./_m365-form-common.scss";
 
 // Future records validation imports
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
@@ -173,6 +174,29 @@ const ClosingStockForm = ({
     usingPropSites,
     usingPropTanks,
   ]);
+
+  // Keep filtered tanks synchronized with store updates and shared context
+  useEffect(() => {
+    if (!formData.siteId) {
+      setFilteredTanks([]);
+      return;
+    }
+
+    const matchingTanks = tanksAvailable.filter(
+      (tank) => tank.siteId === formData.siteId
+    );
+
+    setFilteredTanks((previous) => {
+      const previousIds = previous.map((tank) => tank.id).join("|");
+      const nextIds = matchingTanks.map((tank) => tank.id).join("|");
+
+      if (previousIds === nextIds) {
+        return previous;
+      }
+
+      return matchingTanks;
+    });
+  }, [formData.siteId, tanksAvailable]);
 
   // Handle prefilled data
   useEffect(() => {
@@ -601,599 +625,533 @@ const ClosingStockForm = ({
   ]);
 
   return (
-    <div formId="closing-stock-form" className="tw-h-full">
-      <div className="closing-stock-form tw-h-full tw-flex tw-flex-col">
-        <div className="closing-stock-scroll-container tw-flex-1 tw-overflow-y-auto">
-          <div className="tw-p-6">
-            <div className="tw-mb-6">
-              <p className="tw-text-gray-600 tw-text-sm">
-                Record the closing stock amount for the selected tank and date.
-              </p>
-            </div>
+    <div className="m365-form-body">
+      <div className="m365-form-body__scroll">
+        {/* Description */}
+        <p style={{ fontSize: 13, color: "#605e5c", marginBottom: 16 }}>
+          Record the closing stock amount for the selected tank and date.
+        </p>
 
-            {/* Special notice for prefilled closing stock */}
-            {prefilledData?.reason && (
-              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                <div className="tw-flex tw-items-start">
-                  <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                  <div className="tw-flex-1">
-                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                      Required Closing Stock
-                    </h4>
-                    <p className="tw-text-blue-700 tw-text-sm">
-                      {prefilledData.reason}
-                    </p>
-                    <p className="tw-text-blue-600 tw-text-xs tw-mt-2">
-                      The tank and date have been pre-selected to match the
-                      existing opening stock. Please enter the appropriate
-                      closing stock amount for this date.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Dismissible Information Notice */}
-            {showInfoNotice && (
-              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                <div className="tw-flex tw-items-start">
-                  <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                  <div className="tw-flex-1">
-                    <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                      Closing Stock Information
-                    </h4>
-                    <p className="tw-text-blue-700 tw-text-sm">
-                      Closing stock represents the fuel quantity available in
-                      the tank at the end of the specified date and time. This
-                      value will be used for reconciliation and stock
-                      calculations.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      e.stopPropagation();
-                      setShowInfoNotice(false);
-                    }}
-                    className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                    title="Close information"
-                  >
-                    <i className="fa-light fa-times tw-text-lg"></i>
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {loading && (
-              <div className="tw-flex tw-justify-center tw-py-8">
-                <LoadIndicator width={"48px"} height={"48px"} visible={true} />
-              </div>
-            )}
-
-            <Form
-              readOnly={isLoading}
-              formData={formData}
-              showColonAfterLabel={true}
-              labelLocation="top"
-              onFieldDataChanged={handleChange}
-              colCount={2}
-              className="tw-mb-6"
-            >
-              <SimpleItem
-                dataField="date"
-                editorType="dxDateBox"
-                cssClass="datebox-full-width"
-                colSpan={2}
-                editorOptions={{
-                  value: formData.date,
-                  max: new Date(),
-                  displayFormat: "yyyy-MM-dd HH:mm",
-                  type: "datetime",
-                  onValueChanged: handleDateChange,
-                  width: "100%",
-                  dropDownOptions: {
-                    width: "auto",
-                    minWidth: 380,
-                    maxWidth: 520,
-                    wrapperAttr: { class: "datebox-wide" },
-                  },
-                  elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
-                  validationError: validationErrors.date
-                    ? { message: validationErrors.date }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Date & Time" />
-              </SimpleItem>
-
-              <SimpleItem
-                key={`site-${formData.siteId || "empty"}`}
-                dataField="siteId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: sitesAvailable,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  onValueChanged: handleSiteChange,
-                  placeholder:
-                    !dataLoaded && sitesAvailable.length === 0
-                      ? "Loading sites..."
-                      : sitesAvailable.length > 0
-                        ? "Select a site"
-                        : "No sites available",
-                  width: "100%",
-                  searchEnabled: true,
-                  showClearButton: true,
-                  isValid: hasAttemptedSubmit ? !validationErrors.siteId : true,
-                  validationError: validationErrors.siteId
-                    ? { message: validationErrors.siteId }
-                    : null,
-                  validationMessageMode: "always",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                }}
-              >
-                <Label text="Site" />
-              </SimpleItem>
-
-              <SimpleItem
-                key={`tank-${formData.siteId || "empty"}-${formData.tankId || "none"
-                  }`}
-                dataField="tankId"
-                editorType="dxSelectBox"
-                editorOptions={{
-                  items: filteredTanks,
-                  displayExpr: "name",
-                  valueExpr: "id",
-                  onValueChanged: handleTankChange,
-                  disabled: !formData.siteId || formData.siteId === 0,
-                  placeholder:
-                    !formData.siteId || formData.siteId === 0
-                      ? "Select site first"
-                      : filteredTanks.length > 0
-                        ? "Select a tank"
-                        : "No tanks available",
-                  width: "100%",
-                  searchEnabled: true,
-                  showClearButton: true,
-                  isValid: hasAttemptedSubmit ? !validationErrors.tankId : true,
-                  validationError: validationErrors.tankId
-                    ? { message: validationErrors.tankId }
-                    : null,
-                  validationMessageMode: "always",
-                  dropDownOptions: {
-                    container: "body",
-                  },
-                }}
-              >
-                <Label text="Tank" />
-              </SimpleItem>
-
-              {/* Book Balance Display (Read-only) */}
-              {formData.bookBalance !== null &&
-                formData.bookBalance !== undefined && (
-                  <SimpleItem
-                    dataField="bookBalance"
-                    editorType="dxTextBox"
-                    editorOptions={{
-                      value:
-                        formData.bookBalance != null
-                          ? Number(formData.bookBalance).toLocaleString() + " L"
-                          : "0 L",
-                      readOnly: true,
-                      width: "100%",
-                      stylingMode: "filled",
-                    }}
-                  >
-                    <Label text="Current Book Balance (Calculated)" />
-                  </SimpleItem>
-                )}
-
-              {/* Physical Stock Value Display (Read-only) */}
-              {formData.tankId > 0 && (
-                <SimpleItem
-                  dataField="physicalStockValue"
-                  editorType="dxTextBox"
-                  editorOptions={{
-                    value:
-                      formData.physicalStockValue != null
-                        ? Number(formData.physicalStockValue).toLocaleString() +
-                        " L"
-                        : "No physical reading available",
-                    readOnly: true,
-                    width: "100%",
-                    stylingMode: "filled",
-                  }}
-                >
-                  <Label text="Current Physical Stock Value (Last Recorded)" />
-                </SimpleItem>
-              )}
-
-              <SimpleItem
-                dataField="amount"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.amount,
-                  onValueChanged: handleAmountChange,
-                  placeholder: "Enter physical stock measurement",
-                  width: "100%",
-                  ...(formData.amount !== null &&
-                    formData.amount !== undefined && { format: "#,##0" }),
-                  isValid: hasAttemptedSubmit ? !validationErrors.amount : true,
-                  validationError: validationErrors.amount
-                    ? { message: validationErrors.amount }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Physical Stock Amount (Liters)" />
-              </SimpleItem>
-
-              {/* Closing Meter Reading (Optional) */}
-              <SimpleItem
-                dataField="closingMeter"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.closingMeter || null,
-                  placeholder: "Enter closing meter reading (optional)",
-                  width: "100%",
-                  ...(formData.closingMeter !== null &&
-                    formData.closingMeter !== undefined && {
-                    format: "#,##0.00",
-                  }),
-                }}
-              >
-                <Label text="Closing Meter Reading (Optional)" />
-              </SimpleItem>
-
-              {/* Discrepancy Indicator */}
-              {formData.amount != null &&
-                (formData.bookBalance != null ||
-                  formData.physicalStockValue != null) && (
-                  <div
-                    className="discrepancy-indicator"
-                    style={{
-                      padding: "10px",
-                      marginTop: "10px",
-                      borderRadius: "4px",
-                      backgroundColor: "#f8f9fa",
-                      border: "1px solid #dee2e6",
-                    }}
-                  >
-                    <div style={{ fontWeight: "bold", marginBottom: "5px" }}>
-                      Stock Comparison:
-                    </div>
-                    <div>
-                      New Physical Stock:{" "}
-                      {Number(formData.amount).toLocaleString()} L
-                    </div>
-
-                    {formData.bookBalance != null && (
-                      <>
-                        <div>
-                          Current Book Balance:{" "}
-                          {Number(formData.bookBalance).toLocaleString()} L
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: "bold",
-                            color:
-                              Math.abs(formData.amount - formData.bookBalance) >
-                                formData.bookBalance * 0.05
-                                ? "#f44336"
-                                : "#4caf50",
-                          }}
-                        >
-                          Book Balance Discrepancy:{" "}
-                          {Number(
-                            formData.amount - formData.bookBalance
-                          ).toLocaleString()}{" "}
-                          L (
-                          {formData.bookBalance > 0
-                            ? (
-                              ((formData.amount - formData.bookBalance) /
-                                formData.bookBalance) *
-                              100
-                            ).toFixed(2)
-                            : "100"}
-                          %)
-                        </div>
-                      </>
-                    )}
-
-                    {formData.physicalStockValue != null && (
-                      <>
-                        <div>
-                          Current Physical Stock:{" "}
-                          {Number(formData.physicalStockValue).toLocaleString()}{" "}
-                          L
-                        </div>
-                        <div
-                          style={{
-                            fontWeight: "bold",
-                            color:
-                              Math.abs(
-                                formData.amount - formData.physicalStockValue
-                              ) >
-                                formData.physicalStockValue * 0.05
-                                ? "#ff9800"
-                                : "#4caf50",
-                          }}
-                        >
-                          Physical Stock Change:{" "}
-                          {Number(
-                            formData.amount - formData.physicalStockValue
-                          ).toLocaleString()}{" "}
-                          L (
-                          {formData.physicalStockValue > 0
-                            ? (
-                              ((formData.amount -
-                                formData.physicalStockValue) /
-                                formData.physicalStockValue) *
-                              100
-                            ).toFixed(2)
-                            : "100"}
-                          %)
-                        </div>
-                      </>
-                    )}
-                  </div>
-                )}
-            </Form>
-
-            {/* Historical Entry Information Notice */}
-            {formData.date &&
-              formData.tankId &&
-              !showWarning &&
-              !validationError &&
-              showHistoricalNotice &&
-              (() => {
-                const selectedDate = new Date(formData.date);
-                const today = new Date();
-                const isHistorical =
-                  selectedDate < new Date(today.setHours(0, 0, 0, 0));
-
-                if (isHistorical) {
-                  return (
-                    <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                      <div className="tw-flex tw-items-start tw-justify-between">
-                        <div className="tw-flex tw-items-start tw-flex-1">
-                          <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                          <div className="tw-flex-1">
-                            <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                              Historical Entry Detected
-                            </h4>
-                            <p className="tw-text-blue-700 tw-text-sm">
-                              You are creating a closing stock for{" "}
-                              <strong>
-                                {selectedDate.toLocaleDateString()}
-                              </strong>{" "}
-                              (backdated entry).
-                            </p>
-                            <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                              <strong>Impact:</strong> This will recalculate the
-                              tank's current stock and affect all subsequent
-                              records.
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setShowHistoricalNotice(false)}
-                          className="tw-ml-2 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-flex-shrink-0"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: "0",
-                            fontSize: "16px",
-                          }}
-                          title="Dismiss"
-                        >
-                          <i className="fa-light fa-times"></i>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-            {/* Future Records Warning */}
-            {(showWarning || validationError) && (
-              <div className="tw-mb-4">
-                <FutureRecordsWarning
-                  validationResult={validationResult}
-                  onConfirm={confirmProceed}
-                  onCancel={cancelProceed}
-                  isVisible={showWarning}
-                />
-                {validationError && (
-                  <div className="tw-mt-2 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded tw-text-red-700">
-                    <i className="fa-light fa-exclamation-triangle tw-mr-2"></i>
-                    {validationError}
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Tank Volume History Section - Only show if tank is selected */}
-            {formData.siteId > 0 &&
-              formData.tankId > 0 &&
-              showVolumeHistory && (
-                <div className="tw-mt-1 tw-mb-5">
-                  <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-shadow-sm">
-                    <div className="tw-p-2 tw-border-b tw-border-gray-200 tw-flex tw-items-start tw-justify-between">
-                      <div className="tw-flex-1">
-                        <h4 className="tw-font-semibold tw-text-gray-800">
-                          <i className="fa-light fa-history tw-mr-2 tw-text-blue-600"></i>
-                          Tank Volume History
-                        </h4>
-                        <p className="tw-text-sm tw-text-gray-600">
-                          Showing transactions for{" "}
-                          <strong className="tw-text-blue-600">
-                            {formData.date
-                              ? new Date(formData.date).toLocaleDateString(
-                                "en-US",
-                                {
-                                  year: "numeric",
-                                  month: "long",
-                                  day: "numeric",
-                                }
-                              )
-                              : new Date().toLocaleDateString("en-US", {
-                                year: "numeric",
-                                month: "long",
-                                day: "numeric",
-                              })}
-                          </strong>
-                          . Use search and filters to analyze transaction data.
-                          Negative values indicate fuel dispensed or transferred
-                          out.
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() => setShowVolumeHistory(false)}
-                        className="tw-ml-3 tw-text-gray-600 hover:tw-text-gray-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                        title="Hide volume history"
-                      >
-                        <i className="fa-light fa-times tw-text-lg"></i>
-                      </button>
-                    </div>
-
-                    <div className="tw-p-2">
-                      {Array.isArray(tankVolumeHistory) &&
-                        tankVolumeHistory.length > 0 ? (
-                        <DataGrid
-                          dataSource={tankVolumeHistory}
-                          showBorders={true}
-                          columnAutoWidth={true}
-                          height="400px"
-                          width="100%"
-                          columnResizingMode="widget"
-                          allowColumnResizing={true}
-                          className="tw-text-sm"
-                        >
-                          <GroupPanel visible={false} />
-                          <Grouping autoExpandAll={false} />
-                          {/* Search functionality */}
-                          <SearchPanel
-                            visible={false}
-                            highlightCaseSensitive={true}
-                          />
-                          {/* Column chooser */}
-                          <ColumnChooser enabled={false} />
-                          {/* Header filter */}
-                          <HeaderFilter visible={false} />
-                          {/* Filter row */}
-                          <FilterRow visible={true} />{" "}
-                          {/* Transaction Type Column */}
-                          <Column
-                            dataField="timestamp"
-                            caption="Date/Time"
-                            dataType="datetime"
-                            format="dd/MM/yyyy HH:mm"
-                            width="140"
-                            sortOrder="desc"
-                          />
-                          <Column
-                            dataField="volumeChange"
-                            caption="Volume Change (L)"
-                            dataType="number"
-                            format="#,##0.00"
-                            width="120"
-                            cellRender={(cellData) => (
-                              <span
-                                className={
-                                  cellData.value >= 0
-                                    ? "tw-text-green-600 tw-font-medium"
-                                    : "tw-text-red-600 tw-font-medium"
-                                }
-                              >
-                                {cellData.value >= 0 ? "+" : ""}
-                                {cellData.value?.toFixed(2)}
-                              </span>
-                            )}
-                          />
-                          <Column
-                            dataField="newVolume"
-                            caption="Resulting Volume (L)"
-                            dataType="number"
-                            format="#,##0.00"
-                            width="130"
-                          />
-                          <Column
-                            dataField="recordedByUserName"
-                            caption="Recorded By"
-                            width="110"
-                          />
-                          <Column
-                            dataField="vehicleName"
-                            caption="Vehicle"
-                            width="100"
-                          />
-                          <Column
-                            dataField="referenceType"
-                            caption="Reference"
-                            width="100"
-                          />
-                        </DataGrid>
-                      ) : (
-                        <div className="tw-text-center tw-py-8">
-                          <i className="fa-light fa-inbox tw-text-gray-400 tw-text-3xl tw-mb-3"></i>
-                          <p className="tw-text-gray-500">
-                            No volume history available for this tank
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-            {/* Form Actions */}
-            <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-6 tw-pt-6 tw-border-t tw-border-gray-200">
-              <Button
-                text="Cancel"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="tw-min-w-24"
-                stylingMode="outlined"
-              >
-                <i className="fa-light fa-times tw-mr-2"></i>
-                Cancel
-              </Button>
-              <Button
-                text="Save and New"
-                onClick={handleSaveAndNew}
-                disabled={isSubmitting || !canSubmit}
-                loading={isSubmitting}
-                className="tw-min-w-32"
-                stylingMode="outlined"
-              >
-                <i className="fa-light fa-plus tw-mr-2"></i>
-                Save and New
-              </Button>
-              <Button
-                text="Save and Close"
-                onClick={handleSubmit}
-                disabled={isSubmitting || !canSubmit}
-                loading={isSubmitting}
-                className="tw-min-w-32"
-                type="default"
-              >
-                <i className="fa-light fa-save tw-mr-2"></i>
-                Save and Close
-              </Button>
+        {/* Special notice for prefilled closing stock */}
+        {prefilledData?.reason && (
+          <div className="m365-info-banner">
+            <i className="fa-light fa-circle-info m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Required Closing Stock</strong> — {prefilledData.reason}
+              </span>
+              <span className="m365-info-banner__text" style={{ display: "block", marginTop: 4, fontSize: 12 }}>
+                The tank and date have been pre-selected to match the
+                existing opening stock. Please enter the appropriate
+                closing stock amount for this date.
+              </span>
             </div>
           </div>
+        )}
+
+        {/* Dismissible Information Notice */}
+        {showInfoNotice && (
+          <div className="m365-info-banner">
+            <i className="fa-light fa-circle-info m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Closing Stock Information</strong> — Closing stock
+                represents the fuel quantity available in the tank at the end
+                of the specified date and time. This value will be used for
+                reconciliation and stock calculations.
+              </span>
+            </div>
+            <button
+              className="m365-info-banner__dismiss"
+              onClick={() => setShowInfoNotice(false)}
+              title="Close information"
+            >
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
+
+        {/* Loading indicator */}
+        {loading && (
+          <div style={{ display: "flex", justifyContent: "center", padding: "24px 0" }}>
+            <LoadIndicator width={"48px"} height={"48px"} visible={true} />
+          </div>
+        )}
+
+        {/* Date & Time — full width */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Date &amp; Time</label>
+          <DateBox
+            value={formData.date}
+            max={new Date()}
+            displayFormat="yyyy-MM-dd HH:mm"
+            type="datetime"
+            onValueChanged={handleDateChange}
+            width="100%"
+            className="datebox-full-width"
+            dropDownOptions={{
+              width: "auto",
+              minWidth: 380,
+              maxWidth: 520,
+              wrapperAttr: { class: "datebox-wide" },
+            }}
+            isValid={hasAttemptedSubmit ? !validationErrors.date : true}
+            validationError={
+              validationErrors.date
+                ? { message: validationErrors.date }
+                : null
+            }
+            validationMessageMode="always"
+            acceptCustomValue={false}
+            openOnFieldClick={true}
+            elementAttr={{ class: "datebox-full-width-popup" }}
+          />
         </div>
+
+        {/* Site & Tank — 2-column row */}
+        <div className="m365-field-row">
+          <div className="m365-field">
+            <label className="m365-field__label">Site</label>
+            <SelectBox
+              items={sitesAvailable}
+              displayExpr="name"
+              valueExpr="id"
+              value={formData.siteId}
+              onValueChanged={handleSiteChange}
+              placeholder={
+                !dataLoaded && sitesAvailable.length === 0
+                  ? "Loading sites..."
+                  : sitesAvailable.length > 0
+                    ? "Select a site"
+                    : "No sites available"
+              }
+              width="100%"
+              searchEnabled={true}
+              showClearButton={true}
+              dropDownOptions={{ container: "body" }}
+              isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
+              validationError={
+                validationErrors.siteId
+                  ? { message: validationErrors.siteId }
+                  : null
+              }
+              validationMessageMode="always"
+            />
+          </div>
+
+          <div className="m365-field">
+            <label className="m365-field__label">Tank</label>
+            <SelectBox
+              items={filteredTanks}
+              displayExpr="name"
+              valueExpr="id"
+              value={formData.tankId}
+              onValueChanged={handleTankChange}
+              disabled={!formData.siteId || formData.siteId === 0}
+              placeholder={
+                !formData.siteId || formData.siteId === 0
+                  ? "Select site first"
+                  : filteredTanks.length > 0
+                    ? "Select a tank"
+                    : "No tanks available"
+              }
+              width="100%"
+              searchEnabled={true}
+              showClearButton={true}
+              dropDownOptions={{ container: "body" }}
+              isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
+              validationError={
+                validationErrors.tankId
+                  ? { message: validationErrors.tankId }
+                  : null
+              }
+              validationMessageMode="always"
+            />
+          </div>
+        </div>
+
+        {/* Read-only: Book Balance & Physical Stock Value */}
+        {(formData.bookBalance != null || formData.tankId > 0) && (
+          <div className="m365-field-row">
+            {formData.bookBalance !== null &&
+              formData.bookBalance !== undefined && (
+                <div className="m365-field">
+                  <label className="m365-field__label">
+                    Current Book Balance (Calculated)
+                  </label>
+                  <div
+                    className="m365-input"
+                    style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
+                  >
+                    {formData.bookBalance != null
+                      ? Number(formData.bookBalance).toLocaleString() + " L"
+                      : "0 L"}
+                  </div>
+                </div>
+              )}
+
+            {formData.tankId > 0 && (
+              <div className="m365-field">
+                <label className="m365-field__label">
+                  Current Physical Stock Value (Last Recorded)
+                </label>
+                <div
+                  className="m365-input"
+                  style={{ background: "#f3f2f1", cursor: "default", display: "flex", alignItems: "center", fontWeight: 600 }}
+                >
+                  {formData.physicalStockValue != null
+                    ? Number(formData.physicalStockValue).toLocaleString() +
+                    " L"
+                    : "No physical reading available"}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Amount & Closing Meter — 2-column row */}
+        <div className="m365-field-row">
+          <div className="m365-field">
+            <label className="m365-field__label">
+              Physical Stock Amount (Liters)
+            </label>
+            <NumberBox
+              showSpinButtons={true}
+              value={formData.amount}
+              onValueChanged={handleAmountChange}
+              placeholder="Enter physical stock measurement"
+              width="100%"
+              {...(formData.amount !== null &&
+                formData.amount !== undefined && { format: "#,##0" })}
+              isValid={hasAttemptedSubmit ? !validationErrors.amount : true}
+              validationError={
+                validationErrors.amount
+                  ? { message: validationErrors.amount }
+                  : null
+              }
+              validationMessageMode="always"
+            />
+          </div>
+
+          <div className="m365-field">
+            <label className="m365-field__label">
+              Closing Meter Reading (Optional)
+            </label>
+            <NumberBox
+              showSpinButtons={true}
+              value={formData.closingMeter || null}
+              onValueChanged={(e) =>
+                handleChange({ dataField: "closingMeter", value: e.value })
+              }
+              placeholder="Enter closing meter reading (optional)"
+              width="100%"
+              {...(formData.closingMeter !== null &&
+                formData.closingMeter !== undefined && {
+                format: "#,##0.00",
+              })}
+            />
+          </div>
+        </div>
+
+        {/* Discrepancy Indicator */}
+        {formData.amount != null &&
+          (formData.bookBalance != null ||
+            formData.physicalStockValue != null) && (
+            <div className="m365-section-group" style={{ marginBottom: 16 }}>
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-scale-balanced m365-section-group__icon" />
+                <h3 className="m365-section-group__title">Stock Comparison</h3>
+              </div>
+              <div
+                className="m365-section-group__body"
+                style={{ fontSize: 13, color: "#201f1e", lineHeight: "1.8" }}
+              >
+                <div>
+                  New Physical Stock:{" "}
+                  {Number(formData.amount).toLocaleString()} L
+                </div>
+
+                {formData.bookBalance != null && (
+                  <>
+                    <div>
+                      Current Book Balance:{" "}
+                      {Number(formData.bookBalance).toLocaleString()} L
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          Math.abs(formData.amount - formData.bookBalance) >
+                            formData.bookBalance * 0.05
+                            ? "#d13438"
+                            : "#107c10",
+                      }}
+                    >
+                      Book Balance Discrepancy:{" "}
+                      {Number(
+                        formData.amount - formData.bookBalance
+                      ).toLocaleString()}{" "}
+                      L (
+                      {formData.bookBalance > 0
+                        ? (
+                          ((formData.amount - formData.bookBalance) /
+                            formData.bookBalance) *
+                          100
+                        ).toFixed(2)
+                        : "100"}
+                      %)
+                    </div>
+                  </>
+                )}
+
+                {formData.physicalStockValue != null && (
+                  <>
+                    <div>
+                      Current Physical Stock:{" "}
+                      {Number(formData.physicalStockValue).toLocaleString()} L
+                    </div>
+                    <div
+                      style={{
+                        fontWeight: 600,
+                        color:
+                          Math.abs(
+                            formData.amount - formData.physicalStockValue
+                          ) >
+                            formData.physicalStockValue * 0.05
+                            ? "#ca5010"
+                            : "#107c10",
+                      }}
+                    >
+                      Physical Stock Change:{" "}
+                      {Number(
+                        formData.amount - formData.physicalStockValue
+                      ).toLocaleString()}{" "}
+                      L (
+                      {formData.physicalStockValue > 0
+                        ? (
+                          ((formData.amount - formData.physicalStockValue) /
+                            formData.physicalStockValue) *
+                          100
+                        ).toFixed(2)
+                        : "100"}
+                      %)
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          )}
+
+        {/* Historical Entry Information Notice */}
+        {formData.date &&
+          formData.tankId &&
+          !showWarning &&
+          !validationError &&
+          showHistoricalNotice &&
+          (() => {
+            const selectedDate = new Date(formData.date);
+            const today = new Date();
+            const isHistorical =
+              selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+            if (isHistorical) {
+              return (
+                <div className="m365-info-banner m365-info-banner--warning">
+                  <i className="fa-light fa-calendar-clock m365-info-banner__icon" />
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__text">
+                      <strong>Historical Entry Detected</strong> — You are
+                      creating a closing stock for{" "}
+                      <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                      (backdated entry). This will recalculate the tank's
+                      current stock and affect all subsequent records.
+                    </span>
+                  </div>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowHistoricalNotice(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark" />
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {/* Future Records Warning */}
+        {(showWarning || validationError) && (
+          <>
+            <FutureRecordsWarning
+              validationResult={validationResult}
+              onConfirm={confirmProceed}
+              onCancel={cancelProceed}
+              isVisible={showWarning || !!validationError}
+            />
+            {validationError && (
+              <div className="m365-info-banner m365-info-banner--error">
+                <i className="fa-light fa-triangle-exclamation m365-info-banner__icon" />
+                <div className="m365-info-banner__content">
+                  <span className="m365-info-banner__text">
+                    {validationError}
+                  </span>
+                </div>
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Tank Volume History Section */}
+        {formData.siteId > 0 &&
+          formData.tankId > 0 &&
+          showVolumeHistory && (
+            <div className="m365-section-group">
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-history m365-section-group__icon" />
+                <h3 className="m365-section-group__title">Tank Volume History</h3>
+                <button
+                  className="m365-info-banner__dismiss"
+                  onClick={() => setShowVolumeHistory(false)}
+                  style={{ marginLeft: "auto" }}
+                  title="Hide volume history"
+                >
+                  <i className="fa-light fa-xmark" />
+                </button>
+              </div>
+              <div className="m365-section-group__body">
+                <p style={{ fontSize: 12, color: "#605e5c", marginBottom: 8 }}>
+                  Showing transactions for{" "}
+                  <strong style={{ color: "#0078d4" }}>
+                    {formData.date
+                      ? new Date(formData.date).toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })
+                      : new Date().toLocaleDateString("en-US", {
+                        year: "numeric",
+                        month: "long",
+                        day: "numeric",
+                      })}
+                  </strong>
+                  . Use search and filters to analyze transaction data.
+                  Negative values indicate fuel dispensed or transferred out.
+                </p>
+
+                {Array.isArray(tankVolumeHistory) &&
+                  tankVolumeHistory.length > 0 ? (
+                  <DataGrid
+                    dataSource={tankVolumeHistory}
+                    showBorders={true}
+                    columnAutoWidth={true}
+                    height="400px"
+                    width="100%"
+                    columnResizingMode="widget"
+                    allowColumnResizing={true}
+                  >
+                    <GroupPanel visible={false} />
+                    <Grouping autoExpandAll={false} />
+                    <SearchPanel
+                      visible={false}
+                      highlightCaseSensitive={true}
+                    />
+                    <ColumnChooser enabled={false} />
+                    <HeaderFilter visible={false} />
+                    <FilterRow visible={true} />
+                    <Column
+                      dataField="timestamp"
+                      caption="Date/Time"
+                      dataType="datetime"
+                      format="dd/MM/yyyy HH:mm"
+                      width="140"
+                      sortOrder="desc"
+                    />
+                    <Column
+                      dataField="volumeChange"
+                      caption="Volume Change (L)"
+                      dataType="number"
+                      format="#,##0.00"
+                      width="120"
+                      cellRender={(cellData) => (
+                        <span
+                          style={{
+                            fontWeight: 500,
+                            color:
+                              cellData.value >= 0 ? "#107c10" : "#d13438",
+                          }}
+                        >
+                          {cellData.value >= 0 ? "+" : ""}
+                          {cellData.value?.toFixed(2)}
+                        </span>
+                      )}
+                    />
+                    <Column
+                      dataField="newVolume"
+                      caption="Resulting Volume (L)"
+                      dataType="number"
+                      format="#,##0.00"
+                      width="130"
+                    />
+                    <Column
+                      dataField="recordedByUserName"
+                      caption="Recorded By"
+                      width="110"
+                    />
+                    <Column
+                      dataField="vehicleName"
+                      caption="Vehicle"
+                      width="100"
+                    />
+                    <Column
+                      dataField="referenceType"
+                      caption="Reference"
+                      width="100"
+                    />
+                  </DataGrid>
+                ) : (
+                  <div style={{ textAlign: "center", padding: "24px 0" }}>
+                    <i
+                      className="fa-light fa-inbox"
+                      style={{ fontSize: 28, color: "#a19f9d", marginBottom: 8, display: "block" }}
+                    />
+                    <p style={{ color: "#605e5c", fontSize: 13, margin: 0 }}>
+                      No volume history available for this tank
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+
+      </div>
+
+      {/* Form Actions */}
+      <div className="m365-form-actions">
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          <i className="fa-light fa-xmark" />
+          Cancel
+        </button>
+        <button
+          className="m365-btn m365-btn--ghost"
+          onClick={handleSaveAndNew}
+          disabled={isSubmitting || !canSubmit}
+        >
+          <i className="fa-light fa-plus" />
+          Save and New
+        </button>
+        <button
+          className="m365-btn m365-btn--primary"
+          onClick={handleSubmit}
+          disabled={isSubmitting || !canSubmit}
+        >
+          <i className="fa-light fa-floppy-disk" />
+          Save and Close
+        </button>
       </div>
     </div>
   );

@@ -1,13 +1,12 @@
 /**
  * File: employeePage.js
- * Purpose: Employee list management page with CRUD operations, quick search, and details navigation.
- * Dependencies: redux employee/site/vehicle/user actions, DevExtreme DataGrid components.
- * Last Modified: 2026-02-16
+ * Purpose: Employee list page with Microsoft-style grid and side-panel CRUD workflow.
+ * Dependencies: redux employee/site/permission actions, DevExtreme DataGrid and toolbar components.
+ * Last Modified: 2026-02-26
  *
  * Key Components:
- * - EmployeePage(): Manages employee listing, editing, export, and detail access.
+ * - EmployeePage(): Manages employee listing, side-panel add/edit/view, export, and refresh operations.
  */
-
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -17,31 +16,19 @@ import {
   fetchEmployees,
   updateEmployee,
 } from "../../redux/actions/employeeActions";
-import { fetchVehicleList } from "../../redux/actions/vehicleActions";
 import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
-import { fetchUsers } from "../../redux/actions/userActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
-import EmployeevehicleTagbox from "../../components/employee/employeeVehicleTagBox";
 import Switch from "devextreme-react/switch";
-import { format } from "date-fns";
 import DataGrid, {
   Column,
-  ColumnChooser,
-  Editing,
   Export,
-  FilterRow,
-  HeaderFilter,
   Item as TItems,
   LoadPanel,
-  Lookup,
   Pager,
   Paging,
-  Position,
   SearchPanel,
-  Selection,
   Sorting,
   Toolbar,
-  RequiredRule,
 } from "devextreme-react/data-grid";
 import Button from "devextreme-react/button";
 import TextBox from "devextreme-react/text-box";
@@ -52,6 +39,23 @@ import { exportDataGrid } from "devextreme/pdf_exporter";
 import { Workbook } from "exceljs";
 import saveAs from "file-saver";
 import { exportDataGrid as exportDataGridToExcel } from "devextreme/excel_exporter";
+import SlidePanel from "../../components/ui/SlidePanel";
+import EmployeeDetailPanel from "./components/EmployeeDetailPanel";
+import EmployeeFormPanel from "./components/EmployeeFormPanel";
+import "./employeePage.scss";
+
+const EXPORT_FORMATS = ["xlsx", "pdf"];
+
+const toVehiclesArray = (value) => {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item) => item !== undefined && item !== null);
+};
+
+const hasSucceeded = (response) =>
+  response?.success === true || response?.Success === true;
+
+const resolveMessage = (response, fallback) =>
+  response?.message || response?.Message || fallback;
 
 const EmployeePage = () => {
   const dispatch = useDispatch();
@@ -61,29 +65,41 @@ const EmployeePage = () => {
 
   const employees = useSelector((state) => state.employee?.employees || []);
   const loading = useSelector((state) => state.employee?.loading);
-  const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
   const permissions = useSelector((state) => state.permission?.permissions || []);
-  const users = useSelector((state) => state.user?.users || []);
   const user = useSelector((state) => state.auth?.user);
   const sites = useSelector((state) => state.site?.sites || []);
 
-  const [saving, setSaving] = useState(false);
   const [activeOnly, setActiveOnly] = useState(true);
   const [quickSearchTerm, setQuickSearchTerm] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const employeeStatusOptions = ["Active", "Terminated"];
-  const exportFormats = ["xlsx", "pdf"];
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formMode, setFormMode] = useState("create");
+
   const switchLabel = useMemo(
     () => (activeOnly ? "Active employees only" : "All employees"),
     [activeOnly]
   );
 
+  const canEdit = permissions.includes("_Edit_Employee");
+  const canDelete = permissions.includes("_Delete_Employee");
+  const canCreate = permissions.includes("_Create_Employee");
+
+  const siteMap = useMemo(() => {
+    const result = new Map();
+    (sites || []).forEach((site) => {
+      result.set(String(site.id), site.name);
+    });
+    return result;
+  }, [sites]);
+
   const fetchData = useCallback(async () => {
     try {
       const requests = [
         dispatch(fetchEmployees(activeOnly)),
-        dispatch(fetchVehicleList()),
-        dispatch(fetchUsers()),
         dispatch(fetchSiteList()),
       ];
 
@@ -102,145 +118,61 @@ const EmployeePage = () => {
   }, [fetchData]);
 
   useEffect(() => {
-    if (location.hash === "#add-employee" && gridRef.current?.instance) {
-      gridRef.current.instance.addRow();
-      navigate(location.pathname, { replace: true });
-    }
+    if (location.hash !== "#add-employee") return;
+    setSelectedEmployee(null);
+    setFormMode("create");
+    setFormOpen(true);
+    setDetailOpen(false);
+    navigate(location.pathname, { replace: true });
   }, [location.hash, location.pathname, navigate]);
 
   const refresh = useCallback(() => {
     fetchData();
-    gridRef.current?.instance.refresh();
+    gridRef.current?.instance?.refresh();
   }, [fetchData]);
-
-  const addRow = useCallback(() => {
-    gridRef.current?.instance.addRow();
-  }, []);
 
   const handleQuickSearchChanged = useCallback((event) => {
     const value = event.value || "";
     setQuickSearchTerm(value);
-    gridRef.current?.instance.searchByText(value);
+    gridRef.current?.instance?.searchByText(value);
   }, []);
 
-  const formatDateToLocal = useCallback((cellInfo) => {
-    if (!cellInfo?.value) return "";
-    return format(new Date(cellInfo.value), "dd/MM/yyyy HH:mm");
+  const handleOpenDetails = useCallback((employee) => {
+    if (!employee) return;
+    setSelectedEmployee(employee);
+    setFormOpen(false);
+    setDetailOpen(true);
   }, []);
 
-  const vehicleTemplate = useCallback(
-    (container, options) => {
-      const text = (options.value || [])
-        .map((vehicleId) => {
-          const vehicle = vehicles.find((item) => item.vehicleId === vehicleId);
-          return vehicle ? vehicle.hyoungNo : vehicleId;
-        })
-        .join(", ");
-      container.textContent = text || "\u00A0";
-      container.title = text;
+  const handleOpenCreate = useCallback(() => {
+    setSelectedEmployee(null);
+    setFormMode("create");
+    setDetailOpen(false);
+    setFormOpen(true);
+  }, []);
+
+  const handleOpenEdit = useCallback(
+    (employee) => {
+      const target = employee || selectedEmployee;
+      if (!target) return;
+      setSelectedEmployee(target);
+      setFormMode("edit");
+      setDetailOpen(false);
+      setFormOpen(true);
     },
-    [vehicles]
+    [selectedEmployee]
   );
 
-  const handleOpenDetails = useCallback(
-    (employeeId) => {
-      if (!employeeId) return;
-      navigate(`/employees/${employeeId}/details`);
-    },
-    [navigate]
-  );
+  const closeDetailPanel = useCallback(() => {
+    setDetailOpen(false);
+  }, []);
 
-  const onRowInserted = useCallback(
-    async (event) => {
-      try {
-        setSaving(true);
-        const payload = {
-          ...event.data,
-          fullName: (event.data.fullName || "").toUpperCase(),
-          vehicles: event.data.vehicles || [],
-        };
-
-        delete payload.id;
-
-        const response = await dispatch(createEmployee(payload));
-        const success = response?.success || response?.Success;
-
-        if (!success) {
-          throw new Error(response?.message || response?.Message || "Create failed");
-        }
-
-        await dispatch(fetchEmployees(activeOnly));
-        notify("Employee added successfully.", "success", 2500);
-      } catch (error) {
-        event.cancel = true;
-        notify(error.message || "Failed to create employee.", "error", 3000);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [activeOnly, dispatch]
-  );
-
-  const onRowUpdated = useCallback(
-    async (event) => {
-      try {
-        setSaving(true);
-        const merged = {
-          ...event.oldData,
-          ...event.data,
-          id: event.key,
-          fullName: (event.data.fullName || event.oldData.fullName || "").toUpperCase(),
-        };
-
-        merged.vehicles = Array.isArray(merged.vehicles)
-          ? merged.vehicles.map((vehicle) =>
-              typeof vehicle === "object" && vehicle.vehicleId
-                ? vehicle.vehicleId
-                : vehicle
-            )
-          : [];
-
-        const response = await dispatch(updateEmployee(event.key, merged));
-        const success = response?.success || response?.Success;
-
-        if (!success) {
-          throw new Error(response?.message || response?.Message || "Update failed");
-        }
-
-        await dispatch(fetchEmployees(activeOnly));
-        notify("Employee updated successfully.", "success", 2500);
-      } catch (error) {
-        event.cancel = true;
-        notify(error.message || "Failed to update employee.", "error", 3000);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [activeOnly, dispatch]
-  );
-
-  const onRowRemoved = useCallback(
-    async (event) => {
-      try {
-        setSaving(true);
-        const response = await dispatch(deleteEmployee(event.key));
-        const success = response?.success || response?.Success;
-
-        if (!success) {
-          throw new Error(response?.message || response?.Message || "Failed to delete employee.");
-        }
-
-        await dispatch(fetchEmployees(activeOnly));
-        notify("Employee removed successfully.", "success", 2500);
-      } catch (error) {
-        event.cancel = true;
-        notify(error.message || "Failed to delete employee.", "error", 3000);
-      } finally {
-        setSaving(false);
-      }
-    },
-    [activeOnly, dispatch]
-  );
+  const closeFormPanel = useCallback(() => {
+    setFormOpen(false);
+    if (formMode === "edit" && selectedEmployee) {
+      setDetailOpen(true);
+    }
+  }, [formMode, selectedEmployee]);
 
   const onExporting = useCallback((event) => {
     const selectedFormat = event.format;
@@ -280,240 +212,340 @@ const EmployeePage = () => {
     event.cancel = true;
   }, []);
 
-  const canEdit = permissions.includes("_Edit_Employee");
-  const canDelete = permissions.includes("_Delete_Employee");
-  const canCreate = permissions.includes("_Create_Employee");
+  const syncSelectionAfterRefresh = useCallback(
+    async (employeeId, closeDetailsWhenMissing = true) => {
+      const refreshResult = await dispatch(fetchEmployees(activeOnly));
+      const refreshed = Array.isArray(refreshResult?.data) ? refreshResult.data : [];
+      const matched = refreshed.find(
+        (employee) => String(employee.id) === String(employeeId)
+      );
 
-  if (loading || saving) {
+      if (matched) {
+        setSelectedEmployee(matched);
+        return matched;
+      }
+
+      setSelectedEmployee(null);
+      if (closeDetailsWhenMissing) {
+        setDetailOpen(false);
+      }
+      return null;
+    },
+    [activeOnly, dispatch]
+  );
+
+  const handleCreateEmployee = useCallback(
+    async (payload) => {
+      try {
+        setSaving(true);
+        const response = await dispatch(createEmployee(payload));
+        if (!hasSucceeded(response)) {
+          throw new Error(resolveMessage(response, "Failed to create employee."));
+        }
+
+        await dispatch(fetchEmployees(activeOnly));
+        setFormOpen(false);
+        notify("Employee created successfully.", "success", 2500);
+      } catch (error) {
+        notify(error.message || "Failed to create employee.", "error", 3000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [activeOnly, dispatch]
+  );
+
+  const handleUpdateEmployee = useCallback(
+    async (payload) => {
+      if (!selectedEmployee?.id) return;
+
+      try {
+        setSaving(true);
+        const response = await dispatch(updateEmployee(selectedEmployee.id, payload));
+        if (!hasSucceeded(response)) {
+          throw new Error(resolveMessage(response, "Failed to update employee."));
+        }
+
+        const updated = await syncSelectionAfterRefresh(selectedEmployee.id, true);
+        setFormOpen(false);
+        setDetailOpen(Boolean(updated));
+        notify("Employee updated successfully.", "success", 2500);
+      } catch (error) {
+        notify(error.message || "Failed to update employee.", "error", 3000);
+      } finally {
+        setSaving(false);
+      }
+    },
+    [dispatch, selectedEmployee?.id, syncSelectionAfterRefresh]
+  );
+
+  const handleDeleteEmployee = useCallback(
+    async (employee) => {
+      const target = employee || selectedEmployee;
+      if (!target?.id) return;
+
+      const confirmed = window.confirm(
+        `Delete employee "${target.fullName || target.id}"? This action cannot be undone.`
+      );
+      if (!confirmed) return;
+
+      try {
+        setDeleting(true);
+        const response = await dispatch(deleteEmployee(target.id));
+        if (!hasSucceeded(response)) {
+          throw new Error(resolveMessage(response, "Failed to delete employee."));
+        }
+
+        await dispatch(fetchEmployees(activeOnly));
+        if (String(selectedEmployee?.id) === String(target.id)) {
+          setSelectedEmployee(null);
+          setDetailOpen(false);
+        }
+        setFormOpen(false);
+        notify("Employee removed successfully.", "success", 2500);
+      } catch (error) {
+        notify(error.message || "Failed to delete employee.", "error", 3000);
+      } finally {
+        setDeleting(false);
+      }
+    },
+    [activeOnly, dispatch, selectedEmployee]
+  );
+
+  const detailHeaderActions =
+    canEdit || canDelete ? (
+      <>
+        {canEdit && (
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={() => handleOpenEdit(selectedEmployee)}
+            disabled={deleting}
+          >
+            <i className="fa-light fa-pen-to-square"></i>
+            Edit
+          </button>
+        )}
+        {canDelete && (
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
+            onClick={() => handleDeleteEmployee(selectedEmployee)}
+            disabled={deleting}
+            style={{ color: "#d13438" }}
+          >
+            <i className="fa-light fa-trash-can"></i>
+            Delete
+          </button>
+        )}
+      </>
+    ) : null;
+
+  const renderVehiclesCell = useCallback(
+    (cell) => {
+      const values = toVehiclesArray(cell.data?.vehicles);
+      if (!values.length) return <span className="employee-grid__muted">-</span>;
+
+      const text = values
+        .map((value) => {
+          if (typeof value === "object" && value !== null) {
+            return (
+              value.hyoungNo ||
+              value.numberPlate ||
+              value.vehicleName ||
+              value.name ||
+              `Vehicle #${value.vehicleId || value.id || "-"}`
+            );
+          }
+          return `Vehicle #${value}`;
+        })
+        .join(", ");
+      return <span title={text}>{text}</span>;
+    },
+    []
+  );
+
+  if (loading && !employees.length) {
     return (
-      <div className="tw-h-[70vh] tw-flex tw-items-center tw-justify-center">
-        <LoadIndicator visible={true} width="30px" height="30px" />
+      <div className="employee-page-loading">
+        <LoadIndicator visible width="30px" height="30px" />
       </div>
     );
   }
 
   return (
-    <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
-      <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3 tw-mb-4">
+    <div className="employee-page">
+      <div className="employee-page__header">
         <div>
-          <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">Employees</h2>
-          <p className="tw-text-sm tw-text-gray-600">
+          <h2 className="employee-page__title">Employees</h2>
+          <p className="employee-page__subtitle">
             Manage employee records, assignments, and profile lifecycle.
           </p>
         </div>
 
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <Button
-            text="Open Consumption History"
-            icon="fa-light fa-chart-column"
-            type="normal"
-            stylingMode="outlined"
+        <div className="employee-page__header-actions">
+          <button
+            type="button"
+            className="m365-btn m365-btn--ghost"
             onClick={() => navigate("/employees/consumption-history")}
-          />
-          <Button
-            text="Add Employee"
-            icon="fa-light fa-user-plus"
-            type="default"
-            stylingMode="contained"
-            visible={canCreate}
-            onClick={addRow}
-          />
+          >
+            <i className="fa-light fa-chart-column"></i>
+            Open Consumption History
+          </button>
+          {canCreate && (
+            <button type="button" className="m365-btn m365-btn--primary" onClick={handleOpenCreate}>
+              <i className="fa-light fa-user-plus"></i>
+              Add Employee
+            </button>
+          )}
         </div>
       </div>
 
-      <DataGrid
-        ref={gridRef}
-        dataSource={employees}
-        showBorders={true}
-        keyExpr="id"
-        allowColumnReordering={true}
-        allowColumnResizing={true}
-        columnAutoWidth={true}
-        rowAlternationEnabled={true}
-        repaintChangesOnly={true}
-        onRowInserted={onRowInserted}
-        onRowUpdated={onRowUpdated}
-        onRowRemoved={onRowRemoved}
-        onExporting={onExporting}
+      <div className="employee-page__grid-shell">
+        <DataGrid
+          ref={gridRef}
+          className="employee-grid employee-grid--simple"
+          dataSource={employees}
+          keyExpr="id"
+          showBorders={false}
+          showColumnLines={false}
+          showRowLines={true}
+          rowAlternationEnabled={false}
+          columnAutoWidth={true}
+          allowColumnResizing={true}
+          allowColumnReordering={true}
+          repaintChangesOnly
+          onRowClick={(event) => handleOpenDetails(event.data)}
+          onExporting={onExporting}
+        >
+          <LoadPanel enabled={true} />
+          <Export enabled={true} allowExportSelectedData={false} formats={EXPORT_FORMATS} />
+          <Paging enabled={true} defaultPageSize={20} />
+          <Pager
+            visible={true}
+            showInfo={true}
+            showNavigationButtons={true}
+            showPageSizeSelector={true}
+            allowedPageSizes={[10, 20, 50, 100]}
+          />
+          <SearchPanel visible={false} />
+          <Sorting mode="multiple" />
+
+          <Toolbar>
+            <TItems location="before" locateInMenu="auto">
+              <TextBox
+                value={quickSearchTerm}
+                width={280}
+                mode="search"
+                showClearButton={true}
+                placeholder="Quick employee search..."
+                onValueChanged={handleQuickSearchChanged}
+              />
+            </TItems>
+
+            <TItems location="after" locateInMenu="auto">
+              <span>{switchLabel}</span>
+            </TItems>
+            <TItems location="after" locateInMenu="auto">
+              <Switch
+                value={activeOnly}
+                onValueChanged={(event) => setActiveOnly(Boolean(event.value))}
+              />
+            </TItems>
+            <TItems name="exportButton" locateInMenu="auto" />
+            <TItems location="after" locateInMenu="auto">
+              <Button icon="refresh" text="Refresh" stylingMode="text" onClick={refresh} />
+            </TItems>
+          </Toolbar>
+
+          <Column
+            dataField="fullName"
+            caption="Full Name"
+            minWidth={220}
+            allowHiding={false}
+            calculateCellValue={(row) => (row.fullName ? row.fullName.toUpperCase() : "")}
+          />
+          <Column dataField="employeephoneNumber" caption="Phone No" minWidth={140} />
+          <Column dataField="employeeWorkNo" caption="Work No" minWidth={120} />
+          <Column dataField="employeestatus" caption="Status" minWidth={120} />
+          <Column dataField="vehicles" caption="Default Vehicles" minWidth={260} cellRender={renderVehiclesCell} />
+          <Column
+            dataField="siteId"
+            caption="Site"
+            minWidth={160}
+            calculateCellValue={(row) =>
+              row.siteId ? siteMap.get(String(row.siteId)) || "-" : "Unassigned"
+            }
+          />
+          <Column
+            caption="Actions"
+            width={160}
+            fixed={true}
+            fixedPosition="right"
+            allowSorting={false}
+            allowFiltering={false}
+            cellRender={(cell) => (
+              <div className="employee-grid__actions">
+                <button
+                  type="button"
+                  className="employee-grid__action-link"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleOpenDetails(cell.data);
+                  }}
+                >
+                  View
+                </button>
+                {canEdit && (
+                  <button
+                    type="button"
+                    className="employee-grid__action-link"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      handleOpenEdit(cell.data);
+                    }}
+                  >
+                    Edit
+                  </button>
+                )}
+              </div>
+            )}
+          />
+        </DataGrid>
+      </div>
+
+      <SlidePanel
+        open={detailOpen}
+        onClose={closeDetailPanel}
+        title={selectedEmployee?.fullName || "Employee Details"}
+        width={900}
+        headerActions={detailHeaderActions}
       >
-        <LoadPanel enabled={true} />
-        <ColumnChooser enabled={true} mode="select" height={220}>
-          <Position my="right top" at="right top" />
-        </ColumnChooser>
-        <Export
-          enabled={true}
-          allowExportSelectedData={true}
-          formats={exportFormats}
+        <EmployeeDetailPanel
+          employee={selectedEmployee}
+          sites={sites}
         />
-        <Paging enabled={true} defaultPageSize={20} />
-        <Pager
-          visible={true}
-          showInfo={true}
-          showNavigationButtons={true}
-          showPageSizeSelector={true}
-          allowedPageSizes={[10, 20, 50, 100]}
+      </SlidePanel>
+
+      <SlidePanel
+        open={formOpen}
+        onClose={closeFormPanel}
+        title={
+          formMode === "create"
+            ? "Add Employee"
+            : `Edit Employee: ${selectedEmployee?.fullName || ""}`
+        }
+        width={900}
+      >
+        <EmployeeFormPanel
+          mode={formMode}
+          employee={formMode === "edit" ? selectedEmployee : null}
+          sites={sites}
+          saving={saving}
+          onSubmit={formMode === "create" ? handleCreateEmployee : handleUpdateEmployee}
+          onClose={closeFormPanel}
         />
-        <SearchPanel visible={false} />
-        <FilterRow visible={true} />
-        <HeaderFilter visible={true} />
-        <Sorting mode="multiple" />
-        <Selection mode="multiple" />
-
-        <Editing
-          mode="row"
-          allowUpdating={canEdit}
-          allowAdding={canCreate}
-          allowDeleting={canDelete}
-          selectTextOnEditStart={true}
-          startEditAction="dblClick"
-          newRowPosition="first"
-        />
-
-        <Toolbar>
-          <TItems location="before" locateInMenu="auto">
-            <TextBox
-              value={quickSearchTerm}
-              width={280}
-              mode="search"
-              showClearButton={true}
-              placeholder="Quick employee search..."
-              onValueChanged={handleQuickSearchChanged}
-            />
-          </TItems>
-
-          <TItems location="after" locateInMenu="auto">
-            <span>{switchLabel}</span>
-          </TItems>
-          <TItems location="after" locateInMenu="auto">
-            <Switch
-              value={activeOnly}
-              onValueChanged={(event) => setActiveOnly(event.value)}
-            />
-          </TItems>
-          <TItems name="exportButton" locateInMenu="auto" />
-          <TItems name="columnChooserButton" locateInMenu="auto" />
-          <TItems location="after" locateInMenu="auto">
-            <Button
-              icon="refresh"
-              text="Refresh"
-              stylingMode="text"
-              onClick={refresh}
-            />
-          </TItems>
-        </Toolbar>
-
-        <Column dataField="id" visible={false} allowEditing={false} />
-
-        <Column
-          dataField="fullName"
-          caption="Full Name"
-          minWidth={210}
-          allowHiding={false}
-          calculateCellValue={(data) => (data.fullName ? data.fullName.toUpperCase() : "")}
-        >
-          <RequiredRule />
-        </Column>
-
-        <Column
-          dataField="employeephoneNumber"
-          caption="Phone No"
-          minWidth={150}
-          hidingPriority={3}
-        />
-        <Column
-          dataField="employeeWorkNo"
-          caption="Work No"
-          minWidth={140}
-          hidingPriority={3}
-        />
-        <Column
-          dataField="employeestatus"
-          caption="Status"
-          minWidth={130}
-          hidingPriority={3}
-        >
-          <Lookup dataSource={employeeStatusOptions} />
-        </Column>
-
-        <Column
-          dataField="vehicles"
-          caption="Default Vehicles"
-          minWidth={290}
-          hidingPriority={4}
-          allowSorting={false}
-          allowHiding={false}
-          allowFiltering={false}
-          editCellRender={(cellInfo) => (
-            <EmployeevehicleTagbox
-              value={cellInfo.value}
-              onValueChanged={(newValue) => cellInfo.setValue(newValue)}
-            />
-          )}
-          cellTemplate={vehicleTemplate}
-        />
-
-        <Column
-          dataField="siteId"
-          caption="Site"
-          minWidth={150}
-          allowHiding={false}
-          hidingPriority={5}
-        >
-          <Lookup dataSource={sites} valueExpr="id" displayExpr="name" />
-          <RequiredRule />
-        </Column>
-
-        <Column
-          dataField="dateCreated"
-          caption="Created On"
-          dataType="datetime"
-          visible={false}
-          allowEditing={false}
-          cellRender={formatDateToLocal}
-        />
-        <Column
-          dataField="dateModified"
-          caption="Updated On"
-          dataType="datetime"
-          visible={false}
-          allowEditing={false}
-          cellRender={formatDateToLocal}
-        />
-        <Column
-          dataField="createdBy"
-          caption="Created By"
-          visible={false}
-          allowEditing={false}
-        >
-          <Lookup dataSource={users} valueExpr="id" displayExpr="userName" />
-        </Column>
-        <Column
-          dataField="modifiedBy"
-          caption="Updated By"
-          visible={false}
-          allowEditing={false}
-        >
-          <Lookup dataSource={users} valueExpr="id" displayExpr="userName" />
-        </Column>
-
-        <Column
-          caption="Details"
-          width={120}
-          fixed={true}
-          fixedPosition="right"
-          allowEditing={false}
-          allowFiltering={false}
-          allowSorting={false}
-          cellRender={(cell) => (
-            <Button
-              text="Open"
-              icon="fa-light fa-arrow-right"
-              stylingMode="text"
-              onClick={() => handleOpenDetails(cell.data.id)}
-            />
-          )}
-        />
-      </DataGrid>
+      </SlidePanel>
     </div>
   );
 };

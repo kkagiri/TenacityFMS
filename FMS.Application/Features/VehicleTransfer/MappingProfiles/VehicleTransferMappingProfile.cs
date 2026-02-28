@@ -18,7 +18,10 @@ public class VehicleTransferMappingProfile : Profile
             .ForMember(dest => dest.DriverName, opt => opt.MapFrom(src =>
                 !string.IsNullOrEmpty(src.DriverName) ? src.DriverName :
                 (src.Driver != null ? src.Driver.FullName : null)))
-            .ForMember(dest => dest.DocumentUrl, opt => opt.MapFrom(src => NormalizeFileUrl(src.DocumentUrl)));
+            .ForMember(dest => dest.DocumentUrl, opt => opt.MapFrom(src => NormalizeFileUrl(src.DocumentUrl)))
+            // New notification workflow fields — UserName fields resolved at query time, ignore during mapping
+            .ForMember(dest => dest.ReceiverUserName, opt => opt.Ignore())
+            .ForMember(dest => dest.ApproverUserName, opt => opt.Ignore());
 
         // VehicleTransferCheckupItem -> VehicleTransferCheckupItemDTO
         CreateMap<VehicleTransferCheckupItem, VehicleTransferCheckupItemDTO>();

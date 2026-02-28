@@ -1,11 +1,12 @@
 /**
  * File: AppNavigator.js
- * Purpose: Main navigation for FMS Mobile - Stack-based navigation (no drawer)
- * Dependencies: react-navigation, react-redux, screens
- * Last Modified: 2026-02-12
+ * Purpose: Main navigation for FMS Mobile - Stack-based navigation (no drawer).
+ *          Bottom tabs (Fueling, History) are permission-gated via _Mobile_* permissions.
+ * Dependencies: react-navigation, react-redux, screens, usePermissions, mobilePermissions
+ * Last Modified: 2026-02-28
  *
  * Key Components:
- * - TabNavigator: Bottom tab with Home, Fueling, Transaction History, Settings
+ * - TabNavigator: Bottom tab with Home, Fueling (gated), Transaction History (gated), Settings
  * - MainStackNavigator: All app screens accessible from Home
  * - AppNavigator: Root navigator with auth check
  */
@@ -36,12 +37,19 @@ import IssueDetailScreen from "../screens/issues/IssueDetailScreen";
 import IssueAssignmentResponseScreen from "../screens/issues/IssueAssignmentResponseScreen";
 
 import { useSelector } from "react-redux";
+import { usePermissions } from "../hooks/usePermissions";
+import MOBILE_PERMISSIONS from "../constants/mobilePermissions";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();
 
 // Main Tab Navigator - Home, Fueling, Transaction History, Settings
+// Fueling and History tabs are permission-gated via _Mobile_Fueling / _Mobile_Transactions
 const TabNavigator = () => {
+  const { hasPermission } = usePermissions();
+  const canAccessFueling = hasPermission(MOBILE_PERMISSIONS.FUELING);
+  const canAccessTransactions = hasPermission(MOBILE_PERMISSIONS.TRANSACTIONS);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -97,16 +105,20 @@ const TabNavigator = () => {
         component={HomeScreen}
         options={{ tabBarLabel: "FMS Home" }}
       />
-      <Tab.Screen
-        name="Fueling"
-        component={DeviceListScreen}
-        options={{ tabBarLabel: "Fueling" }}
-      />
-      <Tab.Screen
-        name="History"
-        component={TransactionHistoryScreen}
-        options={{ tabBarLabel: "Transaction History" }}
-      />
+      {canAccessFueling && (
+        <Tab.Screen
+          name="Fueling"
+          component={DeviceListScreen}
+          options={{ tabBarLabel: "Fueling" }}
+        />
+      )}
+      {canAccessTransactions && (
+        <Tab.Screen
+          name="History"
+          component={TransactionHistoryScreen}
+          options={{ tabBarLabel: "Transaction History" }}
+        />
+      )}
       <Tab.Screen
         name="SettingsTab"
         component={SettingsScreen}

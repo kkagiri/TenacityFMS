@@ -36,7 +36,7 @@ import DataGrid, {
 } from "devextreme-react/data-grid";
 import { LoadPanel } from "devextreme-react/load-panel";
 import Button from "devextreme-react/button";
-import Popup from "devextreme-react/popup";
+import M365SidePanel from "../../../../components/common/M365SidePanel";
 import notify from "devextreme/ui/notify";
 import ChartView from "./ChartView";
 
@@ -766,24 +766,18 @@ const TransactionHub = () => {
         />
       </div>
 
-      {/* Manual Refill Popup */}
-      <Popup
+      {/* Manual Refill Side Panel */}
+      <M365SidePanel
         visible={showManualRefillForm}
-        onHiding={() => setShowManualRefillForm(false)}
-        showTitle={true}
+        onClose={() => setShowManualRefillForm(false)}
         title="Manual Fuel Refill"
-        width={1040}
-        height={780}
-        showCloseButton={true}
-        dragEnabled={true}
-        resizeEnabled={true}
-        className="manual-refill-popup"
+        width={1000}
       >
         <ManualRefillForm
           onCancel={() => setShowManualRefillForm(false)}
           onSuccess={handleManualRefillSuccess}
         />
-      </Popup>
+      </M365SidePanel>
 
       {/* Delete Confirmation Dialog Component */}
       <DeleteConfirmationDialog

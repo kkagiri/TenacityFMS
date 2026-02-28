@@ -107,9 +107,7 @@ const VehicleFleetPage = () => {
         title="Add New Vehicle"
         width={720}
       >
-        <div className="tw-p-5">
-          <VehicleAddForm onSave={handleVehicleSaved} onCancel={handleCloseAddPanel} />
-        </div>
+        <VehicleAddForm onSave={handleVehicleSaved} onCancel={handleCloseAddPanel} />
       </SlidePanel>
     </div>
   );

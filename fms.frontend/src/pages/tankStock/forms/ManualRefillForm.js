@@ -12,8 +12,9 @@
  */
 import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { Form, SimpleItem, Label } from "devextreme-react/form";
-import Button from "devextreme-react/button";
+import { DateBox } from "devextreme-react/date-box";
+import { NumberBox } from "devextreme-react/number-box";
+import { TextArea } from "devextreme-react/text-area";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
@@ -30,7 +31,7 @@ import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWa
 import FixedHeightSelector from "../../../components/selectors/FixedHeightSelector";
 import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
 import { useTankStockFormData } from "../shared/context/TankStockFormContext";
-import "./ManualRefillForm.scss";
+import "./_m365-form-common.scss";
 
 const ManualRefillForm = ({
   onCancel,
@@ -494,7 +495,7 @@ const ManualRefillForm = ({
       if (result && result.success) {
         showNotification(
           result.message ||
-            "Manual refill recorded successfully. Form cleared for new entry.",
+          "Manual refill recorded successfully. Form cleared for new entry.",
           "success"
         );
         clearFormData();
@@ -523,440 +524,366 @@ const ManualRefillForm = ({
   ]);
 
   return (
-    <div formId="manual-refill-form" className="tw-h-full">
-      <div className="manual-refill-form tw-h-full tw-flex tw-flex-col">
-        <div className="manual-refill-scroll-container tw-flex-1 tw-overflow-y-auto">
-          <div className="tw-p-6 tw-max-w-4xl tw-mx-auto">
-            {/* Header */}
-            <div className="tw-mb-6">
-              <p className="tw-text-gray-600 tw-text-sm tw-mb-3">
-                Record manual fuel refill for vehicles.
-              </p>
+    <div className="m365-form-body">
+      <div className="m365-form-body__scroll">
+        {/* Description */}
+        <p className="m365-field__hint" style={{ margin: '0 0 12px', fontSize: '13px' }}>
+          Record manual fuel refill for vehicles.
+        </p>
 
-              {/* Information Panel */}
-              {showInfoNotice && (
-                <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                  <div className="tw-flex tw-items-start">
-                    <i className="fa-light fa-info-circle tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                    <div className="tw-flex-1">
-                      <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                        Manual Refill Information
-                      </h4>
-                      <p className="tw-text-blue-700 tw-text-sm">
-                        <strong>Important:</strong> Opening stock must be done
-                        on the tank before inserting entry.
-                      </p>
-                      <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                        Back-dated entry will force Auto-Correlation on Tank
-                        current stock. (Limit is 30 days)
-                      </p>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setShowInfoNotice(false)}
-                      className="tw-ml-3 tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors tw-cursor-pointer tw-bg-transparent tw-border-0 tw-p-1"
-                      title="Close information"
-                    >
-                      <i className="fa-light fa-times tw-text-lg"></i>
-                    </button>
-                  </div>
-                </div>
-              )}
+        {/* Information Banner */}
+        {showInfoNotice && (
+          <div className="m365-info-banner" style={{ margin: '0 0 16px' }}>
+            <i className="fa-light fa-circle-info m365-info-banner__icon" />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                <strong>Important:</strong> Opening stock must be done on the tank before inserting entry.
+              </span>
+              <span className="m365-info-banner__text" style={{ display: 'block', marginTop: '4px' }}>
+                Back-dated entry will force Auto-Correlation on Tank current stock. (Limit is 30 days)
+              </span>
             </div>
-
-            <Form
-              readOnly={isSubmitting || combinedLoading}
-              formData={formData}
-              showColonAfterLabel={true}
-              labelLocation="top"
-              colCount={2}
-              className="tw-mb-6"
+            <button
+              type="button"
+              className="m365-info-banner__dismiss"
+              onClick={() => setShowInfoNotice(false)}
+              title="Dismiss"
             >
-              <SimpleItem
-                dataField="date"
-                editorType="dxDateBox"
-                cssClass="datebox-full-width"
-                colSpan={2}
-                editorOptions={{
-                  value: formData.date,
-                  max: new Date(),
-                  displayFormat: "yyyy-MM-dd HH:mm",
-                  type: "datetime",
-                  onValueChanged: handleDateChange,
-                  width: "100%",
-                  dropDownOptions: {
-                    width: "auto",
-                    minWidth: 380,
-                    maxWidth: 520,
-                    wrapperAttr: { class: "datebox-wide" },
-                  },
-                  elementAttr: { class: "datebox-full-width-popup" },
-                  isValid: hasAttemptedSubmit ? !validationErrors.date : true,
-                  validationError: validationErrors.date
-                    ? { message: validationErrors.date }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Date & Time" />
-              </SimpleItem>
+              <i className="fa-light fa-xmark" />
+            </button>
+          </div>
+        )}
 
-              <SimpleItem
-                key={`site-${formData.siteId || "empty"}`}
-                dataField="siteId"
-                render={() => (
-                  <div>
-                    <Label text="Site" />
-                    <FixedHeightSelector
-                      items={sitesAvailable}
-                      displayExpr="name"
-                      valueExpr="id"
-                      value={formData.siteId}
-                      onChange={handleSiteChange}
-                      placeholder={
-                        !dataLoaded && sitesAvailable.length === 0
-                          ? "Loading sites..."
-                          : sitesAvailable.length > 0
-                          ? "Select a site"
-                          : "No sites available"
-                      }
-                      isValid={
-                        hasAttemptedSubmit ? !validationErrors.siteId : true
-                      }
-                      validationError={
-                        validationErrors.siteId
-                          ? { message: validationErrors.siteId }
-                          : null
-                      }
-                      validationMessageMode="always"
-                      maxHeight={250}
-                      searchEnabled={true}
-                      dropDownOptions={{
-                        container: "body",
-                      }}
-                    />
-                  </div>
-                )}
-              />
+        {/* Date & Time — full width */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Date &amp; Time</label>
+          <DateBox
+            value={formData.date}
+            max={new Date()}
+            displayFormat="yyyy-MM-dd HH:mm"
+            type="datetime"
+            onValueChanged={handleDateChange}
+            width="100%"
+            readOnly={isSubmitting || combinedLoading}
+            dropDownOptions={{
+              width: "auto",
+              minWidth: 380,
+              maxWidth: 520,
+              wrapperAttr: { class: "datebox-wide" },
+            }}
+            elementAttr={{ class: "datebox-full-width-popup" }}
+            isValid={hasAttemptedSubmit ? !validationErrors.date : true}
+            validationError={validationErrors.date ? { message: validationErrors.date } : null}
+            validationMessageMode="always"
+          />
+          {hasAttemptedSubmit && validationErrors.date && (
+            <span className="m365-field__error">{validationErrors.date}</span>
+          )}
+        </div>
 
-              <SimpleItem
-                key={`tank-${formData.siteId || "empty"}-${
-                  formData.tankId || "none"
-                }`}
-                dataField="tankId"
-                render={() => (
-                  <div>
-                    <Label text="Tank" />
-                    <FixedHeightSelector
-                      items={filteredTanks}
-                      displayExpr="name"
-                      valueExpr="id"
-                      value={formData.tankId}
-                      onChange={handleTankChange}
-                      placeholder={
-                        !formData.siteId
-                          ? "Select site first"
-                          : combinedLoading && filteredTanks.length === 0
-                          ? "Loading tanks..."
-                          : filteredTanks.length === 0
-                          ? "No tanks available"
-                          : "Select a tank"
-                      }
-                      disabled={!formData.siteId || combinedLoading}
-                      isValid={
-                        hasAttemptedSubmit ? !validationErrors.tankId : true
-                      }
-                      validationError={
-                        validationErrors.tankId
-                          ? { message: validationErrors.tankId }
-                          : null
-                      }
-                      validationMessageMode="always"
-                      maxHeight={250}
-                      searchEnabled={true}
-                      dropDownOptions={{
-                        container: ".manual-refill-form",
-                        position: {
-                          my: "top",
-                          at: "bottom",
-                          collision: "flip",
-                        },
-                      }}
-                    />
-                  </div>
-                )}
-              />
-
-              <SimpleItem
-                dataField="vehicleId"
-                render={() => (
-                  <div>
-                    <Label text="Vehicle" />
-                    <VehicleSearchableSelector
-                      value={formData.vehicleId}
-                      onValueChanged={(e) => handleFieldChange("vehicleId")(e)}
-                      placeholder="Type to search vehicle"
-                      width="100%"
-                      isValid={
-                        hasAttemptedSubmit ? !validationErrors.vehicleId : true
-                      }
-                      validationError={
-                        validationErrors.vehicleId
-                          ? { message: validationErrors.vehicleId }
-                          : null
-                      }
-                      validationMessageMode="always"
-                    />
-                  </div>
-                )}
-              />
-
-              <SimpleItem
-                dataField="driverId"
-                render={() => (
-                  <div>
-                    <Label text="Driver" />
-                    <EmployeeSearchableSelector
-                      value={formData.driverId}
-                      onValueChanged={(e) => handleFieldChange("driverId")(e)}
-                      placeholder="Type to search driver"
-                      width="100%"
-                      isValid={
-                        hasAttemptedSubmit ? !validationErrors.driverId : true
-                      }
-                      validationError={
-                        validationErrors.driverId
-                          ? { message: validationErrors.driverId }
-                          : null
-                      }
-                      validationMessageMode="always"
-                      activeOnly={true}
-                      siteId={formData.siteId}
-                    />
-                  </div>
-                )}
-              />
-
-              <SimpleItem
-                dataField="currentMeterReading"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.currentMeterReading,
-                  onValueChanged: handleFieldChange("currentMeterReading"),
-                  width: "100%",
-                  showClearButton: false,
-                  ...(formData.currentMeterReading !== null &&
-                    formData.currentMeterReading !== undefined && {
-                      format: "#,##0.00",
-                    }),
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.currentMeterReading &&
-                      !validationErrors.meterReadingDifference
-                    : true,
-                  validationError: validationErrors.currentMeterReading
-                    ? { message: validationErrors.currentMeterReading }
-                    : validationErrors.meterReadingDifference
-                    ? { message: validationErrors.meterReadingDifference }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Current Meter Reading" />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="previousMeterReading"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.previousMeterReading,
-                  onValueChanged: handleFieldChange("previousMeterReading"),
-                  width: "100%",
-                  showClearButton: false,
-                  ...(formData.previousMeterReading !== null &&
-                    formData.previousMeterReading !== undefined && {
-                      format: "#,##0.00",
-                    }),
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.meterReadingDifference
-                    : true,
-                  validationError: validationErrors.meterReadingDifference
-                    ? { message: validationErrors.meterReadingDifference }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Previous Meter Reading" />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="manualFuelrefillAmount"
-                editorType="dxNumberBox"
-                editorOptions={{
-                  showSpinButtons: true,
-                  value: formData.manualFuelrefillAmount,
-                  onValueChanged: handleFieldChange("manualFuelrefillAmount"),
-                  width: "100%",
-                  showClearButton: false,
-                  ...(formData.manualFuelrefillAmount !== null &&
-                    formData.manualFuelrefillAmount !== undefined && {
-                      format: "#,##0.00",
-                    }),
-                  isValid: hasAttemptedSubmit
-                    ? !validationErrors.manualFuelrefillAmount
-                    : true,
-                  validationError: validationErrors.manualFuelrefillAmount
-                    ? { message: validationErrors.manualFuelrefillAmount }
-                    : null,
-                  validationMessageMode: "always",
-                }}
-              >
-                <Label text="Fuel Amount (Liters)" />
-              </SimpleItem>
-
-              <SimpleItem
-                dataField="comment"
-                editorType="dxTextArea"
-                colSpan={2}
-                editorOptions={{
-                  value: formData.comment,
-                  onValueChanged: handleFieldChange("comment"),
-                  width: "100%",
-                  height: 80,
-                  showClearButton: false,
-                }}
-              >
-                <Label text="Comments" />
-              </SimpleItem>
-            </Form>
-
-            {/* Historical Entry Information Notice */}
-            {formData.date &&
-              formData.tankId &&
-              !isValidating &&
-              !showWarning &&
-              !validationError &&
-              showHistoricalNotice &&
-              (() => {
-                const selectedDate = new Date(formData.date);
-                const today = new Date();
-                const isHistorical =
-                  selectedDate < new Date(today.setHours(0, 0, 0, 0));
-
-                if (isHistorical) {
-                  return (
-                    <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-                      <div className="tw-flex tw-items-start tw-justify-between">
-                        <div className="tw-flex tw-items-start tw-flex-1">
-                          <i className="fa-light fa-calendar-clock tw-text-blue-600 tw-mt-0.5 tw-mr-3"></i>
-                          <div className="tw-flex-1">
-                            <h4 className="tw-font-medium tw-text-blue-800 tw-mb-1">
-                              Historical Entry Detected
-                            </h4>
-                            <p className="tw-text-blue-700 tw-text-sm">
-                              You are creating a manual refill for{" "}
-                              <strong>
-                                {selectedDate.toLocaleDateString()}
-                              </strong>{" "}
-                              (backdated entry).
-                            </p>
-                            <p className="tw-text-blue-700 tw-text-sm tw-mt-1">
-                              <strong>Impact:</strong> This will recalculate the
-                              tank's current stock and affect all subsequent
-                              records.
-                            </p>
-                          </div>
-                        </div>
-                        <button
-                          onClick={() => setShowHistoricalNotice(false)}
-                          className="tw-text-blue-600 hover:tw-text-blue-800 tw-transition-colors"
-                          title="Dismiss"
-                          style={{
-                            background: "none",
-                            border: "none",
-                            cursor: "pointer",
-                            padding: 0,
-                            fontSize: "16px",
-                          }}
-                        >
-                          <i className="fa-light fa-times"></i>
-                        </button>
-                      </div>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-
-            {/* Future Records Warning */}
-            {(showWarning || validationError) && (
-              <FutureRecordsWarning
-                validationResult={validationResult}
-                onConfirm={confirmProceed}
-                onCancel={cancelProceed}
-                isVisible={showWarning || !!validationError}
-                className="tw-mb-4"
-              />
+        {/* Site & Tank — 2 column row */}
+        <div className="m365-field-row">
+          <div className="m365-field">
+            <label className="m365-field__label">Site</label>
+            <FixedHeightSelector
+              items={sitesAvailable}
+              displayExpr="name"
+              valueExpr="id"
+              value={formData.siteId}
+              onChange={handleSiteChange}
+              placeholder={
+                !dataLoaded && sitesAvailable.length === 0
+                  ? "Loading sites..."
+                  : sitesAvailable.length > 0
+                    ? "Select a site"
+                    : "No sites available"
+              }
+              isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
+              validationError={
+                validationErrors.siteId ? { message: validationErrors.siteId } : null
+              }
+              validationMessageMode="always"
+              maxHeight={250}
+              searchEnabled={true}
+              dropDownOptions={{ container: "body" }}
+            />
+            {hasAttemptedSubmit && validationErrors.siteId && (
+              <span className="m365-field__error">{validationErrors.siteId}</span>
             )}
-
-            {/* Validating indicator */}
-            {isValidating && (
-              <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-space-x-3">
-                <LoadIndicator height={20} width={20} />
-                <span className="tw-text-blue-700 tw-text-sm">
-                  Validating historical entry...
-                </span>
-              </div>
+          </div>
+          <div className="m365-field">
+            <label className="m365-field__label">Tank</label>
+            <FixedHeightSelector
+              items={filteredTanks}
+              displayExpr="name"
+              valueExpr="id"
+              value={formData.tankId}
+              onChange={handleTankChange}
+              placeholder={
+                !formData.siteId
+                  ? "Select site first"
+                  : combinedLoading && filteredTanks.length === 0
+                    ? "Loading tanks..."
+                    : filteredTanks.length === 0
+                      ? "No tanks available"
+                      : "Select a tank"
+              }
+              disabled={!formData.siteId || combinedLoading}
+              isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
+              validationError={
+                validationErrors.tankId ? { message: validationErrors.tankId } : null
+              }
+              validationMessageMode="always"
+              maxHeight={250}
+              searchEnabled={true}
+              dropDownOptions={{
+                container: "body",
+                position: { my: "top", at: "bottom", collision: "flip" },
+              }}
+            />
+            {hasAttemptedSubmit && validationErrors.tankId && (
+              <span className="m365-field__error">{validationErrors.tankId}</span>
             )}
-
-            {/* Action buttons */}
-            <div className="tw-flex tw-justify-end tw-space-x-3 tw-mt-4 tw-pt-4 tw-border-t tw-border-gray-200">
-              <Button
-                text="Cancel"
-                onClick={onCancel}
-                disabled={isSubmitting}
-                className="tw-min-w-24"
-                stylingMode="outlined"
-              >
-                <i className="fa-light fa-times tw-mr-2"></i>
-                Cancel
-              </Button>
-              <Button
-                text="Save and New"
-                onClick={handleSaveAndNew}
-                disabled={
-                  isSubmitting ||
-                  isValidating ||
-                  combinedLoading ||
-                  !!validationError
-                }
-                loading={isSubmitting}
-                className="tw-min-w-32"
-                stylingMode="outlined"
-              >
-                <i className="fa-light fa-plus tw-mr-2"></i>
-                Save and New
-              </Button>
-              <Button
-                text="Save and Close"
-                onClick={handleSaveAndClose}
-                disabled={
-                  isSubmitting ||
-                  isValidating ||
-                  combinedLoading ||
-                  !!validationError
-                }
-                loading={isSubmitting}
-                className="tw-min-w-32"
-                type="default"
-              >
-                <i className="fa-light fa-save tw-mr-2"></i>
-                Save and Close
-              </Button>
-            </div>
           </div>
         </div>
+
+        {/* Vehicle & Driver — 2 column row */}
+        <div className="m365-field-row">
+          <div className="m365-field">
+            <label className="m365-field__label">Vehicle</label>
+            <VehicleSearchableSelector
+              value={formData.vehicleId}
+              onValueChanged={(e) => handleFieldChange("vehicleId")(e)}
+              placeholder="Type to search vehicle"
+              width="100%"
+              isValid={hasAttemptedSubmit ? !validationErrors.vehicleId : true}
+              validationError={
+                validationErrors.vehicleId ? { message: validationErrors.vehicleId } : null
+              }
+              validationMessageMode="always"
+            />
+            {hasAttemptedSubmit && validationErrors.vehicleId && (
+              <span className="m365-field__error">{validationErrors.vehicleId}</span>
+            )}
+          </div>
+          <div className="m365-field">
+            <label className="m365-field__label">Driver</label>
+            <EmployeeSearchableSelector
+              value={formData.driverId}
+              onValueChanged={(e) => handleFieldChange("driverId")(e)}
+              placeholder="Type to search driver"
+              width="100%"
+              isValid={hasAttemptedSubmit ? !validationErrors.driverId : true}
+              validationError={
+                validationErrors.driverId ? { message: validationErrors.driverId } : null
+              }
+              validationMessageMode="always"
+              activeOnly={true}
+              siteId={formData.siteId}
+            />
+            {hasAttemptedSubmit && validationErrors.driverId && (
+              <span className="m365-field__error">{validationErrors.driverId}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Current Meter Reading & Previous Meter Reading — 2 column row */}
+        <div className="m365-field-row">
+          <div className="m365-field">
+            <label className="m365-field__label">Current Meter Reading</label>
+            <NumberBox
+              showSpinButtons={true}
+              value={formData.currentMeterReading}
+              onValueChanged={handleFieldChange("currentMeterReading")}
+              width="100%"
+              showClearButton={false}
+              readOnly={isSubmitting || combinedLoading}
+              {...(formData.currentMeterReading !== null &&
+                formData.currentMeterReading !== undefined && {
+                format: "#,##0.00",
+              })}
+              isValid={
+                hasAttemptedSubmit
+                  ? !validationErrors.currentMeterReading &&
+                  !validationErrors.meterReadingDifference
+                  : true
+              }
+              validationError={
+                validationErrors.currentMeterReading
+                  ? { message: validationErrors.currentMeterReading }
+                  : validationErrors.meterReadingDifference
+                    ? { message: validationErrors.meterReadingDifference }
+                    : null
+              }
+              validationMessageMode="always"
+            />
+            {hasAttemptedSubmit && validationErrors.currentMeterReading && (
+              <span className="m365-field__error">{validationErrors.currentMeterReading}</span>
+            )}
+          </div>
+          <div className="m365-field">
+            <label className="m365-field__label">Previous Meter Reading</label>
+            <NumberBox
+              showSpinButtons={true}
+              value={formData.previousMeterReading}
+              onValueChanged={handleFieldChange("previousMeterReading")}
+              width="100%"
+              showClearButton={false}
+              readOnly={isSubmitting || combinedLoading}
+              {...(formData.previousMeterReading !== null &&
+                formData.previousMeterReading !== undefined && {
+                format: "#,##0.00",
+              })}
+              isValid={hasAttemptedSubmit ? !validationErrors.meterReadingDifference : true}
+              validationError={
+                validationErrors.meterReadingDifference
+                  ? { message: validationErrors.meterReadingDifference }
+                  : null
+              }
+              validationMessageMode="always"
+            />
+            {hasAttemptedSubmit && validationErrors.meterReadingDifference && (
+              <span className="m365-field__error">{validationErrors.meterReadingDifference}</span>
+            )}
+          </div>
+        </div>
+
+        {/* Fuel Amount — full width */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Fuel Amount (Liters)</label>
+          <NumberBox
+            showSpinButtons={true}
+            value={formData.manualFuelrefillAmount}
+            onValueChanged={handleFieldChange("manualFuelrefillAmount")}
+            width="100%"
+            showClearButton={false}
+            readOnly={isSubmitting || combinedLoading}
+            {...(formData.manualFuelrefillAmount !== null &&
+              formData.manualFuelrefillAmount !== undefined && {
+              format: "#,##0.00",
+            })}
+            isValid={hasAttemptedSubmit ? !validationErrors.manualFuelrefillAmount : true}
+            validationError={
+              validationErrors.manualFuelrefillAmount
+                ? { message: validationErrors.manualFuelrefillAmount }
+                : null
+            }
+            validationMessageMode="always"
+          />
+          {hasAttemptedSubmit && validationErrors.manualFuelrefillAmount && (
+            <span className="m365-field__error">{validationErrors.manualFuelrefillAmount}</span>
+          )}
+        </div>
+
+        {/* Comments — full width */}
+        <div className="m365-field m365-field--full">
+          <label className="m365-field__label">Comments</label>
+          <TextArea
+            value={formData.comment}
+            onValueChanged={handleFieldChange("comment")}
+            width="100%"
+            height={80}
+            showClearButton={false}
+            readOnly={isSubmitting || combinedLoading}
+          />
+        </div>
+
+        {/* Historical Entry Information Notice */}
+        {formData.date &&
+          formData.tankId &&
+          !isValidating &&
+          !showWarning &&
+          !validationError &&
+          showHistoricalNotice &&
+          (() => {
+            const selectedDate = new Date(formData.date);
+            const today = new Date();
+            const isHistorical =
+              selectedDate < new Date(today.setHours(0, 0, 0, 0));
+
+            if (isHistorical) {
+              return (
+                <div className="m365-info-banner m365-info-banner--warning" style={{ margin: '0 0 16px' }}>
+                  <i className="fa-light fa-calendar-clock m365-info-banner__icon" />
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__text">
+                      <strong>Historical Entry Detected</strong>
+                    </span>
+                    <span className="m365-info-banner__text" style={{ display: 'block', marginTop: '4px' }}>
+                      You are creating a manual refill for{" "}
+                      <strong>{selectedDate.toLocaleDateString()}</strong>{" "}
+                      (backdated entry).
+                    </span>
+                    <span className="m365-info-banner__text" style={{ display: 'block', marginTop: '4px' }}>
+                      <strong>Impact:</strong> This will recalculate the
+                      tank's current stock and affect all subsequent records.
+                    </span>
+                  </div>
+                  <button
+                    className="m365-info-banner__dismiss"
+                    onClick={() => setShowHistoricalNotice(false)}
+                    title="Dismiss"
+                  >
+                    <i className="fa-light fa-xmark" />
+                  </button>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+        {/* Future Records Warning */}
+        {(showWarning || validationError) && (
+          <FutureRecordsWarning
+            validationResult={validationResult}
+            onConfirm={confirmProceed}
+            onCancel={cancelProceed}
+            isVisible={showWarning || !!validationError}
+          />
+        )}
+
+        {/* Validating indicator */}
+        {isValidating && (
+          <div className="m365-info-banner" style={{ margin: '0 0 16px' }}>
+            <LoadIndicator height={20} width={20} />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                Validating historical entry...
+              </span>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer actions */}
+      <div className="m365-form-actions">
+        <button
+          type="button"
+          className="m365-btn m365-btn--ghost"
+          onClick={onCancel}
+          disabled={isSubmitting}
+        >
+          <i className="fa-light fa-xmark" />
+          Cancel
+        </button>
+        <button
+          type="button"
+          className="m365-btn m365-btn--ghost"
+          onClick={handleSaveAndNew}
+          disabled={isSubmitting || isValidating || combinedLoading || !!validationError}
+        >
+          <i className="fa-light fa-plus" />
+          Save and New
+        </button>
+        <button
+          type="button"
+          className="m365-btn m365-btn--primary"
+          onClick={handleSaveAndClose}
+          disabled={isSubmitting || isValidating || combinedLoading || !!validationError}
+        >
+          <i className="fa-light fa-floppy-disk" />
+          Save and Close
+        </button>
       </div>
     </div>
   );

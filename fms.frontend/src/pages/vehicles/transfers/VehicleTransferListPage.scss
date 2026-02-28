@@ -1,18 +1,152 @@
-.vehicle-transfer-list-page {
-  @apply tw-p-4;
+/**
+ * File:          VehicleTransferListPage.scss
+ * Purpose:       M365 Admin Center styled vehicle transfer list page
+ * Dependencies:  m365-shared.scss (design tokens)
+ * Last Modified: 2026-02-02
+ */
 
+@import "../../../components/m365/m365-shared.scss";
+
+.vehicle-transfer-list-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--m365-bg-surface);
+  font-family: var(--m365-font);
+
+  // ── Date input (not yet in shared) ──
+  .m365-date {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    font-family: var(--m365-font);
+    color: var(--m365-text);
+    background: #fff;
+    border: 1px solid var(--m365-border);
+    border-radius: var(--m365-radius);
+    outline: none;
+    transition: border-color 0.15s;
+    min-width: 130px;
+
+    &:hover { border-color: var(--m365-text-secondary); }
+    &:focus { border-color: var(--m365-primary); box-shadow: 0 0 0 1px var(--m365-primary); }
+    &::-webkit-calendar-picker-indicator {
+      opacity: 0.5;
+      cursor: pointer;
+      &:hover { opacity: 1; }
+    }
+  }
+
+  // ── Transfer grid container ──
+  .transfer-grid-container {
+    flex: 1;
+    background: #fff;
+    border-top: 1px solid var(--m365-border-light);
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  // ── DataGrid overrides ──
   .dx-datagrid {
+    font-family: var(--m365-font);
+    font-size: 13px;
+
     .dx-datagrid-headers {
-      @apply tw-bg-slate-50;
+      background: var(--m365-bg-surface);
+      border-bottom: 1px solid var(--m365-border-light);
+      color: var(--m365-text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
     }
 
-    .dx-datagrid-rowsview {
-      .dx-row {
-        &:hover {
-          @apply tw-bg-blue-50;
-          cursor: pointer;
-        }
+    .dx-datagrid-rowsview .dx-row {
+      &:hover {
+        background: var(--m365-bg-hover);
+        cursor: pointer;
+      }
+    }
+
+    .dx-row-lines > td {
+      border-bottom: 1px solid #f3f2f1;
+    }
+
+    .dx-datagrid-search-panel {
+      .dx-textbox {
+        border-radius: var(--m365-radius);
       }
     }
   }
+
+  // ── Inline action buttons ──
+  .transfer-actions {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+}
+
+// ── Approval dialog overlay (portal-level) ──
+.transfer-list__dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.transfer-list__dialog {
+  background: #fff;
+  border-radius: var(--m365-radius-md, 8px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.18);
+  width: 440px;
+  max-width: 90vw;
+  overflow: hidden;
+  font-family: var(--m365-font, "Segoe UI", sans-serif);
+}
+
+.transfer-list__dialog-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 12px;
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+  h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--m365-text, #323130);
+  }
+}
+
+.transfer-list__dialog-body {
+  padding: 16px 20px 20px;
+}
+
+.transfer-list__dialog-desc {
+  font-size: 13px;
+  color: var(--m365-text-secondary, #605e5c);
+  margin: 0 0 14px;
+  line-height: 1.5;
+}
+
+.transfer-list__dialog-label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--m365-text-secondary, #605e5c);
+  margin-bottom: 6px;
+}
+
+.transfer-list__dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid var(--m365-border-light, #edebe9);
+  background: var(--m365-bg-surface, #faf9f8);
 }

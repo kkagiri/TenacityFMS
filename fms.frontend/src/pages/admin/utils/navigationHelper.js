@@ -1,3 +1,14 @@
+/**
+ * File: navigationHelper.js
+ * Purpose: Central route constants and active-route matching helpers for admin navigation.
+ * Dependencies: None
+ * Last Modified: 2026-02-26
+ *
+ * Key Functions:
+ * - adminRoutes: Canonical admin route map.
+ * - getAdminRoute(): Utility to build paths under /admin.
+ * - isActiveRoute(): Normalized active-path matcher for sidebar state.
+ */
 // Navigation helper functions for admin operations routes
 
 export const adminRoutes = {
@@ -24,7 +35,12 @@ export const adminRoutes = {
   providers: "/admin/providers",
   logs: "/admin/logs",
   expectedAverages: "/admin/expected-averages",
+  checkupTemplates: "/admin/checkup-templates",
   fuelingRules: "/admin/fueling-rules",
+  fuelingRulesRulesets: "/admin/fueling-rules/rulesets",
+  fuelingRulesAssignments: "/admin/fueling-rules/assignments",
+  fuelingRulesLocationGeofence: "/admin/fueling-rules/location-geofence",
+  fuelingRulesSimulator: "/admin/fueling-rules/simulator",
   locationValidation: "/admin/location-validation",
 };
 

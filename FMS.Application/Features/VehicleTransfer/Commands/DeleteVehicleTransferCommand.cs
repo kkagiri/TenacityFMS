@@ -1,3 +1,9 @@
+/**
+ * File: DeleteVehicleTransferCommand.cs
+ * Purpose: Deletes draft/pending vehicle transfers and related inspection rows.
+ * Dependencies: EF Core
+ * Last Modified: 2026-02-26
+ */
 using System;
 using System.Threading;
 using System.Threading.Tasks;
@@ -37,10 +43,11 @@ public class DeleteVehicleTransferCommandHandler : IRequestHandler<DeleteVehicle
                 return FMSResponse<bool>.Failed($"Transfer with ID {request.TransferId} not found", "NOT_FOUND");
             }
 
-            // Only allow deletion of pending transfers
-            if (!transfer.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
+            // Only allow deletion of draft-like transfers
+            if (!transfer.Status.Equals("Draft", StringComparison.OrdinalIgnoreCase)
+                && !transfer.Status.Equals("Pending", StringComparison.OrdinalIgnoreCase))
             {
-                return FMSResponse<bool>.Failed("Only pending transfers can be deleted", "VALIDATION_ERROR");
+                return FMSResponse<bool>.Failed("Only Draft/Pending transfers can be deleted", "VALIDATION_ERROR");
             }
 
             // Remove related entities

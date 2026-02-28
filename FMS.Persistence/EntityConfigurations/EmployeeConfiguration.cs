@@ -1,3 +1,12 @@
+/**
+ * File: EmployeeConfiguration.cs
+ * Purpose: Maps Employee entity fields and relationships to database schema.
+ * Dependencies: EF Core, Employee/Site/User domain entities
+ * Last Modified: 2026-02-26
+ *
+ * Key Functions/Components:
+ * - Configure(): Defines table/column mapping and disables implicit Employee-Vehicle skip-nav mapping.
+ */
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 using FMS.Domain.Entities;
@@ -81,8 +90,9 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(e => e.ModifiedBy)
                     .OnDelete(DeleteBehavior.Restrict);
 
-                // Many-to-many relationship is configured in EmployeeVehicleConfiguration
-                // No need to duplicate it here
+                // Prevent implicit many-to-many join table creation (EmployeesId/VehiclesVehicleId).
+                // Employee-vehicle links are managed explicitly by EmployeeVehicleConfiguration.
+                builder.Ignore(e => e.Vehicles);
             }
             catch (Exception ex)
             {

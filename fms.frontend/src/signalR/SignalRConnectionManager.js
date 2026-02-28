@@ -45,6 +45,7 @@ const ROUTE_PATTERNS = {
     /\/event-expressions$/,
     /^\/reports\/fuel-importer/, // Fuel importer needs SignalR for async import progress
     /\/fuel-importer$/,
+    /^\/vehicles\/transfers/, // Vehicle transfers need SignalR for real-time notifications
   ],
   // Vehicle tracking routes - special SignalR for live GPS tracking
   VEHICLE_TRACKING: [
@@ -54,7 +55,7 @@ const ROUTE_PATTERNS = {
   ],
   // Routes that DON'T need any SignalR connection
   NO_SIGNALR: [
-    /^\/vehicles(?!\/tracking)/,  // Exclude vehicles/tracking route
+    /^\/vehicles(?!\/tracking|\/transfers)/,  // Allow vehicles/tracking and vehicles/transfers
     /^\/site/,
     /^\/user/,
     /^\/roles/,

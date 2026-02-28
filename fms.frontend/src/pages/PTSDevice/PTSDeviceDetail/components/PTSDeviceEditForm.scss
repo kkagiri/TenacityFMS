@@ -1,9 +1,50 @@
 .pts-device-edit-form {
   .form-header {
-    @apply tw-mb-6 tw-pb-4 tw-border-b tw-border-gray-200;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+    &__row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+    }
+
+    &__title {
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--m365-text, #201f1e);
+      margin: 0 0 2px;
+      font-family: var(--m365-font, "Segoe UI", system-ui, sans-serif);
+    }
+
+    &__subtitle {
+      font-size: 13px;
+      color: var(--m365-text-secondary, #605e5c);
+      margin: 0;
+    }
   }
 
   .form-actions {
-    @apply tw-flex tw-justify-end tw-gap-3 tw-mt-6;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--m365-border-light, #edebe9);
+  }
+
+  // Read-only styling — clean field display
+  .dx-state-readonly {
+    .dx-texteditor-input {
+      color: var(--m365-text, #201f1e);
+      font-weight: 500;
+    }
+
+    &.dx-texteditor {
+      border-color: transparent;
+      background: var(--m365-bg-surface, #faf9f8);
+    }
   }
 }

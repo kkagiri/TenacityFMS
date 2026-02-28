@@ -1,9 +1,17 @@
+/**
+ * File: PTSDeviceDetailPage.js
+ * Purpose: M365-styled PTS device detail view with FluentStat summary tiles and underline-only tabs
+ * Dependencies: ptsDeviceActions, ptsSignalRService, m365-shared
+ * Last Modified: 2026-02-27
+ *
+ * Key Components:
+ * - FluentStat tiles: Large summary cards for Connection, IP, Status, Port, Activity, Communication
+ * - M365 Tab Bar: Underline-only active indicator (no background)
+ * - Lazy-loaded tab content: Live Info, Terminal, Settings, Configuration
+ */
 import React, { useEffect, useState, useCallback, useMemo } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import Tabs from "devextreme-react/tabs";
-import { Button } from "devextreme-react/button";
-import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import { confirm } from "devextreme/ui/dialog";
 import { getPTSDeviceById, deletePTSDevice } from "../../../redux/actions/ptsActions/ptsDeviceActions";
@@ -14,16 +22,36 @@ import PTSDeviceEditForm from "./components/PTSDeviceEditForm";
 import PTSDeviceConfiguration from "./components/PTSDeviceConfiguration";
 import "./PTSDeviceDetailPage.scss";
 
-/**
- * PTSDeviceDetailPage - Comprehensive device detail view
- * Route: /admin/ptsdevice/{deviceid}
- *
- * Features:
- * 1. Live information from SignalR (when WebSocket connected)
- * 2. Terminal-like panel for viewing device data
- * 3. Device edit form
- * 4. Configuration page (placeholder for future firmware-based config)
- */
+const TABS = [
+  { key: "live", label: "Live Info", icon: "fa-light fa-signal-stream" },
+  { key: "terminal", label: "Terminal", icon: "fa-light fa-terminal" },
+  { key: "settings", label: "Device Settings", icon: "fa-light fa-gear" },
+  { key: "config", label: "Configuration", icon: "fa-light fa-sliders" },
+];
+
+/* ─── FluentStat — large summary tile (detail page) ─── */
+const FluentStat = ({ label, value, color = "blue", icon }) => {
+  const barColors = {
+    blue: "#0078D4", green: "#107C10", orange: "#CA5010", red: "#D13438", gray: "#C8C6C4",
+  };
+  const textColors = {
+    blue: "#0078D4", green: "#107C10", orange: "#CA5010", red: "#D13438", gray: "#605E5C",
+  };
+
+  return (
+    <div className="pts-detail-stat">
+      <div className="pts-detail-stat__bar" style={{ background: barColors[color] || barColors.blue }} />
+      <div className="pts-detail-stat__label">{label}</div>
+      <div className="pts-detail-stat__value" style={{ color: textColors[color] || textColors.blue }}>{value}</div>
+      {icon && (
+        <div className="pts-detail-stat__ghost">
+          <i className={icon} />
+        </div>
+      )}
+    </div>
+  );
+};
+
 const PTSDeviceDetailPage = () => {
   const { deviceid } = useParams();
   const navigate = useNavigate();
@@ -34,57 +62,36 @@ const PTSDeviceDetailPage = () => {
   const [liveData, setLiveData] = useState(null);
   const [device, setDevice] = useState(null);
   const [dataLoaded, setDataLoaded] = useState(false);
-  const [tabLoadingStates, setTabLoadingStates] = useState({
-    0: true, // Live Info tab starts loading
-  });
+  const [tabLoadingStates, setTabLoadingStates] = useState({ 0: true });
   const [tabDataLoaded, setTabDataLoaded] = useState({});
 
   const currentDevice = useSelector((state) => state.ptsDevice?.currentDevice);
   const realtimeStatus = useSelector((state) => state.realtimeStatus);
 
-  // Reset component state when device ID changes
+  // Reset when device ID changes
   useEffect(() => {
     setDataLoaded(false);
     setDevice(null);
     setTabDataLoaded({});
-    setTabLoadingStates({
-      0: true,
-    });
+    setTabLoadingStates({ 0: true });
     setActiveTab(0);
   }, [deviceid]);
 
-  // Load device data on mount
+  // Load device data
   useEffect(() => {
     const loadDevice = async () => {
-      if (dataLoaded) return; // Prevent re-loading
-
+      if (dataLoaded) return;
       setIsLoading(true);
       try {
-        // Ensure PTS SignalR service is connected
         if (!ptsSignalRService.getConnectionStatus()) {
-          console.log("[PTSDeviceDetail] Starting PTS SignalR service...");
-          try {
-            await ptsSignalRService.start();
-            console.log("[PTSDeviceDetail] PTS SignalR service started");
-          } catch (signalRError) {
-            console.warn("[PTSDeviceDetail] Failed to start PTS SignalR:", signalRError);
-            // Continue loading device data even if SignalR fails
+          try { await ptsSignalRService.start(); } catch (e) {
+            console.warn("[PTSDeviceDetail] SignalR start failed:", e);
           }
         }
-
         await dispatch(getPTSDeviceById(deviceid));
         setDataLoaded(true);
-
-        // Mark first tab as loaded
-        setTabLoadingStates((prev) => ({
-          ...prev,
-          0: false,
-        }));
-
-        setTabDataLoaded((prev) => ({
-          ...prev,
-          0: true,
-        }));
+        setTabLoadingStates((p) => ({ ...p, 0: false }));
+        setTabDataLoaded((p) => ({ ...p, 0: true }));
       } catch (error) {
         notify(`Failed to load device: ${error.message}`, "error", 3000);
         navigate("/admin/ptsdevice");
@@ -92,116 +99,46 @@ const PTSDeviceDetailPage = () => {
         setIsLoading(false);
       }
     };
-
-    if (deviceid && !dataLoaded) {
-      loadDevice();
-    }
+    if (deviceid && !dataLoaded) loadDevice();
   }, [deviceid, dispatch, navigate, dataLoaded]);
 
-  // Update local device state when Redux state changes
+  useEffect(() => { if (currentDevice) setDevice(currentDevice); }, [currentDevice]);
+
+  // SignalR subscriptions — only on Live Info tab
   useEffect(() => {
-    if (currentDevice) {
-      setDevice(currentDevice);
-    }
-  }, [currentDevice]);
-
-  // Subscribe to SignalR updates for this device
-  // Only when Live Info tab is active to prevent conflicts with Terminal tab
-  useEffect(() => {
-    if (!deviceid || !realtimeStatus.isLiveDataEnabled) return;
-
-    // Only subscribe when Live Info tab (index 0) is active
-    if (activeTab !== 0) {
-      console.log(
-        `[PTSDeviceDetail] Live Info not active - skipping parent subscriptions`
-      );
-      return;
-    }
-
-    console.log(
-      `[PTSDeviceDetail] Live Info active - subscribing to device updates for ${deviceid}`
-    );
-
-    const handleDeviceUpdate = (data) => {
-      //console.log(`[PTSDeviceDetail] Received update for device ${deviceid}:`, data);
-
-      // Update live data if this update is for our device
-      if (data.deviceId === deviceid || data.ptsid === deviceid) {
-        setLiveData(data);
-      }
+    if (!deviceid || !realtimeStatus.isLiveDataEnabled || activeTab !== 0) return;
+    const handler = (data) => {
+      if (data.deviceId === deviceid || data.ptsid === deviceid) setLiveData(data);
     };
-
-    // Subscribe to device-specific updates
-    const unsubscribeUploadStatus = ptsSignalRService.on(
-      "uploadStatusUpdate",
-      handleDeviceUpdate
-    );
-
-    const unsubscribeDeviceStatus = ptsSignalRService.on(
-      "deviceStatusUpdate",
-      handleDeviceUpdate
-    );
-
-    return () => {
-      console.log(`[PTSDeviceDetail] Cleaning up Live Info subscriptions`);
-      unsubscribeUploadStatus();
-      unsubscribeDeviceStatus();
-    };
+    const u1 = ptsSignalRService.on("uploadStatusUpdate", handler);
+    const u2 = ptsSignalRService.on("deviceStatusUpdate", handler);
+    return () => { u1(); u2(); };
   }, [deviceid, realtimeStatus.isLiveDataEnabled, activeTab]);
 
-  // Handle tab change with lazy loading
-  const handleTabSelectionChange = useCallback(
-    (e) => {
-      const newTabIndex = e.itemIndex;
-      setActiveTab(newTabIndex);
+  // Tab change with lazy loading
+  const handleTabClick = useCallback((idx) => {
+    setActiveTab(idx);
+    if (!tabDataLoaded[idx]) {
+      setTabLoadingStates((p) => ({ ...p, [idx]: true }));
+      setTimeout(() => {
+        setTabLoadingStates((p) => ({ ...p, [idx]: false }));
+        setTabDataLoaded((p) => ({ ...p, [idx]: true }));
+      }, 500);
+    }
+  }, [tabDataLoaded]);
 
-      // Only set loading state if we haven't loaded this tab's data before
-      if (!tabDataLoaded[newTabIndex]) {
-        setTabLoadingStates((prev) => ({
-          ...prev,
-          [newTabIndex]: true,
-        }));
+  const handleBackToList = useCallback(() => navigate("/admin/ptsdevice"), [navigate]);
 
-        // Mark tab as loaded after a short delay
-        setTimeout(() => {
-          setTabLoadingStates((prev) => ({
-            ...prev,
-            [newTabIndex]: false,
-          }));
-
-          setTabDataLoaded((prev) => ({
-            ...prev,
-            [newTabIndex]: true,
-          }));
-        }, 500);
-      }
-    },
-    [tabDataLoaded]
-  );
-
-  // Handle back navigation
-  const handleBackToList = useCallback(() => {
-    navigate("/admin/ptsdevice");
-  }, [navigate]);
-
-  // Handle device save
   const handleDeviceSave = useCallback(() => {
     dispatch(getPTSDeviceById(deviceid));
     notify("Device settings updated successfully", "success", 3000);
   }, [dispatch, deviceid]);
 
-  // Handle device delete
   const handleDeleteDevice = useCallback(async () => {
     const result = await confirm(
-      `<div class="tw-text-center">
-        <i class="fa-light fa-triangle-exclamation tw-text-4xl tw-text-red-500 tw-mb-4"></i>
-        <p class="tw-text-lg tw-font-semibold tw-mb-2">Delete Device?</p>
-        <p class="tw-text-gray-600">Are you sure you want to delete <strong>${device?.ptsName || device?.ptsid}</strong>?</p>
-        <p class="tw-text-sm tw-text-red-500 tw-mt-2">This action cannot be undone.</p>
-      </div>`,
-      "Confirm Delete"
+      `Are you sure you want to delete ${device?.ptsName || device?.ptsid}? This action cannot be undone.`,
+      "Delete Device"
     );
-
     if (result) {
       try {
         await dispatch(deletePTSDevice(deviceid));
@@ -213,382 +150,173 @@ const PTSDeviceDetailPage = () => {
     }
   }, [dispatch, deviceid, device, navigate]);
 
-  // Check if device is connected via WebSocket
   const isWebSocketConnected = useMemo(() => {
-    return (
-      device?.webSocketCapable === 1 && device?.connectionStatus === "Connected"
-    );
+    return device?.webSocketCapable === 1 && device?.connectionStatus === "Connected";
   }, [device?.webSocketCapable, device?.connectionStatus]);
 
-  // Memoize tab components
-  const liveInfoComponent = useMemo(() => {
-    if (!device || tabLoadingStates[0] || activeTab !== 0) return null;
-    return (
-      <PTSDeviceLiveInfo
-        key={`live-info-${device?.ptsid}`}
-        device={device}
-        liveData={liveData}
-        isConnected={isWebSocketConnected}
-      />
-    );
-  }, [device, liveData, isWebSocketConnected, tabLoadingStates, activeTab]);
-
-  const terminalComponent = useMemo(() => {
-    if (!device || tabLoadingStates[1] || activeTab !== 1) return null;
-
-    // Only render terminal when tab is active to prevent subscription conflicts
-    return (
-      <PTSDeviceTerminal
-        key={`terminal-${device?.ptsid}`}
-        device={device}
-        isConnected={isWebSocketConnected}
-      />
-    );
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [device?.ptsid, isWebSocketConnected, tabLoadingStates, activeTab]);
-
-  const settingsComponent = useMemo(() => {
-    if (!device || tabLoadingStates[2] || activeTab !== 2) return null;
-    return (
-      <PTSDeviceEditForm
-        key={`settings-${device?.ptsid}`}
-        device={device}
-        onSave={handleDeviceSave}
-      />
-    );
-  }, [device, handleDeviceSave, tabLoadingStates, activeTab]);
-
-  const configurationComponent = useMemo(() => {
-    if (!device || tabLoadingStates[3] || activeTab !== 3) return null;
-    return (
-      <PTSDeviceConfiguration
-        key={`config-${device?.ptsid}`}
-        device={device}
-        isConnected={isWebSocketConnected}
-      />
-    );
-  }, [device, isWebSocketConnected, tabLoadingStates, activeTab]);
-
-  // Tab items with icons and components
-  const tabItems = useMemo(() => {
+  // ── Metric items (for FluentStat tiles) ──
+  const metrics = useMemo(() => {
     if (!device) return [];
-
-    const loadingSpinner = (title) => (
-      <div className="tw-flex tw-items-center tw-justify-center tw-h-64">
-        <div className="tw-text-center">
-          <i className="fa-light fa-spinner fa-spin tw-text-4xl tw-text-blue-600 tw-mb-4"></i>
-          <p className="tw-text-gray-600">Loading {title.toLowerCase()}...</p>
-        </div>
-      </div>
-    );
-
     return [
       {
-        title: "Live Info",
-        icon: "fa-solid fa-signal-stream",
-        component: tabLoadingStates[0]
-          ? loadingSpinner("live information")
-          : liveInfoComponent,
+        label: "Connection", value: isWebSocketConnected ? "Connected" : "Disconnected",
+        color: isWebSocketConnected ? "green" : "red",
+        icon: isWebSocketConnected ? "fa-light fa-circle-check" : "fa-light fa-circle-xmark"
       },
+      { label: "IP Address", value: device.ipaddress || "N/A", color: "blue", icon: "fa-light fa-network-wired" },
       {
-        title: "Terminal",
-        icon: "fa-solid fa-terminal",
-        component: tabLoadingStates[1]
-          ? loadingSpinner("terminal")
-          : terminalComponent,
+        label: "Status", value: device.isActive ? "Active" : "Inactive",
+        color: device.isActive ? "green" : "red",
+        icon: "fa-light fa-circle-dot"
       },
+      { label: "Port", value: device.port || device.portNumber || "N/A", color: "gray", icon: "fa-light fa-plug" },
       {
-        title: "Device Settings",
-        icon: "fa-solid fa-gear",
-        component: tabLoadingStates[2]
-          ? loadingSpinner("device settings")
-          : settingsComponent,
+        label: "Last Activity", value: device.lastActivity ? new Date(device.lastActivity).toLocaleString() : "N/A",
+        color: "orange", icon: "fa-light fa-clock"
       },
-      {
-        title: "Configuration",
-        icon: "fa-solid fa-sliders",
-        component: tabLoadingStates[3]
-          ? loadingSpinner("configuration")
-          : configurationComponent,
-      },
+      { label: "Communication", value: device.communicationType || "Unknown", color: "blue", icon: "fa-light fa-satellite-dish" },
     ];
-  }, [
-    device,
-    liveInfoComponent,
-    terminalComponent,
-    settingsComponent,
-    configurationComponent,
-    tabLoadingStates,
-  ]);
+  }, [device, isWebSocketConnected]);
 
-  const renderTabItem = (item) => {
-    return (
-      <div className="tw-flex tw-items-center tw-gap-2">
-        <i className={item.icon}></i>
-        <span className="tw-hidden md:tw-inline">{item.title}</span>
-      </div>
-    );
+  // ── Loading spinner ──
+  const loadingSpinner = (title) => (
+    <div className="m365-detail-loader">
+      <i className="fa-light fa-spinner fa-spin"></i>
+      <span>Loading {title}…</span>
+    </div>
+  );
+
+  // ── Tab content ──
+  const renderTabContent = () => {
+    if (!device) return null;
+    switch (activeTab) {
+      case 0:
+        return tabLoadingStates[0] ? loadingSpinner("live information") : (
+          <PTSDeviceLiveInfo key={`live-${device.ptsid}`} device={device} liveData={liveData} isConnected={isWebSocketConnected} />
+        );
+      case 1:
+        return tabLoadingStates[1] ? loadingSpinner("terminal") : (
+          <PTSDeviceTerminal key={`term-${device.ptsid}`} device={device} isConnected={isWebSocketConnected} />
+        );
+      case 2:
+        return tabLoadingStates[2] ? loadingSpinner("device settings") : (
+          <PTSDeviceEditForm key={`edit-${device.ptsid}`} device={device} onSave={handleDeviceSave} />
+        );
+      case 3:
+        return tabLoadingStates[3] ? loadingSpinner("configuration") : (
+          <PTSDeviceConfiguration key={`cfg-${device.ptsid}`} device={device} isConnected={isWebSocketConnected} />
+        );
+      default:
+        return null;
+    }
   };
 
-  const renderContent = () => {
-    const activeComponent = tabItems[activeTab]?.component;
-
-    // Important: Only render the active tab's component
-    // This ensures only one tab is mounted at a time, preventing SignalR subscription conflicts
-    return activeComponent ? (
-      <div className="tw-p-4 md:tw-p-6">{activeComponent}</div>
-    ) : null;
-  };
-
+  // ── Page loading state ──
   if (isLoading) {
     return (
-      <div className="tw-flex tw-justify-center tw-items-center tw-h-screen">
-        <LoadIndicator width="48px" height="48px" visible={true} />
+      <div className="m365-detail-page-loading">
+        <i className="fa-light fa-spinner fa-spin"></i>
+        <span>Loading device…</span>
       </div>
     );
   }
 
+  // ── Not found state ──
   if (!device) {
     return (
-      <div className="tw-p-6">
-        <div className="tw-text-center tw-py-12">
-          <i className="fa-light fa-exclamation-triangle tw-text-4xl tw-text-yellow-500 tw-mb-4"></i>
-          <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800">
-            Device Not Found
-          </h2>
-          <p className="tw-text-gray-600 tw-mb-6">
-            The requested device could not be found.
-          </p>
-          <Button
-            text="Back to Device List"
-            icon="fa-light fa-arrow-left"
-            onClick={handleBackToList}
-            type="default"
-            stylingMode="contained"
-          />
-        </div>
+      <div className="m365-detail-empty">
+        <i className="fa-light fa-exclamation-triangle"></i>
+        <h2>Device Not Found</h2>
+        <p>The requested device could not be found.</p>
+        <button className="m365-btn m365-btn--primary" onClick={handleBackToList}>
+          <i className="fa-light fa-arrow-left"></i> Back to Device List
+        </button>
       </div>
     );
   }
 
   return (
-    <div className="pts-device-detail-page tw-p-2 md:tw-p-6">
-      {/* Header Section */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200 tw-p-4 md:tw-p-6 tw-mb-6">
-        {/* Header Actions */}
-        <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
-          <Button
-            icon="fa-light fa-arrow-left"
-            onClick={handleBackToList}
-            stylingMode="text"
-            hint="Back to Device List"
-          />
-          <Button
-            icon="fa-light fa-trash"
-            text="Delete"
-            onClick={handleDeleteDevice}
-            stylingMode="outlined"
-            type="danger"
-            hint="Delete this device"
-          />
+    <div className="m365-detail-page">
+      {/* ── Header ── */}
+      <div className="m365-detail-header">
+        <div className="m365-detail-header__nav">
+          <button className="m365-btn m365-btn--text" onClick={handleBackToList}>
+            <i className="fa-light fa-arrow-left"></i>
+            <span>PTS Devices</span>
+          </button>
         </div>
-
-        <div className="tw-relative tw-flex tw-flex-col lg:tw-flex-row lg:tw-items-start lg:tw-justify-between tw-gap-4 tw-mb-4">
-          {/* Device Info Section */}
-          <div className="tw-flex-1">
-            <h1 className="tw-text-xl md:tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-2">
-              {device.ptsName || device.ptsid}
-            </h1>
-            <p className="tw-text-sm tw-text-gray-500 tw-mb-1">
-              ID: {device.ptsid}
-            </p>
-            <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
-              {device.siteNavigation?.name || "Unknown Site"}
-            </p>
+        <div className="m365-detail-header__title-row">
+          <div className="m365-detail-header__info">
+            <h1 className="m365-detail-header__title">{device.ptsName || device.ptsid}</h1>
+            <span className="m365-detail-header__subtitle">
+              ID: {device.ptsid} &middot; {device.siteNavigation?.name || "Unknown Site"}
+            </span>
+          </div>
+          <div className="m365-detail-header__actions">
+            <button
+              className="m365-btn m365-btn--primary"
+              onClick={() => navigate(`/fueling/${device.ptsid}`)}
+            >
+              <i className="fa-light fa-gas-pump"></i> Start Fueling
+            </button>
+            <button className="m365-btn m365-btn--danger" onClick={handleDeleteDevice}>
+              <i className="fa-light fa-trash"></i> Delete
+            </button>
           </div>
         </div>
-
-        {/* Device Metrics Dashboard */}
-        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-4">
-          {/* Connection Status Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i
-                  className={`fa-light ${
-                    isWebSocketConnected
-                      ? "fa-circle-check tw-text-green-600"
-                      : "fa-circle-xmark tw-text-red-600"
-                  }`}
-                ></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
-                  Connection
-                </div>
-                <div className="tw-font-semibold tw-text-gray-800">
-                  {isWebSocketConnected
-                    ? "WebSocket Connected"
-                    : "Disconnected"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* IP Address Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i className="fa-light fa-network-wired tw-text-blue-600"></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
-                  IP Address
-                </div>
-                <div className="tw-font-semibold tw-text-gray-800">
-                  {device.ipaddress || "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Status Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i
-                  className={`fa-light fa-circle-dot ${
-                    device.isActive ? "tw-text-green-600" : "tw-text-red-600"
-                  }`}
-                ></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
-                  Status
-                </div>
-                <div className="tw-font-semibold tw-text-gray-800">
-                  {device.isActive ? "Active" : "Inactive"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Last Activity Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i className="fa-light fa-clock tw-text-purple-600"></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
-                  Last Activity
-                </div>
-                <div className="tw-font-semibold tw-text-gray-800 tw-text-sm">
-                  {device.lastActivity
-                    ? new Date(device.lastActivity).toLocaleString()
-                    : "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Communication Type Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i className="fa-light fa-satellite-dish tw-text-indigo-600"></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">
-                  Communication
-                </div>
-                <div className="tw-font-semibold tw-text-gray-800">
-                  {device.communicationType || "Unknown"}
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Port Card */}
-          <div className="tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg tw-p-4">
-            <div className="tw-flex tw-items-center tw-gap-3">
-              <div className="tw-text-2xl">
-                <i className="fa-light fa-plug tw-text-orange-600"></i>
-              </div>
-              <div>
-                <div className="tw-text-xs tw-text-gray-500 tw-mb-1">Port</div>
-                <div className="tw-font-semibold tw-text-gray-800">
-                  {device.port || device.portNumber || "N/A"}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Connected Tanks Section */}
-        {device.tanks && device.tanks.length > 0 && (
-          <div className="tw-mt-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-              <i className="fa-light fa-database tw-mr-2 tw-text-blue-600"></i>
-              Connected Tanks ({device.tanks.length})
-            </h3>
-            <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 xl:tw-grid-cols-4 tw-gap-3">
-              {device.tanks.map((tank) => (
-                <div
-                  key={tank.id}
-                  className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3"
-                >
-                  <div className="tw-flex tw-items-center tw-gap-2 tw-mb-2">
-                    <i className="fa-light fa-oil-can tw-text-blue-600"></i>
-                    <span className="tw-font-semibold tw-text-gray-800">
-                      {tank.name}
-                    </span>
-                  </div>
-                  <div className="tw-text-xs tw-text-gray-600 tw-space-y-1">
-                    <div>
-                      <span className="tw-text-gray-500">Capacity:</span>{" "}
-                      <span className="tw-font-medium">
-                        {tank.tankVolume?.toLocaleString() || "N/A"} L
-                      </span>
-                    </div>
-                    {tank.fuelGradeName && (
-                      <div>
-                        <span className="tw-text-gray-500">Fuel:</span>{" "}
-                        <span className="tw-font-medium">
-                          {tank.fuelGradeName}
-                        </span>
-                      </div>
-                    )}
-                    {tank.currentStock !== null &&
-                      tank.currentStock !== undefined && (
-                        <div>
-                          <span className="tw-text-gray-500">
-                            Current Stock:
-                          </span>{" "}
-                          <span className="tw-font-medium">
-                            {tank.currentStock?.toLocaleString() || "0"} L
-                          </span>
-                        </div>
-                      )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
 
-      {/* Tabs Section */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-border tw-border-gray-200">
-        <Tabs
-          dataSource={tabItems}
-          selectedIndex={activeTab}
-          onItemClick={handleTabSelectionChange}
-          width="100%"
-          className="tw-mb-4"
-          itemRender={renderTabItem}
-        />
-        <div className="tw-p-4">{renderContent()}</div>
+      {/* ── Summary Stat Tiles ── */}
+      <div className="pts-detail-stat-section">
+        <div className="pts-detail-stat-grid">
+          {metrics.map((m, i) => (
+            <FluentStat key={i} label={m.label} value={m.value} color={m.color} icon={m.icon} />
+          ))}
+        </div>
+      </div>
+
+      {/* ── Connected Tanks ── */}
+      {device.tanks && device.tanks.length > 0 && (
+        <div className="m365-detail-tanks">
+          <h3 className="m365-detail-tanks__heading">
+            <i className="fa-light fa-database"></i>
+            Connected Tanks ({device.tanks.length})
+          </h3>
+          <div className="m365-detail-tanks__grid">
+            {device.tanks.map((tank) => (
+              <div key={tank.id} className="m365-tank-card">
+                <div className="m365-tank-card__header">
+                  <i className="fa-light fa-oil-can"></i>
+                  <span>{tank.name}</span>
+                </div>
+                <div className="m365-tank-card__details">
+                  <div><span className="m365-tank-card__label">Capacity:</span> {tank.tankVolume?.toLocaleString() || "N/A"} L</div>
+                  {tank.fuelGradeName && <div><span className="m365-tank-card__label">Fuel:</span> {tank.fuelGradeName}</div>}
+                  {tank.currentStock != null && <div><span className="m365-tank-card__label">Stock:</span> {tank.currentStock?.toLocaleString() || "0"} L</div>}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── M365 Tab Bar (underline only, no background) ── */}
+      <div className="m365-tabs">
+        {TABS.map((tab, idx) => (
+          <button
+            key={tab.key}
+            className={`m365-tab${activeTab === idx ? " m365-tab--active" : ""}`}
+            onClick={() => handleTabClick(idx)}
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
+
+      {/* ── Tab Content ── */}
+      <div className="m365-detail-content">
+        {renderTabContent()}
       </div>
     </div>
   );

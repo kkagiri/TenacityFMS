@@ -4,7 +4,7 @@
  *          Powers the frontend dropdown/form when creating an EventExpression.
  *          Unified structure mapping AlertConfigurationConstants to event evaluator bindings.
  * Dependencies: FMSEvent subclasses (for EventTypeName constants)
- * Last Modified: 2026-02-14
+ * Last Modified: 2026-02-27
  *
  * Key Functions:
  * - GetAvailableTypes(): returns all registered event/alert types with metadata
@@ -12,6 +12,7 @@
  * Groups (business domains):
  * - Tank Stock:       Stock discrepancy, sensor variance
  * - Tank Monitoring:  Level alerts (low, high, water, temperature)
+ * - Fuel Delivery:    In-tank delivery detection, manual delivery entries
  * - PTS Device:       Device status changes, pump alarms
  * - GPS & Vehicle:    Vehicle GPS alerts, geofence, speed
  * - Issue Tracker:    Issue lifecycle events
@@ -288,6 +289,52 @@ namespace FMS.Application.Features.EventEngine.DTOs
                     AvailableScopeFilters = new[] { "SiteId", "TankId" },
                     DefaultSeverity = "High",
                     DefaultCooldownMinutes = 60
+                },
+
+                // ═══════════════════════════════════════════════════
+                // Group: Fuel Delivery
+                // Covers: In-tank delivery detection (PTS/ATG sensors),
+                //         Manual delivery entries (same-day and historical)
+                // ═══════════════════════════════════════════════════
+                new()
+                {
+                    AlertTypeKey = InTankDeliveryEvent.EventTypeName,
+                    EventType = InTankDeliveryEvent.EventTypeName,
+                    DisplayName = "In-Tank Delivery Detected",
+                    Description = "Triggers when PTS/ATG sensors detect an in-tank delivery — monitors volume, fuel grade, and match status",
+                    Category = "Fuel Delivery",
+                    CategoryIcon = "fa-light fa-truck-ramp-box",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("minVolume", "Minimum Volume (Liters)", "number", false, "500"),
+                        new("maxVolumePercent", "Max Fill Level (%)", "number", false, "95"),
+                        new("fuelGradeFilter", "Fuel Grade", "text", false, null),
+                        new("matchStatusFilter", "Match Status", "select", false, null,
+                            new[] { "Detected", "Matched", "Unmatched", "Confirmed", "Rejected" })
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "TankId" },
+                    DefaultSeverity = "Medium",
+                    DefaultCooldownMinutes = 30
+                },
+                new()
+                {
+                    AlertTypeKey = ManualDeliveryEvent.EventTypeName,
+                    EventType = ManualDeliveryEvent.EventTypeName,
+                    DisplayName = "Manual Delivery Entry",
+                    Description = "Triggers when a manual delivery is recorded — monitors volume, supplier, product, and same-day entries",
+                    Category = "Fuel Delivery",
+                    CategoryIcon = "fa-light fa-truck-ramp-box",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("minVolume", "Minimum Volume (Liters)", "number", false, "1000"),
+                        new("maxFillPercent", "Max Fill Level (%)", "number", false, "95"),
+                        new("sameDayOnly", "Same-Day Entry Only", "boolean", false, "true"),
+                        new("supplierFilter", "Supplier Name", "text", false, null),
+                        new("productFilter", "Product/Fuel Grade", "text", false, null)
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "TankId" },
+                    DefaultSeverity = "Low",
+                    DefaultCooldownMinutes = 15
                 },
 
                 // ═══════════════════════════════════════════════════

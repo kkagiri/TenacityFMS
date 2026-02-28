@@ -1,0 +1,275 @@
+/**
+ * File: RuleSetsPage.scss
+ * Purpose: M365 tab bar and layout styles for the combined Rule Sets page.
+ * Dependencies: None
+ * Last Modified: 2026-02-27
+ */
+
+.rulesets-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+
+  .m365-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: #fff;
+    border-bottom: 1px solid #edebe9;
+    flex-shrink: 0;
+  }
+
+  .m365-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #605e5c;
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+
+    &:hover {
+      color: #201f1e;
+    }
+
+    &--active {
+      color: #0078d4;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 12px;
+        right: 12px;
+        height: 2px;
+        background: #0078d4;
+        border-radius: 2px 2px 0 0;
+      }
+    }
+
+    i {
+      font-size: 14px;
+    }
+  }
+
+  &__content {
+    flex: 1 1 auto;
+    overflow-y: auto;
+    min-height: 0;
+  }
+
+  // ── M365 DataGrid Overrides ──────────────────────────────────────────
+  // Flat, neutral-chrome DataGrid matching M365 Admin Center style.
+  // Applied to all DataGrids within this page (Rule Sets, Assignments, Simulator).
+
+  .dx-datagrid {
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    font-size: 13px;
+    border: 1px solid #edebe9;
+    border-radius: 4px;
+    overflow: hidden;
+
+    // Header row
+    .dx-datagrid-headers {
+      background: #faf9f8;
+      border-bottom: 1px solid #edebe9;
+      color: #605e5c;
+      font-weight: 600;
+      font-size: 12px;
+
+      .dx-header-row td {
+        padding: 8px 12px;
+        border-right: none;
+        border-left: none;
+        border-bottom: none;
+      }
+
+      .dx-header-filter-indicator {
+        color: #a19f9d;
+      }
+    }
+
+    // Data rows
+    .dx-datagrid-rowsview {
+      .dx-row {
+        td {
+          padding: 6px 12px;
+          border-color: #f3f2f1;
+          color: #201f1e;
+          line-height: 1.4;
+        }
+
+        &.dx-row-alt td {
+          background: #faf9f8;
+        }
+      }
+
+      .dx-row:not(.dx-row-focused):hover td {
+        background: #f3f2f1;
+      }
+
+      .dx-row-focused td {
+        background: #deecf9 !important;
+        color: #201f1e !important;
+      }
+    }
+
+    // Remove heavy DevExtreme borders & shadows
+    &.dx-datagrid-borders {
+      > .dx-datagrid-headers,
+      > .dx-datagrid-rowsview {
+        border: none;
+      }
+    }
+
+    .dx-datagrid-borders .dx-datagrid-rowsview,
+    .dx-datagrid-borders .dx-datagrid-headers {
+      border: none;
+    }
+
+    // Column separator
+    .dx-column-separator {
+      display: none;
+    }
+
+    // Filter row
+    .dx-datagrid-filter-row {
+      td {
+        padding: 4px 8px;
+        background: #fff;
+        border-bottom: 1px solid #edebe9;
+      }
+
+      .dx-texteditor-input {
+        font-size: 12px;
+        height: 28px;
+        padding: 0 8px;
+      }
+    }
+
+    // Search panel
+    .dx-datagrid-search-panel {
+      margin: 0 4px;
+
+      .dx-texteditor {
+        border: 1px solid #c8c6c4;
+        border-radius: 4px;
+        height: 32px;
+
+        &.dx-state-focused {
+          border-color: #0078d4;
+          box-shadow: 0 0 0 1px #0078d4;
+        }
+
+        .dx-texteditor-input {
+          font-size: 13px;
+          padding: 0 8px 0 30px;
+        }
+      }
+    }
+
+    // Pager
+    .dx-datagrid-pager {
+      border-top: 1px solid #edebe9;
+      padding: 8px 12px;
+      background: #faf9f8;
+
+      .dx-page-sizes .dx-page-size {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 4px;
+
+        &.dx-selection {
+          background: #deecf9;
+          color: #0078d4;
+          font-weight: 600;
+        }
+      }
+
+      .dx-pages .dx-page {
+        font-size: 12px;
+        min-width: 28px;
+        height: 28px;
+        line-height: 28px;
+        border-radius: 4px;
+
+        &.dx-selection {
+          background: #0078d4;
+          color: #fff;
+          font-weight: 600;
+        }
+      }
+
+      .dx-info {
+        font-size: 12px;
+        color: #605e5c;
+      }
+    }
+
+    // Group panel
+    .dx-datagrid-group-panel {
+      padding: 8px 12px;
+      background: #faf9f8;
+      border-bottom: 1px solid #edebe9;
+
+      .dx-group-panel-message {
+        font-size: 12px;
+        color: #a19f9d;
+      }
+
+      .dx-group-panel-item {
+        font-size: 12px;
+        padding: 4px 10px;
+        background: #deecf9;
+        color: #0078d4;
+        border-radius: 4px;
+        border: none;
+      }
+    }
+
+    // Header filter popup
+    .dx-header-filter-menu {
+      .dx-popup-content {
+        padding: 8px;
+      }
+    }
+
+    // Selection
+    .dx-selection td {
+      background: #deecf9 !important;
+    }
+
+    // No data text
+    .dx-datagrid-nodata {
+      font-size: 13px;
+      color: #a19f9d;
+      padding: 24px;
+    }
+
+    // Toolbar (above grid)
+    .dx-toolbar {
+      padding: 8px 12px;
+      background: #fff;
+
+      .dx-toolbar-items-container {
+        height: 36px;
+      }
+    }
+
+    // Buttons inside grid
+    .dx-link {
+      color: #0078d4;
+      font-size: 13px;
+
+      &:hover {
+        color: #106ebe;
+      }
+    }
+  }
+}

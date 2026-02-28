@@ -1,11 +1,11 @@
 /**
  * File: EmployeeLayout.js
- * Purpose: Provides shared sidebar and header layout for all employee module routes.
+ * Purpose: Provides shared Microsoft-style sidebar and header layout for all employee module routes.
  * Dependencies: react-router-dom, employee navigation helper, EmployeeSearchBar.
- * Last Modified: 2026-02-16
+ * Last Modified: 2026-02-26
  *
  * Key Components:
- * - EmployeeLayout(): Wraps employee pages with orange-themed navigation and header.
+ * - EmployeeLayout(): Wraps employee pages with M365-style navigation and header.
  */
 
 import React, { useEffect, useRef, useState } from "react";

@@ -253,16 +253,12 @@ const RuleSimulator = () => {
 
   return (
     <div className="rule-simulator tw-p-4">
-      {/* Header */}
-      <div className="tw-mb-6">
-        <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-flask tw-text-purple-600"></i>
-          Fueling Rule Simulator
-        </h2>
-        <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
+      {/* Description */}
+      <div className="tw-mb-4">
+        <span className="tw-text-sm tw-text-gray-500">
           Simulate which fueling rules would apply to vehicles based on site,
           vehicle type, and time of day
-        </p>
+        </span>
       </div>
 
       {/* Simulation Inputs */}
@@ -408,31 +404,29 @@ const RuleSimulator = () => {
           <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-4">
             {/* Status Card */}
             <div
-              className={`tw-p-4 tw-rounded-lg tw-border-2 ${
-                simulationResults.isAllowed
+              className={`tw-p-4 tw-rounded-lg tw-border-2 ${simulationResults.isAllowed
                   ? "tw-border-green-200 tw-bg-green-50"
                   : simulationResults.hasRules
-                  ? "tw-border-red-200 tw-bg-red-50"
-                  : "tw-border-gray-200 tw-bg-gray-50"
-              }`}
+                    ? "tw-border-red-200 tw-bg-red-50"
+                    : "tw-border-gray-200 tw-bg-gray-50"
+                }`}
             >
               <div className="tw-flex tw-items-center tw-gap-3 tw-mb-3">
                 <i
-                  className={`tw-text-3xl ${
-                    simulationResults.isAllowed
+                  className={`tw-text-3xl ${simulationResults.isAllowed
                       ? "fa-light fa-check-circle tw-text-green-600"
                       : simulationResults.hasRules
-                      ? "fa-light fa-times-circle tw-text-red-600"
-                      : "fa-light fa-question-circle tw-text-gray-600"
-                  }`}
+                        ? "fa-light fa-times-circle tw-text-red-600"
+                        : "fa-light fa-question-circle tw-text-gray-600"
+                    }`}
                 ></i>
                 <div>
                   <div className="tw-text-lg tw-font-semibold">
                     {simulationResults.isAllowed
                       ? "Fueling Allowed"
                       : simulationResults.hasRules
-                      ? "Fueling Blocked"
-                      : "No Rules Configured"}
+                        ? "Fueling Blocked"
+                        : "No Rules Configured"}
                   </div>
                   <div className="tw-text-sm tw-text-gray-600">
                     {simulationResults.vehicle?.hyoungNo || "Selected Vehicle"}
@@ -574,9 +568,11 @@ const RuleSimulator = () => {
 
           <DataGrid
             dataSource={vehicleResults}
-            showBorders={true}
+            showBorders={false}
             showRowLines={true}
+            showColumnLines={false}
             rowAlternationEnabled={true}
+            hoverStateEnabled={true}
             columnAutoWidth={true}
             wordWrapEnabled={true}
             keyExpr="vehicleId"

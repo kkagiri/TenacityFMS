@@ -1,0 +1,589 @@
+/**
+ * File: LocationRulesSettings.scss
+ * Purpose: M365 Fluent-style accordion and settings layout for Location Rules
+ * Dependencies: M365 design tokens
+ * Last Modified: 2025-06-20
+ */
+
+// ─── M365 Design Tokens ──────────────────────────────────
+$m365-primary: #0078d4;
+$m365-primary-hover: #106ebe;
+$m365-text: #201f1e;
+$m365-text-secondary: #605e5c;
+$m365-text-tertiary: #a19f9d;
+$m365-border: #c8c6c4;
+$m365-border-light: #edebe9;
+$m365-bg-surface: #faf9f8;
+$m365-bg-hover: #f3f2f1;
+$m365-bg-selected: #deecf9;
+$m365-danger: #d13438;
+$m365-warning: #ffb900;
+$m365-radius: 8px;
+$m365-radius-sm: 4px;
+
+// ─── Page Container ──────────────────────────────────────
+.location-rules-settings {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 20px 24px;
+}
+
+// ─── Page Header ─────────────────────────────────────────
+.loc-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid $m365-border-light;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__icon {
+    font-size: 20px;
+    color: $m365-primary;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $m365-text;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: $m365-text-secondary;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+// ─── Main Toggle ─────────────────────────────────────────
+.loc-main-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  background: #fff;
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius;
+  border-left: 3px solid $m365-primary;
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__icon {
+    font-size: 18px;
+    color: $m365-primary;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: $m365-text;
+    display: block;
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: $m365-text-secondary;
+    display: block;
+    margin-top: 2px;
+  }
+}
+
+// ─── Accordion List & Accordion ──────────────────────────
+.loc-accordion-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.loc-accordion {
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius;
+  overflow: hidden;
+  background: #fff;
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 14px 16px;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+
+    &-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    &-right {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+  }
+
+  &__icon {
+    font-size: 15px;
+    color: $m365-primary;
+    flex-shrink: 0;
+    width: 20px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: $m365-text;
+    line-height: 1.3;
+  }
+
+  &__desc {
+    font-size: 12px;
+    color: $m365-text-secondary;
+    margin-top: 1px;
+  }
+
+  &__chevron {
+    font-size: 12px;
+    color: $m365-text-tertiary;
+    flex-shrink: 0;
+    transition: transform 0.2s;
+  }
+
+  &__body {
+    padding: 4px 16px 16px 16px;
+    border-top: 1px solid $m365-border-light;
+  }
+
+  &__divider {
+    height: 1px;
+    background: $m365-border-light;
+    margin: 8px 0;
+  }
+
+  &__sub-heading {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: $m365-text-secondary;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 8px 0 4px 0;
+  }
+}
+
+// ─── Setting Row ─────────────────────────────────────────
+.loc-setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 0;
+  border-bottom: 1px solid #f3f2f1;
+  gap: 16px;
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  &__icon {
+    font-size: 14px;
+    color: $m365-text-secondary;
+    flex-shrink: 0;
+    width: 18px;
+    text-align: center;
+  }
+
+  &__title {
+    font-size: 13px;
+    font-weight: 500;
+    color: $m365-text;
+    line-height: 1.3;
+  }
+
+  &__desc {
+    font-size: 11px;
+    color: $m365-text-tertiary;
+    margin-top: 1px;
+  }
+
+  &__control {
+    flex-shrink: 0;
+  }
+}
+
+// ─── Toggle Switch ───────────────────────────────────────
+.loc-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+
+  input {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+  }
+
+  &__track {
+    width: 40px;
+    height: 20px;
+    background: #c8c6c4;
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      background: #fff;
+      border-radius: 50%;
+      transition: transform 0.2s;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    }
+  }
+
+  input:checked + .loc-toggle__track {
+    background: $m365-primary;
+
+    &::after {
+      transform: translateX(20px);
+    }
+  }
+
+  input:disabled + .loc-toggle__track {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+
+  input:focus-visible + .loc-toggle__track {
+    outline: 2px solid $m365-primary;
+    outline-offset: 2px;
+  }
+}
+
+// ─── Bypass Section ──────────────────────────────────────
+.loc-bypass-active {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #fde7e9;
+  border: 1px solid #f1707b;
+  border-radius: $m365-radius-sm;
+  margin-bottom: 12px;
+
+  &__info {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+
+    > i {
+      font-size: 16px;
+      color: $m365-danger;
+      margin-top: 2px;
+    }
+  }
+
+  &__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: $m365-danger;
+    display: block;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: $m365-text-secondary;
+    display: block;
+    margin-top: 2px;
+  }
+}
+
+.loc-bypass-group {
+  margin-bottom: 12px;
+
+  &__label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: $m365-text-secondary;
+    margin-bottom: 6px;
+
+    i {
+      font-size: 12px;
+      color: $m365-primary;
+    }
+  }
+}
+
+.loc-bypass-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: $m365-bg-surface;
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius-sm;
+  margin-bottom: 4px;
+
+  &__name {
+    font-size: 13px;
+    font-weight: 500;
+    color: $m365-text;
+    display: block;
+  }
+
+  &__meta {
+    font-size: 11px;
+    color: $m365-text-tertiary;
+    display: block;
+    margin-top: 1px;
+  }
+}
+
+// ─── Bypass Form ─────────────────────────────────────────
+.loc-bypass-form {
+  padding: 14px;
+  background: $m365-bg-surface;
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius;
+  margin-top: 12px;
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: $m365-text;
+    margin-bottom: 12px;
+
+    i {
+      color: $m365-primary;
+    }
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  &__field {
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: $m365-text-secondary;
+      margin-bottom: 4px;
+    }
+
+    &--wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__actions {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+  }
+}
+
+// ─── Bypass Links ────────────────────────────────────────
+.loc-bypass-links {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid $m365-border-light;
+}
+
+// ─── Info Section ────────────────────────────────────────
+.loc-info-section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+// ─── M365 Info Banner ────────────────────────────────────
+.m365-info-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  background: $m365-bg-selected;
+  border: 1px solid #b3d7f2;
+  border-radius: $m365-radius-sm;
+  font-size: 12px;
+  color: $m365-text;
+
+  &--warning {
+    background: #fff4ce;
+    border-color: #f3d77c;
+  }
+
+  &__icon {
+    font-size: 14px;
+    color: $m365-primary;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  &--warning &__icon {
+    color: #8a6914;
+  }
+
+  &__text {
+    line-height: 1.5;
+  }
+}
+
+// ─── M365 Badge ──────────────────────────────────────────
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.4;
+
+  &--error {
+    background: #fde7e9;
+    color: $m365-danger;
+  }
+}
+
+// ─── M365 Icon Button ────────────────────────────────────
+.m365-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: $m365-radius-sm;
+  cursor: pointer;
+  background: transparent;
+  color: $m365-text-secondary;
+  font-size: 13px;
+  transition: background 0.15s, color 0.15s;
+
+  &:hover {
+    background: $m365-bg-hover;
+  }
+
+  &--danger {
+    color: $m365-danger;
+
+    &:hover {
+      background: #fde7e9;
+    }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
+
+// ─── M365 Buttons (shared across fueling rules) ─────────
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: $m365-radius-sm;
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.15s, border-color 0.15s;
+
+  i {
+    font-size: 13px;
+  }
+
+  &--primary {
+    background: $m365-primary;
+    color: #fff;
+    border-color: $m365-primary;
+
+    &:hover {
+      background: $m365-primary-hover;
+    }
+  }
+
+  &--ghost {
+    background: transparent;
+    color: $m365-text;
+    border-color: $m365-border;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+  }
+
+  &--danger {
+    background: $m365-danger;
+    color: #fff;
+    border-color: $m365-danger;
+
+    &:hover {
+      background: darken($m365-danger, 6%);
+    }
+  }
+
+  &:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+}
