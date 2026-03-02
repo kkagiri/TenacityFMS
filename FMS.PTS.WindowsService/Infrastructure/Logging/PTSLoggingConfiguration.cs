@@ -100,6 +100,13 @@ public static class PTSLoggingConfiguration
                 LogEventLevel.Warning);
         }
 
+        // ─── GLOBAL NOISE FILTER: Suppress known high-volume messages that add no actionable value ───
+        // These fire hundreds of times per hour in Production but indicate normal race conditions,
+        // not real problems. Filtered globally so they never reach any sink.
+        loggerConfig.Filter.ByExcluding(le =>
+            le.MessageTemplate.Text == "Late response received for correlation ID: {CorrelationId}. Response arrived after timeout or command already completed." ||
+            le.MessageTemplate.Text == "Duplicate response detected for correlation ID: {CorrelationId}. Ignoring.");
+
         // ─── CONSOLE: All logs with SourceContext ───
         loggerConfig.WriteTo.Logger(lc => lc
             .Filter.ByExcluding(le =>
