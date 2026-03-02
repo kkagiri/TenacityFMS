@@ -1,0 +1,102 @@
+/**
+ * File:          VehicleTransferReviewPage.scss
+ * Purpose:       Styles for the standalone transfer review page
+ * Dependencies:  m365-shared.scss design tokens
+ * Last Modified: 2026-02-28
+ */
+
+@import "../../../components/m365/m365-shared.scss";
+
+.transfer-review-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--m365-bg-surface);
+  font-family: var(--m365-font);
+  overflow: hidden;
+
+  // ── Page header bar ──
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px;
+    background: #fff;
+    border-bottom: 1px solid var(--m365-border-light);
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+    white-space: nowrap;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  // ── Scrollable body ──
+  &__body {
+    flex: 1;
+    overflow-y: auto;
+    min-height: 0;
+    max-width: 1000px;
+    width: 100%;
+    margin: 0 auto;
+  }
+
+  // ── Loading state ──
+  &__loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    color: var(--m365-text-tertiary);
+    font-size: 13px;
+
+    i {
+      font-size: 28px;
+      color: var(--m365-primary);
+    }
+  }
+
+  // ── Error state ──
+  &__error {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    flex: 1;
+    text-align: center;
+    padding: 40px 24px;
+
+    i {
+      font-size: 36px;
+      color: var(--m365-error);
+    }
+
+    h3 {
+      margin: 0;
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--m365-text);
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--m365-text-secondary);
+      max-width: 400px;
+    }
+  }
+}

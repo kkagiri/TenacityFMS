@@ -16,6 +16,7 @@ import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
 import { fetchUsers } from "../../../redux/actions/userActions";
 import { getUserId, getUserDisplayName } from "./vehicleTransferFormUtils";
+import EquipmentInspectionTab from "./EquipmentInspectionTab";
 
 import "./VehicleTransferDetails.scss";
 
@@ -30,6 +31,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
   const [actionLoading, setActionLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("details");
   const [approvalUserId, setApprovalUserId] = useState("");
+  const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
     dispatch(fetchUsers());
@@ -57,14 +59,14 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase();
     const map = {
-      completed:       { cls: "m365-badge--success",  text: "Completed" },
-      approved:        { cls: "m365-badge--primary",   text: "Approved" },
-      intransit:       { cls: "m365-badge--primary",   text: "In Transit" },
-      pendingapproval: { cls: "m365-badge--warning",   text: "Pending Approval" },
-      draft:           { cls: "m365-badge--neutral",   text: "Draft" },
-      cancelled:       { cls: "m365-badge--error",     text: "Cancelled" },
-      rejected:        { cls: "m365-badge--error",     text: "Rejected" },
-      pending:         { cls: "m365-badge--warning",   text: "Pending" },
+      completed: { cls: "m365-badge--success", text: "Completed" },
+      approved: { cls: "m365-badge--primary", text: "Approved" },
+      intransit: { cls: "m365-badge--primary", text: "In Transit" },
+      pendingapproval: { cls: "m365-badge--warning", text: "Pending Approval" },
+      draft: { cls: "m365-badge--neutral", text: "Draft" },
+      cancelled: { cls: "m365-badge--error", text: "Cancelled" },
+      rejected: { cls: "m365-badge--error", text: "Rejected" },
+      pending: { cls: "m365-badge--warning", text: "Pending" },
     };
     const info = map[s] || { cls: "m365-badge--neutral", text: status || "-" };
     return <span className={`m365-badge ${info.cls}`}>{info.text}</span>;
@@ -135,11 +137,12 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
   };
 
   // ── Workflow action ──
-  const handleWorkflowAction = async (endpoint, successMsg) => {
+  const handleWorkflowAction = async (endpoint, successMsg, body = {}) => {
     setActionLoading(true);
     try {
       const response = await axiosInstance.post(
-        `/vehicletransfers/${transfer.transferId}/${endpoint}`
+        `/vehicletransfers/${transfer.transferId}/${endpoint}`,
+        body
       );
       if (response.data?.isSuccess) {
         notify(successMsg, "success", 3000);
@@ -155,6 +158,51 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
       );
     } finally {
       setActionLoading(false);
+    }
+  };
+
+  const handleApprove = () => {
+    handleWorkflowAction("approve", "Transfer approved", {
+      approverName: transfer.approverUserName || null,
+      creatorEmail: transfer.createdBy || null,
+    });
+  };
+
+  const handleReject = () => {
+    const reason = window.prompt("Please enter a reason for rejection:");
+    if (!reason) return;
+    handleWorkflowAction("reject", "Transfer rejected", {
+      reason,
+      creatorEmail: transfer.createdBy || null,
+    });
+  };
+
+  // ── Download PDF report ──
+  const handleDownloadPdf = async () => {
+    setPdfLoading(true);
+    try {
+      const response = await axiosInstance.get(
+        `/vehicletransfers/${transfer.transferId}/pdf`,
+        { responseType: "blob" }
+      );
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `Transfer_Report_${transfer.deliveryNoteNumber || transfer.transferId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      notify("PDF report downloaded", "success", 3000);
+    } catch (error) {
+      notify(
+        error.response?.data?.message || "Failed to download PDF report",
+        "error",
+        3000
+      );
+    } finally {
+      setPdfLoading(false);
     }
   };
 
@@ -220,7 +268,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
           key="approve"
           className="m365-btn m365-btn--success"
           disabled={actionLoading}
-          onClick={() => handleWorkflowAction("approve", "Transfer approved")}
+          onClick={() => handleApprove()}
         >
           <i className="fa-light fa-check" /> Approve
         </button>,
@@ -228,7 +276,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
           key="reject"
           className="m365-btn m365-btn--danger"
           disabled={actionLoading}
-          onClick={() => handleWorkflowAction("reject", "Transfer rejected")}
+          onClick={() => handleReject()}
         >
           <i className="fa-light fa-xmark" /> Reject
         </button>
@@ -254,20 +302,44 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
           key="confirm"
           className="m365-btn m365-btn--success"
           disabled={actionLoading}
-          onClick={() => handleWorkflowAction("confirm-receipt", "Receipt confirmed")}
+          onClick={() => handleWorkflowAction("confirm-receipt", "Receipt confirmed", {})}
         >
           <i className="fa-light fa-clipboard-check" /> Confirm Receipt
         </button>
       );
     }
 
-    if (buttons.length === 0) return null;
+    if (buttons.length === 0) {
+      // Show only the Print Report button for completed/cancelled/rejected statuses
+      return (
+        <div className="transfer-details__action-bar">
+          <i className="fa-light fa-bolt transfer-details__action-icon" />
+          <span className="transfer-details__action-label">Actions</span>
+          <button
+            className="m365-btn m365-btn--ghost"
+            disabled={pdfLoading}
+            onClick={handleDownloadPdf}
+          >
+            <i className={`fa-light ${pdfLoading ? "fa-spinner fa-spin" : "fa-file-pdf"}`} />{" "}
+            {pdfLoading ? "Generating…" : "Print Report"}
+          </button>
+        </div>
+      );
+    }
 
     return (
       <div className="transfer-details__action-bar">
         <i className="fa-light fa-bolt transfer-details__action-icon" />
         <span className="transfer-details__action-label">Actions</span>
         {buttons}
+        <button
+          className="m365-btn m365-btn--ghost"
+          disabled={pdfLoading}
+          onClick={handleDownloadPdf}
+        >
+          <i className={`fa-light ${pdfLoading ? "fa-spinner fa-spin" : "fa-file-pdf"}`} />{" "}
+          {pdfLoading ? "Generating…" : "Print Report"}
+        </button>
       </div>
     );
   };
@@ -302,438 +374,181 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
 
       {/* ═══════ DETAILS TAB ═══════ */}
       {activeTab === "details" && (
-      <>
+        <>
 
-      {/* ── Vehicle Information ── */}
-      <div className="m365-section-group">
-        <div className="m365-section-group__header">
-          <i className="fa-light fa-truck m365-section-group__icon" />
-          <span className="m365-section-group__title">Vehicle Information</span>
-        </div>
-        <div className="m365-section-group__body">
-          <div className="m365-info-grid m365-info-grid--4col">
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Vehicle No</span>
-              <span className="m365-info-cell__value">{transfer.vehicleHyoungNo || "—"}</span>
+          {/* ── Vehicle Information ── */}
+          <div className="m365-section-group">
+            <div className="m365-section-group__header">
+              <i className="fa-light fa-truck m365-section-group__icon" />
+              <span className="m365-section-group__title">Vehicle Information</span>
             </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Reg. No</span>
-              <span className="m365-info-cell__value">{transfer.vehicleNumberPlate || "—"}</span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Make &amp; Model</span>
-              <span className="m365-info-cell__value">{transfer.makeModel || "—"}</span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Job Number</span>
-              <span className="m365-info-cell__value">{transfer.jobNumber || "—"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Transfer Route & Driver ── */}
-      <div className="transfer-details__two-col">
-        {/* Route */}
-        <div className="m365-section-group">
-          <div className="m365-section-group__header">
-            <i className="fa-light fa-route m365-section-group__icon" />
-            <span className="m365-section-group__title">Transfer Route</span>
-          </div>
-          <div className="m365-section-group__body">
-            <div className="transfer-details__route">
-              <div className="transfer-details__route-site transfer-details__route-site--from">
-                <span className="transfer-details__route-label">From</span>
-                <span className="transfer-details__route-name">{transfer.fromSiteName || "—"}</span>
-              </div>
-              <i className="fa-light fa-arrow-right transfer-details__route-arrow" />
-              <div className="transfer-details__route-site transfer-details__route-site--to">
-                <span className="transfer-details__route-label">To</span>
-                <span className="transfer-details__route-name">{transfer.toSiteName || "—"}</span>
+            <div className="m365-section-group__body">
+              <div className="m365-info-grid m365-info-grid--4col">
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Vehicle No</span>
+                  <span className="m365-info-cell__value">{transfer.vehicleHyoungNo || "—"}</span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Reg. No</span>
+                  <span className="m365-info-cell__value">{transfer.vehicleNumberPlate || "—"}</span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Make &amp; Model</span>
+                  <span className="m365-info-cell__value">{transfer.makeModel || "—"}</span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Job Number</span>
+                  <span className="m365-info-cell__value">{transfer.jobNumber || "—"}</span>
+                </div>
               </div>
             </div>
-            <div className="m365-info-row" style={{ marginTop: 12 }}>
-              <span className="m365-info-row__label">Transfer Date</span>
-              <span className="m365-info-row__value">{formatDate(transfer.transferDate)}</span>
-            </div>
           </div>
-        </div>
 
-        {/* Driver & Timing */}
-        <div className="m365-section-group">
-          <div className="m365-section-group__header">
-            <i className="fa-light fa-user m365-section-group__icon" />
-            <span className="m365-section-group__title">Driver &amp; Timing</span>
-          </div>
-          <div className="m365-section-group__body">
-            <div className="m365-info-row">
-              <span className="m365-info-row__label">Driver</span>
-              <span className="m365-info-row__value">{transfer.driverName || "—"}</span>
-            </div>
-            <div className="m365-info-row">
-              <span className="m365-info-row__label">Phone</span>
-              <span className="m365-info-row__value">{transfer.driverPhone || "—"}</span>
-            </div>
-            <div className="m365-info-row">
-              <span className="m365-info-row__label">Departure</span>
-              <span className="m365-info-row__value">{formatDateTime(transfer.departureTime)}</span>
-            </div>
-            <div className="m365-info-row">
-              <span className="m365-info-row__label">Arrival</span>
-              <span className="m365-info-row__value">{formatDateTime(transfer.arrivalTime)}</span>
-            </div>
-            {transfer.dispatchedAt && (
-              <div className="m365-info-row">
-                <span className="m365-info-row__label">Dispatched</span>
-                <span className="m365-info-row__value">{formatDateTime(transfer.dispatchedAt)}</span>
+          {/* ── Transfer Route & Driver ── */}
+          <div className="transfer-details__two-col">
+            {/* Route */}
+            <div className="m365-section-group">
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-route m365-section-group__icon" />
+                <span className="m365-section-group__title">Transfer Route</span>
               </div>
-            )}
-            {transfer.receivedAt && (
-              <div className="m365-info-row">
-                <span className="m365-info-row__label">Received</span>
-                <span className="m365-info-row__value">{formatDateTime(transfer.receivedAt)}</span>
+              <div className="m365-section-group__body">
+                <div className="transfer-details__route">
+                  <div className="transfer-details__route-site transfer-details__route-site--from">
+                    <span className="transfer-details__route-label">From</span>
+                    <span className="transfer-details__route-name">{transfer.fromSiteName || "—"}</span>
+                  </div>
+                  <i className="fa-light fa-arrow-right transfer-details__route-arrow" />
+                  <div className="transfer-details__route-site transfer-details__route-site--to">
+                    <span className="transfer-details__route-label">To</span>
+                    <span className="transfer-details__route-name">{transfer.toSiteName || "—"}</span>
+                  </div>
+                </div>
+                <div className="m365-info-row" style={{ marginTop: 12 }}>
+                  <span className="m365-info-row__label">Transfer Date</span>
+                  <span className="m365-info-row__value">{formatDate(transfer.transferDate)}</span>
+                </div>
               </div>
-            )}
-          </div>
-        </div>
-      </div>
+            </div>
 
-      {/* ── Equipment Reading ── */}
-      <div className="m365-section-group">
-        <div className="m365-section-group__header">
-          <i className="fa-light fa-gauge m365-section-group__icon" />
-          <span className="m365-section-group__title">Equipment Reading</span>
-        </div>
-        <div className="m365-section-group__body">
-          <div className="m365-info-grid m365-info-grid--4col">
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Current Reading</span>
-              <span className="m365-info-cell__value m365-info-cell__value--lg">
-                {transfer.currentReading || "—"}{" "}
-                <span className="m365-info-cell__unit">{transfer.readingUnit || "hrs"}</span>
-              </span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Next Service</span>
-              <span className="m365-info-cell__value m365-info-cell__value--lg">
-                {transfer.nextServiceReading || "—"}{" "}
-                <span className="m365-info-cell__unit">{transfer.readingUnit || "hrs"}</span>
-              </span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Fuel in Tank</span>
-              <span className="m365-info-cell__value m365-info-cell__value--lg">
-                {transfer.fuelInTank || "—"} <span className="m365-info-cell__unit">L</span>
-              </span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Seal Number</span>
-              <span className="m365-info-cell__value">{transfer.sealNumber || "—"}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Remarks ── */}
-      {transfer.remarks && (
-        <div className="m365-section-group transfer-details__remarks-section">
-          <div className="m365-section-group__header">
-            <i className="fa-light fa-comment m365-section-group__icon" />
-            <span className="m365-section-group__title">Remarks</span>
-          </div>
-          <div className="m365-section-group__body">
-            <p className="transfer-details__remarks-text">{transfer.remarks}</p>
-          </div>
-        </div>
-      )}
-
-      {/* ── Approvals ── */}
-      <div className="m365-section-group">
-        <div className="m365-section-group__header">
-          <i className="fa-light fa-signature m365-section-group__icon" />
-          <span className="m365-section-group__title">Approvals</span>
-        </div>
-        <div className="m365-section-group__body">
-          <div className="m365-info-grid m365-info-grid--4col">
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Workshop Manager</span>
-              <span className="m365-info-cell__value">{transfer.workshopManagerSign || "—"}</span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Sender</span>
-              <span className="m365-info-cell__value">{transfer.senderName || "—"}</span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Receiver</span>
-              <span className="m365-info-cell__value">{transfer.receiverUserName || transfer.receiverName || "—"}</span>
-            </div>
-            <div className="m365-info-cell">
-              <span className="m365-info-cell__label">Approved By</span>
-              <span className="m365-info-cell__value">{transfer.approverUserName || transfer.approvedBy || "—"}</span>
+            {/* Driver & Timing */}
+            <div className="m365-section-group">
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-user m365-section-group__icon" />
+                <span className="m365-section-group__title">Driver &amp; Timing</span>
+              </div>
+              <div className="m365-section-group__body">
+                <div className="m365-info-row">
+                  <span className="m365-info-row__label">Driver</span>
+                  <span className="m365-info-row__value">{transfer.driverName || "—"}</span>
+                </div>
+                <div className="m365-info-row">
+                  <span className="m365-info-row__label">Phone</span>
+                  <span className="m365-info-row__value">{transfer.driverPhone || "—"}</span>
+                </div>
+                <div className="m365-info-row">
+                  <span className="m365-info-row__label">Departure</span>
+                  <span className="m365-info-row__value">{formatDateTime(transfer.departureTime)}</span>
+                </div>
+                <div className="m365-info-row">
+                  <span className="m365-info-row__label">Arrival</span>
+                  <span className="m365-info-row__value">{formatDateTime(transfer.arrivalTime)}</span>
+                </div>
+                {transfer.dispatchedAt && (
+                  <div className="m365-info-row">
+                    <span className="m365-info-row__label">Dispatched</span>
+                    <span className="m365-info-row__value">{formatDateTime(transfer.dispatchedAt)}</span>
+                  </div>
+                )}
+                {transfer.receivedAt && (
+                  <div className="m365-info-row">
+                    <span className="m365-info-row__label">Received</span>
+                    <span className="m365-info-row__value">{formatDateTime(transfer.receivedAt)}</span>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* ── Document download ── */}
-      {transfer.documentUrl && (
-        <div className="transfer-details__doc-action">
-          <button
-            className="m365-btn m365-btn--ghost"
-            onClick={() => window.open(transfer.documentUrl, "_blank")}
-          >
-            <i className="fa-light fa-file-pdf" /> View Transfer Document
-          </button>
-        </div>
-      )}
+          {/* ── Equipment Reading ── */}
+          <div className="m365-section-group">
+            <div className="m365-section-group__header">
+              <i className="fa-light fa-gauge m365-section-group__icon" />
+              <span className="m365-section-group__title">Equipment Reading</span>
+            </div>
+            <div className="m365-section-group__body">
+              <div className="m365-info-grid m365-info-grid--4col">
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Current Reading</span>
+                  <span className="m365-info-cell__value m365-info-cell__value--lg">
+                    {transfer.currentReading || "—"}{" "}
+                    <span className="m365-info-cell__unit">{transfer.readingUnit || "hrs"}</span>
+                  </span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Next Service</span>
+                  <span className="m365-info-cell__value m365-info-cell__value--lg">
+                    {transfer.nextServiceReading || "—"}{" "}
+                    <span className="m365-info-cell__unit">{transfer.readingUnit || "hrs"}</span>
+                  </span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Fuel in Tank</span>
+                  <span className="m365-info-cell__value m365-info-cell__value--lg">
+                    {transfer.fuelInTank || "—"} <span className="m365-info-cell__unit">L</span>
+                  </span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Seal Number</span>
+                  <span className="m365-info-cell__value">{transfer.sealNumber || "—"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
 
-      </> /* end Details tab */
+          {/* ── Remarks ── */}
+          {transfer.remarks && (
+            <div className="m365-section-group transfer-details__remarks-section">
+              <div className="m365-section-group__header">
+                <i className="fa-light fa-comment m365-section-group__icon" />
+                <span className="m365-section-group__title">Remarks</span>
+              </div>
+              <div className="m365-section-group__body">
+                <p className="transfer-details__remarks-text">{transfer.remarks}</p>
+              </div>
+            </div>
+          )}
+
+          {/* ── Sign / Approval ── */}
+          <div className="m365-section-group">
+            <div className="m365-section-group__header">
+              <i className="fa-light fa-signature m365-section-group__icon" />
+              <span className="m365-section-group__title">Sign / Approval</span>
+            </div>
+            <div className="m365-section-group__body">
+              <div className="m365-info-grid m365-info-grid--3col">
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Workshop Manager (Approver)</span>
+                  <span className="m365-info-cell__value">{transfer.workshopManagerSign || transfer.approverUserName || "—"}</span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Sender</span>
+                  <span className="m365-info-cell__value">{transfer.senderName || transfer.createdByName || "—"}</span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Receiver</span>
+                  <span className="m365-info-cell__value">{transfer.receiverUserName || transfer.receiverName || "—"}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </> /* end Details tab */
       )}
 
       {/* ═══════ EQUIPMENT INSPECTION TAB ═══════ */}
       {activeTab === "inspection" && (
-      <>
-        {/* ── GPS Equipment Checkup ── */}
-        {(transfer.gpsDeviceId || transfer.fuelSensorId ||
-          transfer.gpsDeviceCondition || transfer.fuelSensorCondition) && (
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-satellite-dish m365-section-group__icon" />
-              <span className="m365-section-group__title">GPS Equipment Checkup</span>
-            </div>
-            <div className="m365-section-group__body">
-              <div className="transfer-details__two-col">
-                {/* GPS Device */}
-                <div className="transfer-details__device-card">
-                  <h4 className="transfer-details__device-title">
-                    <i className="fa-light fa-location-dot" /> GPS Device
-                  </h4>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Device ID / Serial</span>
-                    <span className="m365-info-row__value">{transfer.gpsDeviceId || "—"}</span>
-                  </div>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Condition</span>
-                    <span className="m365-info-row__value">{transfer.gpsDeviceCondition || "—"}</span>
-                  </div>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Working</span>
-                    <span className={`m365-info-row__value ${transfer.gpsDeviceWorking ? "transfer-details__yes" : "transfer-details__no"}`}>
-                      {transfer.gpsDeviceWorking ? "Yes" : "No"}
-                    </span>
-                  </div>
-                  {transfer.gpsDeviceRemarks && (
-                    <div className="m365-info-row">
-                      <span className="m365-info-row__label">Remarks</span>
-                      <span className="m365-info-row__value">{transfer.gpsDeviceRemarks}</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Fuel Sensor */}
-                <div className="transfer-details__device-card">
-                  <h4 className="transfer-details__device-title">
-                    <i className="fa-light fa-gas-pump" /> Fuel Sensor
-                  </h4>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Sensor ID / Serial</span>
-                    <span className="m365-info-row__value">{transfer.fuelSensorId || "—"}</span>
-                  </div>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Condition</span>
-                    <span className="m365-info-row__value">{transfer.fuelSensorCondition || "—"}</span>
-                  </div>
-                  <div className="m365-info-row">
-                    <span className="m365-info-row__label">Working</span>
-                    <span className={`m365-info-row__value ${transfer.fuelSensorWorking ? "transfer-details__yes" : "transfer-details__no"}`}>
-                      {transfer.fuelSensorWorking ? "Yes" : "No"}
-                    </span>
-                  </div>
-                  {transfer.fuelSensorRemarks && (
-                    <div className="m365-info-row">
-                      <span className="m365-info-row__label">Remarks</span>
-                      <span className="m365-info-row__value">{transfer.fuelSensorRemarks}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* ── Checkup Items ── */}
-        {transfer.checkupItems?.length > 0 ? (
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-clipboard-check m365-section-group__icon" />
-              <span className="m365-section-group__title">Checkup Items</span>
-            </div>
-            <div className="m365-section-group__body" style={{ padding: 0 }}>
-              <table className="transfer-details__table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Description</th>
-                    <th className="transfer-details__table-center">Good</th>
-                    <th className="transfer-details__table-center">Fair</th>
-                    <th className="transfer-details__table-center">Damaged</th>
-                    <th className="transfer-details__table-center">Worn</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transfer.checkupItems.map((item) => (
-                    <tr key={item.id}>
-                      <td>{item.serialNo}</td>
-                      <td>{item.description}</td>
-                      <td className="transfer-details__table-center">
-                        {item.isGood && <i className="fa-solid fa-check" style={{ color: "#107c10" }} />}
-                      </td>
-                      <td className="transfer-details__table-center">
-                        {item.isFair && <i className="fa-solid fa-check" style={{ color: "#ca5010" }} />}
-                      </td>
-                      <td className="transfer-details__table-center">
-                        {item.isDamaged && <i className="fa-solid fa-check" style={{ color: "#d13438" }} />}
-                      </td>
-                      <td className="transfer-details__table-center">
-                        {item.isWorn && (
-                          <span>
-                            <i className="fa-solid fa-check" style={{ color: "#ca5010" }} />
-                            {item.wornPercentage && ` ${item.wornPercentage}%`}
-                          </span>
-                        )}
-                      </td>
-                      <td>{item.remarks}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : (
-          <div className="transfer-details__empty-section">
-            <i className="fa-light fa-clipboard" />
-            <span>No checkup items recorded</span>
-          </div>
-        )}
-
-        {/* ── Tyre Details ── */}
-        {transfer.tyreDetails?.length > 0 && (
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-tire m365-section-group__icon" />
-              <span className="m365-section-group__title">Tyre Details</span>
-            </div>
-            <div className="m365-section-group__body" style={{ padding: 0 }}>
-              <table className="transfer-details__table">
-                <thead>
-                  <tr>
-                    <th>Position</th>
-                    <th>Brand</th>
-                    <th>Size</th>
-                    <th>Condition (%)</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transfer.tyreDetails.map((tyre) => (
-                    <tr key={tyre.id}>
-                      <td>{tyre.position || "—"}</td>
-                      <td>{tyre.brand || "—"}</td>
-                      <td>{tyre.size || "—"}</td>
-                      <td>
-                        {tyre.condition != null ? (
-                          <span className={`m365-badge ${
-                            tyre.condition >= 70 ? "m365-badge--success" :
-                            tyre.condition >= 40 ? "m365-badge--warning" : "m365-badge--error"
-                          }`}>
-                            {tyre.condition}%
-                          </span>
-                        ) : "—"}
-                      </td>
-                      <td>{tyre.remarks || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── Battery Details ── */}
-        {transfer.batteryDetails?.length > 0 && (
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-car-battery m365-section-group__icon" />
-              <span className="m365-section-group__title">Battery Details</span>
-            </div>
-            <div className="m365-section-group__body" style={{ padding: 0 }}>
-              <table className="transfer-details__table">
-                <thead>
-                  <tr>
-                    <th>Battery No.</th>
-                    <th>Condition</th>
-                    <th>Voltage (V)</th>
-                    <th>Remarks</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transfer.batteryDetails.map((bat) => (
-                    <tr key={bat.id}>
-                      <td>{bat.batteryNumber || "—"}</td>
-                      <td>{bat.condition || "—"}</td>
-                      <td>{bat.voltage != null ? `${bat.voltage}V` : "—"}</td>
-                      <td>{bat.remarks || "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── Service Filter Parts ── */}
-        {transfer.serviceFilterPartsList?.length > 0 && (
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-filter m365-section-group__icon" />
-              <span className="m365-section-group__title">Service Filter Parts</span>
-            </div>
-            <div className="m365-section-group__body" style={{ padding: 0 }}>
-              <table className="transfer-details__table">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Description</th>
-                    <th>Part Number</th>
-                    <th>Qty</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {transfer.serviceFilterPartsList.map((part, idx) => (
-                    <tr key={idx}>
-                      <td>{part.number || idx + 1}</td>
-                      <td>{part.description || "—"}</td>
-                      <td>{part.partNumber || "—"}</td>
-                      <td>{part.quantity}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-
-        {/* ── Empty state for inspection tab ── */}
-        {!transfer.checkupItems?.length && !transfer.tyreDetails?.length &&
-         !transfer.batteryDetails?.length && !transfer.serviceFilterPartsList?.length && (
-          <div className="transfer-details__empty-section">
-            <i className="fa-light fa-clipboard-question" />
-            <span>No equipment inspection data recorded for this transfer</span>
-          </div>
-        )}
-
-      </> /* end Equipment Inspection tab */
+        <EquipmentInspectionTab transfer={transfer} />
       )}
     </div>
   );

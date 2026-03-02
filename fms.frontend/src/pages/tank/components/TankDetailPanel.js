@@ -15,6 +15,7 @@
  */
 import React, { useMemo } from "react";
 import M365ProgressBar from "../../../components/m365/M365ProgressBar";
+import "../tankPage.scss";
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
 const getStatusLevel = (pct) => {
@@ -84,22 +85,42 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
   return (
     <div className="m365-tank-detail">
 
-      {/* ── Header ── */}
-      <div className="m365-tank-detail__header">
+      {/* ── Command bar ── */}
+      <div className="m365-tank-detail__cmd">
+        <button className="m365-action-link" onClick={onHistory}>
+          <i className="fa-light fa-arrow-right-arrow-left" />
+          <span>View transactions</span>
+        </button>
+        {onEdit && (
+          <button className="m365-action-link" onClick={onEdit}>
+            <i className="fa-light fa-pen-to-square" />
+            <span>Edit tank</span>
+          </button>
+        )}
+        {onLinkPTS && (
+          <button className="m365-action-link" onClick={onLinkPTS}>
+            <i className="fa-light fa-link" />
+            <span>Link PTS</span>
+          </button>
+        )}
+      </div>
+
+      {/* ── Meta strip (name is already in SlidePanel title bar) ── */}
+      <div className="m365-tank-detail__strip">
         <div className={`m365-tank-detail__icon-circle ${tank.tankType === "MobileTanker"
             ? "m365-tank-detail__icon-circle--mobile"
             : "m365-tank-detail__icon-circle--stationary"
           }`}>
           <i className={tank.tankType === "MobileTanker" ? "fa-light fa-truck-moving" : "fa-light fa-gas-pump"} />
         </div>
-        <div className="m365-tank-detail__title-block">
-          <h2 className="m365-tank-detail__name">{tank.name}</h2>
-          <div className="m365-tank-detail__meta">
-            <span className={`m365-badge ${status.cls}`}>{status.text}</span>
-            <span>{tank.siteName || "No Site"}</span>
-            {tank.ptsId && <span>PTS: {tank.ptsId}</span>}
-          </div>
-        </div>
+        <span className={`m365-badge ${status.cls}`}>{status.text}</span>
+        <span className="m365-tank-detail__strip-site">{tank.siteName || "No Site"}</span>
+        <span className="m365-tank-detail__strip-type">
+          {tank.tankType === "MobileTanker" ? "Mobile Tanker" : "Stationary"}
+        </span>
+        {tank.ptsId && (
+          <span className="m365-tank-detail__strip-pts">PTS {tank.ptsId}</span>
+        )}
       </div>
 
       {/* ── Volume Bar ── */}
@@ -114,19 +135,6 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
         <div style={{ fontSize: 12, color: "var(--m365-text-tertiary)", marginTop: 4 }}>
           Available: {(tank.tankVolume - (tank.currentStock || 0)).toLocaleString()} L
         </div>
-      </div>
-
-      {/* ── Quick Actions ── */}
-      <div style={{ display: "flex", gap: 8, marginBottom: 24 }}>
-        <button className="m365-btn m365-btn--ghost" onClick={onEdit}>
-          <i className="fa-light fa-pen-to-square" /> Edit
-        </button>
-        <button className="m365-btn m365-btn--ghost" onClick={onHistory}>
-          <i className="fa-light fa-clock-rotate-left" /> History
-        </button>
-        <button className="m365-btn m365-btn--ghost" onClick={onLinkPTS}>
-          <i className="fa-light fa-link" /> Link PTS
-        </button>
       </div>
 
       {/* ── Configuration ── */}
@@ -148,7 +156,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
             <span className="m365-info-cell__value">
               {tank.priority ? (
                 <span className={`m365-badge ${tank.priority === "High" ? "m365-badge--danger" :
-                    tank.priority === "Medium" ? "m365-badge--warning" : "m365-badge--neutral"
+                  tank.priority === "Medium" ? "m365-badge--warning" : "m365-badge--neutral"
                   }`}>{tank.priority}</span>
               ) : "Not Set"}
             </span>
@@ -225,7 +233,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
             <span className="m365-info-cell__value">
               {tank.ptsId ? (
                 <span className={`m365-badge ${connectionStatus?.status && connectionStatus.status !== "Disconnected"
-                    ? "m365-badge--success" : "m365-badge--warning"
+                  ? "m365-badge--success" : "m365-badge--warning"
                   }`}>
                   {connectionStatus?.status || "Awaiting signal"}
                 </span>

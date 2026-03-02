@@ -35,6 +35,16 @@ namespace FMS.Application.Handlers
                 _logger.LogInformation("PumpTransactionInformation response received for device {DeviceId}, packet {PacketId}. Data: {Data}",
                     deviceId, packet.Id, packet.Data?.ToString());
 
+                // Device returned an error for this packet (e.g. JSONPTS_ERROR_NOT_FOUND when
+                // a pump has no active transaction). Log it and return null — no response needed.
+                if (packet.Error == true)
+                {
+                    _logger.LogWarning(
+                        "PumpTransactionInformation error from device {DeviceId}, packet {PacketId}: Code={Code}, Message={Message}",
+                        deviceId, packet.Id, packet.Code, packet.Message);
+                    return null;
+                }
+
                 // Parse transaction info from response
                 if (packet.Data is not JObject responseData)
                 {

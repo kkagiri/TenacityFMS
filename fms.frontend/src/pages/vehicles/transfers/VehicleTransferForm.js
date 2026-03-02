@@ -1,20 +1,23 @@
 /**
  * File: VehicleTransferForm.js
- * Purpose: Multi-step wizard orchestrator for creating vehicle transfer with checkup report.
- *          Based on H. Young & Co. Plant Equipment Transfer Checkup Report.
+ * Purpose: Multi-step wizard orchestrator for creating/editing vehicle transfer with checkup report.
+ *          Auto-saves as Draft on each step transition. Supports resuming existing drafts.
  * Dependencies: DevExtreme, Redux, axiosInstance, Step components
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-02
  *
  * Key Components:
  * - TransferStepDetails: Step 1 (site transfer, driver, equipment reading, departure/arrival)
  * - TransferStepInspection: Step 2 (checkup items, GPS equipment conditional, service filters)
- * - TransferStepApproval: Step 3 (signatures, document upload, options)
+ * - TransferStepApproval: Step 3 (signatures, options, remarks)
  *
- * GPS Logic: GPS Equipment section only renders when vehicle.hasGPSInstalled is truthy.
- *            Device info is auto-fetched from /api/v1/providers/mappings?vehicleId=X.
+ * Draft Flow:
+ * - Step 0 → Next: Creates draft via POST /vehicletransfers/draft
+ * - Step 1 → Next: Updates draft with inspection data
+ * - Step 2 → Submit: Final draft update + POST /{id}/submit-approval
+ * - Edit mode: Pass existingTransferId to load and resume an existing draft
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import notify from "devextreme/ui/notify";
 import { useSelector, useDispatch } from "react-redux";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
@@ -41,11 +44,12 @@ const STEPS = [
 
 const EDIT_VEHICLE_PERMISSION = "_edit_vehicle";
 
-const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
+const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess }) => {
   const dispatch = useDispatch();
   const sites = useSelector((state) => state.site?.sites || []);
   const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
   const users = useSelector((state) => state.user?.users || []);
+  const currentUser = useSelector((state) => state.auth?.user);
   const myPermissions = useSelector((state) => state.auth?.myPermissions || []);
 
   const isStandaloneMode = !vehicleId;
@@ -58,12 +62,16 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
 
   const [activeStep, setActiveStep] = useState(0);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(!!existingTransferId);
+  const [draftId, setDraftId] = useState(existingTransferId || null);
   const [selectedVehicleId, setSelectedVehicleId] = useState(vehicleId ? parseInt(vehicleId, 10) : null);
   const [tyreDetails, setTyreDetails] = useState([]);
   const [batteryDetails, setBatteryDetails] = useState([]);
   const [serviceFilterParts, setServiceFilterParts] = useState([]);
   const [documentFile, setDocumentFile] = useState(null);
   const [validationErrors, setValidationErrors] = useState({});
+  const draftSaveInProgress = useRef(false);
 
   const [formData, setFormData] = useState({
     vehicleId: vehicleId ? parseInt(vehicleId, 10) : null,
@@ -88,7 +96,7 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
     antiTheftCheckedArrival: false,
     keysInEnvelopeChecked: false,
     remarks: "",
-    senderName: "",
+    senderName: getUserDisplayName(currentUser) || "",
     senderFunction: "",
     receiverName: "",
     receiverFunction: "",
@@ -134,6 +142,123 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
       dispatch(fetchUsers());
     }
   }, [dispatch, users.length]);
+
+  // Load existing transfer for edit mode
+  useEffect(() => {
+    if (!existingTransferId) return;
+
+    let cancelled = false;
+    const loadTransfer = async () => {
+      try {
+        setIsLoadingDraft(true);
+        const response = await axiosInstance.get(`/vehicletransfers/${existingTransferId}`);
+        const transfer = response.data?.data || response.data;
+
+        if (cancelled || !transfer) return;
+
+        setSelectedVehicleId(transfer.vehicleId);
+        setFormData((prev) => ({
+          ...prev,
+          vehicleId: transfer.vehicleId,
+          deliveryNoteNumber: transfer.deliveryNoteNumber || "",
+          fromSiteId: transfer.fromSiteId,
+          toSiteId: transfer.toSiteId,
+          transferDate: transfer.transferDate ? new Date(transfer.transferDate) : new Date(),
+          driverId: transfer.driverId,
+          driverName: transfer.driverName || "",
+          driverPhone: transfer.driverPhone || "",
+          jobNumber: transfer.jobNumber || "",
+          currentReading: transfer.currentReading,
+          readingUnit: transfer.readingUnit || "hrs",
+          nextServiceReading: transfer.nextServiceReading,
+          batteryNumber: transfer.batteryNumber || "",
+          makeModel: transfer.makeModel || "",
+          fuelInTank: transfer.fuelInTank,
+          sealNumber: transfer.sealNumber || "",
+          departureTime: transfer.departureTime ? new Date(transfer.departureTime) : null,
+          arrivalTime: transfer.arrivalTime ? new Date(transfer.arrivalTime) : null,
+          antiTheftCheckedDeparture: transfer.antiTheftCheckedDeparture || false,
+          antiTheftCheckedArrival: transfer.antiTheftCheckedArrival || false,
+          keysInEnvelopeChecked: transfer.keysInEnvelopeChecked || false,
+          remarks: transfer.remarks || "",
+          senderName: transfer.senderName || getUserDisplayName(currentUser) || "",
+          senderFunction: transfer.senderFunction || "",
+          receiverName: transfer.receiverName || "",
+          receiverFunction: transfer.receiverFunction || "",
+          approvedBy: transfer.approvedBy || "",
+          workshopManagerId: transfer.approverUserId ? parseInt(transfer.approverUserId, 10) : null,
+          workshopManagerSign: transfer.workshopManagerSign || "",
+          receiverUserId: transfer.receiverUserId || null,
+          sendEmail: true,
+          emailRecipients: "",
+          updateOdometer: true,
+          createMaintenanceEntry: true,
+          gpsDeviceId: transfer.gpsDeviceId || "",
+          gpsDeviceCondition: transfer.gpsDeviceCondition || "Good",
+          gpsDeviceWorking: transfer.gpsDeviceWorking ?? true,
+          gpsDeviceRemarks: transfer.gpsDeviceRemarks || "",
+          fuelSensorId: transfer.fuelSensorId || "",
+          fuelSensorCondition: transfer.fuelSensorCondition || "Good",
+          fuelSensorWorking: transfer.fuelSensorWorking ?? true,
+          fuelSensorRemarks: transfer.fuelSensorRemarks || "",
+          vehicleManufacturer: transfer.vehicleManufacturer || "",
+          vehicleModelName: transfer.vehicleModelName || "",
+        }));
+
+        if (transfer.checkupItems?.length) {
+          setCheckupItems(transfer.checkupItems.map((item) => ({
+            serialNo: item.serialNo,
+            description: item.description,
+            checkType: item.checkType || "",
+            isGood: item.isGood || false,
+            isFair: item.isFair || false,
+            isDamaged: item.isDamaged || false,
+            isWorn: item.isWorn || false,
+            wornPercentage: item.wornPercentage || 0,
+            remarks: item.remarks || "",
+          })));
+        }
+
+        if (transfer.tyreDetails?.length) {
+          setTyreDetails(transfer.tyreDetails.map((t) => ({
+            position: t.position || "",
+            brand: t.brand || "",
+            size: t.size || "",
+            condition: t.condition || 0,
+            remarks: t.remarks || "",
+          })));
+        }
+
+        if (transfer.batteryDetails?.length) {
+          setBatteryDetails(transfer.batteryDetails.map((b) => ({
+            batteryNumber: b.batteryNumber || "",
+            condition: b.condition || "",
+            voltage: b.voltage || 0,
+            remarks: b.remarks || "",
+          })));
+        }
+
+        if (transfer.serviceFilterPartsList?.length) {
+          setServiceFilterParts(transfer.serviceFilterPartsList.map((s) => ({
+            number: s.number,
+            description: s.description || "",
+            partNumber: s.partNumber || "",
+            quantity: s.quantity || 1,
+          })));
+        }
+
+        setDraftId(transfer.transferId);
+      } catch (error) {
+        console.error("Failed to load transfer for editing:", error);
+        notify("Failed to load transfer data", "error", 3000);
+      } finally {
+        if (!cancelled) setIsLoadingDraft(false);
+      }
+    };
+
+    loadTransfer();
+    return () => { cancelled = true; };
+  }, [existingTransferId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const clearValidationErrorsForFields = useCallback((fields) => {
     setValidationErrors((prev) => {
@@ -188,9 +313,120 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
     return true;
   }, [formData, isStandaloneMode]);
 
-  const goNext = () => {
-    if (validateStep(activeStep)) {
+  /**
+   * Builds FormData payload for draft save endpoint.
+   * Uses the same field names the backend SaveTransferDraftDTO expects.
+   */
+  const buildDraftFormData = useCallback(() => {
+    const payload = new FormData();
+
+    if (draftId) {
+      payload.append("transferId", draftId);
+    }
+
+    // Scalar fields from formData (excludes date fields handled separately below)
+    const scalarFields = [
+      "vehicleId", "deliveryNoteNumber", "fromSiteId", "toSiteId",
+      "driverId", "driverName", "driverPhone", "jobNumber",
+      "currentReading", "readingUnit", "nextServiceReading",
+      "batteryNumber", "makeModel", "fuelInTank", "sealNumber",
+      "antiTheftCheckedDeparture", "antiTheftCheckedArrival", "keysInEnvelopeChecked",
+      "remarks", "senderName", "senderFunction", "receiverName", "receiverFunction",
+      "approvedBy", "workshopManagerSign", "workshopManagerId", "receiverUserId",
+      "sendEmail", "emailRecipients", "updateOdometer", "createMaintenanceEntry",
+      "gpsDeviceId", "gpsDeviceCondition", "gpsDeviceWorking", "gpsDeviceRemarks",
+      "fuelSensorId", "fuelSensorCondition", "fuelSensorWorking", "fuelSensorRemarks",
+      "vehicleManufacturer", "vehicleModelName",
+    ];
+
+    scalarFields.forEach((key) => {
+      const val = formData[key];
+      if (val !== null && val !== undefined && val !== "") {
+        payload.append(key, val instanceof Date ? val.toISOString() : val);
+      }
+    });
+
+    // Date fields
+    if (formData.transferDate) {
+      payload.append("transferDate", formData.transferDate instanceof Date
+        ? formData.transferDate.toISOString()
+        : formData.transferDate);
+    }
+    if (formData.departureTime) {
+      payload.append("departureTime", formData.departureTime instanceof Date
+        ? formData.departureTime.toISOString()
+        : formData.departureTime);
+    }
+    if (formData.arrivalTime) {
+      payload.append("arrivalTime", formData.arrivalTime instanceof Date
+        ? formData.arrivalTime.toISOString()
+        : formData.arrivalTime);
+    }
+
+    // Complex arrays via JSON string fallback setters
+    if (checkupItems.length > 0) {
+      payload.append("checkupItemsJson", JSON.stringify(checkupItems));
+    }
+    if (tyreDetails.length > 0) {
+      payload.append("tyreDetailsJson", JSON.stringify(tyreDetails));
+    }
+    if (batteryDetails.length > 0) {
+      payload.append("batteryDetailsJson", JSON.stringify(batteryDetails));
+    }
+    if (serviceFilterParts.length > 0) {
+      payload.append("serviceFilterPartsJson", JSON.stringify(serviceFilterParts));
+    }
+
+    // File upload
+    if (documentFile) {
+      payload.append("documentFile", documentFile);
+    }
+
+    return payload;
+  }, [formData, draftId, checkupItems, tyreDetails, batteryDetails, serviceFilterParts, documentFile]);
+
+  /**
+   * Saves current form state as a draft. Creates new if no draftId, updates if exists.
+   * Returns the transfer ID from the response.
+   */
+  const saveDraftAsync = useCallback(async () => {
+    if (draftSaveInProgress.current) return draftId;
+    draftSaveInProgress.current = true;
+
+    try {
+      setIsSavingDraft(true);
+      const payload = buildDraftFormData();
+
+      const response = await axiosInstance.post("/vehicletransfers/draft", payload, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+
+      const result = response.data;
+      if (result?.isSuccess && result.data?.transferId) {
+        const newDraftId = result.data.transferId;
+        setDraftId(newDraftId);
+        return newDraftId;
+      } else {
+        throw new Error(result?.message || "Failed to save draft");
+      }
+    } catch (error) {
+      const msg = error.response?.data?.message || error.message || "Failed to save draft";
+      notify(msg, "error", 3000);
+      throw error;
+    } finally {
+      setIsSavingDraft(false);
+      draftSaveInProgress.current = false;
+    }
+  }, [buildDraftFormData, draftId]);
+
+  const goNext = async () => {
+    if (!validateStep(activeStep)) return;
+
+    try {
+      await saveDraftAsync();
       setActiveStep((step) => Math.min(step + 1, STEPS.length - 1));
+    } catch {
+      // Error already notified via saveDraftAsync
     }
   };
 
@@ -319,37 +555,80 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
 
     try {
       setIsSubmitting(true);
-      const submitData = new FormData();
 
-      Object.keys(formData).forEach((key) => {
-        if (formData[key] !== null && formData[key] !== undefined) {
-          submitData.append(key, formData[key] instanceof Date ? formData[key].toISOString() : formData[key]);
+      // Step 1: Final draft save to persist all data
+      const transferId = await saveDraftAsync();
+
+      if (!transferId) {
+        throw new Error("Draft save failed — no transfer ID returned");
+      }
+
+      // Step 2: Find workshop manager email for approval notification
+      const selectedManager = workshopManagerUsers.find(
+        (u) => String(u.id) === String(formData.workshopManagerId)
+      );
+
+      // Step 3: Submit for approval — transitions Draft → PendingApproval
+      const approvalResponse = await axiosInstance.post(
+        `/vehicletransfers/${transferId}/submit-approval`,
+        {
+          workshopManagerEmail: selectedManager?.email || "",
+          workshopManagerName: selectedManager?.displayName || formData.workshopManagerSign || "",
+          approvalBaseUrl: window.location.origin,
         }
-      });
+      );
 
-      submitData.append("checkupItems", JSON.stringify(checkupItems));
-      if (tyreDetails.length > 0) submitData.append("tyreDetails", JSON.stringify(tyreDetails));
-      if (batteryDetails.length > 0) submitData.append("batteryDetails", JSON.stringify(batteryDetails));
-      if (serviceFilterParts.length > 0) submitData.append("serviceFilterParts", JSON.stringify(serviceFilterParts));
-      if (documentFile) submitData.append("documentFile", documentFile);
-
-      const response = await axiosInstance.post("/vehicletransfers", submitData, {
-        headers: { "Content-Type": "multipart/form-data" },
-      });
-
-      if (response.data?.isSuccess) {
+      if (approvalResponse.data?.isSuccess) {
+        notify("Transfer submitted for approval", "success", 3000);
         if (onSuccess) {
-          onSuccess(response.data.data);
+          onSuccess(approvalResponse.data.data);
         }
       } else {
-        throw new Error(response.data?.message || "Failed to create transfer");
+        throw new Error(approvalResponse.data?.message || "Failed to submit for approval");
       }
     } catch (error) {
-      notify(error.response?.data?.message || error.message || "Failed to create transfer", "error", 3000);
+      notify(
+        error.response?.data?.message || error.message || "Failed to submit transfer",
+        "error",
+        3000
+      );
     } finally {
       setIsSubmitting(false);
     }
   };
+
+  /**
+   * Sends GPS equipment section to GPS department for review/confirmation.
+   */
+  const handleSendGpsForReview = useCallback(async () => {
+    try {
+      // Ensure draft is saved first so GPS data is persisted
+      let currentDraftId = draftId;
+      if (!currentDraftId) {
+        currentDraftId = await saveDraftAsync();
+      }
+
+      if (!currentDraftId) {
+        notify("Please save the transfer first", "warning", 3000);
+        return;
+      }
+
+      // Notify GPS department  — uses the existing notification endpoint
+      await axiosInstance.post(`/vehicletransfers/${currentDraftId}/notify-gps-review`);
+      notify("GPS equipment section sent to GPS department for review", "success", 3000);
+    } catch (error) {
+      // If endpoint doesn't exist yet, show info message
+      if (error.response?.status === 404) {
+        notify("GPS review notification will be available soon", "info", 3000);
+      } else {
+        notify(
+          error.response?.data?.message || "Failed to send GPS review request",
+          "error",
+          3000
+        );
+      }
+    }
+  }, [draftId, saveDraftAsync]);
 
   const filteredSites = useMemo(
     () => sites.filter((site) => site.id !== formData.fromSiteId),
@@ -358,10 +637,23 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
 
   return (
     <div className="vehicle-transfer-form">
+      {isLoadingDraft && (
+        <div className="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-80 tw-z-50 tw-flex tw-items-center tw-justify-center tw-rounded-lg">
+          <div className="tw-text-center">
+            <i className="fa-light fa-spinner fa-spin tw-text-2xl tw-text-blue-500 tw-mb-2" />
+            <p className="tw-text-sm tw-text-gray-500">Loading transfer data...</p>
+          </div>
+        </div>
+      )}
       <div className="vtf-header">
         <div className="vtf-header__title-row">
           <i className="fa-light fa-file-lines vtf-header__icon" />
-          <h2 className="vtf-header__title">Plant Equipment Transfer Checkup Report</h2>
+          <h2 className="vtf-header__title">
+            {existingTransferId ? "Edit Transfer Report" : "Plant Equipment Transfer Checkup Report"}
+          </h2>
+          {draftId && (
+            <span className="m365-badge m365-badge--warning tw-ml-3">Draft</span>
+          )}
         </div>
         {vehicle && (
           <div className="vtf-header__meta">
@@ -442,6 +734,7 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
           onServiceFilterPartsChange={setServiceFilterParts}
           canManageTemplates={canManageCheckupTemplates}
           onManageTemplates={openCheckupTemplateManager}
+          onSendGpsForReview={handleSendGpsForReview}
         />
       )}
 
@@ -450,9 +743,7 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
           formData={formData}
           workshopManagerUsers={workshopManagerUsers}
           receiverUsers={workshopManagerUsers}
-          documentFile={documentFile}
           onFieldChange={handleFieldChange}
-          onDocumentChange={setDocumentFile}
           onWorkshopManagerChange={handleWorkshopManagerChange}
           onReceiverUserChange={handleReceiverUserChange}
         />
@@ -461,28 +752,42 @@ const VehicleTransferForm = ({ vehicleId, onClose, onSuccess }) => {
       <div className="vtf-nav">
         <div className="vtf-nav__left">
           {activeStep > 0 && (
-            <button className="m365-btn m365-btn--ghost" onClick={goBack} type="button">
+            <button className="m365-btn m365-btn--ghost" onClick={goBack} type="button" disabled={isSavingDraft}>
               <i className="fa-light fa-arrow-left" /> Back
             </button>
           )}
+          {draftId && (
+            <span className="tw-text-xs tw-text-gray-400 tw-ml-2">
+              <i className="fa-light fa-save tw-mr-1" />
+              Draft #{draftId}
+            </span>
+          )}
         </div>
         <div className="vtf-nav__right">
-          <button className="m365-btn m365-btn--ghost" onClick={onClose} disabled={isSubmitting} type="button">
+          <button className="m365-btn m365-btn--ghost" onClick={onClose} disabled={isSubmitting || isSavingDraft} type="button">
             Cancel
           </button>
           {activeStep < STEPS.length - 1 ? (
-            <button className="m365-btn m365-btn--primary" onClick={goNext} type="button">
-              Next <i className="fa-light fa-arrow-right" />
+            <button className="m365-btn m365-btn--primary" onClick={goNext} disabled={isSavingDraft} type="button">
+              {isSavingDraft ? (
+                <>
+                  <i className="fa-light fa-spinner fa-spin" /> Saving...
+                </>
+              ) : (
+                <>
+                  Next <i className="fa-light fa-arrow-right" />
+                </>
+              )}
             </button>
           ) : (
-            <button className="m365-btn m365-btn--primary" onClick={handleSubmit} disabled={isSubmitting} type="button">
+            <button className="m365-btn m365-btn--primary" onClick={handleSubmit} disabled={isSubmitting || isSavingDraft} type="button">
               {isSubmitting ? (
                 <>
                   <i className="fa-light fa-spinner fa-spin" /> Submitting...
                 </>
               ) : (
                 <>
-                  <i className="fa-light fa-check" /> Create Transfer
+                  <i className="fa-light fa-paper-plane" /> Submit for Approval
                 </>
               )}
             </button>

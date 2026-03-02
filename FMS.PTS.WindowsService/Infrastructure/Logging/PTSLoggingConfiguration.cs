@@ -2,20 +2,22 @@
  * File: PTSLoggingConfiguration.cs
  * Purpose: Centralized Serilog logging configuration for FMS.PTS.WindowsService.
  *          Routes logs to domain-specific files based on SourceContext (class name).
- *          All log entries include the originating class name.
- * Dependencies: Serilog, Serilog.Sinks.File, LocalTimeJsonFormatter
- * Last Modified: 2026-02-13
+ *          All log entries use human-readable text format with SourceContext.
+ *          Mirrors the pattern used by FMS.WebClient's FmsLoggingConfiguration.
+ * Dependencies: Serilog, Serilog.Sinks.File, Serilog.Sinks.Console
+ * Last Modified: 2026-03-02
  *
  * Key Methods:
  * - ConfigureFinalLogging(): Main entry point — configures all log sinks and routing
  *
  * Log Folder Structure (C:\Logs\FMS.PTS\):
- *   (root)         - Main unified JSON log (all events)
+ *   app/           - ALL logs (unified, for correlation)
+ *   errors/        - Errors & Fatals only
  *   device-raw/    - Raw WebSocket messages from PTS devices
  *   commands/      - Redis commands, pump commands, command execution
  *   transactions/  - Pump transactions, tank measurements, volume changes
- *   errors/        - Errors & Fatals only
  *   connections/   - Device connections, disconnections, health checks
+ *   startup/       - Application startup logs
  *
  * To add a new log category:
  *   1. Add a new sub-directory to SubDirectories array
@@ -25,7 +27,6 @@
 
 using System;
 using System.IO;
-using FMS.PTS.WindowsService.Infrastructure.Logging;
 using Serilog;
 using Serilog.Events;
 using Serilog.Sinks.SystemConsole.Themes;
@@ -34,18 +35,23 @@ namespace FMS.PTS.WindowsService.Infrastructure.Logging;
 
 public static class PTSLoggingConfiguration
 {
-    private const int DefaultMaxFileSizeMB = 10;
+    private const string LogBasePath = @"C:\Logs\FMS.PTS";
+    private const int MaxFileSizeBytes = 50 * 1024 * 1024; // 50MB per file
     private const int DefaultRetainedFileCount = 31;
+
+    // Standard human-readable template with SourceContext (class name) included
+    private const string FileTemplate =
+        "{Timestamp:yyyy-MM-dd HH:mm:ss.fff} [{Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}";
 
     private const string ConsoleTemplate =
         "[{Timestamp:HH:mm:ss} {Level:u3}] ({SourceContext}) {Message:lj}{NewLine}{Exception}";
 
     private static readonly string[] SubDirectories =
-        { "device-raw", "commands", "transactions", "errors", "connections" };
+        { "app", "errors", "device-raw", "commands", "transactions", "connections", "startup" };
 
     /// <summary>
     /// Configures Serilog with domain-specific log file routing for PTS Windows Service.
-    /// Replaces the inline ConfigureFinalLogging in Program.cs.
+    /// All logs use human-readable text format. All files go into subdirectories (never root).
     /// </summary>
     public static void ConfigureFinalLogging(
         PTSServiceSettings ptsSettings,
@@ -56,12 +62,12 @@ public static class PTSLoggingConfiguration
             throw new InvalidOperationException("Logging configuration is missing in appsettings");
         }
 
-        var maxFileSize = (ptsSettings.Logging.MaxFileSizeInMB > 0
-            ? ptsSettings.Logging.MaxFileSizeInMB
-            : DefaultMaxFileSizeMB) * 1024 * 1024;
         var retainedFiles = ptsSettings.Logging.RetainedFileCount > 0
             ? ptsSettings.Logging.RetainedFileCount
             : DefaultRetainedFileCount;
+
+        // Always use C:\Logs\FMS.PTS — all files in subdirectories, never root
+        EnsureDirectories(LogBasePath);
 
         var loggerConfig = new LoggerConfiguration()
             .MinimumLevel.Is(GetLogEventLevel(ptsSettings.Logging.MinimumLevel))
@@ -70,6 +76,7 @@ public static class PTSLoggingConfiguration
             .MinimumLevel.Override("Microsoft.EntityFrameworkCore", LogEventLevel.Error)
             .MinimumLevel.Override("Pomelo.EntityFrameworkCore.MySql", LogEventLevel.Error)
             .Enrich.FromLogContext()
+            .Enrich.WithProperty("Application", "FMS.PTS")
             .Enrich.WithEnvironmentName()
             .Enrich.WithMachineName();
 
@@ -107,64 +114,60 @@ public static class PTSLoggingConfiguration
                 outputTemplate: ConsoleTemplate,
                 theme: AnsiConsoleTheme.Code));
 
-        // Resolve log directory
-        var logDirectory = Path.GetDirectoryName(ptsSettings.Logging.FilePath);
-        var effectiveLogDirectory = string.IsNullOrEmpty(logDirectory)
-            ? @"C:\Logs\FMS.PTS"
-            : logDirectory;
-        EnsureDirectories(effectiveLogDirectory);
-
-        var timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
-        var formatter = new LocalTimeJsonFormatter();
-
-        // ─── MAIN LOG: All logs in JSON format (unified, for correlation) ───
+        // ─── APP LOG: Everything goes here in app/ subdirectory (unified, for correlation) ───
         loggerConfig.WriteTo.File(
-            formatter: formatter,
-            path: Path.Combine(effectiveLogDirectory, $"pts-service-{timestamp}.log"),
+            path: Path.Combine(LogBasePath, "app", "app-log-.log"),
             rollingInterval: RollingInterval.Day,
             retainedFileCountLimit: retainedFiles,
-            fileSizeLimitBytes: maxFileSize,
+            fileSizeLimitBytes: MaxFileSizeBytes,
             rollOnFileSizeLimit: true,
-            shared: true);
+            shared: true,
+            outputTemplate: FileTemplate);
+
+        // ─── ERRORS: Error and Fatal only ───
+        AddLevelLogger(loggerConfig, "errors", "error-.log",
+            minLevel: LogEventLevel.Error,
+            retainDays: 14);
 
         // ─── RAW DEVICE MESSAGES: WebSocket raw messages from PTS devices ───
-        AddCategoryLogger(loggerConfig, effectiveLogDirectory, "device-raw",
-            $"raw-messages-{timestamp}.log", formatter, maxFileSize, 7,
+        AddCategoryLogger(loggerConfig, "device-raw", "raw-messages-.log",
             sourceContextContains: new[] { "PTSDeviceConnection" },
             messageContains: new[] { "Raw message" },
-            requireBothSourceAndMessage: true);
+            requireBothSourceAndMessage: true,
+            retainDays: 7);
 
         // ─── COMMANDS: Redis commands, command execution, pump commands ───
-        AddCategoryLogger(loggerConfig, effectiveLogDirectory, "commands",
-            $"commands-{timestamp}.log", formatter, maxFileSize, 7,
+        AddCategoryLogger(loggerConfig, "commands", "commands-.log",
             sourceContextContains: new[] { "Command", "Redis", "PumpService" },
-            messageContains: Array.Empty<string>());
+            messageContains: Array.Empty<string>(),
+            retainDays: 7);
 
         // ─── TRANSACTIONS: Pump transactions, tank measurements, volume changes ───
-        AddCategoryLogger(loggerConfig, effectiveLogDirectory, "transactions",
-            $"transactions-{timestamp}.log", formatter, maxFileSize, 14,
+        AddCategoryLogger(loggerConfig, "transactions", "transactions-.log",
             sourceContextContains: new[]
             {
                 "Transaction", "TankMeasurement", "TankVolume", "TankStock",
                 "UploadStatus", "UploadTankMeasurement", "Reconciliation",
                 "PumpTankTransfer"
             },
-            messageContains: Array.Empty<string>());
-
-        // ─── ERRORS: Errors and Fatals only ───
-        AddLevelLogger(loggerConfig, effectiveLogDirectory, "errors",
-            $"errors-{timestamp}.log", formatter, maxFileSize, 14,
-            minLevel: LogEventLevel.Error);
+            messageContains: Array.Empty<string>(),
+            retainDays: 14);
 
         // ─── CONNECTIONS: Device connect/disconnect, health checks ───
-        AddCategoryLogger(loggerConfig, effectiveLogDirectory, "connections",
-            $"connections-{timestamp}.log", formatter, maxFileSize, 7,
+        AddCategoryLogger(loggerConfig, "connections", "connections-.log",
             sourceContextContains: new[]
             {
                 "Connection", "WebSocketListener", "DeviceActivity",
                 "OrphanedTransaction", "StaleConnection"
             },
-            messageContains: Array.Empty<string>());
+            messageContains: Array.Empty<string>(),
+            retainDays: 7);
+
+        // ─── STARTUP: Application startup logs ───
+        AddCategoryLogger(loggerConfig, "startup", "startup-.log",
+            sourceContextContains: Array.Empty<string>(),
+            messageContains: new[] { "Starting", "Configuring", "configured", "initialization" },
+            retainDays: 7);
 
         if (environment == "Development")
         {
@@ -172,62 +175,56 @@ public static class PTSLoggingConfiguration
         }
 
         Log.Logger = loggerConfig.CreateLogger();
-        Log.Information("PTS logging configured: logs routed to {LogDirectory}", effectiveLogDirectory);
+        Log.Information("PTS logging configured: logs routed to {LogDirectory}", LogBasePath);
     }
 
     /// <summary>
-    /// Adds a sub-logger that routes logs matching SourceContext or message content to a JSON file.
+    /// Adds a sub-logger that routes logs matching SourceContext or message content to a text file.
     /// When requireBothSourceAndMessage is true, BOTH source and message must match (AND logic).
     /// When false (default), EITHER source OR message matching triggers routing (OR logic).
     /// </summary>
     private static void AddCategoryLogger(
         LoggerConfiguration loggerConfig,
-        string baseDir,
         string subFolder,
         string fileName,
-        LocalTimeJsonFormatter formatter,
-        int maxFileSize,
-        int retainDays,
         string[] sourceContextContains,
         string[] messageContains,
+        int retainDays = 7,
         bool requireBothSourceAndMessage = false)
     {
         loggerConfig.WriteTo.Logger(subLogger => subLogger
             .Filter.ByIncludingOnly(le =>
                 MatchesCategory(le, sourceContextContains, messageContains, requireBothSourceAndMessage))
             .WriteTo.File(
-                formatter: formatter,
-                path: Path.Combine(baseDir, subFolder, fileName),
+                path: Path.Combine(LogBasePath, subFolder, fileName),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: retainDays,
-                fileSizeLimitBytes: maxFileSize,
+                fileSizeLimitBytes: MaxFileSizeBytes,
                 rollOnFileSizeLimit: true,
-                shared: true));
+                shared: true,
+                outputTemplate: FileTemplate));
     }
 
     /// <summary>
-    /// Adds a sub-logger that routes logs at or above a specific level to a JSON file.
+    /// Adds a sub-logger that routes logs at or above a specific level to a text file.
     /// </summary>
     private static void AddLevelLogger(
         LoggerConfiguration loggerConfig,
-        string baseDir,
         string subFolder,
         string fileName,
-        LocalTimeJsonFormatter formatter,
-        int maxFileSize,
-        int retainDays,
-        LogEventLevel minLevel)
+        LogEventLevel minLevel,
+        int retainDays = 7)
     {
         loggerConfig.WriteTo.Logger(subLogger => subLogger
             .Filter.ByIncludingOnly(le => le.Level >= minLevel)
             .WriteTo.File(
-                formatter: formatter,
-                path: Path.Combine(baseDir, subFolder, fileName),
+                path: Path.Combine(LogBasePath, subFolder, fileName),
                 rollingInterval: RollingInterval.Day,
                 retainedFileCountLimit: retainDays,
-                fileSizeLimitBytes: maxFileSize,
+                fileSizeLimitBytes: MaxFileSizeBytes,
                 rollOnFileSizeLimit: true,
-                shared: true));
+                shared: true,
+                outputTemplate: FileTemplate));
     }
 
     /// <summary>

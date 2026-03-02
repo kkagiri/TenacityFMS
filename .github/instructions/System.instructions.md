@@ -487,12 +487,13 @@ src/
 
 | Folder | Contents | Retention |
 |---|---|---|
-| `(root)` | Main unified JSON log (all events) — LocalTimeJsonFormatter UTC+3 | — |
+| `app/` | ALL logs — unified text format for correlation | 31 days |
+| `errors/` | Errors & Fatals only | 14 days |
 | `device-raw/` | Raw WebSocket messages from PTS devices | 7 days |
 | `commands/` | Redis commands, pump commands, command execution | 7 days |
 | `transactions/` | Pump transactions, tank measurements, volume changes | 14 days |
-| `errors/` | Errors & Fatals only | 60 days |
 | `connections/` | Device connections, disconnections, health checks | 7 days |
+| `startup/` | Application startup logs | 7 days |
 
 ### Adding a New Log Category
 
@@ -513,9 +514,9 @@ AddCategoryLogger(lc, "new-category", "new-category-.log",
 - **DO NOT** modify output templates without ensuring `({SourceContext})` is present
 - Always use `ILogger<T>` in classes (never raw `Log.Information()`)
 - Check existing categories before creating new ones
-- Retention: EF Core = 3 days · Errors = 14–60 days · Others = 7 days
-- Max file size: 50 MB (WebClient) · 10 MB (PTS) — rolls on size limit
-- PTS uses JSON format (LocalTimeJsonFormatter UTC+3); WebClient uses text format
+- Retention: EF Core = 3 days · Errors = 14 days · Others = 7 days
+- Max file size: 50 MB (both WebClient and PTS) — rolls on size limit
+- Both PTS and WebClient use human-readable text format with SourceContext
 
 **Log level guide:**
 

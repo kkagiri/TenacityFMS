@@ -516,6 +516,44 @@
   &__text  { font-size: 13px; color: var(--m365-text-secondary); margin: 0; max-width: 420px; }
 }
 
+// ── Toggle Switch (M365 style) ───────────────────────────────────────────────
+.m365-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+
+  &__track {
+    width: 36px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--m365-border, #8a8886);
+    position: relative;
+    transition: background 0.2s;
+
+    &::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 2px;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: #fff;
+      transition: transform 0.2s;
+    }
+  }
+
+  &--on .m365-toggle__track {
+    background: var(--m365-primary, #0078d4);
+
+    &::after {
+      transform: translateX(16px);
+    }
+  }
+}
+
 @media (max-width: 640px) {
   .m365-page-header {
     flex-direction: column;

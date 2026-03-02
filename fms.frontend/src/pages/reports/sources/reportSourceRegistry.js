@@ -22,6 +22,7 @@ import ptsDevice from './ptsDevice';
 import tankVolumeHistory from './tankVolumeHistory';
 import consumptionByRefills from './consumptionByRefills';
 import issueTracker from './issueTracker';
+import transactionHistorySummary from './transactionHistorySummary';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -54,6 +55,7 @@ const builtInSources = [
     tankVolumeHistory,
     consumptionByRefills,
     issueTracker,
+    transactionHistorySummary,
 ];
 
 builtInSources.forEach((source) => {

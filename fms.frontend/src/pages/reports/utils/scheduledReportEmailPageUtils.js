@@ -61,6 +61,17 @@ export const SCHEDULED_REPORT_TYPE_OPTIONS = [
     defaultDescription: "Scheduled PTS offline report delivery.",
     supportsTankFilter: false,
   },
+  {
+    id: "transaction-history-summary",
+    name: "Transaction History Summary",
+    reportType: "TransactionHistorySummary",
+    templateName: "transaction-history-summary-report",
+    triggerSource: "TransactionHistorySummaryReportSchedule",
+    reportPath: "/reports/engine/transaction-history-summary",
+    reportNamePrefix: "TxnSummary - ",
+    defaultDescription: "Monthly/yearly transaction history summary report.",
+    supportsTankFilter: true,
+  },
 ];
 
 export const DEFAULT_SCHEDULED_REPORT_TYPE_ID =

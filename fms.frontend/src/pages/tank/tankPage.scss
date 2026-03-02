@@ -102,12 +102,50 @@
 .m365-tank-detail {
   font-family: var(--m365-font);
   background: #fff;
+  padding: 16px 20px;
 
-  &__header {
+  // ─ Command bar ─
+  &__cmd {
     display: flex;
-    align-items: flex-start;
-    gap: 14px;
-    margin-bottom: 20px;
+    align-items: center;
+    gap: 4px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--m365-border-light);
+    margin-bottom: 14px;
+    flex-wrap: wrap;
+  }
+
+  // ─ Compact meta strip (replaces big duplicate name header) ─
+  &__strip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  &__strip-site {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+  }
+  &__strip-type {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+    border-left: 1px solid var(--m365-border-light);
+    padding-left: 10px;
+  }
+  &__strip-pts {
+    font-size: 11px;
+    color: var(--m365-text-tertiary);
+    font-family: 'Consolas', monospace;
+    background: var(--m365-bg-surface);
+    border: 1px solid var(--m365-border-light);
+    border-radius: 3px;
+    padding: 1px 6px;
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   &__icon-circle {
@@ -178,6 +216,31 @@
     display: flex;
     gap: 8px;
     margin-bottom: 20px;
+  }
+}
+
+// ── Action link (used in tank detail command bar) ──
+.m365-action-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--m365-primary);
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--m365-font);
+  text-decoration: none;
+  transition: background 0.12s;
+
+  i { font-size: 13px; }
+
+  &:hover {
+    background: var(--m365-bg-hover);
+    text-decoration: underline;
   }
 }
 

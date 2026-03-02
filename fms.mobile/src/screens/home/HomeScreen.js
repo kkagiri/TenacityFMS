@@ -47,7 +47,7 @@ import apiService from "../../services/apiService";
 import signalRService from "../../services/signalRService";
 import { NotificationBell } from "../../components/notifications";
 import { usePermissions } from "../../hooks/usePermissions";
-import MOBILE_PERMISSIONS from "../../constants/mobilePermissions";
+import { MOBILE_PERMISSIONS } from "../../constants/mobilePermissions";
 
 const { width } = Dimensions.get("window");
 

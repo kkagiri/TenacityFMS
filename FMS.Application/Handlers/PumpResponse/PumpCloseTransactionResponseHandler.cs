@@ -23,6 +23,13 @@ namespace FMS.Application.Handlers {
                 _logger.LogInformation ("PumpCloseTransaction response received for device {DeviceId}, packet {PacketId}. Data: {Data}",
                     deviceId, packet.Id, packet.Data?.ToString ());
 
+                // Device returned an error for this packet. Log and return null — no further processing.
+                if (packet.Error == true) {
+                    _logger.LogWarning ("PumpCloseTransactionResponse error from device {DeviceId}, packet {PacketId}: Code={Code}, Message={Message}",
+                        deviceId, packet.Id, packet.Code, packet.Message);
+                    return null;
+                }
+
                 // Parse transaction closure confirmation from response
                 if (packet.Data is JObject responseData) {
                     var pump = responseData.Value<int?> ("Pump");

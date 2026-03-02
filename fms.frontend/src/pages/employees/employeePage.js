@@ -18,7 +18,6 @@ import {
 } from "../../redux/actions/employeeActions";
 import { fetchpermissionbyUserId } from "../../redux/actions/permissionActions";
 import { fetchSiteList } from "../../redux/actions/siteActions";
-import Switch from "devextreme-react/switch";
 import DataGrid, {
   Column,
   Export,
@@ -312,34 +311,6 @@ const EmployeePage = () => {
     [activeOnly, dispatch, selectedEmployee]
   );
 
-  const detailHeaderActions =
-    canEdit || canDelete ? (
-      <>
-        {canEdit && (
-          <button
-            type="button"
-            className="m365-btn m365-btn--ghost"
-            onClick={() => handleOpenEdit(selectedEmployee)}
-            disabled={deleting}
-          >
-            <i className="fa-light fa-pen-to-square"></i>
-            Edit
-          </button>
-        )}
-        {canDelete && (
-          <button
-            type="button"
-            className="m365-btn m365-btn--ghost"
-            onClick={() => handleDeleteEmployee(selectedEmployee)}
-            disabled={deleting}
-            style={{ color: "#d13438" }}
-          >
-            <i className="fa-light fa-trash-can"></i>
-            Delete
-          </button>
-        )}
-      </>
-    ) : null;
 
   const renderVehiclesCell = useCallback(
     (cell) => {
@@ -364,6 +335,14 @@ const EmployeePage = () => {
     },
     []
   );
+
+  const employeeStats = useMemo(() => {
+    const list = Array.isArray(employees) ? employees : [];
+    const active = list.filter((e) => String(e.employeestatus || "").toLowerCase() === "active").length;
+    const inactive = list.filter((e) => String(e.employeestatus || "").toLowerCase() !== "active").length;
+    const unassigned = list.filter((e) => !e.siteId).length;
+    return { total: list.length, active, inactive, unassigned };
+  }, [employees]);
 
   if (loading && !employees.length) {
     return (
@@ -398,6 +377,34 @@ const EmployeePage = () => {
               Add Employee
             </button>
           )}
+        </div>
+      </div>
+
+      {/* ── Stat Tiles ── */}
+      <div className="emp-stat-grid">
+        <div className="emp-stat" style={{ animationDelay: '0.04s' }}>
+          <div className="emp-stat__bar" style={{ background: '#0078d4' }} />
+          <div className="emp-stat__label">Total Employees</div>
+          <div className="emp-stat__value" style={{ color: '#0078d4' }}>{employeeStats.total}</div>
+          <div className="emp-stat__ghost"><i className="fa-light fa-users" /></div>
+        </div>
+        <div className="emp-stat" style={{ animationDelay: '0.08s' }}>
+          <div className="emp-stat__bar" style={{ background: '#107c10' }} />
+          <div className="emp-stat__label">Active</div>
+          <div className="emp-stat__value" style={{ color: '#107c10' }}>{employeeStats.active}</div>
+          <div className="emp-stat__ghost"><i className="fa-light fa-user-check" /></div>
+        </div>
+        <div className="emp-stat" style={{ animationDelay: '0.12s' }}>
+          <div className="emp-stat__bar" style={{ background: '#ca5010' }} />
+          <div className="emp-stat__label">Inactive</div>
+          <div className="emp-stat__value" style={{ color: '#ca5010' }}>{employeeStats.inactive}</div>
+          <div className="emp-stat__ghost"><i className="fa-light fa-user-xmark" /></div>
+        </div>
+        <div className="emp-stat" style={{ animationDelay: '0.16s' }}>
+          <div className="emp-stat__bar" style={{ background: '#c8c6c4' }} />
+          <div className="emp-stat__label">No Site Assigned</div>
+          <div className="emp-stat__value" style={{ color: '#605e5c' }}>{employeeStats.unassigned}</div>
+          <div className="emp-stat__ghost"><i className="fa-light fa-building-circle-xmark" /></div>
         </div>
       </div>
 
@@ -444,13 +451,13 @@ const EmployeePage = () => {
             </TItems>
 
             <TItems location="after" locateInMenu="auto">
-              <span>{switchLabel}</span>
-            </TItems>
-            <TItems location="after" locateInMenu="auto">
-              <Switch
-                value={activeOnly}
-                onValueChanged={(event) => setActiveOnly(Boolean(event.value))}
-              />
+              <label
+                className={`m365-toggle ${activeOnly ? "m365-toggle--on" : ""}`}
+                onClick={() => setActiveOnly((prev) => !prev)}
+              >
+                <span className="m365-toggle__track" />
+                <span style={{ fontSize: 13, color: "var(--m365-text-secondary)" }}>{switchLabel}</span>
+              </label>
             </TItems>
             <TItems name="exportButton" locateInMenu="auto" />
             <TItems location="after" locateInMenu="auto">
@@ -517,13 +524,14 @@ const EmployeePage = () => {
       <SlidePanel
         open={detailOpen}
         onClose={closeDetailPanel}
-        title={selectedEmployee?.fullName || "Employee Details"}
+        title=""
         width={900}
-        headerActions={detailHeaderActions}
       >
         <EmployeeDetailPanel
           employee={selectedEmployee}
           sites={sites}
+          onEdit={canEdit ? () => handleOpenEdit(selectedEmployee) : undefined}
+          onDelete={canDelete ? () => handleDeleteEmployee(selectedEmployee) : undefined}
         />
       </SlidePanel>
 

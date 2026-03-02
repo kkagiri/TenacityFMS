@@ -38,7 +38,7 @@ import IssueAssignmentResponseScreen from "../screens/issues/IssueAssignmentResp
 
 import { useSelector } from "react-redux";
 import { usePermissions } from "../hooks/usePermissions";
-import MOBILE_PERMISSIONS from "../constants/mobilePermissions";
+import { MOBILE_PERMISSIONS } from "../constants/mobilePermissions";
 
 const Stack = createStackNavigator();
 const Tab = createBottomTabNavigator();

@@ -88,6 +88,16 @@ namespace FMS.Application.Handlers.Common
                     {
                         responsePacket = await handlerTask;
 
+                        // Handlers may return null to indicate no response is needed
+                        // (e.g., unsolicited info packets like PumpTransactionInformation that are
+                        // logged/monitored but require no acknowledgement back to the device).
+                        if (responsePacket == null)
+                        {
+                            _logger.LogDebug("Handler returned null for packet {PacketId} of type {PacketType} - no response will be added",
+                                originalPacketId, packet.Type);
+                            continue;
+                        }
+
                         // Correct packet IDs if needed.
                         if (responsePacket.Id != originalPacketId)
                         {

@@ -1,8 +1,9 @@
 /**
  * File: EmployeeDetailsPage.js
  * Purpose: Shows employee profile information with consumption, refill, and vehicle-change history tabs.
- * Dependencies: axios instance, redux site/vehicle actions, DevExtreme tabs/grid components.
- * Last Modified: 2026-02-16
+ *          Follows M365 Admin Center design system (SKILL.md).
+ * Dependencies: axios instance, redux site/vehicle actions, DevExtreme DataGrid.
+ * Last Modified: 2026-03-02
  *
  * Key Components:
  * - EmployeeDetailsPage(): Loads employee profile and renders tabbed history analytics.
@@ -11,10 +12,8 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams } from "react-router-dom";
-import Tabs from "devextreme-react/tabs";
 import Popup from "devextreme-react/popup";
 import TagBox from "devextreme-react/tag-box";
-import SelectBox from "devextreme-react/select-box";
 import DataGrid, {
   Column,
   FilterRow,
@@ -23,7 +22,6 @@ import DataGrid, {
   Paging,
   SearchPanel,
 } from "devextreme-react/data-grid";
-import Button from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
@@ -56,22 +54,10 @@ const parseDate = (value) => {
   return Number.isNaN(date.getTime()) ? null : date;
 };
 
-const tabItems = [
-  {
-    id: "consumption",
-    text: "Consumption History",
-    icon: "fa-light fa-chart-column",
-  },
-  {
-    id: "refill",
-    text: "Fuel Refill History",
-    icon: "fa-light fa-gas-pump",
-  },
-  {
-    id: "vehicle-change",
-    text: "Vehicle Change History",
-    icon: "fa-light fa-right-left",
-  },
+const TAB_ITEMS = [
+  { key: "consumption", label: "Consumption History", icon: "fa-light fa-chart-column" },
+  { key: "refill", label: "Fuel Refill History", icon: "fa-light fa-gas-pump" },
+  { key: "vehicle-change", label: "Vehicle Change History", icon: "fa-light fa-right-left" },
 ];
 
 const employeeStatusOptions = ["Active", "Terminated"];
@@ -100,7 +86,7 @@ const EmployeeDetailsPage = () => {
   const [allTransactions, setAllTransactions] = useState([]);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const [selectedTab, setSelectedTab] = useState(0);
+  const [selectedTab, setSelectedTab] = useState("consumption");
   const [fromDate, setFromDate] = useState(
     toDateInputValue(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
   );
@@ -486,197 +472,148 @@ const EmployeeDetailsPage = () => {
 
   if (loadingEmployee) {
     return (
-      <div className="tw-h-[360px] tw-flex tw-items-center tw-justify-center">
-        <LoadIndicator visible={true} width="34px" height="34px" />
+      <div className="m365-empty">
+        <i className="fa-light fa-spinner fa-spin m365-empty__icon" />
+        <p className="m365-empty__text">Loading employee details...</p>
       </div>
     );
   }
 
   if (!employee) {
     return (
-      <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-xl tw-p-6 tw-text-center">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
-          Employee not found
-        </h3>
-        <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-          The requested employee record could not be loaded.
-        </p>
-        <div className="tw-mt-4">
-          <Button
-            text="Back to Employee List"
-            icon="fa-light fa-arrow-left"
-            type="default"
-            stylingMode="contained"
-            onClick={() => navigate("/employees/list")}
-          />
-        </div>
+      <div className="m365-empty">
+        <i className="fa-light fa-circle-question m365-empty__icon" />
+        <p className="m365-empty__text">Employee not found</p>
+        <button className="m365-btn m365-btn--ghost" onClick={() => navigate("/employees/list")}>
+          <i className="fa-light fa-arrow-left" /> Back to Employee List
+        </button>
       </div>
     );
   }
 
-  const statusLower = (employee.employeestatus || "").toLowerCase();
-  const statusClasses =
-    statusLower === "active"
-      ? "tw-bg-emerald-100 tw-text-emerald-800"
-      : "tw-bg-rose-100 tw-text-rose-800";
+  const statusTone =
+    (employee.employeestatus || "").toLowerCase() === "active" ? "success" : "warning";
 
   return (
-    <div className="employee-details-page tw-space-y-4">
-      <div className="tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-shadow-sm tw-p-4">
-        <div className="tw-flex tw-flex-wrap tw-justify-between tw-gap-3">
-          <div>
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-                {employee.fullName}
-              </h2>
-              <span
-                className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-semibold ${statusClasses}`}
-              >
-                {employee.employeestatus || "Unknown"}
-              </span>
-            </div>
-            <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-              Work No: {employee.employeeWorkNo || "-"} | Phone:{" "}
-              {employee.employeephoneNumber || "-"} | Site:{" "}
-              {siteMap.get(employee.siteId) || "Unassigned"}
-            </p>
-            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
-              Created:{" "}
-              {parseDate(employee.dateCreated)
-                ? new Date(employee.dateCreated).toLocaleString()
-                : "-"}{" "}
-              | Updated:{" "}
-              {parseDate(employee.dateModified)
-                ? new Date(employee.dateModified).toLocaleString()
-                : "-"}
-            </p>
-          </div>
+    <div className="employee-details-page">
 
-          <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-2">
-            <div className="user-details__action-buttons employee-details-page__action-group">
-              <Button
-                text="Edit Employee"
-                icon="fa-light fa-pen-to-square"
-                type="default"
-                stylingMode="outlined"
-                className="user-details__action-btn--first"
-                disabled={!canEditEmployee || savingEmployeeChanges || deletingEmployee}
-                onClick={handleEditEmployee}
-              />
-              <Button
-                text="Delete Employee"
-                icon="fa-light fa-trash-can"
-                type="default"
-                stylingMode="outlined"
-                className="user-details__action-btn--last employee-details-page__delete-btn"
-                disabled={!canDeleteEmployee || deletingEmployee || savingEmployeeChanges}
-                onClick={handleDeleteEmployee}
-              />
+      {/* ── Profile Header Card ── */}
+      <div className="edp-header-card">
+        <div className="edp-header-card__top">
+          <div className="edp-header-card__profile">
+            <div className="m365-detail-header__icon-circle"
+                 style={{ background: '#fff4ce', color: '#ca5010' }}>
+              <i className="fa-light fa-user-hard-hat" />
             </div>
             <div>
-              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
-                From
-              </label>
-              <input
-                type="date"
-                value={fromDate}
-                onChange={(event) => setFromDate(event.target.value)}
-                className="tw-border tw-border-gray-300 tw-rounded-md tw-px-3 tw-py-2 tw-text-sm"
-              />
-            </div>
-            <div>
-              <label className="tw-block tw-text-xs tw-font-medium tw-text-gray-600 tw-mb-1">
-                To
-              </label>
-              <input
-                type="date"
-                value={toDate}
-                onChange={(event) => setToDate(event.target.value)}
-                className="tw-border tw-border-gray-300 tw-rounded-md tw-px-3 tw-py-2 tw-text-sm"
-              />
-            </div>
-            <Button
-              text="Refresh"
-              icon="fa-light fa-rotate"
-              type="default"
-              stylingMode="contained"
-              disabled={deletingEmployee}
-              onClick={loadTransactions}
-            />
-            <Button
-              text="Back"
-              icon="fa-light fa-arrow-left"
-              type="normal"
-              stylingMode="outlined"
-              disabled={deletingEmployee}
-              onClick={() => navigate("/employees/list")}
-            />
-          </div>
-        </div>
-      </div>
-
-      <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-4 tw-gap-3">
-        <div className="tw-bg-orange-50 tw-border tw-border-orange-100 tw-rounded-lg tw-p-3">
-          <p className="tw-text-xs tw-uppercase tw-font-semibold tw-text-orange-700">
-            Transactions
-          </p>
-          <h3 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-            {totalStats.totalTransactions}
-          </h3>
-        </div>
-        <div className="tw-bg-blue-50 tw-border tw-border-blue-100 tw-rounded-lg tw-p-3">
-          <p className="tw-text-xs tw-uppercase tw-font-semibold tw-text-blue-700">
-            Volume (L)
-          </p>
-          <h3 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-            {totalStats.totalVolume.toFixed(2)}
-          </h3>
-        </div>
-        <div className="tw-bg-violet-50 tw-border tw-border-violet-100 tw-rounded-lg tw-p-3">
-          <p className="tw-text-xs tw-uppercase tw-font-semibold tw-text-violet-700">
-            Amount
-          </p>
-          <h3 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-            {totalStats.totalAmount.toFixed(2)}
-          </h3>
-        </div>
-        <div className="tw-bg-emerald-50 tw-border tw-border-emerald-100 tw-rounded-lg tw-p-3">
-          <p className="tw-text-xs tw-uppercase tw-font-semibold tw-text-emerald-700">
-            Vehicle Changes
-          </p>
-          <h3 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-            {totalStats.totalVehicleChanges}
-          </h3>
-        </div>
-      </div>
-
-      <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-overflow-hidden">
-        <div className="tw-px-4 tw-pt-4 tw-bg-white tw-border-b tw-border-gray-200">
-          <Tabs
-            dataSource={tabItems}
-            selectedIndex={selectedTab}
-            onItemClick={(event) => setSelectedTab(event.itemIndex)}
-            itemRender={(item) => (
-              <div className="tw-flex tw-items-center tw-gap-2">
-                <i className={item.icon}></i>
-                <span>{item.text}</span>
+              <h2 className="edp-header-card__name">{employee.fullName}</h2>
+              <div className="edp-header-card__meta">
+                <span className={`m365-badge m365-badge--${statusTone}`}>
+                  {employee.employeestatus || "Unknown"}
+                </span>
+                <span>Work No: {employee.employeeWorkNo || "-"}</span>
+                <span>Phone: {employee.employeephoneNumber || "-"}</span>
+                <span>Site: {siteMap.get(employee.siteId) || "Unassigned"}</span>
               </div>
+            </div>
+          </div>
+
+          <div className="edp-header-card__actions">
+            <button className="m365-btn m365-btn--ghost"
+                    onClick={() => navigate("/employees/list")}>
+              <i className="fa-light fa-arrow-left" /> Back
+            </button>
+            <button className="m365-btn m365-btn--ghost"
+                    onClick={loadTransactions}
+                    disabled={deletingEmployee}>
+              <i className="fa-light fa-rotate" /> Refresh
+            </button>
+            {canEditEmployee && (
+              <button className="m365-btn m365-btn--ghost"
+                      onClick={handleEditEmployee}
+                      disabled={savingEmployeeChanges || deletingEmployee}>
+                <i className="fa-light fa-pen-to-square" /> Edit
+              </button>
             )}
-          />
+            {canDeleteEmployee && (
+              <button className="m365-btn m365-btn--ghost"
+                      onClick={handleDeleteEmployee}
+                      disabled={deletingEmployee || savingEmployeeChanges}
+                      style={{ color: 'var(--m365-error)' }}>
+                <i className="fa-light fa-trash-can" /> Delete
+              </button>
+            )}
+          </div>
         </div>
 
-        <div className="tw-p-4">
+        {/* ── Date Filters ── */}
+        <div className="edp-header-card__filters">
+          <div className="m365-field" style={{ marginBottom: 0 }}>
+            <label className="m365-field__label">From</label>
+            <input type="date" className="m365-input"
+                   value={fromDate}
+                   onChange={(e) => setFromDate(e.target.value)} />
+          </div>
+          <div className="m365-field" style={{ marginBottom: 0 }}>
+            <label className="m365-field__label">To</label>
+            <input type="date" className="m365-input"
+                   value={toDate}
+                   onChange={(e) => setToDate(e.target.value)} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Stats Row ── */}
+      <div className="m365-stats-row edp-stats">
+        <div className="m365-stat-item">
+          <span className="m365-stat-item__value">{totalStats.totalTransactions}</span>
+          <span className="m365-stat-item__label">Transactions</span>
+        </div>
+        <div className="m365-stat-item">
+          <span className="m365-stat-item__value">{totalStats.totalVolume.toFixed(1)}</span>
+          <span className="m365-stat-item__label">Volume (L)</span>
+        </div>
+        <div className="m365-stat-item">
+          <span className="m365-stat-item__value">{totalStats.totalAmount.toFixed(1)}</span>
+          <span className="m365-stat-item__label">Amount</span>
+        </div>
+        <div className="m365-stat-item">
+          <span className="m365-stat-item__value">{totalStats.totalVehicleChanges}</span>
+          <span className="m365-stat-item__label">Vehicle Changes</span>
+        </div>
+      </div>
+
+      {/* ── M365 Tabs ── */}
+      <div className="edp-tabbed-card">
+        <div className="m365-tabs">
+          {TAB_ITEMS.map((tab) => (
+            <button
+              key={tab.key}
+              className={`m365-tab${selectedTab === tab.key ? " m365-tab--active" : ""}`}
+              onClick={() => setSelectedTab(tab.key)}
+            >
+              <i className={tab.icon} />
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        <div className="edp-tabbed-card__body">
           {loadingTransactions ? (
-            <div className="tw-h-56 tw-flex tw-items-center tw-justify-center">
-              <LoadIndicator visible={true} width="30px" height="30px" />
+            <div className="m365-empty">
+              <i className="fa-light fa-spinner fa-spin m365-empty__icon" />
+              <p className="m365-empty__text">Loading transactions...</p>
             </div>
           ) : (
             <>
-              {selectedTab === 0 && (
+              {selectedTab === "consumption" && (
                 <DataGrid
+                  className="edp-grid"
                   dataSource={consumptionRows}
-                  showBorders={true}
-                  rowAlternationEnabled={true}
+                  showBorders={false}
+                  showColumnLines={false}
+                  showRowLines={true}
+                  rowAlternationEnabled={false}
                   columnAutoWidth={true}
                   keyExpr="id"
                 >
@@ -693,48 +630,22 @@ const EmployeeDetailsPage = () => {
                   />
 
                   <Column dataField="date" caption="Date" dataType="date" />
-                  <Column
-                    dataField="refills"
-                    caption="Refills"
-                    alignment="right"
-                    minWidth={110}
-                  />
-                  <Column
-                    dataField="totalVolume"
-                    caption="Volume (L)"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
-                  <Column
-                    dataField="totalAmount"
-                    caption="Amount"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
-                  <Column
-                    dataField="totalConsumptionDelta"
-                    caption="Distance/Hours"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
-                  <Column
-                    dataField="averageEfficiency"
-                    caption="Avg Efficiency"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
+                  <Column dataField="refills" caption="Refills" alignment="right" minWidth={110} />
+                  <Column dataField="totalVolume" caption="Volume (L)" dataType="number" format="fixedPoint" alignment="right" />
+                  <Column dataField="totalAmount" caption="Amount" dataType="number" format="fixedPoint" alignment="right" />
+                  <Column dataField="totalConsumptionDelta" caption="Distance/Hours" dataType="number" format="fixedPoint" alignment="right" />
+                  <Column dataField="averageEfficiency" caption="Avg Efficiency" dataType="number" format="fixedPoint" alignment="right" />
                 </DataGrid>
               )}
 
-              {selectedTab === 1 && (
+              {selectedTab === "refill" && (
                 <DataGrid
+                  className="edp-grid"
                   dataSource={employeeTransactions}
-                  showBorders={true}
-                  rowAlternationEnabled={true}
+                  showBorders={false}
+                  showColumnLines={false}
+                  showRowLines={true}
+                  rowAlternationEnabled={false}
                   columnAutoWidth={true}
                 >
                   <SearchPanel visible={true} width={260} />
@@ -749,52 +660,26 @@ const EmployeeDetailsPage = () => {
                     allowedPageSizes={[10, 12, 25, 50]}
                   />
 
-                  <Column
-                    dataField="dateTime"
-                    caption="Date/Time"
-                    dataType="datetime"
-                    format="dd/MM/yyyy HH:mm"
-                    minWidth={160}
-                  />
+                  <Column dataField="dateTime" caption="Date/Time" dataType="datetime" format="dd/MM/yyyy HH:mm" minWidth={160} />
                   <Column dataField="vehicleLabel" caption="Vehicle" minWidth={150} />
                   <Column dataField="siteLabel" caption="Site" minWidth={130} />
-                  <Column
-                    dataField="volume"
-                    caption="Volume (L)"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
-                  <Column
-                    dataField="amount"
-                    caption="Amount"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
-                  <Column
-                    dataField="odometer"
-                    caption="Odometer"
-                    dataType="number"
-                    format="fixedPoint"
-                    alignment="right"
-                  />
+                  <Column dataField="volume" caption="Volume (L)" dataType="number" format="fixedPoint" alignment="right" />
+                  <Column dataField="amount" caption="Amount" dataType="number" format="fixedPoint" alignment="right" />
+                  <Column dataField="odometer" caption="Odometer" dataType="number" format="fixedPoint" alignment="right" />
                   <Column dataField="fuelGradeName" caption="Fuel Grade" minWidth={120} />
                   <Column dataField="ptsName" caption="PTS Device" minWidth={120} />
-                  <Column
-                    dataField="transaction"
-                    caption="Txn"
-                    alignment="right"
-                    minWidth={90}
-                  />
+                  <Column dataField="transaction" caption="Txn" alignment="right" minWidth={90} />
                 </DataGrid>
               )}
 
-              {selectedTab === 2 && (
+              {selectedTab === "vehicle-change" && (
                 <DataGrid
+                  className="edp-grid"
                   dataSource={vehicleChangeRows}
-                  showBorders={true}
-                  rowAlternationEnabled={true}
+                  showBorders={false}
+                  showColumnLines={false}
+                  showRowLines={true}
+                  rowAlternationEnabled={false}
                   columnAutoWidth={true}
                   keyExpr="id"
                 >
@@ -810,23 +695,9 @@ const EmployeeDetailsPage = () => {
                     allowedPageSizes={[10, 25, 50]}
                   />
 
-                  <Column
-                    dataField="changedAt"
-                    caption="Changed At"
-                    dataType="datetime"
-                    format="dd/MM/yyyy HH:mm"
-                    minWidth={170}
-                  />
-                  <Column
-                    dataField="fromVehicleName"
-                    caption="From Vehicle"
-                    minWidth={170}
-                  />
-                  <Column
-                    dataField="toVehicleName"
-                    caption="To Vehicle"
-                    minWidth={170}
-                  />
+                  <Column dataField="changedAt" caption="Changed At" dataType="datetime" format="dd/MM/yyyy HH:mm" minWidth={170} />
+                  <Column dataField="fromVehicleName" caption="From Vehicle" minWidth={170} />
+                  <Column dataField="toVehicleName" caption="To Vehicle" minWidth={170} />
                   <Column dataField="source" caption="Source" minWidth={180} />
                   <Column dataField="reference" caption="Reference" minWidth={110} />
                 </DataGrid>
@@ -836,33 +707,27 @@ const EmployeeDetailsPage = () => {
         </div>
       </div>
 
-      <div className="tw-bg-white tw-rounded-xl tw-border tw-border-gray-200 tw-shadow-sm tw-p-4">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-          Current Assigned Vehicles
+      {/* ── Assigned Vehicles ── */}
+      <div className="edp-section-card">
+        <h3 className="m365-flat-section__title">
+          <i className="fa-light fa-truck" /> Current Assigned Vehicles
         </h3>
         {assignedVehicleRows.length > 0 ? (
-          <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-2">
+          <div className="employee-vehicle-tags">
             {assignedVehicleRows.map((assignedVehicle) => (
-              <div
-                key={assignedVehicle.vehicleId}
-                className="tw-bg-orange-50 tw-border tw-border-orange-100 tw-rounded-lg tw-p-3 tw-flex tw-items-center tw-justify-between"
-              >
-                <span className="tw-font-medium tw-text-gray-800">
-                  {assignedVehicle.vehicleName}
-                </span>
-                <span className="tw-text-xs tw-text-gray-500">
-                  ID: {assignedVehicle.vehicleId}
-                </span>
-              </div>
+              <span key={assignedVehicle.vehicleId} className="employee-vehicle-tag">
+                {assignedVehicle.vehicleName}
+              </span>
             ))}
           </div>
         ) : (
-          <div className="tw-text-sm tw-text-gray-500">
+          <p style={{ fontSize: 13, color: 'var(--m365-text-tertiary)', margin: 0 }}>
             No default vehicles currently assigned to this employee.
-          </div>
+          </p>
         )}
       </div>
 
+      {/* ── Edit Popup ── */}
       <Popup
         visible={showEditPopup}
         onHiding={() => setShowEditPopup(false)}
@@ -875,103 +740,65 @@ const EmployeeDetailsPage = () => {
         height="auto"
         maxHeight="90vh"
       >
-        <div className="tw-p-4 tw-space-y-4">
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Full Name
-              </label>
+        <div style={{ padding: 20 }}>
+          <div className="employee-form-grid" style={{ marginBottom: 16 }}>
+            <div className="m365-field">
+              <label className="m365-field__label">Full Name</label>
               <input
                 type="text"
-                className="tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-px-3 tw-py-2 tw-text-sm"
+                className="m365-input"
                 value={editFormData.fullName}
-                onChange={(event) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    fullName: event.target.value,
-                  }))
-                }
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, fullName: e.target.value }))}
               />
             </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Phone Number
-              </label>
+            <div className="m365-field">
+              <label className="m365-field__label">Phone Number</label>
               <input
                 type="text"
-                className="tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-px-3 tw-py-2 tw-text-sm"
+                className="m365-input"
                 value={editFormData.employeephoneNumber}
-                onChange={(event) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    employeephoneNumber: event.target.value,
-                  }))
-                }
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeephoneNumber: e.target.value }))}
               />
             </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Work Number
-              </label>
+            <div className="m365-field">
+              <label className="m365-field__label">Work Number</label>
               <input
                 type="text"
-                className="tw-w-full tw-border tw-border-gray-300 tw-rounded-md tw-px-3 tw-py-2 tw-text-sm"
+                className="m365-input"
                 value={editFormData.employeeWorkNo}
-                onChange={(event) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    employeeWorkNo: event.target.value,
-                  }))
-                }
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeeWorkNo: e.target.value }))}
               />
             </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Status
-              </label>
-              <SelectBox
-                dataSource={employeeStatusOptions}
+            <div className="m365-field">
+              <label className="m365-field__label">Status</label>
+              <select
+                className="m365-select"
                 value={editFormData.employeestatus}
-                onValueChanged={(event) =>
-                  setEditFormData((prev) => ({
-                    ...prev,
-                    employeestatus: event.value || "Active",
-                  }))
-                }
-                searchEnabled={false}
-                showClearButton={false}
-              />
+                onChange={(e) => setEditFormData((prev) => ({ ...prev, employeestatus: e.target.value || "Active" }))}
+              >
+                {employeeStatusOptions.map((s) => (
+                  <option key={s} value={s}>{s}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Site
-            </label>
-            <SelectBox
-              dataSource={sites}
-              displayExpr="name"
-              valueExpr="id"
-              value={editFormData.siteId}
-              onValueChanged={(event) =>
-                setEditFormData((prev) => ({
-                  ...prev,
-                  siteId: event.value || null,
-                }))
-              }
-              searchEnabled={true}
-              showClearButton={true}
-              placeholder="Select site"
-            />
+          <div className="m365-field" style={{ marginBottom: 16 }}>
+            <label className="m365-field__label">Site</label>
+            <select
+              className="m365-select"
+              value={editFormData.siteId || ""}
+              onChange={(e) => setEditFormData((prev) => ({ ...prev, siteId: e.target.value ? Number(e.target.value) : null }))}
+            >
+              <option value="">Unassigned</option>
+              {sites.map((site) => (
+                <option key={site.id} value={site.id}>{site.name}</option>
+              ))}
+            </select>
           </div>
 
-          <div>
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Default Vehicles
-            </label>
+          <div className="m365-field" style={{ marginBottom: 16 }}>
+            <label className="m365-field__label">Default Vehicles</label>
             <TagBox
               dataSource={vehicles}
               value={editFormData.vehicles}
@@ -983,30 +810,23 @@ const EmployeeDetailsPage = () => {
               applyValueMode="useButtons"
               maxDisplayedTags={4}
               onValueChanged={(event) =>
-                setEditFormData((prev) => ({
-                  ...prev,
-                  vehicles: event.value || [],
-                }))
+                setEditFormData((prev) => ({ ...prev, vehicles: event.value || [] }))
               }
             />
           </div>
 
-          <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
-            <Button
-              text="Cancel"
-              type="normal"
-              stylingMode="outlined"
-              disabled={savingEmployeeChanges}
-              onClick={() => setShowEditPopup(false)}
-            />
-            <Button
-              text={savingEmployeeChanges ? "Saving..." : "Save Changes"}
-              icon="fa-light fa-floppy-disk"
-              type="default"
-              stylingMode="contained"
-              disabled={savingEmployeeChanges}
-              onClick={handleSaveEmployeeChanges}
-            />
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, paddingTop: 8, borderTop: '1px solid var(--m365-border-light)' }}>
+            <button className="m365-btn m365-btn--ghost"
+                    onClick={() => setShowEditPopup(false)}
+                    disabled={savingEmployeeChanges}>
+              Cancel
+            </button>
+            <button className="m365-btn m365-btn--primary"
+                    onClick={handleSaveEmployeeChanges}
+                    disabled={savingEmployeeChanges}>
+              <i className="fa-light fa-floppy-disk" />
+              {savingEmployeeChanges ? "Saving..." : "Save Changes"}
+            </button>
           </div>
         </div>
       </Popup>

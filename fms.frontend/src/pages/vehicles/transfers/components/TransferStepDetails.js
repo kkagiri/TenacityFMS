@@ -2,7 +2,7 @@
  * File: TransferStepDetails.js
  * Purpose: Step 1 of Vehicle Transfer wizard - Transfer Info, Driver, Equipment Reading, Departure/Arrival
  * Dependencies: DevExtreme (SelectBox, TextBox, NumberBox, DateBox), VehicleSearchableSelector, EmployeeSearchableSelector
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-02
  *
  * Key Sections:
  * - Vehicle Selection (standalone transfer mode)
@@ -171,13 +171,16 @@ const TransferStepDetails = ({
             </div>
             <div className="tw-grid tw-grid-cols-1 tw-gap-4">
               <div className={getFieldClassName("driverPhone")}>
-                <label className="m365-field__label">Phone</label>
+                <label className="m365-field__label">
+                  Phone <span className="tw-text-xs tw-text-gray-400 tw-font-normal">(e.g. +27 812345678)</span>
+                </label>
                 <TextBox
                   value={formData.driverPhone}
                   onValueChanged={(event) =>
                     onFieldChange("driverPhone", event.value)
                   }
-                  placeholder="Auto-populated from selected employee (editable)"
+                  placeholder="+27 812345678"
+                  mode="tel"
                 />
                 {renderFieldError("driverPhone")}
               </div>
@@ -268,26 +271,26 @@ const TransferStepDetails = ({
           <div className="m365-section-group__body">
             <div className="tw-grid tw-grid-cols-2 tw-gap-4">
               <div className={getFieldClassName("departureTime")}>
-                <label className="m365-field__label">Departure Time</label>
+                <label className="m365-field__label">Departure Date</label>
                 <DateBox
                   value={formData.departureTime}
                   onValueChanged={(event) =>
                     onFieldChange("departureTime", event.value)
                   }
-                  type="datetime"
-                  displayFormat="dd/MM/yyyy HH:mm"
+                  type="date"
+                  displayFormat="dd/MM/yyyy"
                 />
                 {renderFieldError("departureTime")}
               </div>
               <div className={getFieldClassName("arrivalTime")}>
-                <label className="m365-field__label">Arrival Time</label>
+                <label className="m365-field__label">Arrival Date</label>
                 <DateBox
                   value={formData.arrivalTime}
                   onValueChanged={(event) =>
                     onFieldChange("arrivalTime", event.value)
                   }
-                  type="datetime"
-                  displayFormat="dd/MM/yyyy HH:mm"
+                  type="date"
+                  displayFormat="dd/MM/yyyy"
                 />
                 {renderFieldError("arrivalTime")}
               </div>

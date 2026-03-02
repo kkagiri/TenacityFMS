@@ -45,6 +45,7 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                 .Include(i => i.IssueCategory)
                 .Include(i => i.Site)
                 .Include(i => i.Vehicle)
+                .Include(i => i.IssueTemplate)
                 //.Include (i => i.DeviceTypeNavigation)
                 .Where(i => i.Id == request.Id)
                 .Select(issue => new IssueTrackerResponseDTO
@@ -92,6 +93,12 @@ public class GetIssueListByIDQueryHandler : IRequestHandler<GetIssueListByIdQuer
                     // Notes
                     CompletionNotes = issue.CompletionNotes,
                     ClosingNotes = issue.ClosingNotes,
+
+                    // V2 Template fields
+                    IssueTemplateId = issue.IssueTemplateId,
+                    TemplateName = issue.IssueTemplate != null ? issue.IssueTemplate.Name : null,
+                    CanAutoClose = issue.CanAutoClose,
+                    IsAutoCreated = issue.IsAutoCreated,
 
                     // Device information (optional)
                     //DeviceId = issue.DeviceId,

@@ -1,13 +1,12 @@
 ﻿/**
  * File: TransferStepApproval.js
- * Purpose: Step 3 of Vehicle Transfer wizard - Signatures, Document Upload, Options, Remarks
- * Dependencies: DevExtreme (SelectBox, TextBox, TextArea, FileUploader)
- * Last Modified: 2026-02-26
+ * Purpose: Step 3 of Vehicle Transfer wizard - Signatures, Options, Remarks
+ * Dependencies: DevExtreme (SelectBox, TextBox, TextArea)
+ * Last Modified: 2026-03-02
  *
  * Key Sections:
- * - Approval flow visual indicator (4-step dot progress)
- * - Signatures (Workshop Manager, Approved By, Sender, Receiver)
- * - Document Upload (PDF/images)
+ * - Approval flow visual indicator (3-step dot progress)
+ * - Signatures (Workshop Manager/Approver, Sender, Receiver)
  * - Options (odometer update, maintenance entry, email)
  * - Remarks
  */
@@ -16,15 +15,12 @@ import React from "react";
 import { SelectBox } from "devextreme-react/select-box";
 import { TextBox } from "devextreme-react/text-box";
 import { TextArea } from "devextreme-react/text-area";
-import { FileUploader } from "devextreme-react/file-uploader";
 
 const TransferStepApproval = ({
   formData,
   workshopManagerUsers = [],
   receiverUsers = [],
-  documentFile,
   onFieldChange,
-  onDocumentChange,
   onWorkshopManagerChange,
   onReceiverUserChange,
 }) => {
@@ -46,22 +42,15 @@ const TransferStepApproval = ({
               </div>
               <span className="vtf-approval-flow__line" />
               <div className="vtf-approval-flow__step">
-                <div className={`vtf-approval-flow__dot ${formData.approvedBy ? "vtf-approval-flow__dot--done" : ""}`}>
-                  {formData.approvedBy ? <i className="fa-light fa-check" /> : "2"}
-                </div>
-                <span className="vtf-approval-flow__label">Approved By</span>
-              </div>
-              <span className="vtf-approval-flow__line" />
-              <div className="vtf-approval-flow__step">
                 <div className={`vtf-approval-flow__dot ${formData.senderName ? "vtf-approval-flow__dot--done" : ""}`}>
-                  {formData.senderName ? <i className="fa-light fa-check" /> : "3"}
+                  {formData.senderName ? <i className="fa-light fa-check" /> : "2"}
                 </div>
                 <span className="vtf-approval-flow__label">Sender</span>
               </div>
               <span className="vtf-approval-flow__line" />
               <div className="vtf-approval-flow__step">
                 <div className={`vtf-approval-flow__dot ${formData.receiverName ? "vtf-approval-flow__dot--done" : ""}`}>
-                  {formData.receiverName ? <i className="fa-light fa-check" /> : "4"}
+                  {formData.receiverName ? <i className="fa-light fa-check" /> : "3"}
                 </div>
                 <span className="vtf-approval-flow__label">Receiver</span>
               </div>
@@ -70,7 +59,7 @@ const TransferStepApproval = ({
             <div className="m365-field">
               <label className="m365-field__label">
                 <i className="fa-light fa-user-gear tw-mr-1" style={{ color: "#0078d4" }} />
-                Workshop Manager
+                Workshop Manager (Approver)
               </label>
               <SelectBox
                 dataSource={workshopManagerUsers}
@@ -89,34 +78,13 @@ const TransferStepApproval = ({
             </div>
 
             <div className="m365-field">
-              <label className="m365-field__label">
-                <i className="fa-light fa-badge-check tw-mr-1" style={{ color: "#107c10" }} />
-                Approved By
-              </label>
+              <label className="m365-field__label">Sender Name</label>
               <TextBox
-                value={formData.approvedBy}
-                onValueChanged={(event) => onFieldChange("approvedBy", event.value)}
-                placeholder="Approver name"
+                value={formData.senderName}
+                readOnly={true}
+                placeholder="Auto-filled with current user"
               />
-            </div>
-
-            <div className="tw-grid tw-grid-cols-2 tw-gap-4">
-              <div className="m365-field">
-                <label className="m365-field__label">Sender Name</label>
-                <TextBox
-                  value={formData.senderName}
-                  onValueChanged={(event) => onFieldChange("senderName", event.value)}
-                  placeholder="Person sending the vehicle"
-                />
-              </div>
-              <div className="m365-field">
-                <label className="m365-field__label">Sender Designation</label>
-                <TextBox
-                  value={formData.senderFunction}
-                  onValueChanged={(event) => onFieldChange("senderFunction", event.value)}
-                  placeholder="e.g., Site Supervisor"
-                />
-              </div>
+              <span className="m365-field__hint">Auto-filled with logged-in user</span>
             </div>
 
             <div className="m365-field">
@@ -140,50 +108,18 @@ const TransferStepApproval = ({
               )}
             </div>
 
-            <div className="tw-grid tw-grid-cols-2 tw-gap-4">
-              <div className="m365-field">
-                <label className="m365-field__label">Receiver Name</label>
-                <TextBox
-                  value={formData.receiverName}
-                  onValueChanged={(event) => onFieldChange("receiverName", event.value)}
-                  placeholder="Person receiving the vehicle"
-                />
-              </div>
-              <div className="m365-field">
-                <label className="m365-field__label">Receiver Designation</label>
-                <TextBox
-                  value={formData.receiverFunction}
-                  onValueChanged={(event) => onFieldChange("receiverFunction", event.value)}
-                  placeholder="e.g., Logistics Manager"
-                />
-              </div>
+            <div className="m365-field">
+              <label className="m365-field__label">Receiver Name</label>
+              <TextBox
+                value={formData.receiverName}
+                onValueChanged={(event) => onFieldChange("receiverName", event.value)}
+                placeholder="Person receiving the vehicle"
+              />
             </div>
           </div>
         </div>
 
         <div className="tw-space-y-5">
-          <div className="m365-section-group">
-            <div className="m365-section-group__header">
-              <i className="fa-light fa-upload m365-section-group__icon" />
-              <h3 className="m365-section-group__title">Document Upload</h3>
-            </div>
-            <div className="m365-section-group__body">
-              <FileUploader
-                selectButtonText="Select Transfer Document"
-                labelText="or drop file here"
-                accept=".pdf,.jpg,.jpeg,.png"
-                uploadMode="useForm"
-                onValueChanged={(event) => onDocumentChange(event.value?.[0] || null)}
-              />
-              {documentFile && (
-                <p className="tw-mt-2 tw-text-sm" style={{ color: "#107c10" }}>
-                  <i className="fa-light fa-check tw-mr-1" />
-                  {documentFile.name}
-                </p>
-              )}
-            </div>
-          </div>
-
           <div className="m365-section-group">
             <div className="m365-section-group__header">
               <i className="fa-light fa-sliders m365-section-group__icon" />

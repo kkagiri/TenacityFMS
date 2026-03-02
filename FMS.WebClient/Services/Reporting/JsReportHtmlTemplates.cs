@@ -46,6 +46,8 @@ namespace FMS.WebClient.Services.Reporting
 
         public static string TankVolumeHistory() => TankVolumeHistoryTemplate();
 
+        public static string TransactionHistorySummary() => TransactionHistorySummaryTemplate();
+
         public static string IssueTracker() => BuildGenericTemplate(
             "Issue Tracker Report", "#0ea5e9",
             IssueTrackerSummary(), IssueTrackerTable(),
@@ -1176,5 +1178,314 @@ namespace FMS.WebClient.Services.Reporting
             <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>
             <td class=""text-center"">{{refillCount}}</td><td class=""text-right text-success font-bold"">{{totalVolume}}</td><td class=""text-right"">{{totalDistance}}</td><td class=""text-right font-bold"">{{consumption}}</td>
         </tr>{{/each}}</tbody></table>{{/if}}";
+
+        // ─── Transaction History Summary (monthly/yearly aggregation) ───────────
+
+        private static string TransactionHistorySummaryTemplate() => @"<!DOCTYPE html>
+<html>
+<head>
+    <meta charset=""UTF-8"">
+    <title>{{reportTitle}} - Hyoung FMS System</title>
+    <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet"">
+    <style>
+        :root {
+            --primary:       #0078D4;
+            --primary-dark:  #005A9E;
+            --primary-light: #EBF4FC;
+            --surface:       #FFFFFF;
+            --bg:            #F3F4F6;
+            --border:        #E5E7EB;
+            --text-strong:   #111827;
+            --text-body:     #374151;
+            --text-muted:    #6B7280;
+            --dark-header:   #1F2937;
+            --success:       #107C10;
+            --danger:        #DC3545;
+            --warning:       #D97706;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-body);
+            font-size: 12px;
+            line-height: 1.5;
+        }
+        .page { max-width: 1200px; margin: 0 auto; padding: 28px 32px 48px; }
+
+        /* ── Company Bar ── */
+        .company-bar {
+            background: #1F2937;
+            margin: -28px -32px 0;
+            padding: 12px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .company-bar-left { display: flex; align-items: center; gap: 14px; }
+        .company-logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0) invert(1); }
+        .company-bar-titles { display: flex; flex-direction: column; gap: 1px; }
+        .company-main-title { font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.3px; }
+        .company-sub-title  { font-size: 10.5px; color: #9CA3AF; font-weight: 500; }
+        .company-bar-right  { font-size: 10.5px; color: #6B7280; font-weight: 600; letter-spacing: 1.2px; text-transform: uppercase; }
+
+        /* ── Report Header ── */
+        .report-header {
+            display: flex; justify-content: space-between; align-items: flex-end;
+            padding-bottom: 18px; margin-bottom: 24px;
+        }
+        .report-title h1 { font-size: 20px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.3px; }
+        .report-title p  { color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }
+        .report-meta     { text-align: right; font-size: 11px; color: var(--text-muted); }
+        .badge-period {
+            display: inline-block;
+            background: var(--primary-light); color: var(--primary-dark);
+            font-weight: 700; font-size: 10.5px;
+            padding: 3px 10px; border-radius: 20px; margin-top: 6px;
+        }
+
+        /* ── Summary Cards ── */
+        .summary-section { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }
+        .summary-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 18px 20px 16px;
+            position: relative; overflow: hidden;
+        }
+        .summary-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); }
+        .summary-card.alt::before    { background: var(--dark-header); }
+        .summary-card.accent::before { background: var(--primary-dark); }
+        .summary-card.danger::before { background: var(--danger); }
+        .summary-card.success::before { background: var(--success); }
+        .card-icon { width: 28px; height: 28px; background: var(--primary-light); border-radius: 6px; display: flex; align-items: center; justify-content: center; margin-bottom: 12px; }
+        .card-icon svg { fill: var(--primary); }
+        .alt    .card-icon { background: #F1F3F5; }
+        .alt    .card-icon svg { fill: var(--dark-header); }
+        .accent .card-icon { background: #EBF4FC; }
+        .accent .card-icon svg { fill: var(--primary-dark); }
+        .danger .card-icon { background: #FFF0F0; }
+        .danger .card-icon svg { fill: var(--danger); }
+        .success .card-icon { background: #F0FFF4; }
+        .success .card-icon svg { fill: var(--success); }
+        .card-value { font-size: 22px; font-weight: 800; color: var(--text-strong); margin-bottom: 4px; }
+        .card-label { font-size: 10.5px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.8px; }
+        .card-sub   { font-size: 10px; color: var(--text-muted); margin-top: 4px; }
+
+        /* ── Month Section ── */
+        .month-section { margin-bottom: 28px; page-break-inside: avoid; }
+        .month-header {
+            background: var(--dark-header); color: #FFFFFF;
+            padding: 10px 16px; border-radius: 6px 6px 0 0;
+            font-size: 14px; font-weight: 700;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .month-header .month-label { letter-spacing: 0.3px; }
+
+        /* ── Data Table ── */
+        .data-table { width: 100%; border-collapse: collapse; font-size: 10.5px; }
+        .data-table thead th {
+            background: #F8F9FA; color: var(--text-strong);
+            padding: 8px 10px; text-align: left; font-weight: 700;
+            border-bottom: 2px solid var(--border); font-size: 10px;
+            text-transform: uppercase; letter-spacing: 0.5px;
+        }
+        .data-table tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); }
+        .data-table tbody tr:nth-child(even) { background: #FAFBFC; }
+        .data-table tbody tr:hover { background: var(--primary-light); }
+
+        .text-right  { text-align: right; }
+        .text-center { text-align: center; }
+        .text-muted  { color: var(--text-muted); }
+        .text-success { color: var(--success); }
+        .text-danger  { color: var(--danger); }
+        .text-warning { color: var(--warning); }
+        .font-bold { font-weight: 700; }
+
+        /* ── Subtotal / Grand total rows ── */
+        .subtotal-row td {
+            background: #F0F4F8 !important; font-weight: 700;
+            border-top: 2px solid var(--border); padding: 9px 10px;
+        }
+        .grand-total-row td {
+            background: var(--dark-header) !important; color: #FFFFFF;
+            font-weight: 800; padding: 10px; font-size: 11px;
+        }
+
+        /* ── Site sub-header ── */
+        .site-header td {
+            background: #EBF4FC !important; font-weight: 700; color: var(--primary-dark);
+            padding: 6px 10px; font-size: 10.5px;
+        }
+
+        /* ── Variance badge ── */
+        .variance-ok  { color: var(--success); }
+        .variance-bad { color: var(--danger); font-weight: 700; }
+
+        /* ── Report Footer ── */
+        .report-footer {
+            margin-top: 36px; padding-top: 16px;
+            border-top: 2px solid var(--border);
+            display: flex; justify-content: space-between;
+            font-size: 10px; color: var(--text-muted);
+        }
+
+        @media print {
+            body { background: #fff; }
+            .page { padding: 0; max-width: none; }
+            .month-section { page-break-inside: avoid; }
+        }
+    </style>
+</head>
+<body>
+<div class=""page"">
+
+    <!-- Company Bar -->
+    <div class=""company-bar"">
+        <div class=""company-bar-left"">
+            {{#if logoBase64}}<img class=""company-logo"" src=""{{logoBase64}}"" alt=""Logo"">{{/if}}
+            <div class=""company-bar-titles"">
+                <span class=""company-main-title"">Hyoung Fleet Management</span>
+                <span class=""company-sub-title"">Transaction History Summary</span>
+            </div>
+        </div>
+        <div class=""company-bar-right"">Report</div>
+    </div>
+
+    <!-- Report Header -->
+    <div class=""report-header"">
+        <div class=""report-title"">
+            <h1>Transaction History Summary</h1>
+            <p>{{reportSubtitle}}</p>
+        </div>
+        <div class=""report-meta"">
+            <p><strong>Generated:</strong> {{generatedAt}}</p>
+            <p><strong>By:</strong> {{generatedBy}}</p>
+            <div class=""badge-period"">{{dateFrom}} — {{dateTo}}</div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card"">
+            <div class=""card-icon""><svg width=""16"" height=""16"" viewBox=""0 0 24 24""><path d=""M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 14H6v-2h6v2zm4-4H6v-2h10v2zm0-4H6V7h10v2z""/></svg></div>
+            <div class=""card-value"">{{summary.totalTransactions}}</div>
+            <div class=""card-label"">Total Transactions</div>
+            <div class=""card-sub"">{{summary.monthsCovered}} month(s) · {{summary.sitesMonitored}} site(s) · {{summary.tanksMonitored}} tank(s)</div>
+        </div>
+        <div class=""summary-card alt"">
+            <div class=""card-icon""><svg width=""16"" height=""16"" viewBox=""0 0 24 24""><path d=""M20 6h-4V4c0-1.1-.9-2-2-2h-4c-1.1 0-2 .9-2 2v2H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zM10 4h4v2h-4V4z""/></svg></div>
+            <div class=""card-value"">{{summary.totalDispensed}} L</div>
+            <div class=""card-label"">Total Dispensed</div>
+        </div>
+        <div class=""summary-card success"">
+            <div class=""card-icon""><svg width=""16"" height=""16"" viewBox=""0 0 24 24""><path d=""M5 9.2h3V19H5zM10.6 5h2.8v14h-2.8zm5.6 8H19v6h-2.8z""/></svg></div>
+            <div class=""card-value"">{{summary.totalDelivery}} L</div>
+            <div class=""card-label"">Total Delivered</div>
+        </div>
+        <div class=""summary-card accent"">
+            <div class=""card-icon""><svg width=""16"" height=""16"" viewBox=""0 0 24 24""><path d=""M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z""/></svg></div>
+            <div class=""card-value"">{{summary.totalTransfer}} L</div>
+            <div class=""card-label"">Total Transferred</div>
+        </div>
+    </div>
+    {{/if}}
+
+    <!-- Monthly Groups -->
+    {{#each monthlyGroups}}
+    <div class=""month-section"">
+        <div class=""month-header"">
+            <span class=""month-label"">{{monthLabel}}</span>
+        </div>
+        <table class=""data-table"">
+            <thead>
+                <tr>
+                    <th>Tank</th>
+                    <th class=""text-right"">Opening (L)</th>
+                    <th class=""text-right"">Dispensing (L)</th>
+                    <th class=""text-center"">Disp. #</th>
+                    <th class=""text-right"">Delivery (L)</th>
+                    <th class=""text-center"">Del. #</th>
+                    <th class=""text-right"">Transfer (L)</th>
+                    <th class=""text-center"">Xfer #</th>
+                    <th class=""text-right"">Closing (L)</th>
+                    <th class=""text-right"">Variance (L)</th>
+                    <th class=""text-right"">Avg Daily (L)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each siteGroups}}
+                <tr class=""site-header"">
+                    <td colspan=""11"">{{siteName}}</td>
+                </tr>
+                {{#each tanks}}
+                <tr>
+                    <td class=""font-bold"">{{tankName}}</td>
+                    <td class=""text-right"">{{openingBalance}}</td>
+                    <td class=""text-right text-danger"">{{dispensing.total}}</td>
+                    <td class=""text-center text-muted"">{{dispensing.count}}</td>
+                    <td class=""text-right text-success"">{{delivery.total}}</td>
+                    <td class=""text-center text-muted"">{{delivery.count}}</td>
+                    <td class=""text-right"">{{transfer.total}}</td>
+                    <td class=""text-center text-muted"">{{transfer.count}}</td>
+                    <td class=""text-right font-bold"">{{closingBalance}}</td>
+                    <td class=""text-right {{#if varianceIsNegative}}variance-bad{{else}}variance-ok{{/if}}"">{{variance}} ({{variancePercent}})</td>
+                    <td class=""text-right text-muted"">{{avgDailyConsumption}}</td>
+                </tr>
+                {{/each}}
+                {{/each}}
+                <!-- Month subtotal -->
+                <tr class=""subtotal-row"">
+                    <td>Subtotal — {{monthLabel}}</td>
+                    <td></td>
+                    <td class=""text-right"">{{subtotal.dispensing}}</td>
+                    <td class=""text-center"">{{subtotal.dispensingCount}}</td>
+                    <td class=""text-right"">{{subtotal.delivery}}</td>
+                    <td class=""text-center"">{{subtotal.deliveryCount}}</td>
+                    <td class=""text-right"">{{subtotal.transfer}}</td>
+                    <td class=""text-center"">{{subtotal.transferCount}}</td>
+                    <td></td>
+                    <td class=""text-right"">{{subtotal.variance}}</td>
+                    <td></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    {{/each}}
+
+    <!-- Grand Total -->
+    {{#if grandTotal}}
+    <table class=""data-table"" style=""margin-top: 8px;"">
+        <tbody>
+            <tr class=""grand-total-row"">
+                <td>Grand Total</td>
+                <td></td>
+                <td class=""text-right"">{{grandTotal.dispensing}} L</td>
+                <td></td>
+                <td class=""text-right"">{{grandTotal.delivery}} L</td>
+                <td></td>
+                <td class=""text-right"">{{grandTotal.transfer}} L</td>
+                <td></td>
+                <td></td>
+                <td class=""text-right {{#if grandTotal.varianceIsNegative}}text-danger{{else}}text-success{{/if}}"">{{grandTotal.variance}} L</td>
+                <td></td>
+            </tr>
+        </tbody>
+    </table>
+    {{/if}}
+
+    {{#unless monthlyGroups}}
+    <div style=""text-align:center; padding:60px 20px; color: var(--text-muted);"">
+        <p style=""font-size: 14px; font-weight: 600;"">No transaction data found for the selected period.</p>
+        <p style=""font-size: 12px; margin-top: 8px;"">Try adjusting the date range, site, or tank filters.</p>
+    </div>
+    {{/unless}}
+
+    <!-- Footer -->
+    <div class=""report-footer"">
+        <div><strong>FMS Fleet Management System</strong> · Transaction History Summary</div>
+        <div style=""text-align:right;"">Report ID: {{reportId}}</div>
+    </div>
+</div>
+</body>
+</html>";
     }
 }

@@ -1,12 +1,13 @@
 /**
  * File: TransferStepInspection.js
  * Purpose: Step 2 of Vehicle Transfer wizard - Equipment Checkup Items, GPS Equipment (conditional), Service Filters
- * Dependencies: DevExtreme (DataGrid, SelectBox, TextBox, Switch)
- * Last Modified: 2026-02-26
+ * Dependencies: DevExtreme (DataGrid, SelectBox, TextBox)
+ * Last Modified: 2026-03-02
  *
  * Key Sections:
  * - Equipment Checkup Items (editable DataGrid with condition columns)
  * - GPS Equipment Checkup (conditionally rendered based on hasGps flag)
+ *   → References GPS department, sender can send for GPS dept review
  * - Service Filter Parts (editable DataGrid for part numbers)
  *
  * GPS Logic: GPS section only renders when hasGps=true. Device info is auto-populated
@@ -16,7 +17,6 @@
 import React from "react";
 import { SelectBox } from "devextreme-react/select-box";
 import { TextBox } from "devextreme-react/text-box";
-import { Switch } from "devextreme-react/switch";
 import { DataGrid } from "devextreme-react/data-grid";
 import { Column, Editing, SearchPanel } from "devextreme-react/data-grid";
 
@@ -38,6 +38,7 @@ const TransferStepInspection = ({
   onServiceFilterPartsChange,
   canManageTemplates = false,
   onManageTemplates,
+  onSendGpsForReview,
 }) => {
   return (
     <div className="vtf-step">
@@ -98,13 +99,34 @@ const TransferStepInspection = ({
           <div className="m365-section-group__header">
             <i className="fa-light fa-satellite-dish m365-section-group__icon" />
             <h3 className="m365-section-group__title">GPS Equipment Checkup</h3>
+            <span className="m365-badge m365-badge--info tw-ml-2">
+              <i className="fa-light fa-building tw-mr-1" />GPS Department
+            </span>
             {gpsMapping && (
               <span className="m365-badge m365-badge--success tw-ml-2">
                 <i className="fa-light fa-signal tw-mr-1" />Auto-detected
               </span>
             )}
+            {typeof onSendGpsForReview === "function" && (
+              <button
+                type="button"
+                className="m365-btn m365-btn--ghost tw-ml-auto"
+                onClick={onSendGpsForReview}
+                title="Send GPS equipment checkup to GPS department for review and confirmation"
+              >
+                <i className="fa-light fa-paper-plane tw-mr-1" />
+                Send to GPS Dept
+              </button>
+            )}
           </div>
           <div className="m365-section-group__body">
+            <div className="tw-mb-2 tw-p-2 tw-rounded" style={{ backgroundColor: "#f0f6ff", border: "1px solid #c7dff7" }}>
+              <span className="tw-text-xs" style={{ color: "#0078d4" }}>
+                <i className="fa-light fa-circle-info tw-mr-1" />
+                This section is reviewed by the GPS Department. Use "Send to GPS Dept" to request confirmation.
+              </span>
+            </div>
+
             <div className="tw-mb-5">
               <h4 className="vtf-subsection-title">
                 <i className="fa-light fa-location-dot tw-mr-1" />
@@ -138,17 +160,20 @@ const TransferStepInspection = ({
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Working</label>
-                  <div className="tw-flex tw-items-center tw-gap-3 tw-mt-1">
-                    <Switch
-                      value={formData.gpsDeviceWorking}
-                      onValueChanged={(event) =>
-                        onFieldChange("gpsDeviceWorking", event.value)
+                  <label className={`m365-toggle tw-mt-1 ${formData.gpsDeviceWorking ? "m365-toggle--on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={formData.gpsDeviceWorking}
+                      onChange={(event) =>
+                        onFieldChange("gpsDeviceWorking", event.target.checked)
                       }
+                      className="tw-sr-only"
                     />
+                    <span className="m365-toggle__track" />
                     <span className={`m365-badge ${formData.gpsDeviceWorking ? "m365-badge--success" : "m365-badge--error"}`}>
-                      {formData.gpsDeviceWorking ? "Yes" : "No"}
+                      {formData.gpsDeviceWorking ? "Working" : "Not Working"}
                     </span>
-                  </div>
+                  </label>
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Remarks</label>
@@ -193,17 +218,20 @@ const TransferStepInspection = ({
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Working</label>
-                  <div className="tw-flex tw-items-center tw-gap-3 tw-mt-1">
-                    <Switch
-                      value={formData.fuelSensorWorking}
-                      onValueChanged={(event) =>
-                        onFieldChange("fuelSensorWorking", event.value)
+                  <label className={`m365-toggle tw-mt-1 ${formData.fuelSensorWorking ? "m365-toggle--on" : ""}`}>
+                    <input
+                      type="checkbox"
+                      checked={formData.fuelSensorWorking}
+                      onChange={(event) =>
+                        onFieldChange("fuelSensorWorking", event.target.checked)
                       }
+                      className="tw-sr-only"
                     />
+                    <span className="m365-toggle__track" />
                     <span className={`m365-badge ${formData.fuelSensorWorking ? "m365-badge--success" : "m365-badge--error"}`}>
-                      {formData.fuelSensorWorking ? "Yes" : "No"}
+                      {formData.fuelSensorWorking ? "Working" : "Not Working"}
                     </span>
-                  </div>
+                  </label>
                 </div>
                 <div className="m365-field">
                   <label className="m365-field__label">Remarks</label>

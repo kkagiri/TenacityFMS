@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
 namespace FMS.Application.Features.VehicleTransfer.DTOs;
@@ -120,6 +121,63 @@ public class CreateVehicleTransferDTO
     /// Service filter parts for the email
     /// </summary>
     public List<ServiceFilterPartDTO>? ServiceFilterParts { get; set; }
+
+    // ── JSON string fallback setters for FormData binding ──
+    // When the frontend sends arrays as JSON.stringify() inside FormData,
+    // ASP.NET model binding cannot deserialize them into List<T>.
+    // These shadow properties accept the raw JSON string and populate the lists.
+
+    private static readonly JsonSerializerOptions _jsonOpts = new()
+    {
+        PropertyNameCaseInsensitive = true
+    };
+
+    /// <summary>
+    /// Populated by model binding when checkupItems comes as a JSON string in form data.
+    /// </summary>
+    public string? CheckupItemsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (CheckupItems == null || CheckupItems.Count == 0))
+            {
+                try { CheckupItems = JsonSerializer.Deserialize<List<CreateCheckupItemDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? TyreDetailsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (TyreDetails == null || TyreDetails.Count == 0))
+            {
+                try { TyreDetails = JsonSerializer.Deserialize<List<CreateTyreDetailDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? BatteryDetailsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (BatteryDetails == null || BatteryDetails.Count == 0))
+            {
+                try { BatteryDetails = JsonSerializer.Deserialize<List<CreateBatteryDetailDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? ServiceFilterPartsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (ServiceFilterParts == null || ServiceFilterParts.Count == 0))
+            {
+                try { ServiceFilterParts = JsonSerializer.Deserialize<List<ServiceFilterPartDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
 
     // =============================================
     // GPS Equipment Checkup Section

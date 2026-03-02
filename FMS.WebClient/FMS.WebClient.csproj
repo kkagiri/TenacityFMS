@@ -101,6 +101,15 @@
     <ProjectReference Include="..\FMS.BackgroundServices\FMS.BackgroundServices.csproj" />
   </ItemGroup>
 
+  <!-- Runtime data files from referenced projects that must be present in the publish output -->
+  <ItemGroup>
+    <Content Include="..\FMS.BackgroundServices\FMS\GPSGATELocationMapping.json"
+             Link="FMS.BackgroundServices\FMS\GPSGATELocationMapping.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+
   <ItemGroup>
     <Folder Include="Controllers\GPSDeviceManagement\" />
     <Folder Include="Util\" />

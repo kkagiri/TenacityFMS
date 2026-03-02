@@ -3,7 +3,7 @@
  * Purpose: Handles dispatching an approved vehicle transfer: Approved → InTransit.
  *          Sets DispatchedAt timestamp and sends notification to receiver.
  * Dependencies: EF Core, AutoMapper, IVehicleTransferNotificationService
- * Last Modified: 2026-02-27
+ * Last Modified: 2026-03-02
  *
  * Key Components:
  * - Handle(): Validates Approved status, transitions to InTransit, notifies receiver.

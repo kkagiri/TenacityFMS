@@ -44,6 +44,7 @@ const VehicleTransferListPage = () => {
   const [transfers, setTransfers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedTransfer, setSelectedTransfer] = useState(null);
+  const [detailLoading, setDetailLoading] = useState(false);
   const [showDetailPanel, setShowDetailPanel] = useState(false);
   const [showApprovalDialog, setShowApprovalDialog] = useState(false);
   const [approvalTransfer, setApprovalTransfer] = useState(null);
@@ -98,9 +99,21 @@ const VehicleTransferListPage = () => {
     loadTransfers();
   }, [filterSiteId, filterStatus, filterDateFrom, filterDateTo, loadTransfers]);
 
-  const handleViewDetails = (transfer) => {
-    setSelectedTransfer(transfer);
+  const handleViewDetails = async (transfer) => {
     setShowDetailPanel(true);
+    setDetailLoading(true);
+    try {
+      const res = await axiosInstance.get(`/vehicletransfers/${transfer.transferId}`);
+      if (res.data?.isSuccess) {
+        setSelectedTransfer(res.data.data);
+      } else {
+        setSelectedTransfer(transfer);
+      }
+    } catch {
+      setSelectedTransfer(transfer);
+    } finally {
+      setDetailLoading(false);
+    }
   };
 
   const handleClosePanel = () => {
@@ -118,14 +131,14 @@ const VehicleTransferListPage = () => {
   const getStatusBadge = (status) => {
     const s = status?.toLowerCase();
     const map = {
-      completed:       { cls: "m365-badge--success",  text: "Completed" },
-      approved:        { cls: "m365-badge--primary",   text: "Approved" },
-      intransit:       { cls: "m365-badge--primary",   text: "In Transit" },
-      pendingapproval: { cls: "m365-badge--warning",   text: "Pending Approval" },
-      draft:           { cls: "m365-badge--neutral",   text: "Draft" },
-      cancelled:       { cls: "m365-badge--error",     text: "Cancelled" },
-      rejected:        { cls: "m365-badge--error",     text: "Rejected" },
-      pending:         { cls: "m365-badge--warning",   text: "Pending" },
+      completed: { cls: "m365-badge--success", text: "Completed" },
+      approved: { cls: "m365-badge--primary", text: "Approved" },
+      intransit: { cls: "m365-badge--primary", text: "In Transit" },
+      pendingapproval: { cls: "m365-badge--warning", text: "Pending Approval" },
+      draft: { cls: "m365-badge--neutral", text: "Draft" },
+      cancelled: { cls: "m365-badge--error", text: "Cancelled" },
+      rejected: { cls: "m365-badge--error", text: "Rejected" },
+      pending: { cls: "m365-badge--warning", text: "Pending" },
     };
     const info = map[s] || { cls: "m365-badge--neutral", text: status || "-" };
     return <span className={`m365-badge ${info.cls}`}>{info.text}</span>;
@@ -276,6 +289,13 @@ const VehicleTransferListPage = () => {
         </button>
         {status === "draft" && (
           <>
+            <button
+              className="m365-icon-btn"
+              title="Edit Draft"
+              onClick={() => navigate(`/vehicles/transfers/edit/${cellData.data.transferId}`)}
+            >
+              <i className="fa-light fa-pen-to-square" />
+            </button>
             <button
               className="m365-icon-btn m365-icon-btn--primary"
               title="Submit for Approval"
@@ -482,13 +502,17 @@ const VehicleTransferListPage = () => {
         title={`Transfer #${selectedTransfer?.deliveryNoteNumber || selectedTransfer?.transferId || ""}`}
         width={1200}
       >
-        {selectedTransfer && (
+        {detailLoading ? (
+          <div className="tw-flex tw-items-center tw-justify-center tw-py-16">
+            <i className="fa-light fa-spinner-third fa-spin tw-text-2xl tw-text-gray-400" />
+          </div>
+        ) : selectedTransfer ? (
           <VehicleTransferDetails
             transfer={selectedTransfer}
             onClose={handleClosePanel}
             onRefresh={handlePanelRefresh}
           />
-        )}
+        ) : null}
       </SlidePanel>
 
       {/* ── Approval Manager Selector Dialog ── */}

@@ -444,6 +444,7 @@ namespace FMS.WebClient.Services
             switch (request.SourceId)
             {
                 case "tank-volume-history":
+                case "transaction-history-summary":
                     return await FetchTankVolumeHistoryData(mediator, request, currentJob, ct);
 
                 case "pump-transaction":
@@ -480,6 +481,9 @@ namespace FMS.WebClient.Services
             if (job != null) job.RecordCount = records.Count;
 
             // Shape into template-ready payload — mirrors frontend reportDataBuilder
+            if (request.SourceId == "transaction-history-summary")
+                return BuildTransactionHistorySummaryPayload(records, request, job?.UserName);
+
             return BuildTankVolumeHistoryPayload(records, request, job?.UserName);
         }
 
@@ -803,6 +807,185 @@ namespace FMS.WebClient.Services
 
             // Serialize → parse → ensures nested anonymous objects in List<object>
             // retain their properties (Newtonsoft resolves runtime types correctly)
+            return JToken.FromObject(payload);
+        }
+
+        /// <summary>
+        /// Builds a monthly-aggregated summary payload for the transaction-history-summary-report template.
+        /// Groups records by month → site → tank with totals for dispensing, delivery, transfer, and variance.
+        /// </summary>
+        private object BuildTransactionHistorySummaryPayload(
+            List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> records,
+            SubmitReportJobDTO request,
+            string createdBy = null)
+        {
+            var displayCreatedBy = !string.IsNullOrWhiteSpace(createdBy) ? createdBy : "System";
+
+            if (records == null || records.Count == 0)
+            {
+                return JToken.FromObject(new
+                {
+                    reportTitle = request.ReportTitle ?? "Transaction History Summary",
+                    reportSubtitle = "No data found",
+                    generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                    generatedBy = displayCreatedBy,
+                    dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
+                    dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
+                    reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                    monthlyGroups = Array.Empty<object>(),
+                    grandTotal = new { dispensing = "0.00", delivery = "0.00", transfer = "0.00", variance = "0.00", varianceIsNegative = false },
+                    summary = new { totalTransactions = 0, totalDispensed = "0.00", totalDelivery = "0.00", totalTransfer = "0.00", netVariance = "0.00", monthsCovered = 0, sitesMonitored = 0, tanksMonitored = 0 },
+                });
+            }
+
+            var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December" };
+
+            // Group by month → site → tank
+            var monthGroups = records
+                .Where(r => r.TankId.HasValue)
+                .GroupBy(r => new { r.Timestamp.Year, r.Timestamp.Month })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                .ToList();
+
+            decimal grandDispensing = 0m, grandDelivery = 0m, grandTransfer = 0m;
+            var monthlyGroupsList = new List<object>();
+
+            foreach (var monthGroup in monthGroups)
+            {
+                var year = monthGroup.Key.Year;
+                var month = monthGroup.Key.Month;
+                var monthLabel = $"{monthNames[month]} {year}";
+
+                decimal monthDisp = 0m, monthDel = 0m, monthXfer = 0m;
+                int monthDispCount = 0, monthDelCount = 0, monthXferCount = 0;
+
+                var siteGroupMap = monthGroup
+                    .GroupBy(r => r.Site ?? "—")
+                    .OrderBy(g => g.Key);
+
+                var siteGroupsList = new List<object>();
+                foreach (var siteGroup in siteGroupMap)
+                {
+                    var tankGroupMap = siteGroup
+                        .GroupBy(r => r.TankId!.Value)
+                        .OrderBy(g => g.First().TankName ?? "");
+
+                    var tanksList = new List<object>();
+                    foreach (var tankGroup in tankGroupMap)
+                    {
+                        var ordered = tankGroup.OrderBy(r => r.Timestamp).ToList();
+                        var first = ordered[0];
+                        var last = ordered[^1];
+                        var tankName = first.TankName ?? $"Tank {tankGroup.Key}";
+
+                        var openingRaw = (first.NewVolume ?? 0m) - (first.VolumeChange ?? 0m);
+                        var closingRaw = last.NewVolume ?? 0m;
+
+                        decimal dispTotal = 0m, delTotal = 0m, xferTotal = 0m;
+                        int dispCount = 0, delCount = 0, xferCount = 0;
+
+                        foreach (var r in ordered)
+                        {
+                            var code = (int)r.ChangeReason;
+                            var vol = r.VolumeChange ?? 0m;
+                            if (_dispensingReasons.Contains(code)) { dispTotal += Math.Abs(vol); dispCount++; }
+                            if (_deliveryReasons.Contains(code)) { delTotal += vol; delCount++; }
+                            if (_transferReasons.Contains(code)) { xferTotal += vol; xferCount++; }
+                        }
+
+                        var expectedClosing = openingRaw + delTotal + xferTotal - dispTotal;
+                        var variance = closingRaw - expectedClosing;
+                        var variancePercent = expectedClosing != 0m
+                            ? Math.Round(variance / Math.Abs(expectedClosing) * 100m, 2)
+                            : 0m;
+
+                        var daySpan = Math.Max(1, (int)Math.Ceiling((last.Timestamp - first.Timestamp).TotalDays));
+                        var avgDaily = Math.Round(dispTotal / daySpan, 2);
+
+                        monthDisp += dispTotal;
+                        monthDel += delTotal;
+                        monthXfer += Math.Abs(xferTotal);
+                        monthDispCount += dispCount;
+                        monthDelCount += delCount;
+                        monthXferCount += xferCount;
+
+                        tanksList.Add(new
+                        {
+                            tankName,
+                            openingBalance = openingRaw.ToString("N2"),
+                            closingBalance = closingRaw.ToString("N2"),
+                            expectedClosing = expectedClosing.ToString("N2"),
+                            dispensing = new { total = dispTotal.ToString("N2"), count = dispCount },
+                            delivery = new { total = delTotal.ToString("N2"), count = delCount },
+                            transfer = new { total = Math.Abs(xferTotal).ToString("N2"), count = xferCount },
+                            variance = variance.ToString("N2"),
+                            varianceIsNegative = variance < -0.5m,
+                            variancePercent = $"{variancePercent}%",
+                            avgDailyConsumption = avgDaily.ToString("N2"),
+                            totalTransactions = ordered.Count,
+                        });
+                    }
+
+                    siteGroupsList.Add(new { siteName = siteGroup.Key, tanks = tanksList });
+                }
+
+                grandDispensing += monthDisp;
+                grandDelivery += monthDel;
+                grandTransfer += monthXfer;
+
+                monthlyGroupsList.Add(new
+                {
+                    month = $"{year}-{month:D2}",
+                    monthLabel,
+                    year = year.ToString(),
+                    siteGroups = siteGroupsList,
+                    subtotal = new
+                    {
+                        dispensing = monthDisp.ToString("N2"),
+                        dispensingCount = monthDispCount,
+                        delivery = monthDel.ToString("N2"),
+                        deliveryCount = monthDelCount,
+                        transfer = monthXfer.ToString("N2"),
+                        transferCount = monthXferCount,
+                        variance = (monthDel + monthXfer - monthDisp).ToString("N2"),
+                    },
+                });
+            }
+
+            var netVariance = grandDelivery + grandTransfer - grandDispensing;
+
+            var payload = new
+            {
+                reportTitle = request.ReportTitle ?? "Transaction History Summary",
+                reportSubtitle = "",
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = displayCreatedBy,
+                dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
+                dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
+                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                monthlyGroups = monthlyGroupsList,
+                grandTotal = new
+                {
+                    dispensing = grandDispensing.ToString("N2"),
+                    delivery = grandDelivery.ToString("N2"),
+                    transfer = grandTransfer.ToString("N2"),
+                    variance = netVariance.ToString("N2"),
+                    varianceIsNegative = netVariance < -0.5m,
+                },
+                summary = new
+                {
+                    totalTransactions = records.Count,
+                    totalDispensed = grandDispensing.ToString("N2"),
+                    totalDelivery = grandDelivery.ToString("N2"),
+                    totalTransfer = grandTransfer.ToString("N2"),
+                    netVariance = netVariance.ToString("N2"),
+                    monthsCovered = monthGroups.Count,
+                    sitesMonitored = records.Select(r => r.Site).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count(),
+                    tanksMonitored = records.Where(r => r.TankId.HasValue).Select(r => r.TankId!.Value).Distinct().Count(),
+                },
+            };
+
             return JToken.FromObject(payload);
         }
 

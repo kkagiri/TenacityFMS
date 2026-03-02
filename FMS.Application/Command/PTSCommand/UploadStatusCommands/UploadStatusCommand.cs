@@ -80,7 +80,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
         private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
         private readonly ISystemConfigurationService _systemConfigurationService;
-        private readonly IEventExpressionEngine _eventEngine;
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -97,8 +96,9 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
             IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
             ISystemConfigurationService systemConfigurationService,
-            IServiceScopeFactory serviceScopeFactory, // For background task scoping
-            IEventExpressionEngine eventEngine)
+            IServiceScopeFactory serviceScopeFactory) // IEventExpressionEngine removed: engine is now resolved
+                                                      // per-call via IServiceScopeFactory to avoid sharing a
+                                                      // potentially degraded GpsdataContext connection.
         {
             _hubContext = hubContext;
             _mediator = mediator;
@@ -115,7 +115,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
             _systemConfigurationService = systemConfigurationService;
             _serviceScopeFactory = serviceScopeFactory; // For background task scoping
-            _eventEngine = eventEngine;
         }
 
         public async Task<CommandResult> Handle(UploadStatusCommand request, CancellationToken cancellationToken)
@@ -703,7 +702,15 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 };
                 probeAlarmEvent.Data["AlarmType"] = alarmType;
                 probeAlarmEvent.Data["ProbeId"] = probeId;
-                await _eventEngine.ProcessAsync(probeAlarmEvent, cancellationToken);
+
+                // Use a fresh scope so the EventExpressionEngine gets its own GpsdataContext,
+                // isolated from this handler's context which may be in a degraded state after
+                // heavy DB work (SaveChanges, complex queries). This prevents
+                // "Connection must be Open; current state is Closed" errors.
+                using var eventEngineScope = _serviceScopeFactory.CreateScope();
+                var scopedEventEngine = eventEngineScope.ServiceProvider.GetRequiredService<IEventExpressionEngine>();
+                await scopedEventEngine.ProcessAsync(probeAlarmEvent, cancellationToken);
+
                 _logger.LogInformation(
                     "[UploadStatus] Probe alarm event {AlarmType} for device {DeviceId} probe {ProbeId}: {Message}",
                     alarmType, deviceId, probeId, message);
@@ -947,7 +954,15 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     CurrentLevel = currentVolume,
                 };
                 levelEvent.Data["AlarmType"] = alarmType;
-                await _eventEngine.ProcessAsync(levelEvent);
+
+                // Use a fresh scope so the EventExpressionEngine gets its own GpsdataContext,
+                // isolated from this handler's context which may be in a degraded state after
+                // heavy DB work (SaveChanges, complex queries). This prevents
+                // "Connection must be Open; current state is Closed" errors.
+                using var eventEngineScope = _serviceScopeFactory.CreateScope();
+                var scopedEventEngine = eventEngineScope.ServiceProvider.GetRequiredService<IEventExpressionEngine>();
+                await scopedEventEngine.ProcessAsync(levelEvent);
+
                 _logger.LogWarning(
                     "[UploadStatus] System tank level event {AlarmType} for tank {TankId} ({TankName}): {PercentageFull:F1}% full, {CurrentVolume:N0}L",
                     alarmType, tank.Id, tank.Name, percentageFull, currentVolume);

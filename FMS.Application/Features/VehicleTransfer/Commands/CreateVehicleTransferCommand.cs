@@ -114,6 +114,17 @@ public class CreateVehicleTransferCommandHandler : IRequestHandler<CreateVehicle
                 ReceiverFunction = dto.ReceiverFunction,
                 ApprovedBy = dto.ApprovedBy,
                 WorkshopManagerSign = dto.WorkshopManagerSign,
+                // GPS Equipment Checkup
+                GpsDeviceId = dto.GpsDeviceId,
+                GpsDeviceCondition = dto.GpsDeviceCondition,
+                GpsDeviceWorking = dto.GpsDeviceWorking,
+                GpsDeviceRemarks = dto.GpsDeviceRemarks,
+                FuelSensorId = dto.FuelSensorId,
+                FuelSensorCondition = dto.FuelSensorCondition,
+                FuelSensorWorking = dto.FuelSensorWorking,
+                FuelSensorRemarks = dto.FuelSensorRemarks,
+                VehicleManufacturer = dto.VehicleManufacturer,
+                VehicleModelName = dto.VehicleModelName,
                 CreatedBy = dto.UserId,
                 DateCreated = DateTime.UtcNow
             };

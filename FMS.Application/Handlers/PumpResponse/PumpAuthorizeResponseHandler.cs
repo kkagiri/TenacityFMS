@@ -39,6 +39,17 @@ namespace FMS.Application.Handlers
                 _logger.LogInformation("Pump authorization confirmation received for device {DeviceId}, packet {PacketId}. Data: {Data}",
                     deviceId, packet.Id, packet.Data?.ToString());
 
+                // Device returned an error for this packet (e.g. the authorization request timed out
+                // on the API side but the device still processed it and replied with an error).
+                // Log it and return null — no Redis publish needed, no response to device.
+                if (packet.Error == true)
+                {
+                    _logger.LogWarning(
+                        "PumpAuthorizeConfirmation error from device {DeviceId}, packet {PacketId}: Code={Code}, Message={Message}",
+                        deviceId, packet.Id, packet.Code, packet.Message);
+                    return null;
+                }
+
                 // Extract pump and transaction info from packet data
                 var confirmationData = new
                 {

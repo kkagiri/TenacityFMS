@@ -758,6 +758,205 @@ const mapIssueTracker = (rawRecords, container, queryParams) => {
     };
 };
 
+/**
+ * Transforms raw TankVolumeHistoryDTO[] records into a monthly/yearly aggregated
+ * summary for the 'transaction-history-summary-report' template.
+ *
+ * Template structure:
+ *   summary: { totalTransactions, totalDispensed, totalDelivery, totalTransfer, netVariance }
+ *   monthlyGroups[]: { month, monthLabel, year,
+ *     siteGroups[]: { siteName,
+ *       tanks[]: { tankName, openingBalance, closingBalance, expectedClosing,
+ *                  dispensing.{total,count}, delivery.{total,count}, transfer.{total,count},
+ *                  variance, variancePercent, avgDailyConsumption }
+ *       subtotal: { dispensing, delivery, transfer, variance }
+ *     }
+ *   }
+ *   grandTotal: { dispensing, delivery, transfer, variance }
+ */
+const mapTransactionHistorySummary = (rawRecords) => {
+    // ── 1. Normalise each record ────────────────────────────────────────────────
+    const rows = rawRecords.map((record) => {
+        const transactionType = resolveTankTransactionType(record);
+        const ts = getValue(record, ['timestamp', 'periodStart', 'dateTime']);
+        const volumeChangeRaw = numberOrZero(getValue(record, ['volumeChange', 'totalVolume', 'volume']));
+        const newVolumeRaw = numberOrZero(getValue(record, ['newVolume', 'totalVolume']));
+        const tankId = getValue(record, ['tankId']) || 'unknown';
+        const tankName = normalizeText(
+            getValue(record, ['tankName']) || (tankId !== 'unknown' ? `Tank #${tankId}` : '-'),
+        );
+        const siteName = normalizeText(getValue(record, ['siteName', 'site']), '-');
+        const parsed = parseDateAssumeUtc(ts);
+        const monthKey = parsed
+            ? `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`
+            : 'unknown';
+
+        return {
+            tankId,
+            tankName,
+            siteName,
+            monthKey,
+            timestamp: parsed,
+            volumeChangeRaw,
+            newVolumeRaw,
+            transactionType,
+            isDelivery: isTankEventMatch(transactionType, ['delivery', 'intankdelivery']),
+            isDispensing: isTankEventMatch(transactionType, ['dispensing']),
+            isTransfer: isTankEventMatch(transactionType, ['transfer']),
+        };
+    });
+
+    // ── 2. Group by month → site → tank ─────────────────────────────────────────
+    const monthMap = new Map(); // monthKey → Map<siteName, Map<tankKey, rows[]>>
+
+    rows.forEach((row) => {
+        if (!monthMap.has(row.monthKey)) {
+            monthMap.set(row.monthKey, new Map());
+        }
+        const siteMap = monthMap.get(row.monthKey);
+        if (!siteMap.has(row.siteName)) {
+            siteMap.set(row.siteName, new Map());
+        }
+        const tankMap = siteMap.get(row.siteName);
+        const tankKey = row.tankId !== 'unknown' ? row.tankId : row.tankName;
+        if (!tankMap.has(tankKey)) {
+            tankMap.set(tankKey, { tankName: row.tankName, rows: [] });
+        }
+        tankMap.get(tankKey).rows.push(row);
+    });
+
+    // ── 3. Build monthlyGroups array ────────────────────────────────────────────
+    const MONTH_NAMES = [
+        'January', 'February', 'March', 'April', 'May', 'June',
+        'July', 'August', 'September', 'October', 'November', 'December',
+    ];
+
+    const sortedMonths = Array.from(monthMap.keys()).sort();
+    const monthlyGroups = sortedMonths.map((monthKey) => {
+        const [yearStr, monthStr] = monthKey.split('-');
+        const monthIndex = parseInt(monthStr, 10) - 1;
+        const monthLabel = MONTH_NAMES[monthIndex] || monthStr;
+        const year = yearStr;
+        const siteMap = monthMap.get(monthKey);
+
+        let monthDispensing = 0;
+        let monthDelivery = 0;
+        let monthTransfer = 0;
+        let monthDispensingCount = 0;
+        let monthDeliveryCount = 0;
+        let monthTransferCount = 0;
+
+        const siteGroups = [];
+        siteMap.forEach((tankMap, siteName) => {
+            const tanks = [];
+            tankMap.forEach(({ tankName, rows: tankRows }) => {
+                const ordered = tankRows.sort((a, b) =>
+                    (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0),
+                );
+                const first = ordered[0];
+                const last = ordered[ordered.length - 1];
+
+                const openingBalanceRaw = first ? first.newVolumeRaw - first.volumeChangeRaw : 0;
+                const closingBalanceRaw = last ? last.newVolumeRaw : 0;
+
+                const dispensingRows = ordered.filter((r) => r.isDispensing);
+                const deliveryRows = ordered.filter((r) => r.isDelivery);
+                const transferRows = ordered.filter((r) => r.isTransfer);
+
+                const dispensingTotal = dispensingRows.reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
+                const deliveryTotal = deliveryRows.reduce((s, r) => s + r.volumeChangeRaw, 0);
+                const transferTotal = transferRows.reduce((s, r) => s + r.volumeChangeRaw, 0);
+
+                const expectedClosingRaw = openingBalanceRaw + deliveryTotal + transferTotal - dispensingTotal;
+                const varianceRaw = closingBalanceRaw - expectedClosingRaw;
+                const variancePercent = expectedClosingRaw !== 0
+                    ? roundTo((varianceRaw / Math.abs(expectedClosingRaw)) * 100, 2)
+                    : 0;
+
+                // Average daily consumption
+                const daySpan = first && last && first.timestamp && last.timestamp
+                    ? Math.max(1, Math.ceil((last.timestamp - first.timestamp) / (1000 * 60 * 60 * 24)))
+                    : 1;
+                const avgDailyConsumption = roundTo(dispensingTotal / daySpan, 2);
+
+                monthDispensing += dispensingTotal;
+                monthDelivery += deliveryTotal;
+                monthTransfer += Math.abs(transferTotal);
+                monthDispensingCount += dispensingRows.length;
+                monthDeliveryCount += deliveryRows.length;
+                monthTransferCount += transferRows.length;
+
+                tanks.push({
+                    tankName,
+                    openingBalance: formatNumber(openingBalanceRaw),
+                    closingBalance: formatNumber(closingBalanceRaw),
+                    expectedClosing: formatNumber(expectedClosingRaw),
+                    dispensing: { total: formatNumber(dispensingTotal), count: dispensingRows.length },
+                    delivery: { total: formatNumber(deliveryTotal), count: deliveryRows.length },
+                    transfer: { total: formatNumber(Math.abs(transferTotal)), count: transferRows.length },
+                    variance: formatNumber(varianceRaw),
+                    varianceIsNegative: varianceRaw < -0.5,
+                    variancePercent: `${variancePercent}%`,
+                    avgDailyConsumption: formatNumber(avgDailyConsumption),
+                    totalTransactions: ordered.length,
+                });
+            });
+            tanks.sort((a, b) => a.tankName.localeCompare(b.tankName));
+
+            siteGroups.push({
+                siteName,
+                tanks,
+            });
+        });
+        siteGroups.sort((a, b) => a.siteName.localeCompare(b.siteName));
+
+        return {
+            month: monthKey,
+            monthLabel: `${monthLabel} ${year}`,
+            year,
+            siteGroups,
+            subtotal: {
+                dispensing: formatNumber(monthDispensing),
+                dispensingCount: monthDispensingCount,
+                delivery: formatNumber(monthDelivery),
+                deliveryCount: monthDeliveryCount,
+                transfer: formatNumber(monthTransfer),
+                transferCount: monthTransferCount,
+                variance: formatNumber(monthDelivery + monthTransfer - monthDispensing),
+            },
+        };
+    });
+
+    // ── 4. Grand totals ─────────────────────────────────────────────────────────
+    const grandDispensing = rows.filter((r) => r.isDispensing).reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
+    const grandDelivery = rows.filter((r) => r.isDelivery).reduce((s, r) => s + r.volumeChangeRaw, 0);
+    const grandTransfer = rows.filter((r) => r.isTransfer).reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
+    const netVariance = grandDelivery + grandTransfer - grandDispensing;
+
+    return {
+        records: rows,
+        monthlyGroups,
+        grandTotal: {
+            dispensing: formatNumber(grandDispensing),
+            delivery: formatNumber(grandDelivery),
+            transfer: formatNumber(grandTransfer),
+            variance: formatNumber(netVariance),
+            varianceIsNegative: netVariance < -0.5,
+        },
+        summary: {
+            totalRecords: rows.length,
+            totalTransactions: rows.length,
+            totalDispensed: formatNumber(grandDispensing),
+            totalDelivery: formatNumber(grandDelivery),
+            totalTransfer: formatNumber(grandTransfer),
+            netVariance: formatNumber(netVariance),
+            monthsCovered: monthlyGroups.length,
+            sitesMonitored: new Set(rows.map((r) => r.siteName)).size,
+            tanksMonitored: new Set(rows.map((r) => r.tankId)).size,
+        },
+    };
+};
+
 const transformBySource = (sourceId, rawRecords, container, queryParams) => {
     switch (sourceId) {
         case 'fuel-refill':
@@ -776,6 +975,8 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
             return mapTankVolumeHistory(rawRecords, container);
         case 'issue-tracker':
             return mapIssueTracker(rawRecords, container, queryParams);
+        case 'transaction-history-summary':
+            return mapTransactionHistorySummary(rawRecords);
         default:
             return {
                 records: mapDefaultRecords(rawRecords),

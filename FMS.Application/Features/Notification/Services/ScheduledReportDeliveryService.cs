@@ -31,7 +31,10 @@ namespace FMS.Application.Features.Notification.Services
     {
         private const string TransactionVolumeHistoryReportType = "TransactionVolumeHistory";
         private const string TransactionVolumeHistoryReportTypeKebab = "tank-volume-history";
+        private const string TransactionHistorySummaryReportType = "TransactionHistorySummary";
+        private const string TransactionHistorySummaryReportTypeKebab = "transaction-history-summary";
         private const string DefaultTemplateName = "transaction-volume-history-report";
+        private const string DefaultSummaryTemplateName = "transaction-history-summary-report";
         private const int MaxAttachmentBytes = 7 * 1024 * 1024;
 
         private readonly IMediator _mediator;
@@ -72,8 +75,12 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var reportType = metadata.Value<string>("reportType");
-            if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase))
+            var isSummaryReport = string.Equals(reportType, TransactionHistorySummaryReportType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(reportType, TransactionHistorySummaryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
+            var isVolumeHistoryReport = string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
+
+            if (!isVolumeHistoryReport && !isSummaryReport)
             {
                 return null;
             }
@@ -81,7 +88,7 @@ namespace FMS.Application.Features.Notification.Services
             var templateName = metadata.Value<string>("templateName");
             if (string.IsNullOrWhiteSpace(templateName))
             {
-                templateName = DefaultTemplateName;
+                templateName = isSummaryReport ? DefaultSummaryTemplateName : DefaultTemplateName;
             }
 
             var format = NormalizeFormat(metadata.Value<string>("format"));
@@ -136,15 +143,13 @@ namespace FMS.Application.Features.Notification.Services
                     .Where(tank => resolvedTankIds.Contains(tank.Id))
                     .ToDictionaryAsync(tank => tank.Id, tank => tank.Name ?? $"Tank {tank.Id}", cancellationToken);
 
-            var reportData = BuildTransactionVolumeHistoryReportData(
-                rows,
-                tankNameLookup,
-                notification,
-                metadata,
-                windowStartLocal,
-                windowEndLocal,
-                siteNames,
-                timezoneId);
+            var reportData = isSummaryReport
+                ? BuildTransactionHistorySummaryReportData(
+                    rows, tankNameLookup, notification, metadata,
+                    windowStartLocal, windowEndLocal, siteNames, timezoneId)
+                : BuildTransactionVolumeHistoryReportData(
+                    rows, tankNameLookup, notification, metadata,
+                    windowStartLocal, windowEndLocal, siteNames, timezoneId);
 
             if (format == "html")
             {
@@ -286,6 +291,183 @@ namespace FMS.Application.Features.Notification.Services
             };
         }
 
+        /// <summary>
+        /// Builds an aggregated monthly summary report data object for the
+        /// 'transaction-history-summary-report' Handlebars template.
+        /// Groups transactions by month → site → tank with totals for dispensing, delivery, transfer, and variance.
+        /// </summary>
+        private static object BuildTransactionHistorySummaryReportData(
+            IReadOnlyCollection<TankVolumeHistoryDTO> rows,
+            IReadOnlyDictionary<int, string> tankNameLookup,
+            NotificationEntity notification,
+            JObject metadata,
+            DateTime windowStartLocal,
+            DateTime windowEndLocal,
+            List<string> siteNames,
+            string timezoneId)
+        {
+            var timezone = ResolveTimeZoneInfo(timezoneId);
+            var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December" };
+
+            // Group by month → site → tank
+            var monthGroups = rows
+                .Where(r => r.TankId.HasValue)
+                .Select(r =>
+                {
+                    var ts = r.Timestamp.Kind == DateTimeKind.Utc
+                        ? TimeZoneInfo.ConvertTimeFromUtc(r.Timestamp, timezone)
+                        : r.Timestamp;
+                    return new { Row = r, LocalTimestamp = ts };
+                })
+                .GroupBy(x => new { x.LocalTimestamp.Year, x.LocalTimestamp.Month })
+                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
+                .ToList();
+
+            decimal grandDispensing = 0, grandDelivery = 0, grandTransfer = 0;
+            var monthlyGroups = new List<object>();
+
+            foreach (var monthGroup in monthGroups)
+            {
+                var year = monthGroup.Key.Year;
+                var month = monthGroup.Key.Month;
+                var monthLabel = $"{monthNames[month]} {year}";
+
+                decimal monthDispensing = 0, monthDelivery = 0, monthTransfer = 0;
+                int monthDispCount = 0, monthDelCount = 0, monthXferCount = 0;
+
+                var siteGroupMap = monthGroup
+                    .GroupBy(x => Sanitize(x.Row.Site, "-"))
+                    .OrderBy(g => g.Key);
+
+                var siteGroupsList = new List<object>();
+                foreach (var siteGroup in siteGroupMap)
+                {
+                    var tankGroupMap = siteGroup
+                        .GroupBy(x => x.Row.TankId!.Value)
+                        .OrderBy(g => tankNameLookup.TryGetValue(g.Key, out var n) ? n : $"Tank {g.Key}");
+
+                    var tanksList = new List<object>();
+                    foreach (var tankGroup in tankGroupMap)
+                    {
+                        var ordered = tankGroup.OrderBy(x => x.LocalTimestamp).ToList();
+                        var first = ordered.First();
+                        var last = ordered.Last();
+                        var tankName = tankNameLookup.TryGetValue(tankGroup.Key, out var tn) ? tn : $"Tank {tankGroup.Key}";
+
+                        var openingRaw = (first.Row.NewVolume ?? 0m) - (first.Row.VolumeChange ?? 0m);
+                        var closingRaw = last.Row.NewVolume ?? 0m;
+
+                        var dispensingRows = ordered.Where(x => IsDispensing(x.Row.ChangeReason)).ToList();
+                        var deliveryRows = ordered.Where(x => IsDelivery(x.Row.ChangeReason)).ToList();
+                        var transferRows = ordered.Where(x => IsTransfer(x.Row.ChangeReason)).ToList();
+
+                        var dispTotal = dispensingRows.Sum(x => Math.Abs(x.Row.VolumeChange ?? 0m));
+                        var delTotal = deliveryRows.Sum(x => x.Row.VolumeChange ?? 0m);
+                        var xferTotal = transferRows.Sum(x => x.Row.VolumeChange ?? 0m);
+
+                        var expectedClosing = openingRaw + delTotal + xferTotal - dispTotal;
+                        var variance = closingRaw - expectedClosing;
+                        var variancePercent = expectedClosing != 0
+                            ? Math.Round(variance / Math.Abs(expectedClosing) * 100, 2)
+                            : 0m;
+
+                        var daySpan = Math.Max(1, (int)Math.Ceiling((last.LocalTimestamp - first.LocalTimestamp).TotalDays));
+                        var avgDaily = Math.Round(dispTotal / daySpan, 2);
+
+                        monthDispensing += dispTotal;
+                        monthDelivery += delTotal;
+                        monthTransfer += Math.Abs(xferTotal);
+                        monthDispCount += dispensingRows.Count;
+                        monthDelCount += deliveryRows.Count;
+                        monthXferCount += transferRows.Count;
+
+                        tanksList.Add(new
+                        {
+                            tankName,
+                            openingBalance = FormatDecimal(openingRaw),
+                            closingBalance = FormatDecimal(closingRaw),
+                            expectedClosing = FormatDecimal(expectedClosing),
+                            dispensing = new { total = FormatDecimal(dispTotal), count = dispensingRows.Count },
+                            delivery = new { total = FormatDecimal(delTotal), count = deliveryRows.Count },
+                            transfer = new { total = FormatDecimal(Math.Abs(xferTotal)), count = transferRows.Count },
+                            variance = FormatDecimal(variance),
+                            varianceIsNegative = variance < -0.5m,
+                            variancePercent = $"{variancePercent}%",
+                            avgDailyConsumption = FormatDecimal(avgDaily),
+                            totalTransactions = ordered.Count,
+                        });
+                    }
+
+                    siteGroupsList.Add(new { siteName = siteGroup.Key, tanks = tanksList });
+                }
+
+                grandDispensing += monthDispensing;
+                grandDelivery += monthDelivery;
+                grandTransfer += monthTransfer;
+
+                monthlyGroups.Add(new
+                {
+                    month = $"{year}-{month:D2}",
+                    monthLabel,
+                    year = year.ToString(),
+                    siteGroups = siteGroupsList,
+                    subtotal = new
+                    {
+                        dispensing = FormatDecimal(monthDispensing),
+                        dispensingCount = monthDispCount,
+                        delivery = FormatDecimal(monthDelivery),
+                        deliveryCount = monthDelCount,
+                        transfer = FormatDecimal(monthTransfer),
+                        transferCount = monthXferCount,
+                        variance = FormatDecimal(monthDelivery + monthTransfer - monthDispensing),
+                    },
+                });
+            }
+
+            var netVariance = grandDelivery + grandTransfer - grandDispensing;
+
+            return new
+            {
+                reportTitle = metadata.Value<string>("reportName") ?? notification.Title ?? "Transaction History Summary",
+                reportSubtitle = $"Period: {FormatDateRange(windowStartLocal, windowEndLocal)}",
+                generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = metadata.Value<string>("requestedBy") ?? notification.TriggeredBy ?? "System",
+                dateFrom = windowStartLocal.ToString("yyyy-MM-dd"),
+                dateTo = windowEndLocal.ToString("yyyy-MM-dd"),
+                siteName = ResolveSiteDisplay(siteNames),
+                monthlyGroups,
+                grandTotal = new
+                {
+                    dispensing = FormatDecimal(grandDispensing),
+                    delivery = FormatDecimal(grandDelivery),
+                    transfer = FormatDecimal(grandTransfer),
+                    variance = FormatDecimal(netVariance),
+                    varianceIsNegative = netVariance < -0.5m,
+                },
+                summary = new
+                {
+                    totalTransactions = rows.Count,
+                    totalDispensed = FormatDecimal(grandDispensing),
+                    totalDelivery = FormatDecimal(grandDelivery),
+                    totalTransfer = FormatDecimal(grandTransfer),
+                    netVariance = FormatDecimal(netVariance),
+                    monthsCovered = monthGroups.Count,
+                    sitesMonitored = rows.Select(r => r.Site).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count(),
+                    tanksMonitored = rows.Where(r => r.TankId.HasValue).Select(r => r.TankId!.Value).Distinct().Count(),
+                },
+            };
+        }
+
+        private static bool IsDispensing(VolumeChangeReasonEnum reason)
+            => reason == VolumeChangeReasonEnum.Dispensing || reason == VolumeChangeReasonEnum.AutomatedDispensing;
+
+        private static bool IsDelivery(VolumeChangeReasonEnum reason)
+            => reason == VolumeChangeReasonEnum.Delivery || reason == VolumeChangeReasonEnum.InTankDelivery;
+
+        private static bool IsTransfer(VolumeChangeReasonEnum reason)
+            => reason == VolumeChangeReasonEnum.TransferIn || reason == VolumeChangeReasonEnum.TransferOut;
+
         private static (DateTime startUtc, DateTime endUtc, DateTime startLocal, DateTime endLocal, string timeZoneId)
             ResolveExecutionWindow(NotificationEntity notification, JObject metadata)
         {
@@ -302,6 +484,18 @@ namespace FMS.Application.Features.Notification.Services
             if (string.IsNullOrWhiteSpace(periodType))
             {
                 periodType = recurringSchedule?.Value<string>("scheduleType")?.Trim().ToLowerInvariant();
+            }
+
+            if (periodType == "yearly")
+            {
+                var yearStartLocal = new DateTime(runAtLocal.Year, 1, 1, 0, 0, 0, DateTimeKind.Unspecified);
+                var yearEndLocal = yearStartLocal.AddYears(1).AddTicks(-1);
+                return (
+                    TimeZoneInfo.ConvertTimeToUtc(yearStartLocal, timezone),
+                    TimeZoneInfo.ConvertTimeToUtc(yearEndLocal, timezone),
+                    yearStartLocal,
+                    yearEndLocal,
+                    timeZoneId);
             }
 
             if (periodType == "monthly")
@@ -535,7 +729,9 @@ namespace FMS.Application.Features.Notification.Services
             try
             {
                 if (!string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase) &&
-                    !string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase))
+                    !string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(reportType, TransactionHistorySummaryReportType, StringComparison.OrdinalIgnoreCase) &&
+                    !string.Equals(reportType, TransactionHistorySummaryReportTypeKebab, StringComparison.OrdinalIgnoreCase))
                 {
                     _logger.LogWarning("Unsupported event report attachment type: {ReportType}", reportType);
                     return attachments;

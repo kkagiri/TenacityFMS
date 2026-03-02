@@ -292,6 +292,16 @@ namespace FMS.WebClient.Services.Reporting
 
                 using var wb = new XLWorkbook();
 
+                // ── Monthly-grouped structure (TransactionHistorySummary) ────────
+                if (root.TryGetProperty("monthlyGroups", out var monthlyGroups) &&
+                    monthlyGroups.ValueKind == JsonValueKind.Array)
+                {
+                    BuildMonthlySummaryExcel(wb, root, monthlyGroups);
+                    using var ms = new MemoryStream();
+                    wb.SaveAs(ms);
+                    return ms.ToArray();
+                }
+
                 // ── Site-grouped structure (TankVolumeHistory) ────────────────────
                 if (root.TryGetProperty("siteGroups", out var siteGroups) &&
                     siteGroups.ValueKind == JsonValueKind.Array)
@@ -420,6 +430,120 @@ namespace FMS.WebClient.Services.Reporting
                 ws.Cell(row, 7).Value = "TOTAL";
                 ws.Cell(row, 8).Value = GetStr(s, "netBalanceChange");
                 ws.Cell(row, 9).Value = GetStr(s, "grandClosingBalance");
+                ws.Range(row, 1, row, 11).Style.Font.Bold = true;
+                ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#1F2937");
+                ws.Range(row, 1, row, 11).Style.Font.FontColor = XLColor.White;
+            }
+
+            ws.Columns().AdjustToContents();
+        }
+
+        private static void BuildMonthlySummaryExcel(XLWorkbook wb, JsonElement root, JsonElement monthlyGroups)
+        {
+            var ws = wb.Worksheets.Add("Monthly Summary");
+            int row = 1;
+
+            ws.Cell(row, 1).Value = GetStr(root, "reportTitle");
+            ws.Cell(row, 1).Style.Font.Bold = true;
+            ws.Cell(row, 1).Style.Font.FontSize = 14;
+            ws.Range(row, 1, row, 11).Merge();
+            row++;
+
+            ws.Cell(row, 1).Value = $"Period: {GetStr(root, "dateFrom")} – {GetStr(root, "dateTo")}";
+            ws.Range(row, 1, row, 11).Merge();
+            row += 2;
+
+            // Summary row
+            if (root.TryGetProperty("summary", out var s))
+            {
+                ApplyHeaderRow(ws, row, new[] { "Total Transactions", "Total Dispensed (L)", "Total Delivered (L)", "Total Transferred (L)", "Net Variance (L)", "Months", "Sites", "Tanks" });
+                row++;
+                ws.Cell(row, 1).Value = GetStr(s, "totalTransactions");
+                ws.Cell(row, 2).Value = GetStr(s, "totalDispensed");
+                ws.Cell(row, 3).Value = GetStr(s, "totalDelivery");
+                ws.Cell(row, 4).Value = GetStr(s, "totalTransfer");
+                ws.Cell(row, 5).Value = GetStr(s, "netVariance");
+                ws.Cell(row, 6).Value = GetStr(s, "monthsCovered");
+                ws.Cell(row, 7).Value = GetStr(s, "sitesMonitored");
+                ws.Cell(row, 8).Value = GetStr(s, "tanksMonitored");
+                row += 2;
+            }
+
+            // Monthly detail
+            var headers = new[] { "Tank", "Opening (L)", "Dispensing (L)", "Disp #", "Delivery (L)", "Del #", "Transfer (L)", "Xfer #", "Closing (L)", "Variance (L)", "Avg Daily (L)" };
+
+            foreach (var month in monthlyGroups.EnumerateArray())
+            {
+                // Month header
+                ws.Cell(row, 1).Value = GetStr(month, "monthLabel");
+                ws.Cell(row, 1).Style.Font.Bold = true;
+                ws.Cell(row, 1).Style.Font.FontSize = 12;
+                ws.Range(row, 1, row, 11).Merge();
+                ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#1F2937");
+                ws.Range(row, 1, row, 11).Style.Font.FontColor = XLColor.White;
+                row++;
+
+                ApplyHeaderRow(ws, row, headers);
+                row++;
+
+                if (month.TryGetProperty("siteGroups", out var siteGroups))
+                {
+                    foreach (var site in siteGroups.EnumerateArray())
+                    {
+                        // Site sub-header
+                        ws.Cell(row, 1).Value = GetStr(site, "siteName");
+                        ws.Cell(row, 1).Style.Font.Bold = true;
+                        ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#EBF4FC");
+                        row++;
+
+                        if (site.TryGetProperty("tanks", out var tanks))
+                        {
+                            foreach (var t in tanks.EnumerateArray())
+                            {
+                                ws.Cell(row, 1).Value = GetStr(t, "tankName");
+                                ws.Cell(row, 2).Value = GetStr(t, "openingBalance");
+                                ws.Cell(row, 3).Value = t.TryGetProperty("dispensing", out var d) ? GetStr(d, "total") : "";
+                                ws.Cell(row, 4).Value = t.TryGetProperty("dispensing", out var dc) ? GetStr(dc, "count") : "";
+                                ws.Cell(row, 5).Value = t.TryGetProperty("delivery", out var dv) ? GetStr(dv, "total") : "";
+                                ws.Cell(row, 6).Value = t.TryGetProperty("delivery", out var dvc) ? GetStr(dvc, "count") : "";
+                                ws.Cell(row, 7).Value = t.TryGetProperty("transfer", out var tr) ? GetStr(tr, "total") : "";
+                                ws.Cell(row, 8).Value = t.TryGetProperty("transfer", out var trc) ? GetStr(trc, "count") : "";
+                                ws.Cell(row, 9).Value = GetStr(t, "closingBalance");
+                                ws.Cell(row, 10).Value = GetStr(t, "variance");
+                                ws.Cell(row, 11).Value = GetStr(t, "avgDailyConsumption");
+                                row++;
+                            }
+                        }
+                    }
+                }
+
+                // Subtotal row
+                if (month.TryGetProperty("subtotal", out var sub))
+                {
+                    ws.Cell(row, 1).Value = "Subtotal";
+                    ws.Cell(row, 3).Value = GetStr(sub, "dispensing");
+                    ws.Cell(row, 4).Value = GetStr(sub, "dispensingCount");
+                    ws.Cell(row, 5).Value = GetStr(sub, "delivery");
+                    ws.Cell(row, 6).Value = GetStr(sub, "deliveryCount");
+                    ws.Cell(row, 7).Value = GetStr(sub, "transfer");
+                    ws.Cell(row, 8).Value = GetStr(sub, "transferCount");
+                    ws.Cell(row, 10).Value = GetStr(sub, "variance");
+                    ws.Range(row, 1, row, 11).Style.Font.Bold = true;
+                    ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#F0F4F8");
+                    row++;
+                }
+
+                row++; // blank row between months
+            }
+
+            // Grand total
+            if (root.TryGetProperty("grandTotal", out var gt))
+            {
+                ws.Cell(row, 1).Value = "Grand Total";
+                ws.Cell(row, 3).Value = GetStr(gt, "dispensing");
+                ws.Cell(row, 5).Value = GetStr(gt, "delivery");
+                ws.Cell(row, 7).Value = GetStr(gt, "transfer");
+                ws.Cell(row, 10).Value = GetStr(gt, "variance");
                 ws.Range(row, 1, row, 11).Style.Font.Bold = true;
                 ws.Range(row, 1, row, 11).Style.Fill.BackgroundColor = XLColor.FromHtml("#1F2937");
                 ws.Range(row, 1, row, 11).Style.Font.FontColor = XLColor.White;
@@ -728,6 +852,7 @@ namespace FMS.WebClient.Services.Reporting
                 "tank-volume-history-report" => JsReportHtmlTemplates.TankVolumeHistory(),
                 "issue-tracker-report" => JsReportHtmlTemplates.IssueTracker(),
                 "consumption-by-refills-report" => JsReportHtmlTemplates.ConsumptionByRefills(),
+                "transaction-history-summary-report" => JsReportHtmlTemplates.TransactionHistorySummary(),
                 _ => string.Empty
             };
 

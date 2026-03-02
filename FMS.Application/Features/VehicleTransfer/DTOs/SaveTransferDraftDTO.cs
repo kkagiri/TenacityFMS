@@ -9,6 +9,7 @@
  */
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using Microsoft.AspNetCore.Http;
 
 namespace FMS.Application.Features.VehicleTransfer.DTOs;
@@ -66,6 +67,53 @@ public class SaveTransferDraftDTO
     public List<CreateTyreDetailDTO>? TyreDetails { get; set; }
     public List<CreateBatteryDetailDTO>? BatteryDetails { get; set; }
     public List<ServiceFilterPartDTO>? ServiceFilterParts { get; set; }
+
+    // ── JSON string fallback setters for FormData binding ──
+    private static readonly JsonSerializerOptions _jsonOpts = new() { PropertyNameCaseInsensitive = true };
+
+    public string? CheckupItemsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (CheckupItems == null || CheckupItems.Count == 0))
+            {
+                try { CheckupItems = JsonSerializer.Deserialize<List<CreateCheckupItemDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? TyreDetailsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (TyreDetails == null || TyreDetails.Count == 0))
+            {
+                try { TyreDetails = JsonSerializer.Deserialize<List<CreateTyreDetailDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? BatteryDetailsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (BatteryDetails == null || BatteryDetails.Count == 0))
+            {
+                try { BatteryDetails = JsonSerializer.Deserialize<List<CreateBatteryDetailDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
+
+    public string? ServiceFilterPartsJson
+    {
+        set
+        {
+            if (!string.IsNullOrEmpty(value) && (ServiceFilterParts == null || ServiceFilterParts.Count == 0))
+            {
+                try { ServiceFilterParts = JsonSerializer.Deserialize<List<ServiceFilterPartDTO>>(value, _jsonOpts); } catch { }
+            }
+        }
+    }
     public string? GpsDeviceId { get; set; }
     public string? GpsDeviceCondition { get; set; }
     public bool? GpsDeviceWorking { get; set; }
