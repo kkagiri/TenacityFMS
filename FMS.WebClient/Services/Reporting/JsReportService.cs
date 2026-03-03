@@ -80,6 +80,12 @@ namespace FMS.WebClient.Services.Reporting
         private IBrowser? _browser;
         private readonly SemaphoreSlim _browserLock = new(1, 1);
 
+        /// <summary>Temp directory used by jsreport — kept for service recreation.</summary>
+        private string _jsReportTempPath = string.Empty;
+
+        /// <summary>Lock protecting jsreport service recreation on WORKER_TIMEOUT.</summary>
+        private readonly SemaphoreSlim _jsReportLock = new(1, 1);
+
         // ─── Constructor ──────────────────────────────────────────────────────────
 
         public JsReportService(ILogger<JsReportService> logger, IWebHostEnvironment environment)
@@ -105,17 +111,14 @@ namespace FMS.WebClient.Services.Reporting
             var jsReportDataPath = Path.Combine(jsReportTempPath, "data");
             Directory.CreateDirectory(jsReportDataPath);
 
-            _reportingService = new LocalReporting()
-                .UseBinary(jsreport.Binary.JsReportBinary.GetBinary())
-                .Configure(cfg =>
-                {
-                    cfg.TrustUserCode = true;
-                    cfg.TempDirectory = jsReportTempPath;
-                    cfg.FileSystemStore();
-                    return cfg;
-                })
-                .AsUtility()
-                .Create();
+            // Persist for service recreation on WORKER_TIMEOUT
+            _jsReportTempPath = jsReportTempPath;
+
+            // Clean up any stale daemon socket files from a previous process crash.
+            // A leftover wSock file causes the new daemon to fail with WORKER_TIMEOUT.
+            CleanStaleJsReportSockets(jsReportTempPath);
+
+            _reportingService = CreateJsReportService(jsReportTempPath);
 
             // ── Chrome detection (for PuppeteerSharp PDF conversion) ──────────────
             _chromeExePath = ChromeExecutablePaths.FirstOrDefault(File.Exists);
@@ -138,6 +141,85 @@ namespace FMS.WebClient.Services.Reporting
 
             _templateManager.EnsureSampleTemplatesAsync().Wait();
         }
+
+        // ─── jsreport lifecycle helpers ────────────────────────────────────────────
+
+        /// <summary>
+        /// Creates (or re-creates) the jsreport utility service backed by the given temp path.
+        /// </summary>
+        private static ILocalUtilityReportingService CreateJsReportService(string tempPath)
+        {
+            return new LocalReporting()
+                .UseBinary(jsreport.Binary.JsReportBinary.GetBinary())
+                .Configure(cfg =>
+                {
+                    cfg.TrustUserCode = true;
+                    cfg.TempDirectory = tempPath;
+                    cfg.FileSystemStore();
+                    return cfg;
+                })
+                .AsUtility()
+                .Create();
+        }
+
+        /// <summary>
+        /// Removes stale daemon socket files left by a previously crashed jsreport process.
+        /// These files cause subsequent startup attempts to time out (WORKER_TIMEOUT).
+        /// </summary>
+        private void CleanStaleJsReportSockets(string tempPath)
+        {
+            try
+            {
+                var sockDir = Path.Combine(tempPath, "cli", "wSock");
+                if (!Directory.Exists(sockDir)) return;
+
+                var stale = Directory.GetFiles(sockDir, "*", SearchOption.AllDirectories);
+                foreach (var f in stale)
+                {
+                    try { File.Delete(f); } catch { /* ignore */ }
+                }
+
+                if (stale.Length > 0)
+                    _logger.LogInformation(
+                        "Cleaned {Count} stale jsreport socket file(s) from {Dir}",
+                        stale.Length, sockDir);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not clean stale jsreport socket files — continuing anyway");
+            }
+        }
+
+        /// <summary>
+        /// Recreates the jsreport service after a WORKER_TIMEOUT failure.
+        /// Kills the old instance, clears stale sockets, and creates a fresh service.
+        /// </summary>
+        private async Task RecreateJsReportServiceAsync()
+        {
+            await _jsReportLock.WaitAsync();
+            try
+            {
+                _logger.LogWarning("Recreating jsreport service after WORKER_TIMEOUT");
+                try { await _reportingService.KillAsync(); } catch { /* ignore */ }
+
+                // Brief pause so the OS releases any file/socket handles
+                await Task.Delay(2_000);
+
+                CleanStaleJsReportSockets(_jsReportTempPath);
+
+                _reportingService = CreateJsReportService(_jsReportTempPath);
+                _logger.LogInformation("jsreport service recreated successfully");
+            }
+            finally
+            {
+                _jsReportLock.Release();
+            }
+        }
+
+        private static bool IsWorkerTimeoutError(Exception ex)
+            => ex.Message.Contains("WORKER_TIMEOUT", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("initialize jsreport", StringComparison.OrdinalIgnoreCase) ||
+               ex.Message.Contains("daemonized process", StringComparison.OrdinalIgnoreCase);
 
         // ─── PDF Render (PuppeteerSharp) ──────────────────────────────────────────
 
@@ -619,6 +701,9 @@ namespace FMS.WebClient.Services.Reporting
 
             if (_reportingService != null)
                 await _reportingService.KillAsync();
+
+            _browserLock.Dispose();
+            _jsReportLock.Dispose();
         }
 
         // ═══════════════════════════════════════════════════════════════════════════
@@ -640,6 +725,7 @@ namespace FMS.WebClient.Services.Reporting
 
         /// <summary>
         /// Renders an arbitrary HTML+Handlebars string with jsreport (Html recipe only).
+        /// Retries once with a fresh jsreport service instance on WORKER_TIMEOUT.
         /// </summary>
         private async Task<string> RenderRawHtml(string htmlContent, object data)
         {
@@ -650,7 +736,7 @@ namespace FMS.WebClient.Services.Reporting
             _logger.LogDebug("RenderRawHtml: data type={Type}, template length={Len}",
                 normalizedData?.GetType().Name ?? "null", htmlContent?.Length ?? 0);
 
-            var report = await _reportingService.RenderAsync(new RenderRequest
+            var request = new RenderRequest
             {
                 Template = new Template
                 {
@@ -660,7 +746,23 @@ namespace FMS.WebClient.Services.Reporting
                 },
                 Data = normalizedData,
                 Options = BuildRenderOptions(data)
-            });
+            };
+
+            jsreport.Types.Report report;
+            try
+            {
+                report = await _reportingService.RenderAsync(request);
+            }
+            catch (Exception ex) when (IsWorkerTimeoutError(ex))
+            {
+                _logger.LogWarning(ex,
+                    "jsreport WORKER_TIMEOUT on first attempt — recreating service and retrying once");
+
+                await RecreateJsReportServiceAsync();
+
+                // Single retry after service recreation
+                report = await _reportingService.RenderAsync(request);
+            }
 
             using var reader = new StreamReader(report.Content);
             var html = await reader.ReadToEndAsync();

@@ -1,23 +1,201 @@
 /**
  * File: EmployeeDashboard.js
- * Purpose: Displays employee module KPIs and operational overview widgets.
- * Dependencies: redux employee/vehicle/site actions, DevExtreme grid/button components.
- * Last Modified: 2026-02-16
- *
- * Key Components:
- * - EmployeeDashboard(): Employee summary dashboard with key metrics and quick insights.
+ * Purpose: Employee module KPIs and operational overview — M365 Admin Fluent theme.
+ * Last Modified: 2026-03-03
  */
 
-import React, { useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router-dom";
-import DataGrid, { Column, Pager, Paging } from "devextreme-react/data-grid";
-import Button from "devextreme-react/button";
-import LoadIndicator from "devextreme-react/load-indicator";
 import { fetchEmployees } from "../../../redux/actions/employeeActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 
+/* ══════════════════════════════════════════════
+   PAGINATED TABLE
+   ══════════════════════════════════════════════ */
+const FluentTable = ({ columns, data, pageSize = 5, keyField = "id" }) => {
+  const [page, setPage] = useState(0);
+  const totalPages = Math.max(1, Math.ceil(data.length / pageSize));
+  const sliced = data.slice(page * pageSize, (page + 1) * pageSize);
+
+  useEffect(() => { setPage(0); }, [data]);
+
+  return (
+    <div>
+      <div style={{ overflowX: "auto" }}>
+        <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif", fontSize: 13 }}>
+          <thead>
+            <tr style={{ borderBottom: "2px solid #edebe9" }}>
+              {columns.map((col) => (
+                <th key={col.key} style={{
+                  textAlign: col.align || "left", padding: "10px 12px",
+                  fontWeight: 600, fontSize: 12, color: "#605e5c",
+                  textTransform: "uppercase", letterSpacing: "0.3px", whiteSpace: "nowrap",
+                }}>
+                  {col.header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sliced.length === 0 ? (
+              <tr>
+                <td colSpan={columns.length} style={{ textAlign: "center", padding: "32px 12px", color: "#a19f9d", fontSize: 13 }}>
+                  No data available.
+                </td>
+              </tr>
+            ) : sliced.map((row, idx) => (
+              <tr key={row[keyField] ?? idx}
+                style={{ borderBottom: "1px solid #edebe9", transition: "background-color .15s" }}
+                onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#f3f2f1")}
+                onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+              >
+                {columns.map((col) => (
+                  <td key={col.key} style={{
+                    padding: "10px 12px", textAlign: col.align || "left",
+                    color: "#201f1e", whiteSpace: col.nowrap ? "nowrap" : "normal",
+                  }}>
+                    {col.render ? col.render(row) : row[col.key]}
+                  </td>
+                ))}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      {totalPages > 1 && (
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          gap: 4, padding: "12px 0 4px", fontSize: 12, color: "#605e5c",
+        }}>
+          <span style={{ marginRight: 8 }}>
+            {page * pageSize + 1}–{Math.min((page + 1) * pageSize, data.length)} of {data.length}
+          </span>
+          <PagerBtn label="‹" disabled={page === 0} onClick={() => setPage(page - 1)} />
+          <PagerBtn label="›" disabled={page >= totalPages - 1} onClick={() => setPage(page + 1)} />
+        </div>
+      )}
+    </div>
+  );
+};
+
+const PagerBtn = ({ label, disabled, onClick }) => (
+  <button disabled={disabled} onClick={onClick} style={{
+    width: 28, height: 28, border: "1px solid #c8c6c4", borderRadius: 4,
+    backgroundColor: disabled ? "#f3f2f1" : "#fff",
+    color: disabled ? "#a19f9d" : "#201f1e",
+    cursor: disabled ? "default" : "pointer",
+    fontWeight: 600, fontSize: 14,
+    fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+    display: "inline-flex", alignItems: "center", justifyContent: "center",
+    transition: "background-color .15s",
+  }}
+    onMouseOver={(e) => { if (!disabled) e.currentTarget.style.backgroundColor = "#f3f2f1"; }}
+    onMouseOut={(e) => { if (!disabled) e.currentTarget.style.backgroundColor = "#fff"; }}
+  >
+    {label}
+  </button>
+);
+
+/* ══════════════════════════════════════════════
+   SUB-COMPONENTS
+   ══════════════════════════════════════════════ */
+const StatusBadge = ({ status }) => {
+  const s = (status || "").toLowerCase();
+  const map = {
+    active:     { bg: "#dff6dd", color: "#107c10", label: "Active" },
+    terminated: { bg: "#fde7e9", color: "#d13438", label: "Terminated" },
+  };
+  const cfg = map[s] || { bg: "#f3f2f1", color: "#605e5c", label: status || "—" };
+  return (
+    <span style={{
+      display: "inline-flex", alignItems: "center", gap: 4,
+      padding: "2px 8px", borderRadius: 10,
+      backgroundColor: cfg.bg, color: cfg.color,
+      fontSize: 11, fontWeight: 500,
+      fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+    }}>
+      {cfg.label}
+    </span>
+  );
+};
+
+const MetricCard = ({ title, value, icon, iconBg, iconColor, borderColor }) => (
+  <div style={{
+    backgroundColor: "#fff", borderRadius: 8,
+    border: "1px solid #edebe9", borderTop: `3px solid ${borderColor}`,
+    padding: "16px 18px", display: "flex", alignItems: "center", gap: 14,
+    transition: "box-shadow .15s, border-color .15s", cursor: "default",
+  }}
+    onMouseOver={(e) => { e.currentTarget.style.boxShadow = "0 2px 8px rgba(0,0,0,0.08)"; e.currentTarget.style.borderColor = "#c8c6c4"; }}
+    onMouseOut={(e) => { e.currentTarget.style.boxShadow = "none"; e.currentTarget.style.borderColor = "#edebe9"; e.currentTarget.style.borderTopColor = borderColor; }}
+  >
+    <div style={{
+      width: 40, height: 40, borderRadius: "50%", backgroundColor: iconBg,
+      display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0,
+      fontSize: 16, color: iconColor,
+    }}>
+      <i className={icon} />
+    </div>
+    <div>
+      <div style={{
+        fontSize: 12, fontWeight: 500, color: "#605e5c",
+        textTransform: "uppercase", letterSpacing: "0.3px", marginBottom: 2,
+        fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+      }}>{title}</div>
+      <div style={{
+        fontSize: 26, fontWeight: 700, color: "#201f1e", lineHeight: 1.1,
+        fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+      }}>{value}</div>
+    </div>
+  </div>
+);
+
+const SectionCard = ({ title, icon, iconColor = "#0078d4", children }) => (
+  <div style={{
+    backgroundColor: "#fff", borderRadius: 8,
+    border: "1px solid #edebe9", overflow: "hidden",
+  }}>
+    <div style={{
+      padding: "12px 16px", borderBottom: "1px solid #edebe9",
+      display: "flex", alignItems: "center", gap: 8,
+    }}>
+      <i className={icon} style={{ fontSize: 15, color: iconColor }} />
+      <h3 style={{
+        margin: 0, fontSize: 14, fontWeight: 600, color: "#201f1e",
+        fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+      }}>{title}</h3>
+    </div>
+    <div style={{ padding: "16px" }}>{children}</div>
+  </div>
+);
+
+const SiteBar = ({ name, count, max }) => {
+  const pct = max > 0 ? (count / max) * 100 : 0;
+  return (
+    <div style={{ marginBottom: 12 }}>
+      <div style={{
+        display: "flex", justifyContent: "space-between", marginBottom: 4,
+        fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+      }}>
+        <span style={{ fontSize: 13, fontWeight: 500, color: "#201f1e" }}>{name}</span>
+        <span style={{ fontSize: 13, fontWeight: 600, color: "#0078d4" }}>{count}</span>
+      </div>
+      <div style={{ height: 5, borderRadius: 3, backgroundColor: "#edebe9", overflow: "hidden" }}>
+        <div style={{
+          height: "100%", width: `${pct}%`, borderRadius: 3,
+          background: "linear-gradient(90deg, #0078d4, #b4d6fa)",
+          transition: "width .6s ease",
+        }} />
+      </div>
+    </div>
+  );
+};
+
+/* ══════════════════════════════════════════════
+   MAIN DASHBOARD
+   ══════════════════════════════════════════════ */
 const EmployeeDashboard = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -33,296 +211,214 @@ const EmployeeDashboard = () => {
     dispatch(fetchSiteList());
   }, [dispatch]);
 
-  const dashboardData = useMemo(() => {
-    const totalEmployees = employees.length;
-    const activeEmployees = employees.filter(
-      (employee) => (employee.employeestatus || "").toLowerCase() === "active"
-    ).length;
-    const terminatedEmployees = employees.filter(
-      (employee) => (employee.employeestatus || "").toLowerCase() === "terminated"
-    ).length;
-    const assignedEmployees = employees.filter(
-      (employee) => Array.isArray(employee.vehicles) && employee.vehicles.length > 0
-    ).length;
-    const unassignedEmployees = totalEmployees - assignedEmployees;
-
-    const assignedVehicleCount = new Set(
-      employees
-        .filter((employee) => Array.isArray(employee.vehicles))
-        .flatMap((employee) => employee.vehicles)
+  const dd = useMemo(() => {
+    const total      = employees.length;
+    const active     = employees.filter((e) => (e.employeestatus || "").toLowerCase() === "active").length;
+    const terminated = employees.filter((e) => (e.employeestatus || "").toLowerCase() === "terminated").length;
+    const assigned   = employees.filter((e) => Array.isArray(e.vehicles) && e.vehicles.length > 0).length;
+    const unassigned = total - assigned;
+    const assignedVehicles = new Set(
+      employees.filter((e) => Array.isArray(e.vehicles)).flatMap((e) => e.vehicles)
     ).size;
+    const uniqueSites = new Set(employees.filter((e) => e.siteId).map((e) => e.siteId)).size;
 
-    const uniqueSiteCount = new Set(
-      employees.filter((employee) => employee.siteId).map((employee) => employee.siteId)
-    ).size;
-
-    const siteMap = new Map(sites.map((site) => [site.id, site.name]));
-
-    const employeeSiteDistribution = Object.values(
-      employees.reduce((accumulator, employee) => {
-        const siteName = siteMap.get(employee.siteId) || "Unassigned Site";
-        if (!accumulator[siteName]) {
-          accumulator[siteName] = { siteName, employeeCount: 0 };
-        }
-        accumulator[siteName].employeeCount += 1;
-        return accumulator;
+    const siteMap = new Map(sites.map((s) => [s.id, s.name]));
+    const siteDist = Object.values(
+      employees.reduce((acc, e) => {
+        const name = siteMap.get(e.siteId) || "Unassigned";
+        if (!acc[name]) acc[name] = { siteName: name, count: 0 };
+        acc[name].count += 1;
+        return acc;
       }, {})
-    ).sort((left, right) => right.employeeCount - left.employeeCount);
+    ).sort((a, b) => b.count - a.count);
 
     const topAssignments = [...employees]
-      .map((employee) => ({
-        ...employee,
-        assignedVehicleCount: Array.isArray(employee.vehicles)
-          ? employee.vehicles.length
-          : 0,
-      }))
-      .sort((left, right) => right.assignedVehicleCount - left.assignedVehicleCount)
-      .slice(0, 10);
+      .map((e) => ({ ...e, vCount: Array.isArray(e.vehicles) ? e.vehicles.length : 0 }))
+      .sort((a, b) => b.vCount - a.vCount).slice(0, 10);
 
     const recentUpdates = [...employees]
-      .map((employee) => ({
-        ...employee,
-        sortDate: employee.dateModified || employee.dateCreated,
-      }))
-      .filter((employee) => !!employee.sortDate)
-      .sort((left, right) => new Date(right.sortDate) - new Date(left.sortDate))
-      .slice(0, 10);
+      .map((e) => ({ ...e, sortDate: e.dateModified || e.dateCreated }))
+      .filter((e) => !!e.sortDate)
+      .sort((a, b) => new Date(b.sortDate) - new Date(a.sortDate)).slice(0, 10);
 
-    return {
-      totalEmployees,
-      activeEmployees,
-      terminatedEmployees,
-      assignedEmployees,
-      unassignedEmployees,
-      assignedVehicleCount,
-      uniqueSiteCount,
-      employeeSiteDistribution,
-      topAssignments,
-      recentUpdates,
-    };
+    return { total, active, terminated, assigned, unassigned, assignedVehicles, uniqueSites, siteDist, topAssignments, recentUpdates };
   }, [employees, sites]);
 
-  const metricCards = [
-    {
-      title: "Total Employees",
-      value: dashboardData.totalEmployees,
-      icon: "fa-light fa-users",
-      classes:
-        "tw-bg-gradient-to-r tw-from-orange-500 tw-to-orange-600 tw-text-white",
-    },
-    {
-      title: "Active Employees",
-      value: dashboardData.activeEmployees,
-      icon: "fa-light fa-user-check",
-      classes: "tw-bg-gradient-to-r tw-from-emerald-500 tw-to-emerald-600 tw-text-white",
-    },
-    {
-      title: "Terminated Employees",
-      value: dashboardData.terminatedEmployees,
-      icon: "fa-light fa-user-minus",
-      classes: "tw-bg-gradient-to-r tw-from-rose-500 tw-to-rose-600 tw-text-white",
-    },
-    {
-      title: "Assigned Vehicles",
-      value: dashboardData.assignedVehicleCount,
-      icon: "fa-light fa-car",
-      classes: "tw-bg-gradient-to-r tw-from-amber-500 tw-to-amber-600 tw-text-white",
-    },
-    {
-      title: "Assigned Employees",
-      value: dashboardData.assignedEmployees,
-      icon: "fa-light fa-id-card",
-      classes:
-        "tw-bg-gradient-to-r tw-from-sky-500 tw-to-sky-600 tw-text-white",
-    },
-    {
-      title: "Unassigned Employees",
-      value: dashboardData.unassignedEmployees,
-      icon: "fa-light fa-user-clock",
-      classes:
-        "tw-bg-gradient-to-r tw-from-slate-500 tw-to-slate-600 tw-text-white",
-    },
-    {
-      title: "Total Vehicles",
-      value: vehicles.length,
-      icon: "fa-light fa-truck",
-      classes:
-        "tw-bg-gradient-to-r tw-from-indigo-500 tw-to-indigo-600 tw-text-white",
-    },
-    {
-      title: "Sites With Employees",
-      value: dashboardData.uniqueSiteCount,
-      icon: "fa-light fa-location-dot",
-      classes:
-        "tw-bg-gradient-to-r tw-from-fuchsia-500 tw-to-fuchsia-600 tw-text-white",
-    },
-  ];
+  const maxSiteCount = useMemo(() => Math.max(1, ...dd.siteDist.map((s) => s.count)), [dd.siteDist]);
 
+  /* ── Loading state ── */
   if (employeeLoading) {
     return (
-      <div className="tw-h-[420px] tw-flex tw-items-center tw-justify-center">
-        <LoadIndicator visible={true} width="34px" height="34px" />
+      <div style={{
+        height: 420, display: "flex", flexDirection: "column",
+        alignItems: "center", justifyContent: "center", gap: 12,
+        fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+        color: "#605e5c", fontSize: 13,
+      }}>
+        <i className="fa-light fa-spinner fa-spin" style={{ fontSize: 28, color: "#0078d4" }} />
+        Loading employee data…
       </div>
     );
   }
 
+  const metrics = [
+    { title: "Total Employees",   value: dd.total,            icon: "fa-light fa-users",       iconColor: "#0078d4", iconBg: "#deecf9", borderColor: "#0078d4" },
+    { title: "Active",            value: dd.active,           icon: "fa-light fa-user-check",  iconColor: "#107c10", iconBg: "#dff6dd", borderColor: "#107c10" },
+    { title: "Terminated",        value: dd.terminated,       icon: "fa-light fa-user-minus",  iconColor: "#d13438", iconBg: "#fde7e9", borderColor: "#d13438" },
+    { title: "Assigned Vehicles", value: dd.assignedVehicles, icon: "fa-light fa-car",         iconColor: "#ca5010", iconBg: "#fff4ce", borderColor: "#ca5010" },
+    { title: "Assigned",          value: dd.assigned,         icon: "fa-light fa-id-card",     iconColor: "#0078d4", iconBg: "#deecf9", borderColor: "#0078d4" },
+    { title: "Unassigned",        value: dd.unassigned,       icon: "fa-light fa-user-clock",  iconColor: "#605e5c", iconBg: "#f3f2f1", borderColor: "#a19f9d" },
+    { title: "Total Vehicles",    value: vehicles.length,     icon: "fa-light fa-truck",       iconColor: "#3949ab", iconBg: "#e8eaf6", borderColor: "#3949ab" },
+    { title: "Sites With Staff",  value: dd.uniqueSites,      icon: "fa-light fa-location-dot",iconColor: "#00796b", iconBg: "#e0f2f1", borderColor: "#00796b" },
+  ];
+
+  const assignmentCols = [
+    { key: "fullName",       header: "Employee", nowrap: true },
+    { key: "employeeWorkNo", header: "Work No",  nowrap: true },
+    { key: "vCount", header: "Vehicles", align: "center",
+      render: (row) => (
+        <span style={{
+          display: "inline-block", minWidth: 24, textAlign: "center",
+          padding: "2px 8px", borderRadius: 10,
+          backgroundColor: row.vCount > 0 ? "#deecf9" : "#f3f2f1",
+          color: row.vCount > 0 ? "#0078d4" : "#a19f9d",
+          fontWeight: 600, fontSize: 11,
+        }}>{row.vCount}</span>
+      ),
+    },
+    { key: "employeestatus", header: "Status",
+      render: (row) => <StatusBadge status={row.employeestatus} />,
+    },
+  ];
+
+  const recentCols = [
+    { key: "fullName",            header: "Employee", nowrap: true },
+    { key: "employeephoneNumber", header: "Phone",    nowrap: true },
+    { key: "employeestatus", header: "Status",
+      render: (row) => <StatusBadge status={row.employeestatus} />,
+    },
+    { key: "sortDate", header: "Last Updated", nowrap: true,
+      render: (row) => {
+        if (!row.sortDate) return "—";
+        return new Date(row.sortDate).toLocaleString("en-GB", {
+          day: "2-digit", month: "2-digit", year: "numeric",
+          hour: "2-digit", minute: "2-digit", hour12: false,
+        });
+      },
+    },
+    { key: "_action", header: "", align: "right",
+      render: (row) => (
+        <button onClick={() => navigate(`/employees/${row.id}/details`)}
+          style={{
+            display: "inline-flex", alignItems: "center", gap: 4,
+            padding: "4px 10px", border: "none", borderRadius: 4,
+            backgroundColor: "transparent", color: "#0078d4",
+            fontSize: 13, fontWeight: 600,
+            fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+            cursor: "pointer", transition: "background-color .15s",
+          }}
+          onMouseOver={(e) => (e.currentTarget.style.backgroundColor = "#deecf9")}
+          onMouseOut={(e) => (e.currentTarget.style.backgroundColor = "transparent")}
+        >
+          View <i className="fa-light fa-arrow-right" style={{ fontSize: 12 }} />
+        </button>
+      ),
+    },
+  ];
+
   return (
-    <div className="tw-space-y-5">
-      <div className="tw-flex tw-flex-wrap tw-items-center tw-justify-between tw-gap-3">
-        <div>
-          <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800">
-            Employee Operations Snapshot
+    <div style={{
+      fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+      color: "#201f1e", backgroundColor: "#faf9f8", minHeight: "100vh",
+    }}>
+      {/* ── Page Header ── */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", alignItems: "center",
+        justifyContent: "space-between", gap: 12,
+        padding: "8px 24px", backgroundColor: "#fff",
+        borderBottom: "1px solid #edebe9",
+      }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <i className="fa-light fa-users" style={{ fontSize: 16, color: "#0078d4" }} />
+          <h2 style={{
+            margin: 0, fontSize: 16, fontWeight: 600, color: "#201f1e",
+            display: "flex", alignItems: "center", gap: 8,
+          }}>
+            Employee Operations
+            <span style={{
+              minWidth: 20, height: 20, padding: "0 6px", borderRadius: 10,
+              fontSize: 11, fontWeight: 600, background: "#edebe9", color: "#605e5c",
+              display: "inline-flex", alignItems: "center", justifyContent: "center",
+            }}>{dd.total}</span>
           </h2>
-          <p className="tw-text-sm tw-text-gray-600">
-            Workforce assignment, status, and latest changes across all sites.
-          </p>
         </div>
-
-        <div className="tw-flex tw-gap-2">
-          <Button
-            text="Employee List"
-            icon="fa-light fa-list"
-            type="default"
-            stylingMode="contained"
+        <div style={{ display: "flex", gap: 8 }}>
+          <button
             onClick={() => navigate("/employees/list")}
-          />
-          <Button
-            text="Consumption History"
-            icon="fa-light fa-chart-column"
-            type="normal"
-            stylingMode="outlined"
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 34, padding: "0 16px", fontSize: 13, fontWeight: 500,
+              borderRadius: 4, border: "none", cursor: "pointer",
+              background: "#0078d4", color: "#fff", transition: "background .15s",
+              fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = "#106ebe")}
+            onMouseOut={(e) => (e.currentTarget.style.background = "#0078d4")}
+          >
+            <i className="fa-light fa-list" style={{ fontSize: 14 }} /> Employee List
+          </button>
+          <button
             onClick={() => navigate("/employees/consumption-history")}
-          />
+            style={{
+              display: "inline-flex", alignItems: "center", gap: 6,
+              height: 34, padding: "0 16px", fontSize: 13, fontWeight: 500,
+              borderRadius: 4, border: "1px solid #c8c6c4", cursor: "pointer",
+              background: "#fff", color: "#323130", transition: "background .15s",
+              fontFamily: "'Segoe UI', -apple-system, system-ui, sans-serif",
+            }}
+            onMouseOver={(e) => (e.currentTarget.style.background = "#f3f2f1")}
+            onMouseOut={(e) => (e.currentTarget.style.background = "#fff")}
+          >
+            <i className="fa-light fa-chart-column" style={{ fontSize: 14 }} /> Consumption History
+          </button>
         </div>
       </div>
 
-      <div className="tw-grid tw-grid-cols-1 sm:tw-grid-cols-2 xl:tw-grid-cols-4 tw-gap-4">
-        {metricCards.map((metric) => (
-          <div
-            key={metric.title}
-            className={`${metric.classes} tw-rounded-xl tw-p-4 tw-shadow-md`}
-          >
-            <div className="tw-flex tw-items-center tw-justify-between">
-              <div>
-                <p className="tw-text-sm tw-opacity-90">{metric.title}</p>
-                <h3 className="tw-text-3xl tw-font-bold">{metric.value}</h3>
+      {/* ── Content Area ── */}
+      <div style={{ padding: "20px 24px" }}>
+        {/* KPI Cards */}
+        <div style={{
+          display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+          gap: 16, marginBottom: 20,
+        }}>
+          {metrics.map((m) => <MetricCard key={m.title} {...m} />)}
+        </div>
+
+        {/* Middle Row */}
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16, marginBottom: 16 }}>
+          <SectionCard title="Top Vehicle Assignments" icon="fa-light fa-car-side" iconColor="#ca5010">
+            <FluentTable columns={assignmentCols} data={dd.topAssignments} pageSize={5} />
+          </SectionCard>
+
+          <SectionCard title="Employee Distribution by Site" icon="fa-light fa-map-location-dot" iconColor="#00796b">
+            {dd.siteDist.length > 0 ? (
+              <div style={{ maxHeight: 310, overflowY: "auto" }}>
+                {dd.siteDist.map((s) => (
+                  <SiteBar key={s.siteName} name={s.siteName} count={s.count} max={maxSiteCount} />
+                ))}
               </div>
-              <i className={`${metric.icon} tw-text-2xl tw-opacity-90`}></i>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-4">
-        <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
-          <div className="tw-flex tw-items-center tw-justify-between tw-mb-3">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
-              <i className="fa-light fa-car-side tw-mr-2 tw-text-orange-600"></i>
-              Top Vehicle Assignments
-            </h3>
-          </div>
-
-          <DataGrid
-            dataSource={dashboardData.topAssignments}
-            showBorders={true}
-            rowAlternationEnabled={true}
-            columnAutoWidth={true}
-            keyExpr="id"
-          >
-            <Paging defaultPageSize={5} />
-            <Pager
-              visible={true}
-              showNavigationButtons={true}
-              showInfo={true}
-              showPageSizeSelector={false}
-            />
-            <Column dataField="fullName" caption="Employee" minWidth={160} />
-            <Column dataField="employeeWorkNo" caption="Work No" minWidth={100} />
-            <Column
-              dataField="assignedVehicleCount"
-              caption="Assigned Vehicles"
-              alignment="right"
-              minWidth={130}
-            />
-            <Column dataField="employeestatus" caption="Status" minWidth={100} />
-          </DataGrid>
-        </div>
-
-        <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-            <i className="fa-light fa-map-location-dot tw-mr-2 tw-text-orange-600"></i>
-            Employee Distribution by Site
-          </h3>
-
-          <div className="tw-space-y-2">
-            {dashboardData.employeeSiteDistribution.length > 0 ? (
-              dashboardData.employeeSiteDistribution.map((entry) => (
-                <div
-                  key={entry.siteName}
-                  className="tw-flex tw-items-center tw-justify-between tw-bg-orange-50 tw-border tw-border-orange-100 tw-rounded-lg tw-px-3 tw-py-2"
-                >
-                  <span className="tw-font-medium tw-text-gray-800">
-                    {entry.siteName}
-                  </span>
-                  <span className="tw-text-sm tw-font-semibold tw-text-orange-700">
-                    {entry.employeeCount}
-                  </span>
-                </div>
-              ))
             ) : (
-              <div className="tw-text-sm tw-text-gray-500">
+              <div style={{ textAlign: "center", color: "#a19f9d", fontSize: 13, padding: "40px 0" }}>
                 No site assignments found.
               </div>
             )}
-          </div>
+          </SectionCard>
         </div>
-      </div>
 
-      <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-200 tw-p-4">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
-          <i className="fa-light fa-clock-rotate-left tw-mr-2 tw-text-orange-600"></i>
-          Recently Updated Employees
-        </h3>
-
-        <DataGrid
-          dataSource={dashboardData.recentUpdates}
-          showBorders={true}
-          rowAlternationEnabled={true}
-          columnAutoWidth={true}
-          keyExpr="id"
-        >
-          <Paging defaultPageSize={6} />
-          <Pager
-            visible={true}
-            showNavigationButtons={true}
-            showInfo={true}
-            showPageSizeSelector={false}
-          />
-          <Column dataField="fullName" caption="Employee" minWidth={180} />
-          <Column dataField="employeephoneNumber" caption="Phone" minWidth={140} />
-          <Column dataField="employeestatus" caption="Status" minWidth={110} />
-          <Column
-            caption="Last Updated"
-            minWidth={170}
-            calculateCellValue={(row) => row.dateModified || row.dateCreated}
-            dataType="datetime"
-            format="dd/MM/yyyy HH:mm"
-          />
-          <Column
-            caption="Action"
-            width={120}
-            allowSorting={false}
-            allowFiltering={false}
-            cellRender={(cell) => (
-              <Button
-                text="Details"
-                icon="fa-light fa-arrow-right"
-                stylingMode="text"
-                onClick={() => navigate(`/employees/${cell.data.id}/details`)}
-              />
-            )}
-          />
-        </DataGrid>
+        {/* Recent Updates */}
+        <SectionCard title="Recently Updated Employees" icon="fa-light fa-clock-rotate-left" iconColor="#0078d4">
+          <FluentTable columns={recentCols} data={dd.recentUpdates} pageSize={6} />
+        </SectionCard>
       </div>
     </div>
   );
