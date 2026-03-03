@@ -109,6 +109,15 @@ namespace FMS.Application.Features.Reporting.Commands
                     definitionId = idLookup ?? 0;
                 }
 
+                // Skip logging if no valid definition was found (FK would fail)
+                if (definitionId <= 0)
+                {
+                    _logger.LogWarning(
+                        "Skipping execution log for report {ReportId} — no matching ReportDefinitionId found",
+                        request.ReportId);
+                    return result;
+                }
+
                 var log = new ReportExecutionHistory
                 {
                     ReportDefinitionId = definitionId,
