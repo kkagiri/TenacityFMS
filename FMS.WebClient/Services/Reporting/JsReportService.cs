@@ -215,30 +215,79 @@ namespace FMS.WebClient.Services.Reporting
         }
 
         /// <summary>
-        /// Removes stale daemon socket files left by a previously crashed jsreport process.
-        /// These files cause subsequent startup attempts to time out (WORKER_TIMEOUT).
+        /// Cleans up all stale jsreport artefacts from a previous process crash:
+        ///   1. wSock daemon socket files (cause WORKER_TIMEOUT on next start)
+        ///   2. Orphaned binary copies in dotnet/ (jsreport.Binary creates a unique-named
+        ///      copy per launch; crashes leave them behind, slowing AV scans)
+        ///   3. Unprocessed autocleanup request JSON files
         /// </summary>
         private void CleanStaleJsReportSockets(string tempPath)
         {
+            // ── 1. wSock files ──────────────────────────────────────────────────
             try
             {
                 var sockDir = Path.Combine(tempPath, "cli", "wSock");
-                if (!Directory.Exists(sockDir)) return;
-
-                var stale = Directory.GetFiles(sockDir, "*", SearchOption.AllDirectories);
-                foreach (var f in stale)
+                if (Directory.Exists(sockDir))
                 {
-                    try { File.Delete(f); } catch { /* ignore */ }
-                }
+                    var stale = Directory.GetFiles(sockDir, "*", SearchOption.AllDirectories);
+                    foreach (var f in stale)
+                        try { File.Delete(f); } catch { /* ignore */ }
 
-                if (stale.Length > 0)
-                    _logger.LogInformation(
-                        "Cleaned {Count} stale jsreport socket file(s) from {Dir}",
-                        stale.Length, sockDir);
+                    if (stale.Length > 0)
+                        _logger.LogInformation(
+                            "Cleaned {Count} stale jsreport wSock file(s)", stale.Length);
+                }
             }
             catch (Exception ex)
             {
-                _logger.LogWarning(ex, "Could not clean stale jsreport socket files — continuing anyway");
+                _logger.LogWarning(ex, "Could not clean stale jsreport wSock files — continuing anyway");
+            }
+
+            // ── 2. Orphaned binary copies (random-prefix *.exe in dotnet/) ──────
+            // jsreport.Binary copies itself with a unique name each launch to avoid
+            // file locking. Crashes leave these behind and AV scans all of them,
+            // increasing startup delay and risk of WORKER_TIMEOUT.
+            try
+            {
+                var dotnetDir = Path.Combine(tempPath, "dotnet");
+                if (Directory.Exists(dotnetDir))
+                {
+                    // Match files like "aBcDeFgH...jsreport.exe" but NOT "jsreport.exe"
+                    var orphans = Directory.GetFiles(dotnetDir, "*jsreport.exe", SearchOption.AllDirectories)
+                        .Where(f => !string.Equals(Path.GetFileName(f), "jsreport.exe", StringComparison.OrdinalIgnoreCase))
+                        .ToArray();
+
+                    foreach (var f in orphans)
+                        try { File.Delete(f); } catch { /* ignore */ }
+
+                    if (orphans.Length > 0)
+                        _logger.LogInformation(
+                            "Cleaned {Count} orphaned jsreport binary copy(ies) from dotnet/", orphans.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not clean orphaned jsreport binary copies — continuing anyway");
+            }
+
+            // ── 3. Stale autocleanup request files ──────────────────────────────
+            try
+            {
+                var cleanupDir = Path.Combine(tempPath, "autocleanup");
+                if (Directory.Exists(cleanupDir))
+                {
+                    var stale = Directory.GetFiles(cleanupDir, "req*.json", SearchOption.TopDirectoryOnly);
+                    foreach (var f in stale)
+                        try { File.Delete(f); } catch { /* ignore */ }
+
+                    if (stale.Length > 0)
+                        _logger.LogInformation(
+                            "Cleaned {Count} stale jsreport autocleanup file(s)", stale.Length);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Could not clean stale jsreport autocleanup files — continuing anyway");
             }
         }
 
