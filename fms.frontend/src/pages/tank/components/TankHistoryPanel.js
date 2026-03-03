@@ -59,7 +59,17 @@ const TankHistoryPanel = ({ tankId }) => {
   const [view, setView] = useState("table"); // "table" | "chart"
 
   useEffect(() => {
-    dispatch(fetchUsers());
+    dispatch(fetchUsers()).catch((err) => {
+      const status = err?.status;
+      const msg = (err?.message || '').toLowerCase();
+      const isPermissionError =
+        status === 401 || status === 403 ||
+        msg.includes('access') || msg.includes('permission') || msg.includes('forbidden') || msg.includes('unauthorized');
+      if (isPermissionError) {
+        notify('Access denied. Insufficient permissions.', 'error', 4000);
+      }
+      // other errors: silently ignore — Recorded By column will show "-"
+    });
   }, [dispatch]);
 
   /* ── fetch ── */

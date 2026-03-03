@@ -79,6 +79,30 @@ $sp-bg-hover: #f3f2f1;
   display: flex;
   align-items: center;
   gap: 4px;
+
+  // action-link buttons used in panel headers (permission-gated commands)
+  .m365-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m365-primary, #0078d4);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: background 0.12s, text-decoration 0.12s;
+
+    i { font-size: 12px; }
+
+    &:hover {
+      background: var(--m365-bg-hover, rgba(0,0,0,.05));
+      text-decoration: underline;
+    }
+  }
 }
 
 .fms-slide-panel__close {

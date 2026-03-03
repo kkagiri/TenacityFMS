@@ -1,0 +1,544 @@
+/**
+ * File: ScheduleReportPanel.scss
+ * Purpose: M365 Admin Center Fluent styles for the Schedule Report slide panel.
+ *          Mirrors email-report-panel BEM structure with schedule-specific additions
+ *          (frequency button group, day pills, week pills, time input).
+ * Last Modified: 2026-07-09
+ */
+
+// ── M365 Design Tokens ──────────────────────────────────────────────────────
+$m-text:          #201f1e;
+$m-text-mid:      #605e5c;
+$m-text-subtle:   #8a8886;
+$m-primary:       #0078d4;
+$m-primary-hover: #106ebe;
+$m-primary-press: #005a9e;
+$m-blue-tint:     #deecf9;
+$m-border:        #c8c6c4;
+$m-border-light:  #edebe9;
+$m-surface:       #faf9f8;
+$m-card:          #ffffff;
+$m-red:           #d13438;
+$m-green:         #107c10;
+$m-shadow-sm:     0 1px 3px rgba(0, 0, 0, 0.1);
+$m-shadow-md:     0 4px 12px rgba(0, 0, 0, 0.12);
+$font-stack:      'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+
+// ── Panel Shell ──────────────────────────────────────────────────────────────
+.schedule-report-panel {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    font-family: $font-stack;
+    color: $m-text;
+    font-size: 13px;
+
+    // ── Scrollable body ──────────────────────────────────────────────────────
+    &__body {
+        flex: 1;
+        overflow-y: auto;
+        padding: 12px 0;
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+
+        &::-webkit-scrollbar { width: 6px; }
+        &::-webkit-scrollbar-thumb {
+            background: $m-border;
+            border-radius: 3px;
+        }
+    }
+
+    // ── Section ──────────────────────────────────────────────────────────────
+    &__section {
+        padding: 12px 20px;
+        border-bottom: 1px solid $m-border-light;
+
+        &:last-child { border-bottom: none; }
+    }
+
+    &__section-title {
+        margin: 0 0 8px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: $m-text-mid;
+    }
+
+    // ── Field ────────────────────────────────────────────────────────────────
+    &__field {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 10px;
+
+        &:last-child { margin-bottom: 0; }
+    }
+
+    &__label {
+        font-size: 12px;
+        font-weight: 600;
+        color: $m-text-mid;
+    }
+
+    &__hint {
+        font-size: 11px;
+        color: $m-text-subtle;
+        margin: 4px 0 0;
+    }
+
+    &__validation {
+        font-size: 11px;
+        color: $m-red;
+        margin: 2px 0 0;
+    }
+
+    // ── Text input ───────────────────────────────────────────────────────────
+    &__text-input,
+    &__time-input,
+    &__email-input {
+        height: 34px;
+        padding: 0 10px;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        font-family: $font-stack;
+        font-size: 13px;
+        color: $m-text;
+        background: $m-card;
+        outline: none;
+        transition: border-color 0.15s;
+        width: 100%;
+        box-sizing: border-box;
+
+        &:focus {
+            border-color: $m-primary;
+            box-shadow: 0 0 0 1px $m-primary;
+        }
+
+        &:disabled {
+            background: $m-surface;
+            color: $m-text-subtle;
+            cursor: not-allowed;
+        }
+    }
+
+    &__time-input {
+        width: 130px;
+    }
+
+    // ── Frequency button group ────────────────────────────────────────────────
+    &__freq-group {
+        display: flex;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        overflow: hidden;
+    }
+
+    &__freq-btn {
+        flex: 1;
+        height: 32px;
+        padding: 0;
+        border: none;
+        border-right: 1px solid $m-border;
+        background: $m-card;
+        font-family: $font-stack;
+        font-size: 12px;
+        font-weight: 500;
+        color: $m-text;
+        cursor: pointer;
+        transition: background 0.1s, color 0.1s;
+
+        &:last-child { border-right: none; }
+
+        &:hover:not(:disabled):not(&--active) {
+            background: $m-surface;
+        }
+
+        &--active {
+            background: $m-blue-tint;
+            color: $m-primary;
+            font-weight: 700;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // ── Day-of-week button group ───────────────────────────────────────────────
+    &__day-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    &__day-btn {
+        height: 28px;
+        min-width: 38px;
+        padding: 0 6px;
+        border: 1px solid $m-border;
+        border-radius: 14px;
+        background: $m-card;
+        font-family: $font-stack;
+        font-size: 11px;
+        font-weight: 500;
+        color: $m-text-mid;
+        cursor: pointer;
+        transition: background 0.1s, color 0.1s, border-color 0.1s;
+
+        &:hover:not(:disabled):not(&--active) {
+            border-color: $m-primary;
+            color: $m-primary;
+        }
+
+        &--active {
+            background: $m-blue-tint;
+            border-color: $m-primary;
+            color: $m-primary;
+            font-weight: 700;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // ── Week-of-month button group ────────────────────────────────────────────
+    &__week-group {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    &__week-btn {
+        @extend .schedule-report-panel__day-btn;
+        min-width: 36px;
+    }
+
+    // ── Day-of-month grid (monthly scheduler) ────────────────────────────────
+    &__day-of-month {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+    }
+
+    &__dom-btn {
+        height: 28px;
+        min-width: 28px;
+        padding: 0 4px;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        background: $m-card;
+        font-family: $font-stack;
+        font-size: 11px;
+        font-weight: 500;
+        color: $m-text-mid;
+        cursor: pointer;
+        transition: background 0.1s, color 0.1s, border-color 0.1s;
+        text-align: center;
+
+        &:hover:not(:disabled):not(.schedule-report-panel__dom-btn--active) {
+            border-color: $m-primary;
+            color: $m-primary;
+        }
+
+        &--active {
+            background: $m-blue-tint;
+            border-color: $m-primary;
+            color: $m-primary;
+            font-weight: 700;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // ── Format buttons ────────────────────────────────────────────────────────
+    &__formats {
+        display: flex;
+        gap: 6px;
+    }
+
+    &__format-btn {
+        flex: 1;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 5px;
+        padding: 0 8px;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        background: $m-card;
+        font-family: $font-stack;
+        font-size: 12px;
+        font-weight: 500;
+        color: $m-text-mid;
+        cursor: pointer;
+        transition: background 0.1s, color 0.1s, border-color 0.1s;
+
+        i { font-size: 13px; }
+
+        &:hover:not(:disabled):not(&--active) {
+            border-color: $m-primary;
+            background: $m-surface;
+            color: $m-primary;
+        }
+
+        &--active {
+            background: $m-blue-tint;
+            border-color: $m-primary;
+            color: $m-primary;
+            font-weight: 700;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+
+    // ── Recipients area ───────────────────────────────────────────────────────
+    &__recipients {
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        background: $m-card;
+        min-height: 40px;
+        padding: 4px;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        transition: border-color 0.15s;
+
+        &:focus-within {
+            border-color: $m-primary;
+            box-shadow: 0 0 0 1px $m-primary;
+        }
+    }
+
+    &__recipient-chips {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px;
+        padding: 2px;
+    }
+
+    &__chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 24px;
+        padding: 0 6px 0 8px;
+        background: $m-blue-tint;
+        border: 1px solid #bfdff5;
+        border-radius: 12px;
+        font-size: 12px;
+        color: $m-text;
+        max-width: 220px;
+        overflow: hidden;
+
+        > span {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    }
+
+    &__chip-email {
+        color: $m-text-subtle;
+        font-size: 10px;
+    }
+
+    &__chip-remove {
+        flex-shrink: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: $m-text-mid;
+        cursor: pointer;
+        transition: background 0.1s, color 0.1s;
+        font-size: 10px;
+
+        &:hover {
+            background: rgba($m-red, 0.1);
+            color: $m-red;
+        }
+    }
+
+    // ── Email input within recipients ─────────────────────────────────────────
+    &__input-wrapper {
+        position: relative;
+        flex: 1;
+    }
+
+    &__email-input {
+        border: none;
+        border-radius: 0;
+        height: 28px;
+        padding: 0 8px;
+        font-size: 12px;
+        background: transparent;
+        min-width: 180px;
+        box-shadow: none !important;
+
+        &:focus {
+            border: none;
+            box-shadow: none !important;
+        }
+    }
+
+    // ── Suggestions dropdown ───────────────────────────────────────────────────
+    &__suggestions {
+        position: absolute;
+        top: calc(100% + 2px);
+        left: 0;
+        right: 0;
+        background: $m-card;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        box-shadow: $m-shadow-md;
+        z-index: 1000;
+        overflow: hidden;
+    }
+
+    &__suggestion-item {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        padding: 8px 10px;
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        text-align: left;
+        transition: background 0.1s;
+        font-family: $font-stack;
+
+        &:hover { background: $m-surface; }
+    }
+
+    &__suggestion-avatar {
+        width: 28px;
+        height: 28px;
+        border-radius: 50%;
+        background: $m-blue-tint;
+        color: $m-primary;
+        font-size: 12px;
+        font-weight: 700;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+
+    &__suggestion-info {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    &__suggestion-name {
+        font-size: 12px;
+        font-weight: 600;
+        color: $m-text;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__suggestion-email {
+        font-size: 11px;
+        color: $m-text-subtle;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+    &__suggestion-badge {
+        font-size: 10px;
+        font-weight: 600;
+        color: $m-primary;
+        background: $m-blue-tint;
+        padding: 1px 6px;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+
+    // ── Footer ───────────────────────────────────────────────────────────────
+    &__footer {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 12px 20px;
+        border-top: 1px solid $m-border-light;
+        background: $m-card;
+        flex-shrink: 0;
+    }
+
+    &__submit-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        height: 34px;
+        padding: 0 18px;
+        border: 1px solid $m-primary;
+        border-radius: 4px;
+        background: $m-primary;
+        color: #fff;
+        font-family: $font-stack;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+
+        &:hover:not(:disabled) { background: $m-primary-hover; border-color: $m-primary-hover; }
+        &:active:not(:disabled) { background: $m-primary-press; border-color: $m-primary-press; }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        i { font-size: 13px; }
+    }
+
+    &__cancel-btn {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        height: 34px;
+        padding: 0 16px;
+        border: 1px solid $m-border;
+        border-radius: 4px;
+        background: $m-card;
+        color: $m-text;
+        font-family: $font-stack;
+        font-size: 13px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s, border-color 0.15s;
+
+        &:hover:not(:disabled) {
+            background: $m-surface;
+            border-color: #a19f9d;
+        }
+
+        &:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    }
+}

@@ -136,19 +136,7 @@ const TankFormPanel = ({ mode = "create", tank, onSubmit, onClose }) => {
       resolvedSiteId = inactiveSiteId;
     }
 
-    /* one-tank-per-site check (skip for inactive) */
-    if (inactiveSiteId === null || Number(resolvedSiteId) !== Number(inactiveSiteId)) {
-      const currentId = tank ? (tank.id ?? tank.tankId ?? null) : null;
-      const dup = (Array.isArray(tanks) ? tanks : []).find((t) => {
-        const tid = t.id ?? t.tankId ?? null;
-        if (currentId != null && tid != null && Number(tid) === Number(currentId)) return false;
-        return Number(t.siteId) === Number(resolvedSiteId);
-      });
-      if (dup) {
-        notify(`Only one tank per site. Site already has: ${dup.name}.`, "error", 5000);
-        return;
-      }
-    }
+    /* one-tank-per-site check removed — sites can have multiple tanks */
 
     setSaving(true);
     try {

@@ -52,6 +52,12 @@ namespace FMS.Application.Features.Notification.DTOs
         public List<string> SiteNames { get; set; } = new List<string>();
         public List<string> TankNames { get; set; } = new List<string>();
 
+        /// <summary>
+        /// Raw JSON string of filter parameters used when the schedule was created
+        /// (e.g. {"siteId":[5],"tankId":[],"dateFrom":"...","dateTo":"..."}).
+        /// </summary>
+        public string? Filters { get; set; }
+
         public int RecipientCount { get; set; }
         public int DeliveredCount { get; set; }
         public int PendingCount { get; set; }

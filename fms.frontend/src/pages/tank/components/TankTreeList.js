@@ -28,13 +28,13 @@ const nameRender = (cellData) => {
       : "fa-light fa-gas-pump";
   const iconColor =
     data.tankData?.tankType === "MobileTanker"
-      ? "tw-text-orange-600"
-      : "tw-text-green-600";
+      ? "var(--m365-warning, #d67a00)"
+      : "var(--m365-success, #107c10)";
 
   return (
-    <div className={`tw-flex tw-items-center ${showTankIcon ? "tw-gap-2" : "tw-gap-1"}`}>
-      {showTankIcon && <i className={`${icon} ${iconColor}`} />}
-      <span className="tw-font-medium">{data.name}</span>
+    <div style={{ display: "flex", alignItems: "center", gap: showTankIcon ? 8 : 4 }}>
+      {showTankIcon && <i className={icon} style={{ color: iconColor, fontSize: 13 }} />}
+      <span style={{ fontWeight: 500 }}>{data.name}</span>
       {data.type === "tank" && data.tankData?.tankType === "MobileTanker" && (
         <span className="m365-badge m365-badge--warning" style={{ fontSize: 11 }}>
           Mobile

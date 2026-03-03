@@ -1,18 +1,16 @@
-/**
+﻿/**
  * File: ReportScheduleManager.js
- * Purpose: Full schedule management page — lists all scheduled reports, supports
- *          creating new schedules, editing existing, cancelling, and viewing
- *          per-recipient delivery status.
- * Dependencies: React, DevExtreme DataGrid, reportingService, ReportScheduleForm,
- *               RecipientDeliveryStatusPopup
- * Last Modified: 2026-02-09
+ * Purpose: Full schedule management page â€” lists all scheduled reports, supports
+ *          creating new schedules via ScheduleReportPanel (slide-in), editing
+ *          existing via ScheduleReportPanel in edit mode, cancelling, and viewing delivery status.
+ * Dependencies: React, DevExtreme DataGrid, ScheduleReportPanel, reportingService
+ * Last Modified: 2026-03-02
  *
  * Key Components:
- * - ReportScheduleManager: Schedule list + create/edit form in popup +
- *   recipient delivery status popup
+ * - ReportScheduleManager: M365-styled schedule list + panels
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import DataGrid, {
@@ -21,28 +19,46 @@ import DataGrid, {
     Pager,
     SearchPanel,
     FilterRow,
+    Scrolling,
+    ColumnFixing,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
 import { LoadPanel } from 'devextreme-react/load-panel';
-import { Popup } from 'devextreme-react/popup';
 import notify from 'devextreme/ui/notify';
-import axiosInstance from '../../../api/axiosInstance';
 import reportingService from '../../../services/reportingService';
 import { usePermissions } from '../../../hooks/usePermissions';
-import ReportScheduleForm from './ReportScheduleForm';
-import { buildNotificationRequestFromForm, buildUpdatePayloadFromForm } from './reportScheduleFormUtils';
+import ScheduleReportPanel from '../../../components/Reporting/ScheduleReportPanel';
+import { buildUpdatePayloadFromForm } from './reportScheduleFormUtils';
 import RecipientDeliveryStatusPopup from '../components/RecipientDeliveryStatusPopup';
 import './ReportScheduleManager.scss';
 
-const STATUS_CLASSES = {
-    pending: 'tw-bg-yellow-100 tw-text-yellow-800',
-    active: 'tw-bg-green-100 tw-text-green-800',
-    completed: 'tw-bg-blue-100 tw-text-blue-800',
-    cancelled: 'tw-bg-red-100 tw-text-red-800',
-    failed: 'tw-bg-red-100 tw-text-red-800',
+// Map backend triggerSource values to frontend reportSourceRegistry IDs
+const TRIGGER_SOURCE_TO_SOURCE_ID = {
+    TransactionVolumeHistoryReportSchedule: 'tank-volume-history',
+    ConsumptionByRefillReportSchedule: 'consumption-by-refills',
+    VehicleConsumptionReportSchedule: 'vehicle-consumption',
+    PTSDeviceOfflineReportSchedule: 'pts-device',
+    FuelRefillReportSchedule: 'fuel-refill',
+    PumpTransactionReportSchedule: 'pump-transaction',
+    DeviceOfflineReportSchedule: 'device-offline',
+};
+
+const resolveSourceId = (schedule) => {
+    if (schedule.reportType) return schedule.reportType;
+    if (schedule.reportSourceId) return schedule.reportSourceId;
+    return TRIGGER_SOURCE_TO_SOURCE_ID[schedule.triggerSource || ''] || '';
+};
+
+const STATUS_BADGE = {
+    pending: 'm365-badge m365-badge--warning',
+    active: 'm365-badge m365-badge--success',
+    completed: 'm365-badge m365-badge--info',
+    cancelled: 'm365-badge m365-badge--error',
+    failed: 'm365-badge m365-badge--error',
 };
 
 const REPORT_TYPE_LABELS = {
+    // reportType values
     'device-offline': 'Device Offline',
     'tank-volume-history': 'Tank Volume History',
     'consumption-by-refills': 'Consumption by Refills',
@@ -55,6 +71,39 @@ const REPORT_TYPE_LABELS = {
     ConsumptionByRefill: 'Consumption by Refills',
     VehicleConsumption: 'Vehicle Consumption',
     PTSDeviceOffline: 'PTS Device Offline',
+    // triggerSource values
+    TransactionVolumeHistoryReportSchedule: 'Tank Volume History',
+    ConsumptionByRefillReportSchedule: 'Consumption by Refills',
+    VehicleConsumptionReportSchedule: 'Vehicle Consumption',
+    PTSDeviceOfflineReportSchedule: 'PTS Device Offline',
+    FuelRefillReportSchedule: 'Fuel Refill',
+    PumpTransactionReportSchedule: 'Pump Transaction',
+    DeviceOfflineReportSchedule: 'Device Offline',
+};
+
+// Derive a human-readable label from reportType or triggerSource
+const getReportLabel = (row) => {
+    const key = row.reportType || row.triggerSource || '';
+    if (REPORT_TYPE_LABELS[key]) return REPORT_TYPE_LABELS[key];
+    // Strip trailing 'ReportSchedule' and space it out as fallback
+    const stripped = key.replace(/ReportSchedule$/, '').replace(/([A-Z])/g, ' $1').trim();
+    return stripped || '\u2014';
+};
+
+// Infer frequency when scheduleType is null
+const getFrequency = (row) => {
+    const v = row.scheduleType || row.frequency || '';
+    if (v) return v.charAt(0).toUpperCase() + v.slice(1);
+    // Infer from available schedule data
+    const hasWeeks = Array.isArray(row.scheduleWeeksOfMonth) && row.scheduleWeeksOfMonth.length > 0;
+    const hasDays = Array.isArray(row.scheduleDaysOfWeek) && row.scheduleDaysOfWeek.length > 0;
+    // Parse from message field (e.g. "Daily PDF report")
+    const msg = (row.message || '').toLowerCase();
+    if (msg.includes('daily')) return 'Daily';
+    if (msg.includes('weekly') || (hasDays && hasWeeks)) return 'Weekly';
+    if (msg.includes('monthly')) return 'Monthly';
+    if (hasDays) return 'Weekly';
+    return '\u2014';
 };
 
 const ReportScheduleManager = () => {
@@ -65,14 +114,21 @@ const ReportScheduleManager = () => {
     const currentUserName = authUser?.userName || authUser?.username || 'Unknown';
 
     const [schedules, setSchedules] = useState([]);
-    const [recipients, setRecipients] = useState([]);
     const [loading, setLoading] = useState(false);
-    const [showFormPopup, setShowFormPopup] = useState(false);
+
+    // New schedule â€” ScheduleReportPanel
+    const [newPanelOpen, setNewPanelOpen] = useState(false);
+
+    // Edit schedule â€” SlidePanel + form
+    const [editPanelOpen, setEditPanelOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
+
+    // Delivery status popup
     const [deliveryTarget, setDeliveryTarget] = useState(null);
 
-    // Check if we should auto-open create from URL params
     const preselectedSource = searchParams.get('source');
+
+    // â”€â”€ Data loading â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const loadSchedules = useCallback(async () => {
         setLoading(true);
@@ -93,114 +149,25 @@ const ReportScheduleManager = () => {
         }
     }, []);
 
-    const loadRecipients = useCallback(async () => {
-        try {
-            const response = await axiosInstance.get('/tankvolumehistory/users');
-            const users = response.data || [];
-            setRecipients(
-                (Array.isArray(users) ? users : []).map((u) => ({
-                    email: u.email || u.userName,
-                    displayName: u.fullName || u.userName || u.email,
-                }))
-            );
-        } catch (err) {
-            console.error('Failed to load recipients:', err);
-        }
-    }, []);
-
     useEffect(() => {
         loadSchedules();
-        loadRecipients();
-    }, [loadSchedules, loadRecipients]);
+    }, [loadSchedules]);
 
-    // Auto-open form if source param present
+    // Auto-open new panel if source param present
     useEffect(() => {
         if (preselectedSource) {
-            setEditTarget(null);
-            setShowFormPopup(true);
+            setNewPanelOpen(true);
         }
     }, [preselectedSource]);
 
-    const handleCreate = useCallback(
-        async (formData) => {
-            setLoading(true);
-            try {
-                const buildResult = buildNotificationRequestFromForm(
-                    formData,
-                    recipients,
-                    currentUserName
-                );
-                if (!buildResult.success) {
-                    notify({ message: buildResult.error || 'Invalid schedule data', type: 'warning' });
-                    setLoading(false);
-                    return;
-                }
-
-                const result = await reportingService.scheduleReportEmail(buildResult.request);
-                if (result.success) {
-                    notify({ message: 'Schedule created successfully', type: 'success' });
-                    setShowFormPopup(false);
-                    await loadSchedules();
-                } else {
-                    notify({ message: result.error || 'Failed to create schedule', type: 'error' });
-                }
-            } catch (err) {
-                notify({ message: 'Failed to create schedule', type: 'error' });
-            } finally {
-                setLoading(false);
-            }
-        },
-        [loadSchedules, recipients, currentUserName]
-    );
-
-    const handleUpdate = useCallback(
-        async (formData) => {
-            if (!editTarget) return;
-            setLoading(true);
-            try {
-                const payload = buildUpdatePayloadFromForm(formData, recipients, currentUserName);
-                const scheduleId = editTarget.id;
-                const result = await reportingService.updateScheduledReportEmail(scheduleId, payload);
-                if (result.success) {
-                    notify({ message: 'Schedule updated successfully', type: 'success' });
-                    setShowFormPopup(false);
-                    setEditTarget(null);
-                    await loadSchedules();
-                } else {
-                    notify({ message: result.error || 'Failed to update schedule', type: 'error' });
-                }
-            } catch (err) {
-                notify({ message: 'Failed to update schedule', type: 'error' });
-            } finally {
-                setLoading(false);
-            }
-        },
-        [editTarget, loadSchedules, recipients, currentUserName]
-    );
-
-    const handleFormSubmit = useCallback(
-        (formData) => {
-            if (editTarget) {
-                handleUpdate(formData);
-            } else {
-                handleCreate(formData);
-            }
-        },
-        [editTarget, handleCreate, handleUpdate]
-    );
+    // â”€â”€ Edit / Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const handleEdit = useCallback((schedule) => {
-        // Map schedule data back to form shape
         let parsedRecipients = [];
         if (Array.isArray(schedule.recipients)) {
-            parsedRecipients = schedule.recipients.map(
-                (r) => r.recipientAddress || r.email || r
-            );
+            parsedRecipients = schedule.recipients.map((r) => r.recipientAddress || r.email || r);
         } else if (typeof schedule.recipients === 'string') {
-            try {
-                const parsed = JSON.parse(schedule.recipients);
-                parsedRecipients = parsed.map((r) => r.recipientAddress || r.email || r);
-            } catch { /* ignore */ }
+            try { parsedRecipients = JSON.parse(schedule.recipients).map((r) => r.recipientAddress || r.email || r); } catch { /* ignore */ }
         }
 
         let parsedFilters = {};
@@ -210,7 +177,6 @@ const ReportScheduleManager = () => {
             parsedFilters = schedule.filters;
         }
 
-        // Parse scheduleConfig JSON (period & timing) — fallback to top-level DTO fields
         let parsedConfig = {};
         if (typeof schedule.scheduleConfig === 'string') {
             try { parsedConfig = JSON.parse(schedule.scheduleConfig); } catch { /* ignore */ }
@@ -218,7 +184,6 @@ const ReportScheduleManager = () => {
             parsedConfig = schedule.scheduleConfig;
         }
 
-        // Use top-level DTO fields if scheduleConfig is empty (API returns structured DTO)
         const scheduleDayOfWeekIds = parsedConfig.scheduleDayOfWeekIds
             || (Array.isArray(schedule.scheduleDaysOfWeek) && schedule.scheduleDaysOfWeek.length ? schedule.scheduleDaysOfWeek : null)
             || ['monday'];
@@ -230,117 +195,115 @@ const ReportScheduleManager = () => {
         setEditTarget({
             ...schedule,
             formValues: {
-                reportSourceId: schedule.reportType || schedule.reportSourceId || '',
+                reportSourceId: resolveSourceId(schedule),
                 scheduleName: schedule.title || schedule.scheduleName || '',
                 description: schedule.reportDescription || schedule.description || '',
                 recipientEmails: parsedRecipients,
-                frequency: schedule.scheduleType || schedule.frequency || 'once',
+                frequency: schedule.scheduleType || schedule.frequency || getFrequency(schedule).toLowerCase() || 'daily',
                 outputFormat: (schedule.format || schedule.outputFormat || 'pdf').toLowerCase(),
                 scheduledAt: schedule.nextRunAtUtc ? new Date(schedule.nextRunAtUtc)
-                    : schedule.scheduledAt ? new Date(schedule.scheduledAt)
-                        : new Date(),
+                    : schedule.scheduledAt ? new Date(schedule.scheduledAt) : new Date(),
                 repeatCount: schedule.repeatCount || 1,
                 filters: parsedFilters,
                 scheduleDayOfWeekIds,
                 scheduleWeekOfMonthIds,
                 scheduleTime,
+                scheduleDayOfMonth: parsedConfig.scheduleDayOfMonth || schedule.scheduleDayOfMonth || null,
             },
         });
-        setShowFormPopup(true);
+        setEditPanelOpen(true);
     }, []);
 
-    const handleCancel = useCallback(
-        async (schedule) => {
-            if (!window.confirm(`Cancel schedule "${schedule.title || schedule.scheduleName || schedule.id}"?`)) return;
-            setLoading(true);
-            try {
-                const result = await reportingService.cancelScheduledReportEmail(schedule.id);
-                if (result.success) {
-                    notify({ message: 'Schedule cancelled', type: 'success' });
-                    await loadSchedules();
-                } else {
-                    notify({ message: result.error || 'Failed to cancel', type: 'error' });
-                }
-            } catch (err) {
-                notify({ message: 'Failed to cancel schedule', type: 'error' });
-            } finally {
-                setLoading(false);
+    const handleUpdate = useCallback(async (formData) => {
+        if (!editTarget) return;
+        setLoading(true);
+        try {
+            const payload = buildUpdatePayloadFromForm(formData, [], currentUserName);
+            const result = await reportingService.updateScheduledReportEmail(editTarget.id, payload);
+            if (result.success) {
+                notify({ message: 'Schedule updated successfully', type: 'success' });
+                setEditPanelOpen(false);
+                setEditTarget(null);
+                await loadSchedules();
+            } else {
+                notify({ message: result.error || 'Failed to update schedule', type: 'error' });
             }
-        },
-        [loadSchedules]
-    );
+        } catch (err) {
+            notify({ message: 'Failed to update schedule', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    }, [editTarget, loadSchedules, currentUserName]);
 
-    const handleDelete = useCallback(
-        async (schedule) => {
-            if (!window.confirm(`Permanently delete schedule "${schedule.title || schedule.scheduleName || schedule.id}"?\n\nThis action cannot be undone.`)) return;
-            setLoading(true);
-            try {
-                const result = await reportingService.deleteScheduledReportEmail(schedule.id);
-                if (result.success) {
-                    notify({ message: 'Schedule deleted permanently', type: 'success' });
-                    await loadSchedules();
-                } else {
-                    notify({ message: result.error || 'Failed to delete', type: 'error' });
-                }
-            } catch (err) {
-                notify({ message: 'Failed to delete schedule', type: 'error' });
-            } finally {
-                setLoading(false);
+    // â”€â”€ Cancel / Delete â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+
+    const handleCancel = useCallback(async (schedule) => {
+        if (!window.confirm(`Cancel schedule "${schedule.title || schedule.scheduleName || schedule.id}"?`)) return;
+        setLoading(true);
+        try {
+            const result = await reportingService.cancelScheduledReportEmail(schedule.id);
+            if (result.success) {
+                notify({ message: 'Schedule cancelled', type: 'success' });
+                await loadSchedules();
+            } else {
+                notify({ message: result.error || 'Failed to cancel', type: 'error' });
             }
-        },
-        [loadSchedules]
-    );
+        } catch {
+            notify({ message: 'Failed to cancel schedule', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    }, [loadSchedules]);
+
+    const handleDelete = useCallback(async (schedule) => {
+        if (!window.confirm(`Permanently delete schedule "${schedule.title || schedule.scheduleName || schedule.id}"?\n\nThis action cannot be undone.`)) return;
+        setLoading(true);
+        try {
+            const result = await reportingService.deleteScheduledReportEmail(schedule.id);
+            if (result.success) {
+                notify({ message: 'Schedule deleted permanently', type: 'success' });
+                await loadSchedules();
+            } else {
+                notify({ message: result.error || 'Failed to delete', type: 'error' });
+            }
+        } catch {
+            notify({ message: 'Failed to delete schedule', type: 'error' });
+        } finally {
+            setLoading(false);
+        }
+    }, [loadSchedules]);
+
+    // â”€â”€ Cell renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const renderStatus = useCallback((cellInfo) => {
         const status = String(cellInfo.value || 'pending').toLowerCase();
-        const cls = STATUS_CLASSES[status] || STATUS_CLASSES.pending;
+        const cls = STATUS_BADGE[status] || STATUS_BADGE.pending;
         return (
-            <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${cls}`}>
+            <span className={cls}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
             </span>
         );
     }, []);
 
-    const renderActions = useCallback(
-        (cellInfo) => {
-            const schedule = cellInfo.data;
-            const isCancelled = String(schedule.status || '').toLowerCase() === 'cancelled';
-            const isCompleted = String(schedule.status || '').toLowerCase() === 'completed';
-            const isEditable = !isCancelled && !isCompleted;
-            return (
-                <div className="tw-flex tw-gap-1">
-                    <Button
-                        icon="fa-light fa-pen-to-square"
-                        hint="Edit Schedule"
-                        stylingMode="text"
-                        onClick={() => handleEdit(schedule)}
-                        disabled={!isEditable}
-                    />
-                    <Button
-                        icon="fa-light fa-users"
-                        hint="View Delivery Status"
-                        stylingMode="text"
-                        onClick={() => setDeliveryTarget(schedule)}
-                    />
-                    <Button
-                        icon="fa-light fa-ban"
-                        hint="Cancel Schedule"
-                        stylingMode="text"
-                        onClick={() => handleCancel(schedule)}
-                        disabled={!isEditable}
-                    />
-                    <Button
-                        icon="fa-light fa-trash"
-                        hint="Delete Schedule Permanently"
-                        stylingMode="text"
-                        onClick={() => handleDelete(schedule)}
-                        elementAttr={{ class: 'tw-text-red-500' }}
-                    />
-                </div>
-            );
-        },
-        [handleCancel, handleDelete, handleEdit]
-    );
+    const renderActions = useCallback((cellInfo) => {
+        const schedule = cellInfo.data;
+        const isCancelled = String(schedule.status || '').toLowerCase() === 'cancelled';
+        const isCompleted = String(schedule.status || '').toLowerCase() === 'completed';
+        const isEditable = !isCancelled && !isCompleted;
+        return (
+            <div style={{ display: 'flex', gap: 2 }}>
+                <Button icon="fa-light fa-pen-to-square" hint="Edit Schedule" stylingMode="text"
+                    onClick={() => handleEdit(schedule)} disabled={!isEditable} />
+                <Button icon="fa-light fa-users" hint="View Delivery Status" stylingMode="text"
+                    onClick={() => setDeliveryTarget(schedule)} />
+                <Button icon="fa-light fa-ban" hint="Cancel Schedule" stylingMode="text"
+                    onClick={() => handleCancel(schedule)} disabled={!isEditable} />
+                <Button icon="fa-light fa-trash" hint="Delete Permanently" stylingMode="text"
+                    onClick={() => handleDelete(schedule)}
+                    elementAttr={{ style: 'color: var(--m365-danger, #d13438)' }} />
+            </div>
+        );
+    }, [handleCancel, handleDelete, handleEdit]);
 
     const renderDeliveryStats = useCallback((cellInfo) => {
         const schedule = cellInfo.data;
@@ -350,184 +313,283 @@ const ReportScheduleManager = () => {
         const failed = schedule.failedCount || recipientList.filter(r => r.deliveryStatus === 'failed').length || 0;
         const pending = total - delivered - failed;
 
-        if (total === 0) {
-            return <span className="tw-text-gray-400 tw-text-xs">—</span>;
-        }
+        if (total === 0) return <span style={{ color: 'var(--m365-text-tertiary)', fontSize: 12 }}>{"\u2014"}</span>;
 
         return (
-            <div className="tw-text-xs tw-leading-5">
-                <span className="tw-text-gray-600">{total} total</span>
-                {delivered > 0 && (
-                    <span className="tw-ml-2 tw-text-green-600">
-                        <i className="fa-light fa-check tw-mr-0.5"></i>{delivered}
-                    </span>
-                )}
-                {failed > 0 && (
-                    <span className="tw-ml-2 tw-text-red-600">
-                        <i className="fa-light fa-xmark tw-mr-0.5"></i>{failed}
-                    </span>
-                )}
-                {pending > 0 && (
-                    <span className="tw-ml-2 tw-text-yellow-600">
-                        <i className="fa-light fa-clock tw-mr-0.5"></i>{pending}
-                    </span>
-                )}
+            <div style={{ fontSize: 12, lineHeight: '20px' }}>
+                <span style={{ color: 'var(--m365-text-secondary)' }}>{total} total</span>
+                {delivered > 0 && <span style={{ marginLeft: 8, color: 'var(--m365-success, #107c10)' }}><i className="fa-light fa-check" style={{ marginRight: 2 }} />{delivered}</span>}
+                {failed > 0 && <span style={{ marginLeft: 8, color: 'var(--m365-danger, #d13438)' }}><i className="fa-light fa-xmark" style={{ marginRight: 2 }} />{failed}</span>}
+                {pending > 0 && <span style={{ marginLeft: 8, color: 'var(--m365-warning, #d67a00)' }}><i className="fa-light fa-clock" style={{ marginRight: 2 }} />{pending}</span>}
             </div>
         );
     }, []);
 
-    const formatDateTime = useCallback((value) => {
-        if (!value) return '—';
-        const d = new Date(value);
-        return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+    const renderRecipients = useCallback((cellInfo) => {
+        const schedule = cellInfo.data;
+        let emails = [];
+        if (Array.isArray(schedule.recipients)) {
+            emails = schedule.recipients.map(r => r.recipientAddress || r.email || r).filter(Boolean);
+        } else if (typeof schedule.recipients === 'string') {
+            try {
+                emails = JSON.parse(schedule.recipients).map(r => r.recipientAddress || r.email || r).filter(Boolean);
+            } catch { /* ignore */ }
+        }
+        if (emails.length === 0) return <span style={{ color: 'var(--m365-text-tertiary)', fontSize: 12 }}>{"\u2014"}</span>;
+        return (
+            <div style={{ fontSize: 12 }}>
+                <span title={emails.join(', ')} style={{ color: 'var(--m365-text-primary)' }}>
+                    {emails[0]}
+                    {emails.length > 1 && (
+                        <span style={{ marginLeft: 4, color: 'var(--m365-text-tertiary)' }}>
+                            +{emails.length - 1} more
+                        </span>
+                    )}
+                </span>
+            </div>
+        );
+    }, []);
+
+    const renderScheduleDetail = useCallback((cellInfo) => {
+        const row = cellInfo.data;
+        const time = row.scheduleTimeOfDay || null;
+
+        // Derive time from scheduledAt when scheduleTimeOfDay not populated
+        let resolvedTime = time;
+        if (!resolvedTime) {
+            const sat = row.scheduledAt || row.nextRunAtUtc;
+            if (sat) {
+                let s = String(sat);
+                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !/[Z+\-]\d*$/.test(s)) s += 'Z';
+                const d = new Date(s);
+                if (!Number.isNaN(d.getTime())) {
+                    resolvedTime = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                }
+            }
+        }
+
+        let detail = resolvedTime || '';
+
+        // Read schedule config (may be JSON string or object)
+        let cfg = {};
+        if (typeof row.scheduleConfig === 'string') { try { cfg = JSON.parse(row.scheduleConfig); } catch { /* ignore */ } }
+        else if (row.scheduleConfig) { cfg = row.scheduleConfig; }
+
+        // Top-level fields take precedence over parsed scheduleConfig
+        const daysOfWeek = row.scheduleDaysOfWeek || cfg.scheduleDayOfWeekIds || [];
+        const weeksOfMonth = row.scheduleWeeksOfMonth || cfg.scheduleWeekOfMonthIds || [];
+        const dayOfMonth = row.scheduleDayOfMonth || cfg.scheduleDayOfMonth;
+
+        const inferredFreq = getFrequency(row).toLowerCase();
+
+        if (inferredFreq === 'weekly') {
+            const days = daysOfWeek.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ');
+            const weeks = weeksOfMonth.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ');
+            detail = [days, weeks, resolvedTime].filter(v => v && v !== '\u2014').join(' \u00B7 ');
+        } else if (inferredFreq === 'monthly') {
+            if (dayOfMonth) {
+                detail = ['Day ' + dayOfMonth, resolvedTime].filter(Boolean).join(' \u00B7 ');
+            } else {
+                const days = daysOfWeek.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ');
+                const weeks = weeksOfMonth.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ');
+                detail = [weeks, days, resolvedTime].filter(v => v && v !== '\u2014').join(' \u00B7 ');
+            }
+        }
+
+        return <span style={{ fontSize: 12, color: 'var(--m365-text-secondary)' }}>{detail || '\u2014'}</span>;
+    }, []);
+
+    const formatDateTime = useCallback((value, isUtc = true) => {
+        if (!value) return '\u2014';
+        // Bare ISO strings (no Z or offset) from the server are UTC — append Z so
+        // the browser parses them as UTC and toLocaleString() converts to local time.
+        let str = String(value);
+        if (isUtc && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str) && !/[Z+\-]\d*$/.test(str)) {
+            str = str + 'Z';
+        }
+        const d = new Date(str);
+        if (Number.isNaN(d.getTime())) return '\u2014';
+        return d.toLocaleString(undefined, {
+            year: 'numeric', month: 'numeric', day: 'numeric',
+            hour: '2-digit', minute: '2-digit',
+            timeZoneName: 'short',
+        });
     }, []);
 
     if (!isAdmin) {
         return (
-            <div className="tw-p-8 tw-text-center tw-text-gray-500">
-                <i className="fa-light fa-lock tw-text-4xl tw-mb-3"></i>
+            <div className="sched-mgr__access-denied">
+                <i className="fa-light fa-lock" />
                 <p>Schedule management requires Admin access.</p>
             </div>
         );
     }
 
     return (
-        <div className="report-schedule-manager">
+        <div className="sched-mgr">
             <LoadPanel visible={loading} />
 
-            {/* Header */}
-            <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
-                <div>
-                    <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-m-0">
-                        <i className="fa-light fa-calendar-clock tw-mr-2 tw-text-blue-600"></i>
-                        Report Schedules
-                    </h2>
-                    <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
-                        Manage automated report generation and email delivery
-                    </p>
+            {/* M365 Page Header */}
+            <div className="sched-mgr__header">
+                <div className="sched-mgr__header-left">
+                    <div className="sched-mgr__icon-wrap">
+                        <i className="fa-light fa-calendar-clock" />
+                    </div>
+                    <div>
+                        <h2 className="sched-mgr__title">Report Schedules</h2>
+                        <p className="sched-mgr__subtitle">
+                            Manage automated report generation and email delivery
+                        </p>
+                    </div>
                 </div>
-                <Button
-                    icon="fa-light fa-plus"
-                    text="New Schedule"
-                    type="default"
-                    onClick={() => {
-                        setEditTarget(null);
-                        setShowFormPopup(true);
-                    }}
-                />
+                <div className="sched-mgr__header-actions">
+                    <button
+                        className="m365-btn m365-btn--primary"
+                        onClick={() => setNewPanelOpen(true)}
+                    >
+                        <i className="fa-light fa-plus" />
+                        New Schedule
+                    </button>
+                    <button className="m365-btn m365-btn--text" onClick={loadSchedules}>
+                        <i className="fa-light fa-rotate-right" />
+                        Refresh
+                    </button>
+                </div>
             </div>
 
-            {/* Grid */}
-            <DataGrid
-                dataSource={schedules}
-                showBorders={true}
-                columnAutoWidth={true}
-                rowAlternationEnabled={true}
-                keyExpr="id"
-            >
-                <SearchPanel visible={true} width={250} />
-                <FilterRow visible={true} />
-                <Paging defaultPageSize={15} />
-                <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30, 50]} showInfo={true} />
+            {/* Schedule Grid */}
+            <div className="sched-mgr__grid-wrap">
+                <DataGrid
+                    dataSource={schedules}
+                    showBorders={false}
+                    showRowLines={true}
+                    columnAutoWidth={false}
+                    rowAlternationEnabled={false}
+                    keyExpr="id"
+                    height="100%"
+                    noDataText="No schedules found"
+                    columnResizingMode="widget"
+                    allowColumnResizing={true}
+                >
+                    <Scrolling mode="standard" showScrollbar="always" />
+                    <ColumnFixing enabled={true} />
+                    <SearchPanel visible={true} width={250} placeholder="Search schedules…" />
+                    <FilterRow visible={true} />
+                    <Paging defaultPageSize={15} />
+                    <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30, 50]} showInfo={true} />
 
-                <Column
-                    caption="Schedule Name"
-                    calculateCellValue={(row) => row.title || row.scheduleName || '—'}
-                />
-                <Column
-                    caption="Report Source"
-                    width={180}
-                    calculateCellValue={(row) => {
-                        const rt = row.reportType || '';
-                        return REPORT_TYPE_LABELS[rt] || rt || '—';
-                    }}
-                />
-                <Column
-                    caption="Frequency"
-                    width={100}
-                    calculateCellValue={(row) => {
-                        const val = row.scheduleType || row.frequency || '';
-                        return val ? val.charAt(0).toUpperCase() + val.slice(1) : '—';
-                    }}
-                />
-                <Column
-                    caption="Format"
-                    width={80}
-                    calculateCellValue={(row) => row.format || row.outputFormat || '—'}
-                />
-                <Column
-                    dataField="status"
-                    caption="Status"
-                    width={110}
-                    cellRender={renderStatus}
-                />
-                <Column
-                    caption="Next Run"
-                    width={170}
-                    calculateCellValue={(row) => formatDateTime(row.nextRunAtUtc || row.scheduledAt)}
-                />
-                <Column
-                    caption="Time"
-                    width={90}
-                    calculateCellValue={(row) => row.scheduleTimeOfDay || '—'}
-                />
-                <Column
-                    caption="Requested By"
-                    width={130}
-                    calculateCellValue={(row) => row.requestedBy || '—'}
-                />
-                <Column
-                    caption="Delivery"
-                    width={160}
-                    cellRender={renderDeliveryStats}
-                    allowSorting={false}
-                    allowFiltering={false}
-                />
-                <Column caption="Actions" width={160} cellRender={renderActions} alignment="center" />
-            </DataGrid>
-
-            {/* Create/Edit Popup */}
-            <Popup
-                visible={showFormPopup}
-                onHiding={() => {
-                    setShowFormPopup(false);
-                    setEditTarget(null);
-                }}
-                title={editTarget ? 'Edit Schedule' : 'Create New Schedule'}
-                width={650}
-                height="auto"
-                maxHeight="85vh"
-                showCloseButton={true}
-            >
-                <div className="tw-p-4 tw-overflow-y-auto" style={{ maxHeight: '70vh' }}>
-                    <ReportScheduleForm
-                        initialValues={
-                            editTarget
-                                ? editTarget.formValues
-                                : preselectedSource
-                                    ? { reportSourceId: preselectedSource }
-                                    : {}
-                        }
-                        recipients={recipients}
-                        onSubmit={handleFormSubmit}
-                        onCancel={() => {
-                            setShowFormPopup(false);
-                            setEditTarget(null);
-                        }}
-                        isSubmitting={loading}
-                        mode={editTarget ? 'edit' : 'create'}
+                    <Column
+                        caption="Schedule Name"
+                        minWidth={180}
+                        calculateCellValue={(row) => row.title || row.scheduleName || '\u2014'}
                     />
-                </div>
-            </Popup>
+                    <Column
+                        caption="Report"
+                        width={200}
+                        calculateCellValue={(row) => getReportLabel(row)}
+                    />
+                    <Column
+                        caption="Frequency"
+                        width={90}
+                        calculateCellValue={(row) => getFrequency(row)}
+                    />
+                    <Column
+                        caption="Schedule Detail"
+                        width={200}
+                        cellRender={renderScheduleDetail}
+                        allowSorting={false}
+                        allowFiltering={false}
+                    />
+                    <Column
+                        caption="Format"
+                        width={75}
+                        calculateCellValue={(row) => {
+                            const fmt = row.format || row.outputFormat || '';
+                            if (fmt) return fmt.toUpperCase();
+                            // Extract from message e.g. "Daily PDF report"
+                            const m = (row.message || '').match(/\b(PDF|EXCEL|CSV|XLSX)\b/i);
+                            return m ? m[1].toUpperCase() : '\u2014';
+                        }}
+                        alignment="center"
+                    />
+                    <Column
+                        dataField="status"
+                        caption="Status"
+                        width={100}
+                        cellRender={renderStatus}
+                        alignment="center"
+                    />
+                    <Column
+                        caption="Recipients"
+                        width={200}
+                        cellRender={renderRecipients}
+                        allowSorting={false}
+                        allowFiltering={false}
+                    />
+                    <Column
+                        caption="Next Run"
+                        width={155}
+                        calculateCellValue={(row) => formatDateTime(row.nextRunAtUtc || row.scheduledAt)}
+                    />
+                    <Column
+                        caption="Last Run"
+                        width={155}
+                        calculateCellValue={(row) => formatDateTime(row.lastRunAtUtc || row.lastRunAt)}
+                    />
+                    <Column
+                        caption="Created"
+                        width={155}
+                        calculateCellValue={(row) => formatDateTime(row.createdOnUtc || row.createdAt || row.createdDate)}
+                    />
+                    <Column
+                        caption="Requested By"
+                        width={130}
+                        calculateCellValue={(row) => row.requestedBy || row.createdBy || '\u2014'}
+                    />
+                    <Column
+                        caption="Delivery"
+                        width={155}
+                        cellRender={renderDeliveryStats}
+                        allowSorting={false}
+                        allowFiltering={false}
+                    />
+                    <Column
+                        caption="Actions"
+                        width={160}
+                        cellRender={renderActions}
+                        alignment="center"
+                        allowSorting={false}
+                        allowFiltering={false}
+                        fixed={true}
+                        fixedPosition="right"
+                    />
+                </DataGrid>
+            </div>
+
+            {/* New Schedule â€” ScheduleReportPanel (slide-in) */}
+            <ScheduleReportPanel
+                open={newPanelOpen}
+                onClose={() => setNewPanelOpen(false)}
+                initialSourceId={preselectedSource || ''}
+            />
+
+            {/* Edit Schedule — reuse ScheduleReportPanel in edit mode */}
+            <ScheduleReportPanel
+                open={editPanelOpen}
+                onClose={() => { setEditPanelOpen(false); setEditTarget(null); }}
+                mode="edit"
+                initialValues={editTarget?.formValues || null}
+                onUpdate={handleUpdate}
+            />
 
             {/* Recipient Delivery Status Popup */}
             <RecipientDeliveryStatusPopup
                 schedule={deliveryTarget}
                 onHiding={() => setDeliveryTarget(null)}
                 formatLocalDateTime={(val) => {
-                    if (!val) return '—';
+                    if (!val) return '\u2014';
                     const d = new Date(val);
-                    return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString();
+                    return Number.isNaN(d.getTime()) ? '\u2014' : d.toLocaleString();
                 }}
             />
         </div>

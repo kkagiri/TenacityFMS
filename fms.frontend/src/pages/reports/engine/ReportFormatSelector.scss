@@ -1,0 +1,65 @@
+/**
+ * File: ReportFormatSelector.scss
+ * Purpose: M365 segmented button group for report output format selection
+ * Last Modified: 2026-03-02
+ */
+
+.fmt-group {
+  display: flex;
+  border: 1px solid #c8c6c4;
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+  width: 100%;
+
+  &__item {
+    flex: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+    font-weight: 500;
+    font-family: 'Segoe UI', system-ui, sans-serif;
+    color: #323130;
+    background: #fff;
+    border: none;
+    cursor: pointer;
+    transition: background 0.12s, color 0.12s;
+    white-space: nowrap;
+    position: relative;
+
+    // Divider between items
+    &:not(:last-child)::after {
+      content: '';
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      width: 1px;
+      height: 16px;
+      background: #edebe9;
+    }
+
+    i {
+      font-size: 12px;
+    }
+
+    &:hover:not(.fmt-group__item--active) {
+      background: #f3f2f1;
+      color: #0078d4;
+    }
+
+    &--active {
+      background: #deecf9;
+      color: #0078d4;
+      font-weight: 600;
+
+      i {
+        color: #0078d4;
+      }
+    }
+  }
+}

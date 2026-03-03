@@ -15,7 +15,6 @@
 
 import React, { useState, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
-import { Button } from 'devextreme-react/button';
 import { SelectBox } from 'devextreme-react/select-box';
 import ProgressBar from 'devextreme-react/progress-bar';
 import notify from 'devextreme/ui/notify';
@@ -28,6 +27,7 @@ import reportingService from '../../../services/reportingService';
 import useReportJobTracking from '../../../hooks/useReportJobTracking';
 import { ReportJobStatus } from '../../../hooks/useReportJobTracking';
 import RequestReportEmailPanel from '../../../components/Reporting/RequestReportEmailPanel';
+import ScheduleReportPanel from '../../../components/Reporting/ScheduleReportPanel';
 import './ReportEngine.scss';
 
 const ReportEngine = () => {
@@ -51,6 +51,9 @@ const ReportEngine = () => {
 
     // Email panel
     const [emailPanelOpen, setEmailPanelOpen] = useState(false);
+
+    // Schedule panel
+    const [schedulePanelOpen, setSchedulePanelOpen] = useState(false);
 
     // Async report job tracking
     const {
@@ -92,7 +95,7 @@ const ReportEngine = () => {
     const prevCompletedJobIdRef = useRef(null);
     useEffect(() => {
         const status = reportJob?.status;
-        const jobId  = reportJob?.jobId;
+        const jobId = reportJob?.jobId;
 
         if (
             status === ReportJobStatus.Completed &&
@@ -242,15 +245,15 @@ const ReportEngine = () => {
         const dateParams = (activeSource.parameters || []).filter((p) => p.type === 'date');
         if (dateParams.length >= 2) {
             const fromParam = dateParams[0];
-            const toParam   = dateParams[1];
-            const fromVal   = filters[fromParam.key];
-            const toVal     = filters[toParam.key];
+            const toParam = dateParams[1];
+            const fromVal = filters[fromParam.key];
+            const toVal = filters[toParam.key];
             if (!fromVal || !toVal) {
                 notify({ message: `Please select both ${fromParam.label} and ${toParam.label}`, type: 'warning' });
                 return;
             }
             const fromDate = fromVal instanceof Date ? fromVal : new Date(fromVal);
-            const toDate   = toVal   instanceof Date ? toVal   : new Date(toVal);
+            const toDate = toVal instanceof Date ? toVal : new Date(toVal);
             if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
                 notify({ message: 'Invalid date selection — please re-select the dates', type: 'warning' });
                 return;
@@ -266,6 +269,8 @@ const ReportEngine = () => {
             notify({ message: 'No template selected or configured for this report', type: 'warning' });
             return;
         }
+
+        const _t0 = Date.now();
 
         // ── Pump-transaction: dedicated sync endpoint ─────────────────────
         if (activeSource.id === 'pump-transaction') {
@@ -284,12 +289,31 @@ const ReportEngine = () => {
                         notify({ message: `${selectedFormat.toUpperCase()} downloaded successfully`, type: 'success' });
                     }
                     setLastGenerated(new Date());
+                    reportingService.logExecution({
+                        exportFormat: selectedFormat,
+                        filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name, ...reportData }),
+                        success: true,
+                        executionTimeMs: Date.now() - _t0,
+                    });
                 } else {
                     notify({ message: result.error || 'Error generating report', type: 'error' });
+                    reportingService.logExecution({
+                        exportFormat: selectedFormat,
+                        filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name }),
+                        success: false,
+                        errorMessage: result.error || 'Report generation failed',
+                        executionTimeMs: Date.now() - _t0,
+                    });
                 }
             } catch (err) {
                 console.error('Report generation error:', err);
                 notify({ message: 'Error generating report', type: 'error' });
+                reportingService.logExecution({
+                    exportFormat: selectedFormat,
+                    filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name }),
+                    success: false,
+                    errorMessage: err?.message || 'Unexpected error',
+                });
             } finally {
                 setGenerating(false);
             }
@@ -342,6 +366,13 @@ const ReportEngine = () => {
                     if (previewResult.success) {
                         setHtmlContent(previewResult.html);
                         setLastGenerated(new Date());
+                        reportingService.logExecution({
+                            exportFormat: 'html',
+                            filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name, ...params }),
+                            success: true,
+                            recordCount: _recordArray.length || null,
+                            executionTimeMs: Date.now() - _t0,
+                        });
                         return;
                     }
 
@@ -400,8 +431,21 @@ const ReportEngine = () => {
                 type: 'info',
                 displayTime: 3000,
             });
+            reportingService.logExecution({
+                exportFormat: selectedFormat,
+                filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name, ...params }),
+                success: true,
+                executionTimeMs: Date.now() - _t0,
+            });
         } else {
             notify({ message: 'Failed to start report generation', type: 'error' });
+            reportingService.logExecution({
+                exportFormat: selectedFormat,
+                filters: JSON.stringify({ sourceId: activeSource.id, sourceName: activeSource.name }),
+                success: false,
+                errorMessage: 'Failed to start background report job',
+                executionTimeMs: Date.now() - _t0,
+            });
         }
     }, [activeSource, filters, selectedFormat, templateOverride, buildQueryParams, submitReportJob]);
 
@@ -464,39 +508,44 @@ const ReportEngine = () => {
 
     return (
         <div className="report-engine">
-            {/* Header */}}
+
+            {/* ── M365 Page Header ── */}
             <div className="engine-header">
-                <div className="tw-flex tw-items-center tw-gap-3">
-                    <i className={`${activeSource?.icon || 'fa-light fa-file-chart-line'} tw-text-2xl tw-text-blue-600`}></i>
+                <div className="engine-header__left">
+                    <div className="engine-header__icon">
+                        <i className={activeSource?.icon || 'fa-light fa-file-chart-line'} />
+                    </div>
                     <div>
-                        <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-m-0">
+                        <h2 className="engine-header__title">
                             {activeSource?.name || 'Report Engine'}
                         </h2>
-                        <p className="tw-text-sm tw-text-gray-500 tw-m-0">
+                        <p className="engine-header__subtitle">
                             {activeSource?.description || 'Select a report source to begin'}
                         </p>
                     </div>
                 </div>
             </div>
 
-            {/* Main Content */}
-            <div className="engine-content">
-                {/* Left Sidebar - Filters */}
+            {/* ── Body ── */}
+            <div className="engine-body">
+
+                {/* Left sidebar */}
                 <div className="engine-sidebar">
+
                     {/* Source Selector */}
-                    <div className="sidebar-section">
-                        <div className="section-header">
-                            <i className="fa-light fa-database tw-mr-2"></i>
+                    <div className="engine-section">
+                        <div className="engine-section__header">
+                            <i className="fa-light fa-database" />
                             Report Source
                         </div>
-                        <div className="tw-p-4">
+                        <div className="engine-section__body">
                             <SelectBox
                                 value={activeSourceId}
                                 dataSource={allSources}
                                 valueExpr="id"
                                 displayExpr="name"
                                 onValueChanged={(e) => handleSourceChange(e.value)}
-                                placeholder="Choose a report..."
+                                placeholder="Choose a report…"
                                 searchEnabled={true}
                                 grouped={false}
                             />
@@ -505,12 +554,12 @@ const ReportEngine = () => {
 
                     {/* Parameters */}
                     {activeSource && (
-                        <div className="sidebar-section">
-                            <div className="section-header">
-                                <i className="fa-light fa-filter tw-mr-2"></i>
+                        <div className="engine-section">
+                            <div className="engine-section__header">
+                                <i className="fa-light fa-filter" />
                                 Parameters
                             </div>
-                            <div className="tw-p-4">
+                            <div className="engine-section__body">
                                 <ReportParameterForm
                                     parameters={activeSource.parameters}
                                     filters={filters}
@@ -522,17 +571,15 @@ const ReportEngine = () => {
 
                     {/* Template Override */}
                     {activeSource && templates.length > 0 && (
-                        <div className="sidebar-section">
-                            <div className="section-header">
-                                <i className="fa-light fa-file-code tw-mr-2"></i>
+                        <div className="engine-section">
+                            <div className="engine-section__header">
+                                <i className="fa-light fa-file-code" />
                                 Template
                             </div>
-                            <div className="tw-p-4">
+                            <div className="engine-section__body">
                                 <SelectBox
                                     value={templateOverride || activeSource.defaultTemplate}
                                     dataSource={templates.filter((t) => {
-                                        // Match templates by source prefix: e.g. "vehicle-consumption" source
-                                        // matches "vehicle-consumption-report", "vehicle-consumption-custom", etc.
                                         const prefix = activeSource.defaultTemplate?.replace(/-report$/, '');
                                         return prefix ? t.toLowerCase().startsWith(prefix.toLowerCase()) : true;
                                     })}
@@ -541,21 +588,21 @@ const ReportEngine = () => {
                                     showClearButton={true}
                                     searchEnabled={true}
                                 />
-                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                <p className="engine-section__hint">
                                     Default: {activeSource.defaultTemplate}
                                 </p>
                             </div>
                         </div>
                     )}
 
-                    {/* Output Format */}
+                    {/* Output Format — M365 segmented button group */}
                     {activeSource && (
-                        <div className="sidebar-section">
-                            <div className="section-header">
-                                <i className="fa-light fa-file-export tw-mr-2"></i>
+                        <div className="engine-section">
+                            <div className="engine-section__header">
+                                <i className="fa-light fa-file-export" />
                                 Output Format
                             </div>
-                            <div className="tw-p-4">
+                            <div className="engine-section__body">
                                 <ReportFormatSelector
                                     supportedFormats={activeSource.supportedFormats}
                                     selectedFormat={selectedFormat}
@@ -565,73 +612,69 @@ const ReportEngine = () => {
                         </div>
                     )}
 
-                    {/* Generate Button */}
+                    {/* Generate + secondary actions */}
                     {activeSource && (
-                        <div className="tw-p-4 tw-border-t tw-border-gray-200">
-                            <Button
-                                icon="fa-light fa-play"
-                                text={isReportTracking ? 'Generating...' : 'Generate Report'}
-                                type="success"
+                        <div className="engine-actions">
+                            <button
+                                className="m365-btn m365-btn--primary engine-actions__generate"
                                 onClick={handleGenerate}
                                 disabled={generating || isReportTracking}
-                                width="100%"
-                            />
+                            >
+                                <i className="fa-light fa-play" />
+                                {isReportTracking ? 'Generating\u2026' : 'Generate Report'}
+                            </button>
                             {emailVisible && (
-                                <Button
-                                    icon="fa-light fa-envelope"
-                                    text="Email when done"
-                                    stylingMode="outlined"
-                                    onClick={emailWhenDoneReport}
-                                    width="100%"
-                                    elementAttr={{ class: 'tw-mt-2' }}
-                                />
+                                <button className="m365-btn m365-btn--ghost engine-actions__secondary" onClick={emailWhenDoneReport}>
+                                    <i className="fa-light fa-envelope" />
+                                    Email when done
+                                </button>
                             )}
-                            <div className="tw-flex tw-gap-2 tw-mt-3">
-                                <Button
-                                    icon="fa-light fa-calendar-clock"
-                                    text="Schedule"
-                                    stylingMode="outlined"
-                                    onClick={() => navigate(`/reports/scheduling/new?source=${activeSourceId}`)}
-                                    width="100%"
-                                />
-                            </div>
-                            <div className="tw-flex tw-gap-2 tw-mt-2">
-                                <Button
-                                    icon="fa-light fa-envelope"
-                                    text="Request via Email"
-                                    stylingMode="outlined"
+                            <div className="engine-actions__row">
+                                <button
+                                    className="m365-btn m365-btn--ghost"
+                                    onClick={() => setSchedulePanelOpen(true)}
+                                >
+                                    <i className="fa-light fa-calendar-clock" />
+                                    Schedule
+                                </button>
+                                <button
+                                    className="m365-btn m365-btn--ghost"
                                     onClick={() => setEmailPanelOpen(true)}
-                                    width="100%"
-                                />
+                                >
+                                    <i className="fa-light fa-envelope" />
+                                    Request via Email
+                                </button>
                             </div>
                         </div>
                     )}
+
                 </div>
 
-                {/* Right Content - Output Viewer */}
+                {/* Output panel */}
                 <div className="engine-output">
-                    {/* Inline progress bar during async generation */}
+
+                    {/* Progress banner */}
                     {isReportTracking && reportJob && (
-                        <div className="tw-px-4 tw-pt-3 tw-pb-2 tw-bg-blue-50 tw-border-b tw-border-blue-100">
-                            <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                                <span className="tw-text-sm tw-font-medium tw-text-blue-700">
-                                    <i className="fa-light fa-file-chart-column tw-mr-2" />
-                                    {reportJob?.statusMessage || 'Generating report...'}
+                        <div className="engine-progress">
+                            <div className="engine-progress__top">
+                                <span className="engine-progress__msg">
+                                    <i className="fa-light fa-file-chart-column" />
+                                    {reportJob?.statusMessage || 'Generating report…'}
                                 </span>
-                                <div className="tw-flex tw-items-center tw-gap-3">
-                                    <span className="tw-text-xs tw-text-blue-500 tw-tabular-nums">
+                                <div className="engine-progress__meta">
+                                    <span className="engine-progress__pct">
                                         {reportJob?.progressPercent || 0}%
                                         {reportJob?.elapsedSeconds > 0 && (
-                                            <span className="tw-ml-2 tw-text-gray-400">
+                                            <span className="engine-progress__elapsed">
                                                 {Math.round(reportJob.elapsedSeconds)}s
                                             </span>
                                         )}
                                     </span>
                                     <button
                                         type="button"
+                                        className="m365-btn m365-btn--danger-text"
                                         onClick={cancelReportJob}
                                         title="Cancel report generation"
-                                        className="tw-text-xs tw-text-red-500 hover:tw-text-red-700 tw-flex tw-items-center tw-gap-1 tw-border tw-border-red-200 tw-rounded tw-px-2 tw-py-0.5 hover:tw-bg-red-50 tw-transition-colors"
                                     >
                                         <i className="fa-light fa-xmark" />
                                         Cancel
@@ -647,6 +690,7 @@ const ReportEngine = () => {
                             />
                         </div>
                     )}
+
                     <ReportOutputViewer
                         htmlContent={htmlContent}
                         selectedFormat={selectedFormat}
@@ -662,6 +706,13 @@ const ReportEngine = () => {
             <RequestReportEmailPanel
                 open={emailPanelOpen}
                 onClose={() => setEmailPanelOpen(false)}
+                initialSourceId={activeSourceId}
+            />
+
+            {/* Schedule Report Panel */}
+            <ScheduleReportPanel
+                open={schedulePanelOpen}
+                onClose={() => setSchedulePanelOpen(false)}
                 initialSourceId={activeSourceId}
             />
         </div>

@@ -507,6 +507,7 @@ export const getNextRunDateTime = ({
   scheduleDayOfWeekIds = null,
   scheduleWeekOfMonthIds = null,
   scheduleWeekOfMonth = "first",
+  scheduleDayOfMonth = null,
   scheduleTime = "08:00",
   fromDate = new Date(),
 }) => {
@@ -517,6 +518,19 @@ export const getNextRunDateTime = ({
   const hours = Number(hourPart);
   const minutes = Number(minutePart);
   if (!Number.isFinite(hours) || !Number.isFinite(minutes)) return null;
+
+  if (periodType === "monthly" && scheduleDayOfMonth != null) {
+    const dom = Math.min(31, Math.max(1, Number(scheduleDayOfMonth) || 1));
+    // try current month, then next months
+    for (let offset = 0; offset < 13; offset++) {
+      const base = new Date(reference.getFullYear(), reference.getMonth() + offset, 1);
+      const daysInMonth = new Date(base.getFullYear(), base.getMonth() + 1, 0).getDate();
+      const clampedDay = Math.min(dom, daysInMonth);
+      const candidate = new Date(base.getFullYear(), base.getMonth(), clampedDay, hours, minutes, 0, 0);
+      if (candidate > reference) return candidate;
+    }
+    return null;
+  }
 
   const dayIds = normalizeDayIds(
     Array.isArray(scheduleDayOfWeekIds) && scheduleDayOfWeekIds.length

@@ -11,52 +11,13 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
-import { usePermissions } from '../../../hooks/usePermissions';
 import { getAllReportSources } from '../sources';
 import './ReportsLayout.scss';
 
-const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
+const ReportsLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const { hasPermission } = usePermissions();
-  const isAdmin = hasPermission('_Manage_ReportSchedules');
-
-  // Page info from path
-  const pageInfo = useMemo(() => {
-    const pathname = location.pathname;
-
-    if (pathname.includes('/list')) {
-      return { title: 'Report List', subtitle: 'Browse all available reports in a searchable grid' };
-    } else if (pathname.includes('/engine')) {
-      return { title: 'Report Engine', subtitle: 'Run and preview reports from any source' };
-    } else if (pathname.includes('/templates/designer')) {
-      return { title: 'Template Designer', subtitle: 'Edit Handlebars templates with live preview' };
-    } else if (pathname.includes('/templates')) {
-      return { title: 'Template Manager', subtitle: 'Manage JSReport templates' };
-    } else if (pathname.includes('/scheduling')) {
-      return { title: 'Report Scheduling', subtitle: 'Schedule report delivery to recipients' };
-    } else if (pathname.includes('/monitoring')) {
-      return { title: 'Report Monitoring', subtitle: 'Track execution history and performance' };
-    } else if (pathname.includes('/fuel-importer')) {
-      return { title: 'Fuel Data Import', subtitle: 'Import and process fuel report data from external sources' };
-    } else if (pathname.includes('/gallery')) {
-      return { title: 'Report Gallery', subtitle: 'Browse and access all available reports' };
-    } else if (pathname.includes('/consumption-refills')) {
-      return { title: 'Consumption by Refills', subtitle: 'Analyze vehicle fuel consumption based on refill data' };
-    } else if (pathname.includes('/vehicle-consumption')) {
-      return { title: 'Vehicle Consumption Report', subtitle: 'Analyze consumption by site, vehicle type and model' };
-    } else if (pathname.includes('/pts-offline')) {
-      return { title: 'PTS Offline Report', subtitle: 'Historical offline events with duration tracking' };
-    } else if (pathname.includes('/tank-volume-history')) {
-      return { title: 'Tank Volume History Report', subtitle: 'Detailed tank volume changes' };
-    } else {
-      return { title: 'Reports Dashboard', subtitle: 'Access and generate fuel management reports' };
-    }
-  }, [location.pathname]);
-
-  const finalTitle = pageTitle || pageInfo.title;
-  const finalSubtitle = pageSubtitle || pageInfo.subtitle;
 
   // ── Navigation Items ──
 
@@ -123,17 +84,8 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
       },
     ];
 
-    if (isAdmin) {
-      items.push({
-        id: 'scheduling',
-        title: 'Scheduled Emails',
-        icon: 'fa-light fa-envelope-open',
-        path: reportsRoutes.scheduling,
-      });
-    }
-
     return items;
-  }, [isAdmin]);
+  }, []);
 
   const handleNavigation = (path, event) => {
     if (event) {
@@ -348,27 +300,6 @@ const ReportsLayout = ({ children, pageTitle, pageSubtitle }) => {
 
       {/* Main Content */}
       <main className="reports-main">
-        {/* Header */}
-        <header className="main-header">
-          {/* Title on LEFT - Single line compact header */}
-          <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
-            {/* Title Section - LEFT */}
-            <div className="tw-flex-shrink-0">
-              <h1 className="tw-text-xl tw-font-bold tw-text-gray-800">{finalTitle}</h1>
-              {finalSubtitle && (
-                <p className="tw-text-sm tw-text-gray-500 tw-mt-1">{finalSubtitle}</p>
-              )}
-            </div>
-
-            {/* Right side - Reports badge */}
-            <div className="tw-flex tw-items-center tw-space-x-2 tw-text-sm tw-text-gray-500">
-              <i className="fa-light fa-chart-pie"></i>
-              <span>Reports System</span>
-            </div>
-          </div>
-        </header>
-
-        {/* Content */}
         <div className="main-content">
           {children}
         </div>

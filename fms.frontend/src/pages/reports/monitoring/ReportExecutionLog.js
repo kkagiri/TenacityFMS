@@ -10,13 +10,14 @@
  */
 
 import React from 'react';
+import './ReportExecutionLog.scss';
 
 const ReportExecutionLog = ({ execution }) => {
     if (!execution) {
         return (
-            <div className="tw-text-center tw-text-gray-400 tw-py-8">
-                <i className="fa-light fa-list tw-text-3xl tw-mb-2"></i>
-                <p>Select an execution to view details</p>
+            <div className="exec-log exec-log--empty">
+                <i className="fa-light fa-list-timeline exec-log__empty-icon" />
+                <p className="exec-log__empty-text">Select an execution to view details</p>
             </div>
         );
     }
@@ -37,77 +38,71 @@ const ReportExecutionLog = ({ execution }) => {
         parsedFilters = {};
     }
 
-    return (
-        <div className="report-execution-log tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-6">
-            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">
-                <i className="fa-light fa-file-lines tw-mr-2 tw-text-blue-600"></i>
-                Execution Details
-            </h3>
+    const isSuccess = execution.success;
 
-            <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-text-sm">
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Execution ID:</span>
-                    <span className="tw-ml-2">{execution.reportExecutionId || execution.id}</span>
-                </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Status:</span>
-                    <span
-                        className={`tw-ml-2 tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${execution.success
-                                ? 'tw-bg-green-100 tw-text-green-800'
-                                : 'tw-bg-red-100 tw-text-red-800'
-                            }`}
-                    >
-                        {execution.success ? 'Success' : 'Failed'}
+    return (
+        <div className="exec-log">
+            {/* Primary fields row */}
+            <div className="exec-log__primary">
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Status</span>
+                    <span className={`m365-badge ${isSuccess ? 'm365-badge--success' : 'm365-badge--error'}`}>
+                        <i className={`fa-light ${isSuccess ? 'fa-circle-check' : 'fa-circle-xmark'}`} />
+                        {isSuccess ? 'Success' : 'Failed'}
                     </span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Executed By:</span>
-                    <span className="tw-ml-2">{execution.executedBy || '—'}</span>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Execution ID</span>
+                    <span className="exec-log__field-value">{execution.reportExecutionId || execution.id}</span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Executed At:</span>
-                    <span className="tw-ml-2">
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Executed By</span>
+                    <span className="exec-log__field-value">{execution.executedBy || '—'}</span>
+                </div>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Executed At</span>
+                    <span className="exec-log__field-value">
                         {execution.executedAt ? new Date(execution.executedAt).toLocaleString() : '—'}
                     </span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Format:</span>
-                    <span className="tw-ml-2 tw-uppercase">{execution.exportFormat || '—'}</span>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Format</span>
+                    <span className="exec-log__field-value exec-log__field-value--upper">{execution.exportFormat || '—'}</span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Duration:</span>
-                    <span className="tw-ml-2">{formatDuration(execution.executionTimeMs)}</span>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Duration</span>
+                    <span className="exec-log__field-value">{formatDuration(execution.executionTimeMs)}</span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">Records:</span>
-                    <span className="tw-ml-2">{execution.recordCount ?? '—'}</span>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">Records</span>
+                    <span className="exec-log__field-value">{execution.recordCount ?? '—'}</span>
                 </div>
-                <div>
-                    <span className="tw-font-medium tw-text-gray-600">IP Address:</span>
-                    <span className="tw-ml-2">{execution.ipAddress || '—'}</span>
+                <div className="exec-log__field">
+                    <span className="exec-log__field-label">IP Address</span>
+                    <span className="exec-log__field-value">{execution.ipAddress || '—'}</span>
                 </div>
             </div>
 
             {/* Error Message */}
             {execution.errorMessage && (
-                <div className="tw-mt-4 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg">
-                    <span className="tw-font-medium tw-text-red-700">
-                        <i className="fa-light fa-circle-exclamation tw-mr-1"></i>
-                        Error:
-                    </span>
-                    <p className="tw-text-red-600 tw-text-sm tw-mt-1">{execution.errorMessage}</p>
+                <div className="exec-log__error">
+                    <i className="fa-light fa-circle-exclamation exec-log__error-icon" />
+                    <div>
+                        <p className="exec-log__error-title">Error</p>
+                        <p className="exec-log__error-msg">{execution.errorMessage}</p>
+                    </div>
                 </div>
             )}
 
-            {/* Filters Used */}
+            {/* Filters Applied */}
             {Object.keys(parsedFilters).length > 0 && (
-                <div className="tw-mt-4">
-                    <span className="tw-font-medium tw-text-gray-600 tw-text-sm">Filters Applied:</span>
-                    <div className="tw-mt-1 tw-bg-gray-50 tw-rounded tw-p-3 tw-text-xs tw-font-mono">
+                <div className="exec-log__filters">
+                    <p className="exec-log__filters-title">Filters Applied</p>
+                    <div className="exec-log__filters-grid">
                         {Object.entries(parsedFilters).map(([key, val]) => (
-                            <div key={key} className="tw-flex tw-gap-2">
-                                <span className="tw-text-gray-500">{key}:</span>
-                                <span className="tw-text-gray-800">{String(val ?? 'null')}</span>
+                            <div key={key} className="exec-log__filter-row">
+                                <span className="exec-log__filter-key">{key}</span>
+                                <span className="exec-log__filter-val">{String(val ?? 'null')}</span>
                             </div>
                         ))}
                     </div>

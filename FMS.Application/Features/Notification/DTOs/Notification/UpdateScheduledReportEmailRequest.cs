@@ -22,5 +22,17 @@ namespace FMS.Application.Features.Notification.DTOs
         public string? ScheduleTimeOfDay { get; set; }
         public string? TimeZone { get; set; }
         public bool? Enabled { get; set; }
+        public int? DayOfMonth { get; set; }
+
+        /// <summary>
+        /// Optional JSON object of report filter parameters to persist
+        /// (e.g. {"siteId":[5],"tankId":[],"dateFrom":"...","dateTo":"..."}).
+        /// </summary>
+        public object? Filters { get; set; }
+
+        /// <summary>
+        /// Recipient email addresses to update on the notification.
+        /// </summary>
+        public List<string>? RecipientEmails { get; set; }
     }
 }

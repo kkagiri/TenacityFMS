@@ -2,7 +2,7 @@
  * File:          tankPage.scss
  * Purpose:       M365 Admin Center themed styles for Tank Management V2 page
  * Dependencies:  m365-shared.scss
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-02
  *
  * Key Patterns:
  * - Flat surfaces, 4px radius on controls, 8px on cards
@@ -26,6 +26,12 @@
   display: flex;
   align-items: center;
   gap: 6px;
+}
+
+// ── Stats Row (scoped 10px side padding for tank page) ──
+.m365-tank-page .m365-stats-row {
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 // ── Body (tree + content) ──
@@ -79,12 +85,23 @@
     }
 
     .dx-treelist-search-panel {
-      margin: 8px 12px;
+      margin: 8px 10px;
 
       .dx-textbox {
         border-radius: var(--m365-radius);
         height: 34px;
       }
+    }
+
+    // add breathing room on both sides of tree rows
+    .dx-treelist-rowsview .dx-row > td {
+      padding-left: 10px;
+      padding-right: 10px;
+    }
+
+    .dx-treelist-headers .dx-header-row > td {
+      padding-left: 10px;
+      padding-right: 10px;
     }
   }
 }
@@ -95,12 +112,14 @@
   min-width: 0;
   overflow-y: auto;
   background: #fff;
-  padding: 20px 24px;
+  padding: 20px 10px;
 }
 
 // ── Detail Panel (inline, not SlidePanel) ──
 .m365-tank-detail {
   font-family: var(--m365-font);
+  font-size: var(--m365-font-body);   // 13px — establishes cascade baseline
+  line-height: 1.4;
   background: #fff;
   padding: 16px 20px;
 
@@ -124,18 +143,20 @@
     flex-wrap: wrap;
   }
   &__strip-site {
-    font-size: 13px;
-    font-weight: 500;
+    font-size: var(--m365-font-label);  // 13px
+    font-weight: 400;
     color: var(--m365-text-secondary);
+    line-height: 1.3;
   }
   &__strip-type {
-    font-size: 12px;
+    font-size: var(--m365-font-meta);   // 11px
     color: var(--m365-text-tertiary);
     border-left: 1px solid var(--m365-border-light);
     padding-left: 10px;
+    line-height: 1.3;
   }
   &__strip-pts {
-    font-size: 11px;
+    font-size: var(--m365-font-meta);   // 11px
     color: var(--m365-text-tertiary);
     font-family: 'Consolas', monospace;
     background: var(--m365-bg-surface);
@@ -146,16 +167,17 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+    letter-spacing: 0.3px;
   }
 
   &__icon-circle {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     border-radius: 50%;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
+    font-size: 18px;
     flex-shrink: 0;
 
     &--stationary {
@@ -175,19 +197,22 @@
   }
 
   &__name {
-    font-size: 18px;
+    font-size: var(--m365-font-heading);  // 16px — M365 panel heading scale
     font-weight: 600;
     color: var(--m365-text);
-    margin: 0 0 4px 0;
+    margin: 0 0 3px 0;
+    line-height: 1.3;
+    letter-spacing: -0.1px;
   }
 
   &__meta {
     display: flex;
     align-items: center;
     gap: 10px;
-    font-size: 12px;
+    font-size: var(--m365-font-meta);     // 11px
     color: var(--m365-text-secondary);
     flex-wrap: wrap;
+    line-height: 1.4;
   }
 
   &__volume-bar {
@@ -197,12 +222,12 @@
       display: flex;
       justify-content: space-between;
       align-items: baseline;
-      font-size: 13px;
+      font-size: var(--m365-font-body);   // 13px
       margin-bottom: 6px;
     }
 
     &-label {
-      font-weight: 500;
+      font-weight: 400;
       color: var(--m365-text-secondary);
     }
 
@@ -224,22 +249,24 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 5px 10px;
-  font-size: 12px;
-  font-weight: 500;
+  padding: 4px 10px;
+  font-size: var(--m365-font-label);  // 13px — M365 standard
+  font-weight: 400;
+  line-height: 1.4;
   color: var(--m365-primary);
   background: transparent;
   border: none;
-  border-radius: 4px;
+  border-radius: var(--m365-radius);
   cursor: pointer;
   font-family: var(--m365-font);
   text-decoration: none;
-  transition: background 0.12s;
+  transition: background 0.15s, color 0.15s;
 
   i { font-size: 13px; }
 
   &:hover {
     background: var(--m365-bg-hover);
+    color: var(--m365-primary-hover);
     text-decoration: underline;
   }
 }
@@ -256,10 +283,12 @@
   }
 
   &__name {
-    font-size: 18px;
+    font-size: var(--m365-font-heading);  // 16px
     font-weight: 600;
     color: var(--m365-text);
     margin: 0 0 2px 0;
+    line-height: 1.3;
+    letter-spacing: -0.1px;
   }
 
   &__title-block {
@@ -267,8 +296,9 @@
   }
 
   &__count {
-    font-size: 12px;
+    font-size: var(--m365-font-meta);     // 11px
     color: var(--m365-text-secondary);
+    line-height: 1.4;
   }
 
   &__overall {
@@ -297,15 +327,17 @@
     background: #fff;
 
     &-name {
-      font-size: 13px;
+      font-size: var(--m365-font-label);  // 13px
       font-weight: 600;
       color: var(--m365-text);
-      margin-bottom: 6px;
+      margin-bottom: 4px;
+      line-height: 1.3;
     }
 
     &-meta {
-      font-size: 12px;
+      font-size: var(--m365-font-meta);   // 11px
       color: var(--m365-text-secondary);
+      line-height: 1.4;
     }
   }
 }
@@ -315,6 +347,14 @@
   border-top: none;
   padding-top: 0;
   margin-bottom: 22px;
+
+  .m365-flat-section__title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+    text-transform: none;          // override shared uppercase
+    letter-spacing: 0;
+  }
 }
 
 .m365-tank-detail .m365-info-grid,
@@ -330,6 +370,14 @@
 .m365-tank-site-summary .m365-info-cell {
   border: none;
   padding: 0;
+
+  .m365-info-cell__label {
+    text-transform: none;   // override shared uppercase
+    letter-spacing: 0;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--m365-text-secondary);
+  }
 }
 
 // ── Compact Tank Cards ──
@@ -437,12 +485,12 @@
   }
 
   .m365-section-group__title {
-    font-size: 14px;
-    font-weight: 600;
+    font-size: 13px;               // was 14px — smaller
+    font-weight: 500;              // was 600 — thinner
     line-height: 1.3;
     color: var(--m365-text);
     text-transform: none;
-    letter-spacing: 0.1px;
+    letter-spacing: 0;
     margin: 0;
   }
 
@@ -528,17 +576,19 @@
   }
 
   &__filter-label {
-    font-size: 12px;
+    font-size: var(--m365-font-label);  // 13px
     font-weight: 500;
     color: var(--m365-text-secondary);
+    line-height: 1.4;
   }
 
   &__quick-range {
     border: none;
     background: transparent;
     color: var(--m365-primary);
-    font-size: 12px;
-    font-weight: 500;
+    font-size: var(--m365-font-label);  // 13px
+    font-weight: 400;
+    line-height: 1.4;
     cursor: pointer;
     padding: 4px 8px;
     border-radius: var(--m365-radius);
@@ -577,12 +627,13 @@
       .dx-datagrid-headers {
         background: var(--m365-bg-surface);
         font-weight: 600;
-        font-size: 12px;
+        font-size: var(--m365-font-meta); // 11px — compact grid header
         color: var(--m365-text-secondary);
+        letter-spacing: 0.3px;
       }
 
       .dx-datagrid-rowsview .dx-row {
-        font-size: 13px;
+        font-size: var(--m365-font-body); // 13px
 
         &:hover {
           background-color: var(--m365-bg-hover);
@@ -747,9 +798,10 @@
     padding: 8px 12px;
     background: var(--m365-bg-surface);
     border-bottom: 1px solid var(--m365-bg-hover);
-    font-size: 12px;
+    font-size: var(--m365-font-label);  // 13px
     font-weight: 600;
     color: var(--m365-text);
+    line-height: 1.3;
   }
 
   &__body {
@@ -761,15 +813,17 @@
 
   &__stat {
     &-label {
-      font-size: 11px;
+      font-size: var(--m365-font-meta);  // 11px
       color: var(--m365-text-tertiary);
       margin-bottom: 2px;
+      letter-spacing: 0.2px;
     }
 
     &-value {
-      font-size: 14px;
+      font-size: 15px;                    // slightly above heading for live stat emphasis
       font-weight: 600;
       color: var(--m365-text);
+      line-height: 1.2;
     }
   }
 }
@@ -782,10 +836,161 @@
   margin-top: 12px;
 
   &__desc {
-    font-size: 12px;
+    font-size: var(--m365-font-meta);  // 11px
     color: var(--m365-text-secondary);
     margin-top: 6px;
+    line-height: 1.4;
   }
+}
+
+// ── Detail Panel — Tab bar ─────────────────────────────────────────────────
+.tdp-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 0 0 0 0;
+  border-bottom: 1px solid var(--m365-border-light);
+  margin-bottom: 16px;
+}
+
+.tdp-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-family: var(--m365-font);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--m365-text-secondary);
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;           // overlap the parent border-bottom
+  cursor: pointer;
+  border-radius: 4px 4px 0 0;
+  transition: color .15s, border-color .15s, background .15s;
+
+  i { font-size: 13px; }
+
+  &:hover {
+    color: var(--m365-text);
+    background: var(--m365-bg-hover);
+  }
+
+  &--active {
+    color: var(--m365-primary);
+    border-bottom-color: var(--m365-primary);
+    font-weight: 600;
+  }
+}
+
+// ── Detail Panel — Map tab ─────────────────────────────────────────────────
+.tdp-map-wrapper {
+  display: flex;
+  flex-direction: column;
+  height: 480px;
+  position: relative;
+  border-radius: 6px;
+  overflow: hidden;
+  border: 1px solid var(--m365-border-light);
+}
+
+.tdp-map-canvas {
+  flex: 1;
+  min-height: 0;
+}
+
+.tdp-map-footer {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  font-size: 11px;
+  color: var(--m365-text-tertiary, var(--m365-text-secondary));
+  background: var(--m365-bg-surface);
+  border-top: 1px solid var(--m365-border-light);
+
+  i { font-size: 11px; }
+
+  &__coords { flex: 1; }
+
+  &__link {
+    color: var(--m365-primary);
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 500;
+    &:hover { text-decoration: underline; }
+  }
+}
+
+.tdp-map-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 60px 24px;
+  color: var(--m365-text-secondary);
+  font-size: 13px;
+  text-align: center;
+
+  i {
+    font-size: 32px;
+    color: var(--m365-border);
+  }
+
+  &__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0;
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: var(--m365-text-secondary);
+    max-width: 320px;
+    line-height: 1.5;
+    margin: 0;
+  }
+}
+
+.tdp-map-vehicle-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--m365-bg-surface);
+  border-bottom: 1px solid var(--m365-border-light);
+  font-size: 12px;
+}
+
+.tdp-map-loader {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.75);
+  font-size: 13px;
+  color: var(--m365-text-secondary);
+  z-index: 5;
+
+  i { font-size: 20px; margin-right: 8px; }
+}
+
+.tdp-map-vehicle-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--m365-primary-light, rgba(0, 120, 212, 0.08));
+  color: var(--m365-primary);
+  border-radius: 10px;
+  border: 1px solid var(--m365-primary-light, rgba(0, 120, 212, 0.2));
+
+  i { font-size: 11px; }
 }
 
 // ── Responsive ──

@@ -35,13 +35,13 @@ const FORMAT_OPTIONS = [
 ];
 
 const DAY_OF_WEEK_OPTIONS = [
+    { id: 'sunday', name: 'Sunday', dayIndex: 0 },
     { id: 'monday', name: 'Monday', dayIndex: 1 },
     { id: 'tuesday', name: 'Tuesday', dayIndex: 2 },
     { id: 'wednesday', name: 'Wednesday', dayIndex: 3 },
     { id: 'thursday', name: 'Thursday', dayIndex: 4 },
     { id: 'friday', name: 'Friday', dayIndex: 5 },
     { id: 'saturday', name: 'Saturday', dayIndex: 6 },
-    { id: 'sunday', name: 'Sunday', dayIndex: 0 },
 ];
 
 const WEEK_OF_MONTH_OPTIONS = [
@@ -75,6 +75,7 @@ const ReportScheduleForm = ({
         // Period & Timing fields (from old ScheduleReportEmailDialog)
         scheduleDayOfWeekIds: initialValues.scheduleDayOfWeekIds || ['monday'],
         scheduleWeekOfMonthIds: initialValues.scheduleWeekOfMonthIds || ['first'],
+        scheduleDayOfMonth: initialValues.scheduleDayOfMonth || 1,
         scheduleTime: initialValues.scheduleTime || '08:00',
     });
 
@@ -229,12 +230,41 @@ const ReportScheduleForm = ({
                     </div>
                 </div>
 
-                {/* Day / Week / Time selectors — only for recurring */}
-                {formData.frequency !== 'once' && (
+                {/* Daily: time only */}
+                {formData.frequency === 'daily' && (
                     <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mt-4">
                         <div>
                             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                Day(s)
+                                Time of Day
+                            </label>
+                            <DateBox
+                                type="time"
+                                value={(() => {
+                                    const [h, m] = (formData.scheduleTime || '08:00').split(':');
+                                    const d = new Date();
+                                    d.setHours(Number(h) || 8, Number(m) || 0, 0, 0);
+                                    return d;
+                                })()}
+                                onValueChanged={(e) => {
+                                    if (e.value) {
+                                        const d = new Date(e.value);
+                                        const hh = String(d.getHours()).padStart(2, '0');
+                                        const mm = String(d.getMinutes()).padStart(2, '0');
+                                        handleChange('scheduleTime', `${hh}:${mm}`);
+                                    }
+                                }}
+                                displayFormat="HH:mm"
+                            />
+                        </div>
+                    </div>
+                )}
+
+                {/* Weekly: Day(s) of Week + Week(s) of Month + time */}
+                {formData.frequency === 'weekly' && (
+                    <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mt-4">
+                        <div>
+                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                Day(s) of Week
                             </label>
                             <TagBox
                                 dataSource={DAY_OF_WEEK_OPTIONS}
@@ -242,7 +272,7 @@ const ReportScheduleForm = ({
                                 displayExpr="name"
                                 value={formData.scheduleDayOfWeekIds}
                                 onValueChanged={(e) => {
-                                    const val = Array.isArray(e.value) && e.value.length ? e.value : ['monday'];
+                                    const val = Array.isArray(e.value) && e.value.length ? e.value : ['sunday'];
                                     handleChange('scheduleDayOfWeekIds', val);
                                 }}
                                 placeholder="Select days..."
@@ -270,7 +300,6 @@ const ReportScheduleForm = ({
                                 showSelectionControls={true}
                                 applyValueMode="useButtons"
                                 maxDisplayedTags={3}
-                                disabled={formData.frequency !== 'monthly'}
                             />
                         </div>
                         <div>
@@ -296,17 +325,46 @@ const ReportScheduleForm = ({
                                 displayFormat="HH:mm"
                             />
                         </div>
+                    </div>
+                )}
+
+                {/* Monthly: Day of month 1–31 + time */}
+                {formData.frequency === 'monthly' && (
+                    <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-mt-4">
                         <div>
                             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                                Repeat Count
+                                Day of Month (1–31)
                             </label>
                             <NumberBox
-                                value={formData.repeatCount}
-                                onValueChanged={(e) => handleChange('repeatCount', e.value)}
+                                value={formData.scheduleDayOfMonth}
+                                onValueChanged={(e) => handleChange('scheduleDayOfMonth', Math.min(31, Math.max(1, e.value || 1)))}
                                 min={1}
-                                max={365}
+                                max={31}
                                 showSpinButtons={true}
-                                hint="0 = unlimited"
+                                format="#"
+                            />
+                        </div>
+                        <div>
+                            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
+                                Schedule Time
+                            </label>
+                            <DateBox
+                                type="time"
+                                value={(() => {
+                                    const [h, m] = (formData.scheduleTime || '08:00').split(':');
+                                    const d = new Date();
+                                    d.setHours(Number(h) || 8, Number(m) || 0, 0, 0);
+                                    return d;
+                                })()}
+                                onValueChanged={(e) => {
+                                    if (e.value) {
+                                        const d = new Date(e.value);
+                                        const hh = String(d.getHours()).padStart(2, '0');
+                                        const mm = String(d.getMinutes()).padStart(2, '0');
+                                        handleChange('scheduleTime', `${hh}:${mm}`);
+                                    }
+                                }}
+                                displayFormat="HH:mm"
                             />
                         </div>
                     </div>

@@ -1,41 +1,260 @@
 /**
  * File: ReportEngine.scss
- * Purpose: Styles for the Report Engine component
- * Last Modified: 2026-02-09
+ * Purpose: Styles for the Report Engine — M365 Admin Center design
+ * Last Modified: 2026-03-02
  */
 
-.report-engine {
-  @apply tw-h-full tw-flex tw-flex-col tw-bg-gray-100;
+// ── M365 tokens ──────────────────────────────────────────────────────────────
+$m-text:          #201f1e;
+$m-text-sec:      #605e5c;
+$m-text-ter:      #a19f9d;
+$m-primary:       #0078d4;
+$m-primary-hover: #106ebe;
+$m-border:        #c8c6c4;
+$m-border-light:  #edebe9;
+$m-bg-hover:      #f3f2f1;
+$m-surface:       #faf9f8;
+$m-card:          #ffffff;
+$m-danger:        #d13438;
 
-  .engine-header {
-    @apply tw-flex tw-justify-between tw-items-center tw-p-4 tw-bg-white tw-border-b tw-border-gray-200;
+// ── Button base ──────────────────────────────────────────────────────────────
+.m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+  white-space: nowrap;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+
+  i { font-size: 13px; }
+
+  &--primary {
+    background: $m-primary;
+    color: #fff;
+    &:hover:not(:disabled) { background: $m-primary-hover; }
   }
 
-  .engine-content {
-    @apply tw-flex tw-flex-1 tw-gap-4 tw-p-4 tw-overflow-hidden;
-    min-height: 0;
+  &--ghost {
+    background: $m-card;
+    color: $m-text;
+    border: 1px solid $m-border;
+    padding: 0 13px;
+    &:hover:not(:disabled) { background: $m-bg-hover; }
+  }
 
-    .engine-sidebar {
-      @apply tw-w-80 tw-bg-white tw-rounded-lg tw-shadow-sm tw-flex tw-flex-col tw-overflow-y-auto;
-      flex-shrink: 0;
+  &--danger-text {
+    background: transparent;
+    color: $m-danger;
+    border: 1px solid lighten($m-danger, 30%);
+    padding: 0 8px;
+    height: 26px;
+    font-size: 12px;
+    border-radius: 4px;
+    &:hover:not(:disabled) { background: #fde7e9; }
+  }
 
-      .sidebar-section {
-        @apply tw-border-b tw-border-gray-100;
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
 
-        &:last-child {
-          @apply tw-border-b-0;
-        }
+// ── Layout ───────────────────────────────────────────────────────────────────
+.report-engine {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: $m-surface;
+  font-family: 'Segoe UI', -apple-system, system-ui, sans-serif;
+  font-size: 13px;
+  color: $m-text;
+}
 
-        .section-header {
-          @apply tw-px-4 tw-py-2.5 tw-bg-gray-50 tw-text-sm tw-font-semibold tw-text-gray-600 tw-flex tw-items-center tw-uppercase tw-tracking-wide;
-          font-size: 0.7rem;
-        }
-      }
+// ── Page Header ──────────────────────────────────────────────────────────────
+.engine-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 20px;
+  background: $m-card;
+  border-bottom: 1px solid $m-border-light;
+  flex-shrink: 0;
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  &__icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: #deecf9;
+    color: $m-primary;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: $m-text;
+    margin: 0;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    font-size: 12px;
+    color: $m-text-sec;
+    margin: 2px 0 0;
+  }
+}
+
+// ── Body (sidebar + output) ───────────────────────────────────────────────────
+.engine-body {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+// ── Sidebar ───────────────────────────────────────────────────────────────────
+.engine-sidebar {
+  width: 296px;
+  flex-shrink: 0;
+  background: $m-card;
+  border-right: 1px solid $m-border-light;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.engine-section {
+  border-bottom: 1px solid $m-border-light;
+
+  &:last-child { border-bottom: none; }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 8px 14px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: $m-text-sec;
+    background: $m-surface;
+    border-bottom: 1px solid $m-border-light;
+
+    i { font-size: 12px; color: $m-primary; }
+  }
+
+  &__body {
+    padding: 12px 14px;
+  }
+
+  &__hint {
+    font-size: 11px;
+    color: $m-text-ter;
+    margin: 5px 0 0;
+  }
+}
+
+// ── Output panel ─────────────────────────────────────────────────────────────
+.engine-output {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+// ── Sidebar action footer ───────────────────────────────────────────────────────────
+.engine-actions {
+  padding: 14px;
+  border-top: 1px solid $m-border-light;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: auto;
+
+  &__generate {
+    width: 100%;
+    justify-content: center;
+    height: 34px;
+    font-size: 13px;
+  }
+
+  &__secondary {
+    width: 100%;
+    justify-content: center;
+  }
+
+  &__row {
+    display: flex;
+    gap: 6px;
+
+    .m365-btn {
+      flex: 1;
+      justify-content: center;
+      font-size: 12px;
+      padding: 0 8px;
     }
+  }
+}
 
-    .engine-output {
-      @apply tw-flex-1 tw-flex tw-flex-col tw-overflow-hidden;
-      min-width: 0;
-    }
+// ── Progress banner ───────────────────────────────────────────────────────────
+.engine-progress {
+  padding: 10px 16px;
+  background: #f3f9ff;
+  border-bottom: 1px solid #bfdff5;
+  flex-shrink: 0;
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+  }
+
+  &__msg {
+    font-size: 13px;
+    font-weight: 500;
+    color: $m-primary;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    i { font-size: 14px; }
+  }
+
+  &__meta {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__pct {
+    font-size: 12px;
+    font-weight: 600;
+    color: $m-primary;
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__elapsed {
+    font-size: 11px;
+    color: $m-text-ter;
+    margin-left: 5px;
   }
 }

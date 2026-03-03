@@ -2,14 +2,16 @@
  * File: ReportMonitorDashboard.js
  * Purpose: Dashboard for monitoring report execution history — success/failure rates,
  *          format usage, recent executions, and performance stats.
+ *          M365 Admin Center Fluent Design.
  * Dependencies: React, DevExtreme DataGrid, reportingService
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-03-02
  *
  * Key Components:
- * - ReportMonitorDashboard: Grid + stats cards for execution history
+ * - ReportMonitorDashboard: Full-width grid + M365 stat tiles + execution detail panel
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import DateRangeBox from 'devextreme-react/date-range-box';
 import DataGrid, {
     Column,
     Paging,
@@ -19,10 +21,7 @@ import DataGrid, {
     Summary,
     TotalItem,
 } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
 import { LoadPanel } from 'devextreme-react/load-panel';
-import { DateBox } from 'devextreme-react/date-box';
-import notify from 'devextreme/ui/notify';
 import reportingService from '../../../services/reportingService';
 import ReportExecutionLog from './ReportExecutionLog';
 import './ReportMonitorDashboard.scss';
@@ -103,138 +102,192 @@ const ReportMonitorDashboard = () => {
         return `${(ms / 1000).toFixed(2)}s`;
     }, []);
 
+    const dateRangeValue = useMemo(() => [dateFrom, dateTo], [dateFrom, dateTo]);
+
+    const handleDateRangeChange = useCallback((e) => {
+        const [start, end] = e.value ?? [null, null];
+        if (start !== undefined) setDateFrom(start ? new Date(start) : null);
+        if (end !== undefined) setDateTo(end ? new Date(end) : null);
+    }, []);
+
     return (
         <div className="report-monitor-dashboard">
             <LoadPanel visible={loading} />
 
-            {/* Header */}
-            <div className="tw-flex tw-justify-between tw-items-start tw-mb-4">
-                <div>
-                    <h2 className="tw-text-xl tw-font-semibold tw-text-gray-800 tw-m-0">
-                        <i className="fa-light fa-monitor-waveform tw-mr-2 tw-text-blue-600"></i>
-                        Report Monitoring
-                    </h2>
-                    <p className="tw-text-sm tw-text-gray-500 tw-mt-1">
-                        Track report execution history, performance, and errors
-                    </p>
+            {/* M365 Page Header */}
+            <div className="monitor-header">
+                <div className="monitor-header__left">
+                    <div className="monitor-header__icon-wrap">
+                        <i className="fa-light fa-monitor-waveform" />
+                    </div>
+                    <div>
+                        <h2 className="monitor-header__title">Report Monitoring</h2>
+                        <p className="monitor-header__subtitle">Track execution history, performance, and errors</p>
+                    </div>
                 </div>
-                <div className="tw-flex tw-items-center tw-gap-2">
-                    <DateBox
-                        value={dateFrom}
-                        onValueChanged={(e) => setDateFrom(e.value)}
-                        type="date"
-                        displayFormat="yyyy-MM-dd"
-                        width={140}
-                    />
-                    <span className="tw-text-gray-400">to</span>
-                    <DateBox
-                        value={dateTo}
-                        onValueChanged={(e) => setDateTo(e.value)}
-                        type="date"
-                        displayFormat="yyyy-MM-dd"
-                        width={140}
-                    />
-                    <Button
-                        icon="fa-light fa-refresh"
-                        hint="Refresh"
-                        onClick={loadExecutions}
-                        stylingMode="outlined"
-                    />
+                <div className="monitor-header__actions">
+                    <div className="monitor-header__date-range">
+                        <DateRangeBox
+                            value={dateRangeValue}
+                            onValueChanged={handleDateRangeChange}
+                            displayFormat="dd MMM yyyy"
+                            showClearButton={false}
+                            startDateLabel="From"
+                            endDateLabel="To"
+                            height={34}
+                            stylingMode="outlined"
+                            className="monitor-date-range-box"
+                        />
+                    </div>
+                    <button className="m365-btn m365-btn--text" onClick={loadExecutions}>
+                        <i className="fa-light fa-rotate-right" />
+                        Refresh
+                    </button>
                 </div>
             </div>
 
-            {/* Stats Cards */}
-            <div className="tw-grid tw-grid-cols-4 tw-gap-4 tw-mb-6">
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-4 tw-border-l-4 tw-border-blue-500">
-                    <p className="tw-text-sm tw-text-gray-500 tw-m-0">Total Executions</p>
-                    <p className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-m-0">{stats.total}</p>
+            {/* M365 Stat Tiles */}
+            <div className="monitor-stats">
+                <div className="monitor-stat">
+                    <div className="monitor-stat__icon" style={{ background: '#deecf9', color: '#0078d4' }}>
+                        <i className="fa-light fa-chart-bar" />
+                    </div>
+                    <div className="monitor-stat__body">
+                        <p className="monitor-stat__label">Total Executions</p>
+                        <p className="monitor-stat__value">{stats.total}</p>
+                    </div>
                 </div>
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-4 tw-border-l-4 tw-border-green-500">
-                    <p className="tw-text-sm tw-text-gray-500 tw-m-0">Successful</p>
-                    <p className="tw-text-2xl tw-font-bold tw-text-green-600 tw-m-0">{stats.successful}</p>
+                <div className="monitor-stat">
+                    <div className="monitor-stat__icon" style={{ background: '#dff6dd', color: '#107c10' }}>
+                        <i className="fa-light fa-circle-check" />
+                    </div>
+                    <div className="monitor-stat__body">
+                        <p className="monitor-stat__label">Successful</p>
+                        <p className="monitor-stat__value" style={{ color: '#107c10' }}>{stats.successful}</p>
+                    </div>
                 </div>
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-4 tw-border-l-4 tw-border-red-500">
-                    <p className="tw-text-sm tw-text-gray-500 tw-m-0">Failed</p>
-                    <p className="tw-text-2xl tw-font-bold tw-text-red-600 tw-m-0">{stats.failed}</p>
+                <div className="monitor-stat">
+                    <div className="monitor-stat__icon" style={{ background: '#fde7e9', color: '#d13438' }}>
+                        <i className="fa-light fa-circle-xmark" />
+                    </div>
+                    <div className="monitor-stat__body">
+                        <p className="monitor-stat__label">Failed</p>
+                        <p className="monitor-stat__value" style={{ color: '#d13438' }}>{stats.failed}</p>
+                    </div>
                 </div>
-                <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-4 tw-border-l-4 tw-border-purple-500">
-                    <p className="tw-text-sm tw-text-gray-500 tw-m-0">Avg Duration</p>
-                    <p className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-m-0">
-                        {stats.avgDuration < 1000 ? `${stats.avgDuration}ms` : `${(stats.avgDuration / 1000).toFixed(1)}s`}
-                    </p>
+                <div className="monitor-stat">
+                    <div className="monitor-stat__icon" style={{ background: '#f3e8fd', color: '#6b21a8' }}>
+                        <i className="fa-light fa-timer" />
+                    </div>
+                    <div className="monitor-stat__body">
+                        <p className="monitor-stat__label">Avg Duration</p>
+                        <p className="monitor-stat__value">
+                            {stats.avgDuration < 1000 ? `${stats.avgDuration}ms` : `${(stats.avgDuration / 1000).toFixed(1)}s`}
+                        </p>
+                    </div>
                 </div>
             </div>
 
-            {/* Format Usage */}
+            {/* Format usage badges */}
             {Object.keys(stats.formatCounts).length > 0 && (
-                <div className="tw-flex tw-gap-3 tw-mb-4">
-                    <span className="tw-text-sm tw-text-gray-500 tw-self-center">Format usage:</span>
+                <div className="monitor-format-bar">
+                    <span className="monitor-format-bar__label">Format usage:</span>
                     {Object.entries(stats.formatCounts).map(([fmt, count]) => (
-                        <span
-                            key={fmt}
-                            className="tw-px-2 tw-py-1 tw-bg-gray-100 tw-text-gray-700 tw-rounded tw-text-xs tw-font-medium"
-                        >
+                        <span key={fmt} className="m365-badge m365-badge--neutral">
                             {fmt}: {count}
                         </span>
                     ))}
                 </div>
             )}
 
-            {/* Main Content */}
-            <div className="tw-flex tw-gap-4">
-                {/* Grid */}
-                <div className="tw-flex-1">
-                    <DataGrid
-                        dataSource={executions}
-                        showBorders={true}
-                        columnAutoWidth={true}
-                        rowAlternationEnabled={true}
-                        keyExpr="reportExecutionId"
-                        onRowClick={(e) => setSelectedExecution(e.data)}
-                        selection={{ mode: 'single' }}
-                        noDataText="No execution records found for the selected period"
-                    >
-                        <SearchPanel visible={true} width={250} />
-                        <FilterRow visible={true} />
-                        <Paging defaultPageSize={15} />
-                        <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30]} showInfo={true} />
+            {/* Full-width DataGrid */}
+            <div className="monitor-grid-wrap">
+                <DataGrid
+                    dataSource={executions}
+                    showBorders={false}
+                    columnAutoWidth={false}
+                    rowAlternationEnabled={true}
+                    keyExpr="reportExecutionId"
+                    onRowClick={(e) =>
+                        setSelectedExecution(prev =>
+                            prev?.reportExecutionId === e.data?.reportExecutionId ? null : e.data
+                        )
+                    }
+                    selection={{ mode: 'single' }}
+                    noDataText="No execution records found for the selected period"
+                    width="100%"
+                    height={executions.length > 0 ? 420 : 160}
+                >
+                    <SearchPanel visible={true} width={240} placeholder="Search executions…" />
+                    <FilterRow visible={true} />
+                    <Paging defaultPageSize={15} />
+                    <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30, 50]} showInfo={true} />
 
-                        <Column dataField="reportExecutionId" caption="ID" width={60} />
-                        <Column dataField="executedBy" caption="User" width={130} />
-                        <Column
-                            dataField="executedAt"
-                            caption="Executed At"
-                            dataType="datetime"
-                            format="yyyy-MM-dd HH:mm:ss"
-                            width={170}
-                            sortOrder="desc"
-                        />
-                        <Column dataField="exportFormat" caption="Format" width={80} />
-                        <Column dataField="recordCount" caption="Records" width={80} alignment="center" />
-                        <Column
-                            dataField="executionTimeMs"
-                            caption="Duration"
-                            width={100}
-                            cellRender={formatDuration}
-                        />
-                        <Column
-                            dataField="success"
-                            caption="Status"
-                            width={90}
-                            cellRender={renderStatus}
-                        />
+                    <Column dataField="reportExecutionId" caption="ID" width={70} />
+                    <Column dataField="executedBy" caption="User" minWidth={120} />
+                    <Column
+                        dataField="executedAt"
+                        caption="Executed At"
+                        dataType="datetime"
+                        format="yyyy-MM-dd HH:mm:ss"
+                        width={170}
+                        sortOrder="desc"
+                    />
+                    <Column
+                        caption="Report Source"
+                        minWidth={140}
+                        calculateCellValue={(row) => {
+                            try {
+                                const f = JSON.parse(row.filters || '{}');
+                                return f.sourceName || f.sourceId || (row.reportDefinitionId ? `Report #${row.reportDefinitionId}` : '—');
+                            } catch {
+                                return row.reportDefinitionId ? `Report #${row.reportDefinitionId}` : '—';
+                            }
+                        }}
+                    />
+                    <Column dataField="exportFormat" caption="Format" width={80} alignment="center" />
+                    <Column dataField="recordCount" caption="Records" width={90} alignment="center" />
+                    <Column
+                        dataField="executionTimeMs"
+                        caption="Duration"
+                        width={110}
+                        alignment="right"
+                        cellRender={formatDuration}
+                    />
+                    <Column
+                        dataField="success"
+                        caption="Status"
+                        width={100}
+                        alignment="center"
+                        cellRender={renderStatus}
+                    />
 
-                        <Summary>
-                            <TotalItem column="reportExecutionId" summaryType="count" />
-                        </Summary>
-                    </DataGrid>
-                </div>
+                    <Summary>
+                        <TotalItem column="reportExecutionId" summaryType="count" displayFormat="{0} records" />
+                    </Summary>
+                </DataGrid>
+            </div>
 
-                {/* Detail Panel */}
-                <div className="tw-w-96 tw-flex-shrink-0">
+            {/* Execution detail — collapses in below the grid */}
+            {selectedExecution && (
+                <div className="monitor-detail-panel">
+                    <div className="monitor-detail-panel__header">
+                        <span className="monitor-detail-panel__title">
+                            <i className="fa-light fa-file-lines" />
+                            Execution Detail
+                            <span className="monitor-detail-panel__id">#{selectedExecution.reportExecutionId}</span>
+                        </span>
+                        <button
+                            className="m365-btn m365-btn--text"
+                            onClick={() => setSelectedExecution(null)}
+                        >
+                            <i className="fa-light fa-xmark" />
+                            Close
+                        </button>
+                    </div>
                     <ReportExecutionLog execution={selectedExecution} />
                 </div>
-            </div>
+            )}
         </div>
     );
 };

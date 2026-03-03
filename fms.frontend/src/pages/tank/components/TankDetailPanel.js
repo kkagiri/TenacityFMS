@@ -2,8 +2,8 @@
  * File:          TankDetailPanel.js
  * Purpose:       Read-only tank detail view using M365 info-grid / info-cell / flat-section
  *                pattern — matches the Users page design system.
- * Dependencies:  M365ProgressBar, m365-shared.scss
- * Last Modified: 2026-02-26
+ * Dependencies:  M365ProgressBar, usePermissions, m365-shared.scss
+ * Last Modified: 2026-03-02
  *
  * Props:
  * - tank             (object): Tank entity
@@ -13,8 +13,9 @@
  * - onHistory        (func):   Open history panel
  * - onLinkPTS        (func):   Open PTS link panel
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import M365ProgressBar from "../../../components/m365/M365ProgressBar";
+import TankLocationMap from "./TankLocationMap";
 import "../tankPage.scss";
 
 /* ── helpers ─────────────────────────────────────────────────────────────── */
@@ -67,7 +68,14 @@ const extractProbeReadings = (liveStatus) => {
 };
 
 /* ── Component ───────────────────────────────────────────────────────────── */
+const TABS = [
+  { id: 'details', label: 'Details',  icon: 'fa-light fa-circle-info' },
+  { id: 'map',     label: 'Map',      icon: 'fa-light fa-map' },
+];
+
 const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory, onLinkPTS }) => {
+  const [activeTab, setActiveTab] = useState('details');
+
   const probeReadings = useMemo(() => extractProbeReadings(liveStatus), [liveStatus]);
 
   const selectedProbe = useMemo(() => {
@@ -85,31 +93,33 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
   return (
     <div className="m365-tank-detail">
 
-      {/* ── Command bar ── */}
-      <div className="m365-tank-detail__cmd">
-        <button className="m365-action-link" onClick={onHistory}>
-          <i className="fa-light fa-arrow-right-arrow-left" />
-          <span>View transactions</span>
-        </button>
-        {onEdit && (
-          <button className="m365-action-link" onClick={onEdit}>
-            <i className="fa-light fa-pen-to-square" />
-            <span>Edit tank</span>
+      {/* ── Tab bar ── */}
+      <div className="tdp-tabs">
+        {TABS.map((t) => (
+          <button
+            key={t.id}
+            className={`tdp-tab${activeTab === t.id ? ' tdp-tab--active' : ''}`}
+            onClick={() => setActiveTab(t.id)}
+          >
+            <i className={t.icon} />
+            {t.label}
           </button>
-        )}
-        {onLinkPTS && (
-          <button className="m365-action-link" onClick={onLinkPTS}>
-            <i className="fa-light fa-link" />
-            <span>Link PTS</span>
-          </button>
-        )}
+        ))}
       </div>
+
+      {/* ── Map tab ── */}
+      {activeTab === 'map' && (
+        <TankLocationMap tank={tank} liveStatus={liveStatus} />
+      )}
+
+      {/* ── Details tab ── */}
+      {activeTab === 'details' && (<>
 
       {/* ── Meta strip (name is already in SlidePanel title bar) ── */}
       <div className="m365-tank-detail__strip">
         <div className={`m365-tank-detail__icon-circle ${tank.tankType === "MobileTanker"
-            ? "m365-tank-detail__icon-circle--mobile"
-            : "m365-tank-detail__icon-circle--stationary"
+          ? "m365-tank-detail__icon-circle--mobile"
+          : "m365-tank-detail__icon-circle--stationary"
           }`}>
           <i className={tank.tankType === "MobileTanker" ? "fa-light fa-truck-moving" : "fa-light fa-gas-pump"} />
         </div>
@@ -329,6 +339,8 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
           )}
         </div>
       </div>
+
+    </>)}
 
     </div>
   );

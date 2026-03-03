@@ -469,6 +469,7 @@ namespace FMS.Application.Features.Notification.Services
                     out var scheduleType,
                     out var dayOfWeeks,
                     out var weekOfMonthOrdinals,
+                    out var dayOfMonth,
                     out var timeOfDay,
                     out var timeZoneId,
                     out parseError))
@@ -478,6 +479,25 @@ namespace FMS.Application.Features.Notification.Services
 
             if (string.Equals(scheduleType, "monthly", StringComparison.OrdinalIgnoreCase))
             {
+                // Day-of-month (1–31) takes priority over Nth-weekday when present
+                if (dayOfMonth.HasValue)
+                {
+                    var domRunUtc = ComputeNextDayOfMonthRunUtc(
+                        dayOfMonth.Value,
+                        timeOfDay,
+                        timeZoneId,
+                        referenceUtc);
+
+                    if (!domRunUtc.HasValue)
+                    {
+                        parseError = "Could not compute next monthly (day-of-month) run date";
+                        return false;
+                    }
+
+                    nextRunUtc = domRunUtc.Value;
+                    return true;
+                }
+
                 var monthlyRunUtc = ComputeNextMonthlyRunUtc(
                     dayOfWeeks,
                     weekOfMonthOrdinals,
@@ -509,6 +529,7 @@ namespace FMS.Application.Features.Notification.Services
             out string scheduleType,
             out IReadOnlyCollection<DayOfWeek> dayOfWeeks,
             out IReadOnlyCollection<int> weekOfMonthOrdinals,
+            out int? dayOfMonth,
             out TimeSpan timeOfDay,
             out string? timeZoneId,
             out string? parseError)
@@ -516,6 +537,7 @@ namespace FMS.Application.Features.Notification.Services
             scheduleType = "weekly";
             dayOfWeeks = new List<DayOfWeek> { DayOfWeek.Monday };
             weekOfMonthOrdinals = new List<int> { 1 };
+            dayOfMonth = null;
             timeOfDay = TimeSpan.FromHours(8);
             timeZoneId = "UTC";
             parseError = null;
@@ -543,11 +565,6 @@ namespace FMS.Application.Features.Notification.Services
                     scheduleType = scheduleTypeValue.Trim().ToLowerInvariant();
                 }
 
-                if (!TryParseDayOfWeekValues(recurringSchedule, out dayOfWeeks, out parseError))
-                {
-                    return false;
-                }
-
                 var timeValue = recurringSchedule.Value<string>("timeOfDay");
                 if (!TryParseTimeOfDayValue(timeValue, out timeOfDay))
                 {
@@ -559,11 +576,31 @@ namespace FMS.Application.Features.Notification.Services
 
                 if (string.Equals(scheduleType, "monthly", StringComparison.OrdinalIgnoreCase))
                 {
-                    if (!TryParseWeekOfMonthValues(recurringSchedule, out weekOfMonthOrdinals, out parseError))
+                    // Day-of-month (1–31) path — no dayOfWeek required
+                    var domToken = recurringSchedule["dayOfMonth"];
+                    if (domToken != null)
                     {
-                        return false;
+                        var domValue = domToken.Value<int?>();
+                        if (domValue.HasValue && domValue.Value >= 1 && domValue.Value <= 31)
+                        {
+                            dayOfMonth = domValue.Value;
+                            return true;
+                        }
                     }
+
+                    // Nth-weekday-of-month path (legacy)
+                    if (!TryParseDayOfWeekValues(recurringSchedule, out dayOfWeeks, out parseError))
+                        return false;
+
+                    if (!TryParseWeekOfMonthValues(recurringSchedule, out weekOfMonthOrdinals, out parseError))
+                        return false;
+
+                    return true;
                 }
+
+                // Weekly / daily path
+                if (!TryParseDayOfWeekValues(recurringSchedule, out dayOfWeeks, out parseError))
+                    return false;
 
                 return true;
             }
@@ -890,6 +927,44 @@ namespace FMS.Application.Features.Notification.Services
                 .ToList();
 
             return candidates.Any() ? candidates[0] : null;
+        }
+
+        /// <summary>
+        /// Computes the next UTC run time based on a literal day-of-month (1–31).
+        /// If the day doesn't exist in a given month (e.g. day 31 in April) it clamps
+        /// to the last day of that month.
+        /// </summary>
+        private DateTime? ComputeNextDayOfMonthRunUtc(
+            int dayOfMonth,
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var timezone = ResolveTimeZoneInfo(timeZoneId);
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(referenceUtc, timezone);
+
+            // Try current month first, then advance month-by-month (max 13 to avoid infinite loops)
+            for (var offset = 0; offset < 13; offset++)
+            {
+                var candidateBase = new DateTime(localNow.Year, localNow.Month, 1).AddMonths(offset);
+                var daysInMonth = DateTime.DaysInMonth(candidateBase.Year, candidateBase.Month);
+                var clampedDay = Math.Min(dayOfMonth, daysInMonth);
+
+                var candidateLocal = new DateTime(
+                    candidateBase.Year,
+                    candidateBase.Month,
+                    clampedDay,
+                    timeOfDay.Hours,
+                    timeOfDay.Minutes,
+                    0,
+                    DateTimeKind.Unspecified);
+
+                var candidateUtc = TimeZoneInfo.ConvertTimeToUtc(candidateLocal, timezone);
+                if (candidateUtc > referenceUtc)
+                    return candidateUtc;
+            }
+
+            return null;
         }
 
         private DateTime? GetNthWeekdayOfMonth(int year, int month, DayOfWeek dayOfWeek, int weekOfMonthOrdinal)

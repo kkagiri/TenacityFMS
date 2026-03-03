@@ -1,13 +1,147 @@
 /**
  * File: ReportScheduleManager.scss
- * Purpose: Styles for the Report Schedule Manager
- * Last Modified: 2026-02-09
+ * Purpose: M365 Admin Center styles for Report Schedule Manager
+ * Last Modified: 2026-03-02
  */
+@import "../../../components/m365/m365-shared.scss";
 
-.report-schedule-manager {
-  @apply tw-p-4;
+$font: var(--m365-font, 'Segoe UI', sans-serif);
 
-  .dx-datagrid {
-    @apply tw-rounded-lg tw-shadow-sm;
+.sched-mgr {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  font-family: $font;
+  background: var(--m365-bg-surface);
+
+  // ── Header
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    background: #fff;
+    border-bottom: 1px solid var(--m365-border-light);
+    flex-shrink: 0;
+  }
+
+  &__header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  &__icon-wrap {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: var(--m365-blue-bg, #deecf9);
+    color: var(--m365-primary, #0078d4);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: var(--m365-font-heading, 16px);
+    font-weight: 600;
+    color: var(--m365-text);
+    margin: 0 0 2px;
+    line-height: 1.3;
+  }
+
+  &__subtitle {
+    font-size: var(--m365-font-meta, 11px);
+    color: var(--m365-text-secondary);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  &__header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  // ── Grid wrapper
+  &__grid-wrap {
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+    padding: 0;
+
+    .dx-datagrid {
+      height: 100%;
+      font-family: $font;
+      font-size: 13px;
+    }
+
+    .dx-datagrid-headers {
+      background: var(--m365-bg-surface);
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--m365-text-secondary);
+      border-bottom: 1px solid var(--m365-border-light);
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+      font-size: 13px;
+      cursor: pointer;
+      transition: background 0.1s;
+
+      &:hover { background: var(--m365-bg-hover) !important; }
+    }
+
+    .dx-datagrid-total-footer {
+      border-top: 1px solid var(--m365-border-light);
+    }
+  }
+
+  // ── Access denied
+  &__access-denied {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    height: 100%;
+    color: var(--m365-text-secondary);
+
+    i { font-size: 36px; }
+    p { font-size: 14px; margin: 0; }
+  }
+}
+
+// ── M365 button overrides (scoped)
+.sched-mgr .m365-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 34px;
+  padding: 0 14px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: 4px;
+  cursor: pointer;
+  border: none;
+  font-family: $font;
+  white-space: nowrap;
+  transition: background 0.15s;
+
+  i { font-size: 13px; }
+
+  &--primary {
+    background: var(--m365-primary, #0078d4);
+    color: #fff;
+    &:hover { background: var(--m365-primary-hover, #106ebe); }
+  }
+
+  &--text {
+    background: transparent;
+    color: var(--m365-text-secondary);
+    padding: 0 8px;
+    &:hover { color: var(--m365-text); background: var(--m365-bg-hover); }
   }
 }

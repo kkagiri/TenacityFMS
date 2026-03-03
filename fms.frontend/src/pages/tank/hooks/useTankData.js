@@ -55,8 +55,19 @@ const useTankData = () => {
   /* ── initial fetch ── */
   useEffect(() => {
     dispatch(fetchTanks());
-    dispatch(fetchSiteList());
+    dispatch(fetchSiteList(true)); // include inactive sites so tanks assigned to them are visible
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /* ── keep selectedTank in sync after refresh / save ── */
+  // When the Redux tanks array is updated (e.g. after an edit + save), re-derive
+  // selectedTank from the freshest data so the detail panel shows updated values.
+  useEffect(() => {
+    if (!selectedTank || !Array.isArray(tanks) || tanks.length === 0) return;
+    const fresh = tanks.find((t) => t.id === selectedTank.id);
+    if (fresh && fresh !== selectedTank) {
+      setSelectedTank(fresh);
+    }
+  }, [tanks]); // eslint-disable-line react-hooks/exhaustive-deps
 
   /* ── inactive-site resolver ── */
   const getInactiveSiteId = useCallback(() => {
@@ -111,7 +122,33 @@ const useTankData = () => {
       }
     });
 
-    // Unassigned bucket
+    // Orphaned bucket — tanks with a siteId that didn't match any loaded site
+    const orphaned = tanks.filter((t) => {
+      const sid = normalizeSiteId(t.siteId);
+      return sid !== null && !sitesWithTanks.some((s) => normalizeSiteId(s.id) === sid);
+    });
+    if (orphaned.length > 0) {
+      rows.push({
+        id: "site_orphaned",
+        name: "Other Tanks",
+        type: "site",
+        siteId: null,
+        siteData: null,
+      });
+      orphaned.forEach((tank) => {
+        rows.push({
+          id: `tank_${tank.id}`,
+          parentId: "site_orphaned",
+          name: tank.name,
+          type: "tank",
+          tankData: tank,
+          volume: tank.tankVolume,
+          currentStock: tank.currentStock,
+        });
+      });
+    }
+
+    // Unassigned bucket — tanks with no siteId at all
     const unassigned = tanks.filter((t) => normalizeSiteId(t.siteId) === null);
     if (unassigned.length > 0) {
       rows.push({
@@ -154,9 +191,10 @@ const useTankData = () => {
   }, []);
 
   /* ── refresh ── */
-  const handleRefresh = useCallback(() => {
-    dispatch(fetchTanks());
-    dispatch(fetchSiteList());
+  const handleRefresh = useCallback(async () => {
+    const result = await dispatch(fetchTanks()); // returns { success, data: tanksArray }
+    dispatch(fetchSiteList(true));               // fire-and-forget
+    return result;
   }, [dispatch]);
 
   /* ── delete ── */

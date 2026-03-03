@@ -16,19 +16,12 @@ import PTSDeviceLinkPanel from '../../tank/components/PTSDeviceLinkPanel';
 import { LorryTanker, StationaryTank } from './TankComponents';
 import './EnhancedTankStockDashboard.scss';
 
-/* ── Fuel grade → colour ─────────────────────────────────────────── */
-const FUEL_COLORS = {
-  diesel: "#4ade80", petrol: "#f87171", water: "#38bdf8",
-  chemical: "#a78bfa", kerosene: "#fb923c",
-};
-const DEFAULT_COLOR = "#60a5fa";
-const getFuelColor = (gradeName) => {
-  if (!gradeName) return DEFAULT_COLOR;
-  const lower = gradeName.toLowerCase();
-  for (const [key, color] of Object.entries(FUEL_COLORS)) {
-    if (lower.includes(key)) return color;
-  }
-  return DEFAULT_COLOR;
+/* ── Level → fill colour (Critical=red, Low=orange, Normal=blue, Full=green) */
+const getLevelColor = (pct) => {
+  if (pct < 20) return "#f87171"; // red   — Critical
+  if (pct < 50) return "#fb923c"; // orange — Low
+  if (pct < 80) return "#60a5fa"; // blue   — Normal
+  return "#4ade80";               // green  — Full / High
 };
 
 const getStatusBadge = (pct) => {
@@ -144,7 +137,7 @@ const TankerMapTab = ({ mobileTanks }) => {
 /* ── Single tank card (clickable → opens TankDetailPanel) ───────── */
 const TankCard = ({ tank, onSelectTank, onViewTransactions }) => {
   const fillPct = tank.tankVolume > 0 ? ((tank.currentStock || 0) / tank.tankVolume) * 100 : 0;
-  const fuelColor = getFuelColor(tank.fuelGradeName);
+  const fuelColor = getLevelColor(fillPct);
   const status = getStatusBadge(fillPct);
   const isMobile = tank.tankType === 'MobileTanker';
   const clipId = `tank-clip-${tank.id}`;
@@ -227,7 +220,8 @@ const critCount = (tanks) =>
 const EnhancedTankStockDashboard = () => {
   const dispatch = useDispatch();
   const { hasPermission } = usePermissions();
-  const canEdit = hasPermission('_Update_TankStock');
+  const canEdit    = hasPermission('_Edit_Tank');
+  const canHistory = hasPermission('_Read_TankVolumeHistory');
 
   const { tanks, loading: tanksLoading } = useSelector((s) => s.tank);
   const { sites } = useSelector((s) => s.site);
@@ -579,15 +573,39 @@ const EnhancedTankStockDashboard = () => {
         onClose={() => setSelectedTank(null)}
         title={selectedTank?.name || 'Tank Details'}
         width={1000}
+        headerActions={
+          selectedTank && (
+            <>
+              {canHistory && (
+                <button className="m365-action-link" onClick={() => handleViewTransactions(selectedTank)}>
+                  <i className="fa-light fa-arrow-right-arrow-left" />
+                  <span>View transactions</span>
+                </button>
+              )}
+              {canEdit && (
+                <button className="m365-action-link" onClick={handleEditTank}>
+                  <i className="fa-light fa-pen-to-square" />
+                  <span>Edit tank</span>
+                </button>
+              )}
+              {canEdit && selectedTank.ptsId !== undefined && (
+                <button className="m365-action-link" onClick={handleLinkPTS}>
+                  <i className="fa-light fa-link" />
+                  <span>Link PTS</span>
+                </button>
+              )}
+            </>
+          )
+        }
       >
         {selectedTank && (
           <TankDetailPanel
             tank={selectedTank}
             liveStatus={selectedLiveStatus}
             connectionStatus={selectedConnection}
-            onEdit={canEdit ? handleEditTank : undefined}
+            onEdit={handleEditTank}
             onHistory={() => handleViewTransactions(selectedTank)}
-            onLinkPTS={canEdit ? handleLinkPTS : undefined}
+            onLinkPTS={handleLinkPTS}
           />
         )}
       </SlidePanel>

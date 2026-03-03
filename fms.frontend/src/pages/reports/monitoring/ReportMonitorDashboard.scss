@@ -1,17 +1,352 @@
 /**
  * File: ReportMonitorDashboard.scss
- * Purpose: Styles for the Report Monitor Dashboard
- * Last Modified: 2026-02-09
+ * Purpose: M365 Admin Center Fluent styles for the Report Monitor Dashboard.
+ * Last Modified: 2026-03-02
  */
 
+// ── M365 Tokens ──────────────────────────────────────────────────────────────
+$m-text:          #201f1e;
+$m-text-mid:      #605e5c;
+$m-text-subtle:   #a19f9d;
+$m-primary:       #0078d4;
+$m-primary-hover: #106ebe;
+$m-border:        #c8c6c4;
+$m-border-light:  #edebe9;
+$m-hover:         #f3f2f1;
+$m-surface:       #faf9f8;
+$m-card:          #ffffff;
+$m-success:       #107c10;
+$m-error:         #d13438;
+$font-stack:      'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
+
+// ── Base ─────────────────────────────────────────────────────────────────────
 .report-monitor-dashboard {
-  @apply tw-p-4;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    font-family: $font-stack;
+    color: $m-text;
+    font-size: 13px;
+    background: $m-surface;
+}
 
-  .dx-datagrid {
-    @apply tw-rounded-lg tw-shadow-sm;
-  }
-
-  .dx-datagrid-rowsview .dx-row {
+// ── M365 Shared Controls (scoped inside dashboard) ───────────────────────────
+.m365-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 16px;
+    font-size: 13px;
+    font-weight: 500;
+    border-radius: 4px;
+    border: none;
     cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+    white-space: nowrap;
+    font-family: $font-stack;
+
+    &--ghost {
+        background: $m-card;
+        color: #323130;
+        border: 1px solid $m-border;
+        &:hover { background: $m-hover; }
+    }
+
+    &--text {
+        background: transparent;
+        color: $m-text-mid;
+        padding: 0 8px;
+        &:hover { color: $m-text; }
+    }
+
+    &:disabled { opacity: 0.4; cursor: not-allowed; }
+    i { font-size: 13px; }
+}
+
+.m365-date {
+    height: 34px;
+    padding: 0 10px;
+    font-size: 13px;
+    color: $m-text;
+    background: $m-card;
+    border: 1px solid $m-border;
+    border-radius: 4px;
+    outline: none;
+    font-family: $font-stack;
+    transition: border-color 0.15s;
+    min-width: 130px;
+
+    &:hover { border-color: $m-text-mid; }
+    &:focus  { border-color: $m-primary; box-shadow: 0 0 0 1px $m-primary; }
+
+    &::-webkit-calendar-picker-indicator {
+        opacity: 0.5;
+        cursor: pointer;
+        &:hover { opacity: 1; }
+    }
+}
+
+.m365-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+
+    &--neutral { background: #f3f2f1; color: $m-text-mid; }
+    &--primary { background: #deecf9; color: $m-primary; }
+    &--success { background: #dff6dd; color: $m-success; }
+    &--error   { background: #fde7e9; color: $m-error; }
+}
+
+// ── Page Header ──────────────────────────────────────────────────────────────
+.monitor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 20px;
+    background: $m-card;
+    border-bottom: 1px solid $m-border-light;
+    flex-shrink: 0;
+
+    &__left {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+    }
+
+    &__icon-wrap {
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        background: #deecf9;
+        color: $m-primary;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    &__title {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+        color: $m-text;
+        line-height: 1.2;
+    }
+
+    &__subtitle {
+        margin: 2px 0 0;
+        font-size: 12px;
+        color: $m-text-mid;
+    }
+
+    &__actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+    &__date-range {
+        display: flex;
+        align-items: center;
+        min-width: 280px;
+    }
+}
+
+// ── DateRangeBox M365 override ────────────────────────────────────────────────
+.monitor-date-range-box {
+  width: 100%;
+
+  .dx-daterangebox {
+    height: 34px;
+    font-family: $font-stack;
+    font-size: 13px;
+    color: $m-text;
   }
+
+  .dx-texteditor.dx-editor-outlined {
+    border-radius: 4px;
+    border-color: $m-border;
+    background: $m-card;
+    box-shadow: none;
+
+    &.dx-state-hover { border-color: $m-text-mid; }
+    &.dx-state-focused { border-color: $m-primary; box-shadow: 0 0 0 1px $m-primary; }
+  }
+
+  .dx-daterangebox-separator {
+    font-size: 12px;
+    color: $m-text-subtle;
+    padding: 0 2px;
+  }
+
+  .dx-label { font-size: 11px; color: $m-text-subtle; }
+
+  .dx-texteditor-input {
+    font-family: $font-stack;
+    font-size: 13px;
+    color: $m-text;
+    height: 32px;
+    line-height: 32px;
+    padding: 0 8px;
+  }
+}
+
+// ── Stat Tiles ────────────────────────────────────────────────────────────────
+.monitor-stats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    padding: 16px 20px 0;
+    flex-shrink: 0;
+}
+
+.monitor-stat {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 14px 16px;
+    background: $m-card;
+    border: 1px solid $m-border-light;
+    border-radius: 8px;
+    transition: box-shadow 0.15s, border-color 0.15s;
+
+    &:hover {
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        border-color: $m-border;
+    }
+
+    &__icon {
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 16px;
+        flex-shrink: 0;
+    }
+
+    &__body {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+
+    &__label {
+        margin: 0;
+        font-size: 11px;
+        font-weight: 600;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $m-text-mid;
+    }
+
+    &__value {
+        margin: 0;
+        font-size: 22px;
+        font-weight: 700;
+        color: $m-text;
+        line-height: 1.1;
+    }
+}
+
+// ── Format Usage Bar ─────────────────────────────────────────────────────────
+.monitor-format-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 20px 0;
+    flex-shrink: 0;
+
+    &__label {
+        font-size: 12px;
+        color: $m-text-subtle;
+    }
+}
+
+// ── Full-Width Grid ───────────────────────────────────────────────────────────
+.monitor-grid-wrap {
+    flex: 1;
+    margin: 14px 20px 0;
+    background: $m-card;
+    border: 1px solid $m-border-light;
+    border-radius: 8px;
+    overflow: hidden;
+
+    .dx-datagrid {
+        border-radius: 8px;
+        font-family: $font-stack;
+        font-size: 13px;
+    }
+
+    .dx-datagrid-headers {
+        background: $m-surface;
+        font-size: 11px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        color: $m-text-mid;
+        border-bottom: 1px solid $m-border-light;
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+        cursor: pointer;
+        transition: background 0.1s;
+
+        &.dx-selection > td,
+        &.dx-selection:hover > td {
+            background: #e8f3fb;
+            color: $m-text;
+        }
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td {
+        background: $m-hover;
+    }
+}
+
+// ── Execution Detail Panel ────────────────────────────────────────────────────
+.monitor-detail-panel {
+    margin: 12px 20px 16px;
+    background: $m-card;
+    border: 1px solid $m-border-light;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+
+    &__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 16px;
+        background: $m-surface;
+        border-bottom: 1px solid $m-border-light;
+    }
+
+    &__title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13px;
+        font-weight: 600;
+        color: $m-text;
+
+        i { color: $m-primary; font-size: 14px; }
+    }
+
+    &__id {
+        font-size: 11px;
+        font-weight: 500;
+        color: $m-text-subtle;
+        background: $m-hover;
+        padding: 1px 6px;
+        border-radius: 4px;
+    }
 }

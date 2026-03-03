@@ -71,6 +71,9 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
         ? formData.scheduleWeekOfMonthIds.filter(Boolean)
         : ['first'];
     const scheduleTime = formData.scheduleTime || '08:00';
+    const scheduleDayOfMonth = periodType === 'monthly' && formData.scheduleDayOfMonth
+        ? Math.min(31, Math.max(1, Number(formData.scheduleDayOfMonth) || 1))
+        : null;
     const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
 
     let nextRunDate;
@@ -138,10 +141,11 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
                 ? {
                     enabled: true,
                     scheduleType: periodType === 'monthly' ? 'monthly' : 'weekly',
-                    daysOfWeek: scheduleDayOfWeekIds,
-                    dayOfWeek: scheduleDayOfWeekIds[0] || 'monday',
-                    weeksOfMonth: periodType === 'monthly' ? scheduleWeekOfMonthIds : null,
-                    weekOfMonth: periodType === 'monthly' ? (scheduleWeekOfMonthIds[0] || 'first') : null,
+                    daysOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? [] : scheduleDayOfWeekIds,
+                    dayOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? null : (scheduleDayOfWeekIds[0] || 'monday'),
+                    weeksOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? scheduleWeekOfMonthIds : null,
+                    weekOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? (scheduleWeekOfMonthIds[0] || 'first') : null,
+                    dayOfMonth: scheduleDayOfMonth || null,
                     timeOfDay: scheduleTime,
                     timeZone,
                     nextRunAtUtc: nextRunDate.toISOString(),
@@ -190,6 +194,9 @@ export const buildUpdatePayloadFromForm = (formData, recipientList = [], current
         ? formData.scheduleWeekOfMonthIds.filter(Boolean)
         : ['first'];
     const scheduleTime = formData.scheduleTime || '08:00';
+    const scheduleDayOfMonth = periodType === 'monthly' && formData.scheduleDayOfMonth
+        ? Math.min(31, Math.max(1, Number(formData.scheduleDayOfMonth) || 1))
+        : null;
 
     let nextRunDate;
     if (isRecurring) {
@@ -199,6 +206,7 @@ export const buildUpdatePayloadFromForm = (formData, recipientList = [], current
             scheduleDayOfWeekIds,
             scheduleWeekOfMonthIds,
             scheduleWeekOfMonth: scheduleWeekOfMonthIds[0] || 'first',
+            scheduleDayOfMonth,
             scheduleTime,
         });
     } else {
@@ -210,11 +218,14 @@ export const buildUpdatePayloadFromForm = (formData, recipientList = [], current
     return {
         scheduledAtUtc: nextRunDate?.toISOString() || new Date().toISOString(),
         scheduleType: periodType === 'monthly' ? 'monthly' : (isRecurring ? 'weekly' : 'once'),
-        daysOfWeek: scheduleDayOfWeekIds,
-        weeksOfMonth: periodType === 'monthly' ? scheduleWeekOfMonthIds : null,
-        weekOfMonth: periodType === 'monthly' ? (scheduleWeekOfMonthIds[0] || 'first') : null,
+        daysOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? [] : scheduleDayOfWeekIds,
+        weeksOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? scheduleWeekOfMonthIds : null,
+        weekOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? (scheduleWeekOfMonthIds[0] || 'first') : null,
+        dayOfMonth: scheduleDayOfMonth || null,
         scheduleTimeOfDay: scheduleTime,
         timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC',
         enabled: true,
+        filters: formData.filters || {},
+        recipientEmails: Array.isArray(formData.recipientEmails) ? formData.recipientEmails : [],
     };
 };

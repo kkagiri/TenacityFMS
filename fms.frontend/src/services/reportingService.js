@@ -13,6 +13,7 @@
  * - getScheduledReportEmails(): Retrieve scheduled report email entries for admin settings
  * - updateScheduledReportEmail(): Adjust next run and schedule timing metadata
  * - cancelScheduledReportEmail(): Cancel a scheduled report email
+ * - logExecution(): Fire-and-forget POST to /Reporting/execution-log
  */
 import axiosInstance from '../api/axiosInstance';
 
@@ -99,6 +100,22 @@ class ReportingService {
         success: false,
         error: error.response?.data?.message || error.message
       };
+    }
+  }
+
+  /**
+   * Log a report execution event — fire-and-forget, never throws
+   * @param {Object} payload - Execution data (exportFormat, filters JSON, success, etc.)
+   */
+  async logExecution(payload) {
+    try {
+      await axiosInstance.post('/Reporting/execution-log', {
+        reportDefinitionId: 0,
+        ...payload,
+      });
+    } catch (err) {
+      // Non-critical — silently swallow
+      console.warn('Could not log report execution:', err?.message);
     }
   }
 

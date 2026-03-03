@@ -72,7 +72,9 @@ export const fetchUsers = () => async (dispatch) => {
     } catch (error) {
         const errorMessage = error.response?.data?.message || error.message || 'Data loading error';
         dispatch({ type: FETCH_USERS_FAILURE, payload: errorMessage });
-        throw new Error(errorMessage);
+        const enriched = new Error(errorMessage);
+        enriched.status = error.response?.status;
+        throw enriched;
     }
 };
 

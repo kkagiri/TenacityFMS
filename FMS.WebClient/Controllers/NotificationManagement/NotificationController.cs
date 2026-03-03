@@ -155,6 +155,7 @@ namespace FMS.WebClient.Controllers
                 EffectiveEndDate = root.Value<string>("effectiveEndDate"),
                 SiteNames = ParseStringList(root["siteNames"], "All Sites"),
                 TankNames = ParseStringList(root["tankNames"], "All Tanks"),
+                Filters = root["filters"]?.ToString(Newtonsoft.Json.Formatting.None),
                 TimeZone = recurringSchedule?.Value<string>("timeZone"),
                 ScheduleType = recurringSchedule?.Value<string>("scheduleType"),
                 ScheduleTimeOfDay = recurringSchedule?.Value<string>("timeOfDay"),
@@ -651,6 +652,7 @@ namespace FMS.WebClient.Controllers
                 }
 
                 var notification = await _context.Notifications
+                    .Include(n => n.Recipients)
                     .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
 
                 if (notification == null)
@@ -729,6 +731,19 @@ namespace FMS.WebClient.Controllers
                     root["recurringSchedule"] = recurringSchedule;
                 }
 
+                // Persist filter changes if provided
+                if (request.Filters != null)
+                {
+                    root["filters"] = JToken.FromObject(request.Filters);
+                }
+
+                // Persist day-of-month for monthly schedules
+                if (request.DayOfMonth.HasValue)
+                {
+                    recurringSchedule["dayOfMonth"] = request.DayOfMonth.Value;
+                    root["recurringSchedule"] = recurringSchedule;
+                }
+
                 var scheduledAtUtc = request.ScheduledAtUtc;
                 if (!scheduledAtUtc.HasValue)
                 {
@@ -753,6 +768,52 @@ namespace FMS.WebClient.Controllers
                 notification.Status = "Scheduled";
                 notification.ErrorMessage = null;
                 notification.Data = root.ToString(Formatting.None);
+
+                // Reconcile recipients if email list was provided
+                if (request.RecipientEmails != null)
+                {
+                    var existingRecipients = notification.Recipients?.ToList()
+                        ?? new List<FMS.Domain.Entities.Features.Notifications.NotificationRecipient>();
+
+                    // Remove recipients no longer in the list
+                    var toRemove = existingRecipients
+                        .Where(r => !request.RecipientEmails.Contains(r.RecipientAddress, StringComparer.OrdinalIgnoreCase))
+                        .ToList();
+                    if (toRemove.Any())
+                    {
+                        _context.NotificationRecipients.RemoveRange(toRemove);
+                    }
+
+                    // Add new recipients that don't already exist
+                    var existingAddresses = existingRecipients
+                        .Select(r => r.RecipientAddress.ToLowerInvariant())
+                        .ToHashSet();
+
+                    foreach (var email in request.RecipientEmails)
+                    {
+                        if (!existingAddresses.Contains(email.ToLowerInvariant()))
+                        {
+                            var user = await _context.Users
+                                .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
+
+                            notification.Recipients ??= new List<FMS.Domain.Entities.Features.Notifications.NotificationRecipient>();
+                            notification.Recipients.Add(
+                                new FMS.Domain.Entities.Features.Notifications.NotificationRecipient
+                                {
+                                    NotificationId = notification.Id,
+                                    UserId = user?.Id ?? "unknown",
+                                    DeliveryMethod = "Email",
+                                    RecipientAddress = email,
+                                    DeliveryStatus = "Pending"
+                                });
+                        }
+                    }
+
+                    // Update recipientNames in Data JSON
+                    root["recipientNames"] = JArray.FromObject(
+                        request.RecipientEmails.Select(e => e).ToList());
+                    notification.Data = root.ToString(Formatting.None);
+                }
 
                 await _context.SaveChangesAsync(cancellationToken);
 

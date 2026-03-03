@@ -24,6 +24,7 @@ using Newtonsoft.Json.Linq;
 using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.Notification.Services;
+using FMS.Domain.Entities.enums;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
@@ -710,14 +711,17 @@ namespace FMS.WebClient.Services
                     var volFormatted = volChange.ToString("+0.00;-0.00;0.00");
                     groupNet += volChange;
 
+                    // Convert UTC → EAT (UTC+3) for display
+                    var eatTime = r.Timestamp.AddHours(3);
+
                     rows.Add(new
                     {
                         rowNumber = globalRowNumber++,
                         siteName = siteName,
                         timestamp = new
                         {
-                            date = r.Timestamp.ToString("dd MMM yyyy"),
-                            time = r.Timestamp.ToString("HH:mm"),
+                            date = eatTime.ToString("dd MMM yyyy"),
+                            time = eatTime.ToString("HH:mm"),
                         },
                         tankName = tankName,
                         vehiclePlate = !string.IsNullOrWhiteSpace(r.VehicleName) ? r.VehicleName : "—",
@@ -998,11 +1002,16 @@ namespace FMS.WebClient.Services
             if (!string.IsNullOrWhiteSpace(r.VehicleName) && !string.IsNullOrWhiteSpace(r.VehicleType))
                 parts.Add(r.VehicleType);
             // Transfer destination/source (relevant for TransferIn / TransferOut rows)
+            // ← for TransferIn (fuel came FROM the named tank into this tank)
+            // → for TransferOut (fuel going TO the named tank from this tank)
             if (!string.IsNullOrWhiteSpace(r.TransferTankName))
-                parts.Add($"→ {r.TransferTankName}" +
+            {
+                var arrow = r.ChangeReason == VolumeChangeReasonEnum.TransferIn ? "←" : "→";
+                parts.Add($"{arrow} {r.TransferTankName}" +
                            (!string.IsNullOrWhiteSpace(r.TransferTankSite)
                                ? $" ({r.TransferTankSite})"
                                : ""));
+            }
             // Site grouping is now shown as a separate column — omit from notes
             return parts.Count > 0 ? string.Join(" · ", parts) : "";
         }

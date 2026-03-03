@@ -45,6 +45,7 @@ const TankPage = () => {
         loading,
         selectedTank,
         selectedSite,
+        setSelectedTank,
         handleSelectItem,
         selectedTankLiveStatus,
         selectedTankConnection,
@@ -103,10 +104,16 @@ const TankPage = () => {
     }, [selectedTank, handleDelete]);
 
     /* ── Form callbacks ── */
-    const onFormSubmit = useCallback(() => {
+    const onFormSubmit = useCallback(async () => {
+        const prevId = selectedTank?.id;
         setFormOpen(false);
-        handleRefresh();
-    }, [handleRefresh]);
+        const result = await handleRefresh();
+        // Snap the detail panel to the just-saved tank immediately
+        if (prevId && result?.success && Array.isArray(result.data)) {
+            const fresh = result.data.find((t) => t.id === prevId);
+            if (fresh) setSelectedTank(fresh);
+        }
+    }, [handleRefresh, selectedTank, setSelectedTank]);
 
     const onFormClose = useCallback(() => {
         setFormOpen(false);

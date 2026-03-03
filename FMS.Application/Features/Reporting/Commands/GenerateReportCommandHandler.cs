@@ -1,41 +1,51 @@
 using System;
 using System.Diagnostics;
+using System.Linq;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Services;
+using FMS.Domain.Entities.Features.Reporting;
+using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.Reporting.Commands
 {
     /// <summary>
-    /// Handler for generating reports
+    /// Handler for generating reports — automatically logs every execution to report_execution_history.
     /// </summary>
     public class GenerateReportCommandHandler : IRequestHandler<GenerateReportCommand, GenerateReportResponseDTO>
     {
         private readonly IReportDefinitionService _reportDefinitionService;
         private readonly IReportGenerationService _reportGenerationService;
+        private readonly GpsdataContext _context;
         private readonly ILogger<GenerateReportCommandHandler> _logger;
 
         public GenerateReportCommandHandler(
             IReportDefinitionService reportDefinitionService,
             IReportGenerationService reportGenerationService,
+            GpsdataContext context,
             ILogger<GenerateReportCommandHandler> logger)
         {
             _reportDefinitionService = reportDefinitionService;
             _reportGenerationService = reportGenerationService;
+            _context = context;
             _logger = logger;
         }
 
         public async Task<GenerateReportResponseDTO> Handle(GenerateReportCommand request, CancellationToken cancellationToken)
         {
             var stopwatch = Stopwatch.StartNew();
+            GenerateReportResponseDTO result;
+            ReportDefinitionDTO? reportDefinition = null;
 
             try
             {
                 // Get report definition
-                var reportDefinition = await _reportDefinitionService.GetReportDefinitionAsync(request.ReportId);
+                reportDefinition = await _reportDefinitionService.GetReportDefinitionAsync(request.ReportId);
 
                 if (reportDefinition == null)
                 {
@@ -47,7 +57,7 @@ namespace FMS.Application.Features.Reporting.Commands
                 }
 
                 // Generate report based on format
-                var result = request.ExportFormat.ToLower() switch
+                result = request.ExportFormat?.ToLower() switch
                 {
                     "excel" => await _reportGenerationService.GenerateExcelReportAsync(reportDefinition, request.Filters),
                     "pdf" => await _reportGenerationService.GeneratePdfReportAsync(reportDefinition, request.Filters),
@@ -66,18 +76,62 @@ namespace FMS.Application.Features.Reporting.Commands
                     result.Metadata.ExecutionTime = stopwatch.Elapsed;
                     result.Metadata.AppliedFilters = request.Filters;
                 }
-
-                return result;
             }
             catch (Exception ex)
             {
+                stopwatch.Stop();
                 _logger.LogError(ex, "Error generating report {ReportId}", request.ReportId);
-                return new GenerateReportResponseDTO
+                result = new GenerateReportResponseDTO
                 {
                     Success = false,
                     Message = $"Error generating report: {ex.Message}"
                 };
             }
+
+            // ── Always persist an execution log entry ──────────────────────────
+            try
+            {
+                string? filtersJson = null;
+                if (request.Filters != null)
+                {
+                    try { filtersJson = JsonSerializer.Serialize(request.Filters); }
+                    catch { /* non-critical */ }
+                }
+
+                // Resolve the int FK from the string slug
+                int definitionId = 0;
+                if (!string.IsNullOrEmpty(request.ReportId))
+                {
+                    var idLookup = await _context.ReportDefinitions
+                        .Where(d => d.ReportId == request.ReportId)
+                        .Select(d => (int?)d.ReportDefinitionId)
+                        .FirstOrDefaultAsync(cancellationToken);
+                    definitionId = idLookup ?? 0;
+                }
+
+                var log = new ReportExecutionHistory
+                {
+                    ReportDefinitionId = definitionId,
+                    ExecutedBy = request.UserId ?? "System",
+                    ExecutedAt = DateTime.UtcNow,
+                    Filters = filtersJson,
+                    ExportFormat = request.ExportFormat ?? "json",
+                    RecordCount = result.Metadata?.TotalRecords,
+                    ExecutionTimeMs = (int)stopwatch.ElapsedMilliseconds,
+                    Success = result.Success,
+                    ErrorMessage = result.Success ? null : result.Message
+                };
+
+                _context.ReportExecutionHistories.Add(log);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception logEx)
+            {
+                // Never let logging failure break the report response
+                _logger.LogWarning(logEx, "Failed to persist execution log for report {ReportId}", request.ReportId);
+            }
+
+            return result;
         }
     }
 
