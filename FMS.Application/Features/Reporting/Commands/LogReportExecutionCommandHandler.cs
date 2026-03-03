@@ -6,6 +6,7 @@ using FMS.Application.Features.Reporting.DTOs;
 using FMS.Domain.Entities.Features.Reporting;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Features.Reporting.Commands
@@ -33,6 +34,28 @@ namespace FMS.Application.Features.Reporting.Commands
         {
             try
             {
+                // Validate FK: ReportDefinitionId must reference an existing row
+                if (request.ReportDefinitionId <= 0)
+                {
+                    _logger.LogWarning(
+                        "Skipping execution log — ReportDefinitionId is {Id} (invalid)",
+                        request.ReportDefinitionId);
+                    return FMSResponse<ReportExecutionHistoryDTO>.Failed(
+                        "Cannot log execution: ReportDefinitionId is missing or invalid.");
+                }
+
+                var definitionExists = await _context.ReportDefinitions
+                    .AnyAsync(d => d.ReportDefinitionId == request.ReportDefinitionId, cancellationToken);
+
+                if (!definitionExists)
+                {
+                    _logger.LogWarning(
+                        "Skipping execution log — ReportDefinitionId {Id} not found in report_definitions",
+                        request.ReportDefinitionId);
+                    return FMSResponse<ReportExecutionHistoryDTO>.Failed(
+                        $"Cannot log execution: ReportDefinitionId {request.ReportDefinitionId} does not exist.");
+                }
+
                 var entity = new ReportExecutionHistory
                 {
                     ReportDefinitionId = request.ReportDefinitionId,

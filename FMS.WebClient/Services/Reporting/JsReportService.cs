@@ -110,6 +110,58 @@ namespace FMS.WebClient.Services.Reporting
             // jsreport doesn't try to mkdir inside the (read-only) IIS app root.
             var jsReportDataPath = Path.Combine(jsReportTempPath, "data");
             Directory.CreateDirectory(jsReportDataPath);
+            Directory.CreateDirectory(Path.Combine(jsReportDataPath, "storage"));
+
+            // ── CRITICAL: Set environment variables so the spawned jsreport child
+            // process inherits them. jsreport reads config from env vars using '_'
+            // as nested-key separator (e.g. extensions_fs-store_dataDirectory →
+            // extensions.fs-store.dataDirectory). This is the ONLY reliable way to
+            // override the fs-store path when the jsreport binary's cwd (the IIS
+            // app root) is read-only and we can't write a jsreport.config.json there.
+            Environment.SetEnvironmentVariable(
+                "extensions_fs-store_dataDirectory",
+                jsReportDataPath.Replace("\\", "/"));
+            Environment.SetEnvironmentVariable(
+                "tempDirectory",
+                jsReportTempPath.Replace("\\", "/"));
+
+            // Disable extensions we don't need — jsreport is used ONLY as a
+            // Handlebars→HTML engine (PuppeteerSharp handles PDF conversion).
+            // Disabling chrome-pdf and phantom-pdf avoids worker init timeouts
+            // caused by Chrome/Phantom spawning issues in IIS app pools.
+            Environment.SetEnvironmentVariable("extensions_chrome-pdf_enabled", "false");
+            Environment.SetEnvironmentVariable("extensions_phantom-pdf_enabled", "false");
+            Environment.SetEnvironmentVariable("extensions_scripts_enabled", "false");
+
+            // Use port 0 so Node.js picks a random available port — prevents
+            // EADDRINUSE when a stale jsreport process from a prior app pool
+            // recycle is still holding the default port (5488).
+            Environment.SetEnvironmentVariable("httpPort", "0");
+
+            // Increase the worker initialization timeout (default is ~10 s;
+            // cold starts under IIS can be slow due to anti-virus or disk I/O).
+            Environment.SetEnvironmentVariable("workers_timeout", "60000");
+
+            // Clean up stale socket files from previous runs so the new jsreport
+            // daemon doesn't try to reconnect to a dead process.
+            try
+            {
+                var staleSocketDir = Path.Combine(jsReportTempPath, "cli", "wSock");
+                if (Directory.Exists(staleSocketDir))
+                {
+                    Directory.Delete(staleSocketDir, recursive: true);
+                    _logger.LogInformation("Cleaned stale jsreport socket dir: {Dir}", staleSocketDir);
+                }
+            }
+            catch (Exception cleanEx)
+            {
+                _logger.LogWarning(cleanEx, "Could not clean stale jsreport socket dir (non-fatal)");
+            }
+
+            _logger.LogInformation(
+                "Set jsreport env vars: dataDirectory={DataDir}, tempDirectory={Temp}, " +
+                "chrome-pdf=disabled, phantom-pdf=disabled, httpPort=0, workers_timeout=60000",
+                jsReportDataPath, jsReportTempPath);
 
             // Persist for service recreation on WORKER_TIMEOUT
             _jsReportTempPath = jsReportTempPath;
