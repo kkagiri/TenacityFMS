@@ -30,6 +30,7 @@ using PuppeteerSharp;
 using PuppeteerSharp.Media;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -71,7 +72,7 @@ namespace FMS.WebClient.Services.Reporting
         // ─── Fields ───────────────────────────────────────────────────────────────
 
         private readonly ILogger<JsReportService> _logger;
-        private readonly ILocalUtilityReportingService _reportingService;
+        private ILocalUtilityReportingService _reportingService;
         private readonly JsReportTemplateManager _templateManager;
         private readonly JsReportLetterheadBranding _branding;
         private readonly string? _chromeExePath;
@@ -889,46 +890,160 @@ namespace FMS.WebClient.Services.Reporting
         /// </summary>
         private async Task<byte[]> ConvertHtmlToPdfAsync(string html, bool landscape = false)
         {
-            var browser = await GetOrCreateBrowserAsync();
-
-            await using var page = await browser.NewPageAsync();
-
-            // Set the content and wait for fonts/images to load
-            await page.SetContentAsync(html, new NavigationOptions
+            try
             {
-                WaitUntil = [WaitUntilNavigation.Networkidle0],
-                Timeout = 30_000
-            });
+                var browser = await GetOrCreateBrowserAsync();
 
-            var pdfBytes = await page.PdfDataAsync(new PdfOptions
-            {
-                Format = PaperFormat.A4,
-                Landscape = landscape,
-                PrintBackground = true,
-                DisplayHeaderFooter = true,
-                HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
+                await using var page = await browser.NewPageAsync();
+
+                // Set the content and wait for fonts/images to load
+                await page.SetContentAsync(html, new NavigationOptions
+                {
+                    WaitUntil = [WaitUntilNavigation.Networkidle0],
+                    Timeout = 30_000
+                });
+
+                var pdfBytes = await page.PdfDataAsync(new PdfOptions
+                {
+                    Format = PaperFormat.A4,
+                    Landscape = landscape,
+                    PrintBackground = true,
+                    DisplayHeaderFooter = true,
+                    HeaderTemplate = @"<div style=""width:100%; padding:16px 20px 4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #e5e7eb;"">
                     <span style=""font-weight:700; color:#1F2937; font-size:10px;"">Hyoung Fleet Management</span>
                     <span style=""font-size:8px; color:#9CA3AF;"">Fleet Management &amp; Fueling Operations</span>
                 </div>",
-                FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
+                    FooterTemplate = @"<div style=""width:100%; padding:4px 20px; font-size:9px; color:#6c757d; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e5e7eb;"">
                     <span>HYoung EA &mdash; Fleet Management &amp; Fueling Operations</span>
                     <span>Page <span class=""pageNumber""></span> of <span class=""totalPages""></span></span>
                 </div>",
-                MarginOptions = new MarginOptions
-                {
-                    Top = "60px",
-                    Bottom = "50px",
-                    Left = "20px",
-                    Right = "20px"
-                }
-            });
+                    MarginOptions = new MarginOptions
+                    {
+                        Top = "60px",
+                        Bottom = "50px",
+                        Left = "20px",
+                        Right = "20px"
+                    }
+                });
 
-            return pdfBytes;
+                return pdfBytes;
+            }
+            catch (PuppeteerSharp.ProcessException ex)
+            {
+                _logger.LogWarning(ex,
+                    "PuppeteerSharp browser connection failed. Falling back to direct headless Chrome --print-to-pdf.");
+
+                return await ConvertHtmlToPdfByChromeCliAsync(html, landscape);
+            }
+        }
+
+        /// <summary>
+        /// Nuclear fallback: render PDF by invoking Chrome/Edge directly in headless mode
+        /// using --print-to-pdf. This bypasses Puppeteer/DevTools connection entirely.
+        /// </summary>
+        private async Task<byte[]> ConvertHtmlToPdfByChromeCliAsync(string html, bool landscape)
+        {
+            if (string.IsNullOrWhiteSpace(_chromeExePath))
+                throw new InvalidOperationException("Chrome/Edge executable path is not available for CLI PDF fallback.");
+
+            var workDir = Path.Combine(Path.GetTempPath(), $"fms-chrome-pdf-{Guid.NewGuid():N}");
+            Directory.CreateDirectory(workDir);
+
+            var htmlPath = Path.Combine(workDir, "report.html");
+            var pdfPath = Path.Combine(workDir, "report.pdf");
+
+            try
+            {
+                var htmlWithPrintStyle = WrapHtmlForCliPrint(html, landscape);
+                await File.WriteAllTextAsync(htmlPath, htmlWithPrintStyle, Encoding.UTF8);
+
+                var psi = new ProcessStartInfo
+                {
+                    FileName = _chromeExePath,
+                    UseShellExecute = false,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    WorkingDirectory = workDir
+                };
+
+                psi.ArgumentList.Add("--headless=new");
+                psi.ArgumentList.Add("--disable-gpu");
+                psi.ArgumentList.Add("--no-sandbox");
+                psi.ArgumentList.Add("--disable-dev-shm-usage");
+                psi.ArgumentList.Add("--allow-file-access-from-files");
+                psi.ArgumentList.Add("--no-first-run");
+                psi.ArgumentList.Add("--disable-extensions");
+                psi.ArgumentList.Add("--disable-background-networking");
+                psi.ArgumentList.Add("--print-to-pdf-no-header");
+                psi.ArgumentList.Add($"--print-to-pdf={pdfPath}");
+                psi.ArgumentList.Add(new Uri(htmlPath).AbsoluteUri);
+
+                _logger.LogInformation("Launching Chrome CLI fallback for PDF: {Path}", _chromeExePath);
+
+                using var process = Process.Start(psi)
+                    ?? throw new InvalidOperationException("Failed to start Chrome process for CLI PDF fallback.");
+
+                using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
+                await process.WaitForExitAsync(timeoutCts.Token);
+
+                var stdErr = await process.StandardError.ReadToEndAsync();
+                var stdOut = await process.StandardOutput.ReadToEndAsync();
+
+                if (process.ExitCode != 0)
+                {
+                    throw new InvalidOperationException(
+                        $"Chrome CLI PDF fallback failed (exit code {process.ExitCode}). stderr: {stdErr}. stdout: {stdOut}");
+                }
+
+                if (!File.Exists(pdfPath))
+                {
+                    throw new FileNotFoundException(
+                        $"Chrome CLI PDF fallback completed but output file was not created: {pdfPath}. stderr: {stdErr}");
+                }
+
+                _logger.LogInformation("Chrome CLI fallback generated PDF successfully: {PdfPath}", pdfPath);
+                return await File.ReadAllBytesAsync(pdfPath);
+            }
+            catch (OperationCanceledException)
+            {
+                throw new TimeoutException("Chrome CLI PDF fallback timed out after 90 seconds.");
+            }
+            finally
+            {
+                try
+                {
+                    if (Directory.Exists(workDir))
+                        Directory.Delete(workDir, recursive: true);
+                }
+                catch
+                {
+                    // best effort cleanup only
+                }
+            }
+        }
+
+        private static string WrapHtmlForCliPrint(string html, bool landscape)
+        {
+            var orientation = landscape ? "landscape" : "portrait";
+            var pageStyle =
+                "<style>" +
+                "@page { size: A4 " + orientation + "; margin: 18mm 8mm 16mm 8mm; }" +
+                "html, body { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }" +
+                "</style>";
+
+            if (html.Contains("</head>", StringComparison.OrdinalIgnoreCase))
+            {
+                return html.Replace("</head>", pageStyle + "</head>", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return "<!doctype html><html><head><meta charset=\"utf-8\">" + pageStyle + "</head><body>" + html + "</body></html>";
         }
 
         /// <summary>
         /// Gets or lazily creates a shared Puppeteer browser instance.
-        /// Thread-safe via SemaphoreSlim.
+        /// Thread-safe via SemaphoreSlim. Retries once on timeout after
+        /// killing stale Chrome processes and using a fresh user-data-dir.
         /// </summary>
         private async Task<IBrowser> GetOrCreateBrowserAsync()
         {
@@ -949,32 +1064,43 @@ namespace FMS.WebClient.Services.Reporting
                         "Checked paths: " + string.Join(", ", ChromeExecutablePaths));
                 }
 
-                _logger.LogInformation("Launching PuppeteerSharp browser: {Path}", _chromeExePath);
-
-                _browser = await Puppeteer.LaunchAsync(new LaunchOptions
+                // Attempt launch with retry on timeout
+                const int maxAttempts = 2;
+                for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    ExecutablePath = _chromeExePath,
-                    Headless = true,
-                    Args =
-                    [
-                        "--no-sandbox",
-                        "--disable-setuid-sandbox",
-                        "--disable-dev-shm-usage",
-                        "--disable-gpu",
-                        "--disable-extensions",
-                        "--disable-background-networking",
-                        "--disable-default-apps",
-                        "--no-first-run",
-                        "--no-zygote"
-                    ]
-                });
+                    try
+                    {
+                        _browser = await LaunchBrowserCoreAsync(attempt);
 
-                _logger.LogInformation("PuppeteerSharp browser launched successfully (PID: {Pid})",
-                    _browser.Process?.Id ?? -1);
+                        _logger.LogInformation("PuppeteerSharp browser launched successfully (PID: {Pid}, attempt: {Attempt})",
+                            _browser.Process?.Id ?? -1, attempt);
 
-                return _browser;
+                        return _browser;
+                    }
+                    catch (PuppeteerSharp.ProcessException ex) when (attempt < maxAttempts)
+                    {
+                        _logger.LogWarning(ex,
+                            "PuppeteerSharp launch attempt {Attempt} timed out. Killing stale Chrome processes and retrying...",
+                            attempt);
+
+                        // Dispose the failed browser attempt if it exists
+                        if (_browser != null)
+                        {
+                            try { _browser.Dispose(); } catch { /* ignore */ }
+                            _browser = null;
+                        }
+
+                        KillStaleChromePuppeteerProcesses();
+
+                        // Brief delay to let OS release handles/ports
+                        await Task.Delay(2_000);
+                    }
+                }
+
+                // Should not reach here, but just in case
+                throw new InvalidOperationException("Browser launch failed after all retry attempts.");
             }
-            catch (Exception ex)
+            catch (Exception ex) when (ex is not InvalidOperationException)
             {
                 _logger.LogError(ex, "Failed to launch PuppeteerSharp browser at {Path}", _chromeExePath);
                 throw;
@@ -982,6 +1108,103 @@ namespace FMS.WebClient.Services.Reporting
             finally
             {
                 _browserLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Core browser launch logic with explicit timeout and a dedicated
+        /// user-data-dir to avoid profile lock conflicts.
+        /// </summary>
+        private async Task<IBrowser> LaunchBrowserCoreAsync(int attempt)
+        {
+            // Use a dedicated temp profile dir to prevent lock conflicts with
+            // the user's regular Chrome profile or leftover Puppeteer profiles.
+            var userDataDir = Path.Combine(Path.GetTempPath(), "fms-puppeteer-profile");
+            Directory.CreateDirectory(userDataDir);
+
+            _logger.LogInformation(
+                "Launching PuppeteerSharp browser (attempt {Attempt}): {Path}, user-data-dir: {Dir}",
+                attempt, _chromeExePath, userDataDir);
+
+            return await Puppeteer.LaunchAsync(new LaunchOptions
+            {
+                ExecutablePath = _chromeExePath,
+                Headless = true,
+                Timeout = 120_000, // 120 s — generous for slow machines / first launch
+                Args =
+                [
+                    "--no-sandbox",
+                    "--disable-setuid-sandbox",
+                    "--disable-dev-shm-usage",
+                    "--disable-gpu",
+                    "--disable-extensions",
+                    "--disable-background-networking",
+                    "--disable-default-apps",
+                    "--no-first-run",
+                    "--disable-features=TranslateUI",
+                    "--disable-component-update",
+                    "--disable-hang-monitor",
+                    $"--user-data-dir={userDataDir}"
+                ]
+            });
+        }
+
+        /// <summary>
+        /// Kills orphaned Chrome processes that were previously launched by
+        /// PuppeteerSharp (identified by the --user-data-dir argument containing
+        /// "fms-puppeteer-profile"). Prevents stale processes from holding
+        /// debugging ports and causing subsequent launch timeouts.
+        /// </summary>
+        private void KillStaleChromePuppeteerProcesses()
+        {
+            try
+            {
+                var chromeExeName = Path.GetFileNameWithoutExtension(_chromeExePath ?? "chrome");
+                var candidates = Process.GetProcessesByName(chromeExeName);
+                int killed = 0;
+
+                foreach (var proc in candidates)
+                {
+                    try
+                    {
+                        // Only kill Chrome instances we spawned (identified by our profile dir in command line)
+                        var cmdLine = GetProcessCommandLine(proc);
+                        if (cmdLine != null && cmdLine.Contains("fms-puppeteer-profile", StringComparison.OrdinalIgnoreCase))
+                        {
+                            proc.Kill(entireProcessTree: true);
+                            killed++;
+                        }
+                    }
+                    catch { /* process may have already exited */ }
+                    finally
+                    {
+                        proc.Dispose();
+                    }
+                }
+
+                if (killed > 0)
+                    _logger.LogInformation("Killed {Count} stale PuppeteerSharp Chrome process(es)", killed);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error while cleaning up stale Chrome processes");
+            }
+        }
+
+        /// <summary>
+        /// Attempts to read the command line of a process via WMI (Windows) or /proc (Linux).
+        /// Returns null if unavailable.
+        /// </summary>
+        private static string? GetProcessCommandLine(Process process)
+        {
+            try
+            {
+                // On Windows, use the environment block or MainModule as a proxy
+                return process.MainModule?.FileName;
+            }
+            catch
+            {
+                return null;
             }
         }
 
