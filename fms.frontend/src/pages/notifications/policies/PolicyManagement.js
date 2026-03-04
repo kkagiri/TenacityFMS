@@ -173,7 +173,7 @@ const PolicyManagement = () => {
       </div>
 
       {/* Filters */}
-      <div className="tw-bg-white tw-p-6 tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm tw-mb-6">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-p-6 tw-rounded-lg tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm tw-mb-6">
         <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4">
           <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
@@ -216,7 +216,7 @@ const PolicyManagement = () => {
       </div>
 
       {/* Data Grid */}
-      <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm">
         <DataGrid
           dataSource={policies}
           showBorders={false}

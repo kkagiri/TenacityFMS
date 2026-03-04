@@ -265,7 +265,7 @@ const DispensingManager = () => {
   return (
     <div className="dispensing-manager tw-h-full tw-flex tw-flex-col">
       {/* Header */}
-      <div className="tw-bg-white tw-p-4 tw-border-b tw-border-gray-200">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-p-4 tw-border-b dark:tw-border-gray-700 tw-border-gray-200">
         <div className="tw-flex tw-flex-col lg:tw-flex-row lg:tw-justify-between lg:tw-items-center tw-gap-4">
           {/* Title */}
           <div className="tw-flex-shrink-0">
@@ -310,7 +310,7 @@ const DispensingManager = () => {
         </div>
 
         {/* Independent Filter Controls */}
-        <div className="tw-mt-4 tw-p-4 tw-bg-gray-50 tw-border tw-border-gray-200 tw-rounded-lg">
+        <div className="tw-mt-4 tw-p-4 tw-bg-gray-50 dark:tw-bg-gray-800 tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-rounded-lg">
           <div className="tw-flex tw-items-center tw-mb-3">
             <i className="fa-light fa-filter tw-mr-2 tw-text-blue-600"></i>
             <span className="tw-font-semibold tw-text-gray-700">Filters</span>

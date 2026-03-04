@@ -357,7 +357,7 @@ const MaintenanceList = () => {
 
   return (
     <div className="tw-h-full tw-flex tw-flex-col tw-p-4">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-flex tw-flex-col tw-flex-1 tw-min-h-0">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-shadow tw-flex tw-flex-col tw-flex-1 tw-min-h-0">
         {/* Header */}
         <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-border-b tw-border-gray-200 tw-flex-shrink-0">
           <div>

@@ -1,27 +1,48 @@
 .location-validation-page {
   min-height: calc(100vh - 100px);
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+
+  &__header {
+    @apply tw-flex tw-items-start tw-justify-between tw-gap-4;
+  }
+
+  &__header-actions {
+    @apply tw-flex tw-items-center tw-gap-2 tw-flex-wrap;
+  }
+
+  &__filters,
+  &__grid {
+    background: var(--fms-card-bg);
+    border: 1px solid var(--fms-border);
+    border-radius: 8px;
+  }
+
+  &__panel {
+    min-height: calc(100vh - 190px);
+  }
 
   .dx-datagrid {
     .dx-row {
       cursor: pointer;
-
-      &:hover {
-        @apply tw-bg-blue-50;
-      }
+      // Hover styling handled by global dark theme
     }
 
     .dx-datagrid-headers {
-      @apply tw-bg-gray-50;
+      // Header styling handled by global dark theme
     }
 
     .dx-datagrid-rowsview {
       .dx-row-alt {
-        @apply tw-bg-gray-50;
+        // Alt row styling handled by global dark theme
       }
     }
   }
 
-  .dx-popup-content {
+  .dx-texteditor {
+    border-radius: 4px;
+  }
+
+  .dx-overlay-content .dx-popup-content {
     padding: 16px;
   }
 }

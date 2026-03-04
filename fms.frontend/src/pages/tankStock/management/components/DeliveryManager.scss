@@ -2,10 +2,9 @@
   @apply tw-relative tw-h-full;
 
   .dx-datagrid {
-    @apply tw-bg-white tw-rounded-lg tw-shadow;
+    @apply tw-rounded-lg tw-shadow;
 
     .dx-datagrid-headers {
-      @apply tw-bg-gray-50;
       font-weight: 600;
     }
 
@@ -13,11 +12,11 @@
       @apply tw-transition-colors;
 
       &:hover {
-        @apply tw-bg-blue-50;
+        // Hover styling handled by global dark theme
       }
 
       &.dx-row-alt {
-        @apply tw-bg-gray-50;
+        // Alt row styling handled by global dark theme
       }
     }
 
@@ -33,6 +32,6 @@
   }
 
   .dx-toolbar {
-    @apply tw-bg-white tw-border-b tw-border-gray-200;
+    border-bottom: 1px solid #d1d5db;
   }
 }

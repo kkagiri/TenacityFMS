@@ -1,3 +1,12 @@
+/**
+ * File: GeofenceManagement.js
+ * Purpose: Manage geofences, allowed fueling groups, and GPSGate sync operations.
+ * Dependencies: devextreme-react, geofenceService, SlidePanel, usePermissions
+ * Last Modified: 2026-03-03
+ *
+ * Key Components:
+ * - GeofenceManagement: Tabbed admin UI for geofence list, group policy, and selective sync.
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
@@ -9,10 +18,10 @@ import {
   SearchPanel,
   Selection,
 } from "devextreme-react/data-grid";
-import { Popup } from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
 import { usePermissions } from "../../../../hooks/usePermissions";
 import geofenceService from "../../../../api/geofenceService";
+import SlidePanel from "../../../../components/ui/SlidePanel";
 import "./GeofenceManagement.scss";
 
 /**
@@ -269,9 +278,8 @@ const GeofenceManagement = () => {
     return (
       <div className="tw-flex tw-items-center tw-gap-2">
         <i
-          className={`fa-light ${
-            iconMap[type] || "fa-location-dot"
-          } tw-text-blue-600`}
+          className={`fa-light ${iconMap[type] || "fa-location-dot"
+            } tw-text-blue-600`}
         ></i>
         <span>{type}</span>
       </div>
@@ -281,11 +289,10 @@ const GeofenceManagement = () => {
   const renderActiveCell = (cellData) => {
     return (
       <span
-        className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-          cellData.value
-            ? "tw-bg-green-100 tw-text-green-800"
-            : "tw-bg-gray-100 tw-text-gray-600"
-        }`}
+        className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${cellData.value
+          ? "tw-bg-green-100 tw-text-green-800"
+          : "tw-bg-gray-100 tw-text-gray-600"
+          }`}
       >
         {cellData.value ? "Active" : "Inactive"}
       </span>
@@ -302,14 +309,12 @@ const GeofenceManagement = () => {
           aria-checked={isChecked}
           onClick={() => handleToggleAllowedForFueling(cellData.data.id, !isChecked)}
           disabled={saving}
-          className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 ${
-            isChecked ? "tw-bg-green-500" : "tw-bg-gray-300"
-          } ${saving ? "tw-opacity-50 tw-cursor-not-allowed" : ""}`}
+          className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 ${isChecked ? "tw-bg-green-500" : "tw-bg-gray-300"
+            } ${saving ? "tw-opacity-50 tw-cursor-not-allowed" : ""}`}
         >
           <span
-            className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${
-              isChecked ? "tw-translate-x-5" : "tw-translate-x-0"
-            }`}
+            className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${isChecked ? "tw-translate-x-5" : "tw-translate-x-0"
+              }`}
           />
         </button>
       </div>
@@ -350,7 +355,7 @@ const GeofenceManagement = () => {
       )}
 
       {/* Header Section */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-p-4 tw-mb-4">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-shadow-sm tw-p-4 tw-mb-4">
         <div className="tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-4">
           <div>
             <h2 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
@@ -400,18 +405,17 @@ const GeofenceManagement = () => {
       </div>
 
       {/* Custom Tab Navigation */}
-      <div className="tw-bg-white tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
         <div className="tw-flex tw-items-center tw-justify-between tw-px-2">
           <div className="tw-flex tw-items-center">
             {TAB_CONFIG.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedTabId(tab.id)}
-                className={`tw-flex tw-flex-col tw-items-center tw-px-4 tw-py-3 tw-text-sm tw-font-medium tw-transition-colors tw-border-b-2 tw-min-w-[100px] tw-bg-white ${
-                  selectedTabId === tab.id
-                    ? "tw-border-blue-600 tw-text-blue-600 !tw-bg-blue-50"
-                    : "tw-border-transparent tw-text-gray-600 hover:tw-text-gray-800 hover:tw-bg-gray-50"
-                }`}
+                className={`tw-flex tw-flex-col tw-items-center tw-px-4 tw-py-3 tw-text-sm tw-font-medium tw-transition-colors tw-border-b-2 tw-min-w-[100px] tw-bg-white ${selectedTabId === tab.id
+                  ? "tw-border-blue-600 tw-text-blue-600 !tw-bg-blue-50"
+                  : "tw-border-transparent tw-text-gray-600 hover:tw-text-gray-800 hover:tw-bg-gray-50"
+                  }`}
               >
                 <i className={`fa-light ${tab.icon} tw-text-lg tw-mb-1`}></i>
                 <span className="tw-uppercase tw-text-xs tw-tracking-wide">
@@ -433,7 +437,7 @@ const GeofenceManagement = () => {
       </div>
 
       {/* Tab Content */}
-      <div className="tw-bg-white tw-rounded-b-lg tw-shadow-sm">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-b-lg tw-shadow-sm">
         {selectedTabId === "geofences" && (
           <div className="tw-p-4">
             <DataGrid
@@ -645,11 +649,10 @@ const GeofenceManagement = () => {
                 alignment="center"
                 cellRender={(cellData) => (
                   <span
-                    className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-                      cellData.value
-                        ? "tw-bg-green-100 tw-text-green-800"
-                        : "tw-bg-gray-100 tw-text-gray-600"
-                    }`}
+                    className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${cellData.value
+                      ? "tw-bg-green-100 tw-text-green-800"
+                      : "tw-bg-gray-100 tw-text-gray-600"
+                      }`}
                   >
                     {cellData.value ? "Synced" : "Not Synced"}
                   </span>
@@ -662,11 +665,10 @@ const GeofenceManagement = () => {
                 alignment="center"
                 cellRender={(cellData) => (
                   cellData.data.isSynced ? (
-                    <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${
-                      cellData.value
-                        ? "tw-bg-blue-100 tw-text-blue-800"
-                        : "tw-bg-gray-100 tw-text-gray-500"
-                    }`}>
+                    <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${cellData.value
+                      ? "tw-bg-blue-100 tw-text-blue-800"
+                      : "tw-bg-gray-100 tw-text-gray-500"
+                      }`}>
                       {cellData.value ? "Yes" : "No"}
                     </span>
                   ) : (
@@ -691,16 +693,14 @@ const GeofenceManagement = () => {
         )}
       </div>
 
-      {/* Sync Confirmation Popup */}
-      <Popup
-        visible={showSyncConfirm}
-        onHiding={() => setShowSyncConfirm(false)}
+      {/* Sync Confirmation Side Panel */}
+      <SlidePanel
+        open={showSyncConfirm}
+        onClose={() => setShowSyncConfirm(false)}
         title="Full Sync - All Geofences"
-        width={450}
-        height="auto"
-        showCloseButton={true}
+        width={1200}
       >
-        <div className="tw-p-4">
+        <div className="tw-p-5">
           <p className="tw-text-gray-700 tw-mb-3">
             This will sync <strong>all</strong> geofences and groups from GPSGate.
             This may take a few minutes depending on the number of geofences.
@@ -729,7 +729,7 @@ const GeofenceManagement = () => {
             />
           </div>
         </div>
-      </Popup>
+      </SlidePanel>
     </div>
   );
 };

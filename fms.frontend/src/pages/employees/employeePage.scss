@@ -129,7 +129,7 @@
       border-left: none !important;
       border-right: none !important;
       border-bottom: 1px solid var(--m365-border-light) !important;
-      background: #fff;
+      // Background handled by global dark theme
     }
 
     .dx-datagrid-headers .dx-header-row > td {
@@ -137,7 +137,7 @@
       color: var(--m365-text-secondary);
       font-size: 12px;
       font-weight: 600;
-      background: #fff;
+      // Background handled by global dark theme
     }
 
     .dx-datagrid-rowsview {

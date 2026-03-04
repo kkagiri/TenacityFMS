@@ -301,7 +301,7 @@ const Dashboard = () => {
       </div>
 
       {/* Recent Notifications */}
-      <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-shadow-sm">
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-border tw-border-gray-200 dark:tw-border-gray-700 tw-shadow-sm">
         <div className="tw-p-6 tw-border-b tw-border-gray-200">
           <div className="tw-flex tw-items-center tw-justify-between">
             <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900">

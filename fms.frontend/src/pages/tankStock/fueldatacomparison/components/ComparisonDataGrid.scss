@@ -2,7 +2,9 @@
 // Row highlighting based on variance threshold
 
 .comparison-data-grid {
-  @apply tw-bg-white tw-rounded-lg tw-shadow-md tw-p-4 tw-border tw-border-gray-200;
+  background: var(--fms-card-bg);
+  @apply tw-rounded-lg tw-shadow-md tw-p-4;
+  border: 1px solid var(--fms-border);
 
   // Grid container
   .dx-datagrid {
@@ -111,12 +113,13 @@
   // Column headers
   .dx-header-row {
     font-weight: 600;
-    background-color: #f8f9fa;
+    // Background handled by global dark theme
   }
 
   // Loading indicator
   .dx-loadpanel-content {
-    @apply tw-bg-white tw-rounded-lg tw-shadow-lg;
+    background: var(--fms-surface);
+    @apply tw-rounded-lg tw-shadow-lg;
   }
 }
 
