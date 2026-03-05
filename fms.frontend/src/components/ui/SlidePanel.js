@@ -22,7 +22,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import ReactDOM from "react-dom";
 import "./SlidePanel.scss";
 
-const SlidePanel = ({ open, onClose, title, width = 720, headerActions, children }) => {
+const SlidePanel = ({ open, onClose, title, width = 720, headerActions, panelClassName = "", children }) => {
   const [headerHeight, setHeaderHeight] = useState(0);
 
   // Measure header height on mount & resize
@@ -92,7 +92,7 @@ const SlidePanel = ({ open, onClose, title, width = 720, headerActions, children
       />
       {/* Panel */}
       <aside
-        className="fms-slide-panel"
+        className={`fms-slide-panel ${panelClassName}`.trim()}
         style={{ ...panelStyle, top: `${headerHeight}px` }}
         role="dialog"
         aria-label={title || "Detail panel"}

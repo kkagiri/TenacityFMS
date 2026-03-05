@@ -1,8 +1,8 @@
 /**
  * File: IssueCreateForm.js
  * Purpose: Issue creation form with Microsoft Fluent Design — 2-column layout, BEM cards, sidebar checklist/summary
- * Dependencies: React, Redux, Router, DevExtreme (SelectBox, TagBox, Popup, Button), IssueCreateForm.scss
- * Last Modified: 2026-02-23
+ * Dependencies: React, Redux, Router, DevExtreme (SelectBox, TagBox, Button), SlidePanel, IssueCreateForm.scss
+ * Last Modified: 2026-03-05
  *
  * Key Functions/Components:
  * - IssueCreateForm: Fluent-themed issue creation with breadcrumb, progress bar, form cards, sidebar
@@ -15,8 +15,8 @@ import { useNavigate } from 'react-router-dom';
 import notify from 'devextreme/ui/notify';
 import { SelectBox } from 'devextreme-react/select-box';
 import { TagBox } from 'devextreme-react/tag-box';
-import { Popup } from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
+import SlidePanel from '../../../components/ui/SlidePanel';
 import VehicleSearchableSelector from '../../../components/selectors/VehicleSearchableSelector';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
 import { fetchUsers } from '../../../redux/actions/userActions';
@@ -1491,16 +1491,12 @@ const IssueCreateForm = ({ onSubmit = null }) => {
         </div>{/* end __layout */}
       </form>
 
-      {/* Template Creation Popup */}
-      <Popup
-        visible={isTemplatePopupVisible}
-        onHiding={() => !isCreatingTemplate && setIsTemplatePopupVisible(false)}
-        showTitle={true}
+      {/* Template Creation — SlidePanel */}
+      <SlidePanel
+        open={isTemplatePopupVisible}
+        onClose={() => !isCreatingTemplate && setIsTemplatePopupVisible(false)}
         title="Create Issue Template"
-        width={600}
-        height="auto"
-        dragEnabled={false}
-        hideOnOutsideClick={!isCreatingTemplate}
+        width={520}
       >
         <div className="tw-p-4 tw-space-y-4">
           <div>
@@ -1638,7 +1634,7 @@ const IssueCreateForm = ({ onSubmit = null }) => {
             />
           </div>
         </div>
-      </Popup>
+      </SlidePanel>
     </div>
   );
 };

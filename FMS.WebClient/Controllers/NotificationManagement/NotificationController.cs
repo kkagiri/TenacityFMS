@@ -13,6 +13,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
+using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -754,10 +755,18 @@ namespace FMS.WebClient.Controllers
                     root["sourceId"] = request.SourceId.Trim();
                 }
 
+                // Persist schedule display name if provided
+                if (!string.IsNullOrWhiteSpace(request.ScheduleName))
+                {
+                    var scheduleName = request.ScheduleName.Trim();
+                    notification.Title = scheduleName;
+                    root["reportName"] = scheduleName;
+                }
+
                 // Persist filter changes if provided
                 if (request.Filters != null)
                 {
-                    root["filters"] = JToken.FromObject(request.Filters);
+                    root["filters"] = ConvertToJToken(request.Filters);
                 }
 
                 // Persist day-of-month for monthly schedules
@@ -852,6 +861,23 @@ namespace FMS.WebClient.Controllers
                 _logger.LogError(ex, "Error updating scheduled report email {NotificationId}", notificationId);
                 return StatusCode(500, new { success = false, message = "Internal server error" });
             }
+        }
+
+        private static JToken ConvertToJToken(object value)
+        {
+            if (value is JsonElement jsonElement)
+            {
+                try
+                {
+                    return JToken.Parse(jsonElement.GetRawText());
+                }
+                catch
+                {
+                    return JValue.CreateNull();
+                }
+            }
+
+            return JToken.FromObject(value);
         }
 
         /// <summary>

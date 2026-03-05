@@ -14,6 +14,7 @@ namespace FMS.Application.Features.Notification.DTOs
 {
     public class UpdateScheduledReportEmailRequest
     {
+        public string? ScheduleName { get; set; }
         public DateTime? ScheduledAtUtc { get; set; }
         public string? ScheduleType { get; set; }
         public List<string>? DaysOfWeek { get; set; }

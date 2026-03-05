@@ -669,37 +669,49 @@
    TABS
    ================================================================= */
 .issue-detail-tabs {
-  .dx-tabs {
-    @apply tw-bg-transparent tw-border-b tw-border-gray-200 tw-px-2 tw-pt-1;
+  .m365-tabs {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 0 8px;
+    background: #fff;
+    border-bottom: 1px solid #edebe9;
+    overflow-x: auto;
   }
 
-  .dx-tabs-wrapper {
-    justify-content: flex-start;
-  }
-
-  .dx-tab {
-    @apply tw-text-xs tw-font-semibold tw-text-gray-600 tw-transition-colors tw-duration-150;
-    @apply tw-border tw-border-transparent tw-rounded-t-md;
-    width: auto !important;
-    flex: 0 0 auto;
-    min-width: 0;
-    margin-bottom: -1px;
-    padding: 6px 10px;
-
-    &:hover:not(.dx-tab-selected) {
-      @apply tw-text-gray-800 tw-bg-white;
-    }
-
-    &.dx-tab-selected {
-      @apply tw-text-blue-700 tw-border-gray-200 tw-bg-white;
-      border-bottom-color: #ffffff;
-    }
-  }
-
-  .dx-tab-text {
-    overflow: visible;
-    text-overflow: clip;
+  .m365-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #605e5c;
+    background: none;
+    border: none;
+    cursor: pointer;
     white-space: nowrap;
+    transition: color 0.15s;
+
+    &:hover {
+      color: #201f1e;
+    }
+
+    &--active {
+      color: #0078d4;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 10px;
+        right: 10px;
+        height: 2px;
+        background: #0078d4;
+        border-radius: 2px 2px 0 0;
+      }
+    }
   }
 
   &__item {
@@ -810,11 +822,113 @@
 }
 
 .linked-issues-grid {
+  border: 1px solid #edebe9;
+  border-radius: 4px;
+  overflow: hidden;
+
+  .dx-datagrid {
+    border: none;
+
+    .dx-datagrid-headers {
+      background: #faf9f8;
+      border-bottom: 1px solid #edebe9;
+
+      .dx-row > td {
+        color: #605e5c;
+        font-weight: 600;
+        border-color: #edebe9;
+      }
+    }
+
+    .dx-datagrid-rowsview .dx-row > td {
+      border-color: #f3f2f1;
+      color: #201f1e;
+    }
+
+    .dx-row.dx-row-alt > td {
+      background: #faf9f8;
+    }
+
+    .dx-row:hover > td {
+      background: #f3f2f1;
+    }
+
+    .dx-datagrid-search-panel .dx-texteditor {
+      border: 1px solid #c8c6c4;
+      border-radius: 4px;
+      height: 34px;
+    }
+  }
+
   .dx-datagrid-rowsview {
     .dx-row {
       @apply tw-cursor-pointer;
 
       &:hover { @apply tw-bg-blue-50; }
+    }
+  }
+}
+
+[data-theme="dark"] {
+  .issue-detail-tabs {
+    .m365-tabs {
+      background: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .m365-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        color: var(--fms-text-primary) !important;
+      }
+
+      &--active {
+        color: #4da6ff !important;
+
+        &::after {
+          background: #4da6ff !important;
+        }
+      }
+    }
+  }
+
+  .linked-issues-grid {
+    border-color: var(--fms-border) !important;
+
+    .dx-datagrid {
+      .dx-datagrid-headers {
+        background: var(--fms-surface-secondary) !important;
+        border-bottom-color: var(--fms-border) !important;
+
+        .dx-row > td {
+          color: var(--fms-text-secondary) !important;
+          border-color: var(--fms-border) !important;
+        }
+      }
+
+      .dx-datagrid-rowsview .dx-row > td {
+        color: var(--fms-text-primary) !important;
+        border-color: var(--fms-border) !important;
+        background: var(--fms-surface) !important;
+      }
+
+      .dx-row.dx-row-alt > td {
+        background: var(--fms-surface-secondary) !important;
+      }
+
+      .dx-row:hover > td {
+        background: var(--fms-hover-bg) !important;
+      }
+
+      .dx-datagrid-search-panel .dx-texteditor {
+        background: var(--fms-input-bg) !important;
+        border-color: var(--fms-input-border) !important;
+      }
+
+      .dx-datagrid-search-panel .dx-texteditor-input {
+        color: var(--fms-text-primary) !important;
+      }
     }
   }
 }
@@ -827,6 +941,7 @@
   grid-template-columns: 300px 1fr;
   min-height: calc(100vh - 56px);
   gap: 0;
+  align-items: start;
   transition: grid-template-columns 0.2s ease;
 
   &--collapsed {
@@ -835,8 +950,9 @@
 
   &__content {
     @apply tw-px-5 tw-pb-5;
-    overflow-y: auto;
-    max-height: calc(100vh - 56px);
+    overflow-y: visible;
+    max-height: none;
+    min-height: calc(100vh - 56px);
   }
 }
 
@@ -862,7 +978,8 @@
   background: #fff;
   border-right: 1px solid var(--ms-border);
   overflow: hidden;
-  max-height: calc(100vh - 56px);
+  height: calc(100vh - 56px);
+  max-height: none;
 
   /* Collapsed state */
   &--collapsed {

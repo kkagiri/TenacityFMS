@@ -5,7 +5,6 @@
  * Last Modified: 2026-02-23
  */
 import React from 'react';
-import Tabs from 'devextreme-react/tabs';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import IssueActivityStream from '../components/IssueActivityStream';
 import IssueActivityHeatmap from '../components/IssueActivityHeatmap';
@@ -34,15 +33,18 @@ const IssueDetailTabs = ({
   return (
     <div className="tw-bg-white tw-rounded-lg tw-shadow-sm tw-overflow-hidden">
       <div className="issue-detail-tabs">
-        <Tabs
-          dataSource={tabItems}
-          selectedIndex={selectedTabIndex}
-          onItemClick={handleTabSelectionChange}
-          itemRender={renderTabItem}
-          width="100%"
-          showNavButtons={true}
-          scrollingEnabled={true}
-        />
+        <div className="m365-tabs">
+          {tabItems.map((tab, index) => (
+            <button
+              key={tab.key}
+              type="button"
+              className={`m365-tab${selectedTabIndex === index ? ' m365-tab--active' : ''}`}
+              onClick={() => handleTabSelectionChange({ itemIndex: index })}
+            >
+              {renderTabItem(tab)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <div className="issue-detail-tabs__content">

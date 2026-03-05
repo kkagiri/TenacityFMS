@@ -223,6 +223,7 @@ export const buildUpdatePayloadFromForm = (formData, recipientList = [], current
 
     return {
         scheduledAtUtc: nextRunDate?.toISOString() || new Date().toISOString(),
+        scheduleName: formData.scheduleName || formData.reportName || null,
         scheduleType: periodType, // 'once' | 'daily' | 'weekly' | 'monthly'
         offsetDays: formData.offsetDays ?? 1,
         windowDays: formData.windowDays ?? 1,

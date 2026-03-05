@@ -411,23 +411,23 @@ const IssueTicketListPage = () => {
 
     switch (priority) {
       case 'Critical':
-        colorClass = 'tw-text-red-600 tw-font-semibold';
+        colorClass = 'tw-text-red-600 dark:tw-text-red-400 tw-font-semibold';
         icon = 'fa-light fa-exclamation-triangle';
         break;
       case 'High':
-        colorClass = 'tw-text-orange-600 tw-font-semibold';
+        colorClass = 'tw-text-orange-600 dark:tw-text-orange-400 tw-font-semibold';
         icon = 'fa-light fa-arrow-up';
         break;
       case 'Medium':
-        colorClass = 'tw-text-yellow-600 tw-font-medium';
+        colorClass = 'tw-text-yellow-600 dark:tw-text-yellow-400 tw-font-medium';
         icon = 'fa-light fa-minus';
         break;
       case 'Low':
-        colorClass = 'tw-text-green-600';
+        colorClass = 'tw-text-green-600 dark:tw-text-green-400';
         icon = 'fa-light fa-arrow-down';
         break;
       default:
-        colorClass = 'tw-text-gray-600';
+        colorClass = 'tw-text-gray-600 dark:tw-text-gray-400';
         icon = 'fa-light fa-question';
     }
 
@@ -446,28 +446,32 @@ const IssueTicketListPage = () => {
 
     switch (status) {
       case 'Open':
-        colorClass = 'tw-text-blue-700';
-        bgClass = 'tw-bg-blue-100';
+        colorClass = 'tw-text-blue-700 dark:tw-text-blue-300';
+        bgClass = 'tw-bg-blue-100 dark:tw-bg-blue-900/30';
         break;
       case 'In Progress':
-        colorClass = 'tw-text-yellow-700';
-        bgClass = 'tw-bg-yellow-100';
+        colorClass = 'tw-text-yellow-700 dark:tw-text-yellow-300';
+        bgClass = 'tw-bg-yellow-100 dark:tw-bg-yellow-900/30';
         break;
       case 'Resolved':
-        colorClass = 'tw-text-green-700';
-        bgClass = 'tw-bg-green-100';
+        colorClass = 'tw-text-green-700 dark:tw-text-green-300';
+        bgClass = 'tw-bg-green-100 dark:tw-bg-green-900/30';
         break;
       case 'Closed':
-        colorClass = 'tw-text-gray-700';
-        bgClass = 'tw-bg-gray-100';
+        colorClass = 'tw-text-gray-700 dark:tw-text-gray-300';
+        bgClass = 'tw-bg-gray-100 dark:tw-bg-gray-700/40';
+        break;
+      case 'Complete':
+        colorClass = 'tw-text-emerald-700 dark:tw-text-emerald-300';
+        bgClass = 'tw-bg-emerald-100 dark:tw-bg-emerald-900/30';
         break;
       default:
-        colorClass = 'tw-text-gray-600';
-        bgClass = 'tw-bg-gray-50';
+        colorClass = 'tw-text-gray-600 dark:tw-text-gray-400';
+        bgClass = 'tw-bg-gray-50 dark:tw-bg-gray-700/30';
     }
 
     return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium ${colorClass} ${bgClass}`}>
+      <span className={`tw-px-2 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium tw-border tw-border-current/20 ${colorClass} ${bgClass}`}>
         {status || 'Unknown'}
       </span>
     );
@@ -646,122 +650,124 @@ const IssueTicketListPage = () => {
         </div>
       )}
 
-      {/* ── Filter Panel ── */}
-      {filterPanelOpen && (
-        <div className="itl__filter-panel">
-          <div className="itl__fp-body">
-            {/* Search */}
-            <div className="itl__fp-section itl__fp-section--full">
-              <label className="itl__fp-label">Search</label>
-              <div className="itl__fp-search-wrap">
-                <i className="fa-light fa-search"></i>
-                <input
-                  type="text"
-                  className="itl__fp-search"
-                  placeholder="Search title or description\u2026"
-                  value={filters.search}
-                  onChange={e => setFilter('search', e.target.value)}
-                />
-                {filters.search && (
-                  <button className="itl__fp-clear-x" onClick={() => setFilter('search', '')}>
-                    <i className="fa-light fa-xmark"></i>
-                  </button>
-                )}
-              </div>
+      {/* ── Filter Side Panel ── */}
+      {filterPanelOpen && <div className="itl__filter-overlay" onClick={() => setFilterPanelOpen(false)} />}
+      <div className={`itl__filter-panel${filterPanelOpen ? ' is-open' : ''}`}>
+        <div className="itl__fp-header">
+          <h3 className="itl__fp-title"><i className="fa-light fa-sliders-h"></i> Filters</h3>
+          <button className="itl__fp-close" onClick={() => setFilterPanelOpen(false)}>
+            <i className="fa-light fa-xmark"></i>
+          </button>
+        </div>
+        <div className="itl__fp-body">
+          {/* Search */}
+          <div className="itl__fp-section itl__fp-section--full">
+            <label className="itl__fp-label">Search</label>
+            <div className="itl__fp-search-wrap">
+              <i className="fa-light fa-search"></i>
+              <input
+                type="text"
+                className="itl__fp-search"
+                placeholder="Search title or description\u2026"
+                value={filters.search}
+                onChange={e => setFilter('search', e.target.value)}
+              />
+              {filters.search && (
+                <button className="itl__fp-clear-x" onClick={() => setFilter('search', '')}>
+                  <i className="fa-light fa-xmark"></i>
+                </button>
+              )}
             </div>
+          </div>
 
-            <div className="itl__fp-row">
-              {/* Status */}
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Status</label>
-                <div className="itl__fp-pills">
-                  {statuses.map(s => {
-                    const name = s.status || s.name || '';
-                    return (
-                      <button
-                        key={s.id}
-                        className={`itl__fp-pill${filters.statuses.includes(name) ? ' is-on' : ''}`}
-                        onClick={() => toggleMultiFilter('statuses', name)}
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              {/* Priority */}
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Priority</label>
-                <div className="itl__fp-pills">
-                  {priorities.map(p => {
-                    const name = p.name || '';
-                    return (
-                      <button
-                        key={p.id}
-                        className={`itl__fp-pill${filters.priorities.includes(name) ? ' is-on' : ''}`}
-                        onClick={() => toggleMultiFilter('priorities', name)}
-                      >
-                        {name}
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-
-            {/* Tags */}
-            {allTags.length > 0 && (
-              <div className="itl__fp-section itl__fp-section--full">
-                <label className="itl__fp-label">
-                  <i className="fa-light fa-tag"></i>
-                  Tags / Categories
-                </label>
-                <div className="itl__fp-pills itl__fp-pills--wrap">
-                  {allTags.map(tag => (
+          <div className="itl__fp-row">
+            {/* Status */}
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Status</label>
+              <div className="itl__fp-pills">
+                {statuses.map(s => {
+                  const name = s.status || s.name || '';
+                  return (
                     <button
-                      key={tag}
-                      className={`itl__fp-pill itl__fp-pill--tag${filters.tags.includes(tag) ? ' is-on' : ''}`}
-                      onClick={() => toggleMultiFilter('tags', tag)}
+                      key={s.id}
+                      className={`itl__fp-pill${filters.statuses.includes(name) ? ' is-on' : ''}`}
+                      onClick={() => toggleMultiFilter('statuses', name)}
                     >
-                      {tag}
+                      {name}
                     </button>
-                  ))}
-                </div>
+                  );
+                })}
               </div>
-            )}
-
-            <div className="itl__fp-row">
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Vehicle</label>
-                <input type="text" className="itl__fp-input" placeholder="Search vehicle\u2026" value={filters.vehicle} onChange={e => setFilter('vehicle', e.target.value)} />
-              </div>
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Site</label>
-                <input type="text" className="itl__fp-input" placeholder="Search site\u2026" value={filters.site} onChange={e => setFilter('site', e.target.value)} />
-              </div>
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Open Date From</label>
-                <input type="date" className="itl__fp-input" value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} />
-              </div>
-              <div className="itl__fp-section">
-                <label className="itl__fp-label">Open Date To</label>
-                <input type="date" className="itl__fp-input" value={filters.dateTo} onChange={e => setFilter('dateTo', e.target.value)} />
+            </div>
+            {/* Priority */}
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Priority</label>
+              <div className="itl__fp-pills">
+                {priorities.map(p => {
+                  const name = p.name || '';
+                  return (
+                    <button
+                      key={p.id}
+                      className={`itl__fp-pill${filters.priorities.includes(name) ? ' is-on' : ''}`}
+                      onClick={() => toggleMultiFilter('priorities', name)}
+                    >
+                      {name}
+                    </button>
+                  );
+                })}
               </div>
             </div>
           </div>
-          <div className="itl__fp-footer">
-            <span className="itl__fp-results">{filteredIssues.length} of {issues.length} issues</span>
-            {activeFilterCount > 0 && (
-              <button className="itl__fp-clear-btn" onClick={clearAllFilters}>
-                <i className="fa-light fa-xmark"></i> Clear all filters
-              </button>
-            )}
-            <button className="itl__fp-close-btn" onClick={() => setFilterPanelOpen(false)}>
-              <i className="fa-light fa-chevron-up"></i> Collapse
-            </button>
+
+          {/* Tags */}
+          {allTags.length > 0 && (
+            <div className="itl__fp-section itl__fp-section--full">
+              <label className="itl__fp-label">
+                <i className="fa-light fa-tag"></i>
+                Tags / Categories
+              </label>
+              <div className="itl__fp-pills itl__fp-pills--wrap">
+                {allTags.map(tag => (
+                  <button
+                    key={tag}
+                    className={`itl__fp-pill itl__fp-pill--tag${filters.tags.includes(tag) ? ' is-on' : ''}`}
+                    onClick={() => toggleMultiFilter('tags', tag)}
+                  >
+                    {tag}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="itl__fp-row">
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Vehicle</label>
+              <input type="text" className="itl__fp-input" placeholder="Search vehicle\u2026" value={filters.vehicle} onChange={e => setFilter('vehicle', e.target.value)} />
+            </div>
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Site</label>
+              <input type="text" className="itl__fp-input" placeholder="Search site\u2026" value={filters.site} onChange={e => setFilter('site', e.target.value)} />
+            </div>
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Open Date From</label>
+              <input type="date" className="itl__fp-input" value={filters.dateFrom} onChange={e => setFilter('dateFrom', e.target.value)} />
+            </div>
+            <div className="itl__fp-section">
+              <label className="itl__fp-label">Open Date To</label>
+              <input type="date" className="itl__fp-input" value={filters.dateTo} onChange={e => setFilter('dateTo', e.target.value)} />
+            </div>
           </div>
         </div>
-      )}
+        <div className="itl__fp-footer">
+          <span className="itl__fp-results">{filteredIssues.length} of {issues.length} issues</span>
+          {activeFilterCount > 0 && (
+            <button className="itl__fp-clear-btn" onClick={clearAllFilters}>
+              <i className="fa-light fa-xmark"></i> Clear all filters
+            </button>
+          )}
+        </div>
+      </div>
 
       {/* ── Active Filter Pills ── */}
       {activeFilterCount > 0 && (
@@ -813,7 +819,7 @@ const IssueTicketListPage = () => {
           <Paging enabled={true} defaultPageSize={20} />
           <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50, 100]} showInfo={true} />
           <HeaderFilter visible={true} />
-          <SearchPanel visible={true} placeholder="Search in results\u2026" />
+          <SearchPanel visible={true} placeholder="Search in results\u2026" width={220} />
           <Sorting mode="multiple" />
           <Selection mode="multiple" />
           <Export enabled={true} allowExportSelectedData={true} />
@@ -829,9 +835,10 @@ const IssueTicketListPage = () => {
                 text: 'Close & Monitor',
                 icon: 'fa-light fa-eye',
                 type: 'normal',
-                stylingMode: 'outlined',
+                stylingMode: 'text',
                 onClick: handleOpenCloseMonitor,
-                hint: 'Close selected issues and continue monitoring vehicles'
+                hint: 'Close selected issues and continue monitoring vehicles',
+                elementAttr: { class: 'itl__toolbar-btn' }
               }}
             />
             {canDeleteIssue && (
@@ -843,9 +850,10 @@ const IssueTicketListPage = () => {
                   text: isDeleting ? 'Deleting...' : 'Delete Selected',
                   icon: 'fa-light fa-trash',
                   type: 'danger',
-                  stylingMode: 'outlined',
+                  stylingMode: 'text',
                   onClick: handleBulkDelete,
                   disabled: isDeleting,
+                  elementAttr: { class: 'itl__toolbar-btn itl__toolbar-btn--danger' }
                 }}
               />
             )}
@@ -874,27 +882,7 @@ const IssueTicketListPage = () => {
             allowSorting={false}
           />
 
-          <Column
-            dataField="lastSeenAtUtc"
-            caption="Last Seen (UTC)"
-            width={180}
-            dataType="datetime"
-            cellRender={formatDateTime}
-            allowSorting={true}
-            allowFiltering={true}
-          />
 
-          <Column
-            dataField="lastSeenMinutesAgo"
-            caption="Offline For"
-            width={140}
-            dataType="number"
-            allowSorting={true}
-            allowFiltering={true}
-            cellRender={(cellData) => (
-              <span>{cellData.data.lastSeenDisplay || ''}</span>
-            )}
-          />
 
           <Column
             dataField="priorityName"
@@ -1003,9 +991,9 @@ const IssueTicketListPage = () => {
         dragEnabled={false}
       >
         <div className="tw-p-4">
-          <div className="tw-flex tw-items-start tw-gap-3 tw-mb-4 tw-p-3 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200">
-            <i className="fa-light fa-info-circle tw-text-blue-500 tw-text-lg tw-mt-0.5"></i>
-            <p className="tw-text-sm tw-text-blue-800 tw-m-0">
+          <div className="tw-flex tw-items-start tw-gap-3 tw-mb-4 tw-p-3 tw-bg-blue-50 dark:tw-bg-blue-900/20 tw-rounded-lg tw-border tw-border-blue-200 dark:tw-border-blue-800">
+            <i className="fa-light fa-info-circle tw-text-blue-500 dark:tw-text-blue-400 tw-text-lg tw-mt-0.5"></i>
+            <p className="tw-text-sm tw-text-blue-800 dark:tw-text-blue-300 tw-m-0">
               Closing these issues will mark them as complete. The system will <strong>continue monitoring</strong> the
               associated vehicles. If a vehicle has fuel activity (refill or pump transaction) while its GPS
               device is offline, a new issue will automatically be created for investigation.
@@ -1013,8 +1001,8 @@ const IssueTicketListPage = () => {
           </div>
 
           <div className="tw-mb-4">
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Closing Notes <span className="tw-text-gray-400">(optional)</span>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 dark:tw-text-gray-300 tw-mb-1">
+              Closing Notes <span className="tw-text-gray-400 dark:tw-text-gray-500">(optional)</span>
             </label>
             <TextArea
               value={closeMonitorNotes}
@@ -1025,7 +1013,7 @@ const IssueTicketListPage = () => {
             />
           </div>
 
-          <div className="tw-text-sm tw-text-gray-500 tw-mb-4">
+          <div className="tw-text-sm tw-text-gray-500 dark:tw-text-gray-400 tw-mb-4">
             <i className="fa-light fa-ticket tw-mr-1"></i>
             {getSelectedIssues().length} issue(s) selected
           </div>

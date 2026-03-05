@@ -1,8 +1,79 @@
-/* Notification Preferences Popup Styles */
+/* Notification Preferences Popup/Panel Styles */
 
-.notification-preferences-popup {
-  .dx-popup-content {
-    padding: 0 !important;
+.notification-preferences-panel {
+  background: #ffffff;
+  color: #201f1e;
+  min-height: 100%;
+}
+
+.notification-preferences-panel__unsaved {
+  border-top-color: #e5e7eb;
+  background: #fff4ce;
+  color: #8a6d00;
+}
+
+.notification-preferences-slide-panel {
+  background: #ffffff;
+  border-left-color: #edebe9;
+
+  .fms-slide-panel__header {
+    background: #ffffff;
+    border-bottom-color: #edebe9;
+  }
+
+  .fms-slide-panel__title {
+    color: #201f1e;
+  }
+
+  .fms-slide-panel__body {
+    background: #ffffff;
+  }
+
+  .fms-slide-panel__close {
+    color: #605e5c;
+
+    &:hover {
+      color: #201f1e;
+      background: #f3f2f1;
+    }
+  }
+
+  .notification-preferences-slide-panel__title-icon {
+    color: #0078d4;
+    font-size: 14px;
+    margin-right: 4px;
+  }
+
+  .notification-preferences-slide-panel__btn {
+    .dx-button-content {
+      font-size: 12px;
+    }
+  }
+
+  .notification-preferences-slide-panel__btn--reset {
+    .dx-button {
+      background: transparent;
+      border-color: #c8c6c4;
+      color: #323130;
+    }
+
+    .dx-button:hover {
+      background: #f3f2f1;
+      border-color: #a19f9d;
+    }
+  }
+
+  .notification-preferences-slide-panel__btn--save {
+    .dx-button {
+      background: #0078d4;
+      border-color: #0078d4;
+      color: #ffffff;
+    }
+
+    .dx-button:hover {
+      background: #106ebe;
+      border-color: #106ebe;
+    }
   }
 }
 
@@ -18,6 +89,7 @@
 .preferences-table {
   width: 100%;
   border-collapse: collapse;
+  background-color: #ffffff;
 
   th {
     padding: 0.75rem 1rem;
@@ -35,14 +107,27 @@
     padding: 0.75rem 1rem;
     border-bottom: 1px solid #f3f4f6;
     vertical-align: middle;
+    color: #111827;
+    background-color: #ffffff;
+  }
+
+  tbody tr {
+    background-color: #ffffff;
   }
 
   tbody tr:hover {
-    background-color: #f9fafb;
+    background-color: #f3f2f1;
   }
 
   tbody tr:last-child td {
     border-bottom: none;
+  }
+
+  select,
+  input {
+    background-color: #ffffff;
+    border-color: #d1d5db;
+    color: #111827;
   }
 }
 
@@ -56,12 +141,109 @@
 .preferences-card {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid #f3f4f6;
+  background: #ffffff;
 
   &:last-child {
     border-bottom: none;
   }
 
   &:hover {
-    background-color: #f9fafb;
+    background-color: #f3f2f1;
+  }
+}
+
+[data-theme="dark"] {
+  .notification-preferences-panel {
+    background: #0f0f10;
+    color: #f3f2f1;
+  }
+
+  .notification-preferences-panel__unsaved {
+    border-top-color: #3b3a39;
+    background: #1b1a19;
+    color: #fce100;
+  }
+
+  .notification-preferences-slide-panel {
+    background: #0f0f10;
+    border-left-color: #3b3a39;
+
+    .fms-slide-panel__header {
+      background: #0f0f10;
+      border-bottom-color: #3b3a39;
+    }
+
+    .fms-slide-panel__title {
+      color: #f3f2f1;
+    }
+
+    .fms-slide-panel__body {
+      background: #0f0f10;
+    }
+
+    .fms-slide-panel__close {
+      color: #d2d0ce;
+
+      &:hover {
+        color: #ffffff;
+        background: #3b3a39;
+      }
+    }
+
+    .notification-preferences-slide-panel__title-icon {
+      color: #8cc5ff;
+    }
+
+    .notification-preferences-slide-panel__btn--reset {
+      .dx-button {
+        border-color: #605e5c;
+        color: #f3f2f1;
+      }
+
+      .dx-button:hover {
+        background: #3b3a39;
+        border-color: #8a8886;
+      }
+    }
+  }
+
+  .preferences-table {
+    background-color: #0f0f10;
+
+    th {
+      background-color: #171717;
+      border-bottom-color: #3b3a39;
+      color: #f3f2f1;
+    }
+
+    td {
+      border-bottom-color: #3b3a39;
+      color: #f3f2f1;
+      background-color: #0f0f10;
+    }
+
+    tbody tr {
+      background-color: #0f0f10;
+    }
+
+    tbody tr:hover {
+      background-color: #3b3a39;
+    }
+
+    select,
+    input {
+      background-color: #1b1a19;
+      border-color: #605e5c;
+      color: #f3f2f1;
+    }
+  }
+
+  .preferences-card {
+    border-bottom-color: #3b3a39;
+    background: #0f0f10;
+
+    &:hover {
+      background-color: #3b3a39;
+    }
   }
 }

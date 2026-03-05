@@ -37,24 +37,24 @@ const normalizeLinkedIssue = (issue) => {
 
 const getStatusBadgeClass = (status) => {
     const statusMap = {
-        'open': 'tw-bg-blue-100 tw-text-blue-800',
-        'in progress': 'tw-bg-yellow-100 tw-text-yellow-800',
-        'resolved': 'tw-bg-green-100 tw-text-green-800',
-        'closed': 'tw-bg-gray-100 tw-text-gray-800',
-        'pending': 'tw-bg-orange-100 tw-text-orange-800',
-        'rejected': 'tw-bg-red-100 tw-text-red-800'
+        'open': 'tw-bg-blue-100 dark:tw-bg-blue-900/30 tw-text-blue-800 dark:tw-text-blue-300',
+        'in progress': 'tw-bg-yellow-100 dark:tw-bg-yellow-900/30 tw-text-yellow-800 dark:tw-text-yellow-300',
+        'resolved': 'tw-bg-green-100 dark:tw-bg-green-900/30 tw-text-green-800 dark:tw-text-green-300',
+        'closed': 'tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-800 dark:tw-text-gray-200',
+        'pending': 'tw-bg-orange-100 dark:tw-bg-orange-900/30 tw-text-orange-800 dark:tw-text-orange-300',
+        'rejected': 'tw-bg-red-100 dark:tw-bg-red-900/30 tw-text-red-800 dark:tw-text-red-300'
     };
-    return statusMap[(status || '').toString().toLowerCase()] || 'tw-bg-gray-100 tw-text-gray-600';
+    return statusMap[(status || '').toString().toLowerCase()] || 'tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-600 dark:tw-text-gray-300';
 };
 
 const getPriorityBadgeClass = (priority) => {
     const priorityMap = {
-        'critical': 'tw-bg-red-100 tw-text-red-800',
-        'high': 'tw-bg-orange-100 tw-text-orange-800',
-        'medium': 'tw-bg-yellow-100 tw-text-yellow-800',
-        'low': 'tw-bg-green-100 tw-text-green-800'
+        'critical': 'tw-bg-red-100 dark:tw-bg-red-900/30 tw-text-red-800 dark:tw-text-red-300',
+        'high': 'tw-bg-orange-100 dark:tw-bg-orange-900/30 tw-text-orange-800 dark:tw-text-orange-300',
+        'medium': 'tw-bg-yellow-100 dark:tw-bg-yellow-900/30 tw-text-yellow-800 dark:tw-text-yellow-300',
+        'low': 'tw-bg-green-100 dark:tw-bg-green-900/30 tw-text-green-800 dark:tw-text-green-300'
     };
-    return priorityMap[(priority || '').toString().toLowerCase()] || 'tw-bg-gray-100 tw-text-gray-600';
+    return priorityMap[(priority || '').toString().toLowerCase()] || 'tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-600 dark:tw-text-gray-300';
 };
 
 const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
@@ -153,20 +153,20 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
 
     if (loading) {
         return (
-            <div className="tw-flex tw-items-center tw-justify-center tw-py-12">
+            <div className="linked-issues-grid tw-flex tw-items-center tw-justify-center tw-py-12">
                 <LoadIndicator />
-                <span className="tw-ml-3 tw-text-gray-500">Loading linked issues...</span>
+                <span className="tw-ml-3 tw-text-gray-500 dark:tw-text-gray-300">Loading linked issues...</span>
             </div>
         );
     }
 
     if (linkedIssues.length === 0) {
         return (
-            <div className="tw-text-center tw-py-12">
-                <i className="fa-light fa-link-slash tw-text-4xl tw-text-gray-300 tw-mb-3"></i>
-                <p className="tw-text-gray-500">No linked issues found.</p>
+            <div className="linked-issues-grid tw-text-center tw-py-12">
+                <i className="fa-light fa-link-slash tw-text-4xl tw-text-gray-300 dark:tw-text-gray-600 tw-mb-3"></i>
+                <p className="tw-text-gray-500 dark:tw-text-gray-300">No linked issues found.</p>
                 {currentIssue?.templateName && (
-                    <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                    <p className="tw-text-xs tw-text-gray-400 dark:tw-text-gray-500 tw-mt-1">
                         (Issues using the same template: {currentIssue.templateName})
                     </p>
                 )}
@@ -175,15 +175,15 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
     }
 
     return (
-        <div>
+        <div className="linked-issues-grid">
             <div className="tw-flex tw-flex-wrap tw-items-end tw-gap-3 tw-mb-4">
                 <div>
-                    <label htmlFor="linked-issues-match-by" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                    <label htmlFor="linked-issues-match-by" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 dark:tw-text-gray-300 tw-uppercase tw-mb-1">
                         Match By
                     </label>
                     <select
                         id="linked-issues-match-by"
-                        className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
+                        className="tw-border tw-border-gray-300 dark:tw-border-gray-700 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-bg-white dark:tw-bg-gray-900 tw-text-gray-900 dark:tw-text-gray-100 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
                         value={matchBy}
                         onChange={handleMatchByChange}
                     >
@@ -195,12 +195,12 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
 
                 {matchBy === 'tag' && (
                     <div>
-                        <label htmlFor="linked-issues-tag" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-1">
+                        <label htmlFor="linked-issues-tag" className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 dark:tw-text-gray-300 tw-uppercase tw-mb-1">
                             Tag
                         </label>
                         <select
                             id="linked-issues-tag"
-                            className="tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2 tw-text-sm focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
+                            className="tw-border tw-border-gray-300 dark:tw-border-gray-700 tw-rounded tw-px-3 tw-py-2 tw-text-sm tw-bg-white dark:tw-bg-gray-900 tw-text-gray-900 dark:tw-text-gray-100 focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-200"
                             value={selectedTagId}
                             onChange={handleTagChange}
                             disabled={availableTags.length === 0}
@@ -219,7 +219,7 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
                 )}
             </div>
 
-            <p className="tw-text-sm tw-text-gray-600 tw-mb-3">
+            <p className="tw-text-sm tw-text-gray-600 dark:tw-text-gray-300 tw-mb-3">
                 <i className="fa-light fa-info-circle tw-mr-2"></i>
                 Showing {linkedIssues.length} issue{linkedIssues.length !== 1 ? 's' : ''}
                 {matchBy === 'template' && currentIssue?.templateName && (
@@ -237,7 +237,7 @@ const LinkedIssuesGrid = ({ issueId, currentIssue }) => {
                 hoverStateEnabled={true}
                 onRowClick={handleRowClick}
                 columnAutoWidth={true}
-                className="tw-cursor-pointer"
+                className="linked-issues-grid__table tw-cursor-pointer"
             >
                 <SearchPanel visible={true} width={200} placeholder="Search issues..." />
                 <Sorting mode="multiple" />

@@ -78,6 +78,7 @@ const ImportManagementPage = () => {
         loading,
         error,
         retryingId,
+        onDemandRunning,
         activeTab,
         search,
         reportType,
@@ -91,6 +92,7 @@ const ImportManagementPage = () => {
         handleSortChange,
         handlePageChange,
         handleRetry,
+        handleOnDemandTest,
         handleSelectFile,
         handleCloseDetail,
         refreshFiles,
@@ -112,6 +114,13 @@ const ImportManagementPage = () => {
         },
         [handleRetry]
     );
+
+    const onOnDemandTestClick = useCallback(async () => {
+        const result = await handleOnDemandTest();
+        if (!result.success) {
+            console.warn("On-demand test failed:", result.message);
+        }
+    }, [handleOnDemandTest]);
 
     // ── Tab count helper ──
     const getTabCount = (tabId) => {
@@ -150,6 +159,15 @@ const ImportManagementPage = () => {
                     </h2>
                 </div>
                 <div className="m365-page-header__actions">
+                    <button
+                        className="m365-btn m365-btn--ghost"
+                        onClick={onOnDemandTestClick}
+                        disabled={onDemandRunning || !canManageImport}
+                        title="Trigger on-demand import test"
+                    >
+                        <i className={`fa-light ${onDemandRunning ? "fa-spinner-third fa-spin" : "fa-vial"}`} />
+                        {onDemandRunning ? "Running Test…" : "On-Demand Test"}
+                    </button>
                     <button
                         className="m365-btn m365-btn--ghost"
                         onClick={() => setShowSettings(true)}

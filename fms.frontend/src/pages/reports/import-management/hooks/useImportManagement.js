@@ -12,6 +12,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import {
     getFileTrackerList,
     retryFileImport,
+    triggerOnDemandImport,
 } from "../../../../api/importManagementApi";
 
 const DEFAULT_PAGE_SIZE = 50;
@@ -33,6 +34,7 @@ const useImportManagement = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [retryingId, setRetryingId] = useState(null);
+    const [onDemandRunning, setOnDemandRunning] = useState(false);
 
     // ── Filters / pagination ──
     const [activeTab, setActiveTab] = useState("all"); // all | Completed | Failed | Pending | Skipped | Processing
@@ -157,6 +159,29 @@ const useImportManagement = () => {
         [fetchFiles, selectedFile, files]
     );
 
+    const handleOnDemandTest = useCallback(async () => {
+        setOnDemandRunning(true);
+        setError(null);
+        try {
+            const response = await triggerOnDemandImport({
+                batchSize: pageSize,
+                includeRetries: true,
+            });
+
+            if (response?.isSuccess) {
+                await fetchFiles();
+                return { success: true, message: response.message || "On-demand import completed" };
+            }
+
+            return { success: false, message: response?.message || "On-demand import failed" };
+        } catch (err) {
+            console.error("Error triggering on-demand import:", err);
+            return { success: false, message: err.message || "Network error" };
+        } finally {
+            setOnDemandRunning(false);
+        }
+    }, [fetchFiles, pageSize]);
+
     const handleSelectFile = useCallback((file) => {
         setSelectedFile(file);
     }, []);
@@ -184,6 +209,7 @@ const useImportManagement = () => {
         loading,
         error,
         retryingId,
+        onDemandRunning,
 
         // Filters
         activeTab,
@@ -204,6 +230,7 @@ const useImportManagement = () => {
         handleSortChange,
         handlePageChange,
         handleRetry,
+        handleOnDemandTest,
         handleSelectFile,
         handleCloseDetail,
         refreshFiles: fetchFiles,

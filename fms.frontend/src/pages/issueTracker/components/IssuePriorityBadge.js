@@ -15,31 +15,31 @@ const IssuePriorityBadge = ({ priority, size = 'md', showIcon = true, className 
     switch (normalizedPriority) {
       case 'critical':
         return {
-          color: 'tw-bg-red-100 tw-text-red-800 tw-border-red-200',
+          color: 'tw-bg-red-100 dark:tw-bg-red-900/30 tw-text-red-800 dark:tw-text-red-300 tw-border-red-200 dark:tw-border-red-700',
           icon: 'fa-light fa-exclamation-triangle',
           label: 'Critical'
         };
       case 'high':
         return {
-          color: 'tw-bg-orange-100 tw-text-orange-800 tw-border-orange-200',
+          color: 'tw-bg-orange-100 dark:tw-bg-orange-900/30 tw-text-orange-800 dark:tw-text-orange-300 tw-border-orange-200 dark:tw-border-orange-700',
           icon: 'fa-light fa-chevron-up',
           label: 'High'
         };
       case 'medium':
         return {
-          color: 'tw-bg-yellow-100 tw-text-yellow-800 tw-border-yellow-200',
+          color: 'tw-bg-yellow-100 dark:tw-bg-yellow-900/30 tw-text-yellow-800 dark:tw-text-yellow-300 tw-border-yellow-200 dark:tw-border-yellow-700',
           icon: 'fa-light fa-minus',
           label: 'Medium'
         };
       case 'low':
         return {
-          color: 'tw-bg-green-100 tw-text-green-800 tw-border-green-200',
+          color: 'tw-bg-green-100 dark:tw-bg-green-900/30 tw-text-green-800 dark:tw-text-green-300 tw-border-green-200 dark:tw-border-green-700',
           icon: 'fa-light fa-chevron-down',
           label: 'Low'
         };
       default:
         return {
-          color: 'tw-bg-gray-100 tw-text-gray-800 tw-border-gray-200',
+          color: 'tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-800 dark:tw-text-gray-200 tw-border-gray-200 dark:tw-border-gray-600',
           icon: 'fa-light fa-question',
           label: priority
         };

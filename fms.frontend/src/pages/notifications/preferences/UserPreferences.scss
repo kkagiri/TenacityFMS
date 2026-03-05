@@ -361,6 +361,80 @@
   animation: fadeInUp 0.3s ease-out;
 }
 
+/* Dark Theme */
+[data-theme="dark"] {
+  .user-preferences-container {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .preferences-header,
+  .preferences-footer,
+  .category-card,
+  .delivery-method-item {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .preferences-title,
+  .category-name,
+  .section-title,
+  .time-input label,
+  .limit-input label,
+  .dx-checkbox-text,
+  .cat-name {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .preferences-subtitle,
+  .category-description,
+  .cat-desc {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .card-content,
+  .preferences-table thead th,
+  .delivery-method-item:hover,
+  .category-card:hover {
+    background-color: var(--fms-surface-secondary) !important;
+  }
+
+  .preferences-table {
+    th,
+    td {
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    tbody tr:hover {
+      background-color: var(--fms-hover-bg) !important;
+    }
+  }
+
+  .time-picker,
+  .preferences-table input[type="time"],
+  .preferences-table input[type="number"] {
+    background-color: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .error-message {
+    background-color: rgba(209, 52, 56, 0.12) !important;
+    border-color: rgba(209, 52, 56, 0.45) !important;
+    color: #ffb3b6 !important;
+  }
+
+  .no-categories p,
+  .changes-indicator {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .dx-loadpanel-wrapper {
+    background-color: rgba(0, 0, 0, 0.45) !important;
+  }
+}
+
 @keyframes fadeInUp {
   from {
     opacity: 0;

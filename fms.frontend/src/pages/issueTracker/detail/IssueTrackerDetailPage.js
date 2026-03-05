@@ -9,7 +9,7 @@
  * Key Components:
  * - IssueTrackerDetailPage: Main component composing sidebar + detail content
  */
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import useIssueDetail from './useIssueDetail';
 import IssueHeaderCard from './IssueHeaderCard';
@@ -41,6 +41,14 @@ const IssueTrackerDetailPage = () => {
         const name = detail.issue?.assignToUserName;
         return name ? name.charAt(0).toUpperCase() : '?';
     }, [detail.issue]);
+
+    useEffect(() => {
+        const rafId = window.requestAnimationFrame(() => {
+            window.dispatchEvent(new Event('resize'));
+        });
+
+        return () => window.cancelAnimationFrame(rafId);
+    }, [detail.selectedTabIndex]);
 
     /* ── Loading state ────────────────────── */
     if (detail.loading) {

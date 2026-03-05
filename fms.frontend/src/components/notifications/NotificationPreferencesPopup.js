@@ -1,9 +1,19 @@
+/**
+ * File: NotificationPreferencesPopup.js
+ * Purpose: Notification preferences editor rendered in a right-side slide panel
+ * Dependencies: react, react-redux, devextreme-react, notificationPreferencesApi, SlidePanel
+ * Last Modified: 2026-03-05
+ *
+ * Key Components:
+ * - NotificationPreferencesPopup: Loads, edits, and saves per-category notification preferences
+ */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useSelector } from 'react-redux';
-import { Popup, Button, LoadPanel } from "devextreme-react";
+import { Button, LoadPanel } from "devextreme-react";
 import { confirm } from "devextreme/ui/dialog";
 import notificationPreferencesApi from "../../dataservice/notificationPreferencesApi";
 import notify from 'devextreme/ui/notify';
+import SlidePanel from "../ui/SlidePanel";
 import "./NotificationPreferencesPopup.scss";
 
 // Hook to detect mobile viewport
@@ -204,7 +214,7 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
 
     if (categories.length === 0) {
       return (
-        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-64 tw-text-gray-500">
+        <div className="tw-flex tw-flex-col tw-items-center tw-justify-center tw-h-64 tw-text-gray-500 dark:tw-text-gray-300">
           <i className="fa-light fa-inbox-empty tw-text-4xl tw-mb-4"></i>
           <p>No notification categories available</p>
         </div>
@@ -248,11 +258,10 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
                               : [...current, method.id];
                             handlePreferenceChange(category.id, 'deliveryMethods', updated.length > 0 ? updated : ["System"]);
                           }}
-                          className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${
-                            (pref.deliveryMethods || []).includes(method.id)
-                              ? 'tw-bg-blue-100 tw-border-blue-300 tw-text-blue-700'
-                              : 'tw-bg-gray-50 tw-border-gray-200 tw-text-gray-500'
-                          }`}
+                          className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${(pref.deliveryMethods || []).includes(method.id)
+                            ? 'tw-bg-blue-100 dark:tw-bg-blue-900/30 tw-border-blue-300 dark:tw-border-blue-700 tw-text-blue-700 dark:tw-text-blue-300'
+                            : 'tw-bg-gray-50 dark:tw-bg-gray-800 tw-border-gray-200 dark:tw-border-gray-700 tw-text-gray-500 dark:tw-text-gray-300'
+                            }`}
                         >
                           <i className={`${method.icon} tw-mr-1`}></i>
                           {method.name}
@@ -260,11 +269,11 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
                       ))}
                     </div>
                     <div className="tw-flex tw-items-center tw-gap-2">
-                      <span className="tw-text-xs tw-text-gray-500">Priority:</span>
+                      <span className="tw-text-xs tw-text-gray-500 dark:tw-text-gray-300">Priority:</span>
                       <select
                         value={pref.priority}
                         onChange={(e) => handlePreferenceChange(category.id, 'priority', e.target.value)}
-                        className="tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-border-gray-300 tw-bg-white tw-flex-1"
+                        className="tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-border-gray-300 dark:tw-border-gray-700 tw-bg-white dark:tw-bg-gray-900 tw-text-gray-900 dark:tw-text-gray-100 tw-flex-1"
                       >
                         {priorityOptions.map(opt => (
                           <option key={opt.id} value={opt.id}>{opt.name}</option>
@@ -318,11 +327,10 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
                                   : [...current, method.id];
                                 handlePreferenceChange(category.id, 'deliveryMethods', updated.length > 0 ? updated : ["System"]);
                               }}
-                              className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${
-                                (pref.deliveryMethods || []).includes(method.id)
-                                  ? 'tw-bg-blue-100 tw-border-blue-300 tw-text-blue-700'
-                                  : 'tw-bg-gray-50 tw-border-gray-200 tw-text-gray-500 hover:tw-bg-gray-100'
-                              }`}
+                              className={`tw-px-2 tw-py-1 tw-text-xs tw-rounded tw-border tw-transition-colors ${(pref.deliveryMethods || []).includes(method.id)
+                                ? 'tw-bg-blue-100 dark:tw-bg-blue-900/30 tw-border-blue-300 dark:tw-border-blue-700 tw-text-blue-700 dark:tw-text-blue-300'
+                                : 'tw-bg-gray-50 dark:tw-bg-gray-800 tw-border-gray-200 dark:tw-border-gray-700 tw-text-gray-500 dark:tw-text-gray-300 hover:tw-bg-gray-100 dark:hover:tw-bg-gray-700'
+                                }`}
                               title={method.name}
                             >
                               <i className={`${method.icon} tw-mr-1`}></i>
@@ -335,7 +343,7 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
                         <select
                           value={pref.priority}
                           onChange={(e) => handlePreferenceChange(category.id, 'priority', e.target.value)}
-                          className="tw-px-2 tw-py-1 tw-text-sm tw-rounded tw-border tw-border-gray-300 tw-bg-white"
+                          className="tw-px-2 tw-py-1 tw-text-sm tw-rounded tw-border tw-border-gray-300 dark:tw-border-gray-700 tw-bg-white dark:tw-bg-gray-900 tw-text-gray-900 dark:tw-text-gray-100"
                         >
                           {priorityOptions.map(opt => (
                             <option key={opt.id} value={opt.id}>{opt.name}</option>
@@ -354,59 +362,42 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
   };
 
   return (
-    <Popup
-      visible={visible}
-      onHiding={onHiding}
-      dragEnabled={!isMobile}
-      showCloseButton={false}
-      showTitle={false}
-      fullScreen={isMobile}
-      width={isMobile ? '100%' : 700}
-      height={isMobile ? '100%' : 500}
-      className="notification-preferences-popup"
+    <SlidePanel
+      open={visible}
+      onClose={onHiding}
+      title="My Notification Preferences"
+      width={isMobile ? '100%' : 780}
+      panelClassName="notification-preferences-slide-panel"
+      headerActions={(
+        <>
+          <i className="fa-light fa-user-cog notification-preferences-slide-panel__title-icon"></i>
+          <Button
+            text="Reset"
+            stylingMode="outlined"
+            type="normal"
+            onClick={handleReset}
+            disabled={saving}
+            elementAttr={{ class: 'notification-preferences-slide-panel__btn notification-preferences-slide-panel__btn--reset' }}
+          />
+          <Button
+            text={saving ? 'Saving...' : 'Save'}
+            stylingMode="contained"
+            type="default"
+            onClick={handleSave}
+            disabled={saving || !hasChanges}
+            elementAttr={{ class: 'notification-preferences-slide-panel__btn notification-preferences-slide-panel__btn--save' }}
+          />
+        </>
+      )}
     >
-      <div className="tw-h-full tw-flex tw-flex-col">
-        {/* Header with title and action buttons */}
-        <div className={`tw-flex tw-items-center tw-justify-between tw-px-4 tw-py-3 tw-border-b tw-border-gray-200 tw-bg-gray-50 tw-flex-shrink-0 ${isMobile ? 'tw-flex-wrap tw-gap-2' : ''}`}>
-          <div className="tw-flex tw-items-center tw-gap-2">
-            <i className="fa-light fa-user-cog tw-text-blue-600"></i>
-            <h3 className={`tw-font-semibold tw-text-gray-900 tw-m-0 ${isMobile ? 'tw-text-base' : 'tw-text-lg'}`}>My Notification Preferences</h3>
-          </div>
-          <div className="tw-flex tw-items-center tw-gap-2">
-            <Button
-              text="Reset"
-              stylingMode="outlined"
-              type="normal"
-              onClick={handleReset}
-              disabled={saving}
-            />
-            <Button
-              text={saving ? 'Saving...' : 'Save'}
-              stylingMode="contained"
-              type="default"
-              onClick={handleSave}
-              disabled={saving || !hasChanges}
-            />
-            <button
-              type="button"
-              className="tw-w-8 tw-h-8 tw-flex tw-items-center tw-justify-center tw-rounded-full tw-bg-gray-200 hover:tw-bg-gray-300 tw-text-gray-600 tw-border-0 tw-cursor-pointer"
-              onClick={onHiding}
-              aria-label="Close"
-            >
-              <i className="fa-solid fa-xmark tw-text-base"></i>
-            </button>
-          </div>
-        </div>
-
-        {/* Content area */}
+      <div className="notification-preferences-panel tw-h-full tw-flex tw-flex-col">
         <div className="tw-flex-1 tw-overflow-auto tw-p-4">
           {renderContent()}
         </div>
 
-        {/* Footer with unsaved changes indicator */}
         {hasChanges && (
-          <div className="tw-px-4 tw-py-2 tw-border-t tw-border-gray-200 tw-bg-yellow-50">
-            <div className="tw-flex tw-items-center tw-gap-1 tw-text-sm tw-text-yellow-700">
+          <div className="notification-preferences-panel__unsaved tw-px-4 tw-py-2 tw-border-t">
+            <div className="tw-flex tw-items-center tw-gap-1 tw-text-sm">
               <i className="fa-light fa-circle-info"></i>
               <span>You have unsaved changes</span>
             </div>
@@ -414,7 +405,7 @@ const NotificationPreferencesPopup = ({ visible, onHiding }) => {
         )}
       </div>
       <LoadPanel visible={saving} message="Saving preferences..." />
-    </Popup>
+    </SlidePanel>
   );
 };
 

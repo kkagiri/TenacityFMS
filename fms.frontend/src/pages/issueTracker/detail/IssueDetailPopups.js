@@ -39,6 +39,8 @@ const IssueDetailPopups = ({
         isProcessing={isSaving}
         icon="fa-light fa-circle-check"
         iconColor="tw-text-green-600"
+        asPanel={true}
+        panelWidth={1000}
       />
       <IssueActionPopup
         visible={showClosePopup}

@@ -96,7 +96,7 @@ const UserPreferences = () => {
       setCategories([]);
       setPreferences([]);
     } finally {
-  if (!silent) setInitialLoading(false);
+      if (!silent) setInitialLoading(false);
     }
   }, [createDefaultPreference]);
 
@@ -104,7 +104,7 @@ const UserPreferences = () => {
   const isMountedRef = useRef(false);
   useEffect(() => {
     isMountedRef.current = true;
-  loadData();
+    loadData();
     return () => { isMountedRef.current = false; };
   }, [loadData]);
 
@@ -112,7 +112,7 @@ const UserPreferences = () => {
   const handlePreferenceChange = useCallback((categoryId, field, value) => {
     setPreferences(prev =>
       prev.map(pref =>
-  (pref.notificationCategoryId === categoryId)
+        (pref.notificationCategoryId === categoryId)
           ? { ...pref, [field]: value }
           : pref
       )
@@ -175,16 +175,16 @@ const UserPreferences = () => {
         requireAcknowledgment: pref.requireAcknowledgment
       }));
 
-  const effectiveUserId = userId || 'unknown-user';
-  const result = await notificationPreferencesApi.bulkUpdatePreferences(effectiveUserId, preferencesToSave);
+      const effectiveUserId = userId || 'unknown-user';
+      const result = await notificationPreferencesApi.bulkUpdatePreferences(effectiveUserId, preferencesToSave);
 
       if (result.isSuccess) {
         if (!isMountedRef.current) return;
-  setHasChanges(false);
-  const backendMsg = result?.data?.message || result?.message;
-  // Try to surface created/updated counts if present in backend message
-  notify(backendMsg || 'Notification preferences saved', 'success', 3000);
-  console.log("Preferences saved successfully");
+        setHasChanges(false);
+        const backendMsg = result?.data?.message || result?.message;
+        // Try to surface created/updated counts if present in backend message
+        notify(backendMsg || 'Notification preferences saved', 'success', 3000);
+        console.log("Preferences saved successfully");
         // Defer reload to the next tick so DevExtreme event handlers finish before React diffs
         setTimeout(async () => {
           if (!isMountedRef.current) return;
@@ -235,8 +235,8 @@ const UserPreferences = () => {
       <div className="preferences-content">
         {categories.length === 0 ? (
           <div className="no-categories">
-            <i className="fa-light fa-inbox-empty tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-            <p className="tw-text-gray-500">No notification categories available</p>
+            <i className="fa-light fa-inbox-empty tw-text-4xl tw-text-gray-400 dark:tw-text-gray-500 tw-mb-4"></i>
+            <p className="tw-text-gray-500 dark:tw-text-gray-300">No notification categories available</p>
           </div>
         ) : (
           <ErrorBoundary onRetry={loadData}>
@@ -280,7 +280,7 @@ const UserPreferences = () => {
         )}
       </div>
 
-  <LoadPanel visible={saving} message="Saving preferences..." />
+      <LoadPanel visible={saving} message="Saving preferences..." />
     </div>
   );
 };

@@ -1,15 +1,14 @@
 /**
  * File: IssuePrintPopup.js
- * Purpose: Print/Share popup dialog for issue details with activity stream
- * Dependencies: React, DevExtreme Popup, IssueActivityStream
- * Last Modified: 2026-02-05
+ * Purpose: Print/Share slide panel for issue details with activity stream
+ * Dependencies: React, SlidePanel, IssueActivityStream
+ * Last Modified: 2026-03-05
  *
  * Key Components:
- * - IssuePrintPopup: Popup dialog with print-friendly issue details
+ * - IssuePrintPopup: SlidePanel with print-friendly issue details
  */
 import React, { useRef, useCallback } from 'react';
-import Popup from 'devextreme-react/popup';
-import Button from 'devextreme-react/button';
+import SlidePanel from '../../../components/ui/SlidePanel';
 import IssueActivityStream from './IssueActivityStream';
 
 const getStatusColor = (status) => {
@@ -171,110 +170,95 @@ const IssuePrintPopup = ({ visible, onHide, issue }) => {
 
     if (!issue) return null;
 
+    const headerActions = (
+        <div className="tw-flex tw-gap-1">
+            <button
+                type="button"
+                className="tw-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-1.5 tw-text-[13px] tw-text-gray-600 tw-bg-transparent tw-border-0 tw-rounded hover:tw-bg-black/[.06] tw-transition-colors tw-font-normal tw-cursor-pointer"
+                onClick={handlePrint}
+            >
+                <i className="fa-light fa-print tw-text-[12px]"></i>
+                Print
+            </button>
+            <button
+                type="button"
+                className="tw-flex tw-items-center tw-gap-1.5 tw-px-2.5 tw-py-1.5 tw-text-[13px] tw-text-gray-600 tw-bg-transparent tw-border-0 tw-rounded hover:tw-bg-black/[.06] tw-transition-colors tw-font-normal tw-cursor-pointer"
+                onClick={handleShare}
+            >
+                <i className="fa-light fa-link tw-text-[12px]"></i>
+                Share
+            </button>
+        </div>
+    );
+
     return (
-        <Popup
-            visible={visible}
-            onHiding={onHide}
+        <SlidePanel
+            open={visible}
+            onClose={onHide}
             title={`Print Issue #${issue.id}`}
-            showCloseButton={true}
-            width={700}
-            height="auto"
-            maxHeight="90vh"
-            dragEnabled={true}
+            width={720}
+            headerActions={headerActions}
         >
-            <div className="tw-flex tw-flex-col tw-h-full">
-                {/* Action Buttons */}
-                <div className="tw-flex tw-gap-3 tw-mb-4 tw-pb-4 tw-border-b">
-                    <Button
-                        text="Print"
-                        icon="print"
-                        type="default"
-                        stylingMode="contained"
-                        onClick={handlePrint}
-                    />
-                    <Button
-                        text="Share"
-                        icon="link"
-                        type="normal"
-                        stylingMode="outlined"
-                        onClick={handleShare}
-                    />
-                </div>
+            <div className="tw-flex tw-flex-col">
 
                 {/* Printable Content */}
-                <div ref={printContentRef} className="tw-overflow-y-auto tw-flex-1">
+                <div ref={printContentRef} className="tw-flex-1">
                     {/* Header */}
-                    <div className="print-header tw-border-b-2 tw-border-blue-500 tw-pb-4 tw-mb-5">
-                        <div className="issue-id tw-text-gray-500 tw-text-sm">Issue #{issue.id}</div>
-                        <h1 className="tw-text-xl tw-font-bold tw-text-gray-900 tw-mt-1">{issue.title}</h1>
+                    <div className="tw-border-b-2 tw-border-blue-500 tw-pb-3 tw-mb-0 tw-px-3.5 tw-pt-3">
+                        <div className="tw-text-[11px] tw-text-gray-400">Issue #{issue.id}</div>
+                        <h1 className="tw-text-[15px] tw-font-semibold tw-text-gray-900 tw-mt-0.5 tw-leading-snug">{issue.title}</h1>
                     </div>
 
                     {/* Info Grid */}
-                    <div className="section tw-mb-5">
-                        <div className="section-title tw-text-sm tw-font-semibold tw-text-gray-700 tw-uppercase tw-tracking-wide tw-mb-3 tw-pb-2 tw-border-b">
+                    <div className="tw-mb-0">
+                        <div className="tw-text-[11px] tw-font-semibold tw-text-gray-400 tw-uppercase tw-tracking-[.5px] tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-200 tw-bg-[#FAFAF9]">
                             Issue Information
                         </div>
-                        <div className="info-grid tw-grid tw-grid-cols-2 tw-gap-4">
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Status</div>
-                                <div className="info-value">
-                                    <span
-                                        className="badge tw-inline-block tw-px-3 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium tw-text-white"
-                                        style={{ backgroundColor: getStatusColor(issue.status) }}
-                                    >
-                                        {issue.status}
-                                    </span>
-                                </div>
+                        <div className="tw-grid tw-grid-cols-2">
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-r tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Status</span>
+                                <span
+                                    className="tw-inline-block tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-text-white"
+                                    style={{ backgroundColor: getStatusColor(issue.status) }}
+                                >
+                                    {issue.status}
+                                </span>
                             </div>
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Priority</div>
-                                <div className="info-value">
-                                    <span
-                                        className="badge tw-inline-block tw-px-3 tw-py-1 tw-rounded-full tw-text-xs tw-font-medium tw-text-white"
-                                        style={{ backgroundColor: getPriorityColor(issue.priority) }}
-                                    >
-                                        {issue.priority}
-                                    </span>
-                                </div>
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Priority</span>
+                                <span
+                                    className="tw-inline-block tw-px-2 tw-py-0.5 tw-rounded-full tw-text-[11px] tw-font-medium tw-text-white"
+                                    style={{ backgroundColor: getPriorityColor(issue.priority) }}
+                                >
+                                    {issue.priority}
+                                </span>
                             </div>
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Assigned To</div>
-                                <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                    {issue.assigneeName || 'Unassigned'}
-                                </div>
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-r tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Assigned To</span>
+                                <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.assigneeName || 'Unassigned'}</span>
                             </div>
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Opened By</div>
-                                <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                    {issue.openerName || 'Unknown'}
-                                </div>
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Opened By</span>
+                                <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.openerName || 'Unknown'}</span>
                             </div>
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Due Date</div>
-                                <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                    {formatDate(issue.dueDate)}
-                                </div>
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-r tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Due Date</span>
+                                <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{formatDate(issue.dueDate)}</span>
                             </div>
-                            <div className="info-item">
-                                <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Created Date</div>
-                                <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                    {formatDate(issue.createdAt || issue.createdDate)}
-                                </div>
+                            <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-100 tw-min-h-[36px]">
+                                <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Created</span>
+                                <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{formatDate(issue.createdAt || issue.createdDate)}</span>
                             </div>
                             {issue.templateName && (
-                                <div className="info-item">
-                                    <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Template</div>
-                                    <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                        {issue.templateName}
-                                    </div>
+                                <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-r tw-border-gray-100 tw-min-h-[36px]">
+                                    <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Template</span>
+                                    <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.templateName}</span>
                                 </div>
                             )}
                             {issue.vehicleHyoungNumber && (
-                                <div className="info-item">
-                                    <div className="info-label tw-text-xs tw-text-gray-500 tw-uppercase">Vehicle</div>
-                                    <div className="info-value tw-text-sm tw-font-medium tw-text-gray-900">
-                                        {issue.vehicleHyoungNumber}
-                                    </div>
+                                <div className="tw-flex tw-items-center tw-py-[7px] tw-px-3.5 tw-border-b tw-border-gray-100 tw-min-h-[36px]">
+                                    <span className="tw-text-[11px] tw-text-gray-400 tw-uppercase tw-tracking-wide tw-w-[90px] tw-flex-shrink-0">Vehicle</span>
+                                    <span className="tw-text-[13px] tw-font-medium tw-text-gray-800">{issue.vehicleHyoungNumber}</span>
                                 </div>
                             )}
                         </div>
@@ -282,26 +266,28 @@ const IssuePrintPopup = ({ visible, onHide, issue }) => {
 
                     {/* Description */}
                     {issue.description && (
-                        <div className="section tw-mb-5">
-                            <div className="section-title tw-text-sm tw-font-semibold tw-text-gray-700 tw-uppercase tw-tracking-wide tw-mb-3 tw-pb-2 tw-border-b">
+                        <div>
+                            <div className="tw-text-[11px] tw-font-semibold tw-text-gray-400 tw-uppercase tw-tracking-[.5px] tw-py-[7px] tw-px-3.5 tw-border-b tw-border-t tw-border-gray-200 tw-bg-[#FAFAF9]">
                                 Description
                             </div>
-                            <div className="description tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-text-sm tw-text-gray-700">
+                            <div className="tw-px-3.5 tw-py-3 tw-text-[13px] tw-text-gray-600 tw-leading-[1.55]">
                                 {issue.description}
                             </div>
                         </div>
                     )}
 
                     {/* Activity Stream */}
-                    <div className="section">
-                        <div className="section-title tw-text-sm tw-font-semibold tw-text-gray-700 tw-uppercase tw-tracking-wide tw-mb-3 tw-pb-2 tw-border-b">
+                    <div>
+                        <div className="tw-text-[11px] tw-font-semibold tw-text-gray-400 tw-uppercase tw-tracking-[.5px] tw-py-[7px] tw-px-3.5 tw-border-b tw-border-t tw-border-gray-200 tw-bg-[#FAFAF9]">
                             Activity Stream
                         </div>
-                        <IssueActivityStream issueId={issue.id} />
+                        <div className="tw-px-3.5 tw-pt-3">
+                            <IssueActivityStream issueId={issue.id} />
+                        </div>
                     </div>
                 </div>
             </div>
-        </Popup>
+        </SlidePanel>
     );
 };
 

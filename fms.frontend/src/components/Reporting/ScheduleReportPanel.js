@@ -297,7 +297,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
         try {
             const formData = {
                 reportSourceId: activeSource.id,
-                reportName: scheduleName.trim(),
+                scheduleName: scheduleName.trim(),
                 recipientEmails: recipients,
                 frequency,
                 scheduleTime,

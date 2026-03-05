@@ -212,26 +212,86 @@
     &:hover { background: var(--f-blue-light); }
   }
 
-  /* ─── Filter Panel ─── */
+  /* ─── Filter Panel — Side Panel ─── */
+  &__filter-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.3);
+    z-index: 99;
+  }
+
   &__filter-panel {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 340px;
+    max-width: 90vw;
     background: var(--f-surface);
-    border-bottom: 2px solid var(--f-blue);
-    box-shadow: var(--f-shadow-s);
+    border-left: 1px solid var(--f-border);
+    box-shadow: -4px 0 16px rgba(0, 0, 0, 0.12);
+    z-index: 100;
+    display: flex;
+    flex-direction: column;
+    transform: translateX(100%);
+    transition: transform 0.2s ease;
+
+    &.is-open {
+      transform: translateX(0);
+    }
+  }
+
+  &__fp-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px;
+    border-bottom: 1px solid var(--f-border);
+    flex-shrink: 0;
+  }
+
+  &__fp-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--f-text);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+
+    i { color: var(--f-blue); font-size: 14px; }
+  }
+
+  &__fp-close {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--f-text-3);
+    font-size: 16px;
+    padding: 4px;
+    display: flex;
+    align-items: center;
+    border-radius: var(--f-r);
+    transition: background 0.1s, color 0.1s;
+
+    &:hover { background: #F3F2F1; color: var(--f-text); }
   }
 
   &__fp-body {
     display: flex;
     flex-direction: column;
     gap: 16px;
-    padding: 16px 24px;
+    padding: 16px 20px;
+    overflow-y: auto;
+    flex: 1;
   }
 
   &__fp-row {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 16px;
 
-    .itl__fp-section { flex: 1 1 180px; }
+    .itl__fp-section { width: 100%; }
   }
 
   &__fp-section {
@@ -381,9 +441,10 @@
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 24px;
+    padding: 12px 20px;
     border-top: 1px solid var(--f-border);
     background: #FAFAF9;
+    flex-shrink: 0;
   }
 
   &__fp-results {
@@ -410,22 +471,6 @@
       border-color: var(--f-red);
       color: var(--f-red);
     }
-  }
-
-  &__fp-close-btn {
-    margin-left: auto;
-    font-family: inherit;
-    font-size: 12px;
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--f-blue);
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 0;
-
-    &:hover { text-decoration: underline; }
   }
 
   /* ─── Active Filter Pills Bar ─── */
@@ -496,6 +541,39 @@
     background: var(--f-surface);
   }
 
+  /* ─── M365 Toolbar Buttons ─── */
+  .itl__toolbar-btn.dx-button {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+
+    .dx-button-content {
+      color: var(--f-text-2);
+    }
+
+    .dx-icon {
+      color: var(--f-text-2);
+    }
+
+    &.dx-state-hover {
+      background: #F3F2F1 !important;
+    }
+
+    &--danger {
+      .dx-button-content {
+        color: var(--f-red);
+      }
+
+      .dx-icon {
+        color: var(--f-red);
+      }
+
+      &.dx-state-hover {
+        background: var(--f-red-light) !important;
+      }
+    }
+  }
+
   /* ─── DevExtreme DataGrid — Fabric Overrides ─── */
   &__dx-grid,
   .itl__grid-wrap .dx-datagrid {
@@ -536,6 +614,18 @@
         &.dx-selection > td {
           background: var(--f-blue-light) !important;
         }
+
+        /* Prevent hover on empty/freespace rows */
+        &.dx-freespace-row:hover td,
+        &.dx-virtual-row:hover td {
+          background: transparent !important;
+        }
+      }
+
+      .dx-datagrid-nodata {
+        cursor: default;
+        background: transparent !important;
+        color: var(--f-text-3);
       }
     }
 
@@ -543,6 +633,16 @@
       background: #FAFAF9;
       border-bottom: 1px solid var(--f-border);
       padding: 8px 12px;
+
+      /* Fix search label duplication in SearchPanel */
+      .dx-datagrid-search-panel {
+        .dx-placeholder {
+          &::before {
+            content: '' !important;
+            display: none !important;
+          }
+        }
+      }
     }
 
     .dx-pager {
@@ -612,6 +712,167 @@
     color: var(--f-text);
     background: var(--f-bg);
 
+    /* ── Command bar ── */
+    &__cmd {
+      background: var(--f-surface) !important;
+      border-bottom-color: var(--f-border) !important;
+    }
+
+    &__cmd-btn {
+      background: var(--f-surface) !important;
+      border-color: var(--f-border-2) !important;
+      color: var(--f-text) !important;
+
+      &:hover {
+        background: #333 !important;
+        border-color: #777 !important;
+      }
+
+      &.is-active {
+        background: rgba(96, 165, 250, 0.15) !important;
+        border-color: var(--f-blue) !important;
+        color: var(--f-blue) !important;
+      }
+
+      &--primary {
+        background: var(--f-blue) !important;
+        border-color: var(--f-blue) !important;
+        color: #fff !important;
+
+        &:hover {
+          background: var(--f-blue-dark) !important;
+          border-color: var(--f-blue-dark) !important;
+        }
+      }
+    }
+
+    &__count-badge {
+      background: rgba(96, 165, 250, 0.2) !important;
+      color: #93c5fd !important;
+    }
+
+    /* ── External Filter Banner ── */
+    &__ext-filter {
+      background: rgba(96, 165, 250, 0.1) !important;
+      border-bottom-color: #2d4a7a !important;
+      color: #93c5fd !important;
+    }
+
+    &__ext-filter-clear {
+      border-color: var(--f-blue) !important;
+      color: var(--f-blue) !important;
+
+      &:hover {
+        background: rgba(96, 165, 250, 0.15) !important;
+      }
+    }
+
+    /* ── Filter Side Panel ── */
+    &__filter-overlay {
+      background: rgba(0, 0, 0, 0.5);
+    }
+
+    &__filter-panel {
+      background: var(--f-surface) !important;
+      border-left-color: var(--f-border) !important;
+      box-shadow: -4px 0 16px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    &__fp-header {
+      border-bottom-color: var(--f-border) !important;
+    }
+
+    &__fp-close {
+      color: var(--f-text-3) !important;
+
+      &:hover {
+        background: #333 !important;
+        color: var(--f-text) !important;
+      }
+    }
+
+    &__fp-footer {
+      background: #2a2a2a !important;
+      border-top-color: var(--f-border) !important;
+    }
+
+    &__fp-input,
+    &__fp-search {
+      background: #2a2a2a !important;
+      border-color: var(--f-border-2) !important;
+      color: var(--f-text) !important;
+
+      &::placeholder {
+        color: var(--f-text-3) !important;
+      }
+
+      &:focus {
+        border-color: var(--f-blue) !important;
+        box-shadow: 0 0 0 1px var(--f-blue) !important;
+      }
+    }
+
+    &__fp-pill {
+      background: var(--f-surface) !important;
+      border-color: var(--f-border-2) !important;
+      color: var(--f-text-2) !important;
+
+      &:hover {
+        background: rgba(96, 165, 250, 0.15) !important;
+        border-color: var(--f-blue) !important;
+        color: var(--f-blue) !important;
+      }
+
+      &.is-on {
+        background: var(--f-blue) !important;
+        border-color: var(--f-blue) !important;
+        color: #fff !important;
+      }
+
+      &--tag {
+        background: #2a2a2a !important;
+        border-style: dashed;
+
+        &.is-on {
+          background: rgba(168, 85, 247, 0.2) !important;
+          border-color: var(--f-purple) !important;
+          color: var(--f-purple) !important;
+          border-style: solid;
+        }
+      }
+    }
+
+    /* ── Active Filter Pills ── */
+    &__active-filters {
+      background: rgba(96, 165, 250, 0.08) !important;
+      border-bottom-color: #2d4a7a !important;
+    }
+
+    &__af-pill {
+      background: rgba(96, 165, 250, 0.15) !important;
+      border-color: #3b6db5 !important;
+      color: #93c5fd !important;
+
+      button {
+        color: #93c5fd !important;
+        &:hover { color: var(--f-red) !important; }
+      }
+
+      &--tag {
+        background: rgba(168, 85, 247, 0.15) !important;
+        border-color: #7c3aed !important;
+        color: #c084fc !important;
+
+        button { color: #c084fc !important; }
+      }
+    }
+
+    /* ── Grid Wrapper ── */
+    &__grid-wrap {
+      background: var(--f-surface) !important;
+    }
+
+    /* ── DevExtreme DataGrid Dark Overrides ── */
     .dx-datagrid-headers {
       background-color: var(--f-surface) !important;
       color: var(--f-text) !important;
@@ -619,14 +880,160 @@
 
       .dx-header-row > td {
         background-color: var(--f-surface) !important;
-        color: var(--f-text) !important;
+        color: var(--f-text-2) !important;
         border-color: var(--f-border) !important;
       }
     }
 
+    .dx-datagrid {
+      background: var(--f-surface) !important;
+      color: var(--f-text) !important;
+    }
+
+    .dx-datagrid-rowsview {
+      .dx-row td {
+        color: var(--f-text) !important;
+        border-bottom-color: var(--f-border) !important;
+      }
+
+      .dx-row:hover td {
+        background: rgba(96, 165, 250, 0.1) !important;
+      }
+
+      .dx-row.dx-selection > td {
+        background: rgba(96, 165, 250, 0.18) !important;
+      }
+
+      /* Prevent hover on empty/freespace rows */
+      .dx-row.dx-freespace-row:hover td,
+      .dx-row.dx-virtual-row:hover td {
+        background: transparent !important;
+      }
+
+      .dx-datagrid-nodata {
+        background: transparent !important;
+        color: var(--f-text-3) !important;
+      }
+    }
+
+    /* ── M365 toolbar buttons dark ── */
+    .itl__toolbar-btn.dx-button {
+      background: transparent !important;
+      border: none !important;
+
+      .dx-button-content { color: var(--f-text-2) !important; }
+      .dx-icon { color: var(--f-text-2) !important; }
+
+      &.dx-state-hover { background: #333 !important; }
+
+      &.itl__toolbar-btn--danger {
+        .dx-button-content { color: var(--f-red) !important; }
+        .dx-icon { color: var(--f-red) !important; }
+
+        &.dx-state-hover { background: rgba(239, 68, 68, 0.15) !important; }
+      }
+    }
+
     .dx-toolbar {
-      background-color: transparent !important;
+      background-color: var(--f-surface) !important;
       border-color: var(--f-border) !important;
+
+      .dx-button {
+        background: var(--f-surface) !important;
+        border-color: var(--f-border-2) !important;
+        color: var(--f-text) !important;
+
+        .dx-button-content {
+          color: var(--f-text) !important;
+        }
+
+        .dx-icon {
+          color: var(--f-text-2) !important;
+        }
+
+        &.dx-state-hover {
+          background: #333 !important;
+        }
+
+        &.dx-button-danger {
+          border-color: var(--f-red) !important;
+          color: var(--f-red) !important;
+
+          .dx-button-content {
+            color: var(--f-red) !important;
+          }
+
+          .dx-icon {
+            color: var(--f-red) !important;
+          }
+        }
+      }
+
+      .dx-texteditor {
+        background: #2a2a2a !important;
+        border-color: var(--f-border-2) !important;
+
+        .dx-texteditor-input {
+          color: var(--f-text) !important;
+
+          &::placeholder {
+            color: var(--f-text-3) !important;
+          }
+        }
+
+        &.dx-state-focused {
+          border-color: var(--f-blue) !important;
+        }
+      }
+    }
+
+    .dx-pager {
+      background: var(--f-surface) !important;
+      border-top-color: var(--f-border) !important;
+      color: var(--f-text-2) !important;
+
+      .dx-page-sizes .dx-page-size {
+        color: var(--f-text-2) !important;
+
+        &.dx-selection {
+          color: var(--f-blue) !important;
+          background: rgba(96, 165, 250, 0.12) !important;
+        }
+      }
+
+      .dx-pages .dx-page {
+        color: var(--f-text-2) !important;
+
+        &.dx-selection {
+          color: var(--f-blue) !important;
+          background: rgba(96, 165, 250, 0.12) !important;
+        }
+      }
+
+      .dx-navigate-button {
+        color: var(--f-text-2) !important;
+      }
+
+      .dx-info {
+        color: var(--f-text-3) !important;
+      }
+    }
+
+    /* Header filter popup */
+    .dx-header-filter-menu {
+      background: var(--f-surface) !important;
+      border-color: var(--f-border) !important;
+    }
+
+    /* Selection checkboxes */
+    .dx-checkbox-icon {
+      border-color: var(--f-border-2) !important;
+      background: transparent !important;
+    }
+
+    .dx-checkbox-checked .dx-checkbox-icon {
+      background: var(--f-blue) !important;
+      border-color: var(--f-blue) !important;
     }
   }
 }

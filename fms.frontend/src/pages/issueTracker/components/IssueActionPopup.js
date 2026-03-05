@@ -1,18 +1,20 @@
 /**
  * File: IssueActionPopup.js
  * Purpose: Reusable confirmation popup with notes/description textarea for issue actions
- *          (Mark as Complete, Close Issue, etc.) — replaces window.prompt() calls
- * Dependencies: React, DevExtreme Popup/Button/TextArea/LoadIndicator
- * Last Modified: 2026-02-12
+ *          (Mark as Complete, Close Issue, etc.) — replaces window.prompt() calls.
+ *          Supports rendering as a DevExtreme Popup (default) or as a SlidePanel (asPanel=true).
+ * Dependencies: React, DevExtreme Popup/Button/TextArea/LoadIndicator, SlidePanel
+ * Last Modified: 2026-03-05
  *
  * Key Components:
- * - IssueActionPopup: Modal dialog with title, description hint, textarea, and confirm/cancel buttons
+ * - IssueActionPopup: Modal dialog or slide panel with title, description hint, textarea, and confirm/cancel buttons
  */
 import React, { useState, useCallback, useEffect } from 'react';
 import Popup from 'devextreme-react/popup';
 import { Button } from 'devextreme-react/button';
 import TextArea from 'devextreme-react/text-area';
 import LoadIndicator from 'devextreme-react/load-indicator';
+import SlidePanel from '../../../components/ui/SlidePanel';
 
 /**
  * @param {Object} props
@@ -29,6 +31,8 @@ import LoadIndicator from 'devextreme-react/load-indicator';
  * @param {boolean} [props.isProcessing] - Show loading state on confirm button
  * @param {string} [props.icon] - Header icon class
  * @param {string} [props.iconColor] - Tailwind text color for the header icon
+ * @param {boolean} [props.asPanel] - Render as SlidePanel instead of Popup
+ * @param {number|string} [props.panelWidth] - SlidePanel width (default 1000)
  */
 const IssueActionPopup = ({
     visible,
@@ -43,7 +47,9 @@ const IssueActionPopup = ({
     notesRequired = false,
     isProcessing = false,
     icon = 'fa-light fa-circle-info',
-    iconColor = 'tw-text-blue-600'
+    iconColor = 'tw-text-blue-600',
+    asPanel = false,
+    panelWidth = 1000
 }) => {
     const [notes, setNotes] = useState('');
 
@@ -68,20 +74,87 @@ const IssueActionPopup = ({
 
     const isConfirmDisabled = isProcessing || (notesRequired && !notes.trim());
 
-    const renderTitle = useCallback(() => (
-        <div className="tw-flex tw-items-center tw-gap-3">
-            <div className={`tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-bg-gray-100 ${iconColor}`}>
-                <i className={`${icon} tw-text-lg`}></i>
+    /* ── Shared body content ─────────────────────────── */
+    const bodyContent = (
+        <div className="tw-p-6 tw-flex tw-flex-col tw-h-full">
+            {/* Subtitle */}
+            {subtitle && (
+                <p className="tw-text-[13px] tw-text-gray-500 tw-mb-5 tw-leading-relaxed">{subtitle}</p>
+            )}
+
+            {/* Notes textarea */}
+            <div className="tw-mb-5">
+                <label
+                    htmlFor="action-notes"
+                    className="tw-block tw-text-[11px] tw-font-semibold tw-text-gray-500 tw-uppercase tw-tracking-[.5px] tw-mb-2"
+                >
+                    Notes {notesRequired ? <span className="tw-text-red-500">*</span> : '(Optional)'}
+                </label>
+                <TextArea
+                    id="action-notes"
+                    value={notes}
+                    onValueChanged={(e) => setNotes(e.value)}
+                    placeholder={placeholder}
+                    height={asPanel ? 200 : 140}
+                    maxLength={2000}
+                    disabled={isProcessing}
+                    stylingMode="outlined"
+                />
+                <p className="tw-text-[11px] tw-text-gray-400 tw-mt-1 tw-text-right">
+                    {notes.length} / 2000
+                </p>
             </div>
-            <div>
-                <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-leading-tight">{title}</h3>
-                {subtitle && (
-                    <p className="tw-text-sm tw-text-gray-500 tw-mt-0.5">{subtitle}</p>
-                )}
+
+            {/* Actions */}
+            <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-pt-3 tw-border-t tw-border-gray-100">
+                <Button
+                    text="Cancel"
+                    icon="fa-light fa-xmark"
+                    stylingMode="outlined"
+                    type="normal"
+                    onClick={handleCancel}
+                    disabled={isProcessing}
+                />
+                <Button
+                    text={isProcessing ? 'Processing...' : confirmText}
+                    icon={isProcessing ? undefined : confirmIcon}
+                    type={confirmType}
+                    stylingMode="contained"
+                    onClick={handleConfirm}
+                    disabled={isConfirmDisabled}
+                >
+                    {isProcessing && (
+                        <div className="tw-flex tw-items-center tw-gap-2">
+                            <LoadIndicator height={16} width={16} />
+                            <span>Processing...</span>
+                        </div>
+                    )}
+                </Button>
             </div>
         </div>
-    ), [title, subtitle, icon, iconColor]);
+    );
 
+    /* ── SlidePanel variant ──────────────────────────── */
+    if (asPanel) {
+        const panelHeaderActions = (
+            <div className={`tw-w-9 tw-h-9 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-bg-gray-100 ${iconColor}`}>
+                <i className={`${icon} tw-text-base`}></i>
+            </div>
+        );
+        return (
+            <SlidePanel
+                open={visible}
+                onClose={!isProcessing ? handleCancel : undefined}
+                title={title}
+                width={panelWidth}
+                headerActions={panelHeaderActions}
+            >
+                {bodyContent}
+            </SlidePanel>
+        );
+    }
+
+    /* ── Default Popup variant ───────────────────────── */
     return (
         <Popup
             visible={visible}
@@ -99,58 +172,19 @@ const IssueActionPopup = ({
             <div className="tw-p-6">
                 {/* Header */}
                 <div className="tw-mb-5">
-                    {renderTitle()}
+                    <div className="tw-flex tw-items-center tw-gap-3">
+                        <div className={`tw-w-10 tw-h-10 tw-rounded-full tw-flex tw-items-center tw-justify-center tw-bg-gray-100 ${iconColor}`}>
+                            <i className={`${icon} tw-text-lg`}></i>
+                        </div>
+                        <div>
+                            <h3 className="tw-text-lg tw-font-semibold tw-text-gray-900 tw-leading-tight">{title}</h3>
+                            {subtitle && (
+                                <p className="tw-text-sm tw-text-gray-500 tw-mt-0.5">{subtitle}</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
-
-                {/* Notes textarea */}
-                <div className="tw-mb-5">
-                    <label
-                        htmlFor="action-notes"
-                        className="tw-block tw-text-xs tw-font-semibold tw-text-gray-600 tw-uppercase tw-mb-2"
-                    >
-                        Notes {notesRequired ? <span className="tw-text-red-500">*</span> : '(Optional)'}
-                    </label>
-                    <TextArea
-                        id="action-notes"
-                        value={notes}
-                        onValueChanged={(e) => setNotes(e.value)}
-                        placeholder={placeholder}
-                        height={140}
-                        maxLength={2000}
-                        disabled={isProcessing}
-                        stylingMode="outlined"
-                    />
-                    <p className="tw-text-xs tw-text-gray-400 tw-mt-1 tw-text-right">
-                        {notes.length} / 2000
-                    </p>
-                </div>
-
-                {/* Actions */}
-                <div className="tw-flex tw-items-center tw-justify-end tw-gap-3 tw-pt-2 tw-border-t tw-border-gray-100">
-                    <Button
-                        text="Cancel"
-                        icon="fa-light fa-xmark"
-                        stylingMode="outlined"
-                        type="normal"
-                        onClick={handleCancel}
-                        disabled={isProcessing}
-                    />
-                    <Button
-                        text={isProcessing ? 'Processing...' : confirmText}
-                        icon={isProcessing ? undefined : confirmIcon}
-                        type={confirmType}
-                        stylingMode="contained"
-                        onClick={handleConfirm}
-                        disabled={isConfirmDisabled}
-                    >
-                        {isProcessing && (
-                            <div className="tw-flex tw-items-center tw-gap-2">
-                                <LoadIndicator height={16} width={16} />
-                                <span>Processing...</span>
-                            </div>
-                        )}
-                    </Button>
-                </div>
+                {bodyContent}
             </div>
         </Popup>
     );
