@@ -472,6 +472,7 @@ public static class FmsServiceCollectionExtensions
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
         services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
+        services.AddScoped<ScheduledReportPayloadBuilder>();
         services.AddScoped<IScheduledReportDeliveryService, ScheduledReportDeliveryService>();
 
         // GPS Fetch Progress Service (SignalR)
@@ -639,6 +640,11 @@ public static class FmsServiceCollectionExtensions
         // Log Management Services
         services.AddScoped<ILogCleanupService, LogCleanupService>();
         services.AddHostedService<LogCleanupBackgroundService>();
+
+        // Fuel Auto-Import Services
+        services.AddScoped<FMS.Application.Features.FuelImport.Services.IExcelParsingService, FMS.Application.Features.FuelImport.Services.ExcelParsingService>();
+        services.AddScoped<FMS.Application.Features.FuelImport.Services.IFileTrackerService, FMS.Application.Features.FuelImport.Services.FileTrackerService>();
+        services.AddScoped<FMS.Application.Features.FuelImport.Services.IFuelAutoImportService, FMS.Application.Features.FuelImport.Services.FuelAutoImportService>();
 
         // Async Report Job Services
         services.AddSingleton<FMS.Application.Features.Reporting.Services.IReportJobProgressService, FMS.Application.Features.Reporting.Services.ReportJobProgressService>();

@@ -153,6 +153,8 @@ namespace FMS.WebClient.Controllers
                 TankIds = ParseIntList(root["tankIds"]),
                 EffectiveStartDate = root.Value<string>("effectiveStartDate"),
                 EffectiveEndDate = root.Value<string>("effectiveEndDate"),
+                OffsetDays = root.Value<int?>("offsetDays") ?? root.Value<int?>("lookbackDays") ?? 1,
+                WindowDays = root.Value<int?>("windowDays") ?? 1,
                 SiteNames = ParseStringList(root["siteNames"], "All Sites"),
                 TankNames = ParseStringList(root["tankNames"], "All Tanks"),
                 Filters = root["filters"]?.ToString(Newtonsoft.Json.Formatting.None),
@@ -600,8 +602,7 @@ namespace FMS.WebClient.Controllers
                     .ThenInclude(r => r.User)
                     .Where(n =>
                         n.TriggerSource == "TransactionVolumeHistoryReportSchedule" ||
-                        (n.TriggerSource != null && n.TriggerSource.Contains("ReportSchedule")) ||
-                        (n.Data != null && n.Data.Contains("\"reportType\"")));
+                        (n.TriggerSource != null && n.TriggerSource.EndsWith("ReportSchedule")));
 
                 if (!includeCompleted)
                 {
@@ -729,6 +730,28 @@ namespace FMS.WebClient.Controllers
                 if (hasRecurringConfig)
                 {
                     root["recurringSchedule"] = recurringSchedule;
+                }
+
+                // Persist offsetDays and windowDays if provided
+                if (request.OffsetDays.HasValue)
+                {
+                    root["offsetDays"] = Math.Max(1, request.OffsetDays.Value);
+                }
+                if (request.WindowDays.HasValue)
+                {
+                    root["windowDays"] = Math.Max(1, request.WindowDays.Value);
+                }
+
+                // Persist format if provided
+                if (!string.IsNullOrWhiteSpace(request.Format))
+                {
+                    root["format"] = request.Format.Trim().ToUpperInvariant();
+                }
+
+                // Persist sourceId if provided
+                if (!string.IsNullOrWhiteSpace(request.SourceId))
+                {
+                    root["sourceId"] = request.SourceId.Trim();
                 }
 
                 // Persist filter changes if provided

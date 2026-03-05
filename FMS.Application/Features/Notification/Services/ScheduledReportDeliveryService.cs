@@ -41,17 +41,20 @@ namespace FMS.Application.Features.Notification.Services
         private readonly GpsdataContext _context;
         private readonly INotificationReportRenderer _reportRenderer;
         private readonly ILogger<ScheduledReportDeliveryService> _logger;
+        private readonly ScheduledReportPayloadBuilder _payloadBuilder;
 
         public ScheduledReportDeliveryService(
             IMediator mediator,
             GpsdataContext context,
             INotificationReportRenderer reportRenderer,
-            ILogger<ScheduledReportDeliveryService> logger)
+            ILogger<ScheduledReportDeliveryService> logger,
+            ScheduledReportPayloadBuilder payloadBuilder)
         {
             _mediator = mediator;
             _context = context;
             _reportRenderer = reportRenderer;
             _logger = logger;
+            _payloadBuilder = payloadBuilder;
         }
 
         public async Task<ScheduledReportEmailPayload?> BuildEmailPayloadAsync(
@@ -80,20 +83,54 @@ namespace FMS.Application.Features.Notification.Services
             var isVolumeHistoryReport = string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
 
+            var templateName = metadata.Value<string>("templateName");
+            var format = NormalizeFormat(metadata.Value<string>("format"));
+            var (windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, timezoneId) =
+                ResolveExecutionWindow(notification, metadata);
+
+            // ── Generic path: delegate to ScheduledReportPayloadBuilder for other report types ──
             if (!isVolumeHistoryReport && !isSummaryReport)
             {
-                return null;
+                var resolvedSourceId = ScheduledReportPayloadBuilder.ResolveSourceId(metadata);
+                if (resolvedSourceId == null || !ScheduledReportPayloadBuilder.CanHandle(resolvedSourceId))
+                {
+                    _logger.LogWarning(
+                        "Unsupported report type '{ReportType}' / sourceId '{SourceId}' for scheduled report {NotificationId}",
+                        reportType, resolvedSourceId, notification.NotificationId);
+                    return null;
+                }
+
+                var resolvedTemplateName = templateName;
+                if (string.IsNullOrWhiteSpace(resolvedTemplateName))
+                    resolvedTemplateName = $"{resolvedSourceId}-report";
+
+                var reportTitle = metadata.Value<string>("reportName")
+                    ?? notification.Title
+                    ?? "Scheduled Report";
+
+                var reportData = await _payloadBuilder.FetchAndBuildAsync(
+                    resolvedSourceId, metadata,
+                    windowStartUtc, windowEndUtc,
+                    windowStartLocal, windowEndLocal,
+                    reportTitle, cancellationToken);
+
+                if (reportData == null)
+                {
+                    return BuildFallbackPayload(notification, metadata, format, windowStartLocal, windowEndLocal);
+                }
+
+                return await RenderAndBuildPayload(
+                    notification, metadata, reportData,
+                    resolvedTemplateName, format,
+                    windowStartLocal, windowEndLocal,
+                    resolvedSourceId);
             }
 
-            var templateName = metadata.Value<string>("templateName");
+            // ── Existing path: tank-volume-history and transaction-history-summary ──
             if (string.IsNullOrWhiteSpace(templateName))
             {
                 templateName = isSummaryReport ? DefaultSummaryTemplateName : DefaultTemplateName;
             }
-
-            var format = NormalizeFormat(metadata.Value<string>("format"));
-            var (windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, timezoneId) =
-                ResolveExecutionWindow(notification, metadata);
 
             var siteIds = ParseIdSet(metadata["siteIds"]);
             var tankIds = ParseIdSet(metadata["tankIds"]);
@@ -143,7 +180,7 @@ namespace FMS.Application.Features.Notification.Services
                     .Where(tank => resolvedTankIds.Contains(tank.Id))
                     .ToDictionaryAsync(tank => tank.Id, tank => tank.Name ?? $"Tank {tank.Id}", cancellationToken);
 
-            var reportData = isSummaryReport
+            var existingReportData = isSummaryReport
                 ? BuildTransactionHistorySummaryReportData(
                     rows, tankNameLookup, notification, metadata,
                     windowStartLocal, windowEndLocal, siteNames, timezoneId)
@@ -153,7 +190,7 @@ namespace FMS.Application.Features.Notification.Services
 
             if (format == "html")
             {
-                var htmlReport = await _reportRenderer.RenderHtmlAsync(templateName, reportData);
+                var htmlReport = await _reportRenderer.RenderHtmlAsync(templateName, existingReportData);
                 return new ScheduledReportEmailPayload
                 {
                     Subject = notification.Title,
@@ -170,8 +207,8 @@ namespace FMS.Application.Features.Notification.Services
             try
             {
                 reportBytes = format == "excel"
-                    ? await _reportRenderer.RenderExcelAsync(templateName, reportData)
-                    : await _reportRenderer.RenderPdfAsync(templateName, reportData);
+                    ? await _reportRenderer.RenderExcelAsync(templateName, existingReportData)
+                    : await _reportRenderer.RenderPdfAsync(templateName, existingReportData);
             }
             catch (Exception ex)
             {
@@ -185,6 +222,95 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var fileName = BuildAttachmentFileName(windowStartLocal, windowEndLocal, extension);
+            var payloadBody = BuildDeliveryBody(notification, metadata, format, windowStartLocal, windowEndLocal);
+
+            var payload = new ScheduledReportEmailPayload
+            {
+                Subject = notification.Title,
+                Body = payloadBody,
+                IsHtml = true
+            };
+
+            if (reportBytes.Length > 0 && reportBytes.Length <= MaxAttachmentBytes)
+            {
+                payload.Attachments.Add(new EmailAttachmentDto
+                {
+                    FileName = fileName,
+                    ContentType = contentType,
+                    Content = reportBytes
+                });
+                payload.Body += "<p><strong>Attachment:</strong> Included in this email.</p>";
+                return payload;
+            }
+
+            var attachmentMessage = reportBytes.Length > MaxAttachmentBytes
+                ? "<p><strong>Note:</strong> Attachment size exceeded limit, use the report link to download.</p>"
+                : "<p><strong>Note:</strong> Report attachment could not be generated. Use the report link below.</p>";
+            payload.Body = $"{payload.Body}{attachmentMessage}";
+
+            return payload;
+        }
+
+        /// <summary>
+        /// Renders report data via jsReport and builds the email payload with attachment.
+        /// Shared by the generic path (ScheduledReportPayloadBuilder) for all non-volume-history report types.
+        /// </summary>
+        private async Task<ScheduledReportEmailPayload> RenderAndBuildPayload(
+            NotificationEntity notification,
+            JObject metadata,
+            object reportData,
+            string templateName,
+            string format,
+            DateTime windowStartLocal,
+            DateTime windowEndLocal,
+            string sourceId)
+        {
+            if (format == "html")
+            {
+                try
+                {
+                    var htmlReport = await _reportRenderer.RenderHtmlAsync(templateName, reportData);
+                    return new ScheduledReportEmailPayload
+                    {
+                        Subject = notification.Title,
+                        Body = htmlReport,
+                        IsHtml = true
+                    };
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "HTML render failed for {SourceId} template {Template}", sourceId, templateName);
+                    return BuildFallbackPayload(notification, metadata, format, windowStartLocal, windowEndLocal);
+                }
+            }
+
+            var contentType = format == "excel"
+                ? "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                : "application/pdf";
+            var extension = format == "excel" ? "xlsx" : "pdf";
+
+            byte[] reportBytes;
+            try
+            {
+                reportBytes = format == "excel"
+                    ? await _reportRenderer.RenderExcelAsync(templateName, reportData)
+                    : await _reportRenderer.RenderPdfAsync(templateName, reportData);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Report render failed for {SourceId} template {Template} format {Format}",
+                    sourceId, templateName, format);
+                return BuildFallbackPayload(notification, metadata, format, windowStartLocal, windowEndLocal);
+            }
+
+            var safeSourceId = sourceId.Replace("-", "_");
+            var startText = windowStartLocal.ToString("yyyy-MM-dd");
+            var endText = windowEndLocal.ToString("yyyy-MM-dd");
+            var fileName = startText == endText
+                ? $"{safeSourceId}_{startText}.{extension}"
+                : $"{safeSourceId}_{startText}_to_{endText}.{extension}";
+
             var payloadBody = BuildDeliveryBody(notification, metadata, format, windowStartLocal, windowEndLocal);
 
             var payload = new ScheduledReportEmailPayload
@@ -510,9 +636,13 @@ namespace FMS.Application.Features.Notification.Services
                     timeZoneId);
             }
 
-            var dayLocal = runAtLocal.Date.AddDays(-1);
-            var dayStartLocal = new DateTime(dayLocal.Year, dayLocal.Month, dayLocal.Day, 0, 0, 0, DateTimeKind.Unspecified);
-            var dayEndLocal = dayStartLocal.AddDays(1).AddTicks(-1);
+            var offsetDays = metadata.Value<int?>("offsetDays") ?? 1;
+            if (offsetDays < 1) offsetDays = 1;
+            var windowDays = metadata.Value<int?>("windowDays") ?? 1;
+            if (windowDays < 1) windowDays = 1;
+
+            var dayStartLocal = runAtLocal.Date.AddDays(-offsetDays);
+            var dayEndLocal = dayStartLocal.AddDays(windowDays).AddTicks(-1);
             return (
                 TimeZoneInfo.ConvertTimeToUtc(dayStartLocal, timezone),
                 TimeZoneInfo.ConvertTimeToUtc(dayEndLocal, timezone),

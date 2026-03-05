@@ -85,6 +85,10 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
 
     const [dayOfMonth, setDayOfMonth] = useState(1);
 
+    // ── Report window ──
+    const [offsetDays, setOffsetDays] = useState(1);
+    const [windowDays, setWindowDays] = useState(1);
+
     // ── Format ──
     const [selectedFormat, setSelectedFormat] = useState('pdf');
 
@@ -116,6 +120,8 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                 setSelectedFormat((initialValues.outputFormat || 'pdf').toLowerCase());
                 setRecipients(Array.isArray(initialValues.recipientEmails) ? initialValues.recipientEmails : []);
                 setFilters(initialValues.filters || {});
+                setOffsetDays(initialValues.offsetDays ?? 1);
+                setWindowDays(initialValues.windowDays ?? 1);
             } else {
                 setSelectedSourceId(initialSourceId || '');
             }
@@ -148,6 +154,8 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
             setSelectedDays([]);
             setSelectedWeeks([]);
             setDayOfMonth(1);
+            setOffsetDays(1);
+            setWindowDays(1);
             setSelectedFormat('pdf');
             setRecipients([]);
             setEmailInput('');
@@ -280,6 +288,10 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
             notify({ message: 'Select at least one day of the week.', type: 'warning', displayTime: 3000 });
             return;
         }
+        if (frequency !== 'monthly' && windowDays > offsetDays) {
+            notify({ message: `Duration (${windowDays}d) cannot exceed start offset (${offsetDays}d) — the window would extend past the run date.`, type: 'warning', displayTime: 5000 });
+            return;
+        }
 
         setSubmitting(true);
         try {
@@ -292,6 +304,8 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                 scheduleDayOfWeekIds: frequency === 'weekly' ? selectedDays : [],
                 scheduleWeekOfMonthIds: frequency === 'weekly' ? selectedWeeks : [],
                 scheduleDayOfMonth: frequency === 'monthly' ? dayOfMonth : null,
+                offsetDays: frequency !== 'monthly' ? offsetDays : undefined,
+                windowDays: frequency !== 'monthly' ? windowDays : undefined,
                 outputFormat: selectedFormat,
                 filters,
             };
@@ -336,7 +350,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
         }
     }, [mode, onUpdate,
         activeSource, scheduleName, recipients, frequency, scheduleTime,
-        selectedDays, selectedWeeks, dayOfMonth, selectedFormat, filters,
+        selectedDays, selectedWeeks, dayOfMonth, offsetDays, windowDays, selectedFormat, filters,
         currentUser, userSuggestions, onClose,
     ]);
 
@@ -386,6 +400,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                     parameters={activeSource.parameters}
                     filters={filters}
                     onFilterChange={handleFilterChange}
+                    excludeKeys={['dateFrom', 'dateTo']}
                 />
             </div>
         );
@@ -468,6 +483,54 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* Report window — visible for daily / weekly / once */}
+            {frequency !== 'monthly' && (
+                <div className="schedule-report-panel__field">
+                    <label className="schedule-report-panel__label">Report Window</label>
+                    <div className="tw-flex tw-items-center tw-gap-2">
+                        <span className="schedule-report-panel__hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Start</span>
+                        <input
+                            type="number"
+                            min={1}
+                            max={90}
+                            className="schedule-report-panel__time-input"
+                            style={{ width: 52, padding: '4px 6px' }}
+                            value={offsetDays}
+                            onChange={(e) => {
+                                const newOffset = Math.max(1, Math.min(90, parseInt(e.target.value, 10) || 1));
+                                setOffsetDays(newOffset);
+                                // Auto-clamp windowDays so it never exceeds offsetDays
+                                if (windowDays > newOffset) setWindowDays(newOffset);
+                            }}
+                            disabled={submitting}
+                        />
+                        <span className="schedule-report-panel__hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>day{offsetDays !== 1 ? 's' : ''} ago</span>
+                        <span className="schedule-report-panel__hint" style={{ margin: '0 2px', opacity: 0.4 }}>|</span>
+                        <span className="schedule-report-panel__hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>Duration</span>
+                        <input
+                            type="number"
+                            min={1}
+                            max={offsetDays}
+                            className="schedule-report-panel__time-input"
+                            style={{ width: 52, padding: '4px 6px' }}
+                            value={windowDays}
+                            onChange={(e) => setWindowDays(Math.max(1, Math.min(offsetDays, parseInt(e.target.value, 10) || 1)))}
+                            disabled={submitting}
+                        />
+                        <span className="schedule-report-panel__hint" style={{ margin: 0, whiteSpace: 'nowrap' }}>day{windowDays !== 1 ? 's' : ''}</span>
+                    </div>
+                    <p className="schedule-report-panel__hint">
+                        Data from {offsetDays} day{offsetDays !== 1 ? 's' : ''} before run date, spanning {windowDays} day{windowDays !== 1 ? 's' : ''}
+                        {windowDays > offsetDays && (
+                            <span style={{ color: 'var(--m365-danger, #d13438)', marginLeft: 4 }}>
+                                <i className="fa-light fa-triangle-exclamation" style={{ marginRight: 2 }} />
+                                Duration exceeds offset — window extends past run date
+                            </span>
+                        )}
+                    </p>
+                </div>
             )}
 
             {/* Monthly: Day of month 1–31 */}

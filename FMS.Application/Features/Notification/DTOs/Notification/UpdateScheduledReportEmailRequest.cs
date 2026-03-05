@@ -25,6 +25,29 @@ namespace FMS.Application.Features.Notification.DTOs
         public int? DayOfMonth { get; set; }
 
         /// <summary>
+        /// Number of days before the report execution date to start the data window.
+        /// Defaults to 1 (start from previous day). Only applies to daily/weekly/once schedules.
+        /// </summary>
+        public int? OffsetDays { get; set; }
+
+        /// <summary>
+        /// Number of days of data to include in the report window.
+        /// Defaults to 1. Only applies to daily/weekly/once schedules.
+        /// </summary>
+        public int? WindowDays { get; set; }
+
+        /// <summary>
+        /// Report output format (PDF, Excel, HTML). Persisted in metadata.
+        /// </summary>
+        public string? Format { get; set; }
+
+        /// <summary>
+        /// Report source identifier (e.g. "fuel-refill", "pump-transaction").
+        /// Persisted in metadata for reliable backend resolution.
+        /// </summary>
+        public string? SourceId { get; set; }
+
+        /// <summary>
         /// Optional JSON object of report filter parameters to persist
         /// (e.g. {"siteId":[5],"tankId":[],"dateFrom":"...","dateTo":"..."}).
         /// </summary>

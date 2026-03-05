@@ -20,7 +20,7 @@ $font: var(--m365-font, 'Segoe UI', sans-serif);
     align-items: center;
     justify-content: space-between;
     padding: 16px 20px 12px;
-    background: #fff;
+    background: var(--m365-bg-surface, #fff);
     border-bottom: 1px solid var(--m365-border-light);
     flex-shrink: 0;
   }
@@ -76,6 +76,7 @@ $font: var(--m365-font, 'Segoe UI', sans-serif);
       height: 100%;
       font-family: $font;
       font-size: 13px;
+      padding: 0 16px 16px;
     }
 
     .dx-datagrid-headers {

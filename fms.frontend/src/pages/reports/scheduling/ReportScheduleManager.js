@@ -49,9 +49,24 @@ const resolveSourceId = (schedule) => {
     return TRIGGER_SOURCE_TO_SOURCE_ID[schedule.triggerSource || ''] || '';
 };
 
+/**
+ * Determine if a record is a true scheduled report (vs an event-triggered notification).
+ */
+const isScheduledReport = (row) => {
+    const ts = row.triggerSource || '';
+    // True scheduled reports have a TriggerSource ending in 'ReportSchedule'
+    if (ts.endsWith('ReportSchedule')) return true;
+    // Or they have a reportType that maps to something we know
+    if (row.reportType && TRIGGER_SOURCE_TO_SOURCE_ID[row.reportType]) return true;
+    if (row.scheduleType && row.scheduleType !== '') return true;
+    return false;
+};
+
 const STATUS_BADGE = {
     pending: 'm365-badge m365-badge--warning',
+    scheduled: 'm365-badge m365-badge--info',
     active: 'm365-badge m365-badge--success',
+    sent: 'm365-badge m365-badge--success',
     completed: 'm365-badge m365-badge--info',
     cancelled: 'm365-badge m365-badge--error',
     failed: 'm365-badge m365-badge--error',
@@ -163,18 +178,45 @@ const ReportScheduleManager = () => {
     // â”€â”€ Edit / Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
     const handleEdit = useCallback((schedule) => {
+        // Only allow editing true scheduled reports
+        if (!isScheduledReport(schedule)) {
+            notify({ message: 'This is an event-triggered notification and cannot be edited as a schedule.', type: 'warning', displayTime: 4000 });
+            return;
+        }
+
+        // Parse recipients — only include Email delivery entries (not System UUIDs)
         let parsedRecipients = [];
         if (Array.isArray(schedule.recipients)) {
-            parsedRecipients = schedule.recipients.map((r) => r.recipientAddress || r.email || r);
+            parsedRecipients = schedule.recipients
+                .filter((r) => r.deliveryMethod === 'Email' || (!r.deliveryMethod && r.recipientAddress?.includes('@')))
+                .map((r) => r.recipientAddress || r.email || r)
+                .filter((addr) => typeof addr === 'string' && addr.includes('@'));
         } else if (typeof schedule.recipients === 'string') {
-            try { parsedRecipients = JSON.parse(schedule.recipients).map((r) => r.recipientAddress || r.email || r); } catch { /* ignore */ }
+            try {
+                parsedRecipients = JSON.parse(schedule.recipients)
+                    .filter((r) => r.deliveryMethod === 'Email' || (!r.deliveryMethod && (r.recipientAddress || r.email || '').includes('@')))
+                    .map((r) => r.recipientAddress || r.email || r)
+                    .filter((addr) => typeof addr === 'string' && addr.includes('@'));
+            } catch { /* ignore */ }
         }
 
         let parsedFilters = {};
         if (typeof schedule.filters === 'string') {
-            try { parsedFilters = JSON.parse(schedule.filters); } catch { /* ignore */ }
+            try {
+                const raw = JSON.parse(schedule.filters);
+                // Detect .NET JsonElement serialization artifact {ValueKind: N}
+                if (raw && typeof raw === 'object' && Object.keys(raw).length === 1 && 'ValueKind' in raw) {
+                    parsedFilters = {};
+                } else {
+                    parsedFilters = raw;
+                }
+            } catch { /* ignore */ }
         } else if (schedule.filters) {
-            parsedFilters = schedule.filters;
+            if (typeof schedule.filters === 'object' && Object.keys(schedule.filters).length === 1 && 'ValueKind' in schedule.filters) {
+                parsedFilters = {};
+            } else {
+                parsedFilters = schedule.filters;
+            }
         }
 
         let parsedConfig = {};
@@ -209,6 +251,8 @@ const ReportScheduleManager = () => {
                 scheduleWeekOfMonthIds,
                 scheduleTime,
                 scheduleDayOfMonth: parsedConfig.scheduleDayOfMonth || schedule.scheduleDayOfMonth || null,
+                offsetDays: schedule.offsetDays ?? 1,
+                windowDays: schedule.windowDays ?? 1,
             },
         });
         setEditPanelOpen(true);
@@ -287,20 +331,26 @@ const ReportScheduleManager = () => {
 
     const renderActions = useCallback((cellInfo) => {
         const schedule = cellInfo.data;
-        const isCancelled = String(schedule.status || '').toLowerCase() === 'cancelled';
-        const isCompleted = String(schedule.status || '').toLowerCase() === 'completed';
-        const isEditable = !isCancelled && !isCompleted;
+        const statusLower = String(schedule.status || '').toLowerCase();
+        const isCancelled = statusLower === 'cancelled';
+        const isCompleted = statusLower === 'completed';
+        const isSent = statusLower === 'sent';
+        const isScheduleRecord = isScheduledReport(schedule);
+        const isEditable = !isCancelled && !isCompleted && !isSent && isScheduleRecord;
         return (
-            <div style={{ display: 'flex', gap: 2 }}>
+            <div className="sched-mgr__action-buttons">
                 <Button icon="fa-light fa-pen-to-square" hint="Edit Schedule" stylingMode="text"
-                    onClick={() => handleEdit(schedule)} disabled={!isEditable} />
+                    onClick={() => handleEdit(schedule)} disabled={!isEditable}
+                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
                 <Button icon="fa-light fa-users" hint="View Delivery Status" stylingMode="text"
-                    onClick={() => setDeliveryTarget(schedule)} />
+                    onClick={() => setDeliveryTarget(schedule)}
+                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
                 <Button icon="fa-light fa-ban" hint="Cancel Schedule" stylingMode="text"
-                    onClick={() => handleCancel(schedule)} disabled={!isEditable} />
+                    onClick={() => handleCancel(schedule)} disabled={!isEditable}
+                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
                 <Button icon="fa-light fa-trash" hint="Delete Permanently" stylingMode="text"
                     onClick={() => handleDelete(schedule)}
-                    elementAttr={{ style: 'color: var(--m365-danger, #d13438)' }} />
+                    elementAttr={{ class: 'sched-mgr__action-btn sched-mgr__action-btn--danger' }} />
             </div>
         );
     }, [handleCancel, handleDelete, handleEdit]);
@@ -381,6 +431,8 @@ const ReportScheduleManager = () => {
         const dayOfMonth = row.scheduleDayOfMonth || cfg.scheduleDayOfMonth;
 
         const inferredFreq = getFrequency(row).toLowerCase();
+        const offset = row.offsetDays ?? 1;
+        const winDays = row.windowDays ?? 1;
 
         if (inferredFreq === 'weekly') {
             const days = daysOfWeek.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ');
@@ -396,7 +448,12 @@ const ReportScheduleManager = () => {
             }
         }
 
-        return <span style={{ fontSize: 12, color: 'var(--m365-text-secondary)' }}>{detail || '\u2014'}</span>;
+        // Append window info for non-monthly schedules when non-default
+        const windowLabel = inferredFreq !== 'monthly' && (offset > 1 || winDays > 1)
+            ? `-${offset}d, ${winDays}d window`
+            : '';
+
+        return <span style={{ fontSize: 12, color: 'var(--m365-text-secondary)' }}>{[detail, windowLabel].filter(Boolean).join(' \u00B7 ') || '\u2014'}</span>;
     }, []);
 
     const formatDateTime = useCallback((value, isUtc = true) => {
@@ -529,7 +586,15 @@ const ReportScheduleManager = () => {
                     <Column
                         caption="Next Run"
                         width={155}
-                        calculateCellValue={(row) => formatDateTime(row.nextRunAtUtc || row.scheduledAt)}
+                        calculateCellValue={(row) => {
+                            const freq = getFrequency(row).toLowerCase();
+                            const status = (row.status || '').toLowerCase();
+                            // Once-frequency schedules that already fired have no next run
+                            if (freq === 'once' && ['sent', 'completed', 'cancelled', 'failed'].includes(status)) {
+                                return '\u2014';
+                            }
+                            return formatDateTime(row.nextRunAtUtc || row.scheduledAt);
+                        }}
                     />
                     <Column
                         caption="Last Run"
@@ -557,6 +622,7 @@ const ReportScheduleManager = () => {
                         caption="Actions"
                         width={160}
                         cellRender={renderActions}
+                        cssClass="sched-mgr__action-col"
                         alignment="center"
                         allowSorting={false}
                         allowFiltering={false}

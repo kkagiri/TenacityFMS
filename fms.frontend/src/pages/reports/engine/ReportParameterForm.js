@@ -138,20 +138,27 @@ const LOOKUP_CONFIG = {
     },
 };
 
-const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) => {
+const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, excludeKeys = [] }) => {
     const dispatch = useDispatch();
     const [asyncLookupData, setAsyncLookupData] = useState({});
+
+    // Filter out excluded parameter keys (e.g. dateFrom/dateTo in schedule context)
+    const effectiveParameters = useMemo(() => {
+        if (!excludeKeys.length) return parameters;
+        const excluded = new Set(excludeKeys);
+        return parameters.filter((p) => !excluded.has(p.key));
+    }, [parameters, excludeKeys]);
 
     // Collect unique lookup sources needed
     const neededLookups = useMemo(() => {
         const set = new Set();
-        parameters.forEach((p) => {
+        effectiveParameters.forEach((p) => {
             if (p.type === 'lookup' && p.lookupSource) {
                 set.add(p.lookupSource);
             }
         });
         return Array.from(set);
-    }, [parameters]);
+    }, [effectiveParameters]);
 
     // Dispatch fetch actions for lookup data
     useEffect(() => {
@@ -297,7 +304,7 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) 
         [filters, handleChange, getFilteredLookupData]
     );
 
-    if (!parameters.length) {
+    if (!effectiveParameters.length) {
         return (
             <div className="tw-p-4 tw-text-sm tw-text-gray-500 tw-italic">
                 No parameters required for this report.
@@ -307,7 +314,7 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange }) 
 
     return (
         <div className="report-parameter-form">
-            {parameters.map((param) => (
+            {effectiveParameters.map((param) => (
                 <div key={param.key} className="tw-mb-4">
                     <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
                         {param.label}

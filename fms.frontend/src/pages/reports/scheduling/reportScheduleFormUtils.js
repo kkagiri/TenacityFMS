@@ -123,6 +123,7 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
         Message: `${scheduleName} — ${capitalise(periodType)} ${reportFormat} report`,
         Data: {
             schedulerVersion: 3,
+            sourceId: source.id || null,
             reportType,
             templateName: source.defaultTemplate || null,
             periodType,
@@ -131,6 +132,9 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
             reportDescription: description,
             effectiveStartDate: null,
             effectiveEndDate: null,
+            lookbackDays: formData.offsetDays ?? 1,
+            offsetDays: formData.offsetDays ?? 1,
+            windowDays: formData.windowDays ?? 1,
             windowMode: periodType === 'monthly' ? 'runMonth' : 'runDateMinusOneDay',
             siteIds: [],
             tankIds: [],
@@ -140,9 +144,11 @@ export const buildNotificationRequestFromForm = (formData, recipientList = [], c
             recurringSchedule: isRecurring
                 ? {
                     enabled: true,
-                    scheduleType: periodType === 'monthly' ? 'monthly' : 'weekly',
-                    daysOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? [] : scheduleDayOfWeekIds,
-                    dayOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? null : (scheduleDayOfWeekIds[0] || 'monday'),
+                    scheduleType: periodType, // 'daily' | 'weekly' | 'monthly'
+                    daysOfWeek: periodType === 'weekly' ? scheduleDayOfWeekIds
+                        : (periodType === 'monthly' && !scheduleDayOfMonth ? scheduleDayOfWeekIds : []),
+                    dayOfWeek: periodType === 'weekly' ? (scheduleDayOfWeekIds[0] || 'monday')
+                        : (periodType === 'monthly' && !scheduleDayOfMonth ? (scheduleDayOfWeekIds[0] || 'monday') : null),
                     weeksOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? scheduleWeekOfMonthIds : null,
                     weekOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? (scheduleWeekOfMonthIds[0] || 'first') : null,
                     dayOfMonth: scheduleDayOfMonth || null,
@@ -217,8 +223,13 @@ export const buildUpdatePayloadFromForm = (formData, recipientList = [], current
 
     return {
         scheduledAtUtc: nextRunDate?.toISOString() || new Date().toISOString(),
-        scheduleType: periodType === 'monthly' ? 'monthly' : (isRecurring ? 'weekly' : 'once'),
-        daysOfWeek: periodType === 'monthly' && scheduleDayOfMonth ? [] : scheduleDayOfWeekIds,
+        scheduleType: periodType, // 'once' | 'daily' | 'weekly' | 'monthly'
+        offsetDays: formData.offsetDays ?? 1,
+        windowDays: formData.windowDays ?? 1,
+        format: formData.outputFormat || formData.format || null,
+        sourceId: formData.reportSourceId || formData.sourceId || null,
+        daysOfWeek: periodType === 'weekly' ? scheduleDayOfWeekIds
+            : (periodType === 'monthly' && !scheduleDayOfMonth ? scheduleDayOfWeekIds : []),
         weeksOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? scheduleWeekOfMonthIds : null,
         weekOfMonth: periodType === 'monthly' && !scheduleDayOfMonth ? (scheduleWeekOfMonthIds[0] || 'first') : null,
         dayOfMonth: scheduleDayOfMonth || null,

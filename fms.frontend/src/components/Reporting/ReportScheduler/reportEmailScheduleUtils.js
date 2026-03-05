@@ -532,6 +532,17 @@ export const getNextRunDateTime = ({
     return null;
   }
 
+  // Daily: find next occurrence at the given time (today if time hasn't passed, otherwise tomorrow)
+  if (periodType === "daily") {
+    const today = new Date(reference);
+    today.setHours(hours, minutes, 0, 0);
+    if (today > reference) return today;
+    const tomorrow = new Date(reference);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(hours, minutes, 0, 0);
+    return tomorrow;
+  }
+
   const dayIds = normalizeDayIds(
     Array.isArray(scheduleDayOfWeekIds) && scheduleDayOfWeekIds.length
       ? scheduleDayOfWeekIds
