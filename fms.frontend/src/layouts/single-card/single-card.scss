@@ -56,3 +56,49 @@
     color: rgba($base-text-color, alpha($base-text-color) * 0.7);
   }
 }
+
+[data-theme="dark"] {
+  .single-card-container {
+    background: linear-gradient(140deg, #f8fafc 0%, #eef2ff 100%) !important;
+    color: $base-text-color !important;
+
+    .single-card-hero {
+      span {
+        color: #94a3b8 !important;
+      }
+
+      h1 {
+        color: $base-text-color !important;
+      }
+
+      p {
+        color: rgba($base-text-color, alpha($base-text-color) * 0.7) !important;
+      }
+    }
+
+    .single-card-card,
+    .dx-card.single-card-card {
+      background-color: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.08) !important;
+      color: $base-text-color !important;
+      box-shadow: 0 24px 54px rgba(15, 23, 42, 0.12) !important;
+    }
+
+    .dx-widget {
+      color: $base-text-color !important;
+    }
+
+    .dx-texteditor {
+      background-color: #ffffff !important;
+      border-color: rgba(15, 23, 42, 0.14) !important;
+
+      .dx-texteditor-input {
+        color: $base-text-color !important;
+      }
+
+      .dx-placeholder::before {
+        color: rgba($base-text-color, alpha($base-text-color) * 0.55) !important;
+      }
+    }
+  }
+}

@@ -28,15 +28,118 @@ const ReportExecutionLog = ({ execution }) => {
         return `${(ms / 1000).toFixed(2)}s`;
     };
 
-    let parsedFilters = {};
-    try {
-        parsedFilters =
-            typeof execution.filters === 'string'
-                ? JSON.parse(execution.filters)
-                : execution.filters || {};
-    } catch {
-        parsedFilters = {};
-    }
+    const parseUtcToLocalDate = (value) => {
+        if (!value) return null;
+
+        if (value instanceof Date) {
+            return Number.isNaN(value.getTime()) ? null : value;
+        }
+
+        if (typeof value === 'string') {
+            let normalized = value.trim().replace(' ', 'T');
+            const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(normalized);
+            if (!hasZone) normalized = `${normalized}Z`;
+            const parsed = new Date(normalized);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    };
+
+    const formatExecutedAtLocal = (value) => {
+        const localDate = parseUtcToLocalDate(value);
+        if (!localDate) return '—';
+
+        return localDate.toLocaleString(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false,
+        });
+    };
+
+    const normalizeObject = (value) => {
+        if (!value) return {};
+        if (typeof value === 'object') return value;
+        if (typeof value !== 'string') return {};
+        try {
+            return JSON.parse(value);
+        } catch {
+            return {};
+        }
+    };
+
+    const toTitleCase = (key) =>
+        String(key)
+            .replace(/([a-z])([A-Z])/g, '$1 $2')
+            .replace(/[_-]+/g, ' ')
+            .replace(/^./, (ch) => ch.toUpperCase());
+
+    const formatRecurringSchedule = (schedule) => {
+        if (!schedule || typeof schedule !== 'object') return '—';
+
+        const frequency = schedule.frequency || schedule.Frequency || schedule.type || schedule.Type;
+        const interval = schedule.interval || schedule.Interval;
+        const days =
+            schedule.daysOfWeek ||
+            schedule.DaysOfWeek ||
+            schedule.days ||
+            schedule.Days ||
+            [];
+        const time = schedule.time || schedule.Time || schedule.timeOfDay || schedule.TimeOfDay;
+
+        const parts = [];
+        if (frequency) parts.push(String(frequency));
+        if (interval && Number(interval) > 1) parts.push(`every ${interval}`);
+        if (Array.isArray(days) && days.length > 0) parts.push(days.join(', '));
+        if (time) parts.push(`at ${time}`);
+
+        return parts.length > 0 ? parts.join(' · ') : JSON.stringify(schedule);
+    };
+
+    const isJsonElementMetaOnly = (value) =>
+        value &&
+        typeof value === 'object' &&
+        Object.keys(value).length === 1 &&
+        Object.prototype.hasOwnProperty.call(value, 'ValueKind');
+
+    const formatFilterValue = (key, value) => {
+        if (value === null || value === undefined) return 'null';
+        if (key === 'recurringSchedule') return formatRecurringSchedule(value);
+        if (Array.isArray(value)) {
+            if (value.length === 0) return '[]';
+            return value.map((item) => (typeof item === 'object' ? JSON.stringify(item) : String(item))).join(', ');
+        }
+        if (typeof value === 'object') {
+            if (isJsonElementMetaOnly(value)) return null;
+            return JSON.stringify(value);
+        }
+        return String(value);
+    };
+
+    const parsedFilters = normalizeObject(execution.filters);
+    const nestedFilters =
+        parsedFilters?.filters && typeof parsedFilters.filters === 'object'
+            ? parsedFilters.filters
+            : {};
+    const mergedFilters = {
+        ...parsedFilters,
+        ...nestedFilters,
+    };
+    delete mergedFilters.filters;
+
+    const filterEntries = Object.entries(mergedFilters || {})
+        .filter(([key, value]) => key !== 'ValueKind' && !isJsonElementMetaOnly(value))
+        .map(([key, value]) => ({
+            key,
+            label: toTitleCase(key),
+            value: formatFilterValue(key, value),
+        }))
+        .filter((row) => row.value !== null && row.value !== undefined && row.value !== '');
 
     const isSuccess = execution.success;
 
@@ -57,12 +160,12 @@ const ReportExecutionLog = ({ execution }) => {
                 </div>
                 <div className="exec-log__field">
                     <span className="exec-log__field-label">Executed By</span>
-                    <span className="exec-log__field-value">{execution.executedBy || '—'}</span>
+                    <span className="exec-log__field-value">{execution.executedByDisplay || execution.executedBy || '—'}</span>
                 </div>
                 <div className="exec-log__field">
                     <span className="exec-log__field-label">Executed At</span>
                     <span className="exec-log__field-value">
-                        {execution.executedAt ? new Date(execution.executedAt).toLocaleString() : '—'}
+                        {formatExecutedAtLocal(execution.executedAt)}
                     </span>
                 </div>
                 <div className="exec-log__field">
@@ -95,14 +198,14 @@ const ReportExecutionLog = ({ execution }) => {
             )}
 
             {/* Filters Applied */}
-            {Object.keys(parsedFilters).length > 0 && (
+            {filterEntries.length > 0 && (
                 <div className="exec-log__filters">
                     <p className="exec-log__filters-title">Filters Applied</p>
                     <div className="exec-log__filters-grid">
-                        {Object.entries(parsedFilters).map(([key, val]) => (
-                            <div key={key} className="exec-log__filter-row">
-                                <span className="exec-log__filter-key">{key}</span>
-                                <span className="exec-log__filter-val">{String(val ?? 'null')}</span>
+                        {filterEntries.map((entry) => (
+                            <div key={entry.key} className="exec-log__filter-row">
+                                <span className="exec-log__filter-key">{entry.label}</span>
+                                <span className="exec-log__filter-val">{entry.value}</span>
                             </div>
                         ))}
                     </div>

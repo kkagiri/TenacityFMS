@@ -273,7 +273,7 @@ $font-stack:      'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
 
 // ── Full-Width Grid ───────────────────────────────────────────────────────────
 .monitor-grid-wrap {
-    flex: 1;
+    flex: 0 0 auto;
     margin: 14px 20px 0;
     background: $m-card;
     border: 1px solid $m-border-light;

@@ -33,7 +33,7 @@ namespace FMS.Application.Features.Notification.Services
         private const string TransactionVolumeHistoryReportTypeKebab = "tank-volume-history";
         private const string TransactionHistorySummaryReportType = "TransactionHistorySummary";
         private const string TransactionHistorySummaryReportTypeKebab = "transaction-history-summary";
-        private const string DefaultTemplateName = "transaction-volume-history-report";
+        private const string DefaultTemplateName = "tank-volume-history-report";
         private const string DefaultSummaryTemplateName = "transaction-history-summary-report";
         private const int MaxAttachmentBytes = 7 * 1024 * 1024;
 
@@ -78,10 +78,13 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var reportType = metadata.Value<string>("reportType");
+            var sourceId = metadata.Value<string>("sourceId");
             var isSummaryReport = string.Equals(reportType, TransactionHistorySummaryReportType, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(reportType, TransactionHistorySummaryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
+                || string.Equals(reportType, TransactionHistorySummaryReportTypeKebab, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(sourceId, TransactionHistorySummaryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
             var isVolumeHistoryReport = string.Equals(reportType, TransactionVolumeHistoryReportType, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
+                || string.Equals(reportType, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(sourceId, TransactionVolumeHistoryReportTypeKebab, StringComparison.OrdinalIgnoreCase);
 
             var templateName = metadata.Value<string>("templateName");
             var format = NormalizeFormat(metadata.Value<string>("format"));

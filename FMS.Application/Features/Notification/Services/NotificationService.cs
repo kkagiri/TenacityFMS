@@ -521,6 +521,13 @@ namespace FMS.Application.Features.Notification.Services
                 return true;
             }
 
+            // Daily schedules: advance by exactly one day, ignoring dayOfWeeks
+            if (string.Equals(scheduleType, "daily", StringComparison.OrdinalIgnoreCase))
+            {
+                nextRunUtc = ComputeNextDailyRunUtc(timeOfDay, timeZoneId, referenceUtc);
+                return true;
+            }
+
             nextRunUtc = ComputeNextWeeklyRunUtc(
                 dayOfWeeks,
                 timeOfDay,
@@ -809,6 +816,28 @@ namespace FMS.Application.Features.Notification.Services
                 _logger.LogWarning("Time zone '{TimeZoneId}' is invalid. Falling back to UTC.", timeZoneId);
                 return TimeZoneInfo.Utc;
             }
+        }
+
+        /// <summary>
+        /// Computes the next daily run: today at timeOfDay if in the future, otherwise tomorrow.
+        /// </summary>
+        private DateTime ComputeNextDailyRunUtc(
+            TimeSpan timeOfDay,
+            string? timeZoneId,
+            DateTime referenceUtc)
+        {
+            var timezone = ResolveTimeZoneInfo(timeZoneId);
+            var localNow = TimeZoneInfo.ConvertTimeFromUtc(referenceUtc, timezone);
+
+            var candidateLocal = localNow.Date.Add(timeOfDay);
+            if (candidateLocal <= localNow)
+            {
+                candidateLocal = candidateLocal.AddDays(1);
+            }
+
+            return TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(candidateLocal, DateTimeKind.Unspecified),
+                timezone);
         }
 
         private DateTime ComputeNextWeeklyRunUtc(

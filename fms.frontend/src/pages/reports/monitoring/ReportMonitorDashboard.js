@@ -11,6 +11,7 @@
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { useSelector } from 'react-redux';
 import DateRangeBox from 'devextreme-react/date-range-box';
 import DataGrid, {
     Column,
@@ -23,10 +24,12 @@ import DataGrid, {
 } from 'devextreme-react/data-grid';
 import { LoadPanel } from 'devextreme-react/load-panel';
 import reportingService from '../../../services/reportingService';
+import SlidePanel from '../../../components/ui/SlidePanel';
 import ReportExecutionLog from './ReportExecutionLog';
 import './ReportMonitorDashboard.scss';
 
 const ReportMonitorDashboard = () => {
+    const authUser = useSelector((state) => state.auth?.user || null);
     const [executions, setExecutions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [selectedExecution, setSelectedExecution] = useState(null);
@@ -36,6 +39,97 @@ const ReportMonitorDashboard = () => {
         return d;
     });
     const [dateTo, setDateTo] = useState(() => new Date());
+
+    const currentUserId = useMemo(
+        () =>
+            authUser?.id ||
+            authUser?.userId ||
+            authUser?.userID ||
+            authUser?.Id ||
+            authUser?.userid ||
+            null,
+        [authUser]
+    );
+
+    const currentUserName = useMemo(() => {
+        const fullName = [authUser?.firstName, authUser?.lastName].filter(Boolean).join(' ').trim();
+        return (
+            authUser?.userName ||
+            authUser?.username ||
+            authUser?.email ||
+            fullName ||
+            null
+        );
+    }, [authUser]);
+
+    const isGuidLike = useCallback((value) => {
+        if (!value) return false;
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(String(value));
+    }, []);
+
+    const safeParseObject = useCallback((value) => {
+        if (!value) return {};
+        if (typeof value === 'object') return value;
+        if (typeof value !== 'string') return {};
+        try {
+            return JSON.parse(value);
+        } catch {
+            return {};
+        }
+    }, []);
+
+    const resolveExecutedByDisplay = useCallback(
+        (row) => {
+            const raw = row?.executedBy;
+            const explicitName =
+                row?.executedByName ||
+                row?.executedByUserName ||
+                row?.executedByUsername ||
+                row?.executedByEmail ||
+                row?.userName ||
+                row?.user?.userName ||
+                row?.user?.username ||
+                row?.user?.email;
+
+            if (explicitName) return explicitName;
+
+            if (raw && currentUserId && String(raw).toLowerCase() === String(currentUserId).toLowerCase()) {
+                return currentUserName || raw;
+            }
+
+            if (isGuidLike(raw) && currentUserName && executions.length > 0) {
+                const allSameUser = executions.every((e) => String(e?.executedBy || '').toLowerCase() === String(raw).toLowerCase());
+                if (allSameUser) return currentUserName;
+            }
+
+            return raw || '—';
+        },
+        [currentUserId, currentUserName, executions, isGuidLike]
+    );
+
+    const resolveReportSource = useCallback(
+        (row) => {
+            const parsed = safeParseObject(row?.filters);
+            const nested = parsed?.filters && typeof parsed.filters === 'object' ? parsed.filters : null;
+            const sourceName = parsed?.sourceName || nested?.sourceName;
+            const sourceId = parsed?.sourceId || nested?.sourceId;
+
+            if (sourceName) return sourceName;
+            if (sourceId) return sourceId;
+            return row?.reportDefinitionId ? `Report #${row.reportDefinitionId}` : '—';
+        },
+        [safeParseObject]
+    );
+
+    const normalizedExecutions = useMemo(
+        () =>
+            executions.map((row) => ({
+                ...row,
+                executedByDisplay: resolveExecutedByDisplay(row),
+                reportSourceDisplay: resolveReportSource(row),
+            })),
+        [executions, resolveExecutedByDisplay, resolveReportSource]
+    );
 
     const loadExecutions = useCallback(async () => {
         setLoading(true);
@@ -101,6 +195,43 @@ const ReportMonitorDashboard = () => {
         if (ms < 1000) return `${ms}ms`;
         return `${(ms / 1000).toFixed(2)}s`;
     }, []);
+
+    const parseUtcToLocalDate = useCallback((value) => {
+        if (!value) return null;
+
+        if (value instanceof Date) {
+            return Number.isNaN(value.getTime()) ? null : value;
+        }
+
+        if (typeof value === 'string') {
+            let normalized = value.trim().replace(' ', 'T');
+            const hasZone = /[zZ]$|[+-]\d{2}:?\d{2}$/.test(normalized);
+            if (!hasZone) normalized = `${normalized}Z`;
+            const parsed = new Date(normalized);
+            return Number.isNaN(parsed.getTime()) ? null : parsed;
+        }
+
+        const parsed = new Date(value);
+        return Number.isNaN(parsed.getTime()) ? null : parsed;
+    }, []);
+
+    const formatExecutedAtLocal = useCallback(
+        (cellInfo) => {
+            const localDate = parseUtcToLocalDate(cellInfo?.value);
+            if (!localDate) return '—';
+
+            return localDate.toLocaleString(undefined, {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: false,
+            });
+        },
+        [parseUtcToLocalDate]
+    );
 
     const dateRangeValue = useMemo(() => [dateFrom, dateTo], [dateFrom, dateTo]);
 
@@ -203,7 +334,7 @@ const ReportMonitorDashboard = () => {
             {/* Full-width DataGrid */}
             <div className="monitor-grid-wrap">
                 <DataGrid
-                    dataSource={executions}
+                    dataSource={normalizedExecutions}
                     showBorders={false}
                     columnAutoWidth={false}
                     rowAlternationEnabled={true}
@@ -216,7 +347,6 @@ const ReportMonitorDashboard = () => {
                     selection={{ mode: 'single' }}
                     noDataText="No execution records found for the selected period"
                     width="100%"
-                    height={executions.length > 0 ? 420 : 160}
                 >
                     <SearchPanel visible={true} width={240} placeholder="Search executions…" />
                     <FilterRow visible={true} />
@@ -224,27 +354,15 @@ const ReportMonitorDashboard = () => {
                     <Pager showPageSizeSelector={true} allowedPageSizes={[10, 15, 30, 50]} showInfo={true} />
 
                     <Column dataField="reportExecutionId" caption="ID" width={70} />
-                    <Column dataField="executedBy" caption="User" minWidth={120} />
+                    <Column dataField="executedByDisplay" caption="User" minWidth={160} />
                     <Column
                         dataField="executedAt"
                         caption="Executed At"
-                        dataType="datetime"
-                        format="yyyy-MM-dd HH:mm:ss"
                         width={170}
                         sortOrder="desc"
+                        cellRender={formatExecutedAtLocal}
                     />
-                    <Column
-                        caption="Report Source"
-                        minWidth={140}
-                        calculateCellValue={(row) => {
-                            try {
-                                const f = JSON.parse(row.filters || '{}');
-                                return f.sourceName || f.sourceId || (row.reportDefinitionId ? `Report #${row.reportDefinitionId}` : '—');
-                            } catch {
-                                return row.reportDefinitionId ? `Report #${row.reportDefinitionId}` : '—';
-                            }
-                        }}
-                    />
+                    <Column dataField="reportSourceDisplay" caption="Report Source" minWidth={160} />
                     <Column dataField="exportFormat" caption="Format" width={80} alignment="center" />
                     <Column dataField="recordCount" caption="Records" width={90} alignment="center" />
                     <Column
@@ -268,26 +386,14 @@ const ReportMonitorDashboard = () => {
                 </DataGrid>
             </div>
 
-            {/* Execution detail — collapses in below the grid */}
-            {selectedExecution && (
-                <div className="monitor-detail-panel">
-                    <div className="monitor-detail-panel__header">
-                        <span className="monitor-detail-panel__title">
-                            <i className="fa-light fa-file-lines" />
-                            Execution Detail
-                            <span className="monitor-detail-panel__id">#{selectedExecution.reportExecutionId}</span>
-                        </span>
-                        <button
-                            className="m365-btn m365-btn--text"
-                            onClick={() => setSelectedExecution(null)}
-                        >
-                            <i className="fa-light fa-xmark" />
-                            Close
-                        </button>
-                    </div>
-                    <ReportExecutionLog execution={selectedExecution} />
-                </div>
-            )}
+            <SlidePanel
+                open={!!selectedExecution}
+                onClose={() => setSelectedExecution(null)}
+                title={selectedExecution ? `Execution Detail #${selectedExecution.reportExecutionId}` : 'Execution Detail'}
+                width={820}
+            >
+                <ReportExecutionLog execution={selectedExecution} />
+            </SlidePanel>
         </div>
     );
 };

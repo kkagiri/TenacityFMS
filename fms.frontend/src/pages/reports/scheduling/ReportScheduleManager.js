@@ -599,7 +599,7 @@ const ReportScheduleManager = () => {
                     <Column
                         caption="Last Run"
                         width={155}
-                        calculateCellValue={(row) => formatDateTime(row.lastRunAtUtc || row.lastRunAt)}
+                        calculateCellValue={(row) => formatDateTime(row.lastProcessedAtUtc || row.sentAt || row.lastRunAtUtc || row.lastRunAt)}
                     />
                     <Column
                         caption="Created"
