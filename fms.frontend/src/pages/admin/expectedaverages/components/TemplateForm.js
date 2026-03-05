@@ -4,7 +4,6 @@ import { SelectBox } from "devextreme-react/select-box";
 import { NumberBox } from "devextreme-react/number-box";
 import { TextBox } from "devextreme-react/text-box";
 import { TextArea } from "devextreme-react/text-area";
-import { Switch } from "devextreme-react/switch";
 import { Button } from "devextreme-react/button";
 import notify from "devextreme/ui/notify";
 
@@ -159,10 +158,51 @@ const TemplateForm = ({ template, onSave, onCancel }) => {
     }
   };
 
+  const toNumber = (value) => {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  };
+
+  const getIdValue = (item, idKeys) => {
+    if (!item) return null;
+    for (const key of idKeys) {
+      if (item[key] !== undefined && item[key] !== null && item[key] !== "") {
+        return toNumber(item[key]);
+      }
+    }
+    return null;
+  };
+
+  const manufacturerOptions = manufacturers
+    .map((manufacturer) => ({
+      id: getIdValue(manufacturer, ["id", "vehicleManufacturerId", "Id", "VehicleManufacturerId"]),
+      name:
+        manufacturer?.name ??
+        manufacturer?.manufacturerName ??
+        manufacturer?.Name ??
+        manufacturer?.ManufacturerName ??
+        "",
+    }))
+    .filter((manufacturer) => manufacturer.id !== null);
+
+  const modelOptions = models
+    .map((model) => ({
+      id: getIdValue(model, ["id", "vehicleModelId", "Id", "VehicleModelId"]),
+      manufacturerId: getIdValue(model, ["manufacturerId", "vehicleManufacturerId", "ManufacturerId", "VehicleManufacturerId"]),
+      name:
+        model?.name ??
+        model?.modelName ??
+        model?.Name ??
+        model?.ModelName ??
+        "",
+    }))
+    .filter((model) => model.id !== null);
+
   // Filter models based on selected manufacturer
-  const filteredModels = formData.vehicleManufacturerId
-    ? models.filter((m) => m.manufacturerId === formData.vehicleManufacturerId)
-    : models;
+  const selectedManufacturerId = toNumber(formData.vehicleManufacturerId);
+  const filteredModels = selectedManufacturerId
+    ? modelOptions.filter((model) => model.manufacturerId === selectedManufacturerId)
+    : modelOptions;
 
   return (
     <div className="template-form tw-p-4">
@@ -199,11 +239,15 @@ const TemplateForm = ({ template, onSave, onCancel }) => {
             <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">
               Active
             </label>
-            <Switch
-              value={formData.isActive}
-              onValueChanged={(e) => handleFieldChange("isActive", e.value)}
-              disabled={isLoading}
-            />
+            <label className="template-form__checkbox-row">
+              <input
+                type="checkbox"
+                checked={!!formData.isActive}
+                onChange={(e) => handleFieldChange("isActive", e.target.checked)}
+                disabled={isLoading}
+              />
+              <span>{formData.isActive ? "Active" : "Inactive"}</span>
+            </label>
           </div>
 
           <div>
@@ -250,7 +294,7 @@ const TemplateForm = ({ template, onSave, onCancel }) => {
               Manufacturer
             </label>
             <SelectBox
-              dataSource={manufacturers}
+              dataSource={manufacturerOptions}
               valueExpr="id"
               displayExpr="name"
               value={formData.vehicleManufacturerId}
@@ -394,28 +438,27 @@ const TemplateForm = ({ template, onSave, onCancel }) => {
             <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">
               Measurement Unit
             </label>
-            <div className="tw-flex tw-items-center">
-              <span
-                className={`tw-mr-2 ${
-                  !formData.isKmPerLiter ? "tw-font-bold" : ""
-                }`}
-              >
-                L/hr
-              </span>
-              <Switch
-                value={formData.isKmPerLiter}
-                onValueChanged={(e) =>
-                  handleFieldChange("isKmPerLiter", e.value)
-                }
-                disabled={isLoading}
-              />
-              <span
-                className={`tw-ml-2 ${
-                  formData.isKmPerLiter ? "tw-font-bold" : ""
-                }`}
-              >
-                km/L
-              </span>
+            <div className="template-form__radio-group">
+              <label className="template-form__radio-option">
+                <input
+                  type="radio"
+                  name="measurementUnit"
+                  checked={!formData.isKmPerLiter}
+                  onChange={() => handleFieldChange("isKmPerLiter", false)}
+                  disabled={isLoading}
+                />
+                <span>L/hr</span>
+              </label>
+              <label className="template-form__radio-option">
+                <input
+                  type="radio"
+                  name="measurementUnit"
+                  checked={!!formData.isKmPerLiter}
+                  onChange={() => handleFieldChange("isKmPerLiter", true)}
+                  disabled={isLoading}
+                />
+                <span>km/L</span>
+              </label>
             </div>
           </div>
 
@@ -478,7 +521,7 @@ const TemplateForm = ({ template, onSave, onCancel }) => {
         </div>
       </div>
 
-      <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
+      <div className="template-form__actions tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
         <Button
           text="Cancel"
           stylingMode="outlined"

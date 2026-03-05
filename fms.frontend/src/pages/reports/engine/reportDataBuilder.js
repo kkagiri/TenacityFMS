@@ -533,6 +533,164 @@ const getChangeReasonClass = (transactionType) => {
  *         timestamp.{date,time}, changeReasonClass, changeReasonLabel,
  *         volumeChange, balanceAfter, operatorName, notes, isPositive
  */
+/**
+ * Builds daily consumption totals for the last N days from dispensing rows.
+ * Returns array of { label: 'Mon', value: 123.45 } sorted oldest→newest.
+ */
+const buildDailyConsumptionTrend = (dispensingRows, numDays = 2) => {
+    if (!dispensingRows || dispensingRows.length === 0) return [];
+
+    // Group dispensing by date
+    const dailyMap = {};
+    dispensingRows.forEach((r) => {
+        const raw = r.timestamp?.raw;
+        if (!raw) return;
+        const dateKey = new Date(raw).toISOString().slice(0, 10);
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + Math.abs(r._volumeChangeRaw);
+    });
+
+    // Sort dates ascending, take last N
+    const sortedDates = Object.keys(dailyMap).sort().slice(-numDays);
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+    const dayEntries = sortedDates.map((dateStr) => {
+        const d = new Date(dateStr + 'T00:00:00Z');
+        return {
+            label: dayNames[d.getUTCDay()],
+            date: dateStr,
+            value: Math.round(dailyMap[dateStr] * 100) / 100,
+            formatted: formatNumber(dailyMap[dateStr]),
+        };
+    });
+
+    // Add barHeight % – tallest bar = 100%, rest proportional (min 15%)
+    const maxVal = Math.max(...dayEntries.map((d) => d.value), 1);
+    dayEntries.forEach((d) => {
+        d.barHeight = Math.max(Math.round((d.value / maxVal) * 100), 15);
+    });
+
+    return dayEntries;
+};
+
+const buildFiveDaySparkTrend = (rows, valueSelector) => {
+    if (!rows || rows.length === 0) {
+        return {
+            direction: 'neutral',
+            isUp: false,
+            isDown: false,
+            points: '2,8 7,8 12,8 17,8 22,8',
+        };
+    }
+
+    const dailyMap = {};
+    rows.forEach((row) => {
+        const raw = row.timestamp?.raw;
+        if (!raw) return;
+        const dateKey = new Date(raw).toISOString().slice(0, 10);
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + (valueSelector(row) || 0);
+    });
+
+    const sortedKeys = Object.keys(dailyMap).sort();
+    const latestKey = sortedKeys[sortedKeys.length - 1];
+    const latestDate = new Date(`${latestKey}T00:00:00Z`);
+
+    const points = [];
+    for (let offset = 4; offset >= 0; offset -= 1) {
+        const d = new Date(latestDate);
+        d.setUTCDate(d.getUTCDate() - offset);
+        const key = d.toISOString().slice(0, 10);
+        points.push({ dateKey: key, value: dailyMap[key] || 0 });
+    }
+
+    if (points.length === 0) {
+        return {
+            direction: 'neutral',
+            isUp: false,
+            isDown: false,
+            points: '2,8 7,8 12,8 17,8 22,8',
+        };
+    }
+
+    const last = points[points.length - 1].value;
+    const previous = points[points.length - 2].value;
+    const direction = last > previous ? 'rise' : last < previous ? 'fall' : 'neutral';
+
+    const values = points.map((p) => p.value);
+    const minVal = Math.min(...values);
+    const maxVal = Math.max(...values);
+    const toY = (value) => {
+        if (maxVal === minVal) return 8;
+        const normalized = (value - minVal) / (maxVal - minVal);
+        return Math.round(14 - (normalized * 10));
+    };
+
+    const xPoints = [2, 7, 12, 17, 22];
+    const polylinePoints = points
+        .map((point, index) => `${xPoints[index]},${toY(point.value)}`)
+        .join(' ');
+
+    return {
+        direction,
+        isUp: direction === 'rise',
+        isDown: direction === 'fall',
+        points: polylinePoints,
+    };
+};
+
+const buildLast2DispensingDays = (dispensingRows, allTankRows, maxPreviousDays = 3) => {
+    if (!allTankRows || allTankRows.length === 0) return [];
+
+    const dailyMap = {};
+    dispensingRows.forEach((row) => {
+        const raw = row.timestamp?.raw;
+        if (!raw) return;
+        const dateKey = new Date(raw).toISOString().slice(0, 10);
+        dailyMap[dateKey] = (dailyMap[dateKey] || 0) + Math.abs(row._volumeChangeRaw || 0);
+    });
+
+    const validDates = allTankRows
+        .map((row) => row.timestamp?.raw)
+        .filter(Boolean)
+        .map((raw) => new Date(raw));
+    if (validDates.length === 0) return [];
+
+    const anchorDate = new Date(Math.max(...validDates.map((d) => d.getTime())));
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const used = new Set();
+
+    const targets = [2, 1].map((daysBack) => {
+        const d = new Date(anchorDate);
+        d.setUTCDate(d.getUTCDate() - daysBack);
+        return d;
+    });
+
+    const result = [];
+    targets.forEach((targetDate) => {
+        let selectedKey = null;
+        for (let offset = 0; offset <= maxPreviousDays; offset += 1) {
+            const candidate = new Date(targetDate);
+            candidate.setUTCDate(candidate.getUTCDate() - offset);
+            const key = candidate.toISOString().slice(0, 10);
+            if (dailyMap[key] !== undefined && !used.has(key)) {
+                selectedKey = key;
+                used.add(key);
+                break;
+            }
+        }
+
+        if (!selectedKey) return;
+        const selectedDate = new Date(`${selectedKey}T00:00:00Z`);
+        result.push({
+            date: selectedKey,
+            label: dayNames[selectedDate.getUTCDay()],
+            value: Math.round((dailyMap[selectedKey] || 0) * 100) / 100,
+            formatted: formatNumber(dailyMap[selectedKey] || 0),
+        });
+    });
+
+    return result;
+};
+
 const mapTankVolumeHistory = (rawRecords, container) => {
     // ── 1. Map each DTO record to a normalised row object ──────────────────────
     let globalRowNumber = 1;
@@ -591,6 +749,7 @@ const mapTankVolumeHistory = (rawRecords, container) => {
     // Build per-tank data objects (tankEntry + txGroup), keyed by site
     const siteMap = new Map(); // siteName → { tanks: [], transactionGroups: [] }
     let grandClosingBalanceRaw = 0;
+    let globalTotalVarianceRaw = 0;
 
     tankGroupMap.forEach(({ tankName, siteName, rows }) => {
         const firstRow = rows[0];
@@ -618,6 +777,17 @@ const mapTankVolumeHistory = (rawRecords, container) => {
         const expectedClosingRaw = openingBalanceRaw + deliveryTotal + transferTotal - dispensingTotal;
         const expectedMatch = Math.abs(expectedClosingRaw - closingBalanceRaw) < 1;
 
+        // Variance = Actual Closing − Expected Closing (negative = loss/shortage)
+        const tankVarianceRaw = closingBalanceRaw - expectedClosingRaw;
+        globalTotalVarianceRaw += tankVarianceRaw;
+
+        // ── Last 2 days consumption trend (sparkline data) ────────────────────
+        const trendDays = buildDailyConsumptionTrend(dispensingRows, 2);
+        const trendDirection = trendDays.length >= 2
+            ? (trendDays[trendDays.length - 1].value > trendDays[trendDays.length - 2].value ? 'up' : trendDays[trendDays.length - 1].value < trendDays[trendDays.length - 2].value ? 'down' : 'flat')
+            : 'flat';
+        const last2DispensingDays = buildLast2DispensingDays(dispensingRows, rows, 3);
+
         const tankEntry = {
             tankName,
             fuelType: '',
@@ -625,9 +795,24 @@ const mapTankVolumeHistory = (rawRecords, container) => {
             closingBalance: formatNumber(closingBalanceRaw),
             expectedClosing: formatNumber(expectedClosingRaw),
             expectedMatch,
+            variance: {
+                value: formatNumber(tankVarianceRaw),
+                formatted: (tankVarianceRaw >= 0 ? '+' : '') + formatNumber(tankVarianceRaw),
+                isNegative: tankVarianceRaw < 0,
+                percentage: openingBalanceRaw !== 0
+                    ? ((tankVarianceRaw / openingBalanceRaw) * 100).toFixed(1)
+                    : '0.0',
+            },
+            consumptionTrend: {
+                days: trendDays,
+                direction: trendDirection,
+                isUp: trendDirection === 'up',
+                isDown: trendDirection === 'down',
+            },
             dispensing: {
                 total: formatNumber(dispensingTotal),
                 count: dispensingRows.length,
+                last2Days: last2DispensingDays,
             },
             delivery: {
                 total: formatNumber(deliveryTotal),
@@ -658,10 +843,32 @@ const mapTankVolumeHistory = (rawRecords, container) => {
     // ── 3. Build siteGroups array (matches backend structure) ──────────────────
     const siteGroups = [];
     siteMap.forEach((siteData, siteName) => {
+        // Compute site-level average daily consumption
+        const siteTotalDispensing = siteData.tanks.reduce((sum, t) => {
+            const val = typeof t.dispensing?.total === 'string'
+                ? parseFloat(t.dispensing.total.replace(/,/g, '')) || 0
+                : (t.dispensing?.total || 0);
+            return sum + val;
+        }, 0);
+
+        // Calculate report date span for daily average
+        const siteRows = siteData.transactionGroups.flatMap(g => g.rows || []);
+        const siteDates = siteRows
+            .map(r => r.timestamp?.raw)
+            .filter(Boolean)
+            .map(d => new Date(d).toISOString().slice(0, 10));
+        const uniqueDays = [...new Set(siteDates)].length || 1;
+        const avgDailyConsumption = siteTotalDispensing / uniqueDays;
+
         siteGroups.push({
             siteName,
             tanks: siteData.tanks,
             transactionGroups: siteData.transactionGroups,
+            siteSummary: {
+                totalDispensing: formatNumber(siteTotalDispensing),
+                avgDailyConsumption: formatNumber(avgDailyConsumption),
+                daysInPeriod: uniqueDays,
+            },
         });
     });
     siteGroups.sort((a, b) => a.siteName.localeCompare(b.siteName));
@@ -678,6 +885,19 @@ const mapTankVolumeHistory = (rawRecords, container) => {
         .reduce((s, r) => s + Math.abs(r._volumeChangeRaw), 0);
     const netBalanceChange = totalDeliveryRaw + totalTransferRaw - totalDispensedRaw;
 
+    const trends = {
+        transactions: buildFiveDaySparkTrend(allRows, () => 1),
+        dispensed: buildFiveDaySparkTrend(allRows, (row) => (row.isDispensing ? Math.abs(row._volumeChangeRaw) : 0)),
+        transfer: buildFiveDaySparkTrend(allRows, (row) => (row.isTransfer ? Math.abs(row._volumeChangeRaw) : 0)),
+        delivery: buildFiveDaySparkTrend(allRows, (row) => (row.isDelivery ? Math.abs(row._volumeChangeRaw) : 0)),
+        variance: buildFiveDaySparkTrend(allRows, (row) => {
+            const magnitude = Math.abs(row._volumeChangeRaw);
+            if (row.isDelivery || row.isTransfer) return magnitude;
+            if (row.isDispensing) return -magnitude;
+            return 0;
+        }),
+    };
+
     return {
         records: allRows,
         siteGroups,
@@ -689,6 +909,12 @@ const mapTankVolumeHistory = (rawRecords, container) => {
             totalDelivery: formatNumber(totalDeliveryRaw),
             netBalanceChange: formatNumber(netBalanceChange),
             grandClosingBalance: formatNumber(grandClosingBalanceRaw),
+            totalVariance: {
+                value: formatNumber(globalTotalVarianceRaw),
+                formatted: (globalTotalVarianceRaw >= 0 ? '+' : '') + formatNumber(globalTotalVarianceRaw),
+                isNegative: globalTotalVarianceRaw < 0,
+            },
+            trends,
             tanksMonitored: tankGroupMap.size,
             sitesMonitored: siteMap.size,
         },

@@ -1,0 +1,851 @@
+// _dark-dashboards.scss
+// Lines 2088-2933 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     DASHBOARDS & METRICS — Comprehensive dark overrides
+     ================================================================ */
+
+  /* ── CRITICAL: Scoped CSS variable overrides ─────────────────── */
+  /* CombinedIssueDashboard defines its own --fms-* vars that shadow globals */
+  .fms-dashboard {
+    --fms-bg: #161616 !important;
+    --fms-surface: #1e1e1e !important;
+    --fms-text: #e4e4e4 !important;
+    --fms-text-2: #a0a0a0 !important;
+    --fms-text-3: #6e6e6e !important;
+    --fms-border: #3a3a3a !important;
+    --fms-border-2: #4a4a4a !important;
+    --fms-blue-light: rgba(0, 120, 212, 0.15) !important;
+    --fms-blue-mid: rgba(0, 120, 212, 0.08) !important;
+    --fms-red-light: rgba(209, 52, 56, 0.15) !important;
+    --fms-green-light: rgba(16, 124, 16, 0.15) !important;
+    --fms-yellow-light: rgba(255, 185, 0, 0.15) !important;
+    --fms-orange-light: rgba(202, 80, 16, 0.15) !important;
+    --fms-purple-light: rgba(92, 45, 145, 0.15) !important;
+    --fms-teal-light: rgba(0, 130, 114, 0.15) !important;
+    --fms-indigo-light: rgba(64, 82, 181, 0.15) !important;
+    --fms-shadow-s: 0 1.6px 3.6px rgba(0, 0, 0, 0.25), 0 .3px .9px rgba(0, 0, 0, 0.2) !important;
+    --fms-shadow-m: 0 6.4px 14.4px rgba(0, 0, 0, 0.25), 0 1.2px 3.6px rgba(0, 0, 0, 0.2) !important;
+
+    /* Hardcoded colors inside .fms-dashboard */
+    .fms-card__hd {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .fms-btn {
+      color: var(--fms-text-primary) !important;
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .fms-tab-btn {
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .fms-filter-grid .fms-fg label {
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+
+  /* EnhancedTankStockDashboard defines its own --fms-* vars */
+  .fms-tank-dashboard {
+    --fms-bg: #161616 !important;
+    --fms-surface: #1e1e1e !important;
+    --fms-text: #e4e4e4 !important;
+    --fms-text-2: #a0a0a0 !important;
+    --fms-text-3: #6e6e6e !important;
+    --fms-border: #3a3a3a !important;
+    --fms-border-2: #4a4a4a !important;
+    --fms-blue-light: rgba(0, 120, 212, 0.15) !important;
+    --fms-red-light: rgba(209, 52, 56, 0.15) !important;
+    --fms-green-light: rgba(16, 124, 16, 0.15) !important;
+    --fms-yellow-light: rgba(255, 185, 0, 0.15) !important;
+    --fms-orange-light: rgba(202, 80, 16, 0.15) !important;
+    --fms-teal-light: rgba(0, 130, 114, 0.15) !important;
+    --fms-shadow-s: 0 1.6px 3.6px rgba(0, 0, 0, 0.25), 0 .3px .9px rgba(0, 0, 0, 0.2) !important;
+    --fms-shadow-m: 0 6.4px 14.4px rgba(0, 0, 0, 0.25), 0 1.2px 3.6px rgba(0, 0, 0, 0.2) !important;
+
+    /* Hardcoded colors inside .fms-tank-dashboard */
+    .fms-card__hd {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .fms-btn {
+      color: var(--fms-text-primary) !important;
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .fms-tab-btn:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+
+    .fms-filter-bar {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .fms-seg__btn {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-secondary) !important;
+      &:hover {
+        background: rgba(0, 120, 212, 0.15) !important;
+      }
+    }
+
+    .fms-site-group__hd {
+      background: var(--fms-surface-secondary) !important;
+      &:hover {
+        background: rgba(0, 120, 212, 0.15) !important;
+      }
+    }
+
+    .fms-group-toggle__btn:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+  }
+
+  /* ── Ticker bar (Issue Dashboard) ────────────────────────────── */
+  .fms-ticker {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+
+    &__chip {
+      border-color: var(--fms-border) !important;
+      &:hover {
+        background: rgba(0, 120, 212, 0.08) !important;
+      }
+    }
+
+    &__chip-title {
+      color: var(--fms-text-primary) !important;
+    }
+
+    &__label {
+      color: var(--fms-text-primary) !important;
+    }
+
+    &__hide {
+      color: var(--fms-text-tertiary) !important;
+      &:hover {
+        color: var(--fms-text-primary) !important;
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+  }
+
+  /* Dashboard loading states */
+  .fms-dashboard-loading {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  /* ── Realtime Dashboard (pages/dashboard/) ───────────────────── */
+  .realtime-dashboard-container {
+    background: var(--fms-page-bg) !important;
+  }
+
+  .realtime-dashboard {
+    background: var(--fms-page-bg) !important;
+  }
+
+  .connection-status-bar {
+    background: rgba(0, 120, 212, 0.1) !important;
+    color: #60a5fa !important;
+    border-color: rgba(0, 120, 212, 0.25) !important;
+  }
+
+  .realtime-dashboard .quick-actions-card,
+  .realtime-dashboard .tw-bg-white.tw-border {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .dashboard-main-grid h2 {
+    color: var(--fms-text-primary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .dashboard-widget-container,
+  .widget-grid-item > div {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .widget-header {
+    background: linear-gradient(90deg, var(--fms-surface-secondary), var(--fms-surface)) !important;
+    border-bottom-color: var(--fms-border) !important;
+
+    .widget-title {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .widget-controls .widget-control-btn {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+        color: var(--fms-text-primary) !important;
+      }
+
+      &.widget-control-btn--remove:hover {
+        background: rgba(220, 38, 38, 0.15) !important;
+        color: #ef4444 !important;
+      }
+    }
+  }
+
+  .widget-content {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .widget-content--error {
+    color: #ef4444 !important;
+  }
+
+  .widget-content--empty {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  /* Dashboard header (shared across dashboards) */
+  .dashboard-header {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+
+    .dashboard-title {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .dashboard-title {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── Dashboard Layout (Tailwind-based) ───────────────────────── */
+  .dashboard-layout {
+    .dashboard-edit-toolbar {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .widget-stats {
+      .stat-value {
+        color: var(--fms-text-primary) !important;
+      }
+      .stat-label {
+        color: var(--fms-text-secondary) !important;
+      }
+    }
+
+    .widget-quick-actions .action-button {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+  }
+
+  /* ── Components RealtimeDashboard ────────────────────────────── */
+  .enhanced-widget-item {
+    background: var(--fms-surface) !important;
+  }
+
+  .section-title {
+    color: var(--fms-text-primary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .section-column {
+    background: var(--fms-surface) !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  .subsection-title {
+    color: var(--fms-text-primary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .enhanced-widgets-section {
+    .section-header {
+      border-bottom-color: var(--fms-border) !important;
+
+      .section-title {
+        color: var(--fms-text-primary) !important;
+      }
+    }
+  }
+
+  .dashboard-loading .loading-text {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .dashboard-loading .loading-spinner {
+    border-color: var(--fms-border) !important;
+    border-top-color: #3498db !important;
+  }
+
+  .dashboard-error {
+    .error-title {
+      color: var(--fms-text-primary) !important;
+    }
+    .error-message {
+      color: var(--fms-text-secondary) !important;
+    }
+  }
+
+  /* Connection status indicators */
+  .connection-status {
+    &.connected {
+      background: linear-gradient(135deg, rgba(39, 174, 96, 0.15) 0%, rgba(39, 174, 96, 0.1) 100%) !important;
+      border-color: rgba(39, 174, 96, 0.3) !important;
+      color: #4ade80 !important;
+    }
+
+    &.disconnected {
+      background: linear-gradient(135deg, rgba(243, 156, 18, 0.15) 0%, rgba(243, 156, 18, 0.1) 100%) !important;
+      border-color: rgba(243, 156, 18, 0.3) !important;
+      color: #fbbf24 !important;
+    }
+
+    &.error {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.15) 0%, rgba(231, 76, 60, 0.1) 100%) !important;
+      border-color: rgba(231, 76, 60, 0.3) !important;
+      color: #f87171 !important;
+    }
+  }
+
+  /* ── Reports Dashboard ───────────────────────────────────────── */
+  .reports-dashboard {
+    .stat-card {
+      background: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+
+      .stat-title {
+        color: var(--fms-text-primary) !important;
+      }
+
+      .stat-description {
+        color: var(--fms-text-secondary) !important;
+      }
+
+      .stat-actions .btn-outline {
+        color: var(--fms-text-secondary) !important;
+        border-color: var(--fms-border) !important;
+
+        &:hover:not(:disabled) {
+          background: var(--fms-hover-bg) !important;
+          border-color: var(--fms-text-tertiary) !important;
+        }
+      }
+    }
+
+    .recent-activity {
+      background: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+
+      .activity-item {
+        border-color: var(--fms-border) !important;
+
+        &:hover {
+          background: var(--fms-hover-bg) !important;
+          border-color: var(--fms-border) !important;
+        }
+
+        .activity-content h4 {
+          color: var(--fms-text-primary) !important;
+        }
+      }
+    }
+  }
+
+  /* JsReport cards */
+  .jsreport-section .jsreport-card {
+    background: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+
+    &:hover {
+      border-color: #60a5fa !important;
+    }
+  }
+
+  /* ── Report Monitor Dashboard ────────────────────────────────── */
+  .report-monitor-dashboard {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .monitor-header {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+
+    &__title {
+      color: var(--fms-text-primary) !important;
+    }
+
+    &__subtitle {
+      color: var(--fms-text-secondary) !important;
+    }
+  }
+
+  .monitor-stat {
+    background: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+
+    &:hover {
+      border-color: var(--fms-text-tertiary) !important;
+    }
+
+    &__label {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    &__value {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .monitor-grid-wrap {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+
+    .dx-datagrid-headers {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row {
+      &.dx-selection > td,
+      &.dx-selection:hover > td {
+        background: rgba(0, 120, 212, 0.12) !important;
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td {
+      background: var(--fms-hover-bg) !important;
+    }
+  }
+
+  .monitor-detail-panel {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+
+    &__header {
+      background: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    &__title {
+      color: var(--fms-text-primary) !important;
+    }
+
+    &__id {
+      color: var(--fms-text-tertiary) !important;
+      background: var(--fms-hover-bg) !important;
+    }
+  }
+
+  .monitor-format-bar__label {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  /* M365 shared controls in monitor dashboard */
+  .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+
+    &:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+  }
+
+  .m365-btn--text {
+    color: var(--fms-text-secondary) !important;
+    &:hover {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .m365-date {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-badge--neutral {
+    background: var(--fms-hover-bg) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .m365-badge--primary {
+    background: rgba(0, 120, 212, 0.15) !important;
+  }
+
+  .m365-badge--success {
+    background: rgba(16, 124, 16, 0.15) !important;
+  }
+
+  .m365-badge--error {
+    background: rgba(209, 52, 56, 0.15) !important;
+  }
+
+  /* DateRangeBox inside monitor */
+  .monitor-date-range-box {
+    .dx-texteditor.dx-editor-outlined {
+      background: var(--fms-input-bg) !important;
+      border-color: var(--fms-input-border) !important;
+    }
+
+    .dx-texteditor-input {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-daterangebox-separator {
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+
+  /* ── Device Dashboard ────────────────────────────────────────── */
+  .device-dashboard {
+    &__gauge-card {
+      background: var(--fms-card-bg) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+    }
+
+    .summary-card {
+      background: var(--fms-surface-secondary) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+
+      h3 {
+        color: var(--fms-text-secondary) !important;
+      }
+
+      p {
+        color: #60a5fa !important;
+      }
+    }
+
+    .device-stats {
+      background: var(--fms-surface-secondary) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25) !important;
+
+      .stat-item {
+        border-right-color: var(--fms-border) !important;
+
+        span {
+          color: var(--fms-text-secondary) !important;
+        }
+
+        .stat-value {
+          color: #60a5fa !important;
+        }
+      }
+    }
+  }
+
+  /* ── PTS Dashboard ───────────────────────────────────────────── */
+  .pts-stat {
+    background: var(--fms-card-bg) !important;
+  }
+
+  .pts-device-card {
+    background: var(--fms-card-bg) !important;
+
+    &__footer {
+      border-top-color: var(--fms-border) !important;
+    }
+  }
+
+  .pts-list-view {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .m365-info-banner {
+    background: rgba(0, 120, 212, 0.08) !important;
+    border-color: rgba(0, 120, 212, 0.2) !important;
+  }
+
+  .m365-unknown-row {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .pts-view-toggle {
+    border-color: var(--fms-border) !important;
+
+    &__btn {
+      color: var(--fms-text-tertiary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+        color: var(--fms-text-primary) !important;
+      }
+
+      & + .pts-view-toggle__btn {
+        border-left-color: var(--fms-border) !important;
+      }
+    }
+  }
+
+  .pts-sort-controls__label {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .pts-result-count {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  .pts-empty-state {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  /* ── Event Expressions Dashboard ─────────────────────────────── */
+  .ee-dashboard {
+    .stat-card {
+      background: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+
+      &__value {
+        color: var(--fms-text-primary) !important;
+      }
+
+      &__label {
+        color: var(--fms-text-secondary) !important;
+      }
+
+      /* Darken icon backgrounds */
+      &--danger .stat-card__icon {
+        background: rgba(239, 68, 68, 0.15) !important;
+      }
+      &--warning .stat-card__icon {
+        background: rgba(249, 115, 22, 0.15) !important;
+      }
+      &--success .stat-card__icon {
+        background: rgba(34, 197, 94, 0.15) !important;
+      }
+      &--info .stat-card__icon {
+        background: rgba(124, 58, 237, 0.15) !important;
+      }
+    }
+
+    .dashboard-panel {
+      background: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+
+      &__title {
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    .severity-bar-label {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .severity-bar-track {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .type-list-item {
+      background: var(--fms-surface-secondary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .type-list-name {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .type-list-count {
+      background: rgba(124, 58, 237, 0.15) !important;
+      color: #a78bfa !important;
+    }
+
+    .recent-event-row {
+      background: var(--fms-surface-secondary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .recent-event-message {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .recent-event-meta {
+      color: var(--fms-text-tertiary) !important;
+    }
+
+    .quick-action-btn {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+
+      &:hover {
+        background: rgba(124, 58, 237, 0.12) !important;
+        border-color: rgba(196, 181, 253, 0.3) !important;
+        color: #a78bfa !important;
+      }
+
+      i {
+        color: #a78bfa !important;
+      }
+    }
+  }
+
+  /* ── Vehicle Details Metric Cards ────────────────────────────── */
+  .vehicle-details {
+    &__metric-card {
+      background: linear-gradient(135deg, var(--fms-surface) 0%, var(--fms-surface-secondary) 100%) !important;
+      border-color: var(--fms-border) !important;
+
+      &::before {
+        opacity: 0.8;
+      }
+
+      &:hover {
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3) !important;
+        border-color: var(--fms-text-tertiary) !important;
+      }
+
+      /* Dark variants for icon backgrounds */
+      &--status .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.2)) !important;
+      }
+      &--gps .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(16, 185, 129, 0.15), rgba(5, 150, 105, 0.2)) !important;
+      }
+      &--site .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2)) !important;
+      }
+      &--gps-signal .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(37, 99, 235, 0.2)) !important;
+      }
+      &--fuel .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.2)) !important;
+      }
+      &--capacity .vehicle-details__metric-icon {
+        background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(79, 70, 229, 0.2)) !important;
+      }
+    }
+
+    &__metric-label {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    &__metric-value {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Vehicle Consumption Report Details ──────────────────────── */
+  .vehicle-consumption-details {
+    .detail-metric-card {
+      background: var(--fms-card-bg) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+
+      .metric-value {
+        color: var(--fms-text-primary) !important;
+      }
+
+      .metric-label {
+        color: var(--fms-text-secondary) !important;
+      }
+    }
+
+    .chart-container {
+      background: var(--fms-card-bg) !important;
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25) !important;
+
+      .chart-title {
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    .gps-placeholder {
+      background: linear-gradient(135deg, rgba(0, 120, 212, 0.08) 0%, rgba(0, 120, 212, 0.04) 100%) !important;
+      border-color: rgba(59, 130, 246, 0.3) !important;
+
+      .placeholder-title {
+        color: #60a5fa !important;
+      }
+
+      .placeholder-text {
+        color: #93c5fd !important;
+      }
+    }
+
+    .dx-datagrid .dx-datagrid-headers {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .dx-header-row {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-data-row:hover {
+      background-color: var(--fms-hover-bg) !important;
+    }
+  }
+
+  /* ── Generic cards & .cards grid ─────────────────────────────── */
+  .cards .card {
+    background-color: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .cards.compact .card {
+    background-color: var(--fms-surface-secondary) !important;
+  }
+
+  /* ── Tailwind bg-white inside dark mode ───────── */
+  .tw-bg-white {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .tw-bg-gray-50 {
+    background-color: var(--fms-surface-secondary) !important;
+  }
+
+  .tw-bg-gray-100 {
+    background-color: var(--fms-hover-bg) !important;
+  }
+
+  .tw-border-gray-200,
+  .tw-border-gray-300 {
+    border-color: var(--fms-border) !important;
+  }
+
+  .tw-text-gray-700,
+  .tw-text-gray-800,
+  .tw-text-gray-900 {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .tw-text-gray-500,
+  .tw-text-gray-600 {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .tw-text-gray-400 {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  .tw-bg-gray-200 {
+    background-color: #333333 !important;
+  }
+
+}

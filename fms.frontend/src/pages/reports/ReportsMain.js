@@ -31,10 +31,10 @@ import { ReportMonitorDashboard } from "./monitoring";
 // ──── Data Import (unchanged) ────
 import FuelReportImporter from "../FuelReportImporter/FuelReportImporter";
 import BatchImportPage from "../FuelReportImporter/components/batch/BatchImportPage";
+import ImportManagementPage from "./import-management/ImportManagementPage";
 
 // ──── Legacy / Kept-for-now routes ────
 import TankVolumeHistoryReport from "./TankVolumeHistoryReport";
-import ReportGallery from "./ReportGallery";
 import ConsumptionBasedOnRefills from "./consumption/consumptionBasedonRefills";
 import PTSOfflineReport from "./pts/PTSOfflineReport";
 import VehicleConsumptionReport from "../vehicles/consumption/reports/VehicleConsumptionReport";
@@ -48,8 +48,10 @@ const ReportsMain = () => {
         <Route index element={<ReportsDashboard />} />
         <Route path="dashboard" element={<ReportsDashboard />} />
 
-        {/* ── Report List (grid view of all sources) ── */}
+        {/* ── Report List / Gallery (unified — grid + tile toggle) ── */}
         <Route path="list" element={<ReportListPage />} />
+        <Route path="all" element={<ReportListPage />} />
+        <Route path="gallery" element={<Navigate to="/reports/list?view=gallery" replace />} />
 
         {/* ── Report Engine (new) ── */}
         <Route path="engine" element={<ReportEngine />} />
@@ -70,10 +72,10 @@ const ReportsMain = () => {
         <Route path="fuel-importer" element={<FuelReportImporter />} />
         <Route path="fuel-importer/batch" element={<BatchImportPage />} />
         <Route path="fuel-importer/*" element={<FuelReportImporter />} />
+        <Route path="import-management" element={<ImportManagementPage />} />
         <Route path="scheduled-emails" element={<Navigate to="/reports/scheduling" replace />} />
 
         {/* ── Legacy routes (kept for backward compat) ── */}
-        <Route path="gallery" element={<ReportGallery />} />
         <Route path="tank-volume-history" element={<TankVolumeHistoryReport />} />
         <Route path="consumption-refills" element={<ConsumptionBasedOnRefills />} />
         <Route path="consumption-refills/*" element={<ConsumptionBasedOnRefills />} />

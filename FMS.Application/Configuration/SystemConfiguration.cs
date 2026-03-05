@@ -400,6 +400,22 @@ namespace FMS.Application.Configuration
         public const int DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES = 0; // No auto-resolve
         #endregion
 
+        #region Fuel Auto-Import Configuration Keys
+        /// <summary>
+        /// Master switch to enable/disable the fuel auto-import feature
+        /// </summary>
+        public const string DB_CONFIG_FUEL_AUTO_IMPORT_ENABLED_KEY = "FuelAutoImport.Enabled";
+
+        /// <summary>
+        /// JSON array of import profile objects, each with independent scan path and settings
+        /// </summary>
+        public const string DB_CONFIG_FUEL_AUTO_IMPORT_PROFILES_KEY = "FuelAutoImport.Profiles";
+        #endregion
+
+        #region Fuel Auto-Import Default Values
+        public const bool DEFAULT_FUEL_AUTO_IMPORT_ENABLED = true;
+        #endregion
+
         #region Tank Measurement Configuration Keys
         /// <summary>
         /// How many days of tank measurement history to retain per tank (0 = no retention cleanup)

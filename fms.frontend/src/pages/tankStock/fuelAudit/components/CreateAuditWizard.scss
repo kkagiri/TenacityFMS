@@ -98,9 +98,61 @@
   }
 
   // Loading state
+
   .dx-loadindicator {
     .dx-loadindicator-segment {
       background-color: #3b82f6;
     }
+  }
+}
+
+/* ── Step 3 M365-Style Stat Cards ─────────────────────────────────── */
+.s3-stat {
+  background: var(--fms-surface, #fff);
+  border: 1px solid var(--fms-border, #e5e7eb);
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .06);
+  padding: 14px 16px;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow .15s;
+
+  &:hover { box-shadow: 0 3px 8px rgba(0, 0, 0, .1); }
+
+  &__bar {
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--fms-text-secondary, #6b7280);
+    text-transform: uppercase;
+    letter-spacing: .3px;
+    margin-bottom: 6px;
+  }
+
+  &__value {
+    font-size: 22px;
+    font-weight: 300;
+    letter-spacing: -.5px;
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  &__sub {
+    font-size: 11px;
+    color: var(--fms-text-tertiary, #9ca3af);
+  }
+
+  &__ghost {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: .08;
+    i { font-size: 32px; }
   }
 }

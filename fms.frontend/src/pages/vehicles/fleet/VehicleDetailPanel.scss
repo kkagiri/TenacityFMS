@@ -28,6 +28,7 @@
   .fms-slide-panel__header {
     border-bottom: none;
     padding: 8px 16px 0;
+    justify-content: flex-end; /* push refresh + close to the right */
   }
 
   .fms-slide-panel__title:empty {
@@ -188,13 +189,15 @@
   padding: 16px 24px 24px;
 }
 
-/* ── 2-column info grid ── */
+/* ── 2-column info grid (borderless, no card look) ── */
 .vdp-panel-layout .m365-info-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 14px 24px;
-  border: none;
-  border-radius: 0;
+  border: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
   overflow: visible;
   margin-bottom: 0;
 }
@@ -204,7 +207,10 @@
   flex-direction: column;
   gap: 2px;
   padding: 0;
-  border: none;
+  border: none !important;
+  border-bottom: none !important;
+  border-right: none !important;
+  background: transparent !important;
   min-width: 0;
 
   &__label {
@@ -244,11 +250,14 @@
   }
 }
 
-/* ── Flat section divider ── */
+/* ── Flat section divider (no borders, no two-tone) ── */
 .vdp-panel-layout .m365-flat-section {
   margin-top: 8px;
   padding-top: 16px;
-  border-top: none;
+  border: none !important;
+  border-top: none !important;
+  background: transparent !important;
+  box-shadow: none !important;
   margin-bottom: 22px;
 
   &__title {
@@ -257,6 +266,9 @@
     color: var(--m365-text, #201f1e);
     margin: 0 0 12px;
     padding: 0 0 8px;
+    background: transparent !important;
+    border: none !important;
+    border-bottom: none !important;
   }
 
   &--first {

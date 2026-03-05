@@ -1,0 +1,41 @@
+// _dark-page-layouts.scss
+// Lines 626-661 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     MODULE LAYOUTS — page-level background overrides
+     ================================================================ */
+
+  /* Issue Tracker layout */
+  .issue-tracker-layout {
+    background: var(--fms-page-bg) !important;
+  }
+
+  /* Reports layout */
+  .reports-layout {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  /* Maintenance layout */
+  .maintenance-layout {
+    background: var(--fms-page-bg) !important;
+  }
+
+  /* Event expressions layout */
+  .event-expressions-layout {
+    background: var(--fms-page-bg) !important;
+  }
+
+  /* Tank stock layout */
+  .tank-stock-layout {
+    background: var(--fms-page-bg) !important;
+  }
+
+  /* Generic page backgrounds */
+  .page-container,
+  .page-wrapper,
+  .view-wrapper {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+}

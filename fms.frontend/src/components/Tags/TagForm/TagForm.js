@@ -1,5 +1,4 @@
 import React, { useState, useEffect, memo } from "react";
-import { Popup } from "devextreme-react/popup";
 import { Button } from "devextreme-react/button";
 import { ScrollView } from "devextreme-react/scroll-view";
 import { useDispatch, useSelector } from "react-redux";
@@ -10,10 +9,10 @@ import notify from "devextreme/ui/notify";
 import "./TagForm.scss";
 import { fetchPTSDeviceList } from "../../../redux/actions/ptsActions/ptsDeviceActions";
 import VehicleSearchableSelector from "../../selectors/VehicleSearchableSelector";
+import SlidePanel from "../../ui/SlidePanel";
 
 const TagForm = ({ isVisible, onClose, onSave, tag }) => {
   const dispatch = useDispatch();
-  const ruleSets = useSelector((state) => state.fuelingRule.ruleSets || []);
 
   // Get PTS devices from redux store - uses ptsDeviceList from reducer
   const ptsDevices = useSelector((state) => state.ptsDevice?.ptsDeviceList || []);
@@ -29,7 +28,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
     name: "",
     isEnabled: true,
     vehicleId: null,
-    fuelRuleSetId: null,
     isMaster: false,
   });
 
@@ -71,7 +69,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
         name: tag.name || "",
         isEnabled: tag.isEnabled !== false, // default to true if undefined
         vehicleId: tag.vehicleId || null,
-        fuelRuleSetId: tag.fuelRuleSetId || null,
         isMaster: tag.isMaster || false,
       });
     } else {
@@ -80,21 +77,10 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
         name: "",
         isEnabled: true,
         vehicleId: null,
-        fuelRuleSetId: null,
         isMaster: false,
       });
     }
   }, [tag]);
-
-  // Add useEffect to set default fuelRuleSetId when ruleSets is loaded
-  useEffect(() => {
-    if (ruleSets && ruleSets.length > 0 && !formData.fuelRuleSetId && !tag) {
-      setFormData((prev) => ({
-        ...prev,
-        fuelRuleSetId: ruleSets[0].id,
-      }));
-    }
-  }, [ruleSets, tag]);
 
   // Helper function to add a detected tag
   const addDetectedTag = (tagId, source, sourceStatus) => {
@@ -330,7 +316,7 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
 
   // Use React.memo to prevent unnecessary re-renders
   const ManualTagForm = memo(
-    ({ formData, validationErrors, ruleSets, handleFieldChange, onOpenScan, isNewTag }) => {
+    ({ formData, validationErrors, handleFieldChange, onOpenScan, isNewTag }) => {
       return (
         <div style={{ marginTop: 10 }}>
           {/* Tag ID with Scan Button */}
@@ -398,70 +384,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
               <span className="tw-text-sm tw-font-medium tw-text-gray-700">Master Tag</span>
             </label>
           </div>
-
-          {/* Fueling Rule Set Select */}
-          <div className="tw-mb-4">
-            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-              Fueling Rule Set
-            </label>
-            <select
-              className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded tw-bg-white"
-              value={formData.fuelRuleSetId || ""}
-              onChange={(e) => handleFieldChange("fuelRuleSetId", e.target.value ? parseInt(e.target.value) : null)}
-            >
-              <option value="">-- Select a rule set --</option>
-              {ruleSets.map((ruleSet) => (
-                <option key={ruleSet.id} value={ruleSet.id}>
-                  {ruleSet.name}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {formData.fuelRuleSetId && (
-              <div className="rule-set-info">
-                <h4>Rule Set Details</h4>
-                {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                  ?.description && (
-                  <p className="rule-description">
-                    {
-                      ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                        ?.description
-                    }
-                  </p>
-                )}
-                {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                  ?.dailyMonthlyLimitRule && (
-                  <div className="rule-limits">
-                    <div className="limit-item">
-                      <span className="limit-label">Daily Limit:</span>
-                      <span className="limit-value">
-                        {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                          ?.dailyMonthlyLimitRule?.dailyLimit || "N/A"}{" "}
-                        L
-                      </span>
-                    </div>
-                    <div className="limit-item">
-                      <span className="limit-label">Monthly Limit:</span>
-                      <span className="limit-value">
-                        {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                          ?.dailyMonthlyLimitRule?.monthlyLimit || "N/A"}{" "}
-                        L
-                      </span>
-                    </div>
-                    <div className="limit-item">
-                      <span className="limit-label">Per Transaction:</span>
-                      <span className="limit-value">
-                        {ruleSets.find((r) => r.id === formData.fuelRuleSetId)
-                          ?.dailyMonthlyLimitRule?.fuelingLimit ||
-                          "No limit"}{" "}
-                        L
-                      </span>
-                    </div>
-                  </div>
-                )}
-              </div>
-            )}
         </div>
       );
     }
@@ -472,7 +394,6 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
       <ManualTagForm
         formData={formData}
         validationErrors={validationErrors}
-        ruleSets={ruleSets}
         handleFieldChange={handleFieldChange}
         onOpenScan={handleOpenScanSection}
         isNewTag={!tag}
@@ -481,70 +402,67 @@ const TagForm = ({ isVisible, onClose, onSave, tag }) => {
   };
 
   return (
-    <Popup
-      visible={isVisible}
-      onHiding={onClose}
+    <SlidePanel
+      open={isVisible}
+      onClose={onClose}
       title={tag ? "Edit Tag" : "Add New Tag"}
-      showCloseButton={true}
-      width={600}
-      height={700}
-      className="tag-form-popup"
+      width={tag ? 760 : 980}
     >
-      <ScrollView height="100%" showScrollbar="onScroll">
-        <div className="tag-form-container">
-          {/* Main Form */}
-          <div className="form-content">
-            {renderManualTagForm()}
-          </div>
-
-        {/* Scan Section - shown when user clicks "Scan from Reader" */}
-        {showScanSection && (
-          <div className="scan-section-container tw-mt-4 tw-p-4 tw-border tw-border-blue-300 tw-rounded tw-bg-blue-50">
-            <div className="tw-flex tw-justify-between tw-items-center tw-mb-3">
-              <h4 className="tw-text-lg tw-font-semibold tw-text-blue-800 tw-mb-0">
-                <i className="fa-light fa-qrcode tw-mr-2"></i>
-                Scan Tag from Reader
-              </h4>
-              <Button
-                icon="fa-light fa-times"
-                hint="Close"
-                stylingMode="text"
-                onClick={handleCloseScanSection}
-              />
+      <div className="tag-form-panel">
+        <ScrollView height="100%" showScrollbar="onScroll">
+          <div className="tag-form-container">
+            <div className="form-content">
+              {renderManualTagForm()}
             </div>
-            {renderTagScanForm()}
-          </div>
-        )}
 
-          <div className="form-bottom">
-            <div className="form-actions tw-flex tw-justify-end tw-mt-6">
-              <Button
-                text="Cancel"
-                stylingMode="text"
-                onClick={onClose}
-                className="tw-mr-3"
-              />
-              <Button
-                text="Save"
-                type="default"
-                stylingMode="text"
-                onClick={handleSubmit}
-                disabled={loading}
-              />
+            {showScanSection && (
+              <div className="scan-section-container tw-mt-4 tw-p-4 tw-border tw-border-blue-300 tw-rounded tw-bg-blue-50">
+                <div className="tw-flex tw-justify-between tw-items-center tw-mb-3">
+                  <h4 className="tw-text-lg tw-font-semibold tw-text-blue-800 tw-mb-0">
+                    <i className="fa-light fa-qrcode tw-mr-2"></i>
+                    Scan Tag from Reader
+                  </h4>
+                  <Button
+                    icon="fa-light fa-times"
+                    hint="Close"
+                    stylingMode="text"
+                    onClick={handleCloseScanSection}
+                  />
+                </div>
+                {renderTagScanForm()}
+              </div>
+            )}
+
+            <div className="form-bottom">
+              <div className="form-actions tw-flex tw-justify-end tw-mt-6">
+                <Button
+                  text="Cancel"
+                  stylingMode="text"
+                  onClick={onClose}
+                  className="tw-mr-3"
+                />
+                <Button
+                  text="Save"
+                  type="default"
+                  stylingMode="text"
+                  onClick={handleSubmit}
+                  disabled={loading}
+                />
+              </div>
             </div>
           </div>
-        </div>
-      </ScrollView>
+        </ScrollView>
 
-      <LoadPanel
-        visible={loading}
-        showIndicator={true}
-        shading={true}
-        shadingColor="rgba(0, 0, 0, 0.4)"
-        showPane={true}
-        message="Saving..."
-      />
-    </Popup>
+        <LoadPanel
+          visible={loading}
+          showIndicator={true}
+          shading={true}
+          shadingColor="rgba(0, 0, 0, 0.4)"
+          showPane={true}
+          message="Saving..."
+        />
+      </div>
+    </SlidePanel>
   );
 };
 

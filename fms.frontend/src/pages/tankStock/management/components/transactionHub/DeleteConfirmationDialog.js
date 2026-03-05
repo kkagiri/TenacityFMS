@@ -1,12 +1,13 @@
 /**
  * File: DeleteConfirmationDialog.js
- * Purpose: Delete confirmation dialog component for TransactionHub
- * Last Modified: 2025-11-26
+ * Purpose: Delete confirmation side-panel component for TransactionHub
+ * Dependencies: SlidePanel, devextreme-react/button, devextreme-react/scroll-view
+ * Last Modified: 2026-03-04
  */
 import React from 'react';
-import Popup from 'devextreme-react/popup';
 import Button from 'devextreme-react/button';
 import { ScrollView } from 'devextreme-react/scroll-view';
+import SlidePanel from '../../../../../components/ui/SlidePanel';
 import { VolumeChangeReasonEnum } from './transactionHubConstants';
 
 /**
@@ -15,8 +16,8 @@ import { VolumeChangeReasonEnum } from './transactionHubConstants';
 const LoadingState = () => (
   <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
     <div className="tw-text-center">
-      <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-text-blue-600 tw-mb-3"></i>
-      <p className="tw-text-gray-600">Validating deletion...</p>
+      <i className="fa-light fa-spinner tw-animate-spin tw-text-2xl tw-mb-3" style={{ color: 'var(--fms-text-secondary, #2563eb)' }}></i>
+      <p style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>Validating deletion...</p>
     </div>
   </div>
 );
@@ -34,27 +35,27 @@ const TransactionSummary = ({ transaction, tanks }) => {
 
   return (
     <div className="tw-mb-4">
-      <h4 className="tw-text-base tw-font-semibold tw-text-gray-800 tw-mb-2">
+      <h4 className="tw-text-base tw-font-semibold tw-mb-2" style={{ color: 'var(--fms-text-primary, #1f2937)' }}>
         Transaction Summary
       </h4>
-      <div className="tw-bg-gray-50 tw-p-3 tw-rounded-lg tw-text-sm tw-space-y-1">
+      <div className="tw-p-3 tw-rounded-lg tw-text-sm tw-space-y-1 delete-dialog-summary" style={{ background: 'var(--fms-surface-secondary, #f9fafb)', border: '1px solid var(--fms-border, #e5e7eb)' }}>
         <div className="tw-flex tw-justify-between">
-          <span className="tw-font-medium">Date:</span>
-          <span>{transactionDate}</span>
+          <span className="tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>Date:</span>
+          <span style={{ color: 'var(--fms-text-primary, #374151)' }}>{transactionDate}</span>
         </div>
         <div className="tw-flex tw-justify-between">
-          <span className="tw-font-medium">Type:</span>
-          <span>{transactionType}</span>
+          <span className="tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>Type:</span>
+          <span style={{ color: 'var(--fms-text-primary, #374151)' }}>{transactionType}</span>
         </div>
         <div className="tw-flex tw-justify-between">
-          <span className="tw-font-medium">Volume Change:</span>
+          <span className="tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>Volume Change:</span>
           <span className={`tw-font-medium ${volumeChange >= 0 ? 'tw-text-green-600' : 'tw-text-red-600'}`}>
             {volumeChange.toLocaleString()} L
           </span>
         </div>
         <div className="tw-flex tw-justify-between">
-          <span className="tw-font-medium">Tank:</span>
-          <span>{tankName}</span>
+          <span className="tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>Tank:</span>
+          <span style={{ color: 'var(--fms-text-primary, #374151)' }}>{tankName}</span>
         </div>
       </div>
     </div>
@@ -65,14 +66,14 @@ const TransactionSummary = ({ transaction, tanks }) => {
  * Delete blocked message component
  */
 const DeleteBlocked = ({ validationResult }) => (
-  <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg tw-p-4">
+  <div className="tw-rounded-lg tw-p-4 delete-dialog-blocked" style={{ background: 'var(--delete-blocked-bg, #fef2f2)', border: '1px solid var(--delete-blocked-border, #fecaca)' }}>
     <div className="tw-flex tw-items-start">
-      <i className="fa-light fa-exclamation-triangle tw-text-red-600 tw-mr-3 tw-mt-1"></i>
+      <i className="fa-light fa-exclamation-triangle tw-mr-3 tw-mt-1" style={{ color: 'var(--delete-blocked-icon, #dc2626)' }}></i>
       <div className="tw-flex-1">
-        <h5 className="tw-font-semibold tw-text-red-800 tw-mb-2">Delete Blocked</h5>
-        <p className="tw-text-red-700">{validationResult.message || 'Cannot delete this transaction'}</p>
+        <h5 className="tw-font-semibold tw-mb-2" style={{ color: 'var(--delete-blocked-title, #991b1b)' }}>Delete Blocked</h5>
+        <p style={{ color: 'var(--delete-blocked-text, #b91c1c)' }}>{validationResult.message || 'Cannot delete this transaction'}</p>
         {validationResult.detailedWarning && (
-          <p className="tw-text-red-600 tw-text-sm tw-mt-2">
+          <p className="tw-text-sm tw-mt-2" style={{ color: 'var(--delete-blocked-text, #dc2626)' }}>
             {validationResult.detailedWarning}
           </p>
         )}
@@ -85,12 +86,12 @@ const DeleteBlocked = ({ validationResult }) => (
  * Warning with confirmation component
  */
 const DeleteWarning = ({ validationResult, showDetails, userConfirmed, onToggleDetails, onConfirmChange }) => (
-  <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4">
+  <div className="tw-rounded-lg tw-p-4 delete-dialog-warning" style={{ background: 'var(--delete-warning-bg, #fffbeb)', border: '1px solid var(--delete-warning-border, #fde68a)' }}>
     <div className="tw-flex tw-items-start">
-      <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-mr-3 tw-mt-1"></i>
+      <i className="fa-light fa-exclamation-triangle tw-mr-3 tw-mt-1" style={{ color: 'var(--delete-warning-icon, #d97706)' }}></i>
       <div className="tw-flex-1">
         <div className="tw-flex tw-items-center tw-justify-between tw-mb-2">
-          <h5 className="tw-font-semibold tw-text-yellow-800">Warning: Future Records Detected</h5>
+          <h5 className="tw-font-semibold" style={{ color: 'var(--delete-warning-title, #92400e)' }}>Warning: Future Records Detected</h5>
           <Button
             text={showDetails ? "Hide Details" : "View Details"}
             icon={showDetails ? "fa-light fa-chevron-up" : "fa-light fa-chevron-down"}
@@ -101,11 +102,11 @@ const DeleteWarning = ({ validationResult, showDetails, userConfirmed, onToggleD
             }}
           />
         </div>
-        <p className="tw-text-yellow-700 tw-mb-3">{validationResult.message || 'This action will affect future records'}</p>
+        <p className="tw-mb-3" style={{ color: 'var(--delete-warning-text, #b45309)' }}>{validationResult.message || 'This action will affect future records'}</p>
 
         {showDetails && validationResult.futureRecordsCount > 0 && (
-          <div className="tw-bg-white tw-p-3 tw-rounded tw-border tw-mb-3">
-            <div className="tw-text-sm tw-space-y-1">
+          <div className="tw-p-3 tw-rounded tw-mb-3" style={{ background: 'var(--fms-surface, #ffffff)', border: '1px solid var(--fms-border, #e5e7eb)' }}>
+            <div className="tw-text-sm tw-space-y-1" style={{ color: 'var(--fms-text-primary, #374151)' }}>
               <div className="tw-flex tw-justify-between">
                 <span>Future Records:</span>
                 <span className="tw-font-medium">{validationResult.futureRecordsCount}</span>
@@ -131,7 +132,7 @@ const DeleteWarning = ({ validationResult, showDetails, userConfirmed, onToggleD
         )}
 
         {showDetails && validationResult.detailedWarning && (
-          <p className="tw-text-yellow-600 tw-text-sm tw-mb-3">
+          <p className="tw-text-sm tw-mb-3" style={{ color: 'var(--delete-warning-text, #d97706)' }}>
             {validationResult.detailedWarning}
           </p>
         )}
@@ -144,7 +145,7 @@ const DeleteWarning = ({ validationResult, showDetails, userConfirmed, onToggleD
               onChange={(e) => onConfirmChange(e.target.checked)}
               className="tw-w-4 tw-h-4"
             />
-            <span className="tw-text-sm tw-text-gray-700">
+            <span className="tw-text-sm" style={{ color: 'var(--fms-text-secondary, #374151)' }}>
               I understand the impact and want to proceed with the deletion
             </span>
           </label>
@@ -158,12 +159,12 @@ const DeleteWarning = ({ validationResult, showDetails, userConfirmed, onToggleD
  * Safe to delete message component
  */
 const SafeToDelete = ({ validationResult }) => (
-  <div className="tw-bg-green-50 tw-border tw-border-green-200 tw-rounded-lg tw-p-4">
+  <div className="tw-rounded-lg tw-p-4 delete-dialog-safe" style={{ background: 'var(--delete-safe-bg, #f0fdf4)', border: '1px solid var(--delete-safe-border, #bbf7d0)' }}>
     <div className="tw-flex tw-items-start">
-      <i className="fa-light fa-check-circle tw-text-green-600 tw-mr-3 tw-mt-1"></i>
+      <i className="fa-light fa-check-circle tw-mr-3 tw-mt-1" style={{ color: 'var(--delete-safe-icon, #16a34a)' }}></i>
       <div className="tw-flex-1">
-        <h5 className="tw-font-semibold tw-text-green-800 tw-mb-2">Safe to Delete</h5>
-        <p className="tw-text-green-700">{validationResult.message || 'This transaction can be safely deleted'}</p>
+        <h5 className="tw-font-semibold tw-mb-2" style={{ color: 'var(--delete-safe-title, #166534)' }}>Safe to Delete</h5>
+        <p style={{ color: 'var(--delete-safe-text, #15803d)' }}>{validationResult.message || 'No future records found. Entry can proceed without issues.'}</p>
       </div>
     </div>
   </div>
@@ -211,7 +212,7 @@ const DeleteConfirmationContent = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="tw-flex tw-justify-end tw-space-x-3 tw-pt-2">
+        <div className="tw-flex tw-justify-end tw-space-x-3 tw-pt-2 delete-dialog-actions" style={{ borderTop: '1px solid var(--fms-border, #e5e7eb)', paddingTop: '12px' }}>
           <Button
             text="Cancel"
             onClick={onCancel}
@@ -237,7 +238,7 @@ const DeleteConfirmationContent = ({
 };
 
 /**
- * Main DeleteConfirmationDialog component
+ * Main DeleteConfirmationDialog component — uses SlidePanel
  */
 export const DeleteConfirmationDialog = ({
   visible,
@@ -264,18 +265,13 @@ export const DeleteConfirmationDialog = ({
   };
 
   return (
-    <Popup
-      visible={visible}
-      onHiding={onHiding}
-      showTitle={true}
+    <SlidePanel
+      open={visible}
+      onClose={onCancel}
       title="Delete Transaction"
-      width={() => window.innerWidth <= 768 ? '98%' : 600}
-      height={500}
-      showCloseButton={true}
-      dragEnabled={true}
-      hideOnOutsideClick={false}
+      width={520}
     >
-      <div className="tw-h-full tw-flex tw-flex-col">
+      <div className="tw-h-full tw-flex tw-flex-col tw-p-4">
         <DeleteConfirmationContent
           deleteConfirmation={deleteConfirmation}
           tanks={tanks}
@@ -285,7 +281,7 @@ export const DeleteConfirmationDialog = ({
           onDelete={onExecuteDelete}
         />
       </div>
-    </Popup>
+    </SlidePanel>
   );
 };
 

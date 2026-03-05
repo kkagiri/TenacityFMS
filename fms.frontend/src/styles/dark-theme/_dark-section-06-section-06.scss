@@ -1,0 +1,84 @@
+/**
+ * File: _dark-section-06-section-06.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   DATEBOX / CALENDAR POPUP
+   ================================================================ */
+.dx-calendar {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-calendar-navigator {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+
+  .dx-button {
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+.dx-calendar-caption-button .dx-button-text {
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-calendar-header {
+  background-color: var(--fms-surface-secondary) !important;
+}
+
+.dx-calendar-body {
+  background-color: var(--fms-surface) !important;
+}
+
+.dx-calendar-cell {
+  color: var(--fms-text-primary) !important;
+
+  &.dx-calendar-today {
+    color: #0078d4 !important;
+    font-weight: 700;
+  }
+
+  &.dx-calendar-selected-date,
+  &.dx-state-active {
+    background-color: #0078d4 !important;
+    color: #ffffff !important;
+  }
+
+  &.dx-calendar-other-month {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  &:hover,
+  &.dx-state-hover {
+    background-color: var(--fms-hover-bg) !important;
+  }
+
+  &.dx-calendar-empty-cell {
+    color: var(--fms-text-tertiary) !important;
+  }
+}
+
+.dx-calendar-views-wrapper {
+  background-color: var(--fms-surface) !important;
+}
+
+/* DateBox popup wrapper */
+.dx-datebox-wrapper .dx-overlay-content,
+.dx-datebox-wrapper-calendar .dx-overlay-content,
+.dx-datebox-wrapper-datetime .dx-overlay-content {
+  background-color: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+
+/* Timepicker inside datetime */
+.dx-timeview {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+
+  .dx-texteditor-input {
+    color: var(--fms-text-primary) !important;
+  }
+}

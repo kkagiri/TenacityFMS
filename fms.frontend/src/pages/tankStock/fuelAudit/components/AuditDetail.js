@@ -179,7 +179,7 @@ const AuditDetail = () => {
   return (
     <div className="tw-p-6 audit-detail">
       {/* Header */}
-      <div className="tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100 tw-p-6 tw-mb-6">
+      <div className="audit-detail__header">
         <div className="tw-flex tw-items-start tw-justify-between">
           <div>
             <button
@@ -251,17 +251,15 @@ const AuditDetail = () => {
             </div>
             <div>
               <div className="tw-text-sm tw-text-gray-500">Variance</div>
-              <div className={`tw-text-xl tw-font-bold ${
-                Math.abs(audit.totalVariance || 0) > 500 ? 'tw-text-red-600' : 'tw-text-green-600'
-              }`}>
+              <div className={`tw-text-xl tw-font-bold ${Math.abs(audit.totalVariance || 0) > 500 ? 'tw-text-red-600' : 'tw-text-green-600'
+                }`}>
                 {formatVolume(audit.totalVariance)}
               </div>
             </div>
             <div>
               <div className="tw-text-sm tw-text-gray-500">Variance %</div>
-              <div className={`tw-text-xl tw-font-bold ${
-                Math.abs(audit.variancePercentage || 0) > 2 ? 'tw-text-red-600' : 'tw-text-green-600'
-              }`}>
+              <div className={`tw-text-xl tw-font-bold ${Math.abs(audit.variancePercentage || 0) > 2 ? 'tw-text-red-600' : 'tw-text-green-600'
+                }`}>
                 {audit.variancePercentage?.toFixed(2) || 0}%
               </div>
             </div>
@@ -294,9 +292,8 @@ const AuditDetail = () => {
                     <span className="tw-font-medium tw-text-gray-800">
                       Tank {reading.tankId}
                     </span>
-                    <span className={`tw-text-xs tw-px-2 tw-py-1 tw-rounded ${
-                      reading.readingType === 'Opening' ? 'tw-bg-blue-100 tw-text-blue-700' : 'tw-bg-green-100 tw-text-green-700'
-                    }`}>
+                    <span className={`tw-text-xs tw-px-2 tw-py-1 tw-rounded ${reading.readingType === 'Opening' ? 'tw-bg-blue-100 tw-text-blue-700' : 'tw-bg-green-100 tw-text-green-700'
+                      }`}>
                       {reading.readingType}
                     </span>
                   </div>
@@ -335,9 +332,8 @@ const AuditDetail = () => {
                   <div className="tw-text-sm tw-text-gray-500">Tank {variance.tankId}</div>
                 </div>
                 <div className="tw-text-right">
-                  <div className={`tw-font-bold ${
-                    Math.abs(variance.variancePercentage) > 2 ? 'tw-text-red-600' : 'tw-text-green-600'
-                  }`}>
+                  <div className={`tw-font-bold ${Math.abs(variance.variancePercentage) > 2 ? 'tw-text-red-600' : 'tw-text-green-600'
+                    }`}>
                     {formatVolume(variance.varianceAmount)} ({variance.variancePercentage?.toFixed(2)}%)
                   </div>
                   <div className="tw-text-sm tw-text-gray-500">
@@ -362,16 +358,14 @@ const AuditDetail = () => {
           <div className="section-content">
             {audit.flags.map((flag, index) => (
               <div key={index} className={`flag-item ${flag.status === 'Resolved' ? 'resolved' : ''}`}>
-                <div className={`flag-icon ${
-                  flag.severity === 'Critical' ? 'tw-bg-red-100' :
-                  flag.severity === 'High' ? 'tw-bg-orange-100' :
-                  flag.severity === 'Medium' ? 'tw-bg-yellow-100' : 'tw-bg-green-100'
-                }`}>
-                  <i className={`fa-light fa-flag ${
-                    flag.severity === 'Critical' ? 'tw-text-red-600' :
-                    flag.severity === 'High' ? 'tw-text-orange-600' :
-                    flag.severity === 'Medium' ? 'tw-text-yellow-600' : 'tw-text-green-600'
-                  }`}></i>
+                <div className={`flag-icon ${flag.severity === 'Critical' ? 'tw-bg-red-100' :
+                    flag.severity === 'High' ? 'tw-bg-orange-100' :
+                      flag.severity === 'Medium' ? 'tw-bg-yellow-100' : 'tw-bg-green-100'
+                  }`}>
+                  <i className={`fa-light fa-flag ${flag.severity === 'Critical' ? 'tw-text-red-600' :
+                      flag.severity === 'High' ? 'tw-text-orange-600' :
+                        flag.severity === 'Medium' ? 'tw-text-yellow-600' : 'tw-text-green-600'
+                    }`}></i>
                 </div>
                 <div className="tw-flex-1">
                   <div className="tw-flex tw-items-center tw-gap-2">

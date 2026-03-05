@@ -48,6 +48,20 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                     .Include(u => u.Department)
                     .ToListAsync(cancellationToken);
 
+                var lastLoginRows = await _context.Loginactivities
+                    .AsNoTracking()
+                    .Where(x => !string.IsNullOrEmpty(x.UserId))
+                    .GroupBy(x => x.UserId)
+                    .Select(g => new
+                    {
+                        UserId = g.Key!,
+                        LastLogin = g.Max(x => x.Timestamp)
+                    })
+                    .ToListAsync(cancellationToken);
+
+                var lastLoginByUserId = lastLoginRows
+                    .ToDictionary(x => x.UserId, x => (DateTime?)x.LastLogin, StringComparer.OrdinalIgnoreCase);
+
                 var userDtos = new List<UserDto>(users.Count);
 
                 foreach (var user in users)
@@ -69,6 +83,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.UserManagement.UserQueries
                         DepartmentId = user.DepartmentId,
                         DepartmentName = user.Department?.Name,
                         IsDeleted = user.IsDeleted,
+                        LastLogin = lastLoginByUserId.TryGetValue(user.Id, out var lastLogin) ? lastLogin : null,
                         Roles = roleNames
                     });
                 }

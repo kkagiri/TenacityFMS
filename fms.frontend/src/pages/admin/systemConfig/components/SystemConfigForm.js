@@ -1,13 +1,22 @@
-//Cursor - System Configuration Form Component
+/**
+ * File: SystemConfigForm.js
+ * Purpose: System configuration create/edit form rendered inside the global SlidePanel.
+ * Dependencies: react, prop-types, devextreme-react controls, SlidePanel
+ * Last Modified: 2026-03-03
+ *
+ * Key Functions:
+ * - validateForm(): Validates required and data-type-specific fields
+ * - handleSave(): Normalizes values by data type and submits payload
+ */
 import React, { useState, useEffect } from "react";
 import PropTypes from "prop-types";
-import Popup from "devextreme-react/popup";
 import TextBox from "devextreme-react/text-box";
 import TextArea from "devextreme-react/text-area";
 import SelectBox from "devextreme-react/select-box";
 import NumberBox from "devextreme-react/number-box";
 import Button from "devextreme-react/button";
 import notify from "devextreme/ui/notify";
+import SlidePanel from "../../../../components/ui/SlidePanel";
 
 // Custom Toggle Switch Component
 const ToggleSwitch = ({ checked, onChange, colorScheme = "blue" }) => {
@@ -24,14 +33,12 @@ const ToggleSwitch = ({ checked, onChange, colorScheme = "blue" }) => {
       role="switch"
       aria-checked={checked}
       onClick={() => onChange(!checked)}
-      className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 ${
-        color.ring
-      } ${checked ? color.bg : "tw-bg-gray-200"}`}
+      className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-offset-2 ${color.ring
+        } ${checked ? color.bg : "tw-bg-gray-200"}`}
     >
       <span
-        className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${
-          checked ? "tw-translate-x-5" : "tw-translate-x-0"
-        }`}
+        className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${checked ? "tw-translate-x-5" : "tw-translate-x-0"
+          }`}
       />
     </button>
   );
@@ -283,16 +290,13 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
   const renderHeader = () => (
     <div className="tw-flex tw-items-center tw-gap-3 tw-mb-6">
       <div
-        className={`tw-w-12 tw-h-12 tw-rounded-xl tw-flex tw-items-center tw-justify-center ${
-          isEditMode ? "tw-bg-blue-100" : "tw-bg-green-100"
-        }`}
+        className={`tw-w-12 tw-h-12 tw-rounded-xl tw-flex tw-items-center tw-justify-center ${isEditMode ? "tw-bg-blue-100" : "tw-bg-green-100"
+          }`}
       >
         <i
-          className={`fa-light ${
-            isEditMode ? "fa-pen-to-square" : "fa-plus"
-          } tw-text-xl ${
-            isEditMode ? "tw-text-blue-600" : "tw-text-green-600"
-          }`}
+          className={`fa-light ${isEditMode ? "fa-pen-to-square" : "fa-plus"
+            } tw-text-xl ${isEditMode ? "tw-text-blue-600" : "tw-text-green-600"
+            }`}
         ></i>
       </div>
       <div>
@@ -309,19 +313,13 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
   );
 
   const renderTabs = () => (
-    <div className="tw-flex tw-gap-2 tw-mb-6 tw-border-b tw-border-gray-200 tw-pb-0">
+    <div className="m365-detail-tabs tw-mb-6">
       {tabs.map((tab) => (
         <button
           key={tab.id}
           onClick={() => setActiveTab(tab.id)}
-          className={`tw-flex tw-items-center tw-gap-2 tw-px-5 tw-py-3 tw-text-sm tw-font-medium tw-border-b-2 tw-transition-all tw-duration-200 tw-bg-transparent tw-cursor-pointer
-            ${
-              activeTab === tab.id
-                ? "tw-border-blue-500 tw-text-blue-600"
-                : "tw-border-transparent tw-text-gray-500 hover:tw-text-gray-700 hover:tw-border-gray-300"
-            }`}
+          className={`m365-detail-tab ${activeTab === tab.id ? "m365-detail-tab--active" : ""}`}
         >
-          <i className={tab.icon}></i>
           {tab.title}
         </button>
       ))}
@@ -426,14 +424,12 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-100 hover:tw-border-gray-200 tw-transition-colors">
           <div className="tw-flex tw-items-center tw-gap-3">
             <div
-              className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-transition-colors ${
-                formData.isActive ? "tw-bg-green-100" : "tw-bg-gray-200"
-              }`}
+              className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-transition-colors ${formData.isActive ? "tw-bg-green-100" : "tw-bg-gray-200"
+                }`}
             >
               <i
-                className={`fa-light fa-power-off tw-text-sm tw-transition-colors ${
-                  formData.isActive ? "tw-text-green-600" : "tw-text-gray-400"
-                }`}
+                className={`fa-light fa-power-off tw-text-sm tw-transition-colors ${formData.isActive ? "tw-text-green-600" : "tw-text-gray-400"
+                  }`}
               ></i>
             </div>
             <div>
@@ -454,14 +450,12 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-100 hover:tw-border-gray-200 tw-transition-colors">
           <div className="tw-flex tw-items-center tw-gap-3">
             <div
-              className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-transition-colors ${
-                formData.isEditable ? "tw-bg-blue-100" : "tw-bg-gray-200"
-              }`}
+              className={`tw-w-8 tw-h-8 tw-rounded-lg tw-flex tw-items-center tw-justify-center tw-transition-colors ${formData.isEditable ? "tw-bg-blue-100" : "tw-bg-gray-200"
+                }`}
             >
               <i
-                className={`fa-light fa-pen tw-text-sm tw-transition-colors ${
-                  formData.isEditable ? "tw-text-blue-600" : "tw-text-gray-400"
-                }`}
+                className={`fa-light fa-pen tw-text-sm tw-transition-colors ${formData.isEditable ? "tw-text-blue-600" : "tw-text-gray-400"
+                  }`}
               ></i>
             </div>
             <div>
@@ -625,8 +619,8 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
             saving
               ? "fa-light fa-spinner fa-spin"
               : isEditMode
-              ? "fa-light fa-check"
-              : "fa-light fa-plus"
+                ? "fa-light fa-check"
+                : "fa-light fa-plus"
           }
         />
       </div>
@@ -634,18 +628,8 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
   );
 
   return (
-    <Popup
-      visible={visible}
-      onHiding={onCancel}
-      dragEnabled={true}
-      showCloseButton={true}
-      showTitle={false}
-      width={720}
-      height="auto"
-      maxHeight="90vh"
-      className="system-config-popup"
-    >
-      <div className="tw-p-6">
+    <SlidePanel open={visible} onClose={onCancel} title={title} width={760}>
+      <div className="system-config-m365-form tw-p-6">
         {renderHeader()}
         {renderTabs()}
 
@@ -657,7 +641,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         {renderValidationErrors()}
         {renderFooter()}
       </div>
-    </Popup>
+    </SlidePanel>
   );
 };
 

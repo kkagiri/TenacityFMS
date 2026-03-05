@@ -34,7 +34,6 @@ import DataGrid, {
   Summary,
   TotalItem,
   Editing,
-  Export,
   Paging,
   Scrolling,
 } from "devextreme-react/data-grid";
@@ -100,8 +99,8 @@ const Step3TankPreview = memo(() => {
       const siteIds = Array.isArray(wizard.siteIds)
         ? wizard.siteIds
         : wizard.siteIds
-        ? [wizard.siteIds]
-        : [];
+          ? [wizard.siteIds]
+          : [];
 
       console.log("[Step3] Fetching tank volume preview with params:", {
         tankIds: wizard.selectedTankIds,
@@ -483,14 +482,12 @@ const Step3TankPreview = memo(() => {
     const isManual = source === "Manual";
     return (
       <span
-        className={`tw-flex tw-items-center tw-gap-1 tw-text-xs ${
-          isManual ? "tw-text-green-600" : "tw-text-yellow-600"
-        }`}
+        className={`tw-flex tw-items-center tw-gap-1 tw-text-xs ${isManual ? "tw-text-green-600" : "tw-text-yellow-600"
+          }`}
       >
         <i
-          className={`fa-light ${
-            isManual ? "fa-check-circle" : "fa-calculator"
-          }`}
+          className={`fa-light ${isManual ? "fa-check-circle" : "fa-calculator"
+            }`}
         ></i>
         {source}
       </span>
@@ -548,7 +545,7 @@ const Step3TankPreview = memo(() => {
               <Button
                 text="Load Saved"
                 icon="refresh"
-                type="normal"
+                type="default"
                 stylingMode="outlined"
                 onClick={handleLoadSaved}
                 disabled={isLoading || !draftAudit.auditId}
@@ -557,7 +554,7 @@ const Step3TankPreview = memo(() => {
               <Button
                 text="Fetch Original"
                 icon="download"
-                type="normal"
+                type="default"
                 stylingMode="outlined"
                 onClick={handleFetchOriginal}
                 disabled={isLoading}
@@ -603,115 +600,93 @@ const Step3TankPreview = memo(() => {
           {/* Summary Cards - 6 columns */}
           <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-mb-4">
             {/* Opening */}
-            <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-border tw-border-green-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-sunrise tw-text-green-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-green-600 tw-font-medium">
-                  Opening
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-green-700">
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#22c55e' }} />
+              <div className="s3-stat__label">Opening</div>
+              <div className="s3-stat__value" style={{ color: '#22c55e' }}>
                 {summaryTotals.openingStock.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-green-600">Liters</p>
+              </div>
+              <div className="s3-stat__sub">Liters</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-sunrise" /></div>
             </div>
 
             {/* Deliveries */}
-            <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-border tw-border-blue-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-truck-ramp tw-text-blue-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-blue-600 tw-font-medium">
-                  Deliveries
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-blue-700">
-                +
-                {summaryTotals.deliveries.toLocaleString(undefined, {
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+              <div className="s3-stat__label">Deliveries</div>
+              <div className="s3-stat__value" style={{ color: '#3b82f6' }}>
+                +{summaryTotals.deliveries.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-blue-600">Received</p>
+              </div>
+              <div className="s3-stat__sub">Received</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-truck-ramp" /></div>
             </div>
 
             {/* Dispensed */}
-            <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-border tw-border-purple-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-gas-pump tw-text-purple-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-purple-600 tw-font-medium">
-                  Dispensed
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-purple-700">
-                -
-                {summaryTotals.dispensed.toLocaleString(undefined, {
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#a855f7' }} />
+              <div className="s3-stat__label">Dispensed</div>
+              <div className="s3-stat__value" style={{ color: '#a855f7' }}>
+                -{summaryTotals.dispensed.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-purple-600">Issued</p>
+              </div>
+              <div className="s3-stat__sub">Issued</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-gas-pump" /></div>
             </div>
 
             {/* Transfer In */}
-            <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-border tw-border-cyan-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-arrow-right-to-arc tw-text-cyan-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-cyan-600 tw-font-medium">
-                  Transfer In
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-cyan-700">
-                +
-                {summaryTotals.transfersIn.toLocaleString(undefined, {
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#06b6d4' }} />
+              <div className="s3-stat__label">Transfer In</div>
+              <div className="s3-stat__value" style={{ color: '#06b6d4' }}>
+                +{summaryTotals.transfersIn.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-cyan-600">From tanks</p>
+              </div>
+              <div className="s3-stat__sub">From tanks</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-arrow-right-to-arc" /></div>
             </div>
 
             {/* Transfer Out */}
-            <div className="tw-bg-pink-50 tw-p-3 tw-rounded-lg tw-border tw-border-pink-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-arrow-right-from-arc tw-text-pink-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-pink-600 tw-font-medium">
-                  Transfer Out
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-pink-700">
-                -
-                {summaryTotals.transfersOut.toLocaleString(undefined, {
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#ec4899' }} />
+              <div className="s3-stat__label">Transfer Out</div>
+              <div className="s3-stat__value" style={{ color: '#ec4899' }}>
+                -{summaryTotals.transfersOut.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-pink-600">To tanks</p>
+              </div>
+              <div className="s3-stat__sub">To tanks</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-arrow-right-from-arc" /></div>
             </div>
 
             {/* Closing */}
-            <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-border tw-border-orange-200">
-              <div className="tw-flex tw-items-center tw-justify-between tw-mb-1">
-                <i className="fa-light fa-sunset tw-text-orange-600 tw-text-lg"></i>
-                <span className="tw-text-xs tw-text-orange-600 tw-font-medium">
-                  Closing
-                </span>
-              </div>
-              <p className="tw-text-xl tw-font-bold tw-text-orange-700">
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: '#f97316' }} />
+              <div className="s3-stat__label">Closing</div>
+              <div className="s3-stat__value" style={{ color: '#f97316' }}>
                 {summaryTotals.closingStock.toLocaleString(undefined, {
                   maximumFractionDigits: 0,
                 })}
-              </p>
-              <p className="tw-text-xs tw-text-orange-600">Liters</p>
+              </div>
+              <div className="s3-stat__sub">Liters</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-sunset" /></div>
             </div>
           </div>
 
           {/* Export Button */}
           <div className="tw-flex tw-justify-end tw-mb-2">
-            <button
+            <Button
+              text="Export to Excel"
+              icon="fa-light fa-file-excel"
+              type="default"
+              stylingMode="outlined"
               onClick={handleExportExcel}
-              className="tw-flex tw-items-center tw-gap-2 tw-px-4 tw-py-2 tw-bg-green-600 tw-text-white tw-rounded tw-hover:tw-bg-green-700 tw-transition-colors"
-            >
-              <i className="fa-light fa-file-excel"></i>
-              Export to Excel
-            </button>
+            />
           </div>
 
           {/* Per-tank DataGrid */}
@@ -728,7 +703,6 @@ const Step3TankPreview = memo(() => {
             onRowUpdated={handleRowUpdated}
           >
             <Editing mode="cell" allowUpdating={true} />
-            <Export enabled={true} />
             <Column
               dataField="tankName"
               caption="Tank"
@@ -754,7 +728,6 @@ const Step3TankPreview = memo(() => {
                   </div>
                 </div>
               )}
-              cssClass="tw-bg-green-50"
             />
 
             <Column
@@ -873,7 +846,6 @@ const Step3TankPreview = memo(() => {
                   </div>
                 </div>
               )}
-              cssClass="tw-bg-orange-50"
             />
 
             <Summary>

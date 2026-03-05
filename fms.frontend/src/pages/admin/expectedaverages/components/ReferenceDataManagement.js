@@ -1,3 +1,12 @@
+/**
+ * File: ReferenceDataManagement.js
+ * Purpose: CRUD management for route, load, and usage reference data with M365 tabs and SlidePanel forms.
+ * Dependencies: react, redux, devextreme-react/data-grid, SlidePanel, expectedFuelAverageApi
+ * Last Modified: 2026-03-03
+ *
+ * Key Components:
+ * - ReferenceDataManagement: Tabbed reference data grids with side-panel create/edit forms.
+ */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, {
@@ -7,15 +16,13 @@ import DataGrid, {
   Toolbar,
   Item
 } from 'devextreme-react/data-grid';
-import Tabs from 'devextreme-react/tabs';
 import { Button } from 'devextreme-react/button';
-import { Popup, ScrollView } from 'devextreme-react';
 import { Form, SimpleItem, GroupItem, Label } from 'devextreme-react/form';
 import { TextBox } from 'devextreme-react/text-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { SelectBox } from 'devextreme-react/select-box';
-import { Switch } from 'devextreme-react/switch';
 import notify from 'devextreme/ui/notify';
+import SlidePanel from '../../../../components/ui/SlidePanel';
 
 import expectedFuelAverageApi from '../../../../api/expectedFuelAverageApi';
 import { fetchReferenceData } from '../../../../redux/slices/expectedFuelAverageSlice';
@@ -190,9 +197,8 @@ const ReferenceDataManagement = () => {
 
   // Render status cell
   const renderStatus = (cellData) => (
-    <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs ${
-      cellData.value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-gray-100 tw-text-gray-600'
-    }`}>
+    <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs ${cellData.value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-gray-100 tw-text-gray-600'
+      }`}>
       {cellData.value ? 'Active' : 'Inactive'}
     </span>
   );
@@ -213,24 +219,24 @@ const ReferenceDataManagement = () => {
   ];
 
   return (
-    <div className="tw-p-4">
-      <div className="tw-border-b tw-border-gray-200 tw-mb-4">
-        <Tabs
-          dataSource={tabs}
-          selectedIndex={activeTab}
-          onItemClick={(e) => setActiveTab(e.itemData.id)}
-          itemRender={(item) => (
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <i className={item.icon}></i>
-              <span>{item.text}</span>
-            </div>
-          )}
-        />
+    <div className="tw-p-4 reference-data-panel">
+      <div className="reference-data-panel__tabs m365-tabs">
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`m365-tab${activeTab === tab.id ? ' m365-tab--active' : ''}`}
+            onClick={() => setActiveTab(tab.id)}
+            type="button"
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.text}</span>
+          </button>
+        ))}
       </div>
 
       {/* Fuel Routes Tab */}
       {activeTab === 0 && (
-        <div className="tw-p-4">
+        <div className="reference-data-panel__body">
           <div className="tw-mb-4 tw-p-4 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-200">
             <p className="tw-text-sm tw-text-blue-800">
               <i className="fa-light fa-info-circle tw-mr-2"></i>
@@ -276,7 +282,7 @@ const ReferenceDataManagement = () => {
 
       {/* Load Classifications Tab */}
       {activeTab === 1 && (
-        <div className="tw-p-4">
+        <div className="reference-data-panel__body">
           <div className="tw-mb-4 tw-p-4 tw-bg-green-50 tw-rounded-lg tw-border tw-border-green-200">
             <p className="tw-text-sm tw-text-green-800">
               <i className="fa-light fa-info-circle tw-mr-2"></i>
@@ -321,7 +327,7 @@ const ReferenceDataManagement = () => {
 
       {/* Usage Intensities Tab */}
       {activeTab === 2 && (
-        <div className="tw-p-4">
+        <div className="reference-data-panel__body">
           <div className="tw-mb-4 tw-p-4 tw-bg-yellow-50 tw-rounded-lg tw-border tw-border-yellow-200">
             <p className="tw-text-sm tw-text-yellow-800">
               <i className="fa-light fa-info-circle tw-mr-2"></i>
@@ -363,246 +369,252 @@ const ReferenceDataManagement = () => {
         </div>
       )}
 
-      {/* Add/Edit Popup */}
-      <Popup
-        visible={showPopup}
-        onHiding={closePopup}
-        dragEnabled={false}
-        showTitle={true}
+      <SlidePanel
+        open={showPopup}
+        onClose={closePopup}
         title={getPopupTitle()}
-        width="90%"
-        maxWidth={600}
-        height="auto"
-        maxHeight="90%"
-        showCloseButton={true}
+        width={640}
       >
-        <ScrollView width="100%" height="100%">
-          <div className="tw-p-4">
-            {/* Route Form */}
-            {popupType === 'route' && (
-              <Form formData={formData} readOnly={isSaving}>
-                <GroupItem colCount={2}>
-                  <SimpleItem>
-                    <TextBox
-                      value={formData.name}
-                      onValueChanged={(e) => handleFieldChange('name', e.value)}
-                      placeholder="e.g., NAI-NVS"
-                    />
-                    <Label text="Route Name *" />
-                  </SimpleItem>
+        <div className="tw-p-4">
+          {/* Route Form */}
+          {popupType === 'route' && (
+            <Form formData={formData} readOnly={isSaving}>
+              <GroupItem colCount={2}>
+                <SimpleItem>
+                  <TextBox
+                    value={formData.name}
+                    onValueChanged={(e) => handleFieldChange('name', e.value)}
+                    placeholder="e.g., NAI-NVS"
+                  />
+                  <Label text="Route Name *" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <SelectBox
-                      dataSource={[
-                        { id: 'Highway', name: 'Highway' },
-                        { id: 'City', name: 'City' },
-                        { id: 'Mixed', name: 'Mixed' },
-                        { id: 'OffRoad', name: 'Off-Road' },
-                        { id: 'Site', name: 'Site Section' }
-                      ]}
-                      valueExpr="id"
-                      displayExpr="name"
-                      value={formData.routeType}
-                      onValueChanged={(e) => handleFieldChange('routeType', e.value)}
-                    />
-                    <Label text="Route Type" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <SelectBox
+                    dataSource={[
+                      { id: 'Highway', name: 'Highway' },
+                      { id: 'City', name: 'City' },
+                      { id: 'Mixed', name: 'Mixed' },
+                      { id: 'OffRoad', name: 'Off-Road' },
+                      { id: 'Site', name: 'Site Section' }
+                    ]}
+                    valueExpr="id"
+                    displayExpr="name"
+                    value={formData.routeType}
+                    onValueChanged={(e) => handleFieldChange('routeType', e.value)}
+                  />
+                  <Label text="Route Type" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <TextBox
-                      value={formData.fromLocation}
-                      onValueChanged={(e) => handleFieldChange('fromLocation', e.value)}
-                      placeholder="e.g., Nairobi"
-                    />
-                    <Label text="From Location *" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <TextBox
+                    value={formData.fromLocation}
+                    onValueChanged={(e) => handleFieldChange('fromLocation', e.value)}
+                    placeholder="e.g., Nairobi"
+                  />
+                  <Label text="From Location *" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <TextBox
-                      value={formData.toLocation}
-                      onValueChanged={(e) => handleFieldChange('toLocation', e.value)}
-                      placeholder="e.g., Naivasha"
-                    />
-                    <Label text="To Location *" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <TextBox
+                    value={formData.toLocation}
+                    onValueChanged={(e) => handleFieldChange('toLocation', e.value)}
+                    placeholder="e.g., Naivasha"
+                  />
+                  <Label text="To Location *" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.distanceKm}
-                      onValueChanged={(e) => handleFieldChange('distanceKm', e.value)}
-                      min={0}
-                      format="#0.0 km"
-                    />
-                    <Label text="Distance (km)" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.distanceKm}
+                    onValueChanged={(e) => handleFieldChange('distanceKm', e.value)}
+                    min={0}
+                    format="#0.0 km"
+                  />
+                  <Label text="Distance (km)" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.elevationChange}
-                      onValueChanged={(e) => handleFieldChange('elevationChange', e.value)}
-                      format="+#0;-#0;0"
-                    />
-                    <Label text="Elevation Change (m)" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.elevationChange}
+                    onValueChanged={(e) => handleFieldChange('elevationChange', e.value)}
+                    format="+#0;-#0;0"
+                  />
+                  <Label text="Elevation Change (m)" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <SelectBox
-                      dataSource={sites}
-                      valueExpr="id"
-                      displayExpr="name"
-                      value={formData.siteId}
-                      onValueChanged={(e) => handleFieldChange('siteId', e.value)}
-                      showClearButton={true}
-                      placeholder="Optional - for site-specific routes"
-                    />
-                    <Label text="Associated Site" />
-                  </SimpleItem>
+                <SimpleItem>
+                  <SelectBox
+                    dataSource={sites}
+                    valueExpr="id"
+                    displayExpr="name"
+                    value={formData.siteId}
+                    onValueChanged={(e) => handleFieldChange('siteId', e.value)}
+                    showClearButton={true}
+                    placeholder="Optional - for site-specific routes"
+                  />
+                  <Label text="Associated Site" />
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <Switch
-                      value={formData.isActive}
-                      onValueChanged={(e) => handleFieldChange('isActive', e.value)}
+                <SimpleItem>
+                  <Label text="Active" />
+                  <div className="reference-data-panel__checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.isActive}
+                      onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                      disabled={isSaving}
                     />
-                    <Label text="Active" />
-                  </SimpleItem>
-                </GroupItem>
-              </Form>
-            )}
+                    <span>{formData.isActive ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </SimpleItem>
+              </GroupItem>
+            </Form>
+          )}
 
-            {/* Load Classification Form */}
-            {popupType === 'load' && (
-              <Form formData={formData} readOnly={isSaving}>
-                <GroupItem colCount={2}>
-                  <SimpleItem>
-                    <TextBox
-                      value={formData.name}
-                      onValueChanged={(e) => handleFieldChange('name', e.value)}
-                      placeholder="e.g., 20-30t"
+          {/* Load Classification Form */}
+          {popupType === 'load' && (
+            <Form formData={formData} readOnly={isSaving}>
+              <GroupItem colCount={2}>
+                <SimpleItem>
+                  <TextBox
+                    value={formData.name}
+                    onValueChanged={(e) => handleFieldChange('name', e.value)}
+                    placeholder="e.g., 20-30t"
+                  />
+                  <Label text="Classification Name *" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.sortOrder}
+                    onValueChanged={(e) => handleFieldChange('sortOrder', e.value)}
+                    min={0}
+                  />
+                  <Label text="Sort Order" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.minWeightTonnes}
+                    onValueChanged={(e) => handleFieldChange('minWeightTonnes', e.value)}
+                    min={0}
+                    format="#0.0 t"
+                  />
+                  <Label text="Min Weight (tonnes)" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.maxWeightTonnes}
+                    onValueChanged={(e) => handleFieldChange('maxWeightTonnes', e.value)}
+                    min={0}
+                    format="#0.0 t"
+                  />
+                  <Label text="Max Weight (tonnes)" />
+                </SimpleItem>
+
+                <SimpleItem colSpan={2}>
+                  <TextBox
+                    value={formData.description}
+                    onValueChanged={(e) => handleFieldChange('description', e.value)}
+                    placeholder="Description..."
+                  />
+                  <Label text="Description" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <Label text="Active" />
+                  <div className="reference-data-panel__checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.isActive}
+                      onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                      disabled={isSaving}
                     />
-                    <Label text="Classification Name *" />
-                  </SimpleItem>
+                    <span>{formData.isActive ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </SimpleItem>
+              </GroupItem>
+            </Form>
+          )}
 
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.sortOrder}
-                      onValueChanged={(e) => handleFieldChange('sortOrder', e.value)}
-                      min={0}
+          {/* Usage Intensity Form */}
+          {popupType === 'intensity' && (
+            <Form formData={formData} readOnly={isSaving}>
+              <GroupItem colCount={2}>
+                <SimpleItem>
+                  <TextBox
+                    value={formData.name}
+                    onValueChanged={(e) => handleFieldChange('name', e.value)}
+                    placeholder="e.g., Heavy"
+                  />
+                  <Label text="Intensity Name *" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.sortOrder}
+                    onValueChanged={(e) => handleFieldChange('sortOrder', e.value)}
+                    min={0}
+                  />
+                  <Label text="Sort Order" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <NumberBox
+                    value={formData.typicalHoursPerDay}
+                    onValueChanged={(e) => handleFieldChange('typicalHoursPerDay', e.value)}
+                    min={0}
+                    max={24}
+                    format="#0.0 hrs"
+                  />
+                  <Label text="Typical Hours/Day" />
+                </SimpleItem>
+
+                <SimpleItem>
+                  <Label text="Active" />
+                  <div className="reference-data-panel__checkbox-row">
+                    <input
+                      type="checkbox"
+                      checked={!!formData.isActive}
+                      onChange={(e) => handleFieldChange('isActive', e.target.checked)}
+                      disabled={isSaving}
                     />
-                    <Label text="Sort Order" />
-                  </SimpleItem>
+                    <span>{formData.isActive ? 'Active' : 'Inactive'}</span>
+                  </div>
+                </SimpleItem>
 
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.minWeightTonnes}
-                      onValueChanged={(e) => handleFieldChange('minWeightTonnes', e.value)}
-                      min={0}
-                      format="#0.0 t"
-                    />
-                    <Label text="Min Weight (tonnes)" />
-                  </SimpleItem>
+                <SimpleItem colSpan={2}>
+                  <TextBox
+                    value={formData.description}
+                    onValueChanged={(e) => handleFieldChange('description', e.value)}
+                    placeholder="Description..."
+                  />
+                  <Label text="Description" />
+                </SimpleItem>
+              </GroupItem>
+            </Form>
+          )}
 
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.maxWeightTonnes}
-                      onValueChanged={(e) => handleFieldChange('maxWeightTonnes', e.value)}
-                      min={0}
-                      format="#0.0 t"
-                    />
-                    <Label text="Max Weight (tonnes)" />
-                  </SimpleItem>
-
-                  <SimpleItem colSpan={2}>
-                    <TextBox
-                      value={formData.description}
-                      onValueChanged={(e) => handleFieldChange('description', e.value)}
-                      placeholder="Description..."
-                    />
-                    <Label text="Description" />
-                  </SimpleItem>
-
-                  <SimpleItem>
-                    <Switch
-                      value={formData.isActive}
-                      onValueChanged={(e) => handleFieldChange('isActive', e.value)}
-                    />
-                    <Label text="Active" />
-                  </SimpleItem>
-                </GroupItem>
-              </Form>
-            )}
-
-            {/* Usage Intensity Form */}
-            {popupType === 'intensity' && (
-              <Form formData={formData} readOnly={isSaving}>
-                <GroupItem colCount={2}>
-                  <SimpleItem>
-                    <TextBox
-                      value={formData.name}
-                      onValueChanged={(e) => handleFieldChange('name', e.value)}
-                      placeholder="e.g., Heavy"
-                    />
-                    <Label text="Intensity Name *" />
-                  </SimpleItem>
-
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.sortOrder}
-                      onValueChanged={(e) => handleFieldChange('sortOrder', e.value)}
-                      min={0}
-                    />
-                    <Label text="Sort Order" />
-                  </SimpleItem>
-
-                  <SimpleItem>
-                    <NumberBox
-                      value={formData.typicalHoursPerDay}
-                      onValueChanged={(e) => handleFieldChange('typicalHoursPerDay', e.value)}
-                      min={0}
-                      max={24}
-                      format="#0.0 hrs"
-                    />
-                    <Label text="Typical Hours/Day" />
-                  </SimpleItem>
-
-                  <SimpleItem>
-                    <Switch
-                      value={formData.isActive}
-                      onValueChanged={(e) => handleFieldChange('isActive', e.value)}
-                    />
-                    <Label text="Active" />
-                  </SimpleItem>
-
-                  <SimpleItem colSpan={2}>
-                    <TextBox
-                      value={formData.description}
-                      onValueChanged={(e) => handleFieldChange('description', e.value)}
-                      placeholder="Description..."
-                    />
-                    <Label text="Description" />
-                  </SimpleItem>
-                </GroupItem>
-              </Form>
-            )}
-
-            {/* Action Buttons */}
-            <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
-              <Button
-                text="Cancel"
-                stylingMode="outlined"
-                onClick={closePopup}
-                disabled={isSaving}
-              />
-              <Button
-                text={editItem?.id ? 'Update' : 'Create'}
-                type="default"
-                stylingMode="contained"
-                onClick={handleSave}
-                disabled={isSaving}
-              />
-            </div>
+          {/* Action Buttons */}
+          <div className="reference-data-panel__actions tw-flex tw-justify-end tw-gap-3 tw-mt-6 tw-pt-4 tw-border-t tw-border-gray-200">
+            <Button
+              text="Cancel"
+              stylingMode="outlined"
+              onClick={closePopup}
+              disabled={isSaving}
+            />
+            <Button
+              text={editItem?.id ? 'Update' : 'Create'}
+              type="default"
+              stylingMode="contained"
+              onClick={handleSave}
+              disabled={isSaving}
+            />
           </div>
-        </ScrollView>
-      </Popup>
+        </div>
+      </SlidePanel>
     </div>
   );
 };

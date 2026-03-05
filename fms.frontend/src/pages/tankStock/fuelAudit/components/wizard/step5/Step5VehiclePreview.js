@@ -576,8 +576,8 @@ const Step5VehiclePreview = memo(() => {
       const siteIds = Array.isArray(wizard.siteIds)
         ? wizard.siteIds
         : wizard.siteIds
-        ? [wizard.siteIds]
-        : [];
+          ? [wizard.siteIds]
+          : [];
 
       try {
         if (useAsyncMode) {
@@ -709,8 +709,8 @@ const Step5VehiclePreview = memo(() => {
       const siteIds = Array.isArray(wizard.siteIds)
         ? wizard.siteIds
         : wizard.siteIds
-        ? [wizard.siteIds]
-        : [];
+          ? [wizard.siteIds]
+          : [];
 
       if (useAsyncMode) {
         // Check SignalR connection first
@@ -1068,13 +1068,12 @@ const Step5VehiclePreview = memo(() => {
                   const isSignificant = Math.abs(value) > 5;
                   return (
                     <span
-                      className={`tw-font-medium ${
-                        isSignificant
-                          ? value > 0
-                            ? "tw-text-red-600"
-                            : "tw-text-orange-600"
-                          : "tw-text-gray-600"
-                      }`}
+                      className={`tw-font-medium ${isSignificant
+                        ? value > 0
+                          ? "tw-text-red-600"
+                          : "tw-text-orange-600"
+                        : "tw-text-gray-600"
+                        }`}
                     >
                       {value >= 0 ? "+" : ""}
                       {value.toFixed(1)}
@@ -1098,11 +1097,10 @@ const Step5VehiclePreview = memo(() => {
                   const isSignificant = Math.abs(value) > 10;
                   return (
                     <span
-                      className={`tw-text-xs ${
-                        isSignificant
-                          ? "tw-text-red-600 tw-font-medium"
-                          : "tw-text-gray-500"
-                      }`}
+                      className={`tw-text-xs ${isSignificant
+                        ? "tw-text-red-600 tw-font-medium"
+                        : "tw-text-gray-500"
+                        }`}
                     >
                       {value >= 0 ? "+" : ""}
                       {value.toFixed(1)}%
@@ -1117,14 +1115,12 @@ const Step5VehiclePreview = memo(() => {
                 alignment="center"
                 cellRender={(cellData) => (
                   <span
-                    className={`tw-text-xs ${
-                      cellData.value ? "tw-text-green-600" : "tw-text-gray-400"
-                    }`}
+                    className={`tw-text-xs ${cellData.value ? "tw-text-green-600" : "tw-text-gray-400"
+                      }`}
                   >
                     <i
-                      className={`fa-light ${
-                        cellData.value ? "fa-check-circle" : "fa-circle-xmark"
-                      }`}
+                      className={`fa-light ${cellData.value ? "fa-check-circle" : "fa-circle-xmark"
+                        }`}
                     ></i>
                   </span>
                 )}
@@ -1167,13 +1163,12 @@ const Step5VehiclePreview = memo(() => {
                   Tank: {vehicle.fuelTankCapacity || "?"}L
                 </span>
                 <span
-                  className={`tw-px-1.5 tw-py-0.5 tw-rounded ${
-                    vehicle.dataConfidence === "HIGH"
-                      ? "tw-bg-green-100 tw-text-green-700"
-                      : vehicle.dataConfidence === "MEDIUM"
-                      ? "tw-bg-amber-100 tw-text-amber-700"
-                      : "tw-bg-gray-100 tw-text-gray-600"
-                  }`}
+                  className={`tw-px-1.5 tw-py-0.5 tw-rounded tw-text-white ${vehicle.dataConfidence === "HIGH"
+                    ? "tw-bg-green-600"
+                    : vehicle.dataConfidence === "MEDIUM"
+                      ? "tw-bg-yellow-500"
+                      : "tw-bg-gray-500"
+                    }`}
                 >
                   {vehicle.dataConfidence || "EST"}
                 </span>
@@ -1273,9 +1268,9 @@ const Step5VehiclePreview = memo(() => {
                   calculateCellValue={(rowData) => {
                     const distance =
                       rowData.currentMeterReading &&
-                      rowData.previousMeterReading
+                        rowData.previousMeterReading
                         ? rowData.currentMeterReading -
-                          rowData.previousMeterReading
+                        rowData.previousMeterReading
                         : null;
                     if (
                       distance &&
@@ -1751,9 +1746,8 @@ const Step5VehiclePreview = memo(() => {
                 }
 
                 const tooltip = qualityReason
-                  ? `${dataQuality}: ${qualityReason}${
-                      daysFrom > 0 ? ` (${daysFrom} days from requested)` : ""
-                    }`
+                  ? `${dataQuality}: ${qualityReason}${daysFrom > 0 ? ` (${daysFrom} days from requested)` : ""
+                  }`
                   : `${dataQuality}${wasOnline === false ? " (Offline)" : ""}`;
 
                 return (
@@ -1853,9 +1847,8 @@ const Step5VehiclePreview = memo(() => {
                 }
 
                 const tooltip = qualityReason
-                  ? `${dataQuality}: ${qualityReason}${
-                      daysFrom > 0 ? ` (${daysFrom} days from requested)` : ""
-                    }`
+                  ? `${dataQuality}: ${qualityReason}${daysFrom > 0 ? ` (${daysFrom} days from requested)` : ""
+                  }`
                   : `${dataQuality}${wasOnline === false ? " (Offline)" : ""}`;
 
                 return (
@@ -1910,9 +1903,8 @@ const Step5VehiclePreview = memo(() => {
                 }
                 return (
                   <span
-                    className={`tw-font-medium ${
-                      value >= 0 ? "tw-text-red-600" : "tw-text-blue-600"
-                    }`}
+                    className={`tw-font-medium ${value >= 0 ? "tw-text-red-600" : "tw-text-blue-600"
+                      }`}
                     title="Calculated: Opening + Dispensed - Closing"
                   >
                     {value >= 0 ? "-" : "+"}
@@ -1967,13 +1959,12 @@ const Step5VehiclePreview = memo(() => {
                 return (
                   <div className="tw-flex tw-items-center tw-justify-end tw-gap-1">
                     <span
-                      className={`tw-font-medium ${
-                        hasFlag
-                          ? "tw-text-red-600"
-                          : isNegative
+                      className={`tw-font-medium ${hasFlag
+                        ? "tw-text-red-600"
+                        : isNegative
                           ? "tw-text-orange-600"
                           : "tw-text-green-600"
-                      }`}
+                        }`}
                       title="Variance: Actual Closing - (Opening + Dispensed - GPS Consumption)"
                     >
                       {isNegative ? "" : "+"}
@@ -2009,17 +2000,15 @@ const Step5VehiclePreview = memo(() => {
               return (
                 <div className="tw-flex tw-gap-1 tw-justify-center">
                   <span
-                    className={`tw-text-xs ${
-                      hasGPS ? "tw-text-blue-500" : "tw-text-gray-300"
-                    }`}
+                    className={`tw-text-xs ${hasGPS ? "tw-text-blue-500" : "tw-text-gray-300"
+                      }`}
                     title={hasGPS ? "GPS Tracking" : "No GPS"}
                   >
                     <i className="fa-light fa-location-dot"></i>
                   </span>
                   <span
-                    className={`tw-text-xs ${
-                      hasFuelSensor ? "tw-text-green-500" : "tw-text-gray-300"
-                    }`}
+                    className={`tw-text-xs ${hasFuelSensor ? "tw-text-green-500" : "tw-text-gray-300"
+                      }`}
                     title={hasFuelSensor ? "Fuel Sensor" : "No Fuel Sensor"}
                   >
                     <i className="fa-light fa-gauge"></i>
@@ -2042,9 +2031,8 @@ const Step5VehiclePreview = memo(() => {
               return (
                 <button
                   type="button"
-                  className={`tw-p-1 tw-rounded tw-border-0 tw-bg-transparent tw-cursor-pointer hover:tw-bg-gray-100 ${
-                    hasGpsData ? "tw-text-blue-500" : "tw-text-gray-400"
-                  }`}
+                  className={`tw-p-1 tw-rounded tw-border-0 tw-bg-transparent tw-cursor-pointer hover:tw-bg-gray-100 ${hasGpsData ? "tw-text-blue-500" : "tw-text-gray-400"
+                    }`}
                   style={{
                     border: "none",
                     outline: "none",
@@ -2182,70 +2170,57 @@ const Step5VehiclePreview = memo(() => {
       )}
 
       {/* Summary stats bar */}
-      <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-4 lg:tw-grid-cols-7 tw-gap-2">
-        <div className="tw-bg-blue-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-blue-200">
-          <p className="tw-text-lg tw-font-bold tw-text-blue-700">
-            {totals.vehicles}
-          </p>
-          <p className="tw-text-xs tw-text-blue-600">Total</p>
+      <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-4 lg:tw-grid-cols-7 tw-gap-3">
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Total</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{totals.vehicles}</div>
+          <div className="s3-stat__sub">vehicles</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-truck" /></div>
         </div>
-        <div className="tw-bg-green-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-green-200">
-          <p className="tw-text-lg tw-font-bold tw-text-green-700">
-            {totals.withGpsSensor}
-          </p>
-          <p className="tw-text-xs tw-text-green-600">GPS+Sensor</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#22c55e' }} />
+          <div className="s3-stat__label">GPS Fleet</div>
+          <div className="s3-stat__value" style={{ color: '#22c55e' }}>{totals.withGpsSensor}</div>
+          <div className="s3-stat__sub">GPS + Sensor</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-satellite" /></div>
         </div>
-        <div className="tw-bg-yellow-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-yellow-200">
-          <p className="tw-text-lg tw-font-bold tw-text-yellow-700">
-            {totals.fullTankPolicy}
-          </p>
-          <p className="tw-text-xs tw-text-yellow-600">Full Tank</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#eab308' }} />
+          <div className="s3-stat__label">Full Tank</div>
+          <div className="s3-stat__value" style={{ color: '#eab308' }}>{totals.fullTankPolicy}</div>
+          <div className="s3-stat__sub">Full Tank Policy</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-gas-pump" /></div>
         </div>
-        <div className="tw-bg-orange-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-orange-200">
-          <p className="tw-text-lg tw-font-bold tw-text-orange-700">
-            {totals.equipment}
-          </p>
-          <p className="tw-text-xs tw-text-orange-600">Equipment</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#f97316' }} />
+          <div className="s3-stat__label">Equipment</div>
+          <div className="s3-stat__value" style={{ color: '#f97316' }}>{totals.equipment}</div>
+          <div className="s3-stat__sub">No GPS / Sensor</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-gear" /></div>
         </div>
-        <div className="tw-bg-cyan-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-cyan-200">
-          <p className="tw-text-lg tw-font-bold tw-text-cyan-700">
-            {totals.crossSite}
-          </p>
-          <p className="tw-text-xs tw-text-cyan-600">Cross-Site</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#06b6d4' }} />
+          <div className="s3-stat__label">Cross-Site</div>
+          <div className="s3-stat__value" style={{ color: '#06b6d4' }}>{totals.crossSite}</div>
+          <div className="s3-stat__sub">Company vehicles</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-arrow-right-arrow-left" /></div>
         </div>
-        <div className="tw-bg-pink-50 tw-p-2 tw-rounded-lg tw-text-center tw-border tw-border-pink-200">
-          <p className="tw-text-lg tw-font-bold tw-text-pink-700">
-            {totals.external}
-          </p>
-          <p className="tw-text-xs tw-text-pink-600">External</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#ec4899' }} />
+          <div className="s3-stat__label">External</div>
+          <div className="s3-stat__value" style={{ color: '#ec4899' }}>{totals.external}</div>
+          <div className="s3-stat__sub">Non-company</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-user-plus" /></div>
         </div>
-        <div
-          className={`tw-p-2 tw-rounded-lg tw-text-center tw-border ${
-            totals.vehiclesWithVariance > 0
-              ? "tw-bg-red-50 tw-border-red-200"
-              : "tw-bg-gray-50 tw-border-gray-200"
-          }`}
-        >
-          <p
-            className={`tw-text-lg tw-font-bold ${
-              totals.vehiclesWithVariance > 0
-                ? "tw-text-red-700"
-                : "tw-text-gray-700"
-            }`}
-          >
-            {totals.vehiclesWithVariance > 0
-              ? totals.vehiclesWithVariance
-              : "✓"}
-          </p>
-          <p
-            className={`tw-text-xs ${
-              totals.vehiclesWithVariance > 0
-                ? "tw-text-red-600"
-                : "tw-text-gray-600"
-            }`}
-          >
-            Flags
-          </p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: totals.vehiclesWithVariance > 0 ? '#ef4444' : '#22c55e' }} />
+          <div className="s3-stat__label">Flags</div>
+          <div className="s3-stat__value" style={{ color: totals.vehiclesWithVariance > 0 ? '#ef4444' : '#22c55e' }}>
+            {totals.vehiclesWithVariance > 0 ? totals.vehiclesWithVariance : '✓'}
+          </div>
+          <div className="s3-stat__sub">Variance flags</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-flag" /></div>
         </div>
       </div>
 
@@ -2301,9 +2276,8 @@ const Step5VehiclePreview = memo(() => {
                 >
                   {renderCategoryTitle(parseInt(catId))}
                   <i
-                    className={`fa-light fa-chevron-${
-                      expandedCategories.includes(catIndex) ? "up" : "down"
-                    } tw-text-gray-400 tw-ml-2`}
+                    className={`fa-light fa-chevron-${expandedCategories.includes(catIndex) ? "up" : "down"
+                      } tw-text-gray-400 tw-ml-2`}
                   ></i>
                 </button>
                 {expandedCategories.includes(catIndex) && (

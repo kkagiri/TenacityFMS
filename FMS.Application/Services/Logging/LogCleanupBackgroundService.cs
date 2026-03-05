@@ -15,7 +15,6 @@ namespace FMS.Application.Services.Logging
     {
         private readonly IServiceProvider _serviceProvider;
         private readonly ILogger<LogCleanupBackgroundService> _logger;
-        private const int CLEANUP_HOUR = 2; // 2:00 AM
         private const int CHECK_INTERVAL_MINUTES = 60; // Check every hour
 
         public LogCleanupBackgroundService(
@@ -28,14 +27,26 @@ namespace FMS.Application.Services.Logging
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
         {
-            _logger.LogInformation("Log Cleanup Background Service started. Will run daily at {Hour}:00", CLEANUP_HOUR);
+            _logger.LogInformation("Log Cleanup Background Service started");
 
             while (!stoppingToken.IsCancellationRequested)
             {
                 try
                 {
+                    using var scope = _serviceProvider.CreateScope();
+                    var cleanupService = scope.ServiceProvider.GetRequiredService<ILogCleanupService>();
+                    var autoCleanupEnabled = await cleanupService.GetAutoCleanupEnabledAsync();
+
+                    if (!autoCleanupEnabled)
+                    {
+                        _logger.LogDebug("Scheduled log cleanup is disabled. Rechecking in {Minutes} minutes", CHECK_INTERVAL_MINUTES);
+                        await Task.Delay(TimeSpan.FromMinutes(CHECK_INTERVAL_MINUTES), stoppingToken);
+                        continue;
+                    }
+
+                    var cleanupHour = await cleanupService.GetCleanupHourAsync();
                     var now = DateTime.Now;
-                    var nextRun = CalculateNextRunTime(now);
+                    var nextRun = CalculateNextRunTime(now, cleanupHour);
                     var delay = nextRun - now;
 
                     _logger.LogDebug("Next log cleanup scheduled for: {NextRun}", nextRun);
@@ -84,9 +95,9 @@ namespace FMS.Application.Services.Logging
             }
         }
 
-        private DateTime CalculateNextRunTime(DateTime currentTime)
+        private DateTime CalculateNextRunTime(DateTime currentTime, int cleanupHour)
         {
-            var nextRun = currentTime.Date.AddHours(CLEANUP_HOUR);
+            var nextRun = currentTime.Date.AddHours(cleanupHour);
 
             // If the cleanup time has already passed today, schedule for tomorrow
             if (currentTime >= nextRun)

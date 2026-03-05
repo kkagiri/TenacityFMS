@@ -250,6 +250,99 @@
   }
 }
 
+// System Config Side Panel (M365-style surface)
+.system-config-m365-form,
+.system-config-import-panel,
+.system-config-bulk-confirm {
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+
+  .m365-detail-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 0;
+    border-bottom: 1px solid var(--m365-border-light, #edebe9);
+    flex-shrink: 0;
+    background: var(--m365-bg-card, #ffffff);
+  }
+
+  .m365-detail-tab {
+    position: relative;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text-secondary, #605e5c);
+    background: none;
+    border: none;
+    cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+
+    &:hover {
+      color: var(--m365-text, #201f1e);
+    }
+
+    &--active {
+      color: var(--m365-primary, #0078d4);
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 12px;
+        right: 12px;
+        height: 2px;
+        background: var(--m365-primary, #0078d4);
+        border-radius: 2px 2px 0 0;
+      }
+    }
+  }
+
+  .m365-section {
+    border: 1px solid var(--m365-border-light, #edebe9);
+    border-radius: 8px;
+    background: var(--m365-bg-card, #ffffff);
+    padding: 12px;
+  }
+
+  .dx-texteditor.dx-editor-outlined,
+  .dx-selectbox.dx-editor-outlined,
+  .dx-numberbox.dx-editor-outlined {
+    border-radius: 4px;
+
+    &.dx-state-focused {
+      border-color: var(--m365-primary, #0078d4);
+      box-shadow: 0 0 0 1px var(--m365-primary, #0078d4);
+    }
+  }
+
+  .dx-button {
+    border-radius: 4px;
+  }
+}
+
+.system-config-view {
+  .system-config-view__item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-height: 52px;
+  }
+
+  .system-config-view__label {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--m365-text-secondary, #605e5c);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .system-config-view__value {
+    font-size: 0.875rem;
+    color: var(--m365-text, #201f1e);
+    word-break: break-word;
+  }
+}
+
 // System Config Form Popup Styles
 .system-config-popup {
   .dx-popup-content {

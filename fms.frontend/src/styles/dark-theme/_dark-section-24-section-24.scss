@@ -1,0 +1,124 @@
+/**
+ * File: _dark-section-24-section-24.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   IMPORT MANAGEMENT — panel footer & cards
+   (_ImportManagement.scss uses SCSS vars, so we override selectors)
+   ================================================================ */
+.ais-panel-footer {
+  background: var(--fms-surface) !important;
+  border-top-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__dirty {
+    color: #f0883e !important;
+  }
+}
+
+.ais-panel-content {
+  background: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.ais-profile-card {
+  background: var(--fms-card-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__header {
+    border-bottom-color: var(--fms-border) !important;
+  }
+}
+
+/* M365 page header */
+.m365-page-header {
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 panel footer (User, Vehicle footers) */
+.m365-panel-footer {
+  background: var(--fms-surface-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 popup footer (Department form, etc.) */
+.m365-popup-footer {
+  background: var(--fms-surface-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 form actions (TankStock sticky footer) */
+.m365-form-actions {
+  background: var(--fms-surface-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* Vehicle transfer dialog footer */
+.transfer-list__dialog-footer {
+  background: var(--fms-surface-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 section group (edit panels) */
+.m365-section-group {
+  background: var(--fms-card-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__header {
+    border-bottom-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* M365 popup body */
+.m365-popup-body {
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 panel body */
+.m365-panel-body {
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 form body */
+.m365-form-body {
+  background: var(--fms-card-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* M365 field labels */
+.m365-field__label {
+  color: var(--fms-text-secondary) !important;
+}
+
+/* M365 buttons */
+.m365-btn {
+  &--ghost {
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+
+    &:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+  }
+
+  &--primary {
+    /* Primary buttons keep their blue — just ensure good contrast */
+    color: #ffffff !important;
+  }
+}
+
+/* M365 user card footer */
+.m365-user-card__footer {
+  border-top-color: var(--fms-border) !important;
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-primary) !important;
+}

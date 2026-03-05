@@ -997,11 +997,13 @@ const LocationRulesSettings = () => {
         visible={showBypassHistoryPopup}
         onClose={() => setShowBypassHistoryPopup(false)}
         title="Location Bypass History"
-        width={680}
+        width={1200}
       >
-        <LocationBypassHistoryView
-          onClose={() => setShowBypassHistoryPopup(false)}
-        />
+        <div className="tw-p-4">
+          <LocationBypassHistoryView
+            onClose={() => setShowBypassHistoryPopup(false)}
+          />
+        </div>
       </M365SidePanel>
 
       {/* Settings Overview Panel */}
@@ -1009,11 +1011,13 @@ const LocationRulesSettings = () => {
         visible={showSettingsOverviewPopup}
         onClose={() => setShowSettingsOverviewPopup(false)}
         title="Location Settings Overview"
-        width={680}
+        width={1200}
       >
-        <LocationSettingsOverview
-          onClose={() => setShowSettingsOverviewPopup(false)}
-        />
+        <div className="tw-p-4">
+          <LocationSettingsOverview
+            onClose={() => setShowSettingsOverviewPopup(false)}
+          />
+        </div>
       </M365SidePanel>
     </div>
   );

@@ -1,0 +1,23 @@
+/**
+ * File: _dark-section-21-section-21.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   FABRIC TOKEN OVERRIDES  (--f-*)
+   Used by: IssueCreateForm, IssueTicketListPage
+   ================================================================ */
+--f-bg:          #161616;
+--f-surface:     #1e1e1e;
+--f-text:        #e4e4e4;
+--f-text-2:      #a0a0a0;
+--f-text-3:      #6e6e6e;
+--f-border:      #3a3a3a;
+--f-border-2:    #444444;
+--f-blue-light:  #0e3a5c;
+--f-blue-mid:    #0a2a42;
+--f-red-light:   #4c1517;
+--f-green-light: #0f3d0f;
+--f-purple-light:#2d1654;
+--f-shadow-s:    0 1.6px 3.6px rgba(0,0,0,.35), 0 0.3px 0.9px rgba(0,0,0,.25);

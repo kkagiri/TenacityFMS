@@ -5,6 +5,7 @@ import Toolbar, { Item } from "devextreme-react/toolbar";
 import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { AppDrawer } from "../app-drawer";
+import ThemeSelector from "./ThemeSelector";
 import "./Header.scss";
 
 export default function Header({ menuToggleEnabled, title }) {
@@ -78,7 +79,14 @@ export default function Header({ menuToggleEnabled, title }) {
         />
 
 
-        {/* Todo: insert Theme selector . */}
+        {/* Theme selector — Light / Dark / System */}
+        <Item
+          location={"after"}
+          locateInMenu={"never"}
+          cssClass={"theme-selector-item"}
+        >
+          <ThemeSelector />
+        </Item>
 
         {/* //Cursor - Notification bell positioned on the right - moved to be first on right side */}
         <Item

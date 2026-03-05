@@ -18,7 +18,10 @@ namespace FMS.WebClient.Services.Reporting
     {
         // ─── Entry Points (called from JsReportTemplateManager) ───────────────────
 
-        public static string PumpTransaction() => PumpTransactionTemplate();
+        public static string PumpTransaction() => BuildGenericTemplate(
+            "Pump Transaction Report", "#0078D4",
+            PumpTransactionSummary(), PumpTransactionTable(),
+            "No transactions found for the selected criteria.");
         public static string VehicleConsumption() => BuildGenericTemplate(
             "Vehicle Consumption Report", "#4776E6",
             VehicleConsumptionSummary(), VehicleConsumptionTable(),
@@ -65,44 +68,121 @@ namespace FMS.WebClient.Services.Reporting
 <html>
 <head>
     <title>{title}</title>
+    <link href=""https://fonts.googleapis.com/css2?family=Nunito+Sans:wght@300;400;600;700;800&display=swap"" rel=""stylesheet""></link>
     <style>
-        * {{ box-sizing: border-box; }}
-        body {{ font-family: 'Segoe UI', Arial, sans-serif; margin: 0; padding: 20px; font-size: 12px; color: #333; }}
-        .report-header {{ display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid {color}; padding-bottom: 15px; margin-bottom: 20px; }}
-        .report-title h1 {{ margin: 0; font-size: 24px; color: {color}; }}
-        .report-title p {{ margin: 5px 0 0 0; color: #666; }}
-        .report-meta {{ text-align: right; font-size: 11px; color: #666; }}
-        .report-meta p {{ margin: 3px 0; }}
-        .filter-summary {{ background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 12px 16px; margin-bottom: 20px; font-size: 11px; }}
-        .filter-summary h3 {{ margin: 0 0 8px 0; font-size: 13px; color: #495057; }}
-        .filter-summary .filter-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 6px; }}
-        .filter-summary .filter-item {{ display: flex; gap: 4px; }}
-        .filter-summary .filter-label {{ font-weight: 600; color: #495057; }}
-        .filter-summary .filter-value {{ color: #6c757d; }}
-        .summary-section {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 15px; margin-bottom: 20px; }}
-        .summary-card {{ border-radius: 8px; padding: 15px; color: white; text-align: center; }}
-        .summary-card .value {{ font-size: 22px; font-weight: 700; margin-bottom: 5px; }}
-        .summary-card .label {{ font-size: 11px; opacity: 0.9; }}
-        .card-primary {{ background: linear-gradient(135deg, {color} 0%, #667eea 100%); }}
-        .card-success {{ background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%); }}
-        .card-warning {{ background: linear-gradient(135deg, #ee0979 0%, #ff6a00 100%); }}
-        .card-info    {{ background: linear-gradient(135deg, #4776E6 0%, #8E54E9 100%); }}
-        .data-table {{ width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 10px; }}
-        .data-table thead th {{ background: #343a40; color: white; padding: 10px 8px; text-align: left; font-weight: 600; }}
-        .data-table tbody td {{ padding: 8px; border-bottom: 1px solid #dee2e6; }}
-        .data-table tbody tr:nth-child(even) {{ background: #f8f9fa; }}
-        .text-right {{ text-align: right; }} .text-center {{ text-align: center; }}
-        .text-muted {{ color: #6c757d; }} .text-success {{ color: #28a745; }} .text-danger {{ color: #dc3545; }}
-        .font-bold {{ font-weight: 600; }}
-        .report-footer {{ margin-top: 30px; padding-top: 15px; border-top: 2px solid #dee2e6; display: flex; justify-content: space-between; font-size: 10px; color: #6c757d; }}
+        :root {{
+            --primary:       {color};
+            --primary-dark:  #005A9E;
+            --primary-light: #EBF4FC;
+            --surface:       #FFFFFF;
+            --bg:            #F3F4F6;
+            --border:        #E5E7EB;
+            --text-strong:   #111827;
+            --text-body:     #374151;
+            --text-muted:    #6B7280;
+            --dark-header:   #1F2937;
+            --success:       #107C10;
+            --danger:        #D13438;
+        }}
+        * {{ box-sizing: border-box; margin: 0; padding: 0; }}
+        body {{
+            font-family: 'Nunito Sans', 'Segoe UI', Arial, sans-serif;
+            background: var(--bg);
+            color: var(--text-body);
+            font-size: 12px;
+            line-height: 1.5;
+        }}
+        .page {{ max-width: 1100px; margin: 0 auto; padding: 28px 32px 48px; }}
+
+        .report-header {{ display: flex; justify-content: space-between; align-items: flex-end; padding-bottom: 18px; margin-bottom: 20px; }}
+        .report-title h1 {{ font-size: 20px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.3px; }}
+        .report-title p {{ color: var(--text-muted); font-size: 11.5px; margin-top: 2px; }}
+        .report-meta {{ text-align: right; font-size: 11px; color: var(--text-muted); }}
+        .badge-period {{
+            display: inline-block;
+            background: var(--primary-light);
+            color: var(--primary);
+            font-weight: 700;
+            font-size: 10.5px;
+            padding: 3px 10px;
+            border-radius: 20px;
+            margin-top: 6px;
+        }}
+
+        .filter-summary {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px 16px;
+            margin-bottom: 18px;
+            font-size: 10.5px;
+        }}
+        .filter-summary h3 {{ margin: 0 0 8px 0; font-size: 12px; color: var(--text-strong); font-weight: 700; }}
+        .filter-summary .filter-grid {{ display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 6px; }}
+        .filter-summary .filter-item {{ display: flex; gap: 4px; min-width: 0; }}
+        .filter-summary .filter-label {{ font-weight: 700; color: var(--text-body); text-transform: uppercase; font-size: 9px; letter-spacing: 0.3px; }}
+        .filter-summary .filter-value {{ color: var(--text-muted); font-size: 10px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }}
+
+        .summary-section {{ display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 24px; }}
+        .summary-card {{
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 14px 16px 12px;
+            position: relative;
+            overflow: hidden;
+            text-align: left;
+        }}
+        .summary-card::before {{ content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px; background: var(--primary); }}
+        .summary-card.card-primary::before {{ background: var(--primary); }}
+        .summary-card.card-success::before {{ background: var(--success); }}
+        .summary-card.card-warning::before {{ background: var(--danger); }}
+        .summary-card.card-info::before    {{ background: var(--dark-header); }}
+        .summary-card .value {{ font-size: 22px; font-weight: 800; color: var(--text-strong); line-height: 1.1; margin-bottom: 4px; letter-spacing: -0.4px; }}
+        .summary-card .label {{ font-size: 10px; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.4px; }}
+
+        .table-wrapper {{ background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }}
+        .data-table {{ width: 100%; border-collapse: collapse; font-size: 11px; }}
+        .data-table thead th {{
+            background: var(--dark-header);
+            color: #E5E7EB;
+            padding: 10px 12px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 10.5px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }}
+        .data-table tbody td {{ padding: 10px 12px; border-bottom: 1px solid var(--border); color: var(--text-body); vertical-align: middle; }}
+        .data-table tbody tr:last-child td {{ border-bottom: none; }}
+        .data-table tbody tr:nth-child(even) td {{ background: #FAFAFA; }}
+        .text-right {{ text-align: right; }}
+        .text-center {{ text-align: center; }}
+        .text-muted {{ color: var(--text-muted); }}
+        .text-success {{ color: var(--success); }}
+        .text-danger {{ color: var(--danger); }}
+        .font-bold {{ font-weight: 700; }}
+
+        .empty-state {{ background: var(--surface); border: 1px solid var(--border); border-radius: 8px; text-align: center; padding: 40px 20px; color: var(--text-muted); }}
+
+        .report-footer {{ margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; font-size: 10.5px; color: var(--text-muted); }}
+        .footer-brand {{ display: flex; align-items: center; gap: 8px; }}
+        .footer-brand .dot {{ width: 8px; height: 8px; border-radius: 50%; background: var(--primary); }}
+        .footer-brand strong {{ color: var(--text-body); }}
+
+        @media print {{
+            body {{ background: white; }}
+            .page {{ padding: 0; }}
+            .summary-section {{ grid-template-columns: repeat(4, 1fr); }}
+        }}
     </style>
 </head>
 <body>
+<div class=""page"">
     <div class=""report-header"">
         <div class=""report-title""><h1>{title}</h1><p>{{{{reportTitle}}}}</p></div>
         <div class=""report-meta"">
-            <p><strong>Generated:</strong> {{{{generatedAt}}}}</p>
-            <p><strong>Period:</strong> {{{{dateFrom}}}} - {{{{dateTo}}}}</p>
+            <span class=""badge-period"">{{{{dateFrom}}}} &ndash; {{{{dateTo}}}}</span>
         </div>
     </div>
     <div class=""filter-summary"">
@@ -118,14 +198,17 @@ namespace FMS.WebClient.Services.Reporting
         </div>
     </div>
 {summarySection}
+    <div class=""table-wrapper"">
 {tableSection}
+    </div>
     {{{{#unless records}}}}{{{{#unless transactions}}}}{{{{#unless data}}}}
-    <div style=""text-align:center; padding:40px; color:#6c757d;""><p>{emptyMessage}</p></div>
+    <div class=""empty-state""><p>{emptyMessage}</p></div>
     {{{{/unless}}}}{{{{/unless}}}}{{{{/unless}}}}
     <div class=""report-footer"">
-        <div><p><strong>FMS Fleet Management System</strong></p></div>
-        <div style=""text-align:right;""><p>Report ID: {{{{reportId}}}}</p></div>
+        <div class=""footer-brand""><span class=""dot""></span><span><strong>Hyoung Fleet Management</strong></span></div>
+        <div>Report ID: {{{{reportId}}}}</div>
     </div>
+</div>
 </body>
 </html>";
 
@@ -495,6 +578,51 @@ namespace FMS.WebClient.Services.Reporting
 
         // ─── Summary / Table sections per report type ─────────────────────────────
 
+        private static string PumpTransactionSummary() => @"    {{#if summary}}
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalTransactions}}</div><div class=""label"">Total Transactions</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.currency}}{{summary.totalAmount}}</div><div class=""label"">Total Amount</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.uniqueVehicles}}</div><div class=""label"">Unique Vehicles</div></div>
+    </div>{{/if}}";
+
+        private static string PumpTransactionTable() => @"    {{#if transactions}}
+    <table class=""data-table"">
+        <thead>
+            <tr>
+                <th class=""text-center"">#</th>
+                <th>Date / Time</th>
+                <th>PTS / Pump</th>
+                <th>Vehicle</th>
+                <th class=""text-right"">Volume (L)</th>
+                <th class=""text-right"">L/100km</th>
+                <th class=""text-right"">Amount ({{summary.currency}})</th>
+                <th class=""text-right"">Odometer (km)</th>
+                <th>Operator</th>
+            </tr>
+        </thead>
+        <tbody>{{#each transactions}}<tr>
+            <td class=""text-center text-muted"">{{rowNumber}}</td>
+            <td>{{dateTime.date}} {{dateTime.time}}</td>
+            <td>{{ptsName}} {{pump}}</td>
+            <td>{{vehicleNumberPlate}}</td>
+            <td class=""text-right text-success font-bold"">{{volume}}</td>
+            <td class=""text-right font-bold"">{{consumption}}</td>
+            <td class=""text-right font-bold"">{{amount}}</td>
+            <td class=""text-right"">{{odometer}}</td>
+            <td>{{employeeName}}</td>
+        </tr>{{/each}}</tbody>
+        <tfoot>
+            <tr>
+                <td colspan=""4"" class=""text-right"">TOTALS</td>
+                <td class=""text-right"">{{summary.totalVolume}} L</td>
+                <td class=""text-right"">{{summary.avgConsumption}} avg</td>
+                <td class=""text-right"">{{summary.currency}}{{summary.totalAmount}}</td>
+                <td colspan=""2""></td>
+            </tr>
+        </tfoot>
+    </table>{{/if}}";
+
         private static string VehicleConsumptionSummary() => @"    {{#if summary}}
     <div class=""summary-section"">
         <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
@@ -682,6 +810,21 @@ namespace FMS.WebClient.Services.Reporting
         .card-value.negative { color: var(--danger); }
         .card-label { font-size: 11px; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
 
+        .card-trend {
+            position: absolute; top: 12px; right: 12px;
+            width: 34px; height: 18px;
+            color: #64748B;
+        }
+        .card-trend.rise { color: #22C55E; }
+        .card-trend.fall { color: #EF4444; }
+        .card-trend.neutral { color: #64748B; }
+        .card-trend svg { width: 34px; height: 18px; display: block; }
+        .card-trend polyline {
+            stroke: currentColor; stroke-width: 2; fill: none;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+
         /* ── Tank Summary ── */
         .tank-summary-section {
             margin-bottom: 24px; background: var(--surface);
@@ -734,6 +877,16 @@ namespace FMS.WebClient.Services.Reporting
         .ttc-label { font-size: 9.5px; font-weight: 700; color: var(--text-body); text-transform: uppercase; letter-spacing: 0.3px; }
         .ttc-sub   { font-size: 9px; color: var(--text-muted); font-style: italic; }
         .ttc-count { font-size: 9px; color: var(--text-muted); }
+        .ttc-last2 {
+            margin-top: 2px; display: flex; align-items: flex-end; gap: 4px;
+            font-size: 8px;
+        }
+        .ttc-last2-day {
+            display: flex; flex-direction: column; line-height: 1.1;
+        }
+        .ttc-last2-label { font-size: 7px; color: var(--text-muted); font-weight: 600; }
+        .ttc-last2-value { font-size: 8px; color: var(--text-strong); font-weight: 800; }
+        .ttc-last2-sep { color: var(--text-muted); font-size: 8px; font-weight: 700; }
 
         /* ── Table ── */
         .table-wrapper { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; margin-bottom: 24px; }
@@ -809,6 +962,26 @@ namespace FMS.WebClient.Services.Reporting
             font-size: 10px; color: #9CA3AF; font-weight: 600; letter-spacing: 1px;
         }
 
+
+
+        /* ── Site Summary (inline in header) ── */
+        .site-avg-consumption {
+            margin-left: auto;
+            display: flex; align-items: baseline; gap: 4px;
+            font-size: 10px;
+        }
+        .site-avg-label {
+            color: var(--text-muted); font-weight: 600;
+            text-transform: uppercase; letter-spacing: 0.3px; font-size: 9px;
+        }
+        .site-avg-value {
+            font-weight: 800; color: var(--text-strong); font-size: 12px;
+        }
+        .site-avg-unit {
+            color: var(--text-muted); font-size: 9px; font-weight: 600;
+        }
+
+
         /* Footer */
         .report-footer { display: flex; justify-content: space-between; align-items: center; padding-top: 18px; border-top: 1px solid var(--border); font-size: 10.5px; color: var(--text-muted); margin-top: 8px; }
         .footer-brand  { display: flex; align-items: center; gap: 8px; }
@@ -881,6 +1054,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M19 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2m0 16H5V5h14v14M17 8H7V6h10v2m0 4H7v-2h10v2m-4 4H7v-2h6v2z""/></svg>
             </div>
+            {{#if summary.trends.transactions}}
+            <div class=""card-trend {{summary.trends.transactions.direction}}"">
+                <svg viewBox=""0 0 24 16"" preserveAspectRatio=""none"">
+                    <polyline points=""{{summary.trends.transactions.points}}""></polyline>
+                </svg>
+            </div>
+            {{/if}}
             <div class=""card-value"">{{summary.totalTransactions}}</div>
             <div class=""card-label"">Total Transactions</div>
         </div>
@@ -888,6 +1068,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M13 3h-2v10h2V3zm4.83 2.17l-1.42 1.42A6.92 6.92 0 0 1 19 12c0 3.87-3.13 7-7 7A7 7 0 0 1 5 12c0-2.28 1.09-4.3 2.79-5.61L6.37 5C4.33 6.74 3 9.21 3 12c0 4.97 4.03 9 9 9s9-4.03 9-9c0-2.79-1.33-5.26-3.17-6.83z""/></svg>
             </div>
+            {{#if summary.trends.dispensed}}
+            <div class=""card-trend {{summary.trends.dispensed.direction}}"">
+                <svg viewBox=""0 0 24 16"" preserveAspectRatio=""none"">
+                    <polyline points=""{{summary.trends.dispensed.points}}""></polyline>
+                </svg>
+            </div>
+            {{/if}}
             <div class=""card-value negative"">-{{summary.totalDispensed}} L</div>
             <div class=""card-label"">Total Dispensed</div>
         </div>
@@ -895,6 +1082,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M17 8C8 10 5.9 16.17 3.82 21L5.71 22l1-2.3A4.49 4.49 0 0 0 8 20c4 0 4-2 8-2s4 2 8 2v-2c-4 0-4-2-8-2c-1.13 0-1.9.16-2.53.33C14.28 12.06 16 10 21 9l-4-1z""/></svg>
             </div>
+            {{#if summary.trends.transfer}}
+            <div class=""card-trend {{summary.trends.transfer.direction}}"">
+                <svg viewBox=""0 0 24 16"" preserveAspectRatio=""none"">
+                    <polyline points=""{{summary.trends.transfer.points}}""></polyline>
+                </svg>
+            </div>
+            {{/if}}
             <div class=""card-value"">{{summary.totalTransfer}} L</div>
             <div class=""card-label"">Total Transfer</div>
         </div>
@@ -902,6 +1096,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2m-1 14H9V8h2v8m4 0h-2V8h2v8z""/></svg>
             </div>
+            {{#if summary.trends.delivery}}
+            <div class=""card-trend {{summary.trends.delivery.direction}}"">
+                <svg viewBox=""0 0 24 16"" preserveAspectRatio=""none"">
+                    <polyline points=""{{summary.trends.delivery.points}}""></polyline>
+                </svg>
+            </div>
+            {{/if}}
             <div class=""card-value positive"">+{{summary.totalDelivery}} L</div>
             <div class=""card-label"">Total Delivery</div>
         </div>
@@ -909,6 +1110,13 @@ namespace FMS.WebClient.Services.Reporting
             <div class=""card-icon"">
                 <svg width=""15"" height=""15"" viewBox=""0 0 24 24""><path d=""M1 21h22L12 2 1 21zm12-3h-2v-2h2v2zm0-4h-2v-4h2v4z""/></svg>
             </div>
+            {{#if summary.trends.variance}}
+            <div class=""card-trend {{summary.trends.variance.direction}}"">
+                <svg viewBox=""0 0 24 16"" preserveAspectRatio=""none"">
+                    <polyline points=""{{summary.trends.variance.points}}""></polyline>
+                </svg>
+            </div>
+            {{/if}}
             <div class=""card-value {{#if summary.totalVariance.isNegative}}negative{{/if}}"">{{summary.totalVariance.formatted}} L</div>
             <div class=""card-label"">Total Variance</div>
         </div>
@@ -941,6 +1149,13 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""tank-summary-header"">
             <span class=""tank-summary-title"">{{siteName}}</span>
             <span class=""tank-summary-sub"">Balance &amp; activity by tank &mdash; {{../dateFrom}} to {{../dateTo}}</span>
+            {{#if siteSummary}}
+            <div class=""site-avg-consumption"">
+                <span class=""site-avg-label"">AVG DAILY CONSUMPTION</span>
+                <span class=""site-avg-value"">{{siteSummary.avgDailyConsumption}}</span>
+                <span class=""site-avg-unit"">L/day</span>
+            </div>
+            {{/if}}
         </div>
 
         {{#each tanks}}
@@ -972,6 +1187,17 @@ namespace FMS.WebClient.Services.Reporting
                         <span class=""ttc-label"">Dispensing</span>
                         <span class=""ttc-sub"">Dispensing + Auto</span>
                         <span class=""ttc-count"">{{dispensing.count}} txn</span>
+                        {{#if dispensing.last2Days}}
+                        <div class=""ttc-last2"">
+                            {{#each dispensing.last2Days}}
+                            <div class=""ttc-last2-day"">
+                                <span class=""ttc-last2-label"">{{label}}</span>
+                                <span class=""ttc-last2-value"">{{formatted}} L</span>
+                            </div>
+                            {{#unless @last}}<span class=""ttc-last2-sep"">|</span>{{/unless}}
+                            {{/each}}
+                        </div>
+                        {{/if}}
                     </div>
                 </div>
                 <div class=""tank-type-card"">

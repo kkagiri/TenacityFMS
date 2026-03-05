@@ -1,0 +1,55 @@
+/**
+ * File: _dark-section-01-body-root-background.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+--fms-text-primary: #e4e4e4;
+--fms-text-secondary: #a0a0a0;
+--fms-text-tertiary: #6e6e6e;
+--fms-surface: #1e1e1e;
+--fms-surface-secondary: #252525;
+--fms-border: #3a3a3a;
+--fms-border-light: #2e2e2e;
+--fms-hover-bg: #2a2a2a;
+--fms-active-bg: #0e3a5c;
+--fms-page-bg: #161616;
+--fms-card-bg: #1e1e1e;
+--fms-header-bg: #1e1e1e;
+--fms-sidebar-bg: #1e1e1e;
+--fms-shadow-color: rgba(0, 0, 0, 0.35);
+--fms-input-bg: #2a2a2a;
+--fms-input-border: #444444;
+--fms-dot-color: #cccccc;
+
+/* ── Body / root background ────────────────────── */
+background-color: var(--fms-page-bg);
+color: var(--fms-text-primary);
+
+body {
+  background-color: var(--fms-page-bg);
+  color: var(--fms-text-primary);
+}
+
+/* ── Header ────────────────────────────────────── */
+.header-component {
+  background-color: var(--fms-header-bg) !important;
+  box-shadow: 0 4px 8px var(--fms-shadow-color), 0 0 4px var(--fms-shadow-color);
+}
+
+.dx-toolbar.header-toolbar {
+  background-color: var(--fms-header-bg) !important;
+}
+
+.header-title .dx-item-content {
+  color: var(--fms-text-primary);
+}
+
+.grid-dots span {
+  background-color: var(--fms-dot-color);
+}
+
+.user-avatar-circle {
+  background-color: #2a4a6e;
+  color: #8ec8ff;
+}

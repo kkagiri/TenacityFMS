@@ -1,0 +1,23 @@
+/**
+ * File: _dark-section-22-section-22.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   MS TOKEN OVERRIDES  (--ms-*)
+   Used by: IssueTrackerDetailPage
+   ================================================================ */
+--ms-text-primary:  #e4e4e4;
+--ms-text-secondary:#a0a0a0;
+--ms-text-muted:    #6e6e6e;
+--ms-border:        #3a3a3a;
+--ms-border-strong: #444444;
+--ms-bg:            #161616;
+--ms-blue-light:    #0e3a5c;
+--ms-blue-mid:      #0a2a42;
+--ms-red-light:     #4c1517;
+--ms-green-light:   #0f3d0f;
+--ms-orange-light:  #4a2510;
+--ms-shadow-sm:     0 1.6px 3.6px rgba(0,0,0,.35), 0 0.3px 0.9px rgba(0,0,0,.25);
+--ms-shadow-md:     0 6.4px 14.4px rgba(0,0,0,.35), 0 1.2px 3.6px rgba(0,0,0,.25);

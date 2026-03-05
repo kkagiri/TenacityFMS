@@ -1,0 +1,31 @@
+/**
+ * File: _dark-section-20-section-20.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   M365 DESIGN TOKEN OVERRIDES  (--m365-*)
+   Used by: User Management, TankStock forms, m365-shared components,
+            VehicleDetailPanel/FormPanel footers, import management, etc.
+   ================================================================ */
+--m365-text:             #e4e4e4;
+--m365-text-secondary:   #a0a0a0;
+--m365-text-tertiary:    #6e6e6e;
+--m365-border:           #444444;
+--m365-border-light:     #3a3a3a;
+--m365-bg-hover:         #2a2a2a;
+--m365-bg-surface:       #252525;
+--m365-bg-card:          #1e1e1e;
+--m365-selected-bg:      #0e3a5c;
+--m365-primary-tint:     #0e3a5c;
+--m365-success-tint:     #0f3d0f;
+--m365-error-tint:       #4c1517;
+--m365-warning-tint:     #4a2510;
+--m365-info-tint:        #0e3a5c;
+--m365-blue-bg:          #0e3a5c;
+--m365-red-bg:           #4c1517;
+--m365-green-bg:         #0f3d0f;
+--m365-orange-bg:        #4a2510;
+--m365-teal-bg:          #0d3937;
+--m365-purple-bg:        #2d1654;

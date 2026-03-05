@@ -1,0 +1,414 @@
+// _dark-other-pages.scss
+// Lines 3958-4099 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ── Event Expressions (non-dashboard) ─────────────────────── */
+  .event-expressions-layout,
+  .event-expression-layout {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  .delivery-event-template,
+  .event-delivery-template {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+
+    .template-section {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  .event-types-reference {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .type-card {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .type-name { color: var(--fms-text-primary) !important; }
+    .type-description { color: var(--fms-text-secondary) !important; }
+  }
+
+  /* ── Issue Tracker (non-dashboard pages) ───────────────────── */
+  .issue-tracker-form-page {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    h2, h3, h4 { color: var(--fms-text-primary) !important; }
+    label { color: var(--fms-text-primary) !important; }
+    p { color: var(--fms-text-secondary) !important; }
+  }
+
+  .issue-create-form {
+    .form-section,
+    .form-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .field-label { color: var(--fms-text-primary) !important; }
+    .field-hint { color: var(--fms-text-tertiary) !important; }
+  }
+
+  .issue-ticket-list-page,
+  .issue-tracker-layout {
+    background: var(--fms-page-bg) !important;
+
+    .ticket-card,
+    .list-item {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .issue-detail-page,
+  .issue-tracker-detail {
+    .detail-card,
+    .detail-section,
+    .comment-card,
+    .activity-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .section-title { color: var(--fms-text-primary) !important; }
+    .field-value { color: var(--fms-text-primary) !important; }
+    .field-label { color: var(--fms-text-secondary) !important; }
+  }
+
+  .issue-card {
+    .issue-title { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Maintenance Layout ───────────────────────────────────── */
+  .maintenance-layout {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  .maintenance-main {
+    background: var(--fms-page-bg) !important;
+    .main-header {
+      background: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+      .main-title { color: var(--fms-text-primary) !important; }
+    }
+  }
+
+  /* ── Site Page ────────────────────────────────────────────── */
+  .site-page {
+    .site-card,
+    .site-info-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Reports Layout & Engine ──────────────────────────────── */
+  .reports-layout {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  .reports-main {
+    background: var(--fms-page-bg) !important;
+    .main-header {
+      background: var(--fms-surface) !important;
+      .main-title { color: var(--fms-text-primary) !important; }
+    }
+  }
+
+  .report-schedule-settings,
+  .report-schedule-manager {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+
+    .schedule-card {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Report Schedule Manager (sched-mgr BEM) ──────────────── */
+  .sched-mgr {
+    background: #161616 !important;
+
+    &__header {
+      background: #1e1e1e !important;
+      border-bottom-color: #3a3a3a !important;
+    }
+
+    &__title {
+      color: #e4e4e4 !important;
+    }
+
+    &__subtitle {
+      color: #a0a0a0 !important;
+    }
+
+    &__icon-wrap {
+      background: rgba(0, 120, 212, 0.15) !important;
+      color: #4db0f5 !important;
+    }
+  }
+
+  /* ── Report Schedule DataGrid — AGGRESSIVE dark (mirrors vehicle-fleet) ── */
+  .sched-mgr__grid-wrap {
+
+    /* --- EVERY cell, row, td in the entire grid --- */
+    .dx-datagrid,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-rowsview .dx-row,
+    .dx-datagrid-rowsview .dx-data-row,
+    .dx-datagrid-rowsview .dx-row > td,
+    .dx-datagrid-rowsview .dx-data-row > td,
+    .dx-datagrid-rowsview .dx-row td,
+    .dx-datagrid-rowsview td,
+    .dx-datagrid td,
+    .dx-datagrid-table td {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Hover rows --- */
+    .dx-datagrid-rowsview .dx-row:hover,
+    .dx-datagrid-rowsview .dx-row:hover > td,
+    .dx-datagrid-rowsview .dx-state-hover,
+    .dx-datagrid-rowsview .dx-state-hover > td {
+      background-color: #2c3e50 !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Selected / focused rows --- */
+    .dx-datagrid .dx-row-focused > td,
+    .dx-datagrid .dx-selection > td,
+    .dx-datagrid-rowsview .dx-selection > td {
+      background-color: #0e3a5c !important;
+      color: #ffffff !important;
+    }
+
+    /* --- HEADERS (background + text + icons) --- */
+    .dx-datagrid-headers,
+    .dx-datagrid-headers td,
+    .dx-datagrid-headers .dx-header-row > td,
+    .dx-datagrid-headers .dx-header-row td,
+    .dx-datagrid-headers .dx-datagrid-table td {
+      background-color: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Header text content --- */
+    .dx-datagrid-text-content,
+    .dx-datagrid-headers .dx-datagrid-text-content,
+    .dx-header-row .dx-datagrid-text-content {
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Header filter icon --- */
+    .dx-header-filter,
+    .dx-datagrid-headers .dx-header-filter,
+    .dx-header-filter::before,
+    .dx-header-filter-indicator {
+      color: #a0a0a0 !important;
+    }
+
+    /* --- Sort arrows --- */
+    .dx-sort,
+    .dx-sort-up,
+    .dx-sort-down,
+    .dx-datagrid-headers .dx-sort,
+    .dx-datagrid-headers .dx-sort::before {
+      color: #a0a0a0 !important;
+    }
+
+    /* --- Filter row --- */
+    .dx-datagrid-filter-row td,
+    .dx-datagrid-filter-row .dx-editor-cell,
+    .dx-datagrid-filter-row .dx-texteditor,
+    .dx-datagrid-filter-row .dx-texteditor-input,
+    .dx-datagrid-filter-row input {
+      background-color: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Filter row icons --- */
+    .dx-editor-with-menu .dx-filter-menu,
+    .dx-editor-with-menu .dx-menu-item-content .dx-icon {
+      color: #a0a0a0 !important;
+    }
+
+    /* --- Adaptive / command cells --- */
+    .dx-command-adaptive,
+    .dx-command-adaptive-hidden,
+    td.dx-command-adaptive,
+    .dx-command-select,
+    .dx-command-edit,
+    .dx-command-edit-with-icons,
+    td.dx-command-select,
+    td.dx-command-edit {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Fixed columns overlay (right-pinned Actions column) --- */
+    .dx-datagrid-content-fixed {
+      background: transparent !important;
+    }
+
+    .dx-datagrid-content-fixed table {
+      background: transparent !important;
+    }
+
+    /* All cells in the fixed overlay default to transparent */
+    .dx-datagrid-content-fixed td {
+      background-color: transparent !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* Only the ACTUAL fixed column cells get the dark background */
+    .dx-datagrid-content-fixed td:not(.dx-pointer-events-none) {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* Fixed column header cells */
+    .dx-datagrid-content-fixed .dx-datagrid-headers td:not(.dx-pointer-events-none) {
+      background-color: #252525 !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* Transparent placeholders (DevExtreme adds dx-pointer-events-none) */
+    .dx-datagrid-content-fixed td.dx-pointer-events-none {
+      background-color: transparent !important;
+      color: transparent !important;
+    }
+
+    /* --- Header panel / toolbar (search, column chooser) --- */
+    .dx-datagrid-header-panel,
+    .dx-datagrid-header-panel .dx-toolbar,
+    .dx-datagrid-header-panel .dx-toolbar-items-container {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-datagrid-header-panel .dx-button,
+    .dx-datagrid-header-panel .dx-button .dx-button-content,
+    .dx-datagrid-header-panel .dx-button .dx-icon,
+    .dx-datagrid-header-panel .dx-button .dx-button-text {
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Search panel --- */
+    .dx-searchpanel .dx-texteditor {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-searchpanel .dx-texteditor-input,
+    .dx-searchpanel .dx-placeholder,
+    .dx-searchpanel .dx-icon-search {
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Pager --- */
+    .dx-datagrid .dx-pager,
+    .dx-pager .dx-pages,
+    .dx-pager .dx-page,
+    .dx-pager .dx-page-size,
+    .dx-pager .dx-info {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-pager .dx-page.dx-selection {
+      background-color: #0078d4 !important;
+      color: #ffffff !important;
+    }
+
+    /* --- No data text --- */
+    .dx-datagrid-nodata {
+      color: #a0a0a0 !important;
+    }
+
+    /* --- Summary footer --- */
+    .dx-datagrid-total-footer td,
+    .dx-datagrid-summary-item {
+      background-color: #252525 !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Scrollbar --- */
+    .dx-scrollbar-hoverable .dx-scrollable-scroll-content {
+      background-color: #555 !important;
+    }
+
+    /* --- Action buttons in fixed column --- */
+    .sched-mgr__action-buttons {
+      display: flex;
+      gap: 2px;
+      justify-content: center;
+    }
+
+    .sched-mgr__action-btn.dx-button.dx-button-mode-text {
+      min-width: 28px;
+      color: #e4e4e4 !important;
+    }
+
+    .sched-mgr__action-btn .dx-icon {
+      color: #e4e4e4 !important;
+      opacity: 0.95;
+    }
+
+    .sched-mgr__action-btn.dx-state-hover {
+      background: #2c3e50 !important;
+    }
+
+    .sched-mgr__action-btn.dx-state-disabled {
+      opacity: 0.4;
+    }
+
+    .sched-mgr__action-btn--danger .dx-icon {
+      color: #ff6b6b !important;
+    }
+  }
+
+  /* ── Report Schedule M365 buttons — dark ─── */
+  .sched-mgr .m365-btn {
+    &--primary {
+      background: #0078d4 !important;
+      color: #fff !important;
+      &:hover { background: #106ebe !important; }
+    }
+    &--text {
+      color: #a0a0a0 !important;
+      &:hover {
+        color: #e4e4e4 !important;
+        background: #2c3e50 !important;
+      }
+    }
+  }
+
+  .report-format-selector {
+    .format-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+}

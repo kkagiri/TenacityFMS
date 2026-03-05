@@ -20,9 +20,9 @@ import DateBox from "devextreme-react/date-box";
 import SelectBox from "devextreme-react/select-box";
 import Button from "devextreme-react/button";
 import LoadIndicator from "devextreme-react/load-indicator";
-import Popup from "devextreme-react/popup";
 import notify from "devextreme/ui/notify";
 import axiosInstance from "../../../api/axiosInstance";
+import SlidePanel from "../../../components/ui/SlidePanel";
 import LocationSettingsOverview from "../../../components/Tags/TagRuleManagement/LocationSettingsOverview";
 import {
   fetchLocationValidationLogs,
@@ -367,18 +367,18 @@ const LocationValidationLogPage = () => {
   return (
     <div className="location-validation-page tw-p-4">
       {/* Header */}
-      <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
+      <div className="location-validation-page__header tw-mb-4">
         <div>
-          <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800">
+          <h1 className="tw-text-2xl tw-font-semibold tw-text-gray-800">
             <i className="fa-light fa-location-crosshairs tw-mr-3"></i>
             Location Validation Logs
           </h1>
-          <p className="tw-text-gray-500 tw-mt-1">
+          <p className="tw-text-gray-500 tw-mt-1 tw-text-sm">
             View and analyze location validation attempts during fueling
             operations
           </p>
         </div>
-        <div className="tw-flex tw-gap-2">
+        <div className="location-validation-page__header-actions">
           <Button
             text="Refresh"
             icon="refresh"
@@ -398,7 +398,7 @@ const LocationValidationLogPage = () => {
       </div>
 
       {/* Filters */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow tw-p-4 tw-mb-4">
+      <div className="location-validation-page__filters tw-p-4 tw-mb-4">
         <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-5 tw-gap-4">
           <div>
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
@@ -480,7 +480,7 @@ const LocationValidationLogPage = () => {
       </div>
 
       {/* Data Grid */}
-      <div className="tw-bg-white tw-rounded-lg tw-shadow">
+      <div className="location-validation-page__grid">
         <DataGrid
           dataSource={logs}
           showBorders={false}
@@ -575,19 +575,15 @@ const LocationValidationLogPage = () => {
         </DataGrid>
       </div>
 
-      {/* Map Popup */}
-      <Popup
-        visible={showMapPopup}
-        onHiding={handleClosePopup}
-        dragEnabled={true}
-        closeOnOutsideClick={false}
-        showCloseButton={true}
-        showTitle={true}
+      {/* Map Side Panel */}
+      <SlidePanel
+        open={showMapPopup}
+        onClose={handleClosePopup}
         title="Location Validation Details"
-        width={900}
-        height={700}
-        contentRender={() => popupLog ? (
-          <div className="tw-flex tw-flex-col tw-h-full tw-p-4">
+        width={980}
+      >
+        {popupLog ? (
+          <div className="location-validation-page__panel tw-flex tw-flex-col tw-h-full tw-p-4">
             {/* Details Section */}
             <div className="tw-grid tw-grid-cols-2 lg:tw-grid-cols-4 tw-gap-4 tw-mb-4">
               <div className="tw-bg-gray-50 tw-rounded tw-p-3">
@@ -709,8 +705,10 @@ const LocationValidationLogPage = () => {
               </div>
             </div>
           </div>
-        ) : <div className="tw-p-4">Loading...</div>}
-      />
+        ) : (
+          <div className="tw-p-4">Loading...</div>
+        )}
+      </SlidePanel>
 
       {/* Loading overlay */}
       {isLoading && (
@@ -722,22 +720,15 @@ const LocationValidationLogPage = () => {
         </div>
       )}
 
-      {/* Settings Overview Popup */}
-      <Popup
-        visible={showSettingsOverviewPopup}
-        onHiding={() => setShowSettingsOverviewPopup(false)}
-        dragEnabled={true}
-        hideOnOutsideClick={false}
-        showCloseButton={true}
-        showTitle={true}
+      {/* Settings Overview Side Panel */}
+      <SlidePanel
+        open={showSettingsOverviewPopup}
+        onClose={() => setShowSettingsOverviewPopup(false)}
         title="Location Settings Overview"
-        width="90%"
-        height="85%"
-        maxWidth={1400}
-        maxHeight={900}
+        width="min(1280px, 92vw)"
       >
         <LocationSettingsOverview onClose={() => setShowSettingsOverviewPopup(false)} />
-      </Popup>
+      </SlidePanel>
     </div>
   );
 };

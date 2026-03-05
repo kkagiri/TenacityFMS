@@ -82,6 +82,12 @@ const ReportsLayout = ({ children }) => {
         icon: 'fa-light fa-upload',
         path: reportsRoutes.fuelImporter,
       },
+      {
+        id: 'import-management',
+        title: 'Import Management',
+        icon: 'fa-light fa-gear-complex',
+        path: reportsRoutes.importManagement,
+      },
     ];
 
     return items;

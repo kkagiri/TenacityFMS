@@ -53,6 +53,29 @@ import TagAssignmentForm from "../../../components/Tags/TagAssignmentForm/TagAss
 // VehicleEditForm removed — editing handled via VehicleDetailPanel
 // import FuelRuleSetAssignmentForm from './../fuelingRule/assignmentForm/fuelRuleSetAssignmentForm';
 
+const formatLocalDateTime = (value) => {
+  if (!value) return "";
+  const dateValue = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(dateValue.getTime())) return "";
+  return dateValue.toLocaleString("en-GB", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+};
+
+const formatAsLocalDateIfPossible = (value) => {
+  if (value === null || value === undefined || value === "") return "";
+  const dateValue = new Date(value);
+  if (Number.isNaN(dateValue.getTime())) {
+    return value;
+  }
+  return formatLocalDateTime(dateValue);
+};
+
 const VehicleDataGrid = ({ onSelectVehicle }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
@@ -425,6 +448,7 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           allowColumnReordering={true}
           allowColumnResizing={true}
           columnAutoWidth={true}
+          columnHidingEnabled={false}
           rowAlernationEnable={true}
           repaintChangesOnly={true} onRowUpdated={onRowUpdated}
           onEditorPreparing={onEditorPreparing}
@@ -440,7 +464,7 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           <StateStoring
             enabled={true}
             type="sessionStorage"
-            storageKey="vehicleGridState"
+            storageKey="vehicleGridStateV3"
           />
           <Paging enabled={true} defaultPageSize={30} />
           <ColumnChooser enabled={true} mode="select" height={200} />
@@ -666,20 +690,18 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           <Column
             dataField="dateCreated"
             caption="Date Created"
-            dataType="datetime"
-            format="dd/MM/yyyy HH:mm"
             minWidth={150}
             visible={false}
+            cellRender={(cellData) => formatLocalDateTime(cellData?.value)}
             allowEditing={false}
           />
 
           <Column
             dataField="dateModified"
             caption="Date Modified"
-            dataType="datetime"
-            format="dd/MM/yyyy HH:mm"
             minWidth={150}
             visible={false}
+            cellRender={(cellData) => formatLocalDateTime(cellData?.value)}
             allowEditing={false}
           />
 
@@ -696,6 +718,7 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
             caption="Modified By"
             minWidth={120}
             visible={false}
+            cellRender={(cellData) => formatAsLocalDateIfPossible(cellData?.value)}
             allowEditing={false}
           />
 
@@ -712,38 +735,6 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
             allowSorting={false}
             allowFiltering={false}
             allowEditing={false}
-          />
-
-          <Column
-            type="buttons"
-            width={150}
-            caption="Actions"
-            fixed={true}
-            fixedPosition="right"
-            cellRender={(cellData) => (
-              <div className="tw-flex tw-gap-2">
-                <Button
-                  icon="fa-light fa-edit"
-                  hint="Edit Vehicle"
-                  onClick={(e) => {
-                    e.event.stopPropagation();
-                    handleEditClick(cellData.data);
-                  }}
-                  stylingMode="text"
-                  type="default"
-                />
-                <Button
-                  icon="fa-light fa-eye"
-                  hint="View Details"
-                  onClick={(e) => {
-                    e.event.stopPropagation();
-                    handleViewDetails(cellData.data);
-                  }}
-                  stylingMode="text"
-                  type="default"
-                />
-              </div>
-            )}
           />
 
         </DataGrid>

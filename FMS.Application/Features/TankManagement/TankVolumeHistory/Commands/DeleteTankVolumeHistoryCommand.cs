@@ -496,6 +496,71 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 {
                     _logger.LogWarning("Tank transfer {TransferId} not found or already deleted", referenceId);
                 }
+
+                // FIX: Cascade soft-delete the counterpart TVH entry on the other tank.
+                // Every transfer creates TWO TVH records: TransferOut (source) and TransferIn (dest).
+                // Deleting one side must also remove the other to prevent phantom volumes accumulating
+                // on the counterpart tank's ledger chain.
+                var counterpartReasons = new[]
+                {
+                    VolumeChangeReasonEnum.TransferIn,
+                    VolumeChangeReasonEnum.TransferOut
+                };
+
+                var counterpartTvhEntries = await _context.TankVolumeHistories
+                    .Where(h => h.ReferenceId == referenceId &&
+                                counterpartReasons.Contains(h.ChangeReason) &&
+                                (h.IsDeleted == null || h.IsDeleted == false))
+                    .ToListAsync(cancellationToken);
+
+                var counterpartTankIds = new HashSet<int>();
+                DateTime deletionTime = DateTime.UtcNow;
+
+                if (counterpartTvhEntries.Any())
+                {
+                    foreach (var counterpart in counterpartTvhEntries)
+                    {
+                        counterpart.IsDeleted = true;
+                        counterpart.DeletedAt = deletionTime;
+                        counterpart.DeletedBy = deletedBy;
+
+                        if (counterpart.TankId.HasValue)
+                            counterpartTankIds.Add(counterpart.TankId.Value);
+
+                        _logger.LogInformation(
+                            "Cascade soft-deleted counterpart TVH {TvhId} (Tank {TankId}, {ChangeReason}) " +
+                            "linked to transfer {TransferId}",
+                            counterpart.Id, counterpart.TankId, counterpart.ChangeReason, referenceId);
+                    }
+                }
+                else
+                {
+                    _logger.LogInformation(
+                        "No active counterpart TVH entries found for transfer {TransferId} — may be old orphaned reference",
+                        referenceId);
+                }
+
+                // Save tanktransfer soft-delete + counterpart TVH soft-deletes together
+                if (transfer != null || counterpartTvhEntries.Any())
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                // Recalculate NewVolume chain for each affected counterpart tank
+                foreach (int counterpartTankId in counterpartTankIds)
+                {
+                    var earliestTimestamp = counterpartTvhEntries
+                        .Where(h => h.TankId == counterpartTankId)
+                        .Min(h => h.Timestamp);
+
+                    var updateResult = await _mediator.Send(
+                        new UpdateTankVolumeHistoryCommand(counterpartTankId, earliestTimestamp),
+                        cancellationToken);
+
+                    if (!updateResult.Success)
+                        _logger.LogWarning(
+                            "Failed to recalculate TVH chain for counterpart tank {TankId} " +
+                            "after transfer {TransferId} deletion: {Message}",
+                            counterpartTankId, referenceId, updateResult.Message);
+                }
             }
             catch (Exception ex)
             {

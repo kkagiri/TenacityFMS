@@ -1,0 +1,18 @@
+/**
+ * File: _dark-section-12-section-12.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   PIVOT GRID
+   ================================================================ */
+.dx-pivotgrid {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+
+  .dx-pivotgrid-area {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}

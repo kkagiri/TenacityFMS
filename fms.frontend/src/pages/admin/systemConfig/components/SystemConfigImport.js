@@ -1,12 +1,22 @@
-//Cursor - System Configuration Import Component
+/**
+ * File: SystemConfigImport.js
+ * Purpose: Bulk import system configurations via JSON/CSV inside a SlidePanel.
+ * Dependencies: react, prop-types, redux, devextreme-react controls, SlidePanel
+ * Last Modified: 2026-03-03
+ *
+ * Key Functions:
+ * - parseImportFile(): Parses JSON/CSV import content
+ * - validateImportData(): Validates required fields and value constraints
+ * - handleImport(): Imports each row and reports progress/results
+ */
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch } from 'react-redux';
-import Popup from 'devextreme-react/popup';
 import Button from 'devextreme-react/button';
 import FileUploader from 'devextreme-react/file-uploader';
 import ProgressBar from 'devextreme-react/progress-bar';
 import notify from 'devextreme/ui/notify';
+import SlidePanel from '../../../../components/ui/SlidePanel';
 
 import { createSystemConfiguration } from '../../../../redux/actions/systemConfigActions';
 
@@ -247,21 +257,15 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
   };
 
   return (
-    <Popup
-      visible={visible}
-      onHiding={handleClose}
-      dragEnabled={false}
-      showCloseButton
-={false}
-      showTitle={true}
+    <SlidePanel
+      open={visible}
+      onClose={handleClose}
       title="Import System Configurations"
-      width={600}
-      height={500}
-      showCloseButton={true}
+      width={620}
     >
-      <div className="tw-p-6">
+      <div className="system-config-import-panel tw-p-6">
         {/* Instructions */}
-        <div className="tw-mb-6">
+        <div className="m365-section tw-mb-6">
           <h4 className="tw-font-semibold tw-text-gray-900 tw-mb-2">Import Instructions</h4>
           <ul className="tw-text-sm tw-text-gray-600 tw-list-disc tw-list-inside tw-space-y-1">
             <li>Upload a JSON or CSV file containing configuration data</li>
@@ -281,7 +285,7 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
         </div>
 
         {/* File Upload */}
-        <div className="tw-mb-6">
+        <div className="m365-section tw-mb-6">
           <h4 className="tw-font-semibold tw-text-gray-900 tw-mb-2">Select File</h4>
           <FileUploader
             selectButtonText="Choose File"
@@ -302,7 +306,7 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
 
         {/* Progress */}
         {isImporting && (
-          <div className="tw-mb-6">
+          <div className="m365-section tw-mb-6">
             <h4 className="tw-font-semibold tw-text-gray-900 tw-mb-2">Import Progress</h4>
             <ProgressBar value={importProgress} showStatus={true} />
           </div>
@@ -310,7 +314,7 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
 
         {/* Results */}
         {importResults && (
-          <div className="tw-mb-6">
+          <div className="m365-section tw-mb-6">
             <h4 className="tw-font-semibold tw-text-gray-900 tw-mb-2">Import Results</h4>
             <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg tw-border">
               <div className="tw-grid tw-grid-cols-3 tw-gap-4 tw-mb-4">
@@ -359,7 +363,7 @@ const SystemConfigImport = ({ visible, onClose, onImportComplete }) => {
           />
         </div>
       </div>
-    </Popup>
+    </SlidePanel>
   );
 };
 

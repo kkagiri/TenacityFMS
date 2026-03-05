@@ -1,0 +1,936 @@
+// _dark-scrollable-sections.scss
+// Lines 4833-5763 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ══════════════════════════════════════════════════════════════
+     VOLUME CORRECTION — precise .tvcc-* selectors
+     ══════════════════════════════════════════════════════════════ */
+  .tvcc-container {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .tvcc-tabs-wrapper,
+  .tvcc-info-card,
+  .tvcc-card,
+  .tvcc-tank-breaks-section,
+  .tvcc-tank-steps-group,
+  .tvcc-history-record,
+  .tvcc-summary-box,
+  .tvcc-severity-badge,
+  .tvcc-strategy-option {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .tvcc-card h3,
+  .tvcc-card h4,
+  .tvcc-info-card h4,
+  .tvcc-strategy-detail h5,
+  .tvcc-strategy-card h5,
+  .tvcc-strategy-option-title,
+  .tvcc-step-title-group h5,
+  .tvcc-tank-breaks-header h5,
+  .tvcc-tank-header h5,
+  .tvcc-record-info strong,
+  .tvcc-steps-preview h4 {
+    color: var(--fms-text-primary) !important;
+  }
+  .tvcc-card h5,
+  .tvcc-record-section strong,
+  .tvcc-comparison-table th,
+  .tvcc-strategy-desc,
+  .tvcc-strategy-best,
+  .tvcc-strategy-algo,
+  .tvcc-param-group label,
+  .tvcc-empty-state h3,
+  .tvcc-result-message p,
+  .tvcc-tank-correction-info .tvcc-info-row strong,
+  .tvcc-strategy-breakdown-item span,
+  .tvcc-info-panel .tvcc-info-content h4 {
+    color: var(--fms-text-secondary) !important;
+  }
+  .tvcc-workflow-steps li div p,
+  .tvcc-strategy-item p,
+  .tvcc-loading-card p,
+  .tvcc-strategy-option-desc,
+  .tvcc-permission-denied p,
+  .tvcc-step-title-group p,
+  .tvcc-record-section p,
+  .tvcc-comparison-table td,
+  .tvcc-record-stat span,
+  .tvcc-record-user,
+  .tvcc-info-text,
+  .tvcc-empty-input p {
+    color: var(--fms-text-secondary) !important;
+  }
+  .tvcc-empty-state p,
+  .tvcc-permission-hint,
+  .tvcc-form-hint,
+  .tvcc-mode-button small,
+  .tvcc-strategy-option-best,
+  .tvcc-stat-label,
+  .tvcc-summary-label,
+  .tvcc-result-label,
+  .tvcc-record-date,
+  .tvcc-breaks-count,
+  .tvcc-steps-count,
+  .tvcc-comparison-more {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .tvcc-mode-button {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    span { color: var(--fms-text-primary) !important; }
+    i { color: var(--fms-text-tertiary) !important; }
+  }
+  .tvcc-empty-state i,
+  .tvcc-empty-input i,
+  .tvcc-record-user i { color: var(--fms-text-tertiary) !important; }
+  .tvcc-result-value,
+  .tvcc-tank-correction-info .tvcc-info-row span {
+    color: var(--fms-text-primary) !important;
+  }
+  .tvcc-strategy-detail,
+  .tvcc-strategy-card,
+  .tvcc-results-summary,
+  .tvcc-plan-summary,
+  .tvcc-input-summary,
+  .tvcc-step-item,
+  .tvcc-result-stat,
+  .tvcc-result-message,
+  .tvcc-record-stats,
+  .tvcc-record-comparison,
+  .tvcc-summary-card,
+  .tvcc-empty-input,
+  .tvcc-tank-correction-info {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .tvcc-tank-breaks-header,
+  .tvcc-tank-header,
+  .tvcc-record-header {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .tvcc-grid-wrapper .dx-datagrid {
+    border-color: var(--fms-border) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     NOTIFICATION HISTORY — precise .nh-* selectors
+     ══════════════════════════════════════════════════════════════ */
+  .nh-page {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-page .m365-page-header {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .nh-page .m365-page-header__count {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-page .m365-filters {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .nh-page .m365-select,
+  .nh-page .m365-date,
+  .nh-page .m365-search__input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-page .m365-search__icon {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-page .m365-search__input::placeholder {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-page .m365-btn--text {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-page .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-page .m365-icon-btn {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-page .m365-badge--neutral {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-datagrid .dx-datagrid-headers {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-datagrid .dx-row td {
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-datetime {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-panel-title {
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-meta-label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-meta-label i {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-meta-value {
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-section-label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .nh-message-box {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-recipient-item__info i {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-recipient-item__name {
+    color: var(--fms-text-primary) !important;
+  }
+  .nh-recipient-item__email {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .nh-recipient-list {
+    border-color: var(--fms-border) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     CHECKUP TEMPLATE MANAGEMENT — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .checkup-template-page {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-template-page .m365-page-header__count {
+    color: var(--fms-text-secondary) !important;
+  }
+  .checkup-template-page .m365-btn--text {
+    color: var(--fms-text-secondary) !important;
+  }
+  .checkup-template-page .m365-select:disabled {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .checkup-template-page .m365-checkbox {
+    color: #ffffff !important;
+  }
+  .checkup-template-page .m365-badge--neutral {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .checkup-template-page__grid .dx-datagrid-headers .dx-header-row td {
+    color: var(--fms-text-secondary) !important;
+  }
+  .checkup-template-page .m365-cmd-btn {
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-detail-view .m365-info-cell__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .checkup-panel-form .m365-field__label {
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-panel-form .m365-field__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .checkup-template-page .m365-panel-footer {
+    background: var(--fms-surface) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+  .checkup-template-page .m365-input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-template-page .m365-input::placeholder {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .checkup-template-page .m365-input:disabled {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     STEP RECIPIENTS — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .step-recipients {
+    color: var(--fms-text-primary) !important;
+  }
+  .step-recipients__rules {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .step-recipients__rules-title {
+    color: var(--fms-text-primary) !important;
+  }
+  .step-recipients__rules-desc {
+    color: var(--fms-text-secondary) !important;
+  }
+  .step-recipients__rule-row {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .step-recipients__rule-check span {
+    color: var(--fms-text-primary) !important;
+  }
+  .step-recipients__rule-hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .step-recipients__pane {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .step-recipients__pane-header {
+    background: var(--fms-surface-secondary) !important;
+    border-bottom-color: var(--fms-border) !important;
+    h4 { color: var(--fms-text-primary) !important; }
+  }
+  .step-recipients__pane-count {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .step-recipients__filters {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .step-recipients__filter-select {
+    color: var(--fms-text-primary) !important;
+    background-color: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .step-recipients__filter-search-icon {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .step-recipients__filter-search-input {
+    color: var(--fms-text-primary) !important;
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    &::placeholder { color: var(--fms-text-tertiary) !important; }
+  }
+  .step-recipients__user-item {
+    border-bottom-color: var(--fms-border) !important;
+    &:hover { background: var(--fms-hover-bg) !important; }
+    &--selected { background: rgba(0, 120, 212, 0.15) !important; }
+  }
+  .step-recipients__user-name {
+    color: var(--fms-text-primary) !important;
+  }
+  .step-recipients__user-meta {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .step-recipients__remove-btn {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .step-recipients__empty {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .step-recipients__loading {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     VEHICLE TRANSFER FORM — precise .vtf-* selectors
+     ══════════════════════════════════════════════════════════════ */
+  .vehicle-transfer-form {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .vehicle-transfer-form .dx-header-row {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .vtf-header__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .vtf-header__meta-label {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .vtf-header__meta-value {
+    color: var(--fms-text-primary) !important;
+  }
+  .vtf-stepper__num {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .vtf-stepper__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .vehicle-transfer-form .m365-section-group__header {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .vehicle-transfer-form .m365-section-group__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .vehicle-transfer-form .m365-field__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .vehicle-transfer-form .m365-field__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .vehicle-transfer-form .m365-badge--neutral {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .vehicle-transfer-form .m365-checkbox__label {
+    color: #ffffff !important;
+  }
+  .vehicle-transfer-form .m365-btn--ghost {
+    color: var(--fms-text-secondary) !important;
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .vehicle-transfer-form .m365-info-banner__text {
+    color: var(--fms-text-secondary) !important;
+  }
+  .vtf-approval-flow__dot {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .vtf-approval-flow__label {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .vtf-approval-flow__line {
+    background: var(--fms-border) !important;
+  }
+  .vtf-nav {
+    border-color: var(--fms-border) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     REPORT ENGINE — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .report-engine {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .engine-header {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .engine-header__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .engine-header__subtitle {
+    color: var(--fms-text-secondary) !important;
+  }
+  .engine-sidebar {
+    background: var(--fms-surface) !important;
+    border-right-color: var(--fms-border) !important;
+  }
+  .engine-section {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .engine-section__header {
+    color: var(--fms-text-secondary) !important;
+    background: var(--fms-surface-secondary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .engine-section__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .engine-actions {
+    border-top-color: var(--fms-border) !important;
+  }
+  .engine-progress__elapsed {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .report-engine .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     REPORT MONITOR DASHBOARD — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .report-monitor-dashboard {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .report-monitor-dashboard .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .report-monitor-dashboard .m365-btn--text {
+    color: var(--fms-text-secondary) !important;
+  }
+  .report-monitor-dashboard .m365-date {
+    color: var(--fms-text-primary) !important;
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .report-monitor-dashboard .m365-badge--neutral {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .monitor-header {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .monitor-header__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .monitor-header__subtitle {
+    color: var(--fms-text-secondary) !important;
+  }
+  .monitor-stat {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .monitor-stat__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .monitor-stat__value {
+    color: var(--fms-text-primary) !important;
+  }
+  .monitor-format-bar__label {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .monitor-grid-wrap {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .monitor-grid-wrap .dx-datagrid-headers {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .monitor-detail-panel {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .monitor-detail-panel__header {
+    background: var(--fms-surface-secondary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .monitor-detail-panel__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .monitor-detail-panel__id {
+    color: var(--fms-text-tertiary) !important;
+    background: var(--fms-surface-secondary) !important;
+  }
+  .monitor-date-range-box .dx-texteditor.dx-editor-outlined {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .monitor-date-range-box .dx-daterangebox-separator {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .monitor-date-range-box .dx-label {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .monitor-date-range-box .dx-texteditor-input {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     REPORT EXECUTION LOG — precise .exec-log selectors
+     ══════════════════════════════════════════════════════════════ */
+  .exec-log {
+    color: var(--fms-text-primary) !important;
+  }
+  .exec-log--empty {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .exec-log__primary {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .exec-log__field-label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .exec-log__field-value {
+    color: var(--fms-text-primary) !important;
+  }
+  .exec-log__filters-title {
+    color: var(--fms-text-secondary) !important;
+  }
+  .exec-log__filters-grid {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .exec-log__filter-key {
+    color: var(--fms-text-secondary) !important;
+  }
+  .exec-log__filter-val {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     SCHEDULE REPORT PANEL — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .schedule-report-panel {
+    color: var(--fms-text-primary) !important;
+  }
+  .schedule-report-panel__section {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .schedule-report-panel__section-title {
+    color: var(--fms-text-secondary) !important;
+  }
+  .schedule-report-panel__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .schedule-report-panel__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .schedule-report-panel__text-input,
+  .schedule-report-panel__time-input,
+  .schedule-report-panel__email-input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+    &:disabled {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+  .schedule-report-panel__freq-group {
+    border-color: var(--fms-border) !important;
+  }
+  .schedule-report-panel__freq-btn {
+    background: var(--fms-surface) !important;
+    border-right-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+    &--active {
+      background: rgba(0, 120, 212, 0.15) !important;
+      color: #4ea8ff !important;
+    }
+  }
+  .schedule-report-panel__day-btn,
+  .schedule-report-panel__week-btn,
+  .schedule-report-panel__dom-btn {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-secondary) !important;
+    &--active {
+      background: rgba(0, 120, 212, 0.15) !important;
+      color: #4ea8ff !important;
+      border-color: #4ea8ff !important;
+    }
+  }
+  .schedule-report-panel__format-btn {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-secondary) !important;
+    &--active {
+      background: rgba(0, 120, 212, 0.15) !important;
+      color: #4ea8ff !important;
+      border-color: #4ea8ff !important;
+    }
+  }
+  .schedule-report-panel__recipients {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .schedule-report-panel__chip {
+    background: rgba(0, 120, 212, 0.15) !important;
+    border-color: rgba(0, 120, 212, 0.3) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .schedule-report-panel__chip-email {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .schedule-report-panel__chip-remove {
+    color: var(--fms-text-secondary) !important;
+  }
+  .schedule-report-panel__suggestions {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .schedule-report-panel__suggestion-item:hover {
+    background: var(--fms-hover-bg) !important;
+  }
+  .schedule-report-panel__suggestion-name {
+    color: var(--fms-text-primary) !important;
+  }
+  .schedule-report-panel__suggestion-email {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .schedule-report-panel__footer {
+    border-top-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+  .schedule-report-panel__cancel-btn {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     REQUEST REPORT EMAIL PANEL — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .email-report-panel__section-title {
+    color: var(--fms-text-secondary) !important;
+  }
+  .email-report-panel__label {
+    color: var(--fms-text-primary) !important;
+  }
+  .email-report-panel__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .email-report-panel__recipients {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .email-report-panel__chip {
+    background: rgba(0, 120, 212, 0.15) !important;
+    color: #4ea8ff !important;
+    strong { color: var(--fms-text-primary) !important; }
+  }
+  .email-report-panel__chip-email {
+    color: var(--fms-text-secondary) !important;
+  }
+  .email-report-panel__chip-remove {
+    color: var(--fms-text-secondary) !important;
+  }
+  .email-report-panel__email-input {
+    color: var(--fms-text-primary) !important;
+    &::placeholder { color: var(--fms-text-tertiary) !important; }
+  }
+  .email-report-panel__suggestions {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .email-report-panel__suggestion-item:hover {
+    background: var(--fms-hover-bg) !important;
+  }
+  .email-report-panel__suggestion-name {
+    color: var(--fms-text-primary) !important;
+  }
+  .email-report-panel__suggestion-email {
+    color: var(--fms-text-secondary) !important;
+  }
+  .email-report-panel__info-card {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .email-report-panel__info-label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .email-report-panel__info-value {
+    color: var(--fms-text-primary) !important;
+  }
+  .email-report-panel__info-row {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .email-report-panel__format-btn {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+    &:hover { background: var(--fms-hover-bg) !important; }
+  }
+  .email-report-panel__footer {
+    border-top-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+  .email-report-panel__cancel-btn {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     IMPORT MANAGEMENT — precise selectors
+     ══════════════════════════════════════════════════════════════ */
+  .import-mgmt {
+    background: var(--fms-page-bg) !important;
+  }
+  .import-mgmt .m365-page-header {
+    background: var(--fms-surface) !important;
+  }
+  .import-mgmt .m365-page-header__count {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .m365-tabs {
+    background: var(--fms-surface) !important;
+  }
+  .import-mgmt .m365-tab {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .m365-filters {
+    background: var(--fms-surface) !important;
+  }
+  .import-mgmt .m365-search__icon {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .m365-search__input::placeholder {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .m365-select {
+    color: var(--fms-text-primary) !important;
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .m365-icon-btn {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .m365-badge--neutral {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .m365-info-banner__dismiss {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt__col-header {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt__cell {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt__empty {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt__pagination-info {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt__list-header,
+  .import-mgmt__list-body,
+  .import-mgmt__pagination {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .m365-detail-header__meta {
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .m365-info-cell__label {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .m365-info-cell__value {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt .m365-flat-section {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .m365-flat-section__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt .ais-badge--muted {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .import-mgmt .ais-section-divider {
+    color: var(--fms-text-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .ais-field__label {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt .ais-profile-card {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .ais-profile-card__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt .auto-import-settings__hint {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .auto-import-settings__label {
+    color: var(--fms-text-primary) !important;
+  }
+  .import-mgmt .m365-input {
+    color: var(--fms-text-primary) !important;
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .import-mgmt .m365-input::placeholder {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .import-mgmt .ais-panel-footer {
+    background: var(--fms-surface) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     LOCATION RULES SETTINGS — precise .loc-* selectors
+     ══════════════════════════════════════════════════════════════ */
+  .loc-header__subtitle {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-header__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-main-toggle {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-main-toggle__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-main-toggle__desc {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-accordion {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-accordion__header {
+    background: var(--fms-surface) !important;
+  }
+  .loc-accordion__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-accordion__desc {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-accordion__chevron {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .loc-accordion__sub-heading {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-setting-row__icon {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-setting-row__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-setting-row__desc {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .loc-bypass-active__meta {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-bypass-group__label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-bypass-item {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-bypass-item__name {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-bypass-item__meta {
+    color: var(--fms-text-tertiary) !important;
+  }
+  .loc-bypass-form {
+    background: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-bypass-form__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-bypass-form__field label {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-bypass-form .m365-icon-btn {
+    color: var(--fms-text-secondary) !important;
+  }
+
+}

@@ -1,3 +1,12 @@
+/**
+ * File: TemplateManagement.js
+ * Purpose: Template list and CRUD orchestration for expected fuel averages using SlidePanel for create/edit.
+ * Dependencies: react, redux, devextreme-react/data-grid, SlidePanel, TemplateForm
+ * Last Modified: 2026-03-03
+ *
+ * Key Components:
+ * - TemplateManagement: Displays template grid and opens side panel for form operations.
+ */
 import React, { useState, useEffect } from 'react';
 import { useSelector, useDispatch } from 'react-redux';
 import DataGrid, {
@@ -13,8 +22,8 @@ import DataGrid, {
   Export
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { Popup, ScrollView } from 'devextreme-react';
 import notify from 'devextreme/ui/notify';
+import SlidePanel from '../../../../components/ui/SlidePanel';
 
 import {
   fetchTemplates,
@@ -108,9 +117,8 @@ const TemplateManagement = () => {
   // Render measurement type cell
   const renderMeasurementType = (cellData) => {
     return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
-        cellData.value ? 'tw-bg-blue-100 tw-text-blue-800' : 'tw-bg-green-100 tw-text-green-800'
-      }`}>
+      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${cellData.value ? 'tw-bg-blue-100 tw-text-blue-800' : 'tw-bg-green-100 tw-text-green-800'
+        }`}>
         {cellData.value ? 'km/L' : 'L/hr'}
       </span>
     );
@@ -119,9 +127,8 @@ const TemplateManagement = () => {
   // Render active status cell
   const renderActiveStatus = (cellData) => {
     return (
-      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs ${
-        cellData.value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-gray-100 tw-text-gray-600'
-      }`}>
+      <span className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs ${cellData.value ? 'tw-bg-green-100 tw-text-green-800' : 'tw-bg-gray-100 tw-text-gray-600'
+        }`}>
         {cellData.value ? 'Active' : 'Inactive'}
       </span>
     );
@@ -210,40 +217,31 @@ const TemplateManagement = () => {
         />
       </DataGrid>
 
-      {/* Template Form Popup */}
-      <Popup
-        visible={showTemplatePopup}
-        onHiding={() => {
+      <SlidePanel
+        open={showTemplatePopup}
+        onClose={() => {
           setShowTemplatePopup(false);
           setSelectedTemplate(null);
         }}
-        dragEnabled={false}
-        showTitle={true}
         title={selectedTemplate ? 'Edit Template' : 'Create Template'}
-        width="90%"
-        maxWidth={800}
-        height="auto"
-        maxHeight="90%"
-        showCloseButton={true}
+        width={selectedTemplate ? 920 : 1200}
       >
-        <ScrollView width="100%" height="100%">
-          <TemplateForm
-            template={selectedTemplate}
-            vehicleTypes={vehicleTypes}
-            manufacturers={manufacturers}
-            models={models}
-            sites={sites}
-            routes={routes}
-            loadClassifications={loadClassifications}
-            usageIntensities={usageIntensities}
-            onSave={handleTemplateSaved}
-            onCancel={() => {
-              setShowTemplatePopup(false);
-              setSelectedTemplate(null);
-            }}
-          />
-        </ScrollView>
-      </Popup>
+        <TemplateForm
+          template={selectedTemplate}
+          vehicleTypes={vehicleTypes}
+          manufacturers={manufacturers}
+          models={models}
+          sites={sites}
+          routes={routes}
+          loadClassifications={loadClassifications}
+          usageIntensities={usageIntensities}
+          onSave={handleTemplateSaved}
+          onCancel={() => {
+            setShowTemplatePopup(false);
+            setSelectedTemplate(null);
+          }}
+        />
+      </SlidePanel>
     </div>
   );
 };

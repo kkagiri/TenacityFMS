@@ -1,9 +1,9 @@
 /**
  * File: EditTransactionDialog.js
- * Purpose: Direct volume edit dialog for admin users - allows editing volume change
+ * Purpose: Direct volume edit side-panel for admin users - allows editing volume change
  *          and triggers volume history recalculation
- * Dependencies: DevExtreme Popup, NumberBox, TextArea, Button
- * Last Modified: 2025-12-01
+ * Dependencies: SlidePanel, DevExtreme NumberBox, TextArea, Button
+ * Last Modified: 2026-03-04
  *
  * Key Features:
  * - Direct edit of VolumeChange value (admin only)
@@ -11,7 +11,6 @@
  * - Shows transaction details for context
  */
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import Popup from 'devextreme-react/popup';
 import ScrollView from 'devextreme-react/scroll-view';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextArea } from 'devextreme-react/text-area';
@@ -20,6 +19,7 @@ import { LoadIndicator } from 'devextreme-react/load-indicator';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
 
+import SlidePanel from '../../../../../components/ui/SlidePanel';
 import { VolumeChangeReasonEnum } from './transactionHubConstants';
 import transactionEditService from '../../../../../services/transactionEditService';
 
@@ -83,7 +83,6 @@ export const EditTransactionDialog = ({
 
   // Safe close function - delays to avoid React/DevExtreme conflicts
   const safeClose = useCallback((successCallback) => {
-    // Use setTimeout to let DevExtreme complete its render cycle
     setTimeout(() => {
       if (isMountedRef.current) {
         if (successCallback) {
@@ -149,7 +148,7 @@ export const EditTransactionDialog = ({
         // Reset updating state first
         setIsUpdating(false);
 
-        // Then close with callback - using safe close to avoid DOM conflicts
+        // Then close with callback
         safeClose(() => {
           if (onSuccess) {
             onSuccess(result.data);
@@ -182,174 +181,165 @@ export const EditTransactionDialog = ({
   const volumeDiff = volumeChange - (transaction?.volumeChange || 0);
 
   return (
-    <Popup
-      visible={visible}
-      onHiding={handleCancel}
-      showTitle={true}
+    <SlidePanel
+      open={visible}
+      onClose={handleCancel}
       title="Edit Transaction (Admin)"
-      width="auto"
-      minWidth={300}
-      maxWidth={500}
-      height="auto"
-      maxHeight="90vh"
-      showCloseButton={!isUpdating}
-      dragEnabled={!isUpdating}
-      hideOnOutsideClick={false}
-      wrapperAttr={{ class: 'edit-transaction-popup' }}
+      width={520}
     >
       <ScrollView height="100%" width="100%" showScrollbar="onScroll">
-        <div className="tw-p-4">
-        {/* Not Editable */}
-        {!isEditable && (
-          <>
-            <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-4 tw-mb-4">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-exclamation-triangle tw-text-yellow-600 tw-text-xl tw-mr-3"></i>
-                <div>
-                  <h4 className="tw-font-semibold tw-text-yellow-800 tw-mb-1">Cannot Edit</h4>
-                  <p className="tw-text-yellow-700 tw-text-sm">
-                    Transactions of type "{typeName}" cannot be edited.
+        <div className="tw-p-4 tw-relative edit-transaction-panel">
+          {/* Not Editable */}
+          {!isEditable && (
+            <>
+              <div className="tw-rounded-lg tw-p-4 tw-mb-4 edit-dialog-warning" style={{ background: 'var(--delete-warning-bg, #fffbeb)', border: '1px solid var(--delete-warning-border, #fde68a)' }}>
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-exclamation-triangle tw-text-xl tw-mr-3" style={{ color: 'var(--delete-warning-icon, #d97706)' }}></i>
+                  <div>
+                    <h4 className="tw-font-semibold tw-mb-1" style={{ color: 'var(--delete-warning-title, #92400e)' }}>Cannot Edit</h4>
+                    <p className="tw-text-sm" style={{ color: 'var(--delete-warning-text, #b45309)' }}>
+                      Transactions of type "{typeName}" cannot be edited.
+                    </p>
+                  </div>
+                </div>
+              </div>
+              <div className="tw-flex tw-justify-end tw-pt-2">
+                <Button text="Close" onClick={handleCancel} stylingMode="outlined" />
+              </div>
+            </>
+          )}
+
+          {/* Edit Form */}
+          {isEditable && (
+            <>
+              {/* Transaction Info */}
+              <div className="tw-rounded-lg tw-p-3 tw-mb-4 edit-dialog-info" style={{ background: 'var(--fms-surface-secondary, #f9fafb)', border: '1px solid var(--fms-border, #e5e7eb)' }}>
+                <h5 className="tw-font-medium tw-mb-2 tw-text-sm" style={{ color: 'var(--fms-text-secondary, #374151)' }}>
+                  <i className="fa-light fa-info-circle tw-mr-1"></i>
+                  Transaction Details
+                </h5>
+                <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-text-sm">
+                  <div>
+                    <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>ID:</span>
+                    <span className="tw-ml-1 tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>{transaction?.id}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>Type:</span>
+                    <span className="tw-ml-1 tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>{typeName}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>Tank:</span>
+                    <span className="tw-ml-1 tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>{tankName}</span>
+                  </div>
+                  <div>
+                    <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>Date:</span>
+                    <span className="tw-ml-1 tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>
+                      {transaction?.timestamp ? new Date(transaction.timestamp).toLocaleString() : 'N/A'}
+                    </span>
+                  </div>
+                  <div className="tw-col-span-2">
+                    <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>Current Volume:</span>
+                    <span className="tw-ml-1 tw-font-medium" style={{ color: 'var(--fms-text-primary, #374151)' }}>
+                      {(transaction?.newVolume || 0).toLocaleString()} L
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Volume Change Input */}
+              <div className="tw-mb-4">
+                <label className="tw-block tw-text-sm tw-font-medium tw-mb-1" style={{ color: 'var(--fms-text-primary, #374151)' }}>
+                  Volume Change (Liters) <span className="tw-text-red-500">*</span>
+                </label>
+                <NumberBox
+                  value={volumeChange}
+                  onValueChanged={(e) => setVolumeChange(e.value)}
+                  format="#,##0.00"
+                  showSpinButtons={true}
+                  disabled={isUpdating}
+                  width="100%"
+                />
+                <div className="tw-flex tw-justify-between tw-mt-1 tw-text-xs">
+                  <span style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>
+                    Original: {(transaction?.volumeChange || 0).toLocaleString()} L
+                  </span>
+                  {volumeDiff !== 0 && (
+                    <span className={volumeDiff > 0 ? 'tw-text-green-600' : 'tw-text-red-600'}>
+                      Difference: {volumeDiff > 0 ? '+' : ''}{volumeDiff.toLocaleString()} L
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Recalculate Checkbox */}
+              <div className="tw-mb-4 tw-rounded-lg tw-p-3 edit-dialog-recalc" style={{ background: 'var(--edit-recalc-bg, #eff6ff)', border: '1px solid var(--edit-recalc-border, #bfdbfe)' }}>
+                <CheckBox
+                  value={recalculateHistory}
+                  onValueChanged={(e) => setRecalculateHistory(e.value)}
+                  disabled={isUpdating}
+                  text="Recalculate volume history after update"
+                />
+                <p className="tw-text-xs tw-mt-2 tw-ml-6" style={{ color: 'var(--edit-recalc-text, #1d4ed8)' }}>
+                  <i className="fa-light fa-info-circle tw-mr-1"></i>
+                  When enabled, all subsequent volume records will be recalculated.
+                </p>
+              </div>
+
+              {/* Update Reason */}
+              <div className="tw-mb-4">
+                <label className="tw-block tw-text-sm tw-font-medium tw-mb-1" style={{ color: 'var(--fms-text-primary, #374151)' }}>
+                  Reason for Update <span className="tw-text-red-500">*</span>
+                </label>
+                <TextArea
+                  value={updateReason}
+                  onValueChanged={(e) => setUpdateReason(e.value)}
+                  placeholder="Enter the reason for this update (required)"
+                  height={80}
+                  disabled={isUpdating}
+                />
+              </div>
+
+              {/* Warning */}
+              <div className="tw-rounded-lg tw-p-3 tw-mb-4 edit-dialog-admin-warning" style={{ background: 'var(--edit-admin-warning-bg, #fff7ed)', border: '1px solid var(--edit-admin-warning-border, #fed7aa)' }}>
+                <div className="tw-flex tw-items-start">
+                  <i className="fa-light fa-exclamation-triangle tw-mr-2 tw-mt-0.5" style={{ color: 'var(--edit-admin-warning-icon, #f97316)' }}></i>
+                  <p className="tw-text-xs" style={{ color: 'var(--edit-admin-warning-text, #c2410c)' }}>
+                    <strong>Warning:</strong> This is an admin override. Editing this transaction will affect
+                    the volume history and may impact reporting accuracy. Ensure this change is necessary.
                   </p>
                 </div>
               </div>
-            </div>
-            <div className="tw-flex tw-justify-end tw-pt-2">
-              <Button text="Close" onClick={handleCancel} stylingMode="outlined" />
-            </div>
-          </>
-        )}
 
-        {/* Edit Form */}
-        {isEditable && (
-          <>
-            {/* Transaction Info */}
-            <div className="tw-bg-gray-50 tw-rounded-lg tw-p-3 tw-mb-4">
-              <h5 className="tw-font-medium tw-text-gray-700 tw-mb-2 tw-text-sm">
-                <i className="fa-light fa-info-circle tw-mr-1"></i>
-                Transaction Details
-              </h5>
-              <div className="tw-grid tw-grid-cols-2 tw-gap-2 tw-text-sm">
-                <div>
-                  <span className="tw-text-gray-500">ID:</span>
-                  <span className="tw-ml-1 tw-font-medium">{transaction?.id}</span>
-                </div>
-                <div>
-                  <span className="tw-text-gray-500">Type:</span>
-                  <span className="tw-ml-1 tw-font-medium">{typeName}</span>
-                </div>
-                <div>
-                  <span className="tw-text-gray-500">Tank:</span>
-                  <span className="tw-ml-1 tw-font-medium">{tankName}</span>
-                </div>
-                <div>
-                  <span className="tw-text-gray-500">Date:</span>
-                  <span className="tw-ml-1 tw-font-medium">
-                    {transaction?.timestamp ? new Date(transaction.timestamp).toLocaleString() : 'N/A'}
-                  </span>
-                </div>
-                <div className="tw-col-span-2">
-                  <span className="tw-text-gray-500">Current Volume:</span>
-                  <span className="tw-ml-1 tw-font-medium">
-                    {(transaction?.newVolume || 0).toLocaleString()} L
-                  </span>
-                </div>
+              {/* Action Buttons */}
+              <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-3 edit-dialog-actions" style={{ borderTop: '1px solid var(--fms-border, #e5e7eb)' }}>
+                <Button
+                  text="Cancel"
+                  onClick={handleCancel}
+                  stylingMode="outlined"
+                  disabled={isUpdating}
+                />
+                <Button
+                  text={isUpdating ? "Updating..." : "Update Transaction"}
+                  onClick={handleUpdate}
+                  type="default"
+                  disabled={isUpdating || !updateReason.trim()}
+                />
               </div>
-            </div>
 
-            {/* Volume Change Input */}
-            <div className="tw-mb-4">
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Volume Change (Liters) <span className="tw-text-red-500">*</span>
-              </label>
-              <NumberBox
-                value={volumeChange}
-                onValueChanged={(e) => setVolumeChange(e.value)}
-                format="#,##0.00"
-                showSpinButtons={true}
-                disabled={isUpdating}
-                width="100%"
-              />
-              <div className="tw-flex tw-justify-between tw-mt-1 tw-text-xs">
-                <span className="tw-text-gray-500">
-                  Original: {(transaction?.volumeChange || 0).toLocaleString()} L
-                </span>
-                {volumeDiff !== 0 && (
-                  <span className={volumeDiff > 0 ? 'tw-text-green-600' : 'tw-text-red-600'}>
-                    Difference: {volumeDiff > 0 ? '+' : ''}{volumeDiff.toLocaleString()} L
-                  </span>
-                )}
-              </div>
-            </div>
-
-            {/* Recalculate Checkbox */}
-            <div className="tw-mb-4 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-3">
-              <CheckBox
-                value={recalculateHistory}
-                onValueChanged={(e) => setRecalculateHistory(e.value)}
-                disabled={isUpdating}
-                text="Recalculate volume history after update"
-              />
-              <p className="tw-text-xs tw-text-blue-700 tw-mt-2 tw-ml-6">
-                <i className="fa-light fa-info-circle tw-mr-1"></i>
-                When enabled, all subsequent volume records will be recalculated.
-              </p>
-            </div>
-
-            {/* Update Reason */}
-            <div className="tw-mb-4">
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1">
-                Reason for Update <span className="tw-text-red-500">*</span>
-              </label>
-              <TextArea
-                value={updateReason}
-                onValueChanged={(e) => setUpdateReason(e.value)}
-                placeholder="Enter the reason for this update (required)"
-                height={80}
-                disabled={isUpdating}
-              />
-            </div>
-
-            {/* Warning */}
-            <div className="tw-bg-orange-50 tw-border tw-border-orange-200 tw-rounded-lg tw-p-3 tw-mb-4">
-              <div className="tw-flex tw-items-start">
-                <i className="fa-light fa-exclamation-triangle tw-text-orange-500 tw-mr-2 tw-mt-0.5"></i>
-                <p className="tw-text-orange-700 tw-text-xs">
-                  <strong>Warning:</strong> This is an admin override. Editing this transaction will affect
-                  the volume history and may impact reporting accuracy. Ensure this change is necessary.
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2 tw-border-t tw-border-gray-200">
-              <Button
-                text="Cancel"
-                onClick={handleCancel}
-                stylingMode="outlined"
-                disabled={isUpdating}
-              />
-              <Button
-                text={isUpdating ? "Updating..." : "Update Transaction"}
-                onClick={handleUpdate}
-                type="default"
-                disabled={isUpdating || !updateReason.trim()}
-              />
-            </div>
-
-            {/* Loading Overlay */}
-            {isUpdating && (
-              <div className="tw-absolute tw-inset-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-rounded-lg">
-                <div className="tw-flex tw-items-center tw-gap-2">
-                  <LoadIndicator visible={true} height={24} width={24} />
-                  <span className="tw-text-gray-600">Updating...</span>
+              {/* Loading Overlay */}
+              {isUpdating && (
+                <div className="tw-absolute tw-inset-0 tw-bg-opacity-75 tw-flex tw-items-center tw-justify-center tw-rounded-lg" style={{ background: 'var(--fms-surface, rgba(255,255,255,0.75))' }}>
+                  <div className="tw-flex tw-items-center tw-gap-2">
+                    <LoadIndicator visible={true} height={24} width={24} />
+                    <span style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>Updating...</span>
+                  </div>
                 </div>
-              </div>
-            )}
-          </>
-        )}
+              )}
+            </>
+          )}
         </div>
       </ScrollView>
-    </Popup>
+    </SlidePanel>
   );
 };
 

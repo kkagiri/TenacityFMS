@@ -74,4 +74,5 @@ public class UserDto
     public int? DepartmentId { get; set; }
     public string DepartmentName { get; set; }
     public bool? IsDeleted { get; set; }
+    public DateTime? LastLogin { get; set; }
 }

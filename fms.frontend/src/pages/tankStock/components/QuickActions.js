@@ -124,7 +124,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
     const actionKey = e.itemData.key;
     setCurrentForm(actionKey);
     setPopupVisibility((prev) => ({ ...prev, [actionKey]: true }));
-  }, []);  const handlePopupVisibility = useCallback((popupName, isVisible) => {
+  }, []); const handlePopupVisibility = useCallback((popupName, isVisible) => {
     setPopupVisibility((prev) => ({ ...prev, [popupName]: isVisible }));
     if (!isVisible) {
       setCurrentForm(null);
@@ -235,7 +235,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         submitHandler = handleManualRefillSubmit;
         break;
       default:
-        submitHandler = () => {};
+        submitHandler = () => { };
     }
 
     return (
@@ -267,6 +267,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
           icon="fa-light fa-plus"
           dropDownOptions={{
             width: 200,
+            wrapperAttr: { class: "transaction-hub-stock-menu" },
           }}
           items={stockManagementItems}
           onItemClick={handleStockManagementClick}
@@ -289,6 +290,7 @@ const QuickActions = ({ collapsed = false, onRefreshData }) => {
         icon="fa-light fa-plus"
         dropDownOptions={{
           width: 250,
+          wrapperAttr: { class: "transaction-hub-stock-menu" },
         }}
         items={stockManagementItems}
         onItemClick={handleStockManagementClick}

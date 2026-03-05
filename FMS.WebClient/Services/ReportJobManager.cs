@@ -372,7 +372,7 @@ namespace FMS.WebClient.Services
                         var contentType = job.OutputFormat.ToLower() switch
                         {
                             "excel" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                            "html"  => "text/html",
+                            "html" => "text/html",
                             _ => "application/pdf"
                         };
                         var fileName = $"{SanitizeFileName(job.ReportTitle)}_{DateTime.Now:yyyyMMdd}.{ext}";
@@ -603,7 +603,24 @@ namespace FMS.WebClient.Services
                     dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
                     generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
                     reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                    summary = new { totalTransactions = 0, totalDispensed = "0.00", totalTransfer = "0.00", totalDelivery = "0.00", netBalanceChange = "0.00", grandClosingBalance = "0.00", totalVariance = new { value = "0.00", formatted = "+0.00", isNegative = false } },
+                    summary = new
+                    {
+                        totalTransactions = 0,
+                        totalDispensed = "0.00",
+                        totalTransfer = "0.00",
+                        totalDelivery = "0.00",
+                        netBalanceChange = "0.00",
+                        grandClosingBalance = "0.00",
+                        totalVariance = new { value = "0.00", formatted = "+0.00", isNegative = false },
+                        trends = new
+                        {
+                            transactions = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
+                            dispensed = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
+                            transfer = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
+                            delivery = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
+                            variance = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
+                        },
+                    },
                     siteGroups = Array.Empty<object>(),
                 };
                 return JToken.FromObject(emptyPayload);
@@ -645,6 +662,54 @@ namespace FMS.WebClient.Services
                 var tankName = tankRecords[0].TankName ?? $"Tank {group.Key}";
                 var siteName = tankRecords[0].Site ?? "—";
 
+                List<object> BuildLast2DispensingDays(
+                    List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> tankAllRecords,
+                    List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> tankDispensingRecords,
+                    int maxPreviousDays = 3)
+                {
+                    if (tankAllRecords == null || tankAllRecords.Count == 0)
+                        return new List<object>();
+
+                    var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+                    var dispensingByDate = tankDispensingRecords
+                        .GroupBy(r => r.Timestamp.AddHours(3).Date)
+                        .ToDictionary(g => g.Key, g => g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)));
+
+                    var anchorDate = tankAllRecords.Max(r => r.Timestamp.AddHours(3).Date);
+                    var targets = new[] { anchorDate.AddDays(-2), anchorDate.AddDays(-1) };
+                    var used = new HashSet<DateTime>();
+                    var result = new List<object>();
+
+                    foreach (var target in targets)
+                    {
+                        DateTime? selected = null;
+                        for (var offset = 0; offset <= maxPreviousDays; offset++)
+                        {
+                            var candidate = target.AddDays(-offset);
+                            if (dispensingByDate.ContainsKey(candidate) && !used.Contains(candidate))
+                            {
+                                selected = candidate;
+                                used.Add(candidate);
+                                break;
+                            }
+                        }
+
+                        if (!selected.HasValue) continue;
+
+                        var selectedDate = selected.Value;
+                        var value = dispensingByDate[selectedDate];
+                        result.Add(new
+                        {
+                            date = selectedDate.ToString("yyyy-MM-dd"),
+                            label = dayNames[(int)selectedDate.DayOfWeek],
+                            value,
+                            formatted = value.ToString("N2"),
+                        });
+                    }
+
+                    return result;
+                }
+
                 // Opening = NewVolume of first record minus its VolumeChange
                 var firstRec = tankRecords[0];
                 var openingBal = (firstRec.NewVolume ?? 0m) - (firstRec.VolumeChange ?? 0m);
@@ -676,6 +741,20 @@ namespace FMS.WebClient.Services
                 var tankVariance = closingBal - expectedClosing;
                 globalTotalVariance += tankVariance;
 
+                // ── Last 2 days consumption trend (sparkline data) ─────────────
+                var dispensingRecords = tankRecords
+                    .Where(r => (int)r.ChangeReason == 6 || (int)r.ChangeReason == 7)
+                    .ToList();
+                var trendDays = BuildDailyConsumptionTrend(dispensingRecords, 2);
+                var trendDirection = trendDays.Count >= 2
+                    ? (trendDays[^1].Value > trendDays[^2].Value ? "up"
+                       : trendDays[^1].Value < trendDays[^2].Value ? "down" : "flat")
+                    : "flat";
+                     var last2DispensingDays = BuildLast2DispensingDays(tankRecords, dispensingRecords, 3);
+
+                var trendMaxVal = trendDays.Count > 0 ? trendDays.Max(d => d.Value) : 1m;
+                if (trendMaxVal == 0m) trendMaxVal = 1m;
+
                 var tankEntry = new
                 {
                     tankName = tankName,
@@ -693,7 +772,21 @@ namespace FMS.WebClient.Services
                             ? ((tankVariance / openingBal) * 100m).ToString("N1")
                             : "0.0",
                     },
-                    dispensing = new { total = dispensingTotal.ToString("N2"), count = dispensingCount },
+                    consumptionTrend = new
+                    {
+                        days = trendDays.Select(d => new
+                        {
+                            label = d.Label,
+                            date = d.Date,
+                            value = d.Value,
+                            formatted = d.Value.ToString("N2"),
+                            barHeight = Math.Max((int)Math.Round(d.Value / trendMaxVal * 100m), 15),
+                        }).ToList(),
+                        direction = trendDirection,
+                        isUp = trendDirection == "up",
+                        isDown = trendDirection == "down",
+                    },
+                    dispensing = new { total = dispensingTotal.ToString("N2"), count = dispensingCount, last2Days = last2DispensingDays },
                     delivery = new { total = deliveryTotal.ToString("N2"), count = deliveryCount },
                     transfer = new { total = Math.Abs(transferInTotal - transferOutTotal).ToString("N2"), count = transferCount },
                 };
@@ -758,11 +851,32 @@ namespace FMS.WebClient.Services
 
             var siteGroupsPayload = siteMap
                 .OrderBy(kv => kv.Key)
-                .Select(kv => (object)new
+                .Select(kv =>
                 {
-                    siteName = kv.Key,
-                    tanks = kv.Value.Tanks,
-                    transactionGroups = kv.Value.TxGroups,
+                    // Compute site-level average daily consumption
+                    var siteRecords = records.Where(r => string.Equals(r.Site, kv.Key, StringComparison.OrdinalIgnoreCase)).ToList();
+                    var siteTotalDispensing = siteRecords
+                        .Where(r => _dispensingReasons.Contains((int)r.ChangeReason))
+                        .Sum(r => Math.Abs(r.VolumeChange ?? 0m));
+                    var uniqueDays = siteRecords
+                        .Select(r => r.Timestamp.AddHours(3).Date)
+                        .Distinct()
+                        .Count();
+                    if (uniqueDays == 0) uniqueDays = 1;
+                    var avgDailyConsumption = siteTotalDispensing / uniqueDays;
+
+                    return (object)new
+                    {
+                        siteName = kv.Key,
+                        tanks = kv.Value.Tanks,
+                        transactionGroups = kv.Value.TxGroups,
+                        siteSummary = new
+                        {
+                            totalDispensing = siteTotalDispensing.ToString("N2"),
+                            avgDailyConsumption = avgDailyConsumption.ToString("N2"),
+                            daysInPeriod = uniqueDays,
+                        },
+                    };
                 })
                 .ToList();
 
@@ -779,6 +893,72 @@ namespace FMS.WebClient.Services
             var reportSubtitle = $"{tankFilterName} - {siteFilterName}";
 
             // ── Assemble final payload ────────────────────────────────────────────
+            object BuildFiveDaySparkTrend(
+                IEnumerable<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> source,
+                Func<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO, decimal> valueSelector)
+            {
+                if (source == null)
+                    return new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" };
+
+                var dailySource = source
+                    .GroupBy(r => r.Timestamp.AddHours(3).Date)
+                    .Select(g => new { Date = g.Key, Value = g.Sum(valueSelector) })
+                    .OrderBy(x => x.Date)
+                    .ToList();
+
+                if (dailySource.Count == 0)
+                    return new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" };
+
+                var latestDate = dailySource[^1].Date;
+                var dailyMap = dailySource.ToDictionary(x => x.Date, x => x.Value);
+                var daily = new List<(DateTime Date, decimal Value)>();
+                for (var offset = 4; offset >= 0; offset--)
+                {
+                    var date = latestDate.AddDays(-offset);
+                    daily.Add((date, dailyMap.TryGetValue(date, out var value) ? value : 0m));
+                }
+
+                var last = daily[^1].Value;
+                var previous = daily[^2].Value;
+                var direction = last > previous ? "rise" : last < previous ? "fall" : "neutral";
+
+                var values = daily.Select(d => d.Value).ToList();
+                var minVal = values.Min();
+                var maxVal = values.Max();
+                int ToY(decimal value)
+                {
+                    if (maxVal == minVal) return 8;
+                    var normalized = (value - minVal) / (maxVal - minVal);
+                    return (int)Math.Round(14m - (normalized * 10m));
+                }
+
+                var xPoints = new[] { 2, 7, 12, 17, 22 };
+                var polylinePoints = string.Join(" ", daily.Select((d, idx) => $"{xPoints[idx]},{ToY(d.Value)}"));
+
+                return new
+                {
+                    direction,
+                    isUp = direction == "rise",
+                    isDown = direction == "fall",
+                    points = polylinePoints,
+                };
+            }
+
+            var summaryTrends = new
+            {
+                transactions = BuildFiveDaySparkTrend(records, _ => 1m),
+                dispensed = BuildFiveDaySparkTrend(records, r => _dispensingReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
+                transfer = BuildFiveDaySparkTrend(records, r => _transferReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
+                delivery = BuildFiveDaySparkTrend(records, r => _deliveryReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
+                variance = BuildFiveDaySparkTrend(records, r =>
+                {
+                    var vol = Math.Abs(r.VolumeChange ?? 0m);
+                    if (_deliveryReasons.Contains((int)r.ChangeReason) || _transferReasons.Contains((int)r.ChangeReason)) return vol;
+                    if (_dispensingReasons.Contains((int)r.ChangeReason)) return -vol;
+                    return 0m;
+                }),
+            };
+
             // Wrap in JToken to ensure anonymous types inside List<object> serialize
             // correctly regardless of the JSON serializer (System.Text.Json loses
             // anonymous type properties when the declared type is 'object').
@@ -805,6 +985,7 @@ namespace FMS.WebClient.Services
                         formatted = globalTotalVariance.ToString("+0.00;-0.00;0.00"),
                         isNegative = globalTotalVariance < 0,
                     },
+                    trends = summaryTrends,
                 },
                 siteGroups = siteGroupsPayload,
             };
@@ -1016,6 +1197,41 @@ namespace FMS.WebClient.Services
             return parts.Count > 0 ? string.Join(" · ", parts) : "";
         }
 
+        /// <summary>
+        /// Builds daily consumption totals for the last N days from dispensing records.
+        /// Returns a list of (Label, Date, Value) sorted oldest→newest.
+        /// </summary>
+        private static List<(string Label, string Date, decimal Value)> BuildDailyConsumptionTrend(
+            List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> dispensingRecords,
+            int numDays = 2)
+        {
+            if (dispensingRecords == null || dispensingRecords.Count == 0)
+                return new List<(string, string, decimal)>();
+
+            var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
+
+            // Group by date (EAT = UTC+3)
+            var dailyMap = new Dictionary<string, decimal>();
+            foreach (var r in dispensingRecords)
+            {
+                var eatDate = r.Timestamp.AddHours(3).Date;
+                var key = eatDate.ToString("yyyy-MM-dd");
+                if (!dailyMap.ContainsKey(key)) dailyMap[key] = 0m;
+                dailyMap[key] += Math.Abs(r.VolumeChange ?? 0m);
+            }
+
+            // Sort dates, take last N
+            return dailyMap
+                .OrderBy(kv => kv.Key)
+                .TakeLast(numDays)
+                .Select(kv =>
+                {
+                    var d = DateTime.Parse(kv.Key);
+                    return (dayNames[(int)d.DayOfWeek], kv.Key, kv.Value);
+                })
+                .ToList();
+        }
+
         // ──────────────────────────────────────────────────────
         //  Helpers
         // ──────────────────────────────────────────────────────
@@ -1113,10 +1329,10 @@ namespace FMS.WebClient.Services
         {
             var formatBadge = job.OutputFormat.ToUpper() switch
             {
-                "PDF"   => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#deecf9;color:#0078d4;'>PDF</span>",
+                "PDF" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#deecf9;color:#0078d4;'>PDF</span>",
                 "EXCEL" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#dff6dd;color:#107c10;'>EXCEL</span>",
-                "HTML"  => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fff4ce;color:#ca5010;'>HTML</span>",
-                _       => $"<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f3f2f1;color:#605e5c;'>{job.OutputFormat.ToUpper()}</span>"
+                "HTML" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fff4ce;color:#ca5010;'>HTML</span>",
+                _ => $"<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f3f2f1;color:#605e5c;'>{job.OutputFormat.ToUpper()}</span>"
             };
 
             return $@"

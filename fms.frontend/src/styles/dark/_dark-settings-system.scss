@@ -1,0 +1,118 @@
+// _dark-settings-system.scss
+// Lines 889-1000 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     PIVOT GRID
+     ================================================================ */
+  .dx-pivotgrid {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .dx-pivotgrid-area {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ================================================================
+     FILTER BUILDER / FILTER ROW
+     ================================================================ */
+  .dx-filterbuilder {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ================================================================
+     TAG BOX
+     ================================================================ */
+  .dx-tagbox {
+    .dx-tag {
+      background-color: var(--fms-active-bg) !important;
+      color: var(--fms-text-primary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ================================================================
+     ACCORDION
+     ================================================================ */
+  .dx-accordion {
+    background-color: var(--fms-surface) !important;
+
+    .dx-accordion-item {
+      border-color: var(--fms-border) !important;
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-accordion-item-title {
+      background-color: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ================================================================
+     MISCELLANEOUS elements with hardcoded backgrounds
+     ================================================================ */
+
+  /* Headings */
+  h1, h2, h3, h4, h5, h6 {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Labels, descriptions */
+  label,
+  .dx-field-item-label {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  /* Breadcrumb */
+  .breadcrumb,
+  [class*="breadcrumb"] {
+    color: var(--fms-text-secondary) !important;
+
+    a {
+      color: #60a5fa !important;
+    }
+  }
+
+  /* Badge overrides — keep background color but ensure text contrast */
+  .dx-badge {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Loading overlay */
+  .dx-loadpanel-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .dx-loadpanel-message {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-loadindicator-icon .dx-loadindicator-segment {
+    background-color: #0078d4 !important;
+  }
+
+  /* ================================================================
+     NATIVE HTML SELECT / INPUT (filter dropdowns, etc.)
+     ================================================================ */
+  select,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea {
+    background-color: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ================================================================
+     SCROLLVIEW / LAYOUT BODY
+     ================================================================ */
+}

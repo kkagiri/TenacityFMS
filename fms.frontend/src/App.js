@@ -43,6 +43,8 @@ import ErrorBoundary from "./pages/ATG/fuelingprocess/Components/ErrorBoundary";
 import webPushNotificationService from "./services/webPushNotificationService";
 import { initCrossTabAuthSync, cleanupCrossTabAuthSync } from "./utils/crossTabAuthSync";
 import store from "./store";
+import { ThemeProvider } from "./contexts/themeContext";
+import "./styles/dark-theme.scss";
 
 function App() {
   const dispatch = useDispatch();
@@ -142,13 +144,15 @@ export default function Root() {
 
   return (
     <GlobalErrorBoundary>
-      <AuthProvider>
-        <NavigationProvider>
-          <div className={`app ${screenSizeClass}`}>
-            <App />
-          </div>
-        </NavigationProvider>
-      </AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
+          <NavigationProvider>
+            <div className={`app ${screenSizeClass}`}>
+              <App />
+            </div>
+          </NavigationProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </GlobalErrorBoundary>
   );
 }

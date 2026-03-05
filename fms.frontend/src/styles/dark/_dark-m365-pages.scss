@@ -1,0 +1,564 @@
+// _dark-m365-pages.scss
+// Lines 2934-3281 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     PAGE-LEVEL & MODULE DARK OVERRIDES
+     Comprehensive fix for dark text on dark background
+     ================================================================ */
+
+  /* ── M365 Design Token overrides (ImportManagement, UserList, Forms) ── */
+  .m365-page-header {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+
+    &__title { color: var(--fms-text-primary) !important; }
+    &__count { background: #333 !important; color: var(--fms-text-secondary) !important; }
+  }
+
+  .m365-tabs {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .m365-tab {
+    color: var(--fms-text-secondary) !important;
+    &:hover { color: var(--fms-text-primary) !important; }
+    &--active { color: #4aa3df !important; }
+  }
+
+  .m365-filters {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .m365-search__input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+    &::placeholder { color: var(--fms-text-tertiary) !important; }
+  }
+
+  .m365-select {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+    &::placeholder { color: var(--fms-text-tertiary) !important; }
+  }
+
+  .m365-btn {
+    &--ghost {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      border-color: var(--fms-border) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .m365-icon-btn {
+    color: var(--fms-text-secondary) !important;
+    &:hover {
+      color: #4aa3df !important;
+      background: rgba(0, 120, 212, 0.12) !important;
+      border-color: #4aa3df !important;
+    }
+    &--danger:hover {
+      background: rgba(209, 52, 56, 0.15) !important;
+    }
+  }
+
+  .m365-btn-group {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+
+    &__item {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      &:not(:last-child)::after { background: var(--fms-border) !important; }
+      &:hover { background: var(--fms-hover-bg) !important; }
+      &--active { background: rgba(0, 120, 212, 0.15) !important; }
+    }
+  }
+
+  .m365-badge {
+    &--neutral { background: #333 !important; color: var(--fms-text-secondary) !important; }
+    &--primary { background: rgba(0, 120, 212, 0.15) !important; }
+    &--success { background: rgba(16, 124, 16, 0.15) !important; }
+    &--error { background: rgba(209, 52, 56, 0.15) !important; }
+    &--warning { background: rgba(202, 80, 16, 0.15) !important; }
+  }
+
+  .m365-info-banner {
+    background: rgba(0, 120, 212, 0.1) !important;
+    border-color: rgba(0, 120, 212, 0.3) !important;
+
+    &__text { color: var(--fms-text-primary) !important; }
+    &__dismiss { color: var(--fms-text-secondary) !important; }
+
+    &--error {
+      background: rgba(209, 52, 56, 0.1) !important;
+      border-color: rgba(209, 52, 56, 0.3) !important;
+    }
+    &--success {
+      background: rgba(16, 124, 16, 0.1) !important;
+      border-color: rgba(16, 124, 16, 0.3) !important;
+    }
+  }
+
+  .m365-stat-item {
+    border-right-color: var(--fms-border) !important;
+    &__value { color: var(--fms-text-primary) !important; }
+    &__label { color: var(--fms-text-secondary) !important; }
+  }
+
+  .m365-stats-row {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .m365-list-area {
+    background: var(--fms-page-bg) !important;
+  }
+
+  .m365-empty {
+    &__title { color: var(--fms-text-secondary) !important; }
+    &__subtitle { color: var(--fms-text-tertiary) !important; }
+  }
+
+  .m365-datagrid-wrap {
+    .dx-datagrid-headers {
+      background: var(--fms-surface-secondary) !important;
+      .dx-datagrid-text-content { color: var(--fms-text-secondary) !important; }
+    }
+    .dx-data-row {
+      color: var(--fms-text-primary) !important;
+      td { border-bottom-color: var(--fms-border) !important; }
+      &:hover td { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  /* ── M365 Detail panel & sections (ImportManagement) ─────────── */
+  .m365-flat-section {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+
+    &__title {
+      color: var(--fms-text-primary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+  }
+
+  .m365-detail-header {
+    &__name { color: var(--fms-text-primary) !important; }
+    &__meta { color: var(--fms-text-secondary) !important; }
+  }
+
+  .m365-info-cell {
+    border-bottom-color: var(--fms-border) !important;
+    &__label { color: var(--fms-text-tertiary) !important; }
+    &__value { color: var(--fms-text-primary) !important; }
+  }
+
+  .import-mgmt {
+    background: var(--fms-page-bg) !important;
+
+    &__list-header {
+      background: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    &__col-header { color: var(--fms-text-secondary) !important; }
+    &__list-body { background: var(--fms-surface) !important; }
+
+    &__row {
+      border-bottom-color: var(--fms-border) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+      &--selected {
+        background: rgba(0, 120, 212, 0.15) !important;
+        &:hover { background: rgba(0, 120, 212, 0.2) !important; }
+      }
+    }
+
+    &__cell { color: var(--fms-text-primary) !important; }
+    &__empty { color: var(--fms-text-tertiary) !important; }
+
+    &__pagination {
+      background: var(--fms-surface) !important;
+      border-top-color: var(--fms-border) !important;
+    }
+
+    &__pagination-info { color: var(--fms-text-secondary) !important; }
+  }
+
+  .import-mgmt-error-box {
+    background: rgba(209, 52, 56, 0.1) !important;
+  }
+
+  /* ── Auto-Import Settings (ImportManagement) ───────────────── */
+  .ais-panel-content { background: var(--fms-surface) !important; }
+  .ais-panel-footer {
+    background: var(--fms-surface) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+  .ais-profile-card {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    &__header { border-bottom-color: var(--fms-border) !important; }
+    &__title { color: var(--fms-text-primary) !important; }
+  }
+  .ais-badge--muted {
+    background: #333 !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .ais-field__label { color: var(--fms-text-primary) !important; }
+  .ais-section-divider {
+    border-top-color: var(--fms-border) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+  .auto-import-settings {
+    &__label { color: var(--fms-text-primary) !important; }
+    &__hint { color: var(--fms-text-tertiary) !important; }
+    &__sub-options { border-left-color: var(--fms-border) !important; }
+    &__actions { border-top-color: var(--fms-border) !important; }
+  }
+
+  /* ── M365 Form Common (tank stock forms) ──────────────────── */
+  .m365-form-body {
+    background: var(--fms-surface) !important;
+
+    &__description { color: var(--fms-text-secondary) !important; }
+
+    /* Section groups inside forms — borderless, transparent */
+    .m365-section-group {
+      background: transparent !important;
+      border: none !important;
+      box-shadow: none !important;
+    }
+
+    .m365-section-group__header {
+      border-bottom: none !important;
+      background: transparent !important;
+    }
+
+    .m365-section-group__icon {
+      color: var(--fms-text-tertiary) !important;
+    }
+
+    .m365-section-group__title {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .m365-section-group__body {
+      background: transparent !important;
+    }
+  }
+
+  .m365-field {
+    &__label { color: var(--fms-text-primary) !important; }
+    &__hint { color: var(--fms-text-tertiary) !important; }
+    &__readonly {
+      color: var(--fms-text-primary) !important;
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  .m365-section-group {
+    &__header { border-bottom-color: var(--fms-border) !important; }
+    &__title { color: var(--fms-text-primary) !important; }
+  }
+
+  .m365-form-actions {
+    background: var(--fms-surface) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+
+  /* ── FixedHeightSelector (ManualRefillForm site/tank selector) ──── */
+  .fixed-height-selector {
+    .selector-input {
+      background-color: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .selector-input.active {
+      border-color: #4aa3df !important;
+    }
+
+    .selector-input.disabled {
+      background-color: var(--fms-surface-secondary) !important;
+    }
+
+    .selector-value {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .selector-placeholder {
+      color: var(--fms-text-tertiary) !important;
+    }
+
+    .selector-arrow,
+    .selector-clear-button {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .selector-clear-button:hover {
+      background-color: var(--fms-hover-bg) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .selector-dropdown {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4) !important;
+    }
+
+    .selector-search-container {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .selector-search-input {
+      background-color: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+      &::placeholder { color: var(--fms-text-tertiary) !important; }
+    }
+
+    .selector-search-input:focus {
+      border-color: #4aa3df !important;
+    }
+
+    .selector-search-icon {
+      color: var(--fms-text-tertiary) !important;
+    }
+
+    .selector-item {
+      color: var(--fms-text-primary) !important;
+      border-bottom-color: var(--fms-border-light) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+
+      &.selected {
+        background-color: var(--fms-active-bg) !important;
+      }
+    }
+
+    .selector-no-data {
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+
+  /* ── User Details Page ────────────────────────────────────── */
+  .user-details-container {
+    background-color: var(--fms-page-bg) !important;
+
+    .user-details-toolbar {
+      background-color: var(--fms-surface) !important;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+    }
+
+    .user-details-content {
+      .user-info-card,
+      .user-activity-card {
+        background-color: var(--fms-surface) !important;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+      }
+
+      .info-header, .activity-header {
+        border-bottom-color: var(--fms-border) !important;
+        h3 { color: var(--fms-text-primary) !important; }
+      }
+
+      .info-content .info-item {
+        .label { color: var(--fms-text-secondary) !important; }
+        .value { color: var(--fms-text-primary) !important; }
+      }
+
+      .activity-content p { color: var(--fms-text-tertiary) !important; }
+    }
+
+    .site-badge {
+      background-color: rgba(25, 118, 210, 0.15) !important;
+      color: #5ba3e0 !important;
+    }
+
+    .tabs-container .dx-tabs {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .tab-content .card {
+      background-color: var(--fms-surface) !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2) !important;
+
+      h3 {
+        color: var(--fms-text-primary) !important;
+        border-bottom-color: var(--fms-border) !important;
+      }
+
+      .no-data {
+        color: var(--fms-text-tertiary) !important;
+        background-color: var(--fms-surface-secondary) !important;
+      }
+    }
+
+    .role-item, .permission-item {
+      border-bottom-color: var(--fms-border) !important;
+      .role-name, .permission-name { color: var(--fms-text-primary) !important; }
+      .role-description, .permission-description { color: var(--fms-text-tertiary) !important; }
+    }
+
+    .user-details__action-buttons {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3) !important;
+
+      .dx-button {
+        background: var(--fms-surface) !important;
+        color: var(--fms-text-primary) !important;
+        &::after { background: var(--fms-border) !important; }
+        &:hover:not(.dx-state-disabled) {
+          background: var(--fms-hover-bg) !important;
+          color: #4aa3df !important;
+        }
+        &.dx-state-disabled {
+          background: var(--fms-surface-secondary) !important;
+          color: var(--fms-text-tertiary) !important;
+        }
+      }
+    }
+  }
+
+  /* ── Task Management ──────────────────────────────────────── */
+  .task-management {
+    .task-creation-form .form-section {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+
+      .section-title {
+        color: var(--fms-text-secondary) !important;
+        border-bottom-color: var(--fms-border) !important;
+      }
+    }
+
+    .priority-badge.medium { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Expected Average Management ──────────────────────────── */
+  .expected-average-management {
+    h2 { color: var(--fms-text-primary) !important; }
+
+    .expected-average-tabs {
+      background: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .measurement-badge {
+      &.km-per-liter {
+        background-color: rgba(59, 130, 246, 0.15) !important;
+        color: #60a5fa !important;
+      }
+      &.liter-per-hour {
+        background-color: rgba(34, 197, 94, 0.15) !important;
+        color: #4ade80 !important;
+      }
+    }
+  }
+
+  .expected-average-shell {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  /* Template & Reference Data panel forms */
+  .template-form {
+    .dx-field-item-label-text {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .dx-checkbox,
+    .dx-checkbox-text {
+      color: #ffffff !important;
+    }
+
+    .dx-group-caption {
+      color: var(--fms-text-primary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    &__checkbox-row span,
+    &__radio-option {
+      color: #ffffff !important;
+    }
+
+    &__actions {
+      background: var(--fms-surface) !important;
+    }
+  }
+
+  .reference-data-panel {
+    .reference-data-panel__tabs {
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    &__checkbox-row span {
+      color: #ffffff !important;
+    }
+
+    &__actions {
+      background: var(--fms-surface) !important;
+    }
+  }
+
+  /* ── FixedHeightSelector inside forms — extra specificity ── */
+  .m365-form-body .fixed-height-selector {
+    .selector-input {
+      background-color: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .selector-dropdown {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5) !important;
+    }
+
+    .selector-search-container {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .selector-search-input {
+      background-color: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+      &::placeholder { color: var(--fms-text-tertiary) !important; }
+    }
+
+    .selector-item {
+      color: var(--fms-text-primary) !important;
+      border-bottom-color: var(--fms-border-light) !important;
+      &:hover { background-color: var(--fms-hover-bg) !important; }
+      &.selected { background-color: var(--fms-active-bg) !important; }
+    }
+
+    .selector-no-data {
+      color: var(--fms-text-tertiary) !important;
+    }
+
+    .selector-value { color: var(--fms-text-primary) !important; }
+    .selector-placeholder { color: var(--fms-text-tertiary) !important; }
+    .selector-arrow,
+    .selector-clear-button { color: var(--fms-text-secondary) !important; }
+  }
+
+}

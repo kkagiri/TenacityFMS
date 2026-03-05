@@ -1,0 +1,268 @@
+// _dark-layout-shells.scss
+// Lines 5764-6027 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ── Config Controls (PTS Device) slider tracks ────────────── */
+  .config-controls {
+    input[type="range"]::-webkit-slider-runnable-track { background: #555 !important; }
+    input[type="range"]:disabled::-webkit-slider-runnable-track { background: #444 !important; }
+  }
+
+  /* ── Catch-all: generic white backgrounds within dark theme ── */
+  .form-card,
+  .detail-card,
+  .info-card,
+  .panel-body,
+  .content-card {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── Layout shells: dark grey background + white text ───────────────── */
+  .admin-layout,
+  .vehicle-layout,
+  .employee-layout,
+  .reports-layout,
+  .tank-stock-layout,
+  .event-expressions-layout,
+  .maintenance-layout,
+  .issue-tracker-layout,
+  .task-management-layout,
+  .notification-layout,
+  .mission-control-layout {
+    background: #2b2b2b !important;
+    color: #ffffff !important;
+  }
+
+  .admin-main,
+  .vehicle-main,
+  .employee-main,
+  .reports-main,
+  .tank-stock-main,
+  .ee-main,
+  .maintenance-main,
+  .issue-tracker-main,
+  .task-main,
+  .notification-main,
+  .main-content,
+  .page-content,
+  .layout-body {
+    background: #2b2b2b !important;
+    color: #ffffff !important;
+  }
+
+  .main-header,
+  .employee-main__header,
+  .m365-page-header {
+    background: #333333 !important;
+    color: #ffffff !important;
+    border-bottom-color: #4a4a4a !important;
+  }
+
+  .main-title,
+  .employee-main__title,
+  .employee-main__subtitle,
+  .m365-page-header__title,
+  .m365-page-header__subtitle,
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #ffffff !important;
+  }
+
+  .admin-sidebar,
+  .vehicle-sidebar,
+  .employee-sidebar,
+  .reports-sidebar,
+  .tank-stock-sidebar,
+  .ee-sidebar,
+  .maintenance-sidebar,
+  .issue-tracker-sidebar,
+  .task-sidebar {
+    background: #303030 !important;
+    color: #ffffff !important;
+  }
+
+  /* ── App Drawer + Notification Center + User Panel ─────────── */
+  .app-drawer {
+    background: #2f2f2f !important;
+    border-color: #4a4a4a !important;
+    color: #ffffff !important;
+  }
+
+  .app-drawer .module-item {
+    color: #ffffff !important;
+  }
+
+  .app-drawer .module-item:hover {
+    background: #3a3a3a !important;
+  }
+
+  .app-drawer .module-name {
+    color: #ffffff !important;
+  }
+
+  .notification-center .bell-button-wrapper .bell-icon i {
+    color: #ffffff !important;
+  }
+
+  .notification-popover,
+  .notification-popover.notification-popover--portal,
+  .notification-popover.notification-popover--mobile {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+    border: 1px solid #4a4a4a !important;
+  }
+
+  .notification-popover .m365-panel-header,
+  .notification-popover .m365-tabs,
+  .notification-popover .m365-panel-footer {
+    background: #333333 !important;
+    color: #ffffff !important;
+    border-color: #4a4a4a !important;
+  }
+
+  .notification-popover .m365-panel-header h4,
+  .notification-popover .m365-tab,
+  .notification-popover .m365-notif-title,
+  .notification-popover .m365-notif-message,
+  .notification-popover .m365-notif-time,
+  .notification-popover .m365-empty,
+  .notification-popover .m365-empty p,
+  .notification-popover .m365-header-btn,
+  .notification-popover .m365-panel-footer button {
+    color: #ffffff !important;
+  }
+
+  .notification-popover .m365-header-btn:hover,
+  .notification-popover .m365-header-btn--icon-only:hover,
+  .notification-popover .m365-panel-footer button:hover {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  .notification-popover .m365-header-btn:hover i,
+  .notification-popover .m365-header-btn--icon-only:hover i,
+  .notification-popover .m365-panel-footer button:hover i {
+    color: #000000 !important;
+  }
+
+  .notification-popover .m365-notif-item {
+    background: #2f2f2f !important;
+    border-bottom-color: #4a4a4a !important;
+  }
+
+  .notification-popover .m365-notif-item:hover {
+    background: #3a3a3a !important;
+  }
+
+  .notification-popover .m365-notif-chip,
+  .notification-popover .m365-tab-badge {
+    background: #4a4a4a !important;
+    color: #ffffff !important;
+  }
+
+  .user-menu-popover .dx-overlay-content,
+  .user-menu-content {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+    border: 1px solid #4a4a4a !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+  }
+
+  .user-menu-popover .dx-popup-content,
+  .user-menu-popover .dx-overlay-content .dx-popup-content {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable,
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable > div,
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-content,
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-email-header,
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-items,
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-item {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+  }
+
+  .user-menu-popover .dx-popup-content.dx-popup-content-scrollable {
+    padding: 0 !important;
+  }
+
+  .user-menu-popover .dx-popover-arrow::before,
+  .user-menu-popover .dx-popover-arrow::after {
+    background: #2f2f2f !important;
+    border-color: #2f2f2f !important;
+  }
+
+  .user-menu-content .user-menu-email-header {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+    border-bottom-color: #4a4a4a !important;
+  }
+
+  .user-menu-content .user-menu-items {
+    background: #2f2f2f !important;
+    padding: 0 !important;
+  }
+
+  .user-menu-content .user-menu-items .user-menu-item {
+    background: #2f2f2f !important;
+    color: #ffffff !important;
+    border-bottom-color: #4a4a4a !important;
+  }
+
+  .user-menu-content .user-menu-items .user-menu-item:hover {
+    background: #3a3a3a !important;
+  }
+
+  .user-menu-content .user-menu-items .user-menu-item .dx-icon,
+  .user-menu-content .user-menu-items .user-menu-item i[class*="fa-light"] {
+    color: #ffffff !important;
+  }
+
+  .user-avatar-circle {
+    background: #3a3a3a !important;
+    color: #ffffff !important;
+    border-color: #ffffff !important;
+  }
+
+  /* ── Shared M365 Side Panel (Opening/Closing/Delivery/etc.) ───────── */
+  .m365-side-panel {
+    background: #2b2b2b !important;
+    color: #ffffff !important;
+    box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45) !important;
+  }
+
+  .m365-side-panel__header {
+    background: #333333 !important;
+    border-bottom-color: #4a4a4a !important;
+    color: #ffffff !important;
+  }
+
+  .m365-side-panel__title {
+    color: #ffffff !important;
+  }
+
+  .m365-side-panel__close {
+    color: #ffffff !important;
+    background: transparent !important;
+  }
+
+  .m365-side-panel__close:hover {
+    background: #3a3a3a !important;
+    color: #ffffff !important;
+  }
+
+  .m365-side-panel__body {
+    background: #2b2b2b !important;
+    color: #ffffff !important;
+  }
+}

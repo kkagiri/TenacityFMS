@@ -1,0 +1,87 @@
+// _dark-notifications.scss
+// Lines 3876-3957 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ── Notification Pages ───────────────────────────────────── */
+  .policy-create,
+  .policy-form,
+  .notification-policy {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .form-card,
+    .policy-card,
+    .step-card,
+    .condition-card,
+    .action-card,
+    .form-group,
+    .form-section {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    label { color: var(--fms-text-primary) !important; }
+    .form-label { color: var(--fms-text-primary) !important; }
+    .form-hint, .helper-text { color: var(--fms-text-tertiary) !important; }
+
+    h3, h4, h5 { color: var(--fms-text-primary) !important; }
+
+    .card-header,
+    .section-header {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    input, select, textarea {
+      background: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .user-preferences,
+  .notification-preferences {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .preference-card,
+    .preference-group,
+    .channel-card,
+    .delivery-preferences,
+    .category-item {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .cat-name { color: var(--fms-text-primary) !important; }
+    .delivery-badge {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    table {
+      th {
+        background: var(--fms-surface-secondary) !important;
+        color: var(--fms-text-secondary) !important;
+      }
+      td {
+        color: var(--fms-text-primary) !important;
+        border-color: var(--fms-border) !important;
+      }
+      tr:hover td { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .notification-history {
+    .notification-card,
+    .history-item {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+}

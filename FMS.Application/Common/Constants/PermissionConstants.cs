@@ -749,6 +749,17 @@ namespace FMS.Application.Common.Constants
             public const string Manage = "_Manage_PushDevice";
         }
 
+        /// <summary>
+        /// [NEW] Fuel Import Management permissions.
+        /// Read: view files list and summary. Manage: trigger import, retry, update settings.
+        /// Requires DB migration before use.
+        /// </summary>
+        public static class FuelImport
+        {
+            public const string Read = "_Read_FuelImport";
+            public const string Manage = "_Manage_FuelImport";
+        }
+
         // ============================================================
         // MOBILE APP PERMISSIONS
         // Parent: MobileAppModule (Id: 226)

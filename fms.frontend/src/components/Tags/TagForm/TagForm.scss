@@ -1,8 +1,6 @@
 // TagForm Styles with fueling form inspired design
-.tag-form-popup {
-  .dx-popup-content {
-    padding: 0 !important;
-  }
+.tag-form-panel {
+  height: 100%;
 
   // Scan button round style
   .scan-button-round {
@@ -31,7 +29,7 @@
     height: 100%;
     display: flex;
     flex-direction: column;
-    background: #fafafa;
+    background: #ffffff;
     gap: 16px;
 
     .form-mode-selector {
@@ -101,24 +99,31 @@
       display: flex;
       flex-direction: column;
       gap: 16px;
+      background: #ffffff;
     }
 
     // Add new styles for the form bottom container
     .form-bottom {
-      margin-top: auto; // Push to bottom of flex container
+      margin-top: auto;
       display: flex;
       justify-content: flex-end;
       width: 100%;
+      position: sticky;
+      bottom: 0;
+      z-index: 10;
+      background: #ffffff;
+      border-top: 1px solid #e5e7eb;
+      padding-top: 12px;
     }
 
     .form-actions {
       display: flex;
-      justify-content: flex-end; // Ensure buttons are always aligned to the right
+      justify-content: flex-end;
       gap: 16px;
       background: #fff;
-      border-radius: 4px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      border-radius: 0;
+      padding: 8px 0;
+      box-shadow: none;
       align-items: center;
       button {
         min-width: 100px;
@@ -134,46 +139,6 @@
 
       .dx-field-item {
         margin-bottom: 15px;
-      }
-    }
-
-    .rule-set-info {
-      margin-top: 0;
-      background: #fff;
-      border-radius: 4px;
-      padding: 16px;
-      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-
-      h4 {
-        margin-top: 0;
-        margin-bottom: 12px;
-        font-size: 1.2em;
-        border-bottom: 1px solid #eee;
-        padding-bottom: 4px;
-        color: #333;
-      }
-
-      .rule-description {
-        margin-bottom: 10px;
-        font-style: italic;
-        color: #555;
-      }
-
-      .rule-limits {
-        .limit-item {
-          display: flex;
-          justify-content: space-between;
-          margin-bottom: 5px;
-
-          .limit-label {
-            font-weight: 500;
-          }
-
-          .limit-value {
-            color: #0069d9;
-            font-weight: 500;
-          }
-        }
       }
     }
 

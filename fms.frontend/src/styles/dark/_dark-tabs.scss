@@ -1,0 +1,540 @@
+// _dark-tabs.scss
+// Lines 1242-1776 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     COMPREHENSIVE TAB OVERRIDES
+     ================================================================ */
+
+  /* ── DevExtreme TabPanel Global ───────────────── */
+  .dx-tabpanel {
+    background-color: transparent !important;
+  }
+
+  .dx-tabpanel-tabs {
+    background-color: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .dx-tabpanel-container,
+  .dx-tabpanel > .dx-multiview-wrapper {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .dx-multiview-wrapper {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .dx-item.dx-tab {
+    color: var(--fms-text-secondary) !important;
+    background-color: transparent !important;
+    opacity: 1 !important;
+
+    &:hover,
+    &.dx-state-hover {
+      background-color: var(--fms-hover-bg) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    &.dx-tab-selected {
+      color: #4da6ff !important;
+      background-color: var(--fms-active-bg) !important;
+      border-bottom-color: #4da6ff !important;
+    }
+  }
+
+  .dx-tab-content {
+    color: inherit !important;
+  }
+
+  .dx-tab-text {
+    color: inherit !important;
+  }
+
+  .dx-tabs-wrapper {
+    background-color: transparent !important;
+  }
+
+  /* ── PTS Device Details tabs ──────────────────── */
+  .pts-device-details,
+  .pts-device-details-page {
+    .dx-tabs {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .tab-content {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── User Details Page tabs ───────────────────── */
+  .user-details-page,
+  .user-details-container {
+    .dx-tabs {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .tabs-container {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .tab-content {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+
+      .card {
+        background-color: var(--fms-card-bg) !important;
+        border-color: var(--fms-border) !important;
+        color: var(--fms-text-primary) !important;
+
+        h3, h4, h5,
+        .card-header,
+        .card-title {
+          color: var(--fms-text-primary) !important;
+        }
+      }
+    }
+  }
+
+  /* ── User Activity Dashboard tabs ─────────────── */
+  .user-activity-dashboard {
+    .dx-tabs {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab-selected {
+      background-color: var(--fms-active-bg) !important;
+    }
+
+    .tabs-container {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .activities-card {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+    }
+
+    .activity-item {
+      border-bottom-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── User Page tabs ───────────────────────────── */
+  .user-page,
+  .user-management-page {
+    .tabs-container {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .grid-container {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Task Management tabs ─────────────────────── */
+  .task-management,
+  .task-management-page {
+    .dx-tabs {
+      background-color: transparent !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover,
+      &.dx-state-hover {
+        background-color: rgba(77, 166, 255, 0.1) !important;
+      }
+
+      &.dx-tab-selected,
+      &.dx-state-active {
+        color: #4da6ff !important;
+        border-bottom-color: #4da6ff !important;
+      }
+    }
+
+    .dx-tab-content {
+      background-color: transparent !important;
+    }
+
+    .task-card,
+    .task-item {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Tag Rule Management tabs ─────────────────── */
+  .tag-rule-management {
+    .dx-tabs {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+
+      &.dx-tab-selected {
+        background-color: var(--fms-surface) !important;
+        color: #4da6ff !important;
+        border-bottom-color: #4da6ff !important;
+      }
+    }
+  }
+
+  /* ── Fuel Data Comparison tabs ────────────────── */
+  .fuel-data-comparison-main,
+  .fuel-data-comparison {
+    .dx-tabs {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+      border-radius: 8px 8px 0 0;
+    }
+
+    .dx-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &.dx-tab-selected {
+        color: var(--fms-text-primary) !important;
+        font-weight: 600;
+      }
+    }
+  }
+
+  /* ── Fuel Audit tabs ──────────────────────────── */
+  .fuel-audit-main,
+  .fuel-audit-page {
+    background-color: var(--fms-page-bg) !important;
+
+    .dx-tabs {
+      background-color: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+
+      &.dx-tab-selected {
+        background-color: var(--fms-active-bg) !important;
+        color: #4da6ff !important;
+      }
+    }
+
+    .filter-section,
+    .filters-container {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Vehicle Consumption Report tabs ──────────── */
+  .vehicle-consumption-report {
+    .dx-tabs {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      &.dx-tab-selected {
+        background-color: var(--fms-surface) !important;
+        color: #4da6ff !important;
+      }
+    }
+
+    .filter-section {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Reconciliation tabs ──────────────────────── */
+  .reconciliation-main,
+  .reconciliation-page,
+  .reconciliation-container {
+    background: var(--fms-page-bg) !important;
+
+    .dx-tabpanel-tabs {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .dx-tab {
+      &.dx-tab-selected {
+        background-color: var(--fms-active-bg) !important;
+        color: #4da6ff !important;
+      }
+    }
+
+    .dx-multiview-wrapper {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .tw-bg-white {
+      background-color: var(--fms-surface) !important;
+    }
+  }
+
+  /* ── IssueTracker Detail tabs ─────────────────── */
+  .issue-detail-tabs,
+  .issue-tracker-detail-page {
+    .dx-tabs,
+    .dx-tabpanel-tabs {
+      background-color: transparent !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      background-color: transparent !important;
+      border-color: transparent !important;
+      color: var(--fms-text-secondary) !important;
+
+      &.dx-tab-selected {
+        background-color: var(--fms-surface) !important;
+        color: #4da6ff !important;
+        border-color: var(--fms-border) !important;
+        border-bottom-color: var(--fms-surface) !important;
+      }
+    }
+
+    .issue-detail-tabs__content,
+    .dx-tabpanel-container {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Settings Popup tabs ──────────────────────── */
+  .tw-settings-popup,
+  .settings-popup {
+    .dx-tabpanel-tabs {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-tab {
+      color: var(--fms-text-secondary) !important;
+
+      &.dx-tab-selected {
+        color: #4da6ff !important;
+        background-color: var(--fms-surface) !important;
+      }
+    }
+
+    .dx-toolbar {
+      background-color: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Volume Correction tabs (tvcc) ────────────── */
+  .tvcc-tabs {
+    border-bottom-color: var(--fms-border) !important;
+    background-color: transparent !important;
+  }
+
+  .tvcc-tab-item {
+    color: var(--fms-text-secondary) !important;
+
+    &:hover {
+      background-color: var(--fms-hover-bg) !important;
+    }
+
+    &.active,
+    &.selected {
+      color: #4da6ff !important;
+      border-bottom-color: #4da6ff !important;
+      background-color: transparent !important;
+    }
+  }
+
+  .tvcc-tab-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── FMS Tab Bar (TankStock Dashboard) ────────── */
+  .fms-tab-bar {
+    background-color: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+
+    .fms-tab-bar__item,
+    .tab-item {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+        color: var(--fms-text-primary) !important;
+      }
+
+      &.active,
+      &--active {
+        color: #4da6ff !important;
+        border-bottom-color: #4da6ff !important;
+      }
+    }
+  }
+
+  /* ── TagSelection tabs ────────────────────────── */
+  .tag-selection-tabs,
+  .tag-selection {
+    .tabs {
+      border-bottom-color: var(--fms-border) !important;
+      background-color: transparent !important;
+
+      .tab {
+        color: var(--fms-text-secondary) !important;
+
+        &:hover {
+          background-color: var(--fms-hover-bg) !important;
+          color: var(--fms-text-primary) !important;
+        }
+
+        &.active,
+        &.selected {
+          color: #4da6ff !important;
+          border-bottom-color: #4da6ff !important;
+          background-color: transparent !important;
+        }
+      }
+    }
+  }
+
+  /* ── TagForm tabs-container ───────────────────── */
+  .tag-form,
+  .tag-details {
+    .tabs-container {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .tab-item {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+
+      &.active,
+      &.selected {
+        color: #4da6ff !important;
+        border-bottom-color: #4da6ff !important;
+      }
+    }
+
+    .tab-content {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Custom tabs (Geofence, generic) ──────────── */
+  .custom-tabs {
+    border-bottom-color: var(--fms-border) !important;
+    background-color: transparent !important;
+
+    .custom-tab,
+    .tab {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        background-color: var(--fms-hover-bg) !important;
+      }
+
+      &.active,
+      &.selected,
+      &--active {
+        color: #4da6ff !important;
+        border-bottom-color: #4da6ff !important;
+      }
+    }
+  }
+
+  /* ── Generic .tabs-container / .tab-content ───── */
+  .tabs-container {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .tab-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .card,
+    .panel {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Expected Average Management (status badges) ── */
+  .expected-average-management {
+    .status-badge,
+    .badge {
+      &.active,
+      &.success {
+        background-color: rgba(34, 197, 94, 0.15) !important;
+        color: #4ade80 !important;
+      }
+
+      &.inactive,
+      &.error {
+        background-color: rgba(239, 68, 68, 0.15) !important;
+        color: #f87171 !important;
+      }
+
+      &.pending,
+      &.warning {
+        background-color: rgba(234, 179, 8, 0.15) !important;
+        color: #facc15 !important;
+      }
+    }
+  }
+
+  /* ── Stock Analytics / Stock Management tabs ──── */
+  .stock-analytics,
+  .stock-management {
+    .dx-tabpanel-tabs {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .dx-tab.dx-tab-selected {
+      background-color: var(--fms-active-bg) !important;
+      color: #4da6ff !important;
+    }
+  }
+
+  /* ── Volume History Reports tabs ──────────────── */
+  .volume-history-reports {
+    .dx-tabpanel-tabs {
+      background-color: var(--fms-surface) !important;
+    }
+
+    .dx-tab-content {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+}

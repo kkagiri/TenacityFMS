@@ -66,11 +66,12 @@ const CATEGORY_CONFIG = {
   1: {
     name: "GPS Site Fleet",
     icon: "fa-satellite",
-    bgColor: "tw-bg-green-50",
-    borderColor: "tw-border-green-200",
-    headerBg: "tw-bg-green-600",
-    textColor: "tw-text-green-700",
-    badgeColor: "tw-bg-green-100 tw-text-green-800",
+    hexColor: "#3b82f6",
+    bgColor: "tw-bg-blue-50",
+    borderColor: "tw-border-blue-200",
+    headerBg: "tw-bg-blue-600",
+    textColor: "tw-text-blue-700",
+    badgeColor: "tw-bg-blue-100 tw-text-blue-800",
     confidence: "HIGH",
     description: "Vehicles with GPS + Fuel Sensor belonging to this site",
     showGpsConsumption: true,
@@ -80,11 +81,12 @@ const CATEGORY_CONFIG = {
   2: {
     name: "Site Full Tank",
     icon: "fa-gas-pump",
-    bgColor: "tw-bg-yellow-50",
-    borderColor: "tw-border-yellow-200",
-    headerBg: "tw-bg-yellow-500",
-    textColor: "tw-text-yellow-700",
-    badgeColor: "tw-bg-yellow-100 tw-text-yellow-800",
+    hexColor: "#3b82f6",
+    bgColor: "tw-bg-blue-50",
+    borderColor: "tw-border-blue-200",
+    headerBg: "tw-bg-blue-600",
+    textColor: "tw-text-blue-700",
+    badgeColor: "tw-bg-blue-100 tw-text-blue-800",
     confidence: "MEDIUM",
     description: "Vehicles always filled to tank capacity",
     showGpsConsumption: false,
@@ -94,11 +96,12 @@ const CATEGORY_CONFIG = {
   3: {
     name: "Site Equipment",
     icon: "fa-gear",
-    bgColor: "tw-bg-orange-50",
-    borderColor: "tw-border-orange-200",
-    headerBg: "tw-bg-orange-500",
-    textColor: "tw-text-orange-700",
-    badgeColor: "tw-bg-orange-100 tw-text-orange-800",
+    hexColor: "#3b82f6",
+    bgColor: "tw-bg-blue-50",
+    borderColor: "tw-border-blue-200",
+    headerBg: "tw-bg-blue-600",
+    textColor: "tw-text-blue-700",
+    badgeColor: "tw-bg-blue-100 tw-text-blue-800",
     confidence: "LOW",
     description: "Equipment without GPS/sensor - fuel issued only",
     showGpsConsumption: false,
@@ -108,11 +111,12 @@ const CATEGORY_CONFIG = {
   4: {
     name: "Cross-Site Company",
     icon: "fa-arrow-right-arrow-left",
-    bgColor: "tw-bg-cyan-50",
-    borderColor: "tw-border-cyan-200",
-    headerBg: "tw-bg-cyan-600",
-    textColor: "tw-text-cyan-700",
-    badgeColor: "tw-bg-cyan-100 tw-text-cyan-800",
+    hexColor: "#3b82f6",
+    bgColor: "tw-bg-blue-50",
+    borderColor: "tw-border-blue-200",
+    headerBg: "tw-bg-blue-600",
+    textColor: "tw-text-blue-700",
+    badgeColor: "tw-bg-blue-100 tw-text-blue-800",
     confidence: "HIGH",
     description: "Company vehicles from other sites with GPS",
     showGpsConsumption: true,
@@ -122,11 +126,12 @@ const CATEGORY_CONFIG = {
   5: {
     name: "External Non-Company",
     icon: "fa-user-plus",
-    bgColor: "tw-bg-pink-50",
-    borderColor: "tw-border-pink-200",
-    headerBg: "tw-bg-pink-500",
-    textColor: "tw-text-pink-700",
-    badgeColor: "tw-bg-pink-100 tw-text-pink-800",
+    hexColor: "#3b82f6",
+    bgColor: "tw-bg-blue-50",
+    borderColor: "tw-border-blue-200",
+    headerBg: "tw-bg-blue-600",
+    textColor: "tw-text-blue-700",
+    badgeColor: "tw-bg-blue-100 tw-text-blue-800",
     confidence: "ACCOUNTED",
     description: "External/contractor vehicles - accounting only",
     showGpsConsumption: false,
@@ -534,15 +539,15 @@ const Step6Reconciliation = memo(() => {
       // Format dates
       const periodStart = wizard.periodStart
         ? new Date(wizard.periodStart)
-            .toISOString()
-            .replace("T", " ")
-            .substring(0, 16)
+          .toISOString()
+          .replace("T", " ")
+          .substring(0, 16)
         : "N/A";
       const periodEnd = wizard.periodEnd
         ? new Date(wizard.periodEnd)
-            .toISOString()
-            .replace("T", " ")
-            .substring(0, 16)
+          .toISOString()
+          .replace("T", " ")
+          .substring(0, 16)
         : "N/A";
       const siteName = wizard.selectedSiteName || "Unknown Site";
 
@@ -1695,8 +1700,8 @@ const Step6Reconciliation = memo(() => {
                   matchedOnly.length > 0
                     ? matchedOnly
                     : merged.length > 0
-                    ? merged
-                    : manualRefillsList.map((r, idx) => ({
+                      ? merged
+                      : manualRefillsList.map((r, idx) => ({
                         ...r,
                         entryId: r.refillId || `manual_${idx}`,
                         gpsRefillVolume: null,
@@ -2524,14 +2529,14 @@ const Step6Reconciliation = memo(() => {
         >
           {/* Category Header */}
           <button
-            className={`tw-w-full tw-px-4 tw-py-3 ${config.bgColor} tw-flex tw-items-center tw-justify-between tw-transition-colors hover:tw-opacity-90`}
+            className={`tw-w-full tw-px-4 tw-py-3 ${config.headerBg} tw-text-white tw-flex tw-items-center tw-justify-between tw-transition-colors hover:tw-opacity-90`}
             onClick={() => toggleCategory(categoryId)}
           >
             <div className="tw-flex tw-items-center tw-gap-3">
               <i
-                className={`fa-light ${config.icon} ${config.textColor} tw-text-lg`}
+                className={`fa-light ${config.icon} tw-text-white tw-text-lg`}
               ></i>
-              <span className={`tw-font-semibold ${config.textColor}`}>
+              <span className="tw-font-semibold tw-text-white">
                 Category {categoryId}: {config.name}
               </span>
               <span
@@ -2541,14 +2546,14 @@ const Step6Reconciliation = memo(() => {
               >
                 {config.confidence}
               </span>
-              <span className="tw-text-gray-500 tw-text-sm">
+              <span className="tw-text-white/70 tw-text-sm">
                 ({vehicles.length} vehicle{vehicles.length !== 1 ? "s" : ""})
               </span>
             </div>
             <div className="tw-flex tw-items-center tw-gap-4">
-              <span className="tw-text-sm tw-text-gray-600">
+              <span className="tw-text-sm tw-text-white/80">
                 Dispensed:{" "}
-                <span className="tw-font-semibold tw-text-green-700">
+                <span className="tw-font-semibold tw-text-white">
                   +{formatNumber(totals.totalDispensed, 0)} L
                 </span>
               </span>
@@ -2564,16 +2569,15 @@ const Step6Reconciliation = memo(() => {
                 </span>
               )}
               <i
-                className={`fa-light fa-chevron-${
-                  isExpanded ? "up" : "down"
-                } tw-text-gray-400`}
+                className={`fa-light fa-chevron-${isExpanded ? "up" : "down"
+                  } tw-text-white/60`}
               ></i>
             </div>
           </button>
 
           {/* Category Description */}
           {isExpanded && (
-            <div className="tw-px-4 tw-py-2 tw-bg-gray-50 tw-border-b tw-text-xs tw-text-gray-500">
+            <div className="tw-px-4 tw-py-2 tw-border-b tw-text-xs" style={{ background: 'var(--fms-surface-secondary, #f9fafb)', color: 'var(--fms-text-secondary, #6b7280)', borderColor: 'var(--fms-border, #e5e7eb)' }}>
               <i className="fa-light fa-info-circle tw-mr-1"></i>
               {config.description}
             </div>
@@ -2589,17 +2593,17 @@ const Step6Reconciliation = memo(() => {
           {/* Category Subtotal */}
           {isExpanded && (
             <div
-              className={`tw-px-4 tw-py-2 tw-border-t ${config.bgColor} tw-flex tw-justify-between tw-items-center`}
+              className={`tw-px-4 tw-py-2 tw-border-t ${config.headerBg} tw-flex tw-justify-between tw-items-center`}
             >
               <span
-                className={`tw-font-semibold tw-text-sm ${config.textColor}`}
+                className="tw-font-semibold tw-text-sm tw-text-white/90"
               >
                 {config.name} Total ({vehicles.length} vehicles)
               </span>
-              <div className="tw-flex tw-gap-4 tw-text-sm">
+              <div className="tw-flex tw-gap-4 tw-text-sm tw-text-white/80">
                 <span>
                   Manual Disp.:{" "}
-                  <span className="tw-font-bold tw-text-green-700">
+                  <span className="tw-font-bold tw-text-white">
                     {formatNumber(totals.totalDispensed, 0)} L
                   </span>
                 </span>
@@ -2607,7 +2611,7 @@ const Step6Reconciliation = memo(() => {
                   <>
                     <span>
                       GPS Consumed:{" "}
-                      <span className="tw-font-bold tw-text-blue-700">
+                      <span className="tw-font-bold tw-text-white">
                         {formatNumber(Math.abs(totals.totalGpsConsumption), 0)}{" "}
                         L
                       </span>
@@ -2655,23 +2659,25 @@ const Step6Reconciliation = memo(() => {
       return (
         <div
           key={tank.tankId}
-          className="tw-border tw-rounded-lg tw-overflow-hidden tw-mb-4 tw-border-blue-300"
+          className="tw-border tw-rounded-lg tw-overflow-hidden tw-mb-4"
+          style={{ borderColor: 'var(--fms-border)' }}
         >
           {/* Tank Header */}
           <button
-            className="tw-w-full tw-px-4 tw-py-3 tw-bg-blue-800 tw-text-white tw-flex tw-items-center tw-justify-between hover:tw-bg-blue-700 tw-transition-colors"
+            className="tw-w-full tw-px-4 tw-py-3 tw-flex tw-items-center tw-justify-between tw-transition-colors"
+            style={{ background: 'var(--fms-surface-secondary)', color: 'var(--fms-text-primary)', borderBottom: '1px solid var(--fms-border)' }}
             onClick={() => toggleTank(tank.tankId)}
           >
             <div className="tw-flex tw-items-center tw-gap-3">
               <i className="fa-light fa-oil-can tw-text-xl"></i>
               <span className="tw-font-bold tw-text-lg">{tank.tankName}</span>
-              <span className="tw-text-blue-200 tw-text-sm">
+              <span className="tw-text-sm" style={{ color: 'var(--fms-text-secondary)' }}>
                 | {tank.siteName}
               </span>
             </div>
             <div className="tw-flex tw-items-center tw-gap-4">
-              <span className="tw-text-blue-200 tw-text-sm">
-                Period: {wizard.periodStart} to {wizard.periodEnd}
+              <span className="tw-text-sm" style={{ color: 'var(--fms-text-secondary)' }}>
+                Period: {(wizard.periodStart || '').split('T')[0]} to {(wizard.periodEnd || '').split('T')[0]}
               </span>
               <i
                 className={`fa-light fa-chevron-${isExpanded ? "up" : "down"}`}
@@ -2682,8 +2688,8 @@ const Step6Reconciliation = memo(() => {
           {isExpanded && (
             <>
               {/* Tank Data Row */}
-              <div className="tw-bg-blue-600 tw-text-white">
-                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-text-xs tw-font-semibold tw-py-2 tw-border-b tw-border-blue-500">
+              <div style={{ background: 'var(--fms-surface)', borderBottom: '1px solid var(--fms-border)' }}>
+                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-text-xs tw-font-semibold tw-py-2 tw-border-b" style={{ borderColor: 'var(--fms-border)', color: 'var(--fms-text-secondary)' }}>
                   <div>Opening Date</div>
                   <div>Dispensed</div>
                   <div>Transfer In</div>
@@ -2693,8 +2699,8 @@ const Step6Reconciliation = memo(() => {
                   <div>Closing (L)</div>
                   <div>Capacity (L)</div>
                 </div>
-                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-py-2 tw-bg-blue-100 tw-text-gray-800">
-                  <div className="tw-text-sm">{wizard.periodStart}</div>
+                <div className="tw-grid tw-grid-cols-8 tw-text-center tw-py-2" style={{ background: 'var(--fms-surface-secondary, #dbeafe)', color: 'var(--fms-text-primary, #1e3a5f)' }}>
+                  <div className="tw-text-sm">{(wizard.periodStart || '').split('T')[0]}</div>
                   <div className="tw-font-semibold tw-text-red-600">
                     -{formatNumber(tank.totalDispensed, 0)}
                   </div>
@@ -2704,14 +2710,14 @@ const Step6Reconciliation = memo(() => {
                   <div className="tw-font-semibold tw-text-red-600">
                     -{formatNumber(tank.totalTransfersOut, 0)}
                   </div>
-                  <div className="tw-text-sm">{wizard.periodEnd}</div>
+                  <div className="tw-text-sm">{(wizard.periodEnd || '').split('T')[0]}</div>
                   <div className="tw-font-semibold">
                     {formatNumber(tank.openingStock, 0)}
                   </div>
                   <div className="tw-font-semibold">
                     {formatNumber(tank.closingStock, 0)}
                   </div>
-                  <div className="tw-text-gray-600">
+                  <div style={{ color: 'var(--fms-text-secondary)' }}>
                     {formatNumber(tank.tankCapacity, 0)}
                   </div>
                 </div>
@@ -2746,8 +2752,8 @@ const Step6Reconciliation = memo(() => {
               </div>
 
               {/* Categories Section */}
-              <div className="tw-p-4 tw-bg-white">
-                <h4 className="tw-font-semibold tw-text-gray-700 tw-mb-3 tw-flex tw-items-center tw-gap-2">
+              <div className="tw-p-4" style={{ background: 'var(--fms-surface, #ffffff)' }}>
+                <h4 className="tw-font-semibold tw-mb-3 tw-flex tw-items-center tw-gap-2" style={{ color: 'var(--fms-text-primary, #374151)' }}>
                   <i className="fa-light fa-truck tw-text-blue-500"></i>
                   Vehicle Categories
                 </h4>
@@ -2756,9 +2762,9 @@ const Step6Reconciliation = memo(() => {
                 {[1, 4, 2, 3, 5].map((catId) => renderCategorySection(catId))}
 
                 {/* Tank Total */}
-                <div className="tw-mt-4 tw-bg-blue-100 tw-rounded-lg tw-p-4 tw-border tw-border-blue-300">
+                <div className="tw-mt-4 tw-rounded-lg tw-p-4 tw-border" style={{ background: 'var(--fms-surface-secondary, #eff6ff)', borderColor: 'var(--fms-border, #bfdbfe)' }}>
                   <div className="tw-flex tw-justify-between tw-items-center">
-                    <span className="tw-font-bold tw-text-blue-900">
+                    <span className="tw-font-bold" style={{ color: 'var(--fms-text-primary, #1e3a5f)' }}>
                       TANK TOTAL: {tank.tankName}
                     </span>
                     <div className="tw-flex tw-gap-6 tw-text-sm">
@@ -2784,19 +2790,19 @@ const Step6Reconciliation = memo(() => {
                       <span
                         className={`tw-px-2 tw-py-0.5 tw-rounded ${getVarianceClass(
                           grandTotals.vehicles.totalDispensed -
-                            tank.totalDispensed,
+                          tank.totalDispensed,
                           [20, 50]
                         )}`}
                       >
                         Diff:{" "}
                         {grandTotals.vehicles.totalDispensed -
                           tank.totalDispensed >=
-                        0
+                          0
                           ? "+"
                           : ""}
                         {formatNumber(
                           grandTotals.vehicles.totalDispensed -
-                            tank.totalDispensed,
+                          tank.totalDispensed,
                           0
                         )}{" "}
                         L
@@ -2861,65 +2867,64 @@ const Step6Reconciliation = memo(() => {
       </div>
 
       {/* Description */}
-      <p className="tw-text-sm tw-text-gray-600 tw-mb-4">
+      <p className="tw-text-sm tw-mb-4" style={{ color: 'var(--fms-text-secondary)' }}>
         Review the complete fuel audit data combining tank volumes (Step 3) and
         vehicle dispensing records (Step 5). Expand sections to view detailed
         breakdowns by category and individual vehicles.
       </p>
 
       {/* Summary Stats */}
-      <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-4 lg:tw-grid-cols-6 tw-gap-3">
-        <div className="tw-bg-blue-50 tw-p-3 tw-rounded-lg tw-border tw-border-blue-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-blue-700">
-            {grandTotals.tanks.count}
-          </p>
-          <p className="tw-text-xs tw-text-blue-600">Tanks</p>
+      <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3">
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Tanks</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{grandTotals.tanks.count}</div>
+          <div className="s3-stat__sub">selected</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-database" /></div>
         </div>
-        <div className="tw-bg-green-50 tw-p-3 tw-rounded-lg tw-border tw-border-green-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-green-700">
-            {grandTotals.vehicles.count}
-          </p>
-          <p className="tw-text-xs tw-text-green-600">Vehicles</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Vehicles</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{grandTotals.vehicles.count}</div>
+          <div className="s3-stat__sub">fueled</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-truck" /></div>
         </div>
-        <div className="tw-bg-purple-50 tw-p-3 tw-rounded-lg tw-border tw-border-purple-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-purple-700">
-            {grandTotals.vehicles.totalRefills}
-          </p>
-          <p className="tw-text-xs tw-text-purple-600">Total Refills</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Total Refills</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{grandTotals.vehicles.totalRefills}</div>
+          <div className="s3-stat__sub">transactions</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-gas-pump" /></div>
         </div>
-        <div className="tw-bg-orange-50 tw-p-3 tw-rounded-lg tw-border tw-border-orange-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-orange-700">
-            {formatNumber(grandTotals.tanks.totalDispensed, 0)}
-          </p>
-          <p className="tw-text-xs tw-text-orange-600">Tank Dispensed (L)</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Tank Dispensed</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{formatNumber(grandTotals.tanks.totalDispensed, 0)}</div>
+          <div className="s3-stat__sub">Liters</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-oil-can" /></div>
         </div>
-        <div className="tw-bg-cyan-50 tw-p-3 tw-rounded-lg tw-border tw-border-cyan-200">
-          <p className="tw-text-2xl tw-font-bold tw-text-cyan-700">
-            {formatNumber(grandTotals.vehicles.totalDispensed, 0)}
-          </p>
-          <p className="tw-text-xs tw-text-cyan-600">Vehicle Dispensed (L)</p>
+        <div className="s3-stat">
+          <div className="s3-stat__bar" style={{ background: '#3b82f6' }} />
+          <div className="s3-stat__label">Vehicle Dispensed</div>
+          <div className="s3-stat__value" style={{ color: '#3b82f6' }}>{formatNumber(grandTotals.vehicles.totalDispensed, 0)}</div>
+          <div className="s3-stat__sub">Liters</div>
+          <div className="s3-stat__ghost"><i className="fa-light fa-truck" /></div>
         </div>
-        <div
-          className={`tw-p-3 tw-rounded-lg tw-border ${getVarianceClass(
-            grandTotals.vehicles.totalDispensed -
-              grandTotals.tanks.totalDispensed,
-            [20, 50]
-          )}`}
-        >
-          <p className="tw-text-2xl tw-font-bold">
-            {grandTotals.vehicles.totalDispensed -
-              grandTotals.tanks.totalDispensed >=
-            0
-              ? "+"
-              : ""}
-            {formatNumber(
-              grandTotals.vehicles.totalDispensed -
-                grandTotals.tanks.totalDispensed,
-              0
-            )}
-          </p>
-          <p className="tw-text-xs">Variance (L)</p>
-        </div>
+        {(() => {
+          const variance = grandTotals.vehicles.totalDispensed - grandTotals.tanks.totalDispensed;
+          const varColor = Math.abs(variance) <= 20 ? '#22c55e' : Math.abs(variance) <= 50 ? '#eab308' : '#ef4444';
+          return (
+            <div className="s3-stat">
+              <div className="s3-stat__bar" style={{ background: varColor }} />
+              <div className="s3-stat__label">Variance</div>
+              <div className="s3-stat__value" style={{ color: varColor }}>
+                {variance >= 0 ? '+' : ''}{formatNumber(variance, 0)}
+              </div>
+              <div className="s3-stat__sub">Liters</div>
+              <div className="s3-stat__ghost"><i className="fa-light fa-scale-balanced" /></div>
+            </div>
+          );
+        })()}
       </div>
 
       {/* No Data Message */}

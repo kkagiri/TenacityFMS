@@ -28,13 +28,27 @@ import { UserRoleBadgeList } from './UserRoleBadge';
  * @param {boolean}  props.canManageUsers
  */
 const UserListView = ({
-  users      = [],
-  loading    = false,
+  users = [],
+  loading = false,
   onViewDetails,
   onEditUser,
   onManageSites,
   canManageUsers = false,
 }) => {
+  const getLastSignedInDate = useCallback((user) => {
+    const raw =
+      user?.lastLogin ||
+      user?.LastLogin ||
+      user?.lastSignIn ||
+      user?.LastSignIn ||
+      user?.lastSigninAt ||
+      user?.LastSigninAt;
+
+    if (!raw) return null;
+    const date = new Date(raw);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }, []);
+
   // ── Cell renders ──────────────────────────────────────────────────────────
 
   const renderNameCell = useCallback((data) => {
@@ -76,38 +90,18 @@ const UserListView = ({
     <UserStatusBadge isDeleted={data.data.isDeleted} />
   ), []);
 
-  const renderActionCell = useCallback((data) => {
-    const user = data.data;
+  const renderLastSignedInCell = useCallback((data) => {
+    const lastSignedIn = getLastSignedInDate(data.data);
+    if (!lastSignedIn) {
+      return <span style={{ fontSize: 12, color: '#a19f9d' }}>Never</span>;
+    }
+
     return (
-      <div style={{ display: 'flex', gap: 2 }}>
-        <button
-          className="m365-icon-btn"
-          onClick={() => onViewDetails?.(user.id)}
-          title="View details"
-        >
-          <i className="fa-light fa-eye" />
-        </button>
-        {canManageUsers && (
-          <button
-            className="m365-icon-btn"
-            onClick={() => onEditUser?.(user)}
-            title="Edit user"
-          >
-            <i className="fa-light fa-pen" />
-          </button>
-        )}
-        {canManageUsers && (
-          <button
-            className="m365-icon-btn"
-            onClick={() => onManageSites?.(user)}
-            title="Manage sites"
-          >
-            <i className="fa-light fa-map-location-dot" />
-          </button>
-        )}
-      </div>
+      <span style={{ fontSize: 12, color: '#323130' }}>
+        {lastSignedIn.toLocaleString()}
+      </span>
     );
-  }, [canManageUsers, onViewDetails, onEditUser, onManageSites]);
+  }, [getLastSignedInDate]);
 
   // ── Render ─────────────────────────────────────────────────────────────────
 
@@ -169,11 +163,14 @@ const UserListView = ({
           allowSorting={true}
         />
         <Column
-          type="buttons"
-          caption=""
-          cellRender={renderActionCell}
-          width={canManageUsers ? 110 : 50}
-          allowSorting={false}
+          caption="Last signed in"
+          width={190}
+          cellRender={renderLastSignedInCell}
+          calculateSortValue={(rowData) => {
+            const lastSignedIn = getLastSignedInDate(rowData);
+            return lastSignedIn ? lastSignedIn.getTime() : 0;
+          }}
+          sortOrder="desc"
         />
       </DataGrid>
     </div>

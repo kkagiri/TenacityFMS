@@ -1,0 +1,316 @@
+/**
+ * File: _dark-section-26-popup-toolbar-many-modules-use-this.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   COMPREHENSIVE POPUP OVERRIDES
+   ================================================================ */
+
+/* ── Popup toolbar (many modules use this) ────── */
+.dx-popup-wrapper {
+  .dx-toolbar {
+    background-color: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar-label {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar-items-container {
+    background-color: transparent !important;
+  }
+}
+
+/* ── Popup close button ───────────────────────── */
+.dx-closebutton {
+  .dx-icon {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  &:hover .dx-icon {
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── Popup scrollview inside popups ────────────── */
+.dx-popup-content .dx-scrollview-content {
+  background-color: transparent !important;
+}
+
+/* ── Settings / Policy Form popups ────────────── */
+.tw-settings-popup,
+.tw-policy-form-popup,
+.settings-popup {
+  .dx-overlay-content {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar {
+    background-color: var(--fms-surface-secondary) !important;
+    border-top-color: var(--fms-border) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Notification popups ──────────────────────── */
+.notification-popup,
+.notification-help-popup {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar {
+    background-color: var(--fms-surface-secondary) !important;
+  }
+}
+
+/* ── Transaction Hub popup ────────────────────── */
+.transaction-hub-popup,
+.transaction-hub {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .popup-header,
+  .popup-title {
+    background-color: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Pump Transaction Manager popup ───────────── */
+.pump-transaction-manager,
+.pump-transaction-popup {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── Quick Actions popup (TankStock) ──────────── */
+.quick-actions-popup,
+.quick-actions-menu,
+.site-actions-menu,
+.tank-actions-menu {
+  .dx-popup-content,
+  .dx-overlay-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .action-item,
+  .menu-item {
+    color: var(--fms-text-primary) !important;
+
+    &:hover {
+      background-color: var(--fms-hover-bg) !important;
+    }
+
+    .action-icon,
+    .menu-icon {
+      color: var(--fms-text-secondary) !important;
+    }
+  }
+}
+
+/* ── Chart / Modal popups ─────────────────────── */
+.chart-view-popup,
+.chart-modal,
+.gps-fuel-level-chart-modal {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .modal-header,
+  .chart-header {
+    background-color: var(--fms-surface-secondary) !important;
+    border-bottom-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── Variance Analysis popup ──────────────────── */
+.variance-analysis-popup,
+.variance-analysis {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── Filter popup ─────────────────────────────── */
+.filter-popup,
+.filter-panel-popup {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .filter-group,
+  .filter-section {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .filter-label {
+    color: var(--fms-text-secondary) !important;
+  }
+}
+
+/* ── Issue Create Form popup ──────────────────── */
+.issue-create-form,
+.issue-form-popup {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .form-group label {
+    color: var(--fms-text-secondary) !important;
+  }
+}
+
+/* ── Import Calendar / Batch Import popup ─────── */
+.import-calendar-popup,
+.batch-import-popup,
+.batch-import {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── VehicleDetails popup ─────────────────────── */
+.vehicle-details-popup,
+.vehicle-details {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-tabpanel-tabs {
+    background-color: var(--fms-surface) !important;
+  }
+}
+
+/* ── User Popups ──────────────────────────────── */
+.user-popup,
+.user-form-popup {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar {
+    background-color: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Tag Selection popup ──────────────────────── */
+.tag-selection-popup,
+.tag-selection {
+  .dx-popup-content {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .search-container {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Generic popup inner elements ─────────────── */
+.dx-popup-content {
+  /* Form elements inside popups */
+  .form-label,
+  label {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .form-control,
+  .form-input {
+    background-color: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Dividers / separators */
+  hr,
+  .separator,
+  .divider {
+    border-color: var(--fms-border) !important;
+  }
+
+  /* Section headers */
+  .section-header,
+  .section-title,
+  .panel-header {
+    color: var(--fms-text-primary) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Popup button row / footer ────────────────── */
+.dx-popup-bottom {
+  .dx-button {
+    &.dx-button-default {
+      background-color: #0078d4 !important;
+      color: #ffffff !important;
+    }
+
+    &.dx-button-normal {
+      background-color: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+}
+
+/* ── Confirm / Alert dialog (dx-dialog) ───────── */
+.dx-dialog {
+  .dx-overlay-content {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .dx-dialog-content {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-dialog-message {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-toolbar {
+    background-color: var(--fms-surface-secondary) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+}
+
+/* ── Transfer List Dialog (if present) ────────── */
+.transfer-list__dialog,
+.transfer-list__dialog-footer {
+  background-color: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ── Popup Overlay dimming ────────────────────── */
+.dx-overlay-shader {
+  background-color: rgba(0, 0, 0, 0.6) !important;
+}

@@ -1,0 +1,44 @@
+/**
+ * File: _light-tokens.scss
+ * Purpose: Dark theme partial extracted from original dark-theme.scss
+ * Dependencies: Imported by src/styles/dark-theme.scss
+ * Last Modified: 2026-03-04
+ */
+/**
+ * File: dark-theme.scss
+ * Purpose: Dark-mode overrides for FMS. Activated via [data-theme="dark"] on <html>.
+ * Dependencies: None — loaded globally.
+ * Last Modified: 2026-03-03
+ *
+ * Approach:
+ * - CSS custom properties on :root for light (defaults)
+ * - Overrides under [data-theme="dark"] for dark mode
+ * - Targets DevExtreme, header, sidebar, cards, popups, grids, selectors
+ */
+
+/* ================================================================
+   LIGHT-MODE DEFAULTS (custom props used throughout the app)
+   ================================================================ */
+:root {
+  --fms-text-primary: #201f1e;
+  --fms-text-secondary: #605e5c;
+  --fms-text-tertiary: #a19f9d;
+  --fms-surface: #ffffff;
+  --fms-surface-secondary: #faf9f8;
+  --fms-border: #e0e0e0;
+  --fms-border-light: #edebe9;
+  --fms-hover-bg: #f3f2f1;
+  --fms-active-bg: #e8f4fd;
+  --fms-page-bg: #faf9f8;
+  --fms-card-bg: #ffffff;
+  --fms-header-bg: #ffffff;
+  --fms-sidebar-bg: #ffffff;
+  --fms-shadow-color: rgba(0, 0, 0, 0.08);
+  --fms-input-bg: #ffffff;
+  --fms-input-border: #c8c6c4;
+  --fms-dot-color: #333333;
+}
+
+/* ================================================================
+   DARK-MODE OVERRIDES
+   ================================================================ */

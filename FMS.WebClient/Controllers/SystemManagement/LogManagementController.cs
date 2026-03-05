@@ -32,8 +32,19 @@ namespace FMS.WebClient.Controllers.SystemManagement
             { "app", @"C:\Logs\FMS.Webclient\app" },
             { "errors", @"C:\Logs\FMS.Webclient\errors" },
             { "audit", @"C:\Logs\FMS.Webclient\audit" },
-            { "slow", @"C:\Logs\FMS.Webclient\slow" },
-            { "startup", @"C:\Logs\FMS.Webclient\startup" }
+            { "startup", @"C:\Logs\FMS.Webclient\startup" },
+            { "gps", @"C:\Logs\FMS.Webclient\gps" },
+            { "fuel", @"C:\Logs\FMS.Webclient\fuel" },
+            { "signalr", @"C:\Logs\FMS.Webclient\signalr" },
+            { "issues", @"C:\Logs\FMS.Webclient\issues" },
+            { "efcore", @"C:\Logs\FMS.Webclient\efcore" },
+            { "pts-app", @"C:\Logs\FMS.PTS\app" },
+            { "pts-errors", @"C:\Logs\FMS.PTS\errors" },
+            { "pts-startup", @"C:\Logs\FMS.PTS\startup" },
+            { "pts-device-raw", @"C:\Logs\FMS.PTS\device-raw" },
+            { "pts-commands", @"C:\Logs\FMS.PTS\commands" },
+            { "pts-transactions", @"C:\Logs\FMS.PTS\transactions" },
+            { "pts-connections", @"C:\Logs\FMS.PTS\connections" }
         };
 
         public LogManagementController(
@@ -150,7 +161,18 @@ namespace FMS.WebClient.Controllers.SystemManagement
                 _logger.LogInformation("User {User} downloading log file: {Category}/{FileName}",
                     User?.Identity?.Name ?? "Unknown", category, fileName);
 
-                var fileBytes = System.IO.File.ReadAllBytes(filePath);
+                byte[] fileBytes;
+                using (var fileStream = new FileStream(
+                           filePath,
+                           FileMode.Open,
+                           FileAccess.Read,
+                           FileShare.ReadWrite | FileShare.Delete))
+                using (var memoryStream = new MemoryStream())
+                {
+                    fileStream.CopyTo(memoryStream);
+                    fileBytes = memoryStream.ToArray();
+                }
+
                 return File(fileBytes, "text/plain", fileName);
             }
             catch (Exception ex)
@@ -198,7 +220,11 @@ namespace FMS.WebClient.Controllers.SystemManagement
                             var entry = archive.CreateEntry(fileInfo.Name);
 
                             using var entryStream = entry.Open();
-                            using var fileStream = System.IO.File.OpenRead(file);
+                            using var fileStream = new FileStream(
+                                file,
+                                FileMode.Open,
+                                FileAccess.Read,
+                                FileShare.ReadWrite | FileShare.Delete);
                             fileStream.CopyTo(entryStream);
                         }
                     }
@@ -234,6 +260,75 @@ namespace FMS.WebClient.Controllers.SystemManagement
             {
                 _logger.LogError(ex, "Error retrieving log retention configuration");
                 return StatusCode(500, new { message = "Error retrieving retention configuration" });
+            }
+        }
+
+        /// <summary>
+        /// Get current log cleanup settings
+        /// </summary>
+        [HttpGet("settings")]
+        public async Task<ActionResult<LogCleanupSettingsDto>> GetCleanupSettings()
+        {
+            try
+            {
+                var retentionDays = await _logCleanupService.GetLogRetentionDaysAsync();
+                var autoCleanupEnabled = await _logCleanupService.GetAutoCleanupEnabledAsync();
+                var cleanupHour = await _logCleanupService.GetCleanupHourAsync();
+
+                return Ok(new LogCleanupSettingsDto
+                {
+                    RetentionDays = retentionDays,
+                    AutoCleanupEnabled = autoCleanupEnabled,
+                    CleanupHour = cleanupHour,
+                    NextScheduledRun = autoCleanupEnabled
+                        ? CalculateNextRunTime(DateTime.Now, cleanupHour)
+                        : null
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving log cleanup settings");
+                return StatusCode(500, new { message = "Error retrieving cleanup settings" });
+            }
+        }
+
+        /// <summary>
+        /// Update log cleanup settings
+        /// </summary>
+        [HttpPut("settings")]
+        public async Task<ActionResult<LogCleanupSettingsDto>> UpdateCleanupSettings([FromBody] UpdateLogCleanupSettingsRequest request)
+        {
+            if (request.RetentionDays < 1 || request.RetentionDays > 365)
+            {
+                return BadRequest(new { message = "Retention days must be between 1 and 365" });
+            }
+
+            if (request.CleanupHour < 0 || request.CleanupHour > 23)
+            {
+                return BadRequest(new { message = "Cleanup hour must be between 0 and 23" });
+            }
+
+            try
+            {
+                await _logCleanupService.SaveSettingsAsync(
+                    request.RetentionDays,
+                    request.AutoCleanupEnabled,
+                    request.CleanupHour);
+
+                return Ok(new LogCleanupSettingsDto
+                {
+                    RetentionDays = request.RetentionDays,
+                    AutoCleanupEnabled = request.AutoCleanupEnabled,
+                    CleanupHour = request.CleanupHour,
+                    NextScheduledRun = request.AutoCleanupEnabled
+                        ? CalculateNextRunTime(DateTime.Now, request.CleanupHour)
+                        : null
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating log cleanup settings");
+                return StatusCode(500, new { message = "Error updating cleanup settings" });
             }
         }
 
@@ -323,6 +418,18 @@ namespace FMS.WebClient.Controllers.SystemManagement
                 return StatusCode(500, new { message = "Error retrieving log statistics" });
             }
         }
+
+        private static DateTime CalculateNextRunTime(DateTime currentTime, int cleanupHour)
+        {
+            var nextRun = currentTime.Date.AddHours(cleanupHour);
+
+            if (currentTime >= nextRun)
+            {
+                nextRun = nextRun.AddDays(1);
+            }
+
+            return nextRun;
+        }
     }
 
     // DTOs
@@ -351,6 +458,21 @@ namespace FMS.WebClient.Controllers.SystemManagement
         public DateTime CutoffDate { get; set; }
     }
 
+    public class LogCleanupSettingsDto
+    {
+        public int RetentionDays { get; set; }
+        public bool AutoCleanupEnabled { get; set; }
+        public int CleanupHour { get; set; }
+        public DateTime? NextScheduledRun { get; set; }
+    }
+
+    public class UpdateLogCleanupSettingsRequest
+    {
+        public int RetentionDays { get; set; }
+        public bool AutoCleanupEnabled { get; set; }
+        public int CleanupHour { get; set; }
+    }
+
     public class LogCleanupResultDto
     {
         public bool Success { get; set; }
@@ -377,4 +499,5 @@ namespace FMS.WebClient.Controllers.SystemManagement
         public DateTime? OldestFile { get; set; }
         public DateTime? NewestFile { get; set; }
     }
+
 }

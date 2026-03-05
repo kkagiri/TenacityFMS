@@ -32,6 +32,7 @@ export const reportsRoutes = {
 
   // Data Management
   fuelImporter: '/reports/fuel-importer',
+  importManagement: '/reports/import-management',
   scheduledEmails: '/reports/scheduled-emails',
 
   // Report List (grid view of all sources)

@@ -26,6 +26,7 @@ using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Services;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.Reporting;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -313,6 +314,11 @@ namespace FMS.Application.Features.Notification.Services
                     notification.ErrorMessage = $"Failed to send to {failureCount} recipients";
 
                 await _context.SaveChangesAsync(cancellationToken);
+
+                if (IsScheduledReportNotification(notification))
+                {
+                    await TryLogScheduledReportExecutionAsync(notification, successCount, failureCount, cancellationToken);
+                }
 
                 _logger.LogInformation("Notification {NotificationId} sent. Success: {SuccessCount}, Failed: {FailureCount}",
                     notification.NotificationId, successCount, failureCount);
@@ -1519,6 +1525,196 @@ namespace FMS.Application.Features.Notification.Services
             {
                 return false;
             }
+        }
+
+        private async Task TryLogScheduledReportExecutionAsync(
+            Noti.Notification notification,
+            int successCount,
+            int failureCount,
+            CancellationToken cancellationToken)
+        {
+            if (notification == null)
+            {
+                return;
+            }
+
+            try
+            {
+                var reportDefinitionId = await ResolveScheduledReportDefinitionIdAsync(notification.Data, cancellationToken);
+                if (reportDefinitionId <= 0)
+                {
+                    _logger.LogDebug(
+                        "Skipping scheduled report execution log for notification {NotificationId} - no matching report definition",
+                        notification.NotificationId);
+                    return;
+                }
+
+                string exportFormat = "pdf";
+                if (!string.IsNullOrWhiteSpace(notification.Data))
+                {
+                    try
+                    {
+                        var root = JObject.Parse(notification.Data);
+                        exportFormat = root.Value<string>("format")?.Trim().ToLowerInvariant() ?? "pdf";
+                    }
+                    catch
+                    {
+                        exportFormat = "pdf";
+                    }
+                }
+
+                var history = new ReportExecutionHistory
+                {
+                    ReportDefinitionId = reportDefinitionId,
+                    ExecutedBy = string.IsNullOrWhiteSpace(notification.TriggeredBy) ? "System" : notification.TriggeredBy,
+                    ExecutedAt = DateTime.UtcNow,
+                    Filters = notification.Data,
+                    ExportFormat = exportFormat,
+                    RecordCount = successCount + failureCount,
+                    Success = failureCount == 0,
+                    ErrorMessage = failureCount > 0 ? notification.ErrorMessage : null
+                };
+
+                _context.ReportExecutionHistories.Add(history);
+                await _context.SaveChangesAsync(cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(
+                    ex,
+                    "Failed to persist scheduled report execution history for notification {NotificationId}",
+                    notification.NotificationId);
+            }
+        }
+
+        private async Task<int> ResolveScheduledReportDefinitionIdAsync(string? notificationData, CancellationToken cancellationToken)
+        {
+            var candidates = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            if (!string.IsNullOrWhiteSpace(notificationData))
+            {
+                try
+                {
+                    var root = JObject.Parse(notificationData);
+                    AddScheduledCandidate(candidates, root.Value<string>("reportId"));
+                    AddScheduledCandidate(candidates, root.Value<string>("sourceId"));
+                    AddScheduledCandidate(candidates, root.Value<string>("sourceName"));
+                    AddScheduledCandidate(candidates, root.Value<string>("templateName"));
+                    AddScheduledCandidate(candidates, root.Value<string>("reportType"));
+                }
+                catch
+                {
+                }
+            }
+
+            if (candidates.Count == 0)
+            {
+                return 0;
+            }
+
+            var definitions = await _context.ReportDefinitions
+                .AsNoTracking()
+                .Select(d => new
+                {
+                    d.ReportDefinitionId,
+                    d.ReportId,
+                    d.ReportName,
+                    d.DataSourceEndpoint
+                })
+                .ToListAsync(cancellationToken);
+
+            foreach (var candidate in candidates)
+            {
+                var exact = definitions.FirstOrDefault(d =>
+                    string.Equals(d.ReportId, candidate, StringComparison.OrdinalIgnoreCase));
+                if (exact != null)
+                {
+                    return exact.ReportDefinitionId;
+                }
+            }
+
+            foreach (var candidate in candidates)
+            {
+                var byName = definitions.FirstOrDefault(d =>
+                    string.Equals(d.ReportName, candidate, StringComparison.OrdinalIgnoreCase));
+                if (byName != null)
+                {
+                    return byName.ReportDefinitionId;
+                }
+            }
+
+            foreach (var candidate in candidates)
+            {
+                var containsMatch = definitions.FirstOrDefault(d =>
+                    (!string.IsNullOrWhiteSpace(d.ReportId) &&
+                     d.ReportId.Contains(candidate, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrWhiteSpace(d.DataSourceEndpoint) &&
+                     d.DataSourceEndpoint.Contains(candidate, StringComparison.OrdinalIgnoreCase)));
+                if (containsMatch != null)
+                {
+                    return containsMatch.ReportDefinitionId;
+                }
+            }
+
+            return 0;
+        }
+
+        private static void AddScheduledCandidate(HashSet<string> candidates, string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return;
+            }
+
+            var trimmed = value.Trim();
+            if (trimmed.Length == 0)
+            {
+                return;
+            }
+
+            candidates.Add(trimmed);
+
+            var kebab = ToScheduledKebabCase(trimmed);
+            if (!string.IsNullOrWhiteSpace(kebab))
+            {
+                candidates.Add(kebab);
+                if (!kebab.EndsWith("-report", StringComparison.OrdinalIgnoreCase))
+                {
+                    candidates.Add($"{kebab}-report");
+                }
+                else
+                {
+                    candidates.Add(kebab[..^7]);
+                }
+            }
+        }
+
+        private static string ToScheduledKebabCase(string value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var chars = new List<char>(value.Length + 8);
+            for (var i = 0; i < value.Length; i++)
+            {
+                var c = value[i];
+                if (char.IsUpper(c) && i > 0 && value[i - 1] != '-' && value[i - 1] != '_' && !char.IsUpper(value[i - 1]))
+                {
+                    chars.Add('-');
+                }
+
+                if (c == '_' || c == ' ')
+                {
+                    chars.Add('-');
+                    continue;
+                }
+
+                chars.Add(char.ToLowerInvariant(c));
+            }
+
+            return new string(chars.ToArray()).Trim('-');
         }
 
         private async Task<bool> SendSmsNotificationAsync(Noti.Notification notification, NotificationRecipient recipient, CancellationToken cancellationToken)

@@ -1,6 +1,16 @@
+/**
+ * File: tagPage.js
+ * Purpose: Admin tag management page shell with M365-style layout and side-panel form workflow
+ * Dependencies: React, Redux, DevExtreme Button/ScrollView, TagList, TagForm
+ * Last Modified: 2026-03-03
+ *
+ * Key Functions/Components:
+ * - TagPage(): renders header, KPI stats, tag list, and selected tag details
+ * - handleAddTag(): opens create form in side panel
+ * - handleEditTag(): opens edit form in side panel
+ */
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Button from "devextreme-react/button";
 import { ScrollView } from "devextreme-react";
 import { fetchTags, setSelectedTag } from "../../redux/actions/tagActions";
 import { fetchVehicleList } from "../../redux/actions/vehicleActions";
@@ -8,32 +18,6 @@ import TagList from "../../components/Tags/TagList/tagList";
 import TagForm from "../../components/Tags/TagForm/TagForm";
 import notify from "devextreme/ui/notify";
 import "./tagpage.scss";
-
-// Custom styles for components
-const styles = {
-  contentContainer: {
-    width: "100%",
-    height: "calc(100vh - 150px)",
-  },
-  panelsContainer: {
-    display: "flex",
-    width: "100%",
-    height: "100%",
-  },
-  leftPanel: {
-    flex: "0 0 40%",
-    borderRight: "1px solid #ddd",
-    padding: "10px",
-    height: "100%",
-    overflowY: "auto",
-  },
-  rightPanel: {
-    flex: "1 1 60%",
-    padding: "10px",
-    height: "100%",
-    overflowY: "auto",
-  },
-};
 
 const TagPage = () => {
   const dispatch = useDispatch();
@@ -44,6 +28,11 @@ const TagPage = () => {
   // Local state
   const [showTagForm, setShowTagForm] = useState(false);
   const [editingTag, setEditingTag] = useState(null);
+
+  const totalTags = Array.isArray(tags) ? tags.length : 0;
+  const assignedVehicleCount = Array.isArray(tags)
+    ? tags.filter((item) => !!item?.vehicleId).length
+    : 0;
 
   useEffect(() => {
     dispatch(fetchTags());
@@ -92,101 +81,95 @@ const TagPage = () => {
   return (
     <ScrollView className="content-block">
       <div className="view-wrapper view-wrapper-tag-page">
-        <div className="view-container">
-          {/* Page Header */}
-          <div className="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-p-4">
-            <div>
-              <h1 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
-                <i className="fa-light fa-tags tw-text-blue-600"></i>
+        <div className="tag-page-container">
+          <div className="m365-page-header">
+            <div className="m365-page-header__left">
+              <i className="fa-light fa-tags m365-page-header__icon" />
+              <h2 className="m365-page-header__title">
                 Tag Management
-              </h1>
-              <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-                Manage RFID tags and vehicle assignments
-              </p>
+                <span className="m365-page-header__count">{totalTags}</span>
+              </h2>
             </div>
-            <div className="tw-flex tw-gap-2">
-              <Button
-                icon="fa-light fa-refresh"
-                hint="Refresh"
-                stylingMode="text"
-                onClick={handleRefreshData}
-              />
+            <div className="m365-page-header__actions">
+              <button className="m365-btn m365-btn--primary" onClick={handleAddTag}>
+                <i className="fa-light fa-plus" />
+                Add Tag
+              </button>
+              <button className="m365-btn m365-btn--ghost" onClick={handleRefreshData}>
+                <i className="fa-light fa-rotate-right" />
+                Refresh
+              </button>
             </div>
           </div>
 
-          {/* Content */}
-          <div style={styles.contentContainer}>
-            <div style={styles.panelsContainer}>
-              <div style={styles.leftPanel}>
-                <div
-                  style={{
-                    display: "flex",
-                    justifyContent: "space-between",
-                    alignItems: "center",
-                    marginBottom: "15px",
-                  }}
-                >
-                  <Button
-                    text="Add Tag"
-                    type="default"
-                    stylingMode="contained"
-                    icon="fa-light fa-plus"
-                    onClick={handleAddTag}
-                  />
-                </div>
-                <TagList
-                  tags={tags}
-                  onTagSelect={handleTagSelection}
-                  onEditTag={handleEditTag}
-                />
-              </div>
-              <div style={styles.rightPanel}>
-                <h3 className="tw-text-lg tw-font-semibold tw-mb-3">
-                  Tag Details
-                </h3>
-                {selectedTag ? (
-                  <div className="tw-bg-gray-50 tw-p-4 tw-rounded-lg">
-                    <div className="tw-space-y-2">
-                      <div className="tw-flex tw-justify-between">
-                        <span className="tw-text-gray-600">Tag Name:</span>
-                        <span className="tw-font-medium">
-                          {selectedTag.tagName || selectedTag.name || "-"}
-                        </span>
-                      </div>
-                      <div className="tw-flex tw-justify-between">
-                        <span className="tw-text-gray-600">Tag Type:</span>
-                        <span className="tw-font-medium">
-                          {selectedTag.tagType || "-"}
-                        </span>
-                      </div>
-                      <div className="tw-flex tw-justify-between">
-                        <span className="tw-text-gray-600">Status:</span>
-                        <span
-                          className={`tw-font-medium ${
-                            selectedTag.isEnabled
-                              ? "tw-text-green-600"
-                              : "tw-text-red-600"
-                          }`}
-                        >
-                          {selectedTag.isEnabled ? "Active" : "Inactive"}
-                        </span>
-                      </div>
-                      {selectedTag.vehicleId && (
-                        <div className="tw-flex tw-justify-between">
-                          <span className="tw-text-gray-600">Vehicle ID:</span>
-                          <span className="tw-font-medium">
-                            {selectedTag.vehicleId}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ) : (
-                  <div className="tw-text-gray-500 tw-italic">
-                    Select a tag to view details
-                  </div>
+          <div className="m365-stats-row">
+            <div className="m365-stat-item">
+              <span className="m365-stat-item__value">{totalTags}</span>
+              <span className="m365-stat-item__label">No. of Tags</span>
+            </div>
+            <div className="m365-stat-item">
+              <span className="m365-stat-item__value">{assignedVehicleCount}</span>
+              <span className="m365-stat-item__label">No. of Vehicle Assign</span>
+            </div>
+          </div>
+
+          <div className="tag-layout">
+            <div className="tag-layout__list-panel">
+              <div className="tag-layout__section-header">
+                <h3 className="tag-layout__title">Tags</h3>
+                {isLoading && (
+                  <span className="tag-layout__loading">
+                    <i className="fa-light fa-loader fa-spin" /> Loading...
+                  </span>
                 )}
               </div>
+              <TagList
+                tags={tags}
+                onTagSelect={handleTagSelection}
+                onEditTag={handleEditTag}
+              />
+            </div>
+
+            <div className="tag-layout__detail-panel">
+              <div className="tag-layout__section-header">
+                <h3 className="tag-layout__title">Tag Details</h3>
+              </div>
+              {selectedTag ? (
+                <div className="tag-details-card">
+                  <div className="tag-details-row">
+                    <span className="tag-details-row__label">Tag Name</span>
+                    <span className="tag-details-row__value">
+                      {selectedTag.tagName || selectedTag.name || "-"}
+                    </span>
+                  </div>
+                  <div className="tag-details-row">
+                    <span className="tag-details-row__label">Tag Type</span>
+                    <span className="tag-details-row__value">{selectedTag.tagType || "-"}</span>
+                  </div>
+                  <div className="tag-details-row">
+                    <span className="tag-details-row__label">Status</span>
+                    <span className="tag-details-row__value">
+                      <span
+                        className={`m365-badge ${selectedTag.isEnabled ? "m365-badge--success" : "m365-badge--error"
+                          }`}
+                      >
+                        {selectedTag.isEnabled ? "Active" : "Inactive"}
+                      </span>
+                    </span>
+                  </div>
+                  <div className="tag-details-row">
+                    <span className="tag-details-row__label">Vehicle ID</span>
+                    <span className="tag-details-row__value">
+                      {selectedTag.vehicleId || "Not assigned"}
+                    </span>
+                  </div>
+                </div>
+              ) : (
+                <div className="tag-details-empty">
+                  <i className="fa-light fa-circle-info" />
+                  Select a tag to view details
+                </div>
+              )}
             </div>
           </div>
         </div>

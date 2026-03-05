@@ -1,59 +1,251 @@
+/*
+ * File: tagpage.scss
+ * Purpose: M365-style page shell for tag management (header, KPIs, list/detail layout)
+ * Dependencies: shared M365 CSS variables/classes, TagList styles
+ * Last Modified: 2026-03-03
+ */
+
 @use "../../variables.scss" as *;
-@use 'sass:math';
 
-:root {
-    --left-panel-width: 400px;
-    --right-panel-width: 360px;
-  }
-
-  .view-wrapper.view-wrapper-tag-page {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    flex-grow: 1;
-    padding-top: var(--content-padding);
-    padding-bottom: var(--content-padding);
-
-    @media only screen and (max-width: 875px) {
-      .role-toolbar-item {
-        min-width: calc(var(--left-panel-width) + var(--right-panel-width) - 145px);
-      }
-    }
-    .dx-toolbar {
-        .toolbar-header {
-          @include header();
-        }
-
-        @media only screen and (max-width: 400px) {
-          .dx-tab {
-            min-width: 70px;
-          }
-        }
-      }
-
-    .panels {
-        display: flex;
-        flex-wrap: wrap;
-        justify-content: space-between;
-        gap: 20px;
-
-        .left {
-            width: 20%;
-            border-right: 1px solid #ddd;
-            padding-right: 20px;
-        }
-
-        .right {
-            width: 60%;
-            padding-left: 20px;
-        }
-    }
+.view-wrapper.view-wrapper-tag-page {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  padding-top: var(--content-padding);
+  padding-bottom: var(--content-padding);
 }
 
-.toolbar-details {
-    margin-bottom: calc(var(--toolbar-margin-bottom) / 2);
+.tag-page-container {
+  display: flex;
+  flex-direction: column;
+  min-height: calc(100vh - 170px);
+  background: var(--m365-bg-surface, #faf9f8);
+}
 
-    .dx-toolbar-label > div {
-      @include header();
-    }
+.m365-page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 20px;
+  background: var(--m365-bg-card, #ffffff);
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+  &__left {
+    display: flex;
+    align-items: center;
+    gap: 10px;
   }
+
+  &__icon {
+    font-size: 18px;
+    color: var(--m365-primary, #0078d4);
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 24px;
+    height: 24px;
+    padding: 0 8px;
+    border-radius: 9999px;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--m365-bg-hover, #f3f2f1);
+    color: var(--m365-text-secondary, #605e5c);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+}
+
+.m365-btn {
+  border: 1px solid transparent;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: var(--m365-text, #201f1e);
+
+  &--primary {
+    background: var(--m365-primary, #0078d4);
+    color: #fff;
+  }
+
+  &--ghost {
+    background: var(--m365-bg-card, #ffffff);
+    border-color: var(--m365-border, #c8c6c4);
+    color: var(--m365-text-secondary, #605e5c);
+  }
+}
+
+.m365-stats-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(180px, 1fr));
+  gap: 12px;
+  padding: 12px 20px;
+  background: var(--m365-bg-card, #ffffff);
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+}
+
+.m365-stat-item {
+  background: var(--m365-bg-surface, #faf9f8);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+
+  &__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--m365-text, #201f1e);
+    line-height: 1.2;
+  }
+
+  &__label {
+    margin-top: 2px;
+    font-size: 12px;
+    color: var(--m365-text-secondary, #605e5c);
+  }
+}
+
+.tag-layout {
+  flex: 1;
+  min-height: 0;
+  display: grid;
+  grid-template-columns: 1.2fr 0.8fr;
+  gap: 12px;
+  padding: 12px 20px 20px;
+
+  &__list-panel,
+  &__detail-panel {
+    min-height: 0;
+    background: var(--m365-bg-card, #ffffff);
+    border: 1px solid var(--m365-border-light, #edebe9);
+    border-radius: 8px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  &__section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--m365-text, #201f1e);
+  }
+
+  &__loading {
+    font-size: 12px;
+    color: var(--m365-text-secondary, #605e5c);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+}
+
+.tag-details-card {
+  background: var(--m365-bg-surface, #faf9f8);
+  border: 1px solid var(--m365-border-light, #edebe9);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.tag-details-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+
+  &:last-child {
+    border-bottom: none;
+  }
+
+  &__label {
+    color: var(--m365-text-secondary, #605e5c);
+    font-size: 12px;
+  }
+
+  &__value {
+    color: var(--m365-text, #201f1e);
+    font-size: 13px;
+    font-weight: 600;
+    text-align: right;
+  }
+}
+
+.tag-details-empty {
+  padding: 16px;
+  border-radius: 6px;
+  border: 1px dashed var(--m365-border, #c8c6c4);
+  color: var(--m365-text-secondary, #605e5c);
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.m365-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 9999px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+
+  &--success {
+    background: #dff6dd;
+    color: #107c10;
+  }
+
+  &--error {
+    background: #fde7e9;
+    color: #d13438;
+  }
+}
+
+@media (max-width: 1024px) {
+  .tag-layout {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 768px) {
+  .m365-page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .m365-stats-row {
+    grid-template-columns: 1fr;
+  }
+}

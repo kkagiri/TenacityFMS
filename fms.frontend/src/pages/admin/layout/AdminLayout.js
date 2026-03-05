@@ -546,7 +546,7 @@ const AdminLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
           <div className="tw-flex tw-items-center tw-justify-between tw-w-full tw-gap-6 tw-px-6 tw-py-3">
             {/* Title Section - LEFT (Compact, no subtitle) */}
             <div className="tw-flex-shrink-0">
-              <h1 className="tw-text-xl tw-font-bold tw-text-gray-800">
+              <h1 className="tw-text-xl tw-font-bold tw-text-gray-700">
                 {finalTitle}
               </h1>
             </div>

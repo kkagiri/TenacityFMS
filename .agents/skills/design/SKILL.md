@@ -485,7 +485,9 @@ M365 Admin pages use slim headers — no hero banners, no large icon boxes.
 }
 ```
 
-### 7.2 Help Tooltip (inline "?" circle)
+### 7.2 Help Tooltip (inline "?" circle) — hover only
+
+Use for **simple, short** hints where hover is sufficient.
 
 ```jsx
 <span className="m365-help-tip" title="This field controls how often…">
@@ -499,6 +501,89 @@ M365 Admin pages use slim headers — no hero banners, no large icon boxes.
   width: 18px; height: 18px; border-radius: 50%;
   font-size: 12px; color: #a19f9d; cursor: help; margin-left: 4px;
   &:hover { color: #0078d4; }
+}
+```
+
+### 7.2b InfoTip Popover (click-to-open balloon)
+
+Use for **longer descriptions** that need more than a native title tooltip.
+Click the `(i)` icon to open a floating speech-bubble balloon below the trigger.
+Clicking outside or scrolling dismisses it.
+
+**Shared component:** `src/components/m365/M365InfoTip.js`
+
+| Property | Value |
+|---|---|
+| Trigger icon | `fa-light fa-circle-info` (purple `#6b21a8`, opacity 0.7 → 1 on hover) |
+| Balloon bg | White (`--m365-bg-card`) |
+| Balloon border | `--m365-border` (`#c8c6c4`) |
+| Font size | 11px, line-height 1.55 |
+| Min/Max width | 220px / 300px |
+| Rendering | `ReactDOM.createPortal` on `document.body`, `position: fixed` |
+| Arrow | CSS speech-bubble arrow centred above balloon |
+| Dismiss | Outside click or any scroll event |
+
+```jsx
+import M365InfoTip from "../components/m365/M365InfoTip";
+
+{/* Inline next to a label */}
+<label>
+    Scan Interval
+    <M365InfoTip text="How often (in minutes) the system scans the folder." />
+</label>
+
+{/* Inside a checkbox label */}
+<label className="m365-checkbox">
+    <input type="checkbox" />
+    <span className="m365-checkbox__label">
+        Enable Retries
+        <M365InfoTip text="Previously failed files will be retried each cycle." />
+    </span>
+</label>
+```
+
+```scss
+// Styles are in m365-shared.scss
+.m365-infotip {
+  display: inline-flex; align-items: center;
+  margin-left: 4px; vertical-align: middle;
+
+  &__trigger {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 16px; height: 16px; padding: 0; border: none; background: none;
+    color: #6b21a8; font-size: 13px; cursor: pointer; opacity: 0.7;
+    transition: opacity 0.15s;
+    &:hover { opacity: 1; }
+  }
+
+  &__balloon {
+    position: fixed; transform: translateX(-50%); z-index: 100000;
+    min-width: 220px; max-width: 300px; padding: 8px 12px;
+    border-radius: 6px; background: var(--m365-bg-card);
+    border: 1px solid var(--m365-border); color: var(--m365-text);
+    font-size: 11px; line-height: 1.55;
+    box-shadow: 0 4px 16px rgba(0,0,0,0.14);
+    animation: m365-infotip-pop-in 0.1s ease-out;
+
+    // speech-bubble arrow (::before = border, ::after = fill)
+    &::before {
+      content: ""; position: absolute; top: -6px; left: 50%;
+      transform: translateX(-50%);
+      border-left: 6px solid transparent; border-right: 6px solid transparent;
+      border-bottom: 6px solid var(--m365-border);
+    }
+    &::after {
+      content: ""; position: absolute; top: -5px; left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent; border-right: 5px solid transparent;
+      border-bottom: 5px solid var(--m365-bg-card);
+    }
+  }
+}
+
+@keyframes m365-infotip-pop-in {
+  from { opacity: 0; transform: translateX(-50%) translateY(4px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
 }
 ```
 

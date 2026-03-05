@@ -42,6 +42,7 @@ import {
 } from "../../../redux/actions/systemConfigActions";
 
 import SystemConfigForm from "./components/SystemConfigForm";
+import SystemConfigViewPanel from "./components/SystemConfigViewPanel";
 import SystemConfigFilters from "./components/SystemConfigFilters";
 import SystemConfigBulkActions from "./components/SystemConfigBulkActions";
 import SystemConfigImport from "./components/SystemConfigImport";
@@ -58,7 +59,9 @@ const SystemConfigPage = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showBulkActions, setShowBulkActions] = useState(false);
   const [showImport, setShowImport] = useState(false);
+  const [showViewPanel, setShowViewPanel] = useState(false);
   const [editingConfig, setEditingConfig] = useState(null);
+  const [viewingConfig, setViewingConfig] = useState(null);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   // Transform flat configurations into tree structure with categories as parent nodes
@@ -147,6 +150,18 @@ const SystemConfigPage = () => {
     setShowForm(true);
   }, []);
 
+  const handleView = useCallback((config) => {
+    setViewingConfig(config);
+    setShowViewPanel(true);
+  }, []);
+
+  const handleEditFromView = useCallback((config) => {
+    setShowViewPanel(false);
+    setViewingConfig(null);
+    setEditingConfig(config);
+    setShowForm(true);
+  }, []);
+
   const handleDelete = useCallback(
     async (configId) => {
       try {
@@ -209,12 +224,6 @@ const SystemConfigPage = () => {
   const handleBulkAction = useCallback(() => {
     setShowBulkActions(true);
   }, []);
-
-  const handleBulkComplete = useCallback(() => {
-    setShowBulkActions(false);
-    setSelectedKeys([]);
-    handleRefresh();
-  }, [handleRefresh]);
 
   const handleImportComplete = useCallback(() => {
     setShowImport(false);
@@ -318,11 +327,11 @@ const SystemConfigPage = () => {
     return (
       <div className="tw-flex tw-gap-2">
         <Button
-          icon="fa-light fa-edit"
+          icon="fa-light fa-eye"
           type="normal"
           stylingMode="text"
-          hint="Edit Configuration"
-          onClick={() => handleEdit(config)}
+          hint="View Configuration"
+          onClick={() => handleView(config)}
         />
         <Button
           icon="fa-light fa-trash"
@@ -481,12 +490,26 @@ const SystemConfigPage = () => {
           />
         )}
 
+        {showViewPanel && (
+          <SystemConfigViewPanel
+            visible={showViewPanel}
+            config={viewingConfig}
+            onClose={() => {
+              setShowViewPanel(false);
+              setViewingConfig(null);
+            }}
+            onEdit={handleEditFromView}
+          />
+        )}
+
         {showBulkActions && (
           <SystemConfigBulkActions
-            visible={showBulkActions}
-            selectedIds={selectedKeys}
-            onComplete={handleBulkComplete}
-            onCancel={() => setShowBulkActions(false)}
+            selectedKeys={selectedKeys}
+            onClearSelection={() => {
+              setSelectedKeys([]);
+              setShowBulkActions(false);
+            }}
+            onRefresh={handleRefresh}
           />
         )}
 

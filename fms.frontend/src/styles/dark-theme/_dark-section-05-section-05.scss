@@ -1,0 +1,48 @@
+/**
+ * File: _dark-section-05-section-05.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   SELECTBOX / DROPDOWN — popup list
+   ================================================================ */
+.dx-dropdowneditor-overlay .dx-overlay-content,
+.dx-selectbox-popup-wrapper .dx-overlay-content,
+.dx-dropdownlist-popup-wrapper .dx-overlay-content,
+.dx-lookup-popup-wrapper .dx-overlay-content {
+  background-color: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-list {
+  background-color: var(--fms-surface) !important;
+}
+
+.dx-list-item {
+  color: var(--fms-text-primary) !important;
+  background-color: var(--fms-surface) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+
+.dx-list-item:hover,
+.dx-list-item.dx-state-hover {
+  background-color: var(--fms-hover-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-list-item.dx-state-active,
+.dx-list-item.dx-state-focused {
+  background-color: var(--fms-active-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-list-item-content {
+  color: var(--fms-text-primary) !important;
+}
+
+/* SelectBox dropdown search */
+.dx-list-search {
+  background-color: var(--fms-surface) !important;
+}

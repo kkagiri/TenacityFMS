@@ -20,5 +20,20 @@ namespace FMS.Application.Services.Logging
         /// </summary>
         /// <returns>Number of retention days</returns>
         Task<int> GetLogRetentionDaysAsync();
+
+        /// <summary>
+        /// Gets whether scheduled auto-cleanup is enabled
+        /// </summary>
+        Task<bool> GetAutoCleanupEnabledAsync();
+
+        /// <summary>
+        /// Gets configured cleanup hour (0-23)
+        /// </summary>
+        Task<int> GetCleanupHourAsync();
+
+        /// <summary>
+        /// Updates cleanup settings in SystemConfiguration
+        /// </summary>
+        Task SaveSettingsAsync(int retentionDays, bool autoCleanupEnabled, int cleanupHour);
     }
 }

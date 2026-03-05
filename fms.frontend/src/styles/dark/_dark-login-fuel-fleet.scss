@@ -1,0 +1,128 @@
+// _dark-login-fuel-fleet.scss
+// Lines 1001-1121 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     SCROLLVIEW / LAYOUT BODY
+     ================================================================ */
+  .layout-body {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  .content-block {
+    color: var(--fms-text-primary);
+  }
+
+  /* ================================================================
+     MOBILE NAV dark overrides (hardcoded colors in MobileNavigationMenu)
+     ================================================================ */
+  .mobile-nav-container {
+    background: var(--fms-sidebar-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .mobile-nav-search {
+      background: var(--fms-surface-secondary) !important;
+
+      input {
+        background: var(--fms-input-bg) !important;
+        color: var(--fms-text-primary) !important;
+        border-color: var(--fms-input-border) !important;
+      }
+    }
+
+    .mobile-nav-item {
+      border-bottom-color: var(--fms-border) !important;
+
+      .mobile-nav-item-content {
+        color: var(--fms-text-primary) !important;
+
+        &:hover {
+          background-color: var(--fms-hover-bg) !important;
+        }
+      }
+
+      &.active .mobile-nav-item-content {
+        background-color: var(--fms-active-bg) !important;
+      }
+    }
+
+    .mobile-nav-children {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .mobile-nav-quick-actions {
+      background: var(--fms-surface-secondary) !important;
+      border-top-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ================================================================
+     M365 DESIGN TOKEN OVERRIDES  (--m365-*)
+     Used by: User Management, TankStock forms, m365-shared components,
+              VehicleDetailPanel/FormPanel footers, import management, etc.
+     ================================================================ */
+  --m365-text:             #e4e4e4;
+  --m365-text-secondary:   #a0a0a0;
+  --m365-text-tertiary:    #6e6e6e;
+  --m365-border:           #444444;
+  --m365-border-light:     #3a3a3a;
+  --m365-bg-hover:         #2a2a2a;
+  --m365-bg-surface:       #252525;
+  --m365-bg-card:          #1e1e1e;
+  --m365-selected-bg:      #0e3a5c;
+  --m365-primary-tint:     #0e3a5c;
+  --m365-success-tint:     #0f3d0f;
+  --m365-error-tint:       #4c1517;
+  --m365-warning-tint:     #4a2510;
+  --m365-info-tint:        #0e3a5c;
+  --m365-blue-bg:          #0e3a5c;
+  --m365-red-bg:           #4c1517;
+  --m365-green-bg:         #0f3d0f;
+  --m365-orange-bg:        #4a2510;
+  --m365-teal-bg:          #0d3937;
+  --m365-purple-bg:        #2d1654;
+
+  /* ================================================================
+     FABRIC TOKEN OVERRIDES  (--f-*)
+     Used by: IssueCreateForm, IssueTicketListPage
+     ================================================================ */
+  --f-bg:          #161616;
+  --f-surface:     #1e1e1e;
+  --f-text:        #e4e4e4;
+  --f-text-2:      #a0a0a0;
+  --f-text-3:      #6e6e6e;
+  --f-border:      #3a3a3a;
+  --f-border-2:    #444444;
+  --f-blue-light:  #0e3a5c;
+  --f-blue-mid:    #0a2a42;
+  --f-red-light:   #4c1517;
+  --f-green-light: #0f3d0f;
+  --f-purple-light:#2d1654;
+  --f-shadow-s:    0 1.6px 3.6px rgba(0,0,0,.35), 0 0.3px 0.9px rgba(0,0,0,.25);
+
+  /* ================================================================
+     MS TOKEN OVERRIDES  (--ms-*)
+     Used by: IssueTrackerDetailPage
+     ================================================================ */
+  --ms-text-primary:  #e4e4e4;
+  --ms-text-secondary:#a0a0a0;
+  --ms-text-muted:    #6e6e6e;
+  --ms-border:        #3a3a3a;
+  --ms-border-strong: #444444;
+  --ms-bg:            #161616;
+  --ms-blue-light:    #0e3a5c;
+  --ms-blue-mid:      #0a2a42;
+  --ms-red-light:     #4c1517;
+  --ms-green-light:   #0f3d0f;
+  --ms-orange-light:  #4a2510;
+  --ms-shadow-sm:     0 1.6px 3.6px rgba(0,0,0,.35), 0 0.3px 0.9px rgba(0,0,0,.25);
+  --ms-shadow-md:     0 6.4px 14.4px rgba(0,0,0,.35), 0 1.2px 3.6px rgba(0,0,0,.25);
+
+  /* ================================================================
+     GLOBAL FOOTER
+     ================================================================ */
+  .footer {
+    color: rgba(228, 228, 228, 0.7) !important;
+    border-top-color: rgba(255, 255, 255, 0.1) !important;
+  }
+}

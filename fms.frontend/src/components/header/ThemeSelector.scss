@@ -1,0 +1,124 @@
+/**
+ * File: ThemeSelector.scss
+ * Purpose: Styles for the ThemeSelector dropdown in the header.
+ * Dependencies: None
+ * Last Modified: 2026-03-03
+ */
+
+.theme-selector {
+  position: relative;
+  display: flex;
+  align-items: center;
+  z-index: 1060;
+
+  // ── Trigger button ────────────────────────────────
+  &__trigger {
+    background: none;
+    border: none;
+    cursor: pointer;
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--fms-text-primary, #333);
+    font-size: 16px;
+    transition: background-color 0.15s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    &:hover {
+      background-color: var(--fms-hover-bg, rgba(0, 0, 0, 0.06));
+    }
+
+    &:focus {
+      outline: 2px solid #0078d4;
+      outline-offset: -2px;
+    }
+
+    &::-moz-focus-inner {
+      border: 0;
+    }
+  }
+
+  // ── Dropdown panel ────────────────────────────────
+  &__dropdown {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+    background: var(--fms-surface, #ffffff);
+    border: 1px solid var(--fms-border, #e0e0e0);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.14);
+    padding: 4px;
+    z-index: 1070;
+    animation: themeDropdownFadeIn 0.12s ease-out;
+  }
+
+  // ── Option row ────────────────────────────────────
+  &__option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    padding: 8px 12px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    color: var(--fms-text-primary, #201f1e);
+    transition: background-color 0.1s ease;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+
+    i:first-child {
+      width: 18px;
+      text-align: center;
+      font-size: 14px;
+      color: var(--fms-text-secondary, #605e5c);
+    }
+
+    span {
+      flex: 1;
+      text-align: left;
+    }
+
+    &:hover {
+      background-color: var(--fms-hover-bg, #f3f2f1);
+    }
+
+    &--active {
+      background-color: var(--fms-active-bg, #e8f4fd);
+      font-weight: 600;
+
+      i:first-child {
+        color: #0078d4;
+      }
+    }
+  }
+
+  // ── Checkmark ─────────────────────────────────────
+  &__check {
+    font-size: 12px;
+    color: #0078d4;
+    margin-left: auto;
+  }
+}
+
+// ── Fade-in animation ─────────────────────────────
+@keyframes themeDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}

@@ -1,0 +1,780 @@
+// _dark-tankstock-modules.scss
+// Lines 3719-3875 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ── Quick Actions popup ──────────────────────────────────── */
+  .stock-management-popup {
+    .dx-popup-title {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .dx-popup-close-button {
+      color: var(--fms-text-secondary) !important;
+      &:hover { color: var(--fms-text-primary) !important; background-color: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  /* ── Fuel Data Comparison ─────────────────────────────────── */
+  .fuel-data-comparison-main,
+  .fuel-comparison-main {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    h2, h3 { color: var(--fms-text-primary) !important; }
+  }
+
+  .fuel-refill-tab {
+    background-color: var(--fms-page-bg) !important;
+    h3, h4 { color: var(--fms-text-primary) !important; }
+  }
+
+  .fuel-refill-table {
+    background-color: var(--fms-surface) !important;
+    th {
+      background-color: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+    td {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Daily Reconciliation ─────────────────────────────────── */
+  .daily-reconciliation,
+  .reconciliation-page {
+    background: var(--fms-page-bg) !important;
+
+    .reconciliation-card,
+    .summary-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    h3, h4 { color: var(--fms-text-primary) !important; }
+  }
+
+  .transfer-reconciliation {
+    background-color: var(--fms-page-bg) !important;
+  }
+
+  /* ── Variance Analysis & Period Diagnostic ────────────────── */
+  .variance-analysis,
+  .period-diagnostic-panel {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .diagnostic-section,
+    .diagnostic-card,
+    .summary-item,
+    .detail-row {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .section-header { color: var(--fms-text-primary) !important; }
+    .section-subtitle { color: var(--fms-text-secondary) !important; }
+  }
+
+  /* ── Fuel Audit ───────────────────────────────────────────── */
+  .fuel-audit-main {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .audit-step-card {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── PivotGrid Report ─────────────────────────────────────── */
+  .pivot-grid-report {
+    background-color: var(--fms-surface) !important;
+
+    .report-toolbar {
+      background-color: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Pump Transaction Manager ─────────────────────────────── */
+  .pump-transaction-manager,
+  .pump-transaction-card {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+
+    .section-title { color: var(--fms-text-secondary) !important; }
+  }
+
+  /* ── Site Details View ────────────────────────────────────── */
+  .site-details-view,
+  .site-detail-card {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── Emergency Response Panel ─────────────────────────────── */
+  .emergency-response-panel {
+    &.normal-status {
+      background: linear-gradient(135deg, rgba(16, 163, 74, 0.08), rgba(22, 163, 74, 0.12)) !important;
+    }
+    &.elevated-status {
+      background: linear-gradient(135deg, rgba(202, 138, 4, 0.08), rgba(202, 138, 4, 0.12)) !important;
+    }
+    &.critical-status {
+      background: linear-gradient(135deg, rgba(220, 38, 38, 0.08), rgba(220, 38, 38, 0.12)) !important;
+    }
+
+    .status-header .status-text {
+      h3 { color: var(--fms-text-primary) !important; }
+      p { color: var(--fms-text-secondary) !important; }
+    }
+
+    .active-incidents {
+      h4 { color: var(--fms-text-primary) !important; }
+      .incident-item {
+        background: var(--fms-surface) !important;
+        .incident-message { color: var(--fms-text-primary) !important; }
+        .incident-location { color: var(--fms-text-secondary) !important; }
+      }
+    }
+
+    .emergency-actions h4 { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Tank Actions / Site Actions menus ─────────────────────── */
+  .tank-actions-menu,
+  .site-actions-menu {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+
+    .menu-item {
+      &:hover { background-color: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  /* ── Fuel Data Comparison — white root card ───────────────── */
+  .fuel-data-comparison-main {
+    background: var(--fms-surface) !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.4) !important;
+  }
+
+  /* ── Fuel Audit Main — header bar & loading ───────────────── */
+  .fuel-audit-main {
+    .tw-bg-white {
+      background: var(--fms-surface) !important;
+      border-bottom-color: var(--fms-border) !important;
+    }
+    .tw-border-gray-200 { border-color: var(--fms-border) !important; }
+    .tw-text-gray-800 { color: var(--fms-text-primary) !important; }
+    .tw-text-gray-500 { color: var(--fms-text-tertiary) !important; }
+  }
+
+  /* ── Fuel Audit Wizard page wrapper ──────────────────────── */
+  .fuel-audit-wizard-page {
+    background: var(--fms-page-bg) !important;
+  }
+
+  /* ── Create Audit Wizard ─────────────────────────────────── */
+  .create-audit-wizard-page {
+    background: var(--fms-surface) !important;
+
+    /* Header & footer bars */
+    .wizard-panel-header,
+    .wizard-footer {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    /* Title / step counter text */
+    .tw-text-gray-800 { color: var(--fms-text-primary) !important; }
+    .tw-text-gray-700 { color: var(--fms-text-secondary) !important; }
+    .tw-text-gray-500 { color: var(--fms-text-tertiary) !important; }
+    .tw-text-gray-400 { color: var(--fms-text-tertiary) !important; }
+    .tw-text-gray-300 { color: var(--fms-border) !important; }
+
+    /* Audit number / chips */
+    .tw-bg-gray-100 {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    /* Loading overlays */
+    .tw-bg-white { background: var(--fms-surface) !important; }
+
+    /* Transition overlay */
+    .tw-bg-opacity-80 { background: rgba(30, 30, 30, 0.85) !important; }
+    .tw-text-gray-600 { color: var(--fms-text-secondary) !important; }
+
+    /* Main content area — must have surface bg so steps inherit it */
+    .tw-flex-1.tw-overflow-auto {
+      background: var(--fms-page-bg) !important;
+    }
+  }
+
+  /* ── Wizard Step 1 — Site & Period panels ────────────────── */
+  .step1-site-period {
+    .site-selection-panel,
+    .date-range-panel {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+
+      h3 { color: var(--fms-text-primary) !important; }
+    }
+
+    /* Native text / date search inputs */
+    input[type="text"],
+    input[type="date"] {
+      background: var(--fms-input-bg, #2a2a2a) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+      color-scheme: dark;
+
+      &::placeholder { color: var(--fms-text-tertiary) !important; }
+    }
+
+    /* Site list items */
+    .sites-list {
+      scrollbar-color: var(--fms-border) var(--fms-surface-secondary);
+
+      label { color: var(--fms-text-primary) !important; }
+
+      .hover\:tw-bg-gray-50:hover,
+      [class*="hover:tw-bg-gray-50"]:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    /* "Select All" border */
+    .tw-border-b { border-color: var(--fms-border) !important; }
+    .tw-border-t { border-color: var(--fms-border) !important; }
+
+    /* Site/date text */
+    .tw-text-gray-500 { color: var(--fms-text-tertiary) !important; }
+    .tw-text-gray-600 { color: var(--fms-text-secondary) !important; }
+
+    /* Blue info box */
+    .tw-bg-blue-50 {
+      background: rgba(59, 130, 246, 0.08) !important;
+      border-color: rgba(59, 130, 246, 0.25) !important;
+    }
+    .tw-text-blue-700 { color: #93c5fd !important; }
+
+    /* Period summary box */
+    .tw-bg-gray-50 {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* Validation summary at bottom */
+    .tw-mt-6.tw-p-4.tw-bg-gray-50 {
+      background: var(--fms-surface-secondary) !important;
+      h4 { color: var(--fms-text-primary) !important; }
+    }
+  }
+
+  /* ── Audit List (grid + filters) ────────────────────────── */
+  .audit-list-container {
+    background: #1e1e1e !important;
+    border-color: #3a3a3a !important;
+
+    /* Header */
+    .audit-list-header {
+      background: #1e1e1e !important;
+      border-bottom-color: #3a3a3a !important;
+    }
+
+    /* Filters bar */
+    .audit-list-filters {
+      background: #252525 !important;
+      border-bottom-color: #3a3a3a !important;
+    }
+
+    /* Header text */
+    .tw-text-gray-800 { color: #e4e4e4 !important; }
+    .tw-text-gray-500 { color: #a0a0a0 !important; }
+    .tw-text-gray-600 { color: #a0a0a0 !important; }
+    .tw-text-gray-400 { color: #6e6e6e !important; }
+
+    /* Inline icon color adjustments */
+    .tw-text-green-600 { color: #4ade80 !important; }
+    .tw-text-orange-600 { color: #fb923c !important; }
+
+    /* Hover bg on action buttons */
+    .hover\:tw-bg-green-50:hover { background: rgba(34,197,94,0.1) !important; }
+    .hover\:tw-bg-blue-50:hover  { background: rgba(59,130,246,0.1) !important; }
+
+    /* --- EVERY cell, row, td in the DataGrid --- */
+    .dx-datagrid,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-rowsview .dx-row,
+    .dx-datagrid-rowsview .dx-data-row,
+    .dx-datagrid-rowsview .dx-row > td,
+    .dx-datagrid-rowsview .dx-data-row > td,
+    .dx-datagrid-rowsview .dx-row td,
+    .dx-datagrid-rowsview td,
+    .dx-datagrid td,
+    .dx-datagrid-table td {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Hover rows --- */
+    .dx-datagrid-rowsview .dx-row:hover,
+    .dx-datagrid-rowsview .dx-row:hover > td,
+    .dx-datagrid-rowsview .dx-state-hover,
+    .dx-datagrid-rowsview .dx-state-hover > td {
+      background-color: #2c3e50 !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Selected / focused rows --- */
+    .dx-datagrid .dx-row-focused > td,
+    .dx-datagrid .dx-selection > td,
+    .dx-datagrid-rowsview .dx-selection > td {
+      background-color: #0e3a5c !important;
+      color: #ffffff !important;
+    }
+
+    /* --- HEADERS --- */
+    .dx-datagrid-headers,
+    .dx-datagrid-headers td,
+    .dx-datagrid-headers .dx-header-row > td,
+    .dx-datagrid-headers .dx-header-row td,
+    .dx-datagrid-headers .dx-datagrid-table td {
+      background-color: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    /* --- Header text content --- */
+    .dx-datagrid-text-content,
+    .dx-datagrid-headers .dx-datagrid-text-content,
+    .dx-header-row .dx-datagrid-text-content {
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Header filter & sort icons --- */
+    .dx-header-filter,
+    .dx-datagrid-headers .dx-header-filter,
+    .dx-header-filter::before,
+    .dx-header-filter-indicator {
+      color: #a0a0a0 !important;
+    }
+
+    .dx-sort,
+    .dx-sort-up,
+    .dx-sort-down,
+    .dx-datagrid-headers .dx-sort,
+    .dx-datagrid-headers .dx-sort::before {
+      color: #a0a0a0 !important;
+    }
+
+    /* --- Header panel / toolbar (search) --- */
+    .dx-datagrid-header-panel,
+    .dx-datagrid-header-panel .dx-toolbar,
+    .dx-datagrid-header-panel .dx-toolbar-items-container,
+    .dx-toolbar {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Search panel --- */
+    .dx-searchpanel .dx-texteditor {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-searchpanel .dx-texteditor-input,
+    .dx-searchpanel .dx-placeholder,
+    .dx-searchpanel .dx-icon-search {
+      color: #e4e4e4 !important;
+    }
+
+    /* --- Pager --- */
+    .dx-datagrid .dx-pager,
+    .dx-pager .dx-pages,
+    .dx-pager .dx-page,
+    .dx-pager .dx-page-size,
+    .dx-pager .dx-info,
+    .dx-datagrid-pager {
+      background-color: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-pager .dx-page.dx-selection {
+      background-color: #0078d4 !important;
+      color: #ffffff !important;
+    }
+
+    /* --- No data text --- */
+    .dx-datagrid-nodata { color: #a0a0a0 !important; }
+
+    /* --- Scrollbar --- */
+    .dx-scrollbar-hoverable .dx-scrollable-scroll-content {
+      background-color: #555 !important;
+    }
+  }
+
+  /* ── Audit Status Badges — dark ──────────────────────────── */
+  .status-badge {
+    &.draft {
+      background: rgba(156, 163, 175, 0.15) !important;
+      color: #a0a0a0 !important;
+    }
+    &.calculated {
+      background: rgba(59, 130, 246, 0.15) !important;
+      color: #60a5fa !important;
+    }
+    &.finalized {
+      background: rgba(34, 197, 94, 0.15) !important;
+      color: #4ade80 !important;
+    }
+    &.cancelled {
+      background: rgba(239, 68, 68, 0.15) !important;
+      color: #f87171 !important;
+    }
+  }
+
+  /* ── Audit Filter Controls — dark ────────────────────────── */
+  .audit-list-filters {
+    label {
+      color: #a0a0a0 !important;
+    }
+  }
+
+  /* ── Wizard Steps 3–6 (common — .wizard-step root) ────── */
+  .wizard-step {
+    color: var(--fms-text-primary);
+
+    /* Generic text overrides */
+    h3, h4 { color: var(--fms-text-primary) !important; }
+    .tw-text-gray-800 { color: var(--fms-text-primary)    !important; }
+    .tw-text-gray-700 { color: var(--fms-text-secondary)  !important; }
+    .tw-text-gray-600 { color: var(--fms-text-secondary)  !important; }
+    .tw-text-gray-500 { color: var(--fms-text-tertiary)   !important; }
+    .tw-text-gray-400 { color: var(--fms-text-tertiary)   !important; }
+
+    /* ── Blue info banner (period range / tank count) ── */
+    .tw-bg-blue-50 {
+      background: rgba(59, 130, 246, 0.08) !important;
+      border-color: rgba(59, 130, 246, 0.25) !important;
+    }
+    .tw-border-blue-200 { border-color: rgba(59, 130, 246, 0.25) !important; }
+    .tw-text-blue-800   { color: #93c5fd !important; }
+    .tw-text-blue-600   { color: #60a5fa !important; }
+
+    /* ── Yellow "Edited" badge / yellow empty-state ── */
+    .tw-bg-yellow-100 {
+      background: rgba(234, 179, 8, 0.12) !important;
+      border-color: rgba(234, 179, 8, 0.30) !important;
+    }
+    .tw-bg-yellow-50 {
+      background: rgba(234, 179, 8, 0.08) !important;
+      border-color: rgba(234, 179, 8, 0.20) !important;
+    }
+    .tw-border-yellow-300 { border-color: rgba(234, 179, 8, 0.30) !important; }
+    .tw-border-yellow-200 { border-color: rgba(234, 179, 8, 0.20) !important; }
+    .tw-text-yellow-700   { color: #fcd34d !important; }
+    .tw-text-yellow-600   { color: #fbbf24 !important; }
+
+    /* ── Orange note text ── */
+    .tw-text-orange-600 { color: #fb923c !important; }
+
+    /* ── Step-3 stat cards: green / blue / purple / cyan / pink / orange ── */
+    .tw-bg-green-50 {
+      background: rgba(34, 197, 94, 0.08)  !important;
+      border-color: rgba(34, 197, 94, 0.22) !important;
+    }
+    .tw-border-green-200 { border-color: rgba(34, 197, 94,  0.22) !important; }
+    .tw-text-green-700   { color: #4ade80 !important; }
+    .tw-text-green-600   { color: #4ade80 !important; }
+
+    .tw-bg-purple-50 {
+      background: rgba(168, 85, 247, 0.08)  !important;
+      border-color: rgba(168, 85, 247, 0.22) !important;
+    }
+    .tw-border-purple-200 { border-color: rgba(168, 85, 247, 0.22) !important; }
+    .tw-text-purple-700   { color: #c084fc !important; }
+    .tw-text-purple-600   { color: #c084fc !important; }
+
+    .tw-bg-cyan-50 {
+      background: rgba(6, 182, 212, 0.08)  !important;
+      border-color: rgba(6, 182, 212, 0.22) !important;
+    }
+    .tw-border-cyan-200 { border-color: rgba(6, 182, 212, 0.22) !important; }
+    .tw-text-cyan-700   { color: #22d3ee !important; }
+    .tw-text-cyan-600   { color: #22d3ee !important; }
+
+    .tw-bg-pink-50 {
+      background: rgba(236, 72, 153, 0.08)  !important;
+      border-color: rgba(236, 72, 153, 0.22) !important;
+    }
+    .tw-border-pink-200 { border-color: rgba(236, 72, 153, 0.22) !important; }
+    .tw-text-pink-700   { color: #f472b6 !important; }
+    .tw-text-pink-600   { color: #f472b6 !important; }
+
+    .tw-bg-orange-50 {
+      background: rgba(249, 115, 22, 0.08)  !important;
+      border-color: rgba(249, 115, 22, 0.22) !important;
+    }
+    .tw-border-orange-200 { border-color: rgba(249, 115, 22, 0.22) !important; }
+    .tw-text-orange-700   { color: #fb923c !important; }
+
+    /* ── Step-6 reconciliation variance badges ── */
+    .tw-bg-green-100  { background: rgba(34,  197, 94, 0.14) !important; }
+    .tw-text-green-800 { color: #4ade80 !important; }
+
+    /* ── Gray sub-panels, GPS panels, empty-states ── */
+    .tw-bg-gray-50 {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* ── Gray-100 pills / selection-summary bar ── */
+    .tw-bg-gray-100 {
+      background: var(--fms-hover-bg) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    /* ── White section cards / row-detail panels ── */
+    .tw-bg-white {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* ── Step-6 green summary panel ── */
+    .tw-bg-green-50.tw-p-3 {
+      background: rgba(34, 197, 94, 0.08)  !important;
+      border-color: rgba(34, 197, 94, 0.22) !important;
+    }
+
+    /* ── Category-group borders ── */
+    .tw-border { border-color: var(--fms-border) !important; }
+
+    /* ── Accordion toggle buttons (Step 4 & 5) ── */
+    button.tw-bg-white,
+    button.hover\:tw-bg-gray-50 {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+    .hover\:tw-bg-gray-50:hover { background: var(--fms-hover-bg) !important; }
+
+    /* ── Step-4 category header bars (dynamically colored bg) ──
+         Each category uses a Tailwind 50/100-class for its header bg.
+         We re-darken them while keeping the hue accent.              */
+    [class*="tw-bg-green-"][class*="tw-px-4"] {
+      background: rgba(34,  197, 94,  0.10) !important;
+    }
+    [class*="tw-bg-yellow-"][class*="tw-px-4"] {
+      background: rgba(234, 179, 8,   0.10) !important;
+    }
+    [class*="tw-bg-orange-"][class*="tw-px-4"] {
+      background: rgba(249, 115, 22,  0.10) !important;
+    }
+    [class*="tw-bg-teal-"][class*="tw-px-4"],
+    [class*="tw-bg-cyan-"][class*="tw-px-4"] {
+      background: rgba(6,   182, 212, 0.10) !important;
+    }
+    [class*="tw-bg-pink-"][class*="tw-px-4"] {
+      background: rgba(236, 72,  153, 0.10) !important;
+    }
+
+    /* ── DevExtreme DataGrid overrides (Steps 3–6) ── */
+    .dx-datagrid,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-rowsview .dx-scrollable-content,
+    .dx-datagrid-rowsview .dx-empty-message {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-datagrid-content .dx-row > td {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-data-row.dx-row-alt > td {
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .dx-row:hover > td,
+    .dx-data-row.dx-state-hover > td {
+      background: var(--fms-hover-bg) !important;
+    }
+
+    .dx-datagrid-headers,
+    .dx-datagrid-headers .dx-datagrid-table .dx-row > td {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    /* Header cell hover — keep text light in dark mode */
+    .dx-datagrid-headers .dx-row > td:hover,
+    .dx-datagrid-headers .dx-datagrid-action,
+    .dx-datagrid-headers .dx-datagrid-action:hover,
+    .dx-datagrid-headers .dx-header-row td.dx-state-hover {
+      background: var(--fms-hover-bg) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .dx-datagrid-headers .dx-sort,
+    .dx-datagrid-headers .dx-column-indicators .dx-sort {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .dx-datagrid-header-panel,
+    .dx-toolbar {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .dx-datagrid-pager {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .dx-datagrid-nodata { color: var(--fms-text-tertiary) !important; }
+
+    /* Adaptive / overflow column detail rows */
+    .dx-adaptive-detail-row > td,
+    .dx-datagrid-adaptive-detail-item {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .dx-field-item-label-text {
+      color: var(--fms-text-secondary) !important;
+    }
+    .dx-field-item-content {
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* ── M365-style Button overrides ── */
+    .dx-button-mode-outlined {
+      background: transparent !important;
+      border-color: var(--fms-border) !important;
+      .dx-button-text, .dx-icon { color: var(--fms-text-secondary) !important; }
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+        .dx-button-text, .dx-icon { color: var(--fms-text-primary) !important; }
+      }
+    }
+    .dx-button-mode-outlined.dx-button-default {
+      border-color: #4aa3df !important;
+      .dx-button-text, .dx-icon { color: #4aa3df !important; }
+      &:hover { background: rgba(74, 163, 223, 0.09) !important; }
+    }
+    .dx-button-mode-contained.dx-button-default,
+    .dx-button-mode-contained.dx-button-success {
+      background: #0078d4 !important;
+      border-color: #0078d4 !important;
+      .dx-button-text, .dx-icon { color: #fff !important; }
+      &:hover { background: #006cc1 !important; }
+    }
+    .dx-button.dx-state-disabled {
+      opacity: 0.45 !important;
+    }
+
+    /* Summary / footer row */
+    .dx-datagrid-total-footer,
+    .dx-datagrid-total-footer .dx-datagrid-content,
+    .dx-datagrid-total-footer table,
+    .dx-datagrid-total-footer tbody,
+    .dx-footer-row > td,
+    .dx-footer-row .dx-datagrid-summary-item {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .dx-checkbox-icon {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-input-bg) !important;
+    }
+    .dx-checkbox-checked .dx-checkbox-icon {
+      background: #2563eb !important;
+      border-color: #2563eb !important;
+    }
+
+    /* Row selected state */
+    .dx-selection > td,
+    .dx-state-focused > td {
+      background: rgba(59, 130, 246, 0.14) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* Editing cell */
+    .dx-editor-cell input {
+      background: var(--fms-input-bg) !important;
+      color: var(--fms-text-primary) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    /* DevExtreme Accordion (Step 4 uses custom accordion; Step 5/6 may use DX) */
+    .dx-accordion-item {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .dx-accordion-item-title {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+    .dx-accordion-item-body {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Wizard Create/Edit Page ────────────────────────────── */
+  .create-audit-wizard-page {
+    background: var(--fms-page-bg) !important;
+
+    .wizard-panel-header {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+
+      h1, .tw-text-gray-800 { color: var(--fms-text-primary) !important; }
+      .tw-text-gray-700, .tw-text-gray-600, .tw-text-gray-500 {
+        color: var(--fms-text-secondary) !important;
+      }
+      .tw-text-gray-400, .tw-text-gray-300 {
+        color: var(--fms-text-tertiary, #5a5a5a) !important;
+      }
+      .tw-bg-gray-100 {
+        background: var(--fms-surface-secondary) !important;
+        color: var(--fms-text-secondary) !important;
+      }
+      input {
+        background: var(--fms-input-bg, var(--fms-surface-secondary)) !important;
+        border-color: var(--fms-border) !important;
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    /* Loading / transition overlays */
+    .tw-inset-0.tw-bg-white,
+    .tw-absolute.tw-bg-white {
+      background: var(--fms-surface) !important;
+    }
+    .tw-text-gray-600, .tw-text-gray-500 {
+      color: var(--fms-text-secondary) !important;
+    }
+  }
+
+}

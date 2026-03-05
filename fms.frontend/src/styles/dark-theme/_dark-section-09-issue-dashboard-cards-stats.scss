@@ -1,0 +1,101 @@
+/**
+ * File: _dark-section-09-issue-dashboard-cards-stats.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   MODULE CONTENT AREAS — Issue Tracker, Reports, etc.
+   ================================================================ */
+
+/* Issue Dashboard cards & stats */
+.fms-dashboard {
+  color: var(--fms-text-primary) !important;
+}
+
+.fms-page-hd {
+  color: var(--fms-text-primary) !important;
+}
+
+/* Issue detail page */
+.issue-tracker-detail-page {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+
+  .ihc {
+    background-color: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* Issue list page */
+.itl {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__cmd {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  &__grid-wrap {
+    background-color: var(--fms-surface) !important;
+  }
+
+  &__filter-panel {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+}
+
+/* Issue tracker form page */
+.issue-tracker-form-page {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+
+  .form-header {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .issue-form {
+    background-color: var(--fms-card-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* Issue create form */
+.issue-create-form {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__card {
+    background-color: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  &__sidebar {
+    background-color: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* Combined issue dashboard */
+.combined-issue-dashboard,
+.issue-card {
+  color: var(--fms-text-primary) !important;
+}
+
+.issue-card {
+  background-color: var(--fms-card-bg) !important;
+  border-color: var(--fms-border) !important;
+
+  &__title,
+  &__description,
+  &__meta {
+    color: var(--fms-text-primary) !important;
+  }
+}

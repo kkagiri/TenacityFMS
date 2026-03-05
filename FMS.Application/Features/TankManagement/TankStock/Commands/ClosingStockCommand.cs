@@ -258,8 +258,35 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 
                 var totalRefills = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing || t.ChangeReason == VolumeChangeReasonEnum.AutomatedDispensing).Sum(t => t.VolumeChange);
                 var totalDeliveries = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Delivery).Sum(t => t.VolumeChange);
-                var totalTransfersIn = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn).Sum(t => t.VolumeChange);
-                var totalTransfersOut = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut).Sum(t => t.VolumeChange);
+
+                // FIX: Only count transfers that reference an active tanktransfer record.
+                // Orphaned TVH entries (whose tanktransfer rows were wiped/deleted) must be
+                // excluded so they do not skew expectedClosingStock and inflate the variance.
+                var transferTvhReferenceIds = transactions
+                    .Where(t => (t.ChangeReason == VolumeChangeReasonEnum.TransferIn ||
+                                 t.ChangeReason == VolumeChangeReasonEnum.TransferOut)
+                                && t.ReferenceId.HasValue)
+                    .Select(t => t.ReferenceId!.Value)
+                    .Distinct()
+                    .ToList();
+
+                var validTransferIds = (await _context.TankTransfers
+                    .Where(tt => transferTvhReferenceIds.Contains(tt.Id) && !tt.IsDeleted)
+                    .Select(tt => tt.Id)
+                    .ToListAsync())
+                    .ToHashSet();
+
+                var totalTransfersIn = transactions
+                    .Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferIn
+                                && t.ReferenceId.HasValue
+                                && validTransferIds.Contains(t.ReferenceId.Value))
+                    .Sum(t => t.VolumeChange);
+
+                var totalTransfersOut = transactions
+                    .Where(t => t.ChangeReason == VolumeChangeReasonEnum.TransferOut
+                                && t.ReferenceId.HasValue
+                                && validTransferIds.Contains(t.ReferenceId.Value))
+                    .Sum(t => t.VolumeChange);
 
                 // ─── Detailed transaction breakdown for event template placeholders ───
                 var totalManualDispensing = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);

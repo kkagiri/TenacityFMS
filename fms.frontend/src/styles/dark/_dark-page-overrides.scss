@@ -1,0 +1,507 @@
+// _dark-page-overrides.scss
+// Lines 4331-4832 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     GREY TEXT OVERRIDES
+     Fix grey text (#605e5c, #a19f9d, #6b7280, #9ca3af, #6c757d,
+     #8a8886, #666, #777, #888, #999, #555, #64748b, #94a3b8)
+     that is too dim on dark backgrounds
+     ================================================================ */
+
+  /* ── CSS var: --secondary-text-color (PTSDeviceDetails, TickerCard, etc.) ── */
+  --secondary-text-color: #a0a0a0;
+
+  /* ── Log Management Page ──────────────────────────────────── */
+  .m365-logs-page {
+    background: var(--fms-page-bg) !important;
+
+    &__title { color: var(--fms-text-primary) !important; }
+    &__subtitle { color: var(--fms-text-secondary) !important; }
+    &__commands .m365-btn {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+      &:hover:not(:disabled) { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .m365-kpi-card {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+
+    &__label { color: var(--fms-text-secondary) !important; }
+    &__value { color: var(--fms-text-primary) !important; }
+  }
+
+  .m365-panel {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+
+    &__header {
+      border-bottom-color: var(--fms-border) !important;
+      background: var(--fms-surface-secondary) !important;
+      h3 { color: var(--fms-text-primary) !important; }
+    }
+  }
+
+  .m365-alert {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    &__close { color: var(--fms-text-secondary) !important; }
+  }
+
+  .m365-inline-section {
+    &__header h3 { color: var(--fms-text-primary) !important; }
+    &__body--settings {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+    }
+    &__body--storage {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+    }
+  }
+
+  .m365-setting-item__label { color: var(--fms-text-secondary) !important; }
+  .m365-setting-note {
+    color: var(--fms-text-secondary) !important;
+    border-top-color: var(--fms-border) !important;
+  }
+
+  .m365-storage-row__count,
+  .m365-storage-row__size { color: var(--fms-text-secondary) !important; }
+
+  .m365-progress {
+    background: #333 !important;
+    &__bar--secondary { background: #666 !important; }
+  }
+
+  .m365-state-box {
+    border-color: #555 !important;
+    color: var(--fms-text-secondary) !important;
+    &--empty i { color: #888 !important; }
+  }
+
+  .m365-table-wrap {
+    border-color: var(--fms-border) !important;
+  }
+
+  .m365-table {
+    th, td { border-bottom-color: var(--fms-border) !important; }
+    th {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    td { color: var(--fms-text-primary) !important; }
+    tbody tr:hover { background: var(--fms-hover-bg) !important; }
+  }
+
+  .m365-sort-btn {
+    i { color: var(--fms-text-secondary) !important; }
+    &:hover { color: #4aa3df !important; i { color: #4aa3df !important; } }
+  }
+
+  .m365-file-cell i { color: #888 !important; }
+
+  .m365-tab__count { color: var(--fms-text-secondary) !important; }
+  .m365-service-label { color: var(--fms-text-primary) !important; }
+
+  .m365-badge--secondary {
+    background: #333 !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-log-search__input,
+  .m365-log-select {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-log-cell--details { color: var(--fms-text-secondary) !important; }
+  .m365-log-meta__label { color: var(--fms-text-secondary) !important; }
+  .m365-log-meta__value { color: var(--fms-text-primary) !important; }
+  .m365-modal__field-label { color: var(--fms-text-secondary) !important; }
+  .m365-empty-results__title { color: var(--fms-text-secondary) !important; }
+  .m365-empty-results__text { color: var(--fms-text-tertiary) !important; }
+  .m365-export-card__title { color: var(--fms-text-primary) !important; }
+  .m365-export-card__desc { color: var(--fms-text-secondary) !important; }
+
+  /* ── Change Password Popup ────────────────────────────────── */
+  .chpwd-header {
+    &__title { color: var(--fms-text-primary) !important; }
+    &__close {
+      color: var(--fms-text-tertiary) !important;
+      &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .chpwd-body {
+    background: var(--fms-surface) !important;
+  }
+
+  .chpwd-error-banner {
+    background: rgba(209, 52, 56, 0.1) !important;
+    border-color: rgba(209, 52, 56, 0.3) !important;
+  }
+
+  .chpwd-field {
+    &__label { color: var(--fms-text-primary) !important; }
+  }
+
+  .chpwd-input-wrap {
+    &__icon { color: var(--fms-text-tertiary) !important; }
+    &__toggle {
+      color: var(--fms-text-tertiary) !important;
+      &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .chpwd-input {
+    color: var(--fms-text-primary) !important;
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    &::placeholder { color: var(--fms-text-tertiary) !important; }
+    &:hover:not(:disabled) { border-color: #666 !important; }
+    &:disabled {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+
+  .chpwd-footer {
+    border-top-color: var(--fms-border) !important;
+    background: var(--fms-surface-secondary) !important;
+  }
+
+  .m365-pwd-req__header { color: var(--fms-text-tertiary) !important; }
+  .m365-pwd-meter__label { color: var(--fms-text-tertiary) !important; }
+  .m365-pwd-req__item { color: var(--fms-text-tertiary) !important; }
+  .m365-pwd-req-check__text { color: var(--fms-text-secondary) !important; }
+  .m365-pwd-toggle { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Vehicle Search Bar ───────────────────────────────────── */
+  .vehicle-search-bar {
+    .search-icon { color: var(--fms-text-tertiary) !important; }
+    .loading-icon { color: var(--fms-text-secondary) !important; }
+
+    input::placeholder { color: var(--fms-text-tertiary) !important; }
+    input:disabled { background-color: var(--fms-surface-secondary) !important; }
+
+    .suggestions-dropdown {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
+
+      .suggestions-header {
+        background-color: var(--fms-surface-secondary) !important;
+        border-bottom-color: var(--fms-border) !important;
+        color: var(--fms-text-secondary) !important;
+      }
+
+      .suggestion-item {
+        border-bottom-color: var(--fms-border) !important;
+        &:hover, &.selected { background-color: var(--fms-hover-bg) !important; }
+        &.no-results { color: var(--fms-text-tertiary) !important; }
+
+        .vehicle-icon { color: var(--fms-text-secondary) !important; }
+        .vehicle-name { color: var(--fms-text-primary) !important; }
+        .vehicle-secondary { color: var(--fms-text-secondary) !important; }
+        .arrow-icon { color: var(--fms-text-tertiary) !important; }
+
+        mark {
+          background-color: rgba(251, 191, 36, 0.2) !important;
+          color: #fbbf24 !important;
+        }
+      }
+    }
+  }
+
+  .vehicle-sort-controls label,
+  .vehicle-filter-controls label { color: var(--fms-text-secondary) !important; }
+  .vehicle-sort-btn i { color: var(--fms-text-tertiary) !important; }
+  .vehicle-result-count { color: var(--fms-text-secondary) !important; }
+  .vehicle-result-count .count { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Mobile Navigation Menu ───────────────────────────────── */
+  .mobile-nav-container {
+    background: var(--fms-surface) !important;
+
+    .mobile-nav-loading { color: var(--fms-text-secondary) !important; }
+
+    .mobile-nav-search {
+      border-bottom-color: var(--fms-border) !important;
+      background: var(--fms-surface-secondary) !important;
+    }
+
+    .mobile-nav-item-content {
+      &:hover, &:active { background-color: var(--fms-hover-bg) !important; }
+      &.active {
+        background-color: rgba(0, 120, 212, 0.12) !important;
+        .mobile-nav-text { color: #4aa3df !important; }
+        .mobile-nav-icon { color: #4aa3df !important; }
+      }
+
+      .mobile-nav-icon { color: var(--fms-text-secondary) !important; }
+      .mobile-nav-text { color: var(--fms-text-primary) !important; }
+      .mobile-nav-arrow { color: var(--fms-text-tertiary) !important; }
+    }
+
+    .mobile-nav-children {
+      background-color: var(--fms-surface-secondary) !important;
+      .mobile-nav-item-content {
+        border-left-color: var(--fms-border) !important;
+        .mobile-nav-text { color: var(--fms-text-secondary) !important; }
+      }
+    }
+
+    .mobile-nav-empty { color: var(--fms-text-tertiary) !important; }
+
+    .mobile-nav-quick-actions {
+      border-top-color: var(--fms-border) !important;
+      background: var(--fms-surface-secondary) !important;
+
+      .mobile-nav-clear-search {
+        border-color: var(--fms-border) !important;
+        background: var(--fms-surface) !important;
+        color: var(--fms-text-secondary) !important;
+        &:hover, &:active { background: var(--fms-hover-bg) !important; }
+      }
+    }
+
+    .dx-list-item:not(:last-child) { border-bottom-color: var(--fms-border) !important; }
+  }
+
+  /* ── Slide Panel ──────────────────────────────────────────── */
+  .fms-slide-panel {
+    background: var(--fms-surface) !important;
+    border-left-color: var(--fms-border) !important;
+    box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5) !important;
+
+    &__header {
+      border-bottom-color: var(--fms-border) !important;
+    }
+    &__title { color: var(--fms-text-primary) !important; }
+    &__close {
+      color: var(--fms-text-tertiary) !important;
+      &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .fms-slide-panel__overlay {
+    background: rgba(0, 0, 0, 0.5) !important;
+  }
+
+  /* ── User Panel ───────────────────────────────────────────── */
+  .user-panel-role { color: var(--fms-text-secondary) !important; }
+
+  /* ── User Details Page grey text ──────────────────────────── */
+  .user-details-container {
+    .user-detail-label { color: var(--fms-text-secondary) !important; }
+    .user-detail-value { color: var(--fms-text-primary) !important; }
+    .user-info-label { color: var(--fms-text-secondary) !important; }
+    .user-meta { color: var(--fms-text-secondary) !important; }
+    .user-activity-time { color: var(--fms-text-tertiary) !important; }
+    .user-permission-desc { color: var(--fms-text-secondary) !important; }
+  }
+
+  /* ── User Activities / Dashboard ──────────────────────────── */
+  .activity-timestamp { color: var(--fms-text-secondary) !important; }
+  .activity-dashboard-subtitle { color: var(--fms-text-secondary) !important; }
+
+  /* ── Tag Rule Management grey text ────────────────────────── */
+  .tag-rule-empty-state p { color: var(--fms-text-secondary) !important; }
+  .rule-details {
+    .rule-item {
+      background-color: var(--fms-surface-secondary) !important;
+      border-left-color: #666 !important;
+      .rule-type { color: var(--fms-text-secondary) !important; }
+    }
+    .no-rules { color: var(--fms-text-secondary) !important; }
+  }
+
+  .tag-rule-preview .value { color: var(--fms-text-secondary) !important; }
+  .tag-rule-detail .meta { color: var(--fms-text-secondary) !important; }
+  .tag-assignment {
+    .label { color: var(--fms-text-secondary) !important; }
+    .name { color: var(--fms-text-secondary) !important; }
+    .type { color: var(--fms-text-secondary) !important; }
+  }
+  .tag-assignment-empty .text { color: var(--fms-text-secondary) !important; }
+  .tag-assignment-empty .sub { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Tag Form grey text ───────────────────────────────────── */
+  .tag-form .hint { color: var(--fms-text-secondary) !important; }
+  .tag-detail-label { color: var(--fms-text-secondary) !important; }
+
+  /* ── Tag List container ───────────────────────────────────── */
+  .tag-list-container {
+    h2 { color: var(--fms-text-primary) !important; }
+    .rule-name { color: #4aa3df !important; }
+    .rule-description { color: var(--fms-text-secondary) !important; }
+    .no-rule { color: var(--fms-text-tertiary) !important; }
+    .unknown-rule { color: #e06060 !important; }
+  }
+
+  /* ── Tag Rule Assignment Popup ─────────────────────────────── */
+  .tag-rule-assignment-container {
+    background: var(--fms-page-bg) !important;
+
+    .step {
+      background: var(--fms-surface) !important;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+      h3 { border-bottom-color: var(--fms-border) !important; color: var(--fms-text-primary) !important; }
+    }
+
+    .selected-rule-details {
+      background-color: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      h4 { color: var(--fms-text-primary) !important; }
+      .detail-label { color: var(--fms-text-secondary) !important; }
+      .detail-value { color: var(--fms-text-primary) !important; }
+    }
+
+    .simple-list-container {
+      border-color: var(--fms-border) !important;
+      .list-header { background-color: var(--fms-surface-secondary) !important; }
+      .list-row {
+        border-bottom-color: var(--fms-border) !important;
+        &:hover { background: rgba(0, 120, 212, 0.08) !important; }
+        &.selected { background: rgba(0, 120, 212, 0.15) !important; }
+      }
+      .no-data-message { color: var(--fms-text-secondary) !important; }
+    }
+
+    .filter-row label { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Rule Set Form / Detail Form popups ─────────────────── */
+  .rule-set-form-container,
+  .rule-detail-form-container {
+    .form-info {
+      background-color: rgba(0, 120, 212, 0.08) !important;
+      border-left-color: #4aa3df !important;
+      .info-text { color: var(--fms-text-primary) !important; }
+    }
+    .rule-type-selector {
+      border-bottom-color: var(--fms-border) !important;
+      label { color: var(--fms-text-primary) !important; }
+    }
+    .form-actions { border-top-color: var(--fms-border) !important; }
+  }
+
+  .tag-form-container .rule-set-info {
+    background-color: rgba(0, 120, 212, 0.08) !important;
+    border-color: rgba(0, 120, 212, 0.2) !important;
+    h4 { color: #4aa3df !important; }
+    .rule-description { color: var(--fms-text-secondary) !important; }
+    .limit-label { color: var(--fms-text-secondary) !important; }
+    .limit-value { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Location Settings Overview ────────────────────────────── */
+  .location-overview__subtitle { color: var(--fms-text-secondary) !important; }
+
+  /* ── Filter Popup grey text ───────────────────────────────── */
+  .filter-popup__label { color: var(--fms-text-secondary) !important; }
+  .filter-popup__reset { color: var(--fms-text-secondary) !important; }
+  .filter-group__label { color: var(--fms-text-secondary) !important; }
+  .filter-group__count { color: var(--fms-text-secondary) !important; }
+
+  /* ── PTS Device grey text ─────────────────────────────────── */
+  .pts-device-card__empty-icon { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Pump Transaction Popup grey text ─────────────────────── */
+  .ptx-cancel-btn {
+    color: var(--fms-text-secondary) !important;
+    &:hover { border-color: var(--fms-text-tertiary) !important; }
+  }
+
+  /* ── Live Status Control ──────────────────────────────────── */
+  .live-status__label { color: var(--fms-text-secondary) !important; }
+
+  /* ── Vehicle Consumption Report grey text ──────────────────── */
+  .report-filter .label { color: var(--fms-text-secondary) !important; }
+  .report-summary-label { color: var(--fms-text-secondary) !important; }
+  .report-empty-text { color: var(--fms-text-tertiary) !important; }
+  .report-footer-text { color: var(--fms-text-secondary) !important; }
+  .detail-label { color: var(--fms-text-secondary) !important; }
+
+  /* ── Quick Actions grey text ──────────────────────────────── */
+  .quick-action-description { color: var(--fms-text-secondary) !important; }
+
+  /* ── Fuel Data Comparison grey text ───────────────────────── */
+  .fuel-data-subtitle { color: var(--fms-text-secondary) !important; }
+
+  /* ── TransactionHub grey text ─────────────────────────────── */
+  .txn-hub-filter-label { color: var(--fms-text-tertiary) !important; }
+  .txn-hub-empty__text { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Site Details View grey text ──────────────────────────── */
+  .site-detail-label { color: var(--fms-text-secondary) !important; }
+  .site-detail-secondary { color: var(--fms-text-tertiary) !important; }
+
+  /* ── Daily Reconciliation grey text ───────────────────────── */
+  .recon-summary-label { color: var(--fms-text-secondary) !important; }
+  .recon-detail-label { color: var(--fms-text-secondary) !important; }
+  .recon-empty-text { color: var(--fms-text-secondary) !important; }
+
+  /* ── Emergency Response Panel grey text ────────────────────── */
+  .emergency-panel-subtitle { color: var(--fms-text-secondary) !important; }
+  .emergency-action-description { color: var(--fms-text-secondary) !important; }
+  .emergency-empty-text { color: var(--fms-text-secondary) !important; }
+
+  /* ── Period Diagnostic Panel grey text ─────────────────────── */
+  .diagnostic-label { color: var(--fms-text-secondary) !important; }
+  .diagnostic-sublabel { color: var(--fms-text-secondary) !important; }
+  .diagnostic-detail-label { color: var(--fms-text-secondary) !important; }
+  .diagnostic-meta { color: var(--fms-text-secondary) !important; }
+  .diagnostic-empty-text { color: var(--fms-text-secondary) !important; }
+
+  /* ── Tank Actions Menu grey text ──────────────────────────── */
+  .tank-action-description { color: var(--fms-text-secondary) !important; }
+
+  /* ── Fuel Refill Modals ───────────────────────────────────── */
+  .delete-modal-help-text { color: var(--fms-text-secondary) !important; }
+  .delete-modal-input:focus { border-color: var(--fms-border) !important; }
+  .edit-modal input:focus { border-color: var(--fms-border) !important; }
+
+  /* ── Enhanced Tank Stock Dashboard (hardcoded grey) ────────── */
+  .fms-tank-legend__label { color: var(--fms-text-secondary) !important; }
+
+  /* ── System Config Page grey text ─────────────────────────── */
+  .config-description { color: var(--fms-text-secondary) !important; }
+
+  /* ── Pivot Grid Report ────────────────────────────────────── */
+  .pivot-grid-empty { background-color: #333 !important; color: var(--fms-text-secondary) !important; }
+
+  /* ── Reports Dashboard grey text ──────────────────────────── */
+  .report-card-description { color: var(--fms-text-secondary) !important; }
+  .report-schedule-label { color: var(--fms-text-secondary) !important; }
+  .report-schedule-divider { border-color: var(--fms-border) !important; }
+
+  /* ── Tasks page grey text ─────────────────────────────────── */
+  .task-card-meta { color: var(--fms-text-secondary) !important; }
+  .task-status-badge { background-color: #555 !important; }
+  .task-priority-badge { background-color: #555 !important; }
+
+  /* ── Pump Selection (ATG) grey text ───────────────────────── */
+  .pump-selection-label { color: var(--fms-text-secondary) !important; }
+  .pump-status-label { color: var(--fms-text-secondary) !important; }
+
+  /* ── Fueling Popups grey text ─────────────────────────────── */
+  .fueling-popup-text { color: var(--fms-text-secondary) !important; }
+
+  /* ── Vehicle DataGrid grey text ───────────────────────────── */
+  .vehicle-grid-empty { color: var(--fms-text-secondary) !important; }
+
+  /* ── Issue Tracker Form grey text ─────────────────────────── */
+  .issue-form-hint { color: var(--fms-text-secondary) !important; }
+
+  /* ── Automated Reconciliation grey text ────────────────────── */
+  .recon-description { color: var(--fms-text-secondary) !important; }
+
+}

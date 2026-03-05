@@ -1,0 +1,90 @@
+// _dark-header-sidebar.scss
+// Lines 66-150 of original dark-theme.scss
+
+[data-theme="dark"] {
+
+  /* ── Header ────────────────────────────────────── */
+  .header-component {
+    background-color: var(--fms-header-bg) !important;
+    box-shadow: 0 4px 8px var(--fms-shadow-color), 0 0 4px var(--fms-shadow-color);
+  }
+
+  .dx-toolbar.header-toolbar {
+    background-color: var(--fms-header-bg) !important;
+  }
+
+  .header-title .dx-item-content {
+    color: var(--fms-text-primary);
+  }
+
+  .grid-dots span {
+    background-color: var(--fms-dot-color);
+  }
+
+  .user-avatar-circle {
+    background-color: #2a4a6e;
+    color: #8ec8ff;
+  }
+
+  /* ================================================================
+     SIDEBAR / DRAWER — main TreeView navigation
+     ================================================================ */
+  .side-nav-outer-toolbar .drawer .dx-drawer-panel-content {
+    background: var(--fms-sidebar-bg) !important;
+    border-right-color: var(--fms-border);
+  }
+
+  .side-navigation-menu {
+    background-color: var(--fms-sidebar-bg) !important;
+
+    &.mobile-view {
+      background: var(--fms-sidebar-bg) !important;
+    }
+
+    .menu-container {
+      background-color: var(--fms-sidebar-bg) !important;
+    }
+  }
+
+  .dx-treeview {
+    background-color: var(--fms-sidebar-bg) !important;
+
+    .dx-treeview-item {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-treeview-item-content {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-treeview-node[aria-level='1'] {
+      border-bottom-color: var(--fms-border) !important;
+    }
+
+    .dx-treeview-toggle-item-visibility::before {
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .dx-icon {
+      color: var(--fms-text-secondary) !important;
+    }
+  }
+
+  .dx-treeview .dx-treeview-item:hover,
+  .dx-treeview .dx-state-hover > .dx-treeview-item {
+    background-color: var(--fms-hover-bg) !important;
+  }
+
+  .dx-treeview .dx-state-selected > .dx-treeview-item {
+    background-color: var(--fms-active-bg) !important;
+  }
+
+  .dx-treeview .dx-state-selected > .dx-treeview-item * {
+    color: #60a5fa !important;
+  }
+
+  /* ── Main content area ─────────────────────────── */
+  .container.dx-theme-background-color {
+    background-color: var(--fms-page-bg) !important;
+  }
+}

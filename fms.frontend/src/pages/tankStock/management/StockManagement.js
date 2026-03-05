@@ -17,7 +17,6 @@ import BulkImportManager from './components/bulkImport/BulkImportManager';
 import DeliveryManager from './components/DeliveryManager';
 import TankStockTable from '../analytics/components/reporting/TankStockTable';
 import LoadIndicator from 'devextreme-react/load-indicator';
-import Tabs from 'devextreme-react/tabs';
 import { usePermissions } from '../../../hooks/usePermissions';
 import './StockManagement.scss';
 
@@ -84,23 +83,9 @@ const StockManagement = () => {
     }
   }, [location.pathname, navigate, tabData]);
 
-  //Cursor - Custom tab item renderer
-  const renderTabItem = (item) => {
-    return (
-      <div className="tw-flex tw-items-center tw-gap-2">
-        <i className={item.icon}></i>
-        <span>{item.text}</span>
-      </div>
-    );
-  };
-
   //Cursor - Handle tab change via URL navigation
-  const handleTabSelectionChange = (e) => {
-    const newIndex = e.itemIndex;
-    const selectedTab = tabData[newIndex];
-    if (selectedTab) {
-      navigate(`${STOCK_MANAGEMENT_BASE_PATH}/${selectedTab.path}`);
-    }
+  const handleTabClick = (tab) => {
+    navigate(`${STOCK_MANAGEMENT_BASE_PATH}/${tab.path}`);
   };
 
   //Cursor - Render content based on active tab
@@ -137,13 +122,13 @@ const StockManagement = () => {
   };
 
   return (
-    <div className="tw-relative tw-bg-gray-50 tw-min-h-screen">
+    <div className="tw-relative tw-min-h-screen" style={{ background: 'var(--fms-page-bg, #f9fafb)' }}>
       {/* Cursor - Loading overlay */}
       {isLoading && (
-        <div className="tw-absolute tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-white tw-bg-opacity-75 tw-flex tw-justify-center tw-items-center tw-z-40">
-          <div className="tw-text-center tw-bg-white tw-p-6 tw-rounded-lg tw-shadow-lg">
+        <div className="tw-absolute tw-top-0 tw-left-0 tw-right-0 tw-bottom-0 tw-bg-opacity-75 tw-flex tw-justify-center tw-items-center tw-z-40" style={{ background: 'var(--fms-surface, rgba(255,255,255,0.75))' }}>
+          <div className="tw-text-center tw-p-6 tw-rounded-lg tw-shadow-lg" style={{ background: 'var(--fms-surface, #ffffff)' }}>
             <LoadIndicator width={'48px'} height={'48px'} visible={true} />
-            <div className="tw-mt-4 tw-text-gray-600 tw-font-medium">
+            <div className="tw-mt-4 tw-font-medium" style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>
               Loading management dashboard...
             </div>
           </div>
@@ -152,16 +137,21 @@ const StockManagement = () => {
 
       <div className="stock-management tw-overflow-y-auto tw-h-full tw-p-4">
         {/* Main Content Area - Title and Filters now in TankStockLayout header */}
-        <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-overflow-hidden">
-          {/* Tabs Navigation */}
-          <Tabs
-            dataSource={tabData}
-            selectedIndex={activeTabIndex}
-            onItemClick={handleTabSelectionChange}
-            width="100%"
-            className="tw-mb-0"
-            itemRender={renderTabItem}
-          />
+        <div className="tw-rounded-lg tw-shadow-sm tw-overflow-hidden stock-management-shell" style={{ background: 'var(--fms-surface, #ffffff)' }}>
+          {/* M365 Tabs Navigation */}
+          <div className="m365-tabs stock-management-tabs">
+            {tabData.map((tab, index) => (
+              <button
+                key={tab.key}
+                className={`m365-tab${activeTabIndex === index ? ' m365-tab--active' : ''}`}
+                onClick={() => handleTabClick(tab)}
+                type="button"
+              >
+                <i className={tab.icon}></i>
+                <span>{tab.text}</span>
+              </button>
+            ))}
+          </div>
 
           {/* Tab Content */}
           <div className="tw-p-4">

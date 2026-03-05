@@ -88,8 +88,8 @@ const Step4VehicleSelection = memo(() => {
       const siteIds = Array.isArray(wizard.siteIds)
         ? wizard.siteIds
         : wizard.siteIds
-        ? [wizard.siteIds]
-        : [];
+          ? [wizard.siteIds]
+          : [];
       dispatch(
         fetchTankRefillsPreview({
           tankIds: wizard.selectedTankIds,
@@ -473,9 +473,8 @@ const Step4VehicleSelection = memo(() => {
               const consumption = opening + added - closing;
               return (
                 <span
-                  className={`tw-text-xs tw-font-medium ${
-                    consumption >= 0 ? "tw-text-red-600" : "tw-text-blue-600"
-                  }`}
+                  className={`tw-text-xs tw-font-medium ${consumption >= 0 ? "tw-text-red-600" : "tw-text-blue-600"
+                    }`}
                 >
                   {consumption >= 0 ? "-" : "+"}
                   {Math.abs(consumption).toLocaleString(undefined, {
@@ -511,9 +510,8 @@ const Step4VehicleSelection = memo(() => {
                   : source;
               return (
                 <span
-                  className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${
-                    colors[source] || "tw-bg-gray-100"
-                  }`}
+                  className={`tw-px-2 tw-py-0.5 tw-rounded tw-text-xs ${colors[source] || "tw-bg-gray-100"
+                    }`}
                   title={tooltip}
                 >
                   {displayText}
@@ -532,17 +530,15 @@ const Step4VehicleSelection = memo(() => {
               return (
                 <div className="tw-flex tw-gap-1 tw-justify-center">
                   <span
-                    className={`tw-text-xs ${
-                      hasGPS ? "tw-text-blue-500" : "tw-text-gray-300"
-                    }`}
+                    className={`tw-text-xs ${hasGPS ? "tw-text-blue-500" : "tw-text-gray-300"
+                      }`}
                     title={hasGPS ? "GPS Tracking" : "No GPS"}
                   >
                     <i className="fa-light fa-location-dot"></i>
                   </span>
                   <span
-                    className={`tw-text-xs ${
-                      hasFuelSensor ? "tw-text-green-500" : "tw-text-gray-300"
-                    }`}
+                    className={`tw-text-xs ${hasFuelSensor ? "tw-text-green-500" : "tw-text-gray-300"
+                      }`}
                     title={hasFuelSensor ? "Fuel Sensor" : "No Fuel Sensor"}
                   >
                     <i className="fa-light fa-gauge"></i>
@@ -620,28 +616,20 @@ const Step4VehicleSelection = memo(() => {
       {!isLoading && tankRefills.length > 0 && (
         <>
           {/* Quick stats bar */}
-          <div className="tw-mb-4 tw-grid tw-grid-cols-5 tw-gap-2">
+          <div className="tw-mb-4 tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-5 tw-gap-3">
             {Object.entries(CATEGORY_CONFIG).map(([catId, config]) => {
               const stats = categoryStats[catId];
               return (
-                <div
-                  key={catId}
-                  className={`tw-p-2 tw-rounded-lg tw-text-center tw-border ${config.borderColor} ${config.bgColor}`}
-                >
-                  <div className="tw-flex tw-items-center tw-justify-center tw-gap-1">
-                    <i
-                      className={`fa-light ${config.icon} ${config.textColor} tw-text-sm`}
-                    ></i>
-                    <span className={`tw-font-bold ${config.textColor}`}>
-                      {stats.count}
-                    </span>
+                <div key={catId} className="s3-stat">
+                  <div className="s3-stat__bar" style={{ background: config.hexColor }} />
+                  <div className="s3-stat__label">{config.name}</div>
+                  <div className="s3-stat__value" style={{ color: config.hexColor }}>
+                    {stats.count}
                   </div>
-                  <p
-                    className="tw-text-xs tw-text-gray-600 tw-truncate"
-                    title={config.name}
-                  >
-                    {config.name.split(" ")[0]}
-                  </p>
+                  <div className="s3-stat__sub">{config.confidence} confidence</div>
+                  <div className="s3-stat__ghost">
+                    <i className={`fa-light ${config.icon}`} />
+                  </div>
                 </div>
               );
             })}
@@ -662,9 +650,8 @@ const Step4VehicleSelection = memo(() => {
                   >
                     {renderCategoryTitle(parseInt(catId))}
                     <i
-                      className={`fa-light fa-chevron-${
-                        expandedCategories.includes(catIndex) ? "up" : "down"
-                      } tw-text-gray-400 tw-ml-2`}
+                      className={`fa-light fa-chevron-${expandedCategories.includes(catIndex) ? "up" : "down"
+                        } tw-text-gray-400 tw-ml-2`}
                     ></i>
                   </button>
                   {expandedCategories.includes(catIndex) && (

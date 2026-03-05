@@ -415,7 +415,7 @@ const TransactionHub = () => {
                   type="default"
                   hint="Report actions"
                   className="transaction-hub__action-btn"
-                  dropDownOptions={{ width: 230 }}
+                  dropDownOptions={{ width: 230, wrapperAttr: { class: "transaction-hub-dropdown-menu" } }}
                 />
 
                 <DropDownButton
@@ -429,6 +429,7 @@ const TransactionHub = () => {
                   type="default"
                   hint="Open a chart visualisation"
                   className="transaction-hub__action-btn transaction-hub__action-btn--last"
+                  dropDownOptions={{ wrapperAttr: { class: "transaction-hub-dropdown-menu" } }}
                 />
               </div>
             </div>

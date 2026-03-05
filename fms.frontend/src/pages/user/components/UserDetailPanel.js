@@ -35,6 +35,9 @@ const PANEL_TABS = [
     { key: 'sites', label: 'Sites', icon: 'fa-light fa-building' },
 ];
 
+const ACTIVITIES_PAGE_SIZE = 20;
+const SIGNIN_PAGE_SIZE = 10;
+
 const UserDetailPanel = ({
     visible,
     onHide,
@@ -59,11 +62,13 @@ const UserDetailPanel = ({
     // Activities
     const [activities, setActivities] = useState([]);
     const [loadingAct, setLoadingAct] = useState(false);
+    const [activitiesPage, setActivitiesPage] = useState(1);
 
     // Sign-in activity detail view
     const [showSignInDetail, setShowSignInDetail] = useState(false);
     const [loginActivities, setLoginActivities] = useState([]);
     const [loadingLoginAct, setLoadingLoginAct] = useState(false);
+    const [signInPage, setSignInPage] = useState(1);
 
     // Sites
     const allSitesRedux = useSelector((s) => s.user.allSites || []);
@@ -84,8 +89,10 @@ const UserDetailPanel = ({
         setEditMode(false);
         setEditValues({});
         setActivities([]);
+        setActivitiesPage(1);
         setShowSignInDetail(false);
         setLoginActivities([]);
+        setSignInPage(1);
     }, [userId, initialTab]);
 
     // ── Load activities ───────────────────────────────────────────────────
@@ -99,6 +106,19 @@ const UserDetailPanel = ({
             })
             .catch(() => setActivities([]))
             .finally(() => setLoadingAct(false));
+    }, [activeTab, userId, visible, dispatch]);
+
+    useEffect(() => {
+        if (activeTab !== 'activities' || !userId || !visible) return;
+        setLoadingLoginAct(true);
+        dispatch(fetchLoginActivities(userId))
+            .then((res) => {
+                const d = res?.data || res || [];
+                setLoginActivities(Array.isArray(d) ? d : []);
+                setSignInPage(1);
+            })
+            .catch(() => setLoginActivities([]))
+            .finally(() => setLoadingLoginAct(false));
     }, [activeTab, userId, visible, dispatch]);
 
     // ── Load sites ────────────────────────────────────────────────────────
@@ -528,6 +548,7 @@ const UserDetailPanel = ({
     // ── Render: Activities Tab ────────────────────────────────────────────
     const handleOpenSignInDetail = () => {
         setShowSignInDetail(true);
+        setSignInPage(1);
         setLoadingLoginAct(true);
         dispatch(fetchLoginActivities(userId))
             .then((res) => {
@@ -539,8 +560,19 @@ const UserDetailPanel = ({
     };
 
     const renderSignInDetail = () => {
-        const successCount = loginActivities.filter((a) => a.isSuccessful || a.IsSuccessful).length;
-        const failureCount = loginActivities.filter((a) => !(a.isSuccessful || a.IsSuccessful)).length;
+        const orderedSignIns = [...loginActivities].sort((a, b) => {
+            const at = new Date(a.timestamp || a.Timestamp || 0).getTime();
+            const bt = new Date(b.timestamp || b.Timestamp || 0).getTime();
+            return bt - at;
+        });
+        const successCount = orderedSignIns.filter((a) => a.isSuccessful || a.IsSuccessful).length;
+        const failureCount = orderedSignIns.filter((a) => !(a.isSuccessful || a.IsSuccessful)).length;
+        const totalSignInPages = Math.max(1, Math.ceil(orderedSignIns.length / SIGNIN_PAGE_SIZE));
+        const safeSignInPage = Math.min(signInPage, totalSignInPages);
+        const pagedSignIns = orderedSignIns.slice(
+            (safeSignInPage - 1) * SIGNIN_PAGE_SIZE,
+            safeSignInPage * SIGNIN_PAGE_SIZE
+        );
 
         return (
             <div className="m365-signin-detail">
@@ -570,39 +602,61 @@ const UserDetailPanel = ({
                         <i className="fa-light fa-spinner fa-spin m365-empty__icon" />
                         <p className="m365-empty__text">Loading sign-in activities...</p>
                     </div>
-                ) : loginActivities.length === 0 ? (
+                ) : orderedSignIns.length === 0 ? (
                     <div className="m365-empty">
                         <i className="fa-light fa-right-to-bracket m365-empty__icon" />
                         <p className="m365-empty__text">No sign-in activities in the last 7 days</p>
                     </div>
                 ) : (
-                    <div className="m365-signin-table">
-                        <div className="m365-signin-table__header">
-                            <span className="m365-signin-table__col m365-signin-table__col--date">Date</span>
-                            <span className="m365-signin-table__col m365-signin-table__col--status">Status</span>
-                            <span className="m365-signin-table__col m365-signin-table__col--ip">IP Address</span>
+                    <div>
+                        <div className="m365-signin-table">
+                            <div className="m365-signin-table__header">
+                                <span className="m365-signin-table__col m365-signin-table__col--date">Date</span>
+                                <span className="m365-signin-table__col m365-signin-table__col--status">Status</span>
+                                <span className="m365-signin-table__col m365-signin-table__col--ip">IP Address</span>
+                            </div>
+                            {pagedSignIns.map((la, idx) => {
+                                const ts = la.timestamp || la.Timestamp;
+                                const success = la.isSuccessful ?? la.IsSuccessful ?? true;
+                                const ip = la.ipAddress || la.IpAddress || '—';
+                                return (
+                                    <div key={la.id || la.Id || idx} className="m365-signin-table__row">
+                                        <span className="m365-signin-table__col m365-signin-table__col--date">
+                                            {ts ? new Date(ts).toLocaleString(undefined, {
+                                                month: 'long', day: 'numeric', year: 'numeric',
+                                                hour: 'numeric', minute: '2-digit', hour12: true
+                                            }) : '—'}
+                                        </span>
+                                        <span className={`m365-signin-table__col m365-signin-table__col--status m365-signin-status--${success ? 'success' : 'failure'}`}>
+                                            {success ? 'Success' : 'Failure'}
+                                        </span>
+                                        <span className="m365-signin-table__col m365-signin-table__col--ip">
+                                            {ip}
+                                        </span>
+                                    </div>
+                                );
+                            })}
                         </div>
-                        {loginActivities.map((la, idx) => {
-                            const ts = la.timestamp || la.Timestamp;
-                            const success = la.isSuccessful ?? la.IsSuccessful ?? true;
-                            const ip = la.ipAddress || la.IpAddress || '—';
-                            return (
-                                <div key={la.id || la.Id || idx} className="m365-signin-table__row">
-                                    <span className="m365-signin-table__col m365-signin-table__col--date">
-                                        {ts ? new Date(ts).toLocaleString(undefined, {
-                                            month: 'long', day: 'numeric', year: 'numeric',
-                                            hour: 'numeric', minute: '2-digit', hour12: true
-                                        }) : '—'}
-                                    </span>
-                                    <span className={`m365-signin-table__col m365-signin-table__col--status m365-signin-status--${success ? 'success' : 'failure'}`}>
-                                        {success ? 'Success' : 'Failure'}
-                                    </span>
-                                    <span className="m365-signin-table__col m365-signin-table__col--ip">
-                                        {ip}
-                                    </span>
-                                </div>
-                            );
-                        })}
+
+                        {totalSignInPages > 1 && (
+                            <div className="m365-tab-pager">
+                                <button
+                                    className="m365-btn m365-btn--ghost"
+                                    onClick={() => setSignInPage((prev) => Math.max(1, prev - 1))}
+                                    disabled={safeSignInPage <= 1}
+                                >
+                                    Previous
+                                </button>
+                                <span className="m365-tab-pager__info">Page {safeSignInPage} of {totalSignInPages}</span>
+                                <button
+                                    className="m365-btn m365-btn--ghost"
+                                    onClick={() => setSignInPage((prev) => Math.min(totalSignInPages, prev + 1))}
+                                    disabled={safeSignInPage >= totalSignInPages}
+                                >
+                                    Next
+                                </button>
+                            </div>
+                        )}
                     </div>
                 )}
             </div>
@@ -627,23 +681,32 @@ const UserDetailPanel = ({
             );
         }
 
-        // Sign-in summary (last 7 days)
-        const sevenDaysAgo = new Date();
-        sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-        const signIns = activities.filter((a) => {
-            const action = (a.action || a.Action || '').toLowerCase();
-            const controller = (a.controller || a.Controller || '').toLowerCase();
-            const ts = a.timestamp || a.Timestamp;
-            return (action.includes('login') || action.includes('sign') || controller.includes('auth'))
-                && ts && new Date(ts) >= sevenDaysAgo;
+        // Sign-in summary (last 7 days) from login activity feed
+        const orderedSignIns = [...loginActivities].sort((a, b) => {
+            const at = new Date(a.timestamp || a.Timestamp || 0).getTime();
+            const bt = new Date(b.timestamp || b.Timestamp || 0).getTime();
+            return bt - at;
         });
+        const signIns = orderedSignIns;
         const lastSignIn = signIns.length > 0
             ? new Date(signIns[0].timestamp || signIns[0].Timestamp)
             : null;
 
+        const orderedActivities = [...activities].sort((a, b) => {
+            const at = new Date(a.timestamp || a.Timestamp || a.createdDate || a.CreatedDate || 0).getTime();
+            const bt = new Date(b.timestamp || b.Timestamp || b.createdDate || b.CreatedDate || 0).getTime();
+            return bt - at;
+        });
+        const totalActivityPages = Math.max(1, Math.ceil(orderedActivities.length / ACTIVITIES_PAGE_SIZE));
+        const safeActivitiesPage = Math.min(activitiesPage, totalActivityPages);
+        const pagedActivities = orderedActivities.slice(
+            (safeActivitiesPage - 1) * ACTIVITIES_PAGE_SIZE,
+            safeActivitiesPage * ACTIVITIES_PAGE_SIZE
+        );
+
         // Group activities by day
         const grouped = {};
-        activities.forEach((act) => {
+        pagedActivities.forEach((act) => {
             const ts = act.timestamp || act.Timestamp || act.createdDate || act.CreatedDate;
             const label = getDayLabel(ts);
             if (!grouped[label]) grouped[label] = [];
@@ -660,7 +723,7 @@ const UserDetailPanel = ({
                     <div className="m365-signin-summary__content">
                         <span className="m365-signin-summary__title">Sign-in activity (last 7 days)</span>
                         <span className="m365-signin-summary__value">
-                            {signIns.length} sign-in{signIns.length !== 1 ? 's' : ''}
+                            {loadingLoginAct ? 'Loading...' : `${signIns.length} sign-in${signIns.length !== 1 ? 's' : ''}`}
                             {lastSignIn && (
                                 <span className="m365-signin-summary__last">
                                     &nbsp;&middot; Last: {lastSignIn.toLocaleString()}
@@ -715,6 +778,26 @@ const UserDetailPanel = ({
                         </div>
                     </div>
                 ))}
+
+                {totalActivityPages > 1 && (
+                    <div className="m365-tab-pager">
+                        <button
+                            className="m365-btn m365-btn--ghost"
+                            onClick={() => setActivitiesPage((prev) => Math.max(1, prev - 1))}
+                            disabled={safeActivitiesPage <= 1}
+                        >
+                            Previous
+                        </button>
+                        <span className="m365-tab-pager__info">Page {safeActivitiesPage} of {totalActivityPages}</span>
+                        <button
+                            className="m365-btn m365-btn--ghost"
+                            onClick={() => setActivitiesPage((prev) => Math.min(totalActivityPages, prev + 1))}
+                            disabled={safeActivitiesPage >= totalActivityPages}
+                        >
+                            Next
+                        </button>
+                    </div>
+                )}
             </div>
         );
     };
@@ -850,7 +933,7 @@ const UserDetailPanel = ({
                     </button>
                 }
             >
-                <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+                <div className="udp-panel-layout" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
 
                     {/* Profile header — M365 layout: avatar left, info right */}
                     <div className="m365-detail-profile">

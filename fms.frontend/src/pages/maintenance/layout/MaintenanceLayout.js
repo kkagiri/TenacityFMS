@@ -1,3 +1,12 @@
+/**
+ * File: MaintenanceLayout.js
+ * Purpose: Shared layout shell (sidebar + content) for Maintenance module routes
+ * Dependencies: React, react-router-dom, navigationHelper, MaintenanceLayout.scss
+ * Last Modified: 2026-03-03
+ *
+ * Key Components:
+ * - MaintenanceLayout: Wraps maintenance pages with orange-themed sidebar navigation
+ */
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { maintenanceRoutes, isActiveRoute } from '../utils/navigationHelper';
@@ -6,36 +15,35 @@ import './MaintenanceLayout.scss';
 const MaintenanceLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const navItems = [
     {
       id: 'dashboard',
-      label: 'Dashboard',
+      title: 'Dashboard',
       icon: 'fa-light fa-chart-line',
-      route: maintenanceRoutes.dashboard,
-      description: 'Overview & Analytics',
+      path: maintenanceRoutes.dashboard,
     },
     {
       id: 'records',
-      label: 'Maintenance Records',
+      title: 'Maintenance Records',
       icon: 'fa-light fa-clipboard-list',
-      route: maintenanceRoutes.records,
-      description: 'View & Manage Records',
+      path: maintenanceRoutes.records,
     },
     {
       id: 'reconciliation',
-      label: 'Odometer Reconciliation',
+      title: 'Odometer Reconciliation',
       icon: 'fa-light fa-gauge-high',
-      route: maintenanceRoutes.reconciliation,
-      description: 'GPS vs Database Sync',
+      path: maintenanceRoutes.reconciliation,
     },
+  ];
+
+  const configItems = [
     {
       id: 'settings',
-      label: 'Settings',
+      title: 'Settings',
       icon: 'fa-light fa-cog',
-      route: maintenanceRoutes.settings,
-      description: 'Configure Schedules',
+      path: maintenanceRoutes.settings,
     },
   ];
 
@@ -43,87 +51,80 @@ const MaintenanceLayout = ({ children, currentPath, pageTitle, pageSubtitle }) =
     navigate(route);
   };
 
-  const toggleSidebar = () => {
-    setIsSidebarCollapsed(!isSidebarCollapsed);
-  };
-
   return (
     <div className="maintenance-layout">
-      {/* Sidebar Navigation */}
-      <aside className={`maintenance-sidebar ${isSidebarCollapsed ? 'collapsed' : ''}`}>
-        {/* Header Section */}
+      {/* Sidebar */}
+      <aside className={`maintenance-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
+        {/* Header */}
         <div className="sidebar-header">
-          <div className="header-content">
-            <div className="header-icon">
-              <i className="fa-light fa-wrench"></i>
-            </div>
-            {!isSidebarCollapsed && (
-              <div className="header-text">
-                <h2>Maintenance</h2>
-                <p>Vehicle Care System</p>
-              </div>
+          <div className="sidebar-brand">
+            <i className="fa-light fa-wrench"></i>
+            {!sidebarCollapsed && (
+              <span>Maintenance</span>
             )}
           </div>
           <button
             className="collapse-btn"
-            onClick={toggleSidebar}
-            title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+            onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+            aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
-            <i className={`fa-light ${isSidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'}`}></i>
+            <i className={`fa-light ${sidebarCollapsed ? 'fa-angles-right' : 'fa-angles-left'}`}></i>
           </button>
         </div>
 
-        {/* Navigation Items */}
-        <nav className="sidebar-nav">
-          {navItems.map((item) => {
-            const isActive = isActiveRoute(currentPath || location.pathname, item.route);
-
-            return (
-              <button
-                key={item.id}
-                className={`nav-item ${isActive ? 'active' : ''}`}
-                onClick={() => handleNavigation(item.route)}
-                title={isSidebarCollapsed ? item.label : ''}
-              >
-                <div className="nav-item-content">
-                  <div className="nav-icon">
-                    <i className={item.icon}></i>
-                  </div>
-                  {!isSidebarCollapsed && (
-                    <div className="nav-text">
-                      <span className="nav-label">{item.label}</span>
-                      <span className="nav-description">{item.description}</span>
+        {/* Navigation */}
+        <div className="sidebar-content">
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Maintenance</div>}
+            <nav className="nav-menu">
+              {navItems.map((item) => {
+                const isActive = isActiveRoute(currentPath || location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
                     </div>
-                  )}
-                </div>
-                {isActive && <div className="active-indicator"></div>}
-              </button>
-            );
-          })}
-        </nav>
-
-        {/* Sidebar Footer - Quick Stats or Info */}
-        {!isSidebarCollapsed && (
-          <div className="sidebar-footer">
-            <div className="footer-info">
-              <i className="fa-light fa-info-circle"></i>
-              <span>Vehicle Maintenance</span>
-            </div>
+                  </div>
+                );
+              })}
+            </nav>
           </div>
-        )}
+
+          <div className="nav-separator"></div>
+
+          <div className="nav-group">
+            {!sidebarCollapsed && <div className="group-label">Configuration</div>}
+            <nav className="nav-menu">
+              {configItems.map((item) => {
+                const isActive = isActiveRoute(currentPath || location.pathname, item.path);
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => handleNavigation(item.path)}
+                    className={`nav-item ${isActive ? 'active' : ''}`}
+                    title={sidebarCollapsed ? item.title : ''}
+                  >
+                    <div className="nav-item-content">
+                      <i className={item.icon}></i>
+                      {!sidebarCollapsed && <span>{item.title}</span>}
+                    </div>
+                  </div>
+                );
+              })}
+            </nav>
+          </div>
+        </div>
       </aside>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <main className="maintenance-main">
-        {/* Page Header - Optional, can be overridden by individual pages */}
-        {(pageTitle || pageSubtitle) && (
-          <div className="page-header">
-            {pageTitle && <h1>{pageTitle}</h1>}
-            {pageSubtitle && <p>{pageSubtitle}</p>}
-          </div>
-        )}
-
-        {/* Content */}
+        <header className="main-header tw-h-0 tw-p-0 tw-border-0"></header>
         <div className="page-content">
           {children}
         </div>

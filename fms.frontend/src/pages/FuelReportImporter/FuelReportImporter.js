@@ -27,7 +27,7 @@ import { useNavigate } from "react-router-dom";
 import { Card } from "react-bootstrap";
 import ScrollView from "devextreme-react/scroll-view";
 import { Toast } from "devextreme-react/toast";
-import { Popup } from "devextreme-react/popup";
+import SlidePanel from "../../components/ui/SlidePanel";
 
 // Components - Single file importer
 import ImportForm from "./components/single/ImportForm";
@@ -353,16 +353,11 @@ const FuelReportImporter = () => {
         }}
       />
 
-      <Popup
-        visible={showImportConfirmation}
-        onHiding={() => setShowImportConfirmation(false)}
-        dragEnabled={false}
-        showCloseButton={true}
-        showTitle={true}
+      <SlidePanel
+        open={showImportConfirmation}
+        onClose={() => setShowImportConfirmation(false)}
         title="Confirm Import"
-        width={550}
-        height="auto"
-        className="tw-bg-white tw-shadow-xl tw-rounded-lg"
+        width={500}
       >
         <ImportConfirmation
           duplicateHandling={duplicateHandling}
@@ -373,7 +368,7 @@ const FuelReportImporter = () => {
           handleSubmitData={handleSubmitData}
           fuelReportLoading={fuelReportLoading}
         />
-      </Popup>
+      </SlidePanel>
 
       <Card className="tw-shadow-lg tw-rounded-lg tw-mb-5">
         <Card.Header className="tw-bg-gray-50 tw-p-4 tw-border-b">

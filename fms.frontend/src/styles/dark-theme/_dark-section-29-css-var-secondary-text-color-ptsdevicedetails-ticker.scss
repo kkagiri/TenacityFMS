@@ -1,0 +1,1702 @@
+/**
+ * File: _dark-section-29-css-var-secondary-text-color-ptsdevicedetails-ticker.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   GREY TEXT OVERRIDES
+   Fix grey text (#605e5c, #a19f9d, #6b7280, #9ca3af, #6c757d,
+   #8a8886, #666, #777, #888, #999, #555, #64748b, #94a3b8)
+   that is too dim on dark backgrounds
+   ================================================================ */
+
+/* ── CSS var: --secondary-text-color (PTSDeviceDetails, TickerCard, etc.) ── */
+--secondary-text-color: #a0a0a0;
+
+/* ── Log Management Page ──────────────────────────────────── */
+.m365-logs-page {
+  background: var(--fms-page-bg) !important;
+
+  &__title { color: var(--fms-text-primary) !important; }
+  &__subtitle { color: var(--fms-text-secondary) !important; }
+  &__commands .m365-btn {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    &:hover:not(:disabled) { background: var(--fms-hover-bg) !important; }
+  }
+}
+
+.m365-kpi-card {
+  border-color: var(--fms-border) !important;
+  background: var(--fms-surface) !important;
+
+  &__label { color: var(--fms-text-secondary) !important; }
+  &__value { color: var(--fms-text-primary) !important; }
+}
+
+.m365-panel {
+  border-color: var(--fms-border) !important;
+  background: var(--fms-surface) !important;
+
+  &__header {
+    border-bottom-color: var(--fms-border) !important;
+    background: var(--fms-surface-secondary) !important;
+    h3 { color: var(--fms-text-primary) !important; }
+  }
+}
+
+.m365-alert {
+  border-color: var(--fms-border) !important;
+  background: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+
+  &__close { color: var(--fms-text-secondary) !important; }
+}
+
+.m365-inline-section {
+  &__header h3 { color: var(--fms-text-primary) !important; }
+  &__body--settings {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+  &__body--storage {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+}
+
+.m365-setting-item__label { color: var(--fms-text-secondary) !important; }
+.m365-setting-note {
+  color: var(--fms-text-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+}
+
+.m365-storage-row__count,
+.m365-storage-row__size { color: var(--fms-text-secondary) !important; }
+
+.m365-progress {
+  background: #333 !important;
+  &__bar--secondary { background: #666 !important; }
+}
+
+.m365-state-box {
+  border-color: #555 !important;
+  color: var(--fms-text-secondary) !important;
+  &--empty i { color: #888 !important; }
+}
+
+.m365-table-wrap {
+  border-color: var(--fms-border) !important;
+}
+
+.m365-table {
+  th, td { border-bottom-color: var(--fms-border) !important; }
+  th {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  td { color: var(--fms-text-primary) !important; }
+  tbody tr:hover { background: var(--fms-hover-bg) !important; }
+}
+
+.m365-sort-btn {
+  i { color: var(--fms-text-secondary) !important; }
+  &:hover { color: #4aa3df !important; i { color: #4aa3df !important; } }
+}
+
+.m365-file-cell i { color: #888 !important; }
+
+.m365-tab__count { color: var(--fms-text-secondary) !important; }
+.m365-service-label { color: var(--fms-text-primary) !important; }
+
+.m365-badge--secondary {
+  background: #333 !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.m365-log-search__input,
+.m365-log-select {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.m365-log-cell--details { color: var(--fms-text-secondary) !important; }
+.m365-log-meta__label { color: var(--fms-text-secondary) !important; }
+.m365-log-meta__value { color: var(--fms-text-primary) !important; }
+.m365-modal__field-label { color: var(--fms-text-secondary) !important; }
+.m365-empty-results__title { color: var(--fms-text-secondary) !important; }
+.m365-empty-results__text { color: var(--fms-text-tertiary) !important; }
+.m365-export-card__title { color: var(--fms-text-primary) !important; }
+.m365-export-card__desc { color: var(--fms-text-secondary) !important; }
+
+/* ── Change Password Popup ────────────────────────────────── */
+.chpwd-header {
+  &__title { color: var(--fms-text-primary) !important; }
+  &__close {
+    color: var(--fms-text-tertiary) !important;
+    &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+  }
+}
+
+.chpwd-body {
+  background: var(--fms-surface) !important;
+}
+
+.chpwd-error-banner {
+  background: rgba(209, 52, 56, 0.1) !important;
+  border-color: rgba(209, 52, 56, 0.3) !important;
+}
+
+.chpwd-field {
+  &__label { color: var(--fms-text-primary) !important; }
+}
+
+.chpwd-input-wrap {
+  &__icon { color: var(--fms-text-tertiary) !important; }
+  &__toggle {
+    color: var(--fms-text-tertiary) !important;
+    &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+  }
+}
+
+.chpwd-input {
+  color: var(--fms-text-primary) !important;
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  &::placeholder { color: var(--fms-text-tertiary) !important; }
+  &:hover:not(:disabled) { border-color: #666 !important; }
+  &:disabled {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-tertiary) !important;
+  }
+}
+
+.chpwd-footer {
+  border-top-color: var(--fms-border) !important;
+  background: var(--fms-surface-secondary) !important;
+}
+
+.m365-pwd-req__header { color: var(--fms-text-tertiary) !important; }
+.m365-pwd-meter__label { color: var(--fms-text-tertiary) !important; }
+.m365-pwd-req__item { color: var(--fms-text-tertiary) !important; }
+.m365-pwd-req-check__text { color: var(--fms-text-secondary) !important; }
+.m365-pwd-toggle { color: var(--fms-text-tertiary) !important; }
+
+/* ── Vehicle Search Bar ───────────────────────────────────── */
+.vehicle-search-bar {
+  .search-icon { color: var(--fms-text-tertiary) !important; }
+  .loading-icon { color: var(--fms-text-secondary) !important; }
+
+  input::placeholder { color: var(--fms-text-tertiary) !important; }
+  input:disabled { background-color: var(--fms-surface-secondary) !important; }
+
+  .suggestions-dropdown {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.4) !important;
+
+    .suggestions-header {
+      background-color: var(--fms-surface-secondary) !important;
+      border-bottom-color: var(--fms-border) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    .suggestion-item {
+      border-bottom-color: var(--fms-border) !important;
+      &:hover, &.selected { background-color: var(--fms-hover-bg) !important; }
+      &.no-results { color: var(--fms-text-tertiary) !important; }
+
+      .vehicle-icon { color: var(--fms-text-secondary) !important; }
+      .vehicle-name { color: var(--fms-text-primary) !important; }
+      .vehicle-secondary { color: var(--fms-text-secondary) !important; }
+      .arrow-icon { color: var(--fms-text-tertiary) !important; }
+
+      mark {
+        background-color: rgba(251, 191, 36, 0.2) !important;
+        color: #fbbf24 !important;
+      }
+    }
+  }
+}
+
+.vehicle-sort-controls label,
+.vehicle-filter-controls label { color: var(--fms-text-secondary) !important; }
+.vehicle-sort-btn i { color: var(--fms-text-tertiary) !important; }
+.vehicle-result-count { color: var(--fms-text-secondary) !important; }
+.vehicle-result-count .count { color: var(--fms-text-tertiary) !important; }
+
+/* ── Mobile Navigation Menu ───────────────────────────────── */
+.mobile-nav-container {
+  background: var(--fms-surface) !important;
+
+  .mobile-nav-loading { color: var(--fms-text-secondary) !important; }
+
+  .mobile-nav-search {
+    border-bottom-color: var(--fms-border) !important;
+    background: var(--fms-surface-secondary) !important;
+  }
+
+  .mobile-nav-item-content {
+    &:hover, &:active { background-color: var(--fms-hover-bg) !important; }
+    &.active {
+      background-color: rgba(0, 120, 212, 0.12) !important;
+      .mobile-nav-text { color: #4aa3df !important; }
+      .mobile-nav-icon { color: #4aa3df !important; }
+    }
+
+    .mobile-nav-icon { color: var(--fms-text-secondary) !important; }
+    .mobile-nav-text { color: var(--fms-text-primary) !important; }
+    .mobile-nav-arrow { color: var(--fms-text-tertiary) !important; }
+  }
+
+  .mobile-nav-children {
+    background-color: var(--fms-surface-secondary) !important;
+    .mobile-nav-item-content {
+      border-left-color: var(--fms-border) !important;
+      .mobile-nav-text { color: var(--fms-text-secondary) !important; }
+    }
+  }
+
+  .mobile-nav-empty { color: var(--fms-text-tertiary) !important; }
+
+  .mobile-nav-quick-actions {
+    border-top-color: var(--fms-border) !important;
+    background: var(--fms-surface-secondary) !important;
+
+    .mobile-nav-clear-search {
+      border-color: var(--fms-border) !important;
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-secondary) !important;
+      &:hover, &:active { background: var(--fms-hover-bg) !important; }
+    }
+  }
+
+  .dx-list-item:not(:last-child) { border-bottom-color: var(--fms-border) !important; }
+}
+
+/* ── Slide Panel ──────────────────────────────────────────── */
+.fms-slide-panel {
+  background: var(--fms-surface) !important;
+  border-left-color: var(--fms-border) !important;
+  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.5) !important;
+
+  &__header {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  &__title { color: var(--fms-text-primary) !important; }
+  &__close {
+    color: var(--fms-text-tertiary) !important;
+    &:hover { color: var(--fms-text-primary) !important; background: var(--fms-hover-bg) !important; }
+  }
+}
+
+.fms-slide-panel__overlay {
+  background: rgba(0, 0, 0, 0.5) !important;
+}
+
+/* ── User Panel ───────────────────────────────────────────── */
+.user-panel-role { color: var(--fms-text-secondary) !important; }
+
+/* ── User Details Page grey text ──────────────────────────── */
+.user-details-container {
+  .user-detail-label { color: var(--fms-text-secondary) !important; }
+  .user-detail-value { color: var(--fms-text-primary) !important; }
+  .user-info-label { color: var(--fms-text-secondary) !important; }
+  .user-meta { color: var(--fms-text-secondary) !important; }
+  .user-activity-time { color: var(--fms-text-tertiary) !important; }
+  .user-permission-desc { color: var(--fms-text-secondary) !important; }
+}
+
+/* ── User Activities / Dashboard ──────────────────────────── */
+.activity-timestamp { color: var(--fms-text-secondary) !important; }
+.activity-dashboard-subtitle { color: var(--fms-text-secondary) !important; }
+
+/* ── Tag Rule Management grey text ────────────────────────── */
+.tag-rule-empty-state p { color: var(--fms-text-secondary) !important; }
+.rule-details {
+  .rule-item {
+    background-color: var(--fms-surface-secondary) !important;
+    border-left-color: #666 !important;
+    .rule-type { color: var(--fms-text-secondary) !important; }
+  }
+  .no-rules { color: var(--fms-text-secondary) !important; }
+}
+
+.tag-rule-preview .value { color: var(--fms-text-secondary) !important; }
+.tag-rule-detail .meta { color: var(--fms-text-secondary) !important; }
+.tag-assignment {
+  .label { color: var(--fms-text-secondary) !important; }
+  .name { color: var(--fms-text-secondary) !important; }
+  .type { color: var(--fms-text-secondary) !important; }
+}
+.tag-assignment-empty .text { color: var(--fms-text-secondary) !important; }
+.tag-assignment-empty .sub { color: var(--fms-text-tertiary) !important; }
+
+/* ── Tag Form grey text ───────────────────────────────────── */
+.tag-form .hint { color: var(--fms-text-secondary) !important; }
+.tag-detail-label { color: var(--fms-text-secondary) !important; }
+
+/* ── Tag List container ───────────────────────────────────── */
+.tag-list-container {
+  h2 { color: var(--fms-text-primary) !important; }
+  .rule-name { color: #4aa3df !important; }
+  .rule-description { color: var(--fms-text-secondary) !important; }
+  .no-rule { color: var(--fms-text-tertiary) !important; }
+  .unknown-rule { color: #e06060 !important; }
+}
+
+/* ── Tag Rule Assignment Popup ─────────────────────────────── */
+.tag-rule-assignment-container {
+  background: var(--fms-page-bg) !important;
+
+  .step {
+    background: var(--fms-surface) !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+    h3 { border-bottom-color: var(--fms-border) !important; color: var(--fms-text-primary) !important; }
+  }
+
+  .selected-rule-details {
+    background-color: var(--fms-surface-secondary) !important;
+    border-color: var(--fms-border) !important;
+    h4 { color: var(--fms-text-primary) !important; }
+    .detail-label { color: var(--fms-text-secondary) !important; }
+    .detail-value { color: var(--fms-text-primary) !important; }
+  }
+
+  .simple-list-container {
+    border-color: var(--fms-border) !important;
+    .list-header { background-color: var(--fms-surface-secondary) !important; }
+    .list-row {
+      border-bottom-color: var(--fms-border) !important;
+      &:hover { background: rgba(0, 120, 212, 0.08) !important; }
+      &.selected { background: rgba(0, 120, 212, 0.15) !important; }
+    }
+    .no-data-message { color: var(--fms-text-secondary) !important; }
+  }
+
+  .filter-row label { color: var(--fms-text-primary) !important; }
+}
+
+/* ── Rule Set Form / Detail Form popups ─────────────────── */
+.rule-set-form-container,
+.rule-detail-form-container {
+  .form-info {
+    background-color: rgba(0, 120, 212, 0.08) !important;
+    border-left-color: #4aa3df !important;
+    .info-text { color: var(--fms-text-primary) !important; }
+  }
+  .rule-type-selector {
+    border-bottom-color: var(--fms-border) !important;
+    label { color: var(--fms-text-primary) !important; }
+  }
+  .form-actions { border-top-color: var(--fms-border) !important; }
+}
+
+.tag-form-container .rule-set-info {
+  background-color: rgba(0, 120, 212, 0.08) !important;
+  border-color: rgba(0, 120, 212, 0.2) !important;
+  h4 { color: #4aa3df !important; }
+  .rule-description { color: var(--fms-text-secondary) !important; }
+  .limit-label { color: var(--fms-text-secondary) !important; }
+  .limit-value { color: var(--fms-text-primary) !important; }
+}
+
+/* ── Location Settings Overview ────────────────────────────── */
+.location-overview__subtitle { color: var(--fms-text-secondary) !important; }
+
+/* ── Filter Popup grey text ───────────────────────────────── */
+.filter-popup__label { color: var(--fms-text-secondary) !important; }
+.filter-popup__reset { color: var(--fms-text-secondary) !important; }
+.filter-group__label { color: var(--fms-text-secondary) !important; }
+.filter-group__count { color: var(--fms-text-secondary) !important; }
+
+/* ── PTS Device grey text ─────────────────────────────────── */
+.pts-device-card__empty-icon { color: var(--fms-text-tertiary) !important; }
+
+/* ── Pump Transaction Popup grey text ─────────────────────── */
+.ptx-cancel-btn {
+  color: var(--fms-text-secondary) !important;
+  &:hover { border-color: var(--fms-text-tertiary) !important; }
+}
+
+/* ── Live Status Control ──────────────────────────────────── */
+.live-status__label { color: var(--fms-text-secondary) !important; }
+
+/* ── Vehicle Consumption Report grey text ──────────────────── */
+.report-filter .label { color: var(--fms-text-secondary) !important; }
+.report-summary-label { color: var(--fms-text-secondary) !important; }
+.report-empty-text { color: var(--fms-text-tertiary) !important; }
+.report-footer-text { color: var(--fms-text-secondary) !important; }
+.detail-label { color: var(--fms-text-secondary) !important; }
+
+/* ── Quick Actions grey text ──────────────────────────────── */
+.quick-action-description { color: var(--fms-text-secondary) !important; }
+
+/* ── Fuel Data Comparison grey text ───────────────────────── */
+.fuel-data-subtitle { color: var(--fms-text-secondary) !important; }
+
+/* ── TransactionHub grey text ─────────────────────────────── */
+.txn-hub-filter-label { color: var(--fms-text-tertiary) !important; }
+.txn-hub-empty__text { color: var(--fms-text-tertiary) !important; }
+
+/* ── Site Details View grey text ──────────────────────────── */
+.site-detail-label { color: var(--fms-text-secondary) !important; }
+.site-detail-secondary { color: var(--fms-text-tertiary) !important; }
+
+/* ── Daily Reconciliation grey text ───────────────────────── */
+.recon-summary-label { color: var(--fms-text-secondary) !important; }
+.recon-detail-label { color: var(--fms-text-secondary) !important; }
+.recon-empty-text { color: var(--fms-text-secondary) !important; }
+
+/* ── Emergency Response Panel grey text ────────────────────── */
+.emergency-panel-subtitle { color: var(--fms-text-secondary) !important; }
+.emergency-action-description { color: var(--fms-text-secondary) !important; }
+.emergency-empty-text { color: var(--fms-text-secondary) !important; }
+
+/* ── Period Diagnostic Panel grey text ─────────────────────── */
+.diagnostic-label { color: var(--fms-text-secondary) !important; }
+.diagnostic-sublabel { color: var(--fms-text-secondary) !important; }
+.diagnostic-detail-label { color: var(--fms-text-secondary) !important; }
+.diagnostic-meta { color: var(--fms-text-secondary) !important; }
+.diagnostic-empty-text { color: var(--fms-text-secondary) !important; }
+
+/* ── Tank Actions Menu grey text ──────────────────────────── */
+.tank-action-description { color: var(--fms-text-secondary) !important; }
+
+/* ── Fuel Refill Modals ───────────────────────────────────── */
+.delete-modal-help-text { color: var(--fms-text-secondary) !important; }
+.delete-modal-input:focus { border-color: var(--fms-border) !important; }
+.edit-modal input:focus { border-color: var(--fms-border) !important; }
+
+/* ── Enhanced Tank Stock Dashboard (hardcoded grey) ────────── */
+.fms-tank-legend__label { color: var(--fms-text-secondary) !important; }
+
+/* ── System Config Page grey text ─────────────────────────── */
+.config-description { color: var(--fms-text-secondary) !important; }
+
+/* ── Pivot Grid Report ────────────────────────────────────── */
+.pivot-grid-empty { background-color: #333 !important; color: var(--fms-text-secondary) !important; }
+
+/* ── Reports Dashboard grey text ──────────────────────────── */
+.report-card-description { color: var(--fms-text-secondary) !important; }
+.report-schedule-label { color: var(--fms-text-secondary) !important; }
+.report-schedule-divider { border-color: var(--fms-border) !important; }
+
+/* ── Tasks page grey text ─────────────────────────────────── */
+.task-card-meta { color: var(--fms-text-secondary) !important; }
+.task-status-badge { background-color: #555 !important; }
+.task-priority-badge { background-color: #555 !important; }
+
+/* ── Pump Selection (ATG) grey text ───────────────────────── */
+.pump-selection-label { color: var(--fms-text-secondary) !important; }
+.pump-status-label { color: var(--fms-text-secondary) !important; }
+
+/* ── Fueling Popups grey text ─────────────────────────────── */
+.fueling-popup-text { color: var(--fms-text-secondary) !important; }
+
+/* ── Vehicle DataGrid grey text ───────────────────────────── */
+.vehicle-grid-empty { color: var(--fms-text-secondary) !important; }
+
+/* ── Issue Tracker Form grey text ─────────────────────────── */
+.issue-form-hint { color: var(--fms-text-secondary) !important; }
+
+/* ── Automated Reconciliation grey text ────────────────────── */
+.recon-description { color: var(--fms-text-secondary) !important; }
+
+/* ══════════════════════════════════════════════════════════════
+   VOLUME CORRECTION — precise .tvcc-* selectors
+   ══════════════════════════════════════════════════════════════ */
+.tvcc-container {
+  background: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+.tvcc-tabs-wrapper,
+.tvcc-info-card,
+.tvcc-card,
+.tvcc-tank-breaks-section,
+.tvcc-tank-steps-group,
+.tvcc-history-record,
+.tvcc-summary-box,
+.tvcc-severity-badge,
+.tvcc-strategy-option {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.tvcc-card h3,
+.tvcc-card h4,
+.tvcc-info-card h4,
+.tvcc-strategy-detail h5,
+.tvcc-strategy-card h5,
+.tvcc-strategy-option-title,
+.tvcc-step-title-group h5,
+.tvcc-tank-breaks-header h5,
+.tvcc-tank-header h5,
+.tvcc-record-info strong,
+.tvcc-steps-preview h4 {
+  color: var(--fms-text-primary) !important;
+}
+.tvcc-card h5,
+.tvcc-record-section strong,
+.tvcc-comparison-table th,
+.tvcc-strategy-desc,
+.tvcc-strategy-best,
+.tvcc-strategy-algo,
+.tvcc-param-group label,
+.tvcc-empty-state h3,
+.tvcc-result-message p,
+.tvcc-tank-correction-info .tvcc-info-row strong,
+.tvcc-strategy-breakdown-item span,
+.tvcc-info-panel .tvcc-info-content h4 {
+  color: var(--fms-text-secondary) !important;
+}
+.tvcc-workflow-steps li div p,
+.tvcc-strategy-item p,
+.tvcc-loading-card p,
+.tvcc-strategy-option-desc,
+.tvcc-permission-denied p,
+.tvcc-step-title-group p,
+.tvcc-record-section p,
+.tvcc-comparison-table td,
+.tvcc-record-stat span,
+.tvcc-record-user,
+.tvcc-info-text,
+.tvcc-empty-input p {
+  color: var(--fms-text-secondary) !important;
+}
+.tvcc-empty-state p,
+.tvcc-permission-hint,
+.tvcc-form-hint,
+.tvcc-mode-button small,
+.tvcc-strategy-option-best,
+.tvcc-stat-label,
+.tvcc-summary-label,
+.tvcc-result-label,
+.tvcc-record-date,
+.tvcc-breaks-count,
+.tvcc-steps-count,
+.tvcc-comparison-more {
+  color: var(--fms-text-tertiary) !important;
+}
+.tvcc-mode-button {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  span { color: var(--fms-text-primary) !important; }
+  i { color: var(--fms-text-tertiary) !important; }
+}
+.tvcc-empty-state i,
+.tvcc-empty-input i,
+.tvcc-record-user i { color: var(--fms-text-tertiary) !important; }
+.tvcc-result-value,
+.tvcc-tank-correction-info .tvcc-info-row span {
+  color: var(--fms-text-primary) !important;
+}
+.tvcc-strategy-detail,
+.tvcc-strategy-card,
+.tvcc-results-summary,
+.tvcc-plan-summary,
+.tvcc-input-summary,
+.tvcc-step-item,
+.tvcc-result-stat,
+.tvcc-result-message,
+.tvcc-record-stats,
+.tvcc-record-comparison,
+.tvcc-summary-card,
+.tvcc-empty-input,
+.tvcc-tank-correction-info {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.tvcc-tank-breaks-header,
+.tvcc-tank-header,
+.tvcc-record-header {
+  border-bottom-color: var(--fms-border) !important;
+}
+.tvcc-grid-wrapper .dx-datagrid {
+  border-color: var(--fms-border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   NOTIFICATION HISTORY — precise .nh-* selectors
+   ══════════════════════════════════════════════════════════════ */
+.nh-page {
+  background: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+.nh-page .m365-page-header {
+  background: var(--fms-surface) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.nh-page .m365-page-header__count {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-page .m365-filters {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.nh-page .m365-select,
+.nh-page .m365-date,
+.nh-page .m365-search__input {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.nh-page .m365-search__icon {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-page .m365-search__input::placeholder {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-page .m365-btn--text {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-page .m365-btn--ghost {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.nh-page .m365-icon-btn {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-page .m365-badge--neutral {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.nh-datagrid .dx-datagrid-headers {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-datagrid .dx-row td {
+  color: var(--fms-text-primary) !important;
+}
+.nh-datetime {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-panel-title {
+  color: var(--fms-text-primary) !important;
+}
+.nh-meta-label {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-meta-label i {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-meta-value {
+  color: var(--fms-text-primary) !important;
+}
+.nh-section-label {
+  color: var(--fms-text-secondary) !important;
+}
+.nh-message-box {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.nh-recipient-item__info i {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-recipient-item__name {
+  color: var(--fms-text-primary) !important;
+}
+.nh-recipient-item__email {
+  color: var(--fms-text-tertiary) !important;
+}
+.nh-recipient-list {
+  border-color: var(--fms-border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CHECKUP TEMPLATE MANAGEMENT — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.checkup-template-page {
+  background: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+.checkup-template-page .m365-page-header__count {
+  color: var(--fms-text-secondary) !important;
+}
+.checkup-template-page .m365-btn--text {
+  color: var(--fms-text-secondary) !important;
+}
+.checkup-template-page .m365-select:disabled {
+  color: var(--fms-text-tertiary) !important;
+}
+.checkup-template-page .m365-checkbox {
+  color: var(--fms-text-primary) !important;
+}
+.checkup-template-page .m365-badge--neutral {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.checkup-template-page__grid .dx-datagrid-headers .dx-header-row td {
+  color: var(--fms-text-secondary) !important;
+}
+.checkup-template-page .m365-cmd-btn {
+  color: var(--fms-text-primary) !important;
+}
+.checkup-detail-view .m365-info-cell__label {
+  color: var(--fms-text-secondary) !important;
+}
+.checkup-panel-form .m365-field__label {
+  color: var(--fms-text-primary) !important;
+}
+.checkup-panel-form .m365-field__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.checkup-template-page .m365-panel-footer {
+  background: var(--fms-surface) !important;
+  border-top-color: var(--fms-border) !important;
+}
+.checkup-template-page .m365-input {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.checkup-template-page .m365-input::placeholder {
+  color: var(--fms-text-tertiary) !important;
+}
+.checkup-template-page .m365-input:disabled {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-tertiary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   STEP RECIPIENTS — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.step-recipients {
+  color: var(--fms-text-primary) !important;
+}
+.step-recipients__rules {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.step-recipients__rules-title {
+  color: var(--fms-text-primary) !important;
+}
+.step-recipients__rules-desc {
+  color: var(--fms-text-secondary) !important;
+}
+.step-recipients__rule-row {
+  border-bottom-color: var(--fms-border) !important;
+}
+.step-recipients__rule-check span {
+  color: var(--fms-text-primary) !important;
+}
+.step-recipients__rule-hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.step-recipients__pane {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.step-recipients__pane-header {
+  background: var(--fms-surface-secondary) !important;
+  border-bottom-color: var(--fms-border) !important;
+  h4 { color: var(--fms-text-primary) !important; }
+}
+.step-recipients__pane-count {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.step-recipients__filters {
+  background: var(--fms-surface) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.step-recipients__filter-select {
+  color: var(--fms-text-primary) !important;
+  background-color: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.step-recipients__filter-search-icon {
+  color: var(--fms-text-tertiary) !important;
+}
+.step-recipients__filter-search-input {
+  color: var(--fms-text-primary) !important;
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  &::placeholder { color: var(--fms-text-tertiary) !important; }
+}
+.step-recipients__user-item {
+  border-bottom-color: var(--fms-border) !important;
+  &:hover { background: var(--fms-hover-bg) !important; }
+  &--selected { background: rgba(0, 120, 212, 0.15) !important; }
+}
+.step-recipients__user-name {
+  color: var(--fms-text-primary) !important;
+}
+.step-recipients__user-meta {
+  color: var(--fms-text-tertiary) !important;
+}
+.step-recipients__remove-btn {
+  color: var(--fms-text-tertiary) !important;
+}
+.step-recipients__empty {
+  color: var(--fms-text-tertiary) !important;
+}
+.step-recipients__loading {
+  color: var(--fms-text-tertiary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   VEHICLE TRANSFER FORM — precise .vtf-* selectors
+   ══════════════════════════════════════════════════════════════ */
+.vehicle-transfer-form {
+  background: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+}
+.vehicle-transfer-form .dx-header-row {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.vtf-header__title {
+  color: var(--fms-text-primary) !important;
+}
+.vtf-header__meta-label {
+  color: var(--fms-text-tertiary) !important;
+}
+.vtf-header__meta-value {
+  color: var(--fms-text-primary) !important;
+}
+.vtf-stepper__num {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.vtf-stepper__label {
+  color: var(--fms-text-secondary) !important;
+}
+.vehicle-transfer-form .m365-section-group__header {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.vehicle-transfer-form .m365-section-group__title {
+  color: var(--fms-text-primary) !important;
+}
+.vehicle-transfer-form .m365-field__label {
+  color: var(--fms-text-secondary) !important;
+}
+.vehicle-transfer-form .m365-field__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.vehicle-transfer-form .m365-badge--neutral {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.vehicle-transfer-form .m365-checkbox__label {
+  color: var(--fms-text-primary) !important;
+}
+.vehicle-transfer-form .m365-btn--ghost {
+  color: var(--fms-text-secondary) !important;
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.vehicle-transfer-form .m365-info-banner__text {
+  color: var(--fms-text-secondary) !important;
+}
+.vtf-approval-flow__dot {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.vtf-approval-flow__label {
+  color: var(--fms-text-tertiary) !important;
+}
+.vtf-approval-flow__line {
+  background: var(--fms-border) !important;
+}
+.vtf-nav {
+  border-color: var(--fms-border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REPORT ENGINE — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.report-engine {
+  background: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+.engine-header {
+  background: var(--fms-surface) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.engine-header__title {
+  color: var(--fms-text-primary) !important;
+}
+.engine-header__subtitle {
+  color: var(--fms-text-secondary) !important;
+}
+.engine-sidebar {
+  background: var(--fms-surface) !important;
+  border-right-color: var(--fms-border) !important;
+}
+.engine-section {
+  border-bottom-color: var(--fms-border) !important;
+}
+.engine-section__header {
+  color: var(--fms-text-secondary) !important;
+  background: var(--fms-surface-secondary) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.engine-section__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.engine-actions {
+  border-top-color: var(--fms-border) !important;
+}
+.engine-progress__elapsed {
+  color: var(--fms-text-tertiary) !important;
+}
+.report-engine .m365-btn--ghost {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REPORT MONITOR DASHBOARD — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.report-monitor-dashboard {
+  background: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+.report-monitor-dashboard .m365-btn--ghost {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.report-monitor-dashboard .m365-btn--text {
+  color: var(--fms-text-secondary) !important;
+}
+.report-monitor-dashboard .m365-date {
+  color: var(--fms-text-primary) !important;
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.report-monitor-dashboard .m365-badge--neutral {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.monitor-header {
+  background: var(--fms-surface) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.monitor-header__title {
+  color: var(--fms-text-primary) !important;
+}
+.monitor-header__subtitle {
+  color: var(--fms-text-secondary) !important;
+}
+.monitor-stat {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.monitor-stat__label {
+  color: var(--fms-text-secondary) !important;
+}
+.monitor-stat__value {
+  color: var(--fms-text-primary) !important;
+}
+.monitor-format-bar__label {
+  color: var(--fms-text-tertiary) !important;
+}
+.monitor-grid-wrap {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.monitor-grid-wrap .dx-datagrid-headers {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.monitor-detail-panel {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.monitor-detail-panel__header {
+  background: var(--fms-surface-secondary) !important;
+  border-bottom-color: var(--fms-border) !important;
+}
+.monitor-detail-panel__title {
+  color: var(--fms-text-primary) !important;
+}
+.monitor-detail-panel__id {
+  color: var(--fms-text-tertiary) !important;
+  background: var(--fms-surface-secondary) !important;
+}
+.monitor-date-range-box .dx-texteditor.dx-editor-outlined {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.monitor-date-range-box .dx-daterangebox-separator {
+  color: var(--fms-text-tertiary) !important;
+}
+.monitor-date-range-box .dx-label {
+  color: var(--fms-text-tertiary) !important;
+}
+.monitor-date-range-box .dx-texteditor-input {
+  color: var(--fms-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REPORT EXECUTION LOG — precise .exec-log selectors
+   ══════════════════════════════════════════════════════════════ */
+.exec-log {
+  color: var(--fms-text-primary) !important;
+}
+.exec-log--empty {
+  color: var(--fms-text-tertiary) !important;
+}
+.exec-log__primary {
+  border-bottom-color: var(--fms-border) !important;
+}
+.exec-log__field-label {
+  color: var(--fms-text-secondary) !important;
+}
+.exec-log__field-value {
+  color: var(--fms-text-primary) !important;
+}
+.exec-log__filters-title {
+  color: var(--fms-text-secondary) !important;
+}
+.exec-log__filters-grid {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.exec-log__filter-key {
+  color: var(--fms-text-secondary) !important;
+}
+.exec-log__filter-val {
+  color: var(--fms-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   SCHEDULE REPORT PANEL — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.schedule-report-panel {
+  color: var(--fms-text-primary) !important;
+}
+.schedule-report-panel__section {
+  border-bottom-color: var(--fms-border) !important;
+}
+.schedule-report-panel__section-title {
+  color: var(--fms-text-secondary) !important;
+}
+.schedule-report-panel__label {
+  color: var(--fms-text-secondary) !important;
+}
+.schedule-report-panel__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.schedule-report-panel__text-input,
+.schedule-report-panel__time-input,
+.schedule-report-panel__email-input {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+  &:disabled {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-tertiary) !important;
+  }
+}
+.schedule-report-panel__freq-group {
+  border-color: var(--fms-border) !important;
+}
+.schedule-report-panel__freq-btn {
+  background: var(--fms-surface) !important;
+  border-right-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+  &--active {
+    background: rgba(0, 120, 212, 0.15) !important;
+    color: #4ea8ff !important;
+  }
+}
+.schedule-report-panel__day-btn,
+.schedule-report-panel__week-btn,
+.schedule-report-panel__dom-btn {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-secondary) !important;
+  &--active {
+    background: rgba(0, 120, 212, 0.15) !important;
+    color: #4ea8ff !important;
+    border-color: #4ea8ff !important;
+  }
+}
+.schedule-report-panel__format-btn {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-secondary) !important;
+  &--active {
+    background: rgba(0, 120, 212, 0.15) !important;
+    color: #4ea8ff !important;
+    border-color: #4ea8ff !important;
+  }
+}
+.schedule-report-panel__recipients {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.schedule-report-panel__chip {
+  background: rgba(0, 120, 212, 0.15) !important;
+  border-color: rgba(0, 120, 212, 0.3) !important;
+  color: var(--fms-text-primary) !important;
+}
+.schedule-report-panel__chip-email {
+  color: var(--fms-text-tertiary) !important;
+}
+.schedule-report-panel__chip-remove {
+  color: var(--fms-text-secondary) !important;
+}
+.schedule-report-panel__suggestions {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.schedule-report-panel__suggestion-item:hover {
+  background: var(--fms-hover-bg) !important;
+}
+.schedule-report-panel__suggestion-name {
+  color: var(--fms-text-primary) !important;
+}
+.schedule-report-panel__suggestion-email {
+  color: var(--fms-text-tertiary) !important;
+}
+.schedule-report-panel__footer {
+  border-top-color: var(--fms-border) !important;
+  background: var(--fms-surface) !important;
+}
+.schedule-report-panel__cancel-btn {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   REQUEST REPORT EMAIL PANEL — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.email-report-panel__section-title {
+  color: var(--fms-text-secondary) !important;
+}
+.email-report-panel__label {
+  color: var(--fms-text-primary) !important;
+}
+.email-report-panel__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.email-report-panel__recipients {
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.email-report-panel__chip {
+  background: rgba(0, 120, 212, 0.15) !important;
+  color: #4ea8ff !important;
+  strong { color: var(--fms-text-primary) !important; }
+}
+.email-report-panel__chip-email {
+  color: var(--fms-text-secondary) !important;
+}
+.email-report-panel__chip-remove {
+  color: var(--fms-text-secondary) !important;
+}
+.email-report-panel__email-input {
+  color: var(--fms-text-primary) !important;
+  &::placeholder { color: var(--fms-text-tertiary) !important; }
+}
+.email-report-panel__suggestions {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.email-report-panel__suggestion-item:hover {
+  background: var(--fms-hover-bg) !important;
+}
+.email-report-panel__suggestion-name {
+  color: var(--fms-text-primary) !important;
+}
+.email-report-panel__suggestion-email {
+  color: var(--fms-text-secondary) !important;
+}
+.email-report-panel__info-card {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.email-report-panel__info-label {
+  color: var(--fms-text-secondary) !important;
+}
+.email-report-panel__info-value {
+  color: var(--fms-text-primary) !important;
+}
+.email-report-panel__info-row {
+  border-bottom-color: var(--fms-border) !important;
+}
+.email-report-panel__format-btn {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+  &:hover { background: var(--fms-hover-bg) !important; }
+}
+.email-report-panel__footer {
+  border-top-color: var(--fms-border) !important;
+  background: var(--fms-surface) !important;
+}
+.email-report-panel__cancel-btn {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   IMPORT MANAGEMENT — precise selectors
+   ══════════════════════════════════════════════════════════════ */
+.import-mgmt {
+  background: var(--fms-page-bg) !important;
+}
+.import-mgmt .m365-page-header {
+  background: var(--fms-surface) !important;
+}
+.import-mgmt .m365-page-header__count {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .m365-tabs {
+  background: var(--fms-surface) !important;
+}
+.import-mgmt .m365-tab {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .m365-filters {
+  background: var(--fms-surface) !important;
+}
+.import-mgmt .m365-search__icon {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .m365-search__input::placeholder {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .m365-select {
+  color: var(--fms-text-primary) !important;
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .m365-icon-btn {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .m365-badge--neutral {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .m365-info-banner__dismiss {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .m365-btn--ghost {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt__col-header {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt__cell {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt__empty {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt__pagination-info {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt__list-header,
+.import-mgmt__list-body,
+.import-mgmt__pagination {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .m365-detail-header__meta {
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .m365-info-cell__label {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .m365-info-cell__value {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt .m365-flat-section {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .m365-flat-section__title {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt .ais-badge--muted {
+  background: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-secondary) !important;
+}
+.import-mgmt .ais-section-divider {
+  color: var(--fms-text-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .ais-field__label {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt .ais-profile-card {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .ais-profile-card__title {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt .auto-import-settings__hint {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .auto-import-settings__label {
+  color: var(--fms-text-primary) !important;
+}
+.import-mgmt .m365-input {
+  color: var(--fms-text-primary) !important;
+  background: var(--fms-input-bg) !important;
+  border-color: var(--fms-border) !important;
+}
+.import-mgmt .m365-input::placeholder {
+  color: var(--fms-text-tertiary) !important;
+}
+.import-mgmt .ais-panel-footer {
+  background: var(--fms-surface) !important;
+  border-top-color: var(--fms-border) !important;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   LOCATION RULES SETTINGS — precise .loc-* selectors
+   ══════════════════════════════════════════════════════════════ */
+.loc-header__subtitle {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-header__title {
+  color: var(--fms-text-primary) !important;
+}
+.loc-main-toggle {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.loc-main-toggle__title {
+  color: var(--fms-text-primary) !important;
+}
+.loc-main-toggle__desc {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-accordion {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+}
+.loc-accordion__header {
+  background: var(--fms-surface) !important;
+}
+.loc-accordion__title {
+  color: var(--fms-text-primary) !important;
+}
+.loc-accordion__desc {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-accordion__chevron {
+  color: var(--fms-text-tertiary) !important;
+}
+.loc-accordion__sub-heading {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-setting-row__icon {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-setting-row__title {
+  color: var(--fms-text-primary) !important;
+}
+.loc-setting-row__desc {
+  color: var(--fms-text-tertiary) !important;
+}
+.loc-bypass-active__meta {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-bypass-group__label {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-bypass-item {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.loc-bypass-item__name {
+  color: var(--fms-text-primary) !important;
+}
+.loc-bypass-item__meta {
+  color: var(--fms-text-tertiary) !important;
+}
+.loc-bypass-form {
+  background: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+.loc-bypass-form__title {
+  color: var(--fms-text-primary) !important;
+}
+.loc-bypass-form__field label {
+  color: var(--fms-text-secondary) !important;
+}
+.loc-bypass-form .m365-icon-btn {
+  color: var(--fms-text-secondary) !important;
+}
+
+/* ── Config Controls (PTS Device) slider tracks ────────────── */
+.config-controls {
+  input[type="range"]::-webkit-slider-runnable-track { background: #555 !important; }
+  input[type="range"]:disabled::-webkit-slider-runnable-track { background: #444 !important; }
+}
+
+/* ── Catch-all: generic white backgrounds within dark theme ── */
+.form-card,
+.detail-card,
+.info-card,
+.panel-body,
+.content-card {
+  background: var(--fms-surface) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ── Layout shells: dark grey background + white text ───────────────── */
+.admin-layout,
+.vehicle-layout,
+.employee-layout,
+.reports-layout,
+.tank-stock-layout,
+.event-expressions-layout,
+.maintenance-layout,
+.issue-tracker-layout,
+.task-management-layout,
+.notification-layout,
+.mission-control-layout {
+  background: #2b2b2b !important;
+  color: #ffffff !important;
+}
+
+.admin-main,
+.vehicle-main,
+.employee-main,
+.reports-main,
+.tank-stock-main,
+.ee-main,
+.maintenance-main,
+.issue-tracker-main,
+.task-main,
+.notification-main,
+.main-content,
+.page-content,
+.layout-body {
+  background: #2b2b2b !important;
+  color: #ffffff !important;
+}
+
+.main-header,
+.employee-main__header,
+.m365-page-header {
+  background: #333333 !important;
+  color: #ffffff !important;
+  border-bottom-color: #4a4a4a !important;
+}
+
+.main-title,
+.employee-main__title,
+.employee-main__subtitle,
+.m365-page-header__title,
+.m365-page-header__subtitle,
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: #ffffff !important;
+}
+
+.admin-sidebar,
+.vehicle-sidebar,
+.employee-sidebar,
+.reports-sidebar,
+.tank-stock-sidebar,
+.ee-sidebar,
+.maintenance-sidebar,
+.issue-tracker-sidebar,
+.task-sidebar {
+  background: #303030 !important;
+  color: #ffffff !important;
+}
+
+/* ── App Drawer + Notification Center + User Panel ─────────── */
+.app-drawer {
+  background: #2f2f2f !important;
+  border-color: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+.app-drawer .module-item {
+  color: #ffffff !important;
+}
+
+.app-drawer .module-item:hover {
+  background: #3a3a3a !important;
+}
+
+.app-drawer .module-name {
+  color: #ffffff !important;
+}
+
+.notification-center .bell-button-wrapper .bell-icon i {
+  color: #ffffff !important;
+}
+
+.notification-popover,
+.notification-popover.notification-popover--portal,
+.notification-popover.notification-popover--mobile {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+  border: 1px solid #4a4a4a !important;
+}
+
+.notification-popover .m365-panel-header,
+.notification-popover .m365-tabs,
+.notification-popover .m365-panel-footer {
+  background: #333333 !important;
+  color: #ffffff !important;
+  border-color: #4a4a4a !important;
+}
+
+.notification-popover .m365-panel-header h4,
+.notification-popover .m365-tab,
+.notification-popover .m365-notif-title,
+.notification-popover .m365-notif-message,
+.notification-popover .m365-notif-time,
+.notification-popover .m365-empty,
+.notification-popover .m365-empty p,
+.notification-popover .m365-header-btn,
+.notification-popover .m365-panel-footer button {
+  color: #ffffff !important;
+}
+
+.notification-popover .m365-header-btn:hover,
+.notification-popover .m365-header-btn--icon-only:hover,
+.notification-popover .m365-panel-footer button:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+.notification-popover .m365-header-btn:hover i,
+.notification-popover .m365-header-btn--icon-only:hover i,
+.notification-popover .m365-panel-footer button:hover i {
+  color: #000000 !important;
+}
+
+.notification-popover .m365-notif-item {
+  background: #2f2f2f !important;
+  border-bottom-color: #4a4a4a !important;
+}
+
+.notification-popover .m365-notif-item:hover {
+  background: #3a3a3a !important;
+}
+
+.notification-popover .m365-notif-chip,
+.notification-popover .m365-tab-badge {
+  background: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+.user-menu-popover .dx-overlay-content,
+.user-menu-content {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+  border: 1px solid #4a4a4a !important;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.35), 0 4px 16px rgba(0, 0, 0, 0.25) !important;
+}
+
+.user-menu-popover .dx-popup-content,
+.user-menu-popover .dx-overlay-content .dx-popup-content {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable,
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable > div,
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-content,
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-email-header,
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-items,
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable .user-menu-item {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+}
+
+.user-menu-popover .dx-popup-content.dx-popup-content-scrollable {
+  padding: 0 !important;
+}
+
+.user-menu-popover .dx-popover-arrow::before,
+.user-menu-popover .dx-popover-arrow::after {
+  background: #2f2f2f !important;
+  border-color: #2f2f2f !important;
+}
+
+.user-menu-content .user-menu-email-header {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+  border-bottom-color: #4a4a4a !important;
+}
+
+.user-menu-content .user-menu-items {
+  background: #2f2f2f !important;
+  padding: 0 !important;
+}
+
+.user-menu-content .user-menu-items .user-menu-item {
+  background: #2f2f2f !important;
+  color: #ffffff !important;
+  border-bottom-color: #4a4a4a !important;
+}
+
+.user-menu-content .user-menu-items .user-menu-item:hover {
+  background: #3a3a3a !important;
+}
+
+.user-menu-content .user-menu-items .user-menu-item .dx-icon,
+.user-menu-content .user-menu-items .user-menu-item i[class*="fa-light"] {
+  color: #ffffff !important;
+}
+
+.user-avatar-circle {
+  background: #3a3a3a !important;
+  color: #ffffff !important;
+  border-color: #ffffff !important;
+}
+
+/* ── Shared M365 Side Panel (Opening/Closing/Delivery/etc.) ───────── */
+.m365-side-panel {
+  background: #2b2b2b !important;
+  color: #ffffff !important;
+  box-shadow: -8px 0 32px rgba(0, 0, 0, 0.45) !important;
+}
+
+.m365-side-panel__header {
+  background: #333333 !important;
+  border-bottom-color: #4a4a4a !important;
+  color: #ffffff !important;
+}
+
+.m365-side-panel__title {
+  color: #ffffff !important;
+}
+
+.m365-side-panel__close {
+  color: #ffffff !important;
+  background: transparent !important;
+}
+
+.m365-side-panel__close:hover {
+  background: #3a3a3a !important;
+  color: #ffffff !important;
+}
+
+.m365-side-panel__body {
+  background: #2b2b2b !important;
+  color: #ffffff !important;
+}

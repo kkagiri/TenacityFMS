@@ -1,0 +1,40 @@
+/**
+ * File: dark-theme.scss
+ * Purpose: Entry-point dark theme stylesheet composed from meaningful section partials.
+ * Dependencies: Partial files under src/styles/dark-theme/
+ * Last Modified: 2026-03-04
+ */
+
+@import "./dark-theme/light-tokens";
+
+[data-theme="dark"] {
+  @import "./dark-theme/_dark-section-01-body-root-background";
+  @import "./dark-theme/_dark-section-02-section-02";
+  @import "./dark-theme/_dark-section-03-datagrid";
+  @import "./dark-theme/_dark-section-04-section-04";
+  @import "./dark-theme/_dark-section-05-section-05";
+  @import "./dark-theme/_dark-section-06-section-06";
+  @import "./dark-theme/_dark-section-07-section-07";
+  @import "./dark-theme/_dark-section-08-issue-tracker-layout";
+  @import "./dark-theme/_dark-section-09-issue-dashboard-cards-stats";
+  @import "./dark-theme/_dark-section-10-loading-overlay";
+  @import "./dark-theme/_dark-section-11-section-11";
+  @import "./dark-theme/_dark-section-12-section-12";
+  @import "./dark-theme/_dark-section-13-section-13";
+  @import "./dark-theme/_dark-section-14-section-14";
+  @import "./dark-theme/_dark-section-15-section-15";
+  @import "./dark-theme/_dark-section-16-headings";
+  @import "./dark-theme/_dark-section-17-section-17";
+  @import "./dark-theme/_dark-section-18-section-18";
+  @import "./dark-theme/_dark-section-19-section-19";
+  @import "./dark-theme/_dark-section-20-section-20";
+  @import "./dark-theme/_dark-section-21-section-21";
+  @import "./dark-theme/_dark-section-22-section-22";
+  @import "./dark-theme/_dark-section-23-section-23";
+  @import "./dark-theme/_dark-section-24-section-24";
+  @import "./dark-theme/_dark-section-25-devextreme-tabpanel-global";
+  @import "./dark-theme/_dark-section-26-popup-toolbar-many-modules-use-this";
+  @import "./dark-theme/_dark-section-27-critical-scoped-css-variable-overrides";
+  @import "./dark-theme/_dark-section-28-m365-design-token-overrides-importmanagement-userlis";
+  @import "./dark-theme/_dark-section-29-css-var-secondary-text-color-ptsdevicedetails-ticker";
+}

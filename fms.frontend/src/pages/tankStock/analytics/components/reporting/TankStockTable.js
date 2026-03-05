@@ -298,15 +298,15 @@ const TankStockTable = () => {
   ];
 
   return (
-    <div className="tw-flex tw-flex-col tw-h-full tw-bg-white tw-rounded-lg tw-shadow tw-p-4">
+    <div className="tw-flex tw-flex-col tw-h-full tw-rounded-lg tw-shadow tw-p-4 tank-stock-table-wrap" style={{ background: 'var(--fms-surface, #ffffff)' }}>
       {/* Header with refresh button */}
-      <div className="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-pb-3 tw-border-b">
+      <div className="tw-flex tw-justify-between tw-items-center tw-mb-4 tw-pb-3 tw-border-b tank-stock-table__header">
         <div>
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800">
+          <h3 className="tw-text-lg tw-font-semibold tw-mt-0" style={{ color: 'var(--fms-text-primary, #1f2937)' }}>
             <i className="fa-light fa-table tw-mr-2 tw-text-blue-600"></i>
             Tank Stock Data Management
           </h3>
-          <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
+          <p className="tw-text-sm tw-mt-1" style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>
             <i className="fa-light fa-info-circle tw-mr-1"></i>
             View, add, edit, and delete tank stock records. Use the "Apply" button in the header to filter data.
           </p>
@@ -324,7 +324,7 @@ const TankStockTable = () => {
       {loading && (
         <div className="tw-flex tw-justify-center tw-items-center tw-py-8">
           <LoadIndicator visible={true} />
-          <span className="tw-ml-3 tw-text-gray-600">Loading tank stock data...</span>
+          <span className="tw-ml-3" style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>Loading tank stock data...</span>
         </div>
       )}
 
@@ -517,10 +517,10 @@ const TankStockTable = () => {
       {!loading && !startDate && !endDate && (
         <div className="tw-text-center tw-py-12">
           <i className="fa-light fa-calendar tw-text-4xl tw-text-blue-400 tw-mb-4"></i>
-          <h3 className="tw-text-xl tw-font-semibold tw-text-gray-600 tw-mb-2">
+          <h3 className="tw-text-xl tw-font-semibold tw-mb-2" style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>
             Select Date Range
           </h3>
-          <p className="tw-text-gray-500">
+          <p style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>
             Please select a date range from the header filters and click "Apply" to load tank stock data.
           </p>
         </div>
@@ -528,11 +528,11 @@ const TankStockTable = () => {
 
       {!loading && startDate && endDate && data.length === 0 && (
         <div className="tw-text-center tw-py-12">
-          <i className="fa-light fa-table tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-          <h3 className="tw-text-xl tw-font-semibold tw-text-gray-600 tw-mb-2">
+          <i className="fa-light fa-table tw-text-4xl tw-mb-4" style={{ color: 'var(--fms-text-tertiary, #9ca3af)' }}></i>
+          <h3 className="tw-text-xl tw-font-semibold tw-mb-2" style={{ color: 'var(--fms-text-secondary, #4b5563)' }}>
             No Data Available
           </h3>
-          <p className="tw-text-gray-500">
+          <p style={{ color: 'var(--fms-text-tertiary, #6b7280)' }}>
             No tank stock records found for the selected date range. Try adjusting your filters or add a new record.
           </p>
         </div>

@@ -1,13 +1,13 @@
 /**
  * File: useImportUtils.js (Refactored)
  * Purpose: Facade hook that composes specialized hooks for import functionality
- * 
+ *
  * This hook has been decomposed into smaller, focused hooks:
  * - useFileHandling: File selection and toast messages
  * - useExcelParsing: Excel parsing and data mapping
  * - useDataValidation: Data validation logic
  * - useImportSubmission: Import submission and retry logic
- * 
+ *
  * This facade maintains backward compatibility with existing components.
  */
 
@@ -72,6 +72,7 @@ const useImportUtils = ({
     sites,
     reportType,
     siteSelectionMode,
+    setSiteSelectionMode,
     setParsedData,
     setFilteredData,
     setValidationErrors,
@@ -87,8 +88,9 @@ const useImportUtils = ({
     setShowDuplicateErrors,
     setShowValidationErrors,
     setDetectedSite,
-    setSiteSelectionMode,
+    setFixedRows,
     fileInputRef,
+    dataGridRef,
   });
 
   // Initialize validation hook
@@ -180,40 +182,40 @@ const useImportUtils = ({
   return {
     // Toast
     showToast,
-    
+
     // File handling
     handleFileChange,
     handleClearPreview,
     setDetectedSiteInfo,
-    
+
     // Preview & parsing
     handlePreviewData,
     processPreview,
     mapKmLData,
     mapLHrData,
     isRowComplete,
-    
+
     // Validation
     validateData,
     selectedRowsHaveErrors: () => selectedRowsHaveErrors(selectedRowKeys),
     countSelectedRowsErrors: () => countSelectedRowsErrors(selectedRowKeys),
     getRowErrors,
     rowHasErrors,
-    
+
     // Import
     handlePrepareImport,
     handleSubmitData,
     handleRetryWithoutDuplicates,
     handleRetryWithOverwrite,
-    
+
     // Lookup helpers
     findVehicleByName,
     findSiteByName,
-    
+
     // Formatting utilities (re-exported for convenience)
     cleanNumericValue,
     formatDate,
-    
+
     // Data access
     getFilteredData,
   };

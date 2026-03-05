@@ -1,0 +1,236 @@
+// _dark-components.scss
+// Lines 4100-4330 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ── Components: Tags ─────────────────────────────────────── */
+  .tag-form,
+  .tag-create-form {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+
+    .form-section,
+    .tag-field-group {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    label, .field-label { color: var(--fms-text-primary) !important; }
+    input, select, textarea {
+      background: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .tag-list {
+    background-color: var(--fms-surface) !important;
+    .tag-list-header {
+      background-color: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+    .tag-item {
+      border-color: var(--fms-border) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+    .tag-category-badge {
+      background-color: rgba(59, 130, 246, 0.12) !important;
+    }
+  }
+
+  .tag-details {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .tag-assignment-form {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .tag-rule-management {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .rule-card,
+    .rule-item {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .rule-header {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    input, select { background: var(--fms-input-bg) !important; color: var(--fms-text-primary) !important; border-color: var(--fms-border) !important; }
+  }
+
+  .location-settings-overview {
+    .settings-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+    .setting-row {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Components: PTS Device ───────────────────────────────── */
+  .pts-device-form {
+    .form-section,
+    .device-field-group {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .section-toggle {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .pts-device-list {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .pts-device-details {
+    .detail-section,
+    .info-card,
+    .status-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+    .section-header {
+      background: var(--fms-surface-secondary) !important;
+    }
+  }
+
+  /* ── Components: User Panel ───────────────────────────────── */
+  .change-password-popup,
+  .user-panel-popup {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .field-label { color: var(--fms-text-primary) !important; }
+
+    input {
+      background: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  .user-panel {
+    .panel-card,
+    .user-info-section {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Components: Filter Popup / Toolbar ────────────────────── */
+  .filter-popup {
+    .filter-section,
+    .filter-group {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+    .filter-label { color: var(--fms-text-primary) !important; }
+    .filter-value { color: var(--fms-text-secondary) !important; }
+
+    input, select {
+      background: var(--fms-input-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Components: Pump Transaction Popup ────────────────────── */
+  .pump-transaction-popup {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .transaction-detail,
+    .transaction-section {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .detail-label { color: var(--fms-text-secondary) !important; }
+    .detail-value { color: var(--fms-text-primary) !important; }
+  }
+
+  /* ── Components: Live Status ──────────────────────────────── */
+  .live-status-control {
+    background-color: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ── Components: Mobile Navigation ─────────────────────────── */
+  .mobile-navigation-menu {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+
+    .menu-item {
+      color: var(--fms-text-primary) !important;
+      &:hover { background: var(--fms-hover-bg) !important; }
+    }
+    .menu-header {
+      background: var(--fms-surface-secondary) !important;
+    }
+    .menu-footer {
+      background: var(--fms-surface-secondary) !important;
+      border-top-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── Components: Reporting Email Panel ─────────────────────── */
+  .request-report-email-panel {
+    .email-info-banner {
+      background: rgba(0, 120, 212, 0.1) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Components: m365-shared ───────────────────────────────── */
+  .m365-shared {
+    .m365-btn--ghost {
+      background: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── Shared Issue Tracker Styles ───────────────────────────── */
+  .issue-tracker-page {
+    background-color: var(--fms-page-bg) !important;
+
+    .issue-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .filter-bar {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* ── M365 Design Token variable overrides (for files using :root tokens) ── */
+  --m365-text: #e4e4e4;
+  --m365-text-secondary: #a0a0a0;
+  --m365-text-tertiary: #6e6e6e;
+  --m365-border: #4a4a4a;
+  --m365-border-light: #3a3a3a;
+  --m365-bg-hover: #2a2a2a;
+  --m365-bg-surface: #1e1e1e;
+  --m365-bg-card: #252525;
+  --m365-primary-tint: rgba(0, 120, 212, 0.15);
+  --m365-success-tint: rgba(16, 124, 16, 0.15);
+  --m365-error-tint: rgba(209, 52, 56, 0.15);
+  --m365-warning-tint: rgba(202, 80, 16, 0.15);
+
+}

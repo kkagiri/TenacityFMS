@@ -19,7 +19,7 @@
         display: flex;
         flex-direction: column;
         transition: width 0.3s ease, min-width 0.3s ease;
-        overflow: hidden;
+        overflow: visible;
         position: relative;
         z-index: 100;
 
@@ -33,9 +33,9 @@
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 1.25rem 1rem;
+            padding: 14px 12px 14px 16px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.15);
-            min-height: 64px;
+            position: relative;
 
             .sidebar-brand {
                 display: flex;
@@ -53,22 +53,33 @@
             }
 
             .collapse-btn {
-                background: rgba(255, 255, 255, 0.1);
-                border: none;
-                border-radius: 6px;
-                color: #e9d5ff;
+                position: absolute;
+                right: -14px;
+                top: 50%;
+                transform: translateY(-50%);
+                width: 28px;
+                height: 28px;
+                background: #5b21b6;
+                border: 2px solid rgba(255, 255, 255, 0.4);
+                border-radius: 50%;
+                color: #fff;
                 cursor: pointer;
                 display: flex;
                 align-items: center;
                 justify-content: center;
-                width: 28px;
-                height: 28px;
-                flex-shrink: 0;
-                transition: background 0.2s;
+                z-index: 1001;
+                box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+                transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
 
                 &:hover {
-                    background: rgba(255, 255, 255, 0.2);
-                    color: #fff;
+                    background: #4c1d95;
+                    border-color: rgba(255, 255, 255, 0.8);
+                    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.35);
+                }
+
+                i {
+                    font-size: 11px;
+                    line-height: 1;
                 }
             }
         }
@@ -78,87 +89,88 @@
             flex: 1;
             overflow-y: auto;
             overflow-x: hidden;
-            padding: 1rem 0;
+            padding: 8px 0;
 
-            &::-webkit-scrollbar { width: 4px; }
-            &::-webkit-scrollbar-track { background: transparent; }
-            &::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.3); border-radius: 4px; }
+            &::-webkit-scrollbar { width: 3px; }
+            &::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 3px; }
         }
 
         //  Nav Groups
-        .nav-group { margin-bottom: 0.5rem; }
+        .nav-group { margin-bottom: 4px; }
 
         .group-label {
-            font-size: 0.65rem;
+            color: rgba(255, 255, 255, 0.55);
+            font-size: 10px;
             font-weight: 700;
-            letter-spacing: 0.1em;
+            letter-spacing: 0.6px;
             text-transform: uppercase;
-            color: rgba(255, 255, 255, 0.5);
-            padding: 0.5rem 1.25rem 0.25rem;
+            padding: 8px 14px 3px;
             white-space: nowrap;
+            overflow: hidden;
         }
 
         .nav-separator {
             height: 1px;
-            background: rgba(255, 255, 255, 0.1);
-            margin: 0.5rem 1rem;
+            background: rgba(255, 255, 255, 0.12);
+            margin: 6px 10px;
         }
 
-        .nav-menu { display: flex; flex-direction: column; gap: 2px; padding: 0 0.5rem; }
+        .nav-menu { display: flex; flex-direction: column; }
 
         //  Nav Item
         .nav-item {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 0.625rem 0.75rem;
-            border-radius: 8px;
+            padding: 8px 12px;
+            margin: 1px 6px;
+            border-radius: 4px;
             cursor: pointer;
-            color: rgba(255, 255, 255, 0.75);
-            transition: background 0.2s, color 0.2s;
+            color: rgba(255, 255, 255, 0.85);
+            transition: background 0.12s;
             position: relative;
             white-space: nowrap;
+            overflow: hidden;
 
             &:hover {
-                background: rgba(255, 255, 255, 0.1);
+                background: rgba(255, 255, 255, 0.12);
                 color: #fff;
             }
 
             &.active {
-                background: rgba(255, 255, 255, 0.15);
+                background: rgba(255, 255, 255, 0.18);
                 color: #fff;
+                font-weight: 600;
 
                 &::before {
                     content: '';
                     position: absolute;
                     left: 0;
-                    top: 50%;
-                    transform: translateY(-50%);
+                    top: 0;
+                    bottom: 0;
                     width: 3px;
-                    height: 60%;
-                    border-radius: 0 3px 3px 0;
-                    background: #c4b5fd;
-                    box-shadow: 0 0 8px rgba(196, 181, 253, 0.6);
+                    background: #fff;
+                    border-radius: 0 2px 2px 0;
                 }
             }
 
             .nav-item-content {
                 display: flex;
                 align-items: center;
-                gap: 0.75rem;
+                gap: 10px;
                 min-width: 0;
 
-                i { font-size: 1rem; flex-shrink: 0; }
-                span { font-size: 0.875rem; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
+                i { font-size: 15px; width: 18px; text-align: center; color: rgba(255, 255, 255, 0.9); flex-shrink: 0; }
+                span { font-size: 13px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; }
             }
 
             .nav-badge {
-                font-size: 0.65rem;
+                font-size: 10px;
                 font-weight: 700;
-                padding: 0.125rem 0.4rem;
-                border-radius: 999px;
-                background: rgba(255, 255, 255, 0.2);
-                color: #e9d5ff;
+                padding: 1px 6px;
+                border-radius: 10px;
+                background: rgba(255, 255, 255, 0.25);
+                color: #fff;
                 flex-shrink: 0;
 
                 &.live {
@@ -192,6 +204,7 @@
             flex: 1;
             padding: 2rem;
             overflow-y: auto;
+            color: #374151;
         }
     }
 }

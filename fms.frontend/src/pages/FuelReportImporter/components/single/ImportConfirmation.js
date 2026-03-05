@@ -1,6 +1,5 @@
 import React from "react";
 import { Form } from "react-bootstrap";
-import Button from "devextreme-react/button";
 
 const ImportConfirmation = ({
   duplicateHandling,
@@ -12,8 +11,8 @@ const ImportConfirmation = ({
   fuelReportLoading,
 }) => {
   return (
-    <div className="tw-p-4">
-      <p className="tw-mb-4 tw-text-gray-700">
+    <div className="tw-p-6" style={{ fontFamily: '"Segoe UI", -apple-system, system-ui, sans-serif' }}>
+      <p className="tw-mb-4 tw-text-sm" style={{ color: "#323130" }}>
         Please confirm your import settings:
       </p>
 
@@ -61,25 +60,27 @@ const ImportConfirmation = ({
         />
       </div>
 
-      <div className="tw-flex tw-justify-end tw-gap-3 tw-mt-4">
-        <Button
-          stylingMode="outlined"
-          type="normal"
-          text="Cancel"
-          icon="close"
+      <div className="tw-flex tw-justify-end tw-gap-2 tw-mt-6 tw-pt-4" style={{ borderTop: "1px solid #edebe9" }}>
+        <button
+          className="tw-rounded tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-cursor-pointer tw-border"
+          style={{ background: "#fff", borderColor: "#8a8886", color: "#323130" }}
           onClick={() => setShowImportConfirmation(false)}
-        />
-        <Button
-          stylingMode="contained"
-          type="default"
-          text="Confirm Import"
-          icon="check"
+        >
+          Cancel
+        </button>
+        <button
+          className="tw-rounded tw-px-4 tw-py-2 tw-text-sm tw-font-medium tw-cursor-pointer tw-border-0 tw-flex tw-items-center tw-gap-1.5"
+          style={{
+            background: fuelReportLoading ? "#c8c6c4" : "#0078d4",
+            color: "#fff",
+            cursor: fuelReportLoading ? "not-allowed" : "pointer",
+          }}
           onClick={handleSubmitData}
           disabled={fuelReportLoading}
-          elementAttr={{
-            class: "tw-bg-blue-600 hover:tw-bg-blue-700",
-          }}
-        />
+        >
+          <i className="fa-light fa-check"></i>
+          Confirm Import
+        </button>
       </div>
     </div>
   );

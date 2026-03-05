@@ -1,3 +1,12 @@
+/**
+ * File: LocationSettingsOverview.js
+ * Purpose: Show location settings overview for users, PTS devices, and vehicles in a tabbed panel view.
+ * Dependencies: devextreme-react, geofenceService
+ * Last Modified: 2026-03-03
+ *
+ * Key Components:
+ * - LocationSettingsOverview: Tabbed overview with summary cards and three data grids.
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
@@ -9,11 +18,17 @@ import DataGrid, {
   HeaderFilter,
   Scrolling,
   Export,
+  Selection,
 } from "devextreme-react/data-grid";
-import Tabs from "devextreme-react/tabs";
 import notify from "devextreme/ui/notify";
 import { getLocationSettingsOverview } from "../../../api/geofenceService";
+import SlidePanel from "../../../components/ui/SlidePanel";
 import "./LocationSettingsOverview.scss";
+
+const TAB_ITEMS = [
+  { id: "users", label: "Users", icon: "fa-light fa-users" },
+  { id: "pts", label: "PTS Devices", icon: "fa-light fa-gas-pump" },
+];
 
 /**
  * LocationSettingsOverview - Displays an overview of location-related settings across the system
@@ -24,7 +39,11 @@ import "./LocationSettingsOverview.scss";
  */
 const LocationSettingsOverview = ({ onClose }) => {
   const [loading, setLoading] = useState(true);
-  const [activeTabIndex, setActiveTabIndex] = useState(0);
+  const [activeTabId, setActiveTabId] = useState("users");
+  const [showUserEditor, setShowUserEditor] = useState(false);
+  const [showPtsEditor, setShowPtsEditor] = useState(false);
+  const [editingUser, setEditingUser] = useState(null);
+  const [editingPts, setEditingPts] = useState(null);
   const [data, setData] = useState({
     users: [],
     ptsDevices: [],
@@ -37,12 +56,65 @@ const LocationSettingsOverview = ({ onClose }) => {
     totalVehiclesWithoutGPS: 0,
   });
 
+  const normalizeUser = (item = {}) => ({
+    userId: item.userId ?? item.UserId ?? "",
+    userName: item.userName ?? item.UserName ?? "",
+    email: item.email ?? item.Email ?? "",
+    bypassLocationValidation: item.bypassLocationValidation ?? item.BypassLocationValidation ?? false,
+    isDeleted: item.isDeleted ?? item.IsDeleted ?? false,
+  });
+
+  const normalizePts = (item = {}) => ({
+    ptsId: item.ptsId ?? item.PtsId ?? "",
+    ptsName: item.ptsName ?? item.PtsName ?? "",
+    siteName: item.siteName ?? item.SiteName ?? "",
+    enableLocationValidation: item.enableLocationValidation ?? item.EnableLocationValidation ?? false,
+    requireVehicleProximity: item.requireVehicleProximity ?? item.RequireVehicleProximity ?? false,
+    requireMobileAppProximity: item.requireMobileAppProximity ?? item.RequireMobileAppProximity ?? false,
+    vehicleProximityRadius: item.vehicleProximityRadius ?? item.VehicleProximityRadius ?? null,
+    mobileAppProximityRadius: item.mobileAppProximityRadius ?? item.MobileAppProximityRadius ?? null,
+    bypassOnGPSFailure: item.bypassOnGPSFailure ?? item.BypassOnGPSFailure ?? false,
+    isActive: item.isActive ?? item.IsActive ?? false,
+    connectionStatus: item.connectionStatus ?? item.ConnectionStatus ?? "Unknown",
+  });
+
+  const normalizeVehicle = (item = {}) => ({
+    vehicleId: item.vehicleId ?? item.VehicleId ?? 0,
+    hyoungNo: item.hyoungNo ?? item.HyoungNo ?? "",
+    numberPlate: item.numberPlate ?? item.NumberPlate ?? "",
+    vehicleTypeName: item.vehicleTypeName ?? item.VehicleTypeName ?? "",
+    hasGPSInstalled: item.hasGPSInstalled ?? item.HasGPSInstalled ?? false,
+    isActive: item.isActive ?? item.IsActive ?? false,
+    isCompanyVehicle: item.isCompanyVehicle ?? item.IsCompanyVehicle ?? false,
+  });
+
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
       const response = await getLocationSettingsOverview();
       if (response?.isSuccess && response?.data) {
-        setData(response.data);
+        const source = response.data || {};
+        const users = (source.users || source.Users || []).map(normalizeUser);
+        const ptsDevices = (source.ptsDevices || source.pTSDevices || source.PTSDevices || []).map(normalizePts);
+        const vehicles = (source.vehicles || source.Vehicles || []).map(normalizeVehicle);
+
+        setData({
+          users,
+          ptsDevices,
+          vehicles,
+          totalUsersWithBypass:
+            source.totalUsersWithBypass ?? source.TotalUsersWithBypass ?? users.filter((u) => u?.bypassLocationValidation || u?.BypassLocationValidation).length,
+          totalUsersWithoutBypass:
+            source.totalUsersWithoutBypass ?? source.TotalUsersWithoutBypass ?? users.filter((u) => !(u?.bypassLocationValidation || u?.BypassLocationValidation)).length,
+          totalPTSDevicesWithLocationValidation:
+            source.totalPTSDevicesWithLocationValidation ?? source.TotalPTSDevicesWithLocationValidation ?? ptsDevices.filter((p) => p?.enableLocationValidation || p?.EnableLocationValidation).length,
+          totalPTSDevicesWithoutLocationValidation:
+            source.totalPTSDevicesWithoutLocationValidation ?? source.TotalPTSDevicesWithoutLocationValidation ?? ptsDevices.filter((p) => !(p?.enableLocationValidation || p?.EnableLocationValidation)).length,
+          totalVehiclesWithGPS:
+            source.totalVehiclesWithGPS ?? source.TotalVehiclesWithGPS ?? vehicles.filter((v) => v?.hasGPSInstalled || v?.HasGPSInstalled).length,
+          totalVehiclesWithoutGPS:
+            source.totalVehiclesWithoutGPS ?? source.TotalVehiclesWithoutGPS ?? vehicles.filter((v) => !(v?.hasGPSInstalled || v?.HasGPSInstalled)).length,
+        });
       } else {
         notify(response?.message || "Failed to fetch settings overview", "error", 3000);
       }
@@ -53,6 +125,84 @@ const LocationSettingsOverview = ({ onClose }) => {
       setLoading(false);
     }
   }, []);
+
+  const handleUserRowUpdating = (e) => {
+    const updated = { ...e.oldData, ...e.newData };
+    setData((prev) => {
+      const users = prev.users.map((u) => (u.userId === e.key ? updated : u));
+      return {
+        ...prev,
+        users,
+        totalUsersWithBypass: users.filter((u) => u.bypassLocationValidation).length,
+        totalUsersWithoutBypass: users.filter((u) => !u.bypassLocationValidation).length,
+      };
+    });
+    notify("User details updated", "success", 1800);
+  };
+
+  const handlePtsRowUpdating = (e) => {
+    const updated = { ...e.oldData, ...e.newData };
+    setData((prev) => {
+      const ptsDevices = prev.ptsDevices.map((p) => (p.ptsId === e.key ? updated : p));
+      return {
+        ...prev,
+        ptsDevices,
+        totalPTSDevicesWithLocationValidation: ptsDevices.filter((p) => p.enableLocationValidation).length,
+        totalPTSDevicesWithoutLocationValidation: ptsDevices.filter((p) => !p.enableLocationValidation).length,
+      };
+    });
+    notify("PTS device details updated", "success", 1800);
+  };
+
+  const handleVehicleRowUpdating = (e) => {
+    const updated = { ...e.oldData, ...e.newData };
+    setData((prev) => {
+      const vehicles = prev.vehicles.map((v) => (v.vehicleId === e.key ? updated : v));
+      return {
+        ...prev,
+        vehicles,
+        totalVehiclesWithGPS: vehicles.filter((v) => v.hasGPSInstalled).length,
+        totalVehiclesWithoutGPS: vehicles.filter((v) => !v.hasGPSInstalled).length,
+      };
+    });
+    notify("Vehicle details updated", "success", 1800);
+  };
+
+  const openUserEditor = (row) => {
+    setEditingUser({ ...row });
+    setShowUserEditor(true);
+  };
+
+  const openPtsEditor = (row) => {
+    setEditingPts({ ...row });
+    setShowPtsEditor(true);
+  };
+
+  const saveUserEditor = () => {
+    if (!editingUser?.userId) return;
+    handleUserRowUpdating({ key: editingUser.userId, oldData: {}, newData: editingUser });
+    setShowUserEditor(false);
+  };
+
+  const savePtsEditor = () => {
+    if (!editingPts?.ptsId) return;
+    handlePtsRowUpdating({ key: editingPts.ptsId, oldData: {}, newData: editingPts });
+    setShowPtsEditor(false);
+  };
+
+  const handleUserSelectionChanged = (e) => {
+    const selected = e.selectedRowsData?.[0];
+    if (selected) {
+      openUserEditor(selected);
+    }
+  };
+
+  const handlePtsSelectionChanged = (e) => {
+    const selected = e.selectedRowsData?.[0];
+    if (selected) {
+      openPtsEditor(selected);
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -168,232 +318,226 @@ const LocationSettingsOverview = ({ onClose }) => {
           value={data.totalPTSDevicesWithoutLocationValidation}
           bgColor="tw-bg-gray-50 tw-border-gray-200"
         />
-        <StatCard
-          icon="fa-light fa-satellite"
-          iconColor="tw-bg-blue-100 tw-text-blue-600"
-          label="Vehicles with GPS"
-          value={data.totalVehiclesWithGPS}
-          bgColor="tw-bg-blue-50 tw-border-blue-200"
-        />
-        <StatCard
-          icon="fa-light fa-car"
-          iconColor="tw-bg-gray-100 tw-text-gray-600"
-          label="Vehicles without GPS"
-          value={data.totalVehiclesWithoutGPS}
-          bgColor="tw-bg-gray-50 tw-border-gray-200"
-        />
       </div>
 
-      {/* Tab Navigation - Similar to StockManagement */}
-      <div className="tw-bg-white tw-border-b tw-border-gray-200">
-        <Tabs
-          dataSource={[
-            { text: "Users", icon: "fa-light fa-users" },
-            { text: "PTS Devices", icon: "fa-light fa-gas-pump" },
-            { text: "Vehicles", icon: "fa-light fa-car" },
-          ]}
-          selectedIndex={activeTabIndex}
-          onItemClick={(e) => setActiveTabIndex(e.itemIndex)}
-          width="100%"
-          itemRender={(item) => (
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <i className={item.icon}></i>
-              <span>{item.text}</span>
-            </div>
-          )}
-        />
+      <div className="location-settings-overview__tabs">
+        {TAB_ITEMS.map((tab) => (
+          <button
+            key={tab.id}
+            type="button"
+            onClick={() => setActiveTabId(tab.id)}
+            className={`location-settings-overview__tab ${activeTabId === tab.id ? "location-settings-overview__tab--active" : ""}`}
+          >
+            <i className={tab.icon}></i>
+            <span>{tab.label}</span>
+          </button>
+        ))}
       </div>
 
-      {/* Tab Content */}
       <div className="tw-flex-1 tw-overflow-hidden tw-p-4">
-        {/* Users Tab */}
-        {activeTabIndex === 0 && (
-          <div className="tw-h-full">
-              <div className="tw-mb-3">
-                <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
-                  <i className="fa-light fa-info-circle tw-text-blue-500"></i>
-                  <span>Users with <strong>Bypass Location Validation</strong> enabled can skip GPS validation during mobile fueling.</span>
-                </div>
-              </div>
-              <DataGrid
-                dataSource={data.users}
-                showBorders={true}
-                rowAlternationEnabled={true}
-                columnAutoWidth={true}
-                height="calc(100% - 40px)"
-                wordWrapEnabled={true}
-              >
-                <Scrolling mode="virtual" />
-                <FilterRow visible={true} />
-                <SearchPanel visible={true} width={200} placeholder="Search users..." />
-                <HeaderFilter visible={true} />
-                <Paging defaultPageSize={20} />
-                <Export enabled={true} allowExportSelectedData={false} />
+        {activeTabId === "users" && (
+          <div className="location-settings-overview__grid-pane tw-h-full">
+            <div className="tw-mb-3 tw-text-xs tw-text-gray-500">
+              Users with <strong>Bypass Location Validation</strong> can skip GPS validation during mobile fueling.
+            </div>
+            <div className="tw-mb-2 tw-text-xs tw-text-blue-600">
+              Select a row to edit validation settings.
+            </div>
+            <DataGrid
+              keyExpr="userId"
+              dataSource={data.users}
+              showBorders={true}
+              rowAlternationEnabled={true}
+              columnAutoWidth={true}
+              width="100%"
+              height="calc(100% - 36px)"
+              wordWrapEnabled={true}
+              noDataText="No users found"
+              onRowUpdating={handleUserRowUpdating}
+              onSelectionChanged={handleUserSelectionChanged}
+            >
+              <Selection mode="single" />
+              <Scrolling mode="virtual" />
+              <FilterRow visible={true} />
+              <SearchPanel visible={true} width={220} placeholder="Search users..." />
+              <HeaderFilter visible={true} />
+              <Paging defaultPageSize={20} />
+              <Export enabled={true} allowExportSelectedData={false} />
 
-                <Column dataField="userName" caption="Username" width={150} />
-                <Column dataField="email" caption="Email" width={200} />
-                <Column
-                  dataField="bypassLocationValidation"
-                  caption="Bypass Enabled"
-                  width={140}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Enabled", "Disabled")}
-                />
-                <Column
-                  dataField="isDeleted"
-                  caption="Status"
-                  width={100}
-                  alignment="center"
-                  cellRender={(cellData) => (
-                    <span className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${
-                      cellData.value ? "tw-bg-red-100 tw-text-red-800" : "tw-bg-green-100 tw-text-green-800"
+              <Column dataField="userName" caption="Username" width={150} />
+              <Column dataField="email" caption="Email" width={200} />
+              <Column
+                dataField="bypassLocationValidation"
+                caption="Bypass Enabled"
+                width={140}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Enabled", "Disabled")}
+              />
+              <Column
+                dataField="isDeleted"
+                caption="Status"
+                width={100}
+                alignment="center"
+                cellRender={(cellData) => (
+                  <span className={`tw-inline-flex tw-items-center tw-px-2 tw-py-0.5 tw-rounded-full tw-text-xs tw-font-medium ${cellData.value ? "tw-bg-red-100 tw-text-red-800" : "tw-bg-green-100 tw-text-green-800"
                     }`}>
-                      {cellData.value ? "Deleted" : "Active"}
-                    </span>
-                  )}
-                />
-              </DataGrid>
+                    {cellData.value ? "Deleted" : "Active"}
+                  </span>
+                )}
+              />
+            </DataGrid>
           </div>
         )}
 
-        {/* PTS Devices Tab */}
-        {activeTabIndex === 1 && (
-          <div className="tw-h-full">
-              <div className="tw-mb-3">
-                <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
-                  <i className="fa-light fa-info-circle tw-text-blue-500"></i>
-                  <span>PTS devices with location validation settings. Devices with <strong>Enable Location Validation</strong> will check proximity before fueling.</span>
-                </div>
-              </div>
-              <DataGrid
-                dataSource={data.ptsDevices}
-                showBorders={true}
-                rowAlternationEnabled={true}
-                columnAutoWidth={true}
-                height="calc(100% - 40px)"
-                wordWrapEnabled={true}
-              >
-                <Scrolling mode="virtual" />
-                <FilterRow visible={true} />
-                <SearchPanel visible={true} width={200} placeholder="Search PTS devices..." />
-                <HeaderFilter visible={true} />
-                <Paging defaultPageSize={20} />
-                <Export enabled={true} allowExportSelectedData={false} />
+        {activeTabId === "pts" && (
+          <div className="location-settings-overview__grid-pane tw-h-full">
+            <div className="tw-mb-3 tw-text-xs tw-text-gray-500">
+              Devices with <strong>Enable Location Validation</strong> check proximity before fueling.
+            </div>
+            <div className="tw-mb-2 tw-text-xs tw-text-blue-600">
+              Select a row to edit validation settings.
+            </div>
+            <DataGrid
+              keyExpr="ptsId"
+              dataSource={data.ptsDevices}
+              showBorders={true}
+              rowAlternationEnabled={true}
+              columnAutoWidth={true}
+              width="100%"
+              height="calc(100% - 36px)"
+              wordWrapEnabled={true}
+              noDataText="No PTS devices found"
+              onRowUpdating={handlePtsRowUpdating}
+              onSelectionChanged={handlePtsSelectionChanged}
+            >
+              <Selection mode="single" />
+              <Scrolling mode="virtual" />
+              <FilterRow visible={true} />
+              <SearchPanel visible={true} width={220} placeholder="Search PTS devices..." />
+              <HeaderFilter visible={true} />
+              <Paging defaultPageSize={20} />
+              <Export enabled={true} allowExportSelectedData={false} />
 
-                <Column dataField="ptsId" caption="PTS ID" width={120} />
-                <Column dataField="ptsName" caption="Name" width={150} />
-                <Column dataField="siteName" caption="Site" width={150} />
-                <Column
-                  dataField="enableLocationValidation"
-                  caption="Location Validation"
-                  width={150}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Enabled", "Disabled")}
-                />
-                <Column
-                  dataField="requireVehicleProximity"
-                  caption="Vehicle Proximity"
-                  width={140}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Required", "Off")}
-                />
-                <Column
-                  dataField="requireMobileAppProximity"
-                  caption="Mobile Proximity"
-                  width={140}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Required", "Off")}
-                />
-                <Column
-                  dataField="vehicleProximityRadius"
-                  caption="Vehicle Radius (m)"
-                  width={130}
-                  alignment="center"
-                />
-                <Column
-                  dataField="mobileAppProximityRadius"
-                  caption="Mobile Radius (m)"
-                  width={130}
-                  alignment="center"
-                />
-                <Column
-                  dataField="bypassOnGPSFailure"
-                  caption="Bypass on GPS Fail"
-                  width={140}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Yes", "No")}
-                />
-                <Column
-                  dataField="isActive"
-                  caption="Active"
-                  width={100}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Active", "Inactive")}
-                />
-                <Column
-                  dataField="connectionStatus"
-                  caption="Connection"
-                  width={120}
-                  alignment="center"
-                  cellRender={renderConnectionStatus}
-                />
-              </DataGrid>
+              <Column dataField="ptsId" caption="PTS ID" width={120} />
+              <Column dataField="ptsName" caption="Name" width={150} />
+              <Column dataField="siteName" caption="Site" width={150} />
+              <Column
+                dataField="enableLocationValidation"
+                caption="Location Validation"
+                width={150}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Enabled", "Disabled")}
+              />
+              <Column
+                dataField="requireVehicleProximity"
+                caption="Vehicle Proximity"
+                width={140}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Required", "Off")}
+              />
+              <Column
+                dataField="requireMobileAppProximity"
+                caption="Mobile Proximity"
+                width={140}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Required", "Off")}
+              />
+              <Column dataField="vehicleProximityRadius" caption="Vehicle Radius (m)" width={130} alignment="center" />
+              <Column dataField="mobileAppProximityRadius" caption="Mobile Radius (m)" width={130} alignment="center" />
+              <Column
+                dataField="bypassOnGPSFailure"
+                caption="Bypass on GPS Fail"
+                width={140}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Yes", "No")}
+              />
+              <Column
+                dataField="isActive"
+                caption="Active"
+                width={100}
+                alignment="center"
+                cellRender={(cellData) => renderBooleanCell(cellData, "Active", "Inactive")}
+              />
+              <Column
+                dataField="connectionStatus"
+                caption="Connection"
+                width={120}
+                alignment="center"
+                cellRender={renderConnectionStatus}
+              />
+            </DataGrid>
           </div>
         )}
 
-        {/* Vehicles Tab */}
-        {activeTabIndex === 2 && (
-          <div className="tw-h-full">
-              <div className="tw-mb-3">
-                <div className="tw-flex tw-items-center tw-gap-2 tw-text-sm tw-text-gray-600">
-                  <i className="fa-light fa-info-circle tw-text-blue-500"></i>
-                  <span>Vehicles with GPS settings. Only vehicles with <strong>GPS Installed</strong> can participate in location validation.</span>
-                </div>
-              </div>
-              <DataGrid
-                dataSource={data.vehicles}
-                showBorders={true}
-                rowAlternationEnabled={true}
-                columnAutoWidth={true}
-                height="calc(100% - 40px)"
-                wordWrapEnabled={true}
-              >
-                <Scrolling mode="virtual" />
-                <FilterRow visible={true} />
-                <SearchPanel visible={true} width={200} placeholder="Search vehicles..." />
-                <HeaderFilter visible={true} />
-                <Paging defaultPageSize={20} />
-                <Export enabled={true} allowExportSelectedData={false} />
-
-                <Column dataField="vehicleId" caption="ID" width={80} />
-                <Column dataField="hyoungNo" caption="Hyoung No" width={150} />
-                <Column dataField="numberPlate" caption="Number Plate" width={130} />
-                <Column dataField="vehicleTypeName" caption="Type" width={150} />
-                <Column
-                  dataField="hasGPSInstalled"
-                  caption="GPS Installed"
-                  width={130}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Yes", "No")}
-                />
-                <Column
-                  dataField="isActive"
-                  caption="Active"
-                  width={100}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Active", "Inactive")}
-                />
-                <Column
-                  dataField="isCompanyVehicle"
-                  caption="Company Vehicle"
-                  width={130}
-                  alignment="center"
-                  cellRender={(cellData) => renderBooleanCell(cellData, "Yes", "No")}
-                />
-              </DataGrid>
-          </div>
-        )}
       </div>
+
+      <SlidePanel
+        open={showUserEditor}
+        onClose={() => setShowUserEditor(false)}
+        title="Edit User Validation"
+        width={680}
+      >
+        <div className="tw-p-5 tw-space-y-4">
+          <p className="tw-text-sm tw-text-gray-600 tw-m-0">
+            Only location validation setting is editable here.
+          </p>
+          <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm">
+            <input
+              type="checkbox"
+              checked={!!editingUser?.bypassLocationValidation}
+              onChange={(e) => setEditingUser((prev) => ({ ...prev, bypassLocationValidation: e.target.checked }))}
+            />
+            Bypass Location Validation
+          </label>
+          <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
+            <Button text="Cancel" stylingMode="outlined" onClick={() => setShowUserEditor(false)} />
+            <Button text="Save" type="default" stylingMode="contained" onClick={saveUserEditor} />
+          </div>
+        </div>
+      </SlidePanel>
+
+      <SlidePanel
+        open={showPtsEditor}
+        onClose={() => setShowPtsEditor(false)}
+        title="Edit PTS Validation"
+        width={760}
+      >
+        <div className="tw-p-5 tw-space-y-4">
+          <p className="tw-text-sm tw-text-gray-600 tw-m-0">
+            Only validation settings are editable here.
+          </p>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Vehicle Radius (m)</label>
+              <input
+                type="number"
+                className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2"
+                value={editingPts?.vehicleProximityRadius ?? ""}
+                onChange={(e) => setEditingPts((prev) => ({ ...prev, vehicleProximityRadius: Number(e.target.value || 0) }))}
+              />
+            </div>
+            <div>
+              <label className="tw-block tw-text-sm tw-font-medium tw-mb-1">Mobile Radius (m)</label>
+              <input
+                type="number"
+                className="tw-w-full tw-border tw-border-gray-300 tw-rounded tw-px-3 tw-py-2"
+                value={editingPts?.mobileAppProximityRadius ?? ""}
+                onChange={(e) => setEditingPts((prev) => ({ ...prev, mobileAppProximityRadius: Number(e.target.value || 0) }))}
+              />
+            </div>
+          </div>
+          <div className="tw-grid tw-grid-cols-2 tw-gap-3">
+            <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm"><input type="checkbox" checked={!!editingPts?.enableLocationValidation} onChange={(e) => setEditingPts((prev) => ({ ...prev, enableLocationValidation: e.target.checked }))} />Enable Location Validation</label>
+            <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm"><input type="checkbox" checked={!!editingPts?.requireVehicleProximity} onChange={(e) => setEditingPts((prev) => ({ ...prev, requireVehicleProximity: e.target.checked }))} />Require Vehicle Proximity</label>
+            <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm"><input type="checkbox" checked={!!editingPts?.requireMobileAppProximity} onChange={(e) => setEditingPts((prev) => ({ ...prev, requireMobileAppProximity: e.target.checked }))} />Require Mobile Proximity</label>
+            <label className="tw-flex tw-items-center tw-gap-2 tw-text-sm"><input type="checkbox" checked={!!editingPts?.bypassOnGPSFailure} onChange={(e) => setEditingPts((prev) => ({ ...prev, bypassOnGPSFailure: e.target.checked }))} />Bypass on GPS Failure</label>
+          </div>
+          <div className="tw-flex tw-justify-end tw-gap-2 tw-pt-2">
+            <Button text="Cancel" stylingMode="outlined" onClick={() => setShowPtsEditor(false)} />
+            <Button text="Save" type="default" stylingMode="contained" onClick={savePtsEditor} />
+          </div>
+        </div>
+      </SlidePanel>
 
       <LoadPanel
         visible={loading}

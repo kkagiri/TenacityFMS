@@ -1,11 +1,20 @@
-//Cursor - System Configuration Bulk Actions Component
+/**
+ * File: SystemConfigBulkActions.js
+ * Purpose: Bulk operation toolbar for system configurations with side-panel confirmation.
+ * Dependencies: react, prop-types, redux, devextreme-react controls, SlidePanel
+ * Last Modified: 2026-03-03
+ *
+ * Key Functions:
+ * - handleBulkAction(): Opens action confirmation panel
+ * - executeBulkAction(): Applies selected action across selected configuration IDs
+ */
 import React, { useState } from 'react';
 import PropTypes from 'prop-types';
 import { useDispatch } from 'react-redux';
 import Button from 'devextreme-react/button';
-import Popup from 'devextreme-react/popup';
 import SelectBox from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
+import SlidePanel from '../../../../components/ui/SlidePanel';
 
 import {
   updateSystemConfiguration,
@@ -14,7 +23,7 @@ import {
 
 const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) => {
   const dispatch = useDispatch();
-  const [isActionPopupVisible, setIsActionPopupVisible] = useState(false);
+  const [isActionPanelVisible, setIsActionPanelVisible] = useState(false);
   const [selectedAction, setSelectedAction] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
 
@@ -31,7 +40,7 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
       notify('Please select an action to perform', 'warning', 3000);
       return;
     }
-    setIsActionPopupVisible(true);
+    setIsActionPanelVisible(true);
   };
 
   const executeBulkAction = async () => {
@@ -79,7 +88,7 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
       // Clear selection and refresh data
       onClearSelection();
       onRefresh();
-      setIsActionPopupVisible(false);
+      setIsActionPanelVisible(false);
       setSelectedAction('');
 
     } catch (error) {
@@ -146,18 +155,13 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
         </div>
       </div>
 
-      {/* Confirmation Popup */}
-      <Popup
-        visible={isActionPopupVisible}
-        onHiding={() => setIsActionPopupVisible(false)}
-        dragEnabled={false}
-        showTitle={true}
+      <SlidePanel
+        open={isActionPanelVisible}
+        onClose={() => setIsActionPanelVisible(false)}
         title="Confirm Bulk Action"
-        width={500}
-        height={300}
-        showCloseButton={true}
+        width={520}
       >
-        <div className="tw-p-6">
+        <div className="system-config-bulk-confirm tw-p-6">
           <div className={`tw-p-4 tw-rounded-lg tw-mb-4 ${
             isDestructiveAction
               ? 'tw-bg-red-50 tw-border tw-border-red-200'
@@ -165,7 +169,7 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
           }`}>
             <div className="tw-flex tw-items-center tw-mb-2">
               <i className={`tw-mr-2 ${
-                isDestructiveAction ? 'fa fa-exclamation-triangle tw-text-red-600' : 'fa fa-info-circle tw-text-blue-600'
+                isDestructiveAction ? 'fa-light fa-exclamation-triangle tw-text-red-600' : 'fa-light fa-circle-info tw-text-blue-600'
               }`}></i>
               <h4 className={`tw-font-semibold ${
                 isDestructiveAction ? 'tw-text-red-800' : 'tw-text-blue-800'
@@ -183,7 +187,7 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
           {isDestructiveAction && (
             <div className="tw-bg-yellow-50 tw-border tw-border-yellow-200 tw-rounded-lg tw-p-3 tw-mb-4">
               <div className="tw-flex tw-items-center">
-                <i className="fa fa-warning tw-text-yellow-600 tw-mr-2"></i>
+                <i className="fa-light fa-triangle-exclamation tw-text-yellow-600 tw-mr-2"></i>
                 <span className="tw-text-yellow-800 tw-font-medium">
                   Warning: This action cannot be undone!
                 </span>
@@ -195,7 +199,7 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
             <Button
               text="Cancel"
               type="normal"
-              onClick={() => setIsActionPopupVisible(false)}
+              onClick={() => setIsActionPanelVisible(false)}
               disabled={isProcessing}
             />
             <Button
@@ -203,11 +207,11 @@ const SystemConfigBulkActions = ({ selectedKeys, onClearSelection, onRefresh }) 
               type={isDestructiveAction ? "danger" : "success"}
               onClick={executeBulkAction}
               disabled={isProcessing}
-              icon={isProcessing ? "fa fa-spinner fa-spin" : undefined}
+              icon={isProcessing ? "fa-light fa-spinner fa-spin" : undefined}
             />
           </div>
         </div>
-      </Popup>
+      </SlidePanel>
     </>
   );
 };

@@ -1,0 +1,232 @@
+// _dark-issue-tracker.scss
+// Lines 662-888 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     MODULE CONTENT AREAS — Issue Tracker, Reports, etc.
+     ================================================================ */
+
+  /* Issue Dashboard cards & stats */
+  .fms-dashboard {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .fms-page-hd {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Issue detail page */
+  .issue-tracker-detail-page {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .ihc {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* Issue list page */
+  .itl {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    &__cmd {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    &__grid-wrap {
+      background-color: var(--fms-surface) !important;
+    }
+
+    &__filter-panel {
+      background-color: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+  /* Issue tracker form page */
+  .issue-tracker-form-page {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .form-header {
+      background-color: var(--fms-surface) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .issue-form {
+      background-color: var(--fms-card-bg) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* Issue create form */
+  .issue-create-form {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    &__card {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    &__sidebar {
+      background-color: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* Combined issue dashboard */
+  .combined-issue-dashboard,
+  .issue-card {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .issue-card {
+    background-color: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+
+    &__title,
+    &__description,
+    &__meta {
+      color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ================================================================
+     ISSUE TRACKER PAGE — overrides for IssueTracker.scss !important
+     ================================================================ */
+  .issue-tracker-page {
+    background-color: var(--fms-page-bg) !important;
+
+    /* Loading overlay */
+    .loading-overlay {
+      background: rgba(30, 30, 30, 0.8) !important;
+    }
+
+    /* Chart container */
+    .chart-container {
+      background: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+
+      h3 {
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    /* Priority cards — keep colored border, darken gradient bg */
+    .priority-critical {
+      background: linear-gradient(90deg, rgba(239, 68, 68, 0.12) 0%, transparent 100%) !important;
+    }
+
+    .priority-high {
+      background: linear-gradient(90deg, rgba(249, 115, 22, 0.12) 0%, transparent 100%) !important;
+    }
+
+    .priority-medium {
+      background: linear-gradient(90deg, rgba(234, 179, 8, 0.12) 0%, transparent 100%) !important;
+    }
+
+    .priority-low {
+      background: linear-gradient(90deg, rgba(34, 197, 94, 0.12) 0%, transparent 100%) !important;
+    }
+
+    /* DataGrid headers — override the !important from IssueTracker.scss */
+    .dx-datagrid .dx-datagrid-headers {
+      background: var(--fms-surface-secondary) !important;
+      border-bottom: 2px solid var(--fms-border) !important;
+
+      .dx-datagrid-table .dx-row > td {
+        color: var(--fms-text-primary) !important;
+      }
+    }
+
+    /* DataGrid row hover */
+    .dx-datagrid .dx-row:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+
+    /* DataGrid alt row */
+    .dx-datagrid .dx-row.dx-row-alt {
+      background: var(--fms-surface) !important;
+    }
+
+    /* DataGrid row border */
+    .dx-datagrid .dx-datagrid-rowsview .dx-row > td {
+      border-bottom: 1px solid var(--fms-border) !important;
+    }
+
+    /* Stats card */
+    .stats-card {
+      background-color: var(--fms-card-bg) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* Button styling */
+    .btn-issue-secondary {
+      border-color: #667eea !important;
+      color: #a3b5ff !important;
+
+      &:hover {
+        color: white !important;
+      }
+    }
+  }
+
+  /* ================================================================
+     ISSUE TRACKER DETAIL PAGE — overrides for --ms-* fallback whites
+     ================================================================ */
+  .issue-tracker-detail-page {
+    .ihc {
+      background: var(--fms-card-bg) !important;
+    }
+
+    .idc__section-title {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+    }
+
+    .idc__prop:hover {
+      background: var(--fms-hover-bg) !important;
+    }
+
+    .idc__prop--due-overdue {
+      background: rgba(209, 52, 56, 0.15) !important;
+    }
+
+    .idc__prop--due-soon {
+      background: rgba(202, 80, 16, 0.15) !important;
+    }
+  }
+
+  /* Issue side panel list */
+  .issues-side-panel,
+  .issue-list-sidebar {
+    background-color: var(--fms-surface) !important;
+    border-right-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Report engine */
+  .report-engine {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* Reports dashboard */
+  .reports-dashboard {
+    background-color: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+
+    .stat-card {
+      background-color: var(--fms-card-bg) !important;
+      border-color: var(--fms-border) !important;
+    }
+  }
+
+}

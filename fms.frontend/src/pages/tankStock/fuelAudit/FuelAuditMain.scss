@@ -1,31 +1,50 @@
 // Fuel Audit Main Styles
 .fuel-audit-main {
-  background-color: #f8fafc;
+  background-color: var(--fms-page-bg, #f8fafc);
+}
 
-  .fuel-audit-tabs {
-    .dx-tabs {
-      background: transparent;
-      border: none;
+// Shell card (matches StockManagement)
+.fuel-audit-shell {
+  border: 1px solid var(--m365-border-light, #edebe9);
+}
+
+// M365-style tabs for Fuel Audit (mirrors .stock-management-tabs)
+.fuel-audit-tabs {
+  background: var(--m365-bg-card, #fff);
+  border-bottom: 1px solid var(--m365-border-light, #edebe9);
+  padding: 0 16px;
+
+  .m365-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 14px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text-secondary, #605e5c);
+    background: none;
+    border: none;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: color 0.15s;
+
+    &:hover {
+      color: var(--m365-text, #201f1e);
     }
 
-    .dx-tab {
-      padding: 0.5rem 1rem;
-      border-radius: 0.5rem 0.5rem 0 0;
-      background: transparent;
-      color: #64748b;
-      border: none;
-      transition: all 0.2s ease;
+    &--active {
+      color: var(--m365-primary, #0078d4);
 
-      &:hover {
-        background: #f1f5f9;
-        color: #1e40af;
-      }
-
-      &.dx-tab-selected {
-        background: #eff6ff;
-        color: #1d4ed8;
-        font-weight: 600;
-        border-bottom: 2px solid #2563eb;
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -1px;
+        left: 10px;
+        right: 10px;
+        height: 2px;
+        background: var(--m365-primary, #0078d4);
+        border-radius: 2px 2px 0 0;
       }
     }
   }
@@ -76,6 +95,10 @@
 
   .audit-list-filters {
     @apply tw-px-6 tw-py-3 tw-bg-gray-50 tw-border-b tw-border-gray-100 tw-flex tw-items-center tw-gap-4 tw-flex-wrap;
+  }
+
+  .dx-datagrid {
+    @apply tw-px-4 tw-pb-4;
   }
 }
 
@@ -248,14 +271,31 @@
 
 // Audit Detail
 .audit-detail {
+  &__header {
+    background: var(--fms-surface, #ffffff);
+    border: 1px solid var(--fms-border, #e5e7eb);
+    box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    border-radius: 12px;
+    padding: 24px;
+    margin-bottom: 24px;
+
+    button, p, div, h1, span {
+      color: inherit;
+    }
+  }
+
   .detail-section {
-    @apply tw-bg-white tw-rounded-xl tw-shadow-sm tw-border tw-border-gray-100 tw-mb-6;
+    background: var(--fms-surface, #ffffff);
+    border: 1px solid var(--fms-border, #e5e7eb);
+    @apply tw-rounded-xl tw-shadow-sm tw-mb-6;
 
     .section-header {
-      @apply tw-px-6 tw-py-4 tw-border-b tw-border-gray-100 tw-flex tw-items-center tw-justify-between;
+      border-bottom: 1px solid var(--fms-border, #f3f4f6);
+      @apply tw-px-6 tw-py-4 tw-flex tw-items-center tw-justify-between;
 
       h3 {
-        @apply tw-text-lg tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2;
+        color: var(--fms-text-primary, #1f2937);
+        @apply tw-text-lg tw-font-semibold tw-flex tw-items-center tw-gap-2;
       }
     }
 
@@ -265,7 +305,9 @@
   }
 
   .reading-card {
-    @apply tw-bg-gray-50 tw-rounded-lg tw-p-4 tw-border tw-border-gray-200;
+    background: var(--fms-surface-secondary, #f9fafb);
+    border: 1px solid var(--fms-border, #e5e7eb);
+    @apply tw-rounded-lg tw-p-4;
 
     &.opening {
       @apply tw-border-l-4 tw-border-l-blue-500;
@@ -277,7 +319,8 @@
   }
 
   .variance-row {
-    @apply tw-flex tw-items-center tw-justify-between tw-py-3 tw-border-b tw-border-gray-100;
+    border-bottom: 1px solid var(--fms-border, #f3f4f6);
+    @apply tw-flex tw-items-center tw-justify-between tw-py-3;
 
     &:last-child {
       @apply tw-border-b-0;
@@ -285,7 +328,8 @@
   }
 
   .flag-item {
-    @apply tw-flex tw-items-start tw-gap-4 tw-py-4 tw-border-b tw-border-gray-100;
+    border-bottom: 1px solid var(--fms-border, #f3f4f6);
+    @apply tw-flex tw-items-start tw-gap-4 tw-py-4;
 
     &:last-child {
       @apply tw-border-b-0;

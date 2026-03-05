@@ -3,9 +3,9 @@
 .header-component {
   flex: 0 0 auto;
   z-index: 1;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05), 0 0 4px rgba(0, 0, 0, 0.15);
+  box-shadow: 0 4px 8px var(--fms-shadow-color, rgba(0, 0, 0, 0.05)), 0 0 4px var(--fms-shadow-color, rgba(0, 0, 0, 0.15));
   padding: 12px 0; // Add vertical padding for height
-  background-color: #ffffff !important; // Ensure white background
+  background-color: var(--fms-header-bg, #ffffff) !important;
   width: 100%;
   overflow: visible; // Ensure content doesn't get cut off
   min-height: 60px; // Set minimum height for header
@@ -24,7 +24,7 @@
 {
   padding-right: var(--content-padding);
   min-height: 56px; // Increased toolbar height
-  background-color: #ffffff !important; // Ensure white background
+  background-color: var(--fms-header-bg, #ffffff) !important;
 
   // Firefox-specific toolbar fixes
   position: relative;

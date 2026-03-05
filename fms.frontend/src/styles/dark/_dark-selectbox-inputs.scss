@@ -1,0 +1,82 @@
+// _dark-selectbox-inputs.scss
+// Lines 312-388 of original dark-theme.scss
+
+[data-theme="dark"] {
+  /* ================================================================
+     TEXT EDITORS / INPUTS — all DevExtreme input types
+     ================================================================ */
+  .dx-texteditor {
+    background-color: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+
+    .dx-texteditor-input {
+      color: var(--fms-text-primary) !important;
+    }
+
+    .dx-placeholder::before {
+      color: var(--fms-text-tertiary) !important;
+    }
+  }
+
+  .dx-texteditor.dx-state-focused {
+    border-color: #0078d4 !important;
+  }
+
+  .dx-texteditor-label {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .dx-lookup-field,
+  .dx-selectbox .dx-texteditor-input,
+  .dx-dropdowneditor .dx-texteditor-input,
+  .dx-tagbox .dx-texteditor-input,
+  .dx-datebox .dx-texteditor-input,
+  .dx-numberbox .dx-texteditor-input,
+  .dx-textarea .dx-texteditor-input {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* ================================================================
+     SELECTBOX / DROPDOWN — popup list
+     ================================================================ */
+  .dx-dropdowneditor-overlay .dx-overlay-content,
+  .dx-selectbox-popup-wrapper .dx-overlay-content,
+  .dx-dropdownlist-popup-wrapper .dx-overlay-content,
+  .dx-lookup-popup-wrapper .dx-overlay-content {
+    background-color: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-list {
+    background-color: var(--fms-surface) !important;
+  }
+
+  .dx-list-item {
+    color: var(--fms-text-primary) !important;
+    background-color: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+
+  .dx-list-item:hover,
+  .dx-list-item.dx-state-hover {
+    background-color: var(--fms-hover-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-list-item.dx-state-active,
+  .dx-list-item.dx-state-focused {
+    background-color: var(--fms-active-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-list-item-content {
+    color: var(--fms-text-primary) !important;
+  }
+
+  /* SelectBox dropdown search */
+  .dx-list-search {
+    background-color: var(--fms-surface) !important;
+  }
+
+}

@@ -1,0 +1,56 @@
+/**
+ * File: _dark-section-11-section-11.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   ISSUE TRACKER DETAIL PAGE — overrides for --ms-* fallback whites
+   ================================================================ */
+.issue-tracker-detail-page {
+  .ihc {
+    background: var(--fms-card-bg) !important;
+  }
+
+  .idc__section-title {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .idc__prop:hover {
+    background: var(--fms-hover-bg) !important;
+  }
+
+  .idc__prop--due-overdue {
+    background: rgba(209, 52, 56, 0.15) !important;
+  }
+
+  .idc__prop--due-soon {
+    background: rgba(202, 80, 16, 0.15) !important;
+  }
+}
+
+/* Issue side panel list */
+.issues-side-panel,
+.issue-list-sidebar {
+  background-color: var(--fms-surface) !important;
+  border-right-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* Report engine */
+.report-engine {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* Reports dashboard */
+.reports-dashboard {
+  background-color: var(--fms-page-bg) !important;
+  color: var(--fms-text-primary) !important;
+
+  .stat-card {
+    background-color: var(--fms-card-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+}

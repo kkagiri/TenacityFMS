@@ -1,0 +1,165 @@
+/**
+ * File: _dark-section-03-datagrid.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   DevExtreme GLOBAL widget overrides
+   ================================================================ */
+.dx-widget {
+  color: var(--fms-text-primary);
+}
+
+/* ── DataGrid ──────────────────────────────────── */
+.dx-datagrid {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-datagrid-headers {
+  background-color: var(--fms-surface-secondary) !important;
+  color: var(--fms-text-primary) !important;
+  border-bottom-color: var(--fms-border) !important;
+
+  td {
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+}
+
+.dx-datagrid-rowsview .dx-row {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-primary) !important;
+  border-bottom-color: var(--fms-border) !important;
+
+  td {
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+}
+
+.dx-datagrid-rowsview .dx-row.dx-row-alt {
+  background-color: var(--fms-surface) !important;
+
+  td {
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+/* ── DataGrid hover — ensure text stays readable ─ */
+.dx-datagrid-rowsview .dx-row:hover,
+.dx-datagrid-rowsview .dx-row:hover td,
+.dx-datagrid-rowsview .dx-state-hover,
+.dx-datagrid-rowsview .dx-state-hover td {
+  background-color: #2c3e50 !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ── DataGrid selected / focused — CRITICAL FIX ── */
+.dx-datagrid .dx-row-focused,
+.dx-datagrid .dx-row-focused td,
+.dx-datagrid .dx-selection,
+.dx-datagrid .dx-selection td,
+.dx-datagrid-rowsview .dx-row-focused > td,
+.dx-datagrid-rowsview .dx-selection > td,
+.dx-datagrid .dx-row-focused.dx-data-row > td,
+.dx-datagrid .dx-row.dx-selection > td {
+  background-color: #1a3a5c !important;
+  color: #e4e4e4 !important;
+}
+
+.dx-datagrid-borders > .dx-datagrid-rowsview,
+.dx-datagrid-borders > .dx-datagrid-headers {
+  border-color: var(--fms-border) !important;
+}
+
+.dx-datagrid-filter-row {
+  background-color: var(--fms-surface-secondary) !important;
+
+  td {
+    background-color: var(--fms-surface-secondary) !important;
+  }
+
+  .dx-texteditor {
+    background-color: var(--fms-input-bg) !important;
+  }
+}
+
+.dx-datagrid-search-panel {
+  background-color: var(--fms-input-bg) !important;
+  border-color: var(--fms-input-border) !important;
+
+  .dx-texteditor-input {
+    color: var(--fms-text-primary) !important;
+  }
+}
+
+.dx-datagrid-pager {
+  background-color: var(--fms-surface) !important;
+  color: var(--fms-text-secondary) !important;
+  border-top-color: var(--fms-border) !important;
+}
+
+.dx-pager .dx-page {
+  color: var(--fms-text-secondary) !important;
+
+  &.dx-selection {
+    background-color: var(--fms-active-bg) !important;
+    color: #60a5fa !important;
+  }
+}
+
+.dx-datagrid-group-panel {
+  background-color: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+}
+
+/* DataGrid header filter icon */
+.dx-datagrid .dx-column-indicators .dx-header-filter {
+  color: var(--fms-text-secondary) !important;
+}
+
+/* DataGrid nodata */
+.dx-datagrid-nodata {
+  color: var(--fms-text-secondary) !important;
+}
+
+/* Checkbox inside grid */
+.dx-datagrid .dx-checkbox-icon {
+  border-color: var(--fms-input-border) !important;
+  background-color: var(--fms-input-bg) !important;
+}
+
+/* ── Cards ─────────────────────────────────────── */
+.dx-card {
+  background-color: var(--fms-card-bg) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+/* ── Toolbar ───────────────────────────────────── */
+.dx-toolbar {
+  background-color: transparent;
+}
+
+/* ── Buttons ───────────────────────────────────── */
+.dx-button {
+  color: var(--fms-text-primary);
+}
+
+.dx-button.dx-button-normal {
+  background-color: var(--fms-surface-secondary) !important;
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}
+
+.dx-button.dx-button-normal:hover,
+.dx-button.dx-button-normal.dx-state-hover {
+  background-color: var(--fms-hover-bg) !important;
+}
+
+.dx-button-mode-outlined {
+  border-color: var(--fms-border) !important;
+  color: var(--fms-text-primary) !important;
+}

@@ -49,6 +49,16 @@ namespace FMS.Application.Features.Notification.DTOs
         public string? EffectiveStartDate { get; set; }
         public string? EffectiveEndDate { get; set; }
 
+        /// <summary>
+        /// Number of days before execution date to start the data window (default 1).
+        /// </summary>
+        public int OffsetDays { get; set; } = 1;
+
+        /// <summary>
+        /// Number of days of data to include in the report window (default 1).
+        /// </summary>
+        public int WindowDays { get; set; } = 1;
+
         public List<string> SiteNames { get; set; } = new List<string>();
         public List<string> TankNames { get; set; } = new List<string>();
 

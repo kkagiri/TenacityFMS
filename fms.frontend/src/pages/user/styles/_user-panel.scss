@@ -83,6 +83,15 @@
   padding: 16px 20px;
 }
 
+// Scoped layout guard for UserDetailPanel.
+// Prevents global .m365-panel-body overrides from other modules (e.g., vehicle panel)
+// from removing spacing in Activities/Sites tabs.
+.udp-panel-layout {
+  .m365-panel-body {
+    padding: 16px 20px;
+  }
+}
+
 // -------------------------------------------------
 // Panel footer (actions)
 // -------------------------------------------------
@@ -997,6 +1006,21 @@
   }
 }
 
+.m365-tab-pager {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 8px;
+
+  &__info {
+    font-size: var(--m365-font-meta);
+    color: var(--m365-text-secondary);
+    min-width: 96px;
+    text-align: center;
+  }
+}
+
 // -------------------------------------------------
 // Empty state
 // -------------------------------------------------
@@ -1032,5 +1056,24 @@
   .m365-panel {
     width: 100vw;
     &--wide { width: 100vw; }
+  }
+
+  .udp-panel-layout {
+    .m365-panel-body {
+      padding: 12px 14px;
+    }
+
+    .m365-detail-tabs {
+      padding: 0 8px;
+    }
+
+    .m365-tab-pager {
+      justify-content: space-between;
+      gap: 6px;
+
+      .m365-btn {
+        padding: 0 10px;
+      }
+    }
   }
 }

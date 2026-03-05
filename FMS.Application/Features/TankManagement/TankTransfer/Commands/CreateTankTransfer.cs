@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -188,33 +189,32 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                             return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank. Physical stock: {sourceTank.PhysicalStockValue:F2}L, Requested amount: {transferAmount:F2}L", null);
                     }
 
-                    // TODO: Implement validation for past-date tank transfers
-                    // For past date entries, we need to check available stock BEFORE this transaction timestamp
-                    // The validation should query TankVolumeHistory for the record immediately before this transaction
-                    // and verify sufficient stock was available in the source tank at that point in time
-                    // Currently commented out to allow historical entries without strict validation
+                    // Validate historical past-date transfer: ensure source tank had sufficient stock
+                    // at the point in time of this transaction.
+                    else if (transferDate.Date < DateTime.UtcNow.Date)
+                    {
+                        var volumeHistoryBeforeTransaction = await _context.TankVolumeHistories
+                            .Where(x => x.TankId == sourceTank.Id &&
+                                   x.Timestamp < transferDate &&
+                                   (x.IsDeleted != true))
+                            .OrderByDescending(x => x.Timestamp)
+                            .ThenByDescending(x => x.Id)
+                            .FirstOrDefaultAsync(cancellationToken);
 
-                    //else if (transferDate.Date < DateTime.Now.Date)
-                    //{
-                    //    var volumeHistoryBeforeTransaction = await _context.TankVolumeHistories
-                    //        .Where(x => x.TankId == sourceTank.Id &&
-                    //               x.Timestamp < transferDate &&
-                    //               (x.IsDeleted != true))
-                    //        .OrderByDescending(x => x.Timestamp)
-                    //        .ThenByDescending(x => x.Id)
-                    //        .FirstOrDefaultAsync(cancellationToken);
+                        if (volumeHistoryBeforeTransaction != null)
+                        {
+                            decimal availableStockBeforeTransaction = volumeHistoryBeforeTransaction.NewVolume ?? 0;
 
-                    //    if (volumeHistoryBeforeTransaction != null)
-                    //    {
-                    //        decimal availableStockBeforeTransaction = volumeHistoryBeforeTransaction.NewVolume ?? 0;
+                            if (availableStockBeforeTransaction <= 0)
+                                return new FMSResponseMessage<TankTransferDTO>(false,
+                                    $"The source tank '{sourceTank.Name}' was empty before this transaction at {transferDate:g}. Cannot record transfer.", null);
 
-                    //        if (availableStockBeforeTransaction <= 0)
-                    //            return new FMSResponseMessage<TankTransferDTO>(false, $"The source tank was empty before this transaction at {transferDate:g}. Cannot record transfer.", null);
-
-                    //        if (availableStockBeforeTransaction < transferAmount)
-                    //            return new FMSResponseMessage<TankTransferDTO>(false, $"Insufficient stock in source tank before this transaction at {transferDate:g}. Available: {availableStockBeforeTransaction:F2}L, Requested: {transferAmount:F2}L", null);
-                    //    }
-                    //}
+                            if (availableStockBeforeTransaction < transferAmount)
+                                return new FMSResponseMessage<TankTransferDTO>(false,
+                                    $"Insufficient stock in source tank '{sourceTank.Name}' before this transaction at {transferDate:g}. " +
+                                    $"Available: {availableStockBeforeTransaction:F2}L, Requested: {transferAmount:F2}L", null);
+                        }
+                    }
                 }
 
                 var tankTransfer = _mapper.Map<TankTransfer>(request.TankTransferDTO);
@@ -222,6 +222,52 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
                 _context.TankTransfers.Add(tankTransfer);
 
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // FIX: Detect and neutralise old orphaned TVH entries that coincidentally share
+                // the same integer ID as this newly-created tanktransfer record.  When the
+                // tanktransfer table was previously wiped and restarted its auto-increment, any
+                // surviving TVH rows from the old dataset now point to the wrong transfer.
+                // Leaving them active causes double-counting on the affected tanks.
+                var oldOrphanedTvh = await _context.TankVolumeHistories
+                    .Where(h => h.ReferenceId == tankTransfer.Id &&
+                                (h.ChangeReason == VolumeChangeReasonEnum.TransferIn ||
+                                 h.ChangeReason == VolumeChangeReasonEnum.TransferOut) &&
+                                h.IsDeleted != true)
+                    .ToListAsync(cancellationToken);
+
+                if (oldOrphanedTvh.Any())
+                {
+                    _logger.LogWarning(
+                        "Detected {Count} orphaned TVH entries colliding with new transfer ID {TransferId}. " +
+                        "Soft-deleting them to prevent double-count.",
+                        oldOrphanedTvh.Count, tankTransfer.Id);
+
+                    var orphanDeletionTime = DateTime.UtcNow;
+                    var orphanTankIds = new HashSet<int>();
+
+                    foreach (var orphan in oldOrphanedTvh)
+                    {
+                        orphan.IsDeleted = true;
+                        orphan.DeletedAt = orphanDeletionTime;
+                        orphan.DeletedBy = request.TankTransferDTO.RecordedBy ?? "System";
+                        if (orphan.TankId.HasValue)
+                            orphanTankIds.Add(orphan.TankId.Value);
+                    }
+
+                    await _context.SaveChangesAsync(cancellationToken);
+
+                    // Recalculate TVH chains for all tanks that had orphaned entries removed
+                    foreach (int orphanTankId in orphanTankIds)
+                    {
+                        var earliestOrphanTimestamp = oldOrphanedTvh
+                            .Where(h => h.TankId == orphanTankId)
+                            .Min(h => h.Timestamp);
+
+                        await _mediator.Send(
+                            new UpdateTankVolumeHistoryCommand(orphanTankId, earliestOrphanTimestamp),
+                            cancellationToken);
+                    }
+                }
 
                 // Calculate physical stock values for current day operations
                 decimal? sourcePhysicalStockValue = null;

@@ -1,0 +1,39 @@
+/**
+ * File: _dark-section-04-section-04.scss
+ * Purpose: Scoped dark-mode section extracted from the main dark theme file
+ * Dependencies: Imported by src/styles/dark-theme.scss inside [data-theme="dark"]
+ * Last Modified: 2026-03-04
+ */
+/* ================================================================
+   TEXT EDITORS / INPUTS — all DevExtreme input types
+   ================================================================ */
+.dx-texteditor {
+  background-color: var(--fms-input-bg) !important;
+  border-color: var(--fms-input-border) !important;
+
+  .dx-texteditor-input {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .dx-placeholder::before {
+    color: var(--fms-text-tertiary) !important;
+  }
+}
+
+.dx-texteditor.dx-state-focused {
+  border-color: #0078d4 !important;
+}
+
+.dx-texteditor-label {
+  color: var(--fms-text-secondary) !important;
+}
+
+.dx-lookup-field,
+.dx-selectbox .dx-texteditor-input,
+.dx-dropdowneditor .dx-texteditor-input,
+.dx-tagbox .dx-texteditor-input,
+.dx-datebox .dx-texteditor-input,
+.dx-numberbox .dx-texteditor-input,
+.dx-textarea .dx-texteditor-input {
+  color: var(--fms-text-primary) !important;
+}
