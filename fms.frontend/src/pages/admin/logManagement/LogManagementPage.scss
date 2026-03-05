@@ -329,14 +329,23 @@
   }
 
   .m365-tabs {
-    display: flex;
+    display: inline-flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 0;
     margin-bottom: 10px;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    background: #fff;
+    padding: 2px;
   }
 
   .m365-tabs--categories {
+    display: flex;
+    gap: 8px;
     margin-top: 4px;
+    padding: 0;
+    border: none;
+    background: transparent;
   }
 
   .m365-service-label {
@@ -345,21 +354,41 @@
   }
 
   .m365-tab {
-    border: 1px solid #edebe9;
-    background: #fff;
-    border-radius: 4px;
-    padding: 6px 10px;
+    border: none;
+    background: transparent;
+    border-radius: 6px;
+    padding: 0 12px;
+    height: 30px;
     font-size: 12px;
     color: #323130;
     display: inline-flex;
     align-items: center;
     gap: 6px;
     cursor: pointer;
+
+    &:hover {
+      background: #f3f2f1;
+    }
   }
 
   .m365-tab.is-active {
+    border-color: transparent;
+    background: #deecf9;
+    color: #004578;
+  }
+
+  .m365-tabs--categories .m365-tab {
+    border: 1px solid #edebe9;
+    background: #fff;
+    border-radius: 8px;
+    padding: 0 12px;
+    height: 30px;
+  }
+
+  .m365-tabs--categories .m365-tab.is-active {
     border-color: #0078d4;
     background: #deecf9;
+    color: #004578;
   }
 
   .m365-tab__count {

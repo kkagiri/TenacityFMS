@@ -23,7 +23,7 @@ namespace FMS.WebClient.Controllers;
 [ApiController]
 [Route("api/v1/[controller]")]
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-[RequirePermission(Permissions.FuelTag.Read)]
+[RequirePermission(Permissions.FuelingRule.Read)]
 public class FuelingRuleController : ControllerBase
 {
     private readonly IMediator _mediator;

@@ -1,8 +1,8 @@
 /**
  * File: LocationRulesSettings.scss
- * Purpose: M365 Fluent-style accordion and settings layout for Location Rules
+ * Purpose: M365 Fluent-style full-page layout and settings controls for Location Rules
  * Dependencies: M365 design tokens
- * Last Modified: 2025-06-20
+ * Last Modified: 2026-03-05
  */
 
 // ─── M365 Design Tokens ──────────────────────────────────
@@ -23,9 +23,9 @@ $m365-radius-sm: 4px;
 
 // ─── Page Container ──────────────────────────────────────
 .location-rules-settings {
-  max-width: 960px;
-  margin: 0 auto;
-  padding: 20px 24px;
+  width: 100%;
+  max-width: 100%;
+  padding: 12px 0 20px;
 }
 
 // ─── Page Header ─────────────────────────────────────────
@@ -106,11 +106,115 @@ $m365-radius-sm: 4px;
   }
 }
 
-// ─── Accordion List & Accordion ──────────────────────────
-.loc-accordion-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
+// ─── Config Shell (Left Nav + Center Content) ────────────
+.loc-config-layout {
+  display: grid;
+  grid-template-columns: 280px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.loc-config-nav {
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius;
+  background: #fff;
+  padding: 8px;
+  position: sticky;
+  top: 12px;
+
+  &__item {
+    width: 100%;
+    border: 1px solid transparent;
+    border-radius: $m365-radius-sm;
+    background: transparent;
+    padding: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    cursor: pointer;
+    text-align: left;
+
+    &:hover {
+      background: $m365-bg-hover;
+    }
+
+    &--active {
+      border-color: #b3d7f2;
+      background: $m365-bg-selected;
+    }
+  }
+
+  &__content {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__icon {
+    font-size: 13px;
+    color: $m365-primary;
+    width: 18px;
+    text-align: center;
+  }
+
+  &__text {
+    min-width: 0;
+  }
+
+  &__title {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: $m365-text;
+    line-height: 1.3;
+  }
+
+  &__desc {
+    display: block;
+    font-size: 11px;
+    color: $m365-text-secondary;
+    line-height: 1.3;
+    margin-top: 1px;
+  }
+}
+
+.loc-config-content {
+  min-width: 0;
+}
+
+.loc-config-panel {
+  border: 1px solid $m365-border-light;
+  border-radius: $m365-radius;
+  background: #fff;
+
+  &__header {
+    padding: 14px 16px;
+    border-bottom: 1px solid $m365-border-light;
+  }
+
+  &__title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    color: $m365-text;
+
+    i {
+      color: $m365-primary;
+      font-size: 13px;
+    }
+  }
+
+  &__desc {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    color: $m365-text-secondary;
+  }
 }
 
 .loc-accordion {
@@ -206,12 +310,7 @@ $m365-radius-sm: 4px;
   align-items: center;
   justify-content: space-between;
   padding: 10px 0;
-  border-bottom: 1px solid #f3f2f1;
   gap: 16px;
-
-  &:last-child {
-    border-bottom: none;
-  }
 
   &__info {
     display: flex;
@@ -230,6 +329,7 @@ $m365-radius-sm: 4px;
   }
 
   &__title {
+    display: block;
     font-size: 13px;
     font-weight: 500;
     color: $m365-text;
@@ -237,9 +337,10 @@ $m365-radius-sm: 4px;
   }
 
   &__desc {
+    display: block;
     font-size: 11px;
     color: $m365-text-tertiary;
-    margin-top: 1px;
+    margin-top: 3px;
   }
 
   &__control {
@@ -247,59 +348,60 @@ $m365-radius-sm: 4px;
   }
 }
 
-// ─── Toggle Switch ───────────────────────────────────────
-.loc-toggle {
-  position: relative;
+// ─── Checkbox Control ────────────────────────────────────
+.loc-checkbox-control {
   display: inline-flex;
   align-items: center;
   cursor: pointer;
+  padding: 2px;
 
-  input {
+  &__input {
     position: absolute;
-    width: 1px;
-    height: 1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
+    opacity: 0;
+    pointer-events: none;
   }
 
-  &__track {
-    width: 40px;
-    height: 20px;
-    background: #c8c6c4;
-    border-radius: 10px;
-    position: relative;
-    transition: background 0.2s;
+  &__box {
+    width: 16px;
+    height: 16px;
+    border: 1px solid $m365-border;
+    border-radius: 3px;
+    background: #fff;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: transparent;
+    transition: border-color 0.15s, background 0.15s, color 0.15s;
 
-    &::after {
-      content: "";
-      position: absolute;
-      top: 2px;
-      left: 2px;
-      width: 16px;
-      height: 16px;
-      background: #fff;
-      border-radius: 50%;
-      transition: transform 0.2s;
-      box-shadow: 0 1px 2px rgba(0, 0, 0, 0.15);
+    i {
+      font-size: 10px;
     }
   }
 
-  input:checked + .loc-toggle__track {
+  &__input:checked + .loc-checkbox-control__box {
     background: $m365-primary;
-
-    &::after {
-      transform: translateX(20px);
-    }
+    border-color: $m365-primary;
+    color: #fff;
   }
 
-  input:disabled + .loc-toggle__track {
+  &__input:disabled + .loc-checkbox-control__box {
     opacity: 0.45;
     cursor: not-allowed;
   }
 
-  input:focus-visible + .loc-toggle__track {
+  &__input:focus-visible + .loc-checkbox-control__box {
     outline: 2px solid $m365-primary;
     outline-offset: 2px;
+  }
+}
+
+@media (max-width: 1100px) {
+  .loc-config-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .loc-config-nav {
+    position: static;
   }
 }
 
@@ -449,6 +551,15 @@ $m365-radius-sm: 4px;
   flex-direction: column;
   gap: 8px;
   margin-top: 16px;
+
+  &--top {
+    margin-top: 0;
+    margin-bottom: 12px;
+  }
+}
+
+.loc-config-panel .loc-accordion__divider {
+  display: none;
 }
 
 // ─── M365 Info Banner ────────────────────────────────────

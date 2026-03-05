@@ -24,7 +24,7 @@ import { getBypassHistory } from "../../../api/geofenceService";
 
 import "./LocationBypassHistoryView.scss";
 
-const LocationBypassHistoryView = ({ onClose }) => {
+const LocationBypassHistoryView = ({ onHeaderActionsChange = null }) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [totalCount, setTotalCount] = useState(0);
@@ -81,6 +81,17 @@ const LocationBypassHistoryView = ({ onClose }) => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    if (!onHeaderActionsChange) {
+      return;
+    }
+
+    onHeaderActionsChange({
+      onRefresh: loadData,
+      canRefresh: !loading,
+    });
+  }, [onHeaderActionsChange, loadData, loading]);
 
   const handleFilterChange = (field, value) => {
     setFilters((prev) => ({ ...prev, [field]: value }));
@@ -173,7 +184,7 @@ const LocationBypassHistoryView = ({ onClose }) => {
   };
 
   return (
-    <div className="tw-flex tw-flex-col tw-h-full">
+    <div className="location-bypass-history-view tw-flex tw-flex-col tw-h-full">
       {/* Header */}
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-4">
         <div>
@@ -185,23 +196,7 @@ const LocationBypassHistoryView = ({ onClose }) => {
             View all past and current location validation bypasses
           </p>
         </div>
-        <div className="tw-flex tw-gap-2">
-          <Button
-            text="Refresh"
-            icon="refresh"
-            type="default"
-            onClick={loadData}
-            disabled={loading}
-          />
-          {onClose && (
-            <Button
-              text="Close"
-              icon="close"
-              type="normal"
-              onClick={onClose}
-            />
-          )}
-        </div>
+        <div />
       </div>
 
       {/* Filters */}

@@ -228,6 +228,9 @@ export const createClosingStock = (params) => async (dispatch) => {
     if (closingMeter !== null && closingMeter !== undefined) {
       queryString += `&closingMeter=${closingMeter}`;
     }
+    if (params.confirmOverride) {
+      queryString += `&confirmOverride=true`;
+    }
 
     const response = await axiosInstance.post(`/tankstock/closingstock?${queryString}`);
     if (response.data.success) {

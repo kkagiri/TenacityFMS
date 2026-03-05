@@ -140,7 +140,7 @@ const Rolepage = () => {
       <div className={" view-wrapper view-wrapper-role-page"}>
         <div className="view-container ">
           <Toolbar
-            className="toolbar-details theme-dependent"
+            className="toolbar-details theme-dependent role-toolbar"
             style={{ padding: "10px" }}
           >
             <Item location="before">
@@ -152,6 +152,7 @@ const Rolepage = () => {
                 icon="fa fa-light fa-plus"
                 type="default"
                 stylingMode="contained"
+                elementAttr={{ class: "role-filter-btn role-filter-btn--primary" }}
                 onClick={() => {
                   setNewRoleName("");
                   setNewRoleDescription("");
@@ -165,6 +166,7 @@ const Rolepage = () => {
                 icon="fa fa-light fa-clone"
                 type="normal"
                 stylingMode="contained"
+                elementAttr={{ class: "role-filter-btn" }}
                 disabled={!selectedRole}
                 onClick={handleOpenClonePopup}
               />
@@ -175,6 +177,7 @@ const Rolepage = () => {
                 icon="fa fa-light fa-trash"
                 type="danger"
                 stylingMode="contained"
+                elementAttr={{ class: "role-filter-btn role-filter-btn--danger" }}
                 disabled={!selectedRole}
                 onClick={() => setDeleteConfirmVisible(true)}
               />
@@ -190,6 +193,7 @@ const Rolepage = () => {
                 text="Refresh"
                 icon="refresh"
                 stylingMode="text"
+                elementAttr={{ class: "role-filter-btn" }}
                 onClick={() => dispatch(fetchRoles())}
               />
             </Item>

@@ -359,7 +359,7 @@ public class TankStockController : ControllerBase
 
     [HttpPost("closingstock")]
     [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
-    public async Task<IActionResult> CreateClosingStock([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime)
+    public async Task<IActionResult> CreateClosingStock([FromQuery] int tankId, decimal amount, DateTimeOffset dateTime, bool confirmOverride = false)
     {
         // var hasPermission = User.HasClaim("permissions", "_closingStock");
         // if (!hasPermission) return Forbid();
@@ -371,7 +371,7 @@ public class TankStockController : ControllerBase
         if (!TryGetCurrentUserId(out var userId))
             return BadRequest(FMSResponse.FailedResponse("Invalid User ID"));
 
-        FMSResponseMessage result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userId, dateTimeUtc));
+        FMSResponseMessage result = await _mediator.Send(new ClosingStockCommand(tankId, amount, userId, dateTimeUtc, ConfirmOverride: confirmOverride));
 
         if (!result.Success)
         {

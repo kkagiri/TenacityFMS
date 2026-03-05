@@ -108,7 +108,42 @@ const PTSDeviceDetailPage = () => {
   useEffect(() => {
     if (!deviceid || !realtimeStatus.isLiveDataEnabled || activeTab !== 0) return;
     const handler = (data) => {
-      if (data.deviceId === deviceid || data.ptsid === deviceid) setLiveData(data);
+      const matchesDevice =
+        data?.deviceId === deviceid ||
+        data?.ptsid === deviceid ||
+        data?.DeviceId === deviceid;
+
+      if (!matchesDevice) {
+        return;
+      }
+
+      setLiveData((prev) => {
+        const previous = prev || {};
+        const incoming = data || {};
+        const previousStatus = previous.status || previous.Status || {};
+        const incomingStatus = incoming.status || incoming.Status || {};
+
+        return {
+          ...previous,
+          ...incoming,
+          status: {
+            ...previousStatus,
+            ...incomingStatus,
+          },
+          receivedAt:
+            incoming.receivedAt ||
+            incoming.dateTime ||
+            incomingStatus.dateTime ||
+            previous.receivedAt ||
+            null,
+          deviceId:
+            incoming.deviceId ||
+            incoming.ptsid ||
+            incoming.DeviceId ||
+            previous.deviceId ||
+            deviceid,
+        };
+      });
     };
     const u1 = ptsSignalRService.on("uploadStatusUpdate", handler);
     const u2 = ptsSignalRService.on("deviceStatusUpdate", handler);
@@ -244,22 +279,22 @@ const PTSDeviceDetailPage = () => {
             <i className="fa-light fa-arrow-left"></i>
             <span>PTS Devices</span>
           </button>
+          <div className="m365-detail-header__subtitle">
+            ID: {device.ptsid} &middot; {device.siteNavigation?.name || "Unknown Site"}
+          </div>
         </div>
         <div className="m365-detail-header__title-row">
           <div className="m365-detail-header__info">
             <h1 className="m365-detail-header__title">{device.ptsName || device.ptsid}</h1>
-            <span className="m365-detail-header__subtitle">
-              ID: {device.ptsid} &middot; {device.siteNavigation?.name || "Unknown Site"}
-            </span>
           </div>
           <div className="m365-detail-header__actions">
             <button
-              className="m365-btn m365-btn--primary"
+              className="m365-btn m365-btn--text"
               onClick={() => navigate(`/fueling/${device.ptsid}`)}
             >
               <i className="fa-light fa-gas-pump"></i> Start Fueling
             </button>
-            <button className="m365-btn m365-btn--danger" onClick={handleDeleteDevice}>
+            <button className="m365-btn m365-btn--text m365-btn--text-danger" onClick={handleDeleteDevice}>
               <i className="fa-light fa-trash"></i> Delete
             </button>
           </div>

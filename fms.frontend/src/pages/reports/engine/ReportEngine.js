@@ -417,6 +417,11 @@ const ReportEngine = () => {
             paramMap[k] = Array.isArray(v) ? v.join(',') : String(v);
         });
 
+        // Include browser timezone so the backend can convert local dates → UTC
+        if (!paramMap.timeZone) {
+            paramMap.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+        }
+
         const result = await submitReportJob({
             sourceId: activeSource.id,
             templateName,

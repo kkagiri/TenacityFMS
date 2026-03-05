@@ -16,6 +16,11 @@
   .m365-logs-page {
     background: var(--fms-page-bg) !important;
 
+    .m365-logs-page__header {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
     &__title { color: var(--fms-text-primary) !important; }
     &__subtitle { color: var(--fms-text-secondary) !important; }
     &__commands .m365-btn {
@@ -105,6 +110,205 @@
   }
 
   .m365-file-cell i { color: #888 !important; }
+
+  .m365-logs-page .m365-tab {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-logs-page .m365-tabs {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+
+  .m365-logs-page .m365-tabs--categories {
+    border: none !important;
+    background: transparent !important;
+    padding: 0 !important;
+  }
+
+  .m365-logs-page .m365-tab:hover {
+    background: var(--fms-hover-bg) !important;
+  }
+
+  .m365-logs-page .m365-tabs--categories .m365-tab {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+  }
+
+  .m365-logs-page .m365-tab.is-active {
+    border-color: #4aa3df !important;
+    background: rgba(74, 163, 223, 0.15) !important;
+    color: #8ecdf8 !important;
+  }
+
+  .view-wrapper.view-wrapper-role-page {
+    .panels .left,
+    .panels .right {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .role-toolbar {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .role-filter-btn.dx-button {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+
+      &:not(.dx-state-disabled):hover {
+        background: #2d2d2d !important;
+      }
+    }
+
+    .role-filter-btn--primary.dx-button {
+      background: rgba(74, 163, 223, 0.15) !important;
+      border-color: #4aa3df !important;
+      color: #8ecdf8 !important;
+    }
+
+    .role-filter-btn--danger.dx-button {
+      background: rgba(209, 52, 56, 0.18) !important;
+      border-color: #d96c70 !important;
+      color: #ffb3b6 !important;
+    }
+
+    .dx-list,
+    .dx-list-item,
+    .dx-list-item-content,
+    .dx-scrollview-content {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-list-item:hover,
+    .dx-list-item.dx-state-hover,
+    .dx-list-item.dx-state-focused,
+    .dx-list-item.dx-state-selected {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-accordion,
+    .dx-accordion-item,
+    .dx-accordion-item-body,
+    .dx-accordion-item-opened {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-accordion-item-title,
+    .dx-accordion-item-title .dx-accordion-item-title-caption,
+    .dx-accordion-item-title::before,
+    .dx-accordion-item-title::after,
+    .dx-accordion-item-title i {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-accordion-item-title:hover,
+    .dx-accordion-item-title.dx-state-hover {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-field-item-label-text,
+    .dx-field-item-label-content,
+    .dx-field-item-label,
+    .dx-field-item-required-mark,
+    .dx-texteditor,
+    .dx-texteditor-input,
+    .dx-texteditor-input::placeholder,
+    .dx-textarea .dx-texteditor-input {
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+      background: #252525 !important;
+    }
+
+    .dx-treelist,
+    .dx-treelist-container,
+    .dx-treelist-headers,
+    .dx-treelist-rowsview,
+    .dx-treelist-content,
+    .dx-treelist-content .dx-treelist-table,
+    .dx-treelist-content .dx-treelist-table tbody,
+    .dx-treelist .dx-row > td {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-treelist-headers .dx-header-row > td,
+    .dx-treelist-headers td,
+    .dx-treelist .dx-filter-row > td,
+    .dx-treelist .dx-filter-row .dx-texteditor,
+    .dx-treelist .dx-filter-row .dx-texteditor-input {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-treelist .dx-row-alt > td,
+    .dx-treelist .dx-data-row.dx-row-alt > td {
+      background: #1e1e1e !important;
+    }
+
+    .dx-treelist .dx-row:hover > td,
+    .dx-treelist .dx-state-hover > td,
+    .dx-treelist .dx-selection > td,
+    .dx-treelist .dx-row-focused > td {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-treelist .dx-header-filter,
+    .dx-treelist .dx-sort,
+    .dx-treelist .dx-sort-up,
+    .dx-treelist .dx-sort-down,
+    .dx-treelist .dx-icon-filter,
+    .dx-treelist .dx-icon-search {
+      color: #a0a0a0 !important;
+    }
+
+    .tw-bg-white {
+      background: #1e1e1e !important;
+    }
+
+    .tw-text-gray-900,
+    .tw-text-gray-800,
+    .tw-text-gray-700,
+    .tw-text-gray-600,
+    .tw-text-gray-500,
+    .tw-text-gray-400 {
+      color: #e4e4e4 !important;
+    }
+
+    .tw-text-blue-500 {
+      color: #8ecdf8 !important;
+    }
+  }
+
+  .m365-logs-page .m365-inline-section__header h3,
+  .m365-logs-page .m365-inline-section__header h3 i {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-logs-page .m365-btn--secondary {
+    border-color: var(--fms-border) !important;
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .m365-logs-page .m365-btn--secondary:hover:not(:disabled) {
+    background: var(--fms-hover-bg) !important;
+  }
 
   .m365-tab__count { color: var(--fms-text-secondary) !important; }
   .m365-service-label { color: var(--fms-text-primary) !important; }
@@ -404,6 +608,148 @@
 
   /* ── Location Settings Overview ────────────────────────────── */
   .location-overview__subtitle { color: var(--fms-text-secondary) !important; }
+  .location-settings-overview .tw-border-gray-200 {
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .tw-bg-gray-50,
+  .location-settings-overview .tw-bg-purple-50,
+  .location-settings-overview .tw-bg-green-50,
+  .location-settings-overview .tw-bg-blue-50,
+  .location-settings-overview .tw-bg-white {
+    background: var(--fms-surface) !important;
+  }
+  .location-settings-overview .tw-text-gray-800,
+  .location-settings-overview .tw-text-gray-700 {
+    color: var(--fms-text-primary) !important;
+  }
+  .location-settings-overview .tw-text-gray-600,
+  .location-settings-overview .tw-text-gray-500 {
+    color: var(--fms-text-secondary) !important;
+  }
+  .location-settings-overview .location-settings-overview__grid-pane {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-settings-overview__tabs {
+    background: var(--fms-surface) !important;
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-settings-overview__tab {
+    color: #ffffff !important;
+  }
+  .location-settings-overview .location-settings-overview__tab i {
+    color: inherit !important;
+  }
+  .location-settings-overview .location-settings-overview__tab--active {
+    color: #4aa3df !important;
+    border-bottom-color: #4aa3df !important;
+  }
+  .location-settings-overview .location-overview-grid,
+  .location-settings-overview .location-overview-grid .dx-datagrid,
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview,
+  .location-settings-overview .location-overview-grid .dx-datagrid-content,
+  .location-settings-overview .location-overview-grid .dx-datagrid-content .dx-datagrid-table,
+  .location-settings-overview .location-overview-grid .dx-datagrid-content .dx-datagrid-table tbody {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-headers,
+  .location-settings-overview .location-overview-grid .dx-datagrid-headers td,
+  .location-settings-overview .location-overview-grid .dx-datagrid-headers .dx-header-row > td {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-filter-row > td,
+  .location-settings-overview .location-overview-grid .dx-datagrid-filter-row .dx-editor-cell,
+  .location-settings-overview .location-overview-grid .dx-datagrid-filter-row .dx-texteditor,
+  .location-settings-overview .location-overview-grid .dx-datagrid-filter-row .dx-texteditor-input,
+  .location-settings-overview .location-overview-grid .dx-datagrid-filter-row input,
+  .location-settings-overview .location-overview-grid .dx-datagrid-search-panel,
+  .location-settings-overview .location-overview-grid .dx-datagrid-search-panel .dx-texteditor,
+  .location-settings-overview .location-overview-grid .dx-datagrid-search-panel .dx-texteditor-input {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview .dx-row > td {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview .dx-row-alt > td,
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+    background: var(--fms-surface-secondary) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview .dx-row:hover > td,
+  .location-settings-overview .location-overview-grid .dx-datagrid-rowsview .dx-state-hover > td {
+    background: rgba(0, 120, 212, 0.18) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel,
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-toolbar,
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-toolbar-items-container {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-button,
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-button .dx-button-content,
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-button .dx-button-text,
+  .location-settings-overview .location-overview-grid .dx-datagrid-header-panel .dx-button .dx-icon {
+    color: #ffffff !important;
+  }
+
+  /* ── Location Bypass History (side panel) ─────────────────── */
+  .m365-side-panel .location-bypass-history-view .tw-bg-white,
+  .m365-side-panel .location-bypass-history-view .tw-bg-gray-50 {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .tw-text-gray-800,
+  .m365-side-panel .location-bypass-history-view .tw-text-gray-700,
+  .m365-side-panel .location-bypass-history-view .tw-text-gray-600,
+  .m365-side-panel .location-bypass-history-view .tw-text-gray-500 {
+    color: var(--fms-text-primary) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .dx-datagrid,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-content,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-content .dx-datagrid-table,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-content .dx-datagrid-table tbody,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-header-panel,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-header-panel .dx-toolbar,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-header-panel .dx-toolbar-items-container,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-search-panel,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-search-panel .dx-texteditor,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-search-panel .dx-texteditor-input,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-filter-row > td,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-filter-row .dx-editor-cell,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-filter-row .dx-texteditor,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-filter-row .dx-texteditor-input {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-headers,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-headers .dx-header-row > td {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview .dx-row > td {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview .dx-row-alt > td,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+    background: var(--fms-surface-secondary) !important;
+  }
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview .dx-row:hover > td,
+  .m365-side-panel .location-bypass-history-view .dx-datagrid-rowsview .dx-state-hover > td {
+    background: rgba(0, 120, 212, 0.18) !important;
+  }
 
   /* ── Filter Popup grey text ───────────────────────────────── */
   .filter-popup__label { color: var(--fms-text-secondary) !important; }
@@ -475,6 +821,229 @@
   /* ── System Config Page grey text ─────────────────────────── */
   .config-description { color: var(--fms-text-secondary) !important; }
 
+  .system-config-page {
+    background: var(--fms-page-bg) !important;
+
+    .tw-bg-white,
+    .tw-bg-gray-50,
+    .tw-bg-blue-100 {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+    }
+
+    .tw-text-gray-800,
+    .tw-text-gray-700 { color: var(--fms-text-primary) !important; }
+    .tw-text-blue-700 { color: #8ecdf8 !important; }
+
+    .dx-treelist,
+    .dx-treelist-container,
+    .dx-treelist-rowsview,
+    .dx-treelist-content,
+    .dx-treelist-content .dx-treelist-table,
+    .dx-treelist-content .dx-treelist-table tbody {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-header-row > td,
+    .dx-treelist-headers,
+    .dx-treelist-headers td {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-text-content,
+    .dx-header-row .dx-datagrid-text-content,
+    .dx-treelist-text-content {
+      color: #e4e4e4 !important;
+    }
+
+    .dx-header-filter,
+    .dx-header-filter::before,
+    .dx-sort,
+    .dx-sort-up,
+    .dx-sort-down {
+      color: #a0a0a0 !important;
+    }
+
+    .dx-filter-row td,
+    .dx-filter-row .dx-editor-cell,
+    .dx-filter-row .dx-texteditor,
+    .dx-filter-row .dx-texteditor-input,
+    .dx-filter-row input {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-treelist-rowsview .dx-row > td,
+    .dx-treelist-content .dx-row > td {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-treelist-rowsview .dx-row-alt > td {
+      background: #232323 !important;
+    }
+
+    .dx-treelist-rowsview .dx-row:hover > td,
+    .dx-treelist-rowsview .dx-state-hover > td {
+      background: #2c3e50 !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-treelist-rowsview .dx-selection > td,
+    .dx-treelist-rowsview .dx-row-focused > td {
+      background: #0e3a5c !important;
+      color: #ffffff !important;
+    }
+
+    .dx-toolbar,
+    .dx-toolbar-items-container,
+    .dx-treelist-toolbar,
+    .dx-treelist-search-panel {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-toolbar .dx-button,
+    .dx-toolbar .dx-button-content,
+    .dx-toolbar .dx-icon,
+    .dx-toolbar .dx-button-text {
+      color: #e4e4e4 !important;
+    }
+
+    .dx-treelist-search-panel .dx-texteditor,
+    .dx-treelist-search-panel .dx-texteditor-input {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-pager,
+    .dx-page-sizes,
+    .dx-page,
+    .dx-info,
+    .dx-pages {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-page.dx-selection {
+      background: #0078d4 !important;
+      color: #ffffff !important;
+    }
+
+    .category-row > td {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      font-weight: 600 !important;
+    }
+
+    .category-row:hover > td {
+      background: #2f2f2f !important;
+    }
+  }
+
+  .location-validation-page {
+    background: var(--fms-page-bg) !important;
+
+    &__filters,
+    &__grid {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .tw-text-gray-800,
+    .tw-text-gray-700,
+    .tw-text-gray-600,
+    .tw-text-gray-500 {
+      color: #e4e4e4 !important;
+    }
+
+    .dx-datagrid,
+    .dx-datagrid-container,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-content,
+    .dx-datagrid-content .dx-datagrid-table,
+    .dx-datagrid-content .dx-datagrid-table tbody {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-headers,
+    .dx-header-row > td,
+    .dx-header-row > tr > td {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row > td,
+    .dx-datagrid-rowsview .dx-data-row > td {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row-alt > td,
+    .dx-datagrid-rowsview .dx-row.dx-row-alt > td,
+    .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td,
+    .dx-datagrid-rowsview .dx-state-hover > td {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-filter-row td,
+    .dx-filter-row .dx-editor-cell,
+    .dx-filter-row .dx-texteditor,
+    .dx-filter-row .dx-texteditor-input,
+    .dx-filter-row input {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-toolbar,
+    .dx-toolbar-items-container,
+    .dx-datagrid-header-panel,
+    .dx-datagrid-search-panel {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-texteditor,
+    .dx-texteditor-input,
+    .dx-dropdowneditor-input-wrapper,
+    .dx-dropdowneditor-icon {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-header-filter,
+    .dx-sort,
+    .dx-sort-up,
+    .dx-sort-down,
+    .dx-datagrid-filter-panel,
+    .dx-icon-filter,
+    .dx-icon-search {
+      color: #a0a0a0 !important;
+    }
+  }
+
   /* ── Pivot Grid Report ────────────────────────────────────── */
   .pivot-grid-empty { background-color: #333 !important; color: var(--fms-text-secondary) !important; }
 
@@ -503,5 +1072,265 @@
 
   /* ── Automated Reconciliation grey text ────────────────────── */
   .recon-description { color: var(--fms-text-secondary) !important; }
+
+  /* ── Admin Fueling Rules (Rule Sets / Assignments / Help) ─── */
+  .rulesets-page,
+  .tag-rule-management,
+  .rule-set-assignment-manager {
+    background: #1e1e1e !important;
+    color: #e4e4e4 !important;
+
+    .m365-tabs {
+      background: #1e1e1e !important;
+      border-bottom-color: #3a3a3a !important;
+    }
+
+    .m365-tab {
+      color: #a0a0a0 !important;
+
+      &:hover {
+        color: #e4e4e4 !important;
+        background: #2a2a2a !important;
+      }
+
+      &.m365-tab--active {
+        color: #8ecdf8 !important;
+      }
+    }
+
+    .ruleset-action-buttons,
+    .assignment-action-buttons {
+      background: #1e1e1e !important;
+      border-color: #3a3a3a !important;
+      box-shadow: none !important;
+
+      .dx-button {
+        background: #252525 !important;
+        color: #e4e4e4 !important;
+        border-color: #3a3a3a !important;
+
+        &::after {
+          background: #3a3a3a !important;
+        }
+
+        &:hover:not(.dx-state-disabled) {
+          background: #2d2d2d !important;
+          color: #e4e4e4 !important;
+        }
+      }
+    }
+
+    .dx-datagrid,
+    .dx-datagrid-container,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-content,
+    .dx-datagrid-content .dx-datagrid-table,
+    .dx-datagrid-content .dx-datagrid-table tbody,
+    .dx-scrollview-content,
+    .dx-datagrid-nodata {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-headers,
+    .dx-header-row > td,
+    .dx-header-row > tr > td,
+    .dx-datagrid-group-panel,
+    .dx-datagrid-group-panel .dx-group-panel-message {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-header-panel,
+    .dx-datagrid-header-panel .dx-toolbar,
+    .dx-datagrid-header-panel .dx-toolbar-items-container,
+    .dx-datagrid-header-panel .dx-toolbar-before,
+    .dx-datagrid-header-panel .dx-toolbar-center,
+    .dx-datagrid-header-panel .dx-toolbar-after,
+    .dx-datagrid-header-panel .dx-item,
+    .dx-datagrid-header-panel .dx-item-content,
+    .dx-datagrid-header-panel .dx-group-panel-item,
+    .dx-datagrid-header-panel .dx-group-panel-item .dx-datagrid-action,
+    .dx-datagrid-header-panel .dx-group-panel-item .dx-group-panel-item-text,
+    .dx-datagrid-header-panel .dx-datagrid-search-panel {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-filter-row > td,
+    .dx-datagrid-filter-row .dx-texteditor,
+    .dx-datagrid-filter-row .dx-texteditor-input,
+    .dx-datagrid-search-panel .dx-texteditor,
+    .dx-datagrid-search-panel .dx-texteditor-input,
+    .dx-editor-cell,
+    .dx-texteditor,
+    .dx-texteditor-input {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row > td,
+    .dx-datagrid-rowsview .dx-data-row > td,
+    .dx-datagrid-rowsview .dx-row-alt > td,
+    .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td,
+    .dx-datagrid-rowsview .dx-state-hover > td,
+    .dx-datagrid-rowsview .dx-selection > td,
+    .dx-datagrid-rowsview .dx-row-focused > td {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    .dx-datagrid-pager,
+    .dx-pager,
+    .dx-pages,
+    .dx-page-sizes,
+    .dx-info,
+    .dx-page {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-header-filter,
+    .dx-icon-filter,
+    .dx-icon-search,
+    .dx-sort,
+    .dx-sort-up,
+    .dx-sort-down,
+    .dx-datagrid-nodata {
+      color: #a0a0a0 !important;
+    }
+
+    .tw-bg-white,
+    .tw-bg-gray-50,
+    .tw-bg-gray-100,
+    .tw-bg-blue-50,
+    .tw-bg-green-50,
+    .tw-bg-purple-50,
+    .tw-bg-orange-50,
+    .tw-bg-amber-50 {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .tw-text-gray-900,
+    .tw-text-gray-800,
+    .tw-text-gray-700,
+    .tw-text-gray-600,
+    .tw-text-gray-500,
+    .tw-text-gray-400 {
+      color: #e4e4e4 !important;
+    }
+  }
+
+  .fueling-rules-help-container {
+    background: #1e1e1e !important;
+  }
+
+  .fueling-rules-help-sidebar {
+    background: #252525 !important;
+    border-right-color: #3a3a3a !important;
+  }
+
+  .fueling-rules-help-nav__item {
+    color: #e4e4e4 !important;
+
+    &:hover {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+
+    &--active {
+      background: rgba(74, 163, 223, 0.16) !important;
+      color: #8ecdf8 !important;
+    }
+  }
+
+  /* ── Fueling Rules Location Geofence page ─────────────────── */
+  .location-geofence-page,
+  .geofence-management {
+    background: #1e1e1e !important;
+    color: #e4e4e4 !important;
+
+    .location-geofence-page__tabs,
+    .location-geofence-page__content,
+    .tw-bg-white,
+    .tw-bg-gray-50,
+    .tw-bg-gray-100,
+    .tw-bg-blue-50,
+    .tw-bg-amber-50,
+    .tw-bg-green-100,
+    .tw-bg-blue-100 {
+      background: #252525 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .tw-border,
+    .tw-border-b,
+    .tw-border-gray-200,
+    .tw-border-gray-300,
+    .tw-border-blue-200,
+    .tw-border-amber-200 {
+      border-color: #3a3a3a !important;
+    }
+
+    .tw-text-gray-900,
+    .tw-text-gray-800,
+    .tw-text-gray-700,
+    .tw-text-gray-600,
+    .tw-text-gray-500,
+    .tw-text-gray-400 {
+      color: #e4e4e4 !important;
+    }
+
+    .dx-datagrid,
+    .dx-datagrid-container,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-content,
+    .dx-datagrid-content .dx-datagrid-table,
+    .dx-datagrid-content .dx-datagrid-table tbody,
+    .dx-datagrid-nodata,
+    .dx-datagrid-header-panel,
+    .dx-datagrid-header-panel .dx-toolbar,
+    .dx-datagrid-header-panel .dx-toolbar-items-container,
+    .dx-datagrid-header-panel .dx-datagrid-search-panel,
+    .dx-datagrid-search-panel .dx-texteditor,
+    .dx-datagrid-search-panel .dx-texteditor-input,
+    .dx-datagrid-filter-row > td,
+    .dx-datagrid-filter-row .dx-texteditor,
+    .dx-datagrid-filter-row .dx-texteditor-input {
+      background: #1e1e1e !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-headers,
+    .dx-datagrid-headers .dx-header-row > td,
+    .dx-datagrid-rowsview .dx-row > td,
+    .dx-datagrid-rowsview .dx-row-alt > td,
+    .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+      background: #252525 !important;
+      color: #e4e4e4 !important;
+      border-color: #3a3a3a !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td,
+    .dx-datagrid-rowsview .dx-state-hover > td,
+    .dx-datagrid-rowsview .dx-selection > td,
+    .dx-datagrid-rowsview .dx-row-focused > td {
+      background: #2a2a2a !important;
+      color: #e4e4e4 !important;
+    }
+  }
 
 }

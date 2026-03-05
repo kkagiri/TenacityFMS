@@ -38,6 +38,9 @@ export const createClosingStock = (formData) => async (dispatch) => {
     if (formData.closingMeter !== null && formData.closingMeter !== undefined) {
       queryString += `&closingMeter=${formData.closingMeter}`;
     }
+    if (formData.confirmOverride) {
+      queryString += `&confirmOverride=true`;
+    }
 
     // API call matches TankStockController endpoint: /tankstock/closingstock
     const response = await axiosInstance.post(

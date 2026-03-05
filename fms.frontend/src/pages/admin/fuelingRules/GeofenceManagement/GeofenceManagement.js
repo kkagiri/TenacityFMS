@@ -19,7 +19,6 @@ import {
   Selection,
 } from "devextreme-react/data-grid";
 import notify from "devextreme/ui/notify";
-import { usePermissions } from "../../../../hooks/usePermissions";
 import geofenceService from "../../../../api/geofenceService";
 import SlidePanel from "../../../../components/ui/SlidePanel";
 import "./GeofenceManagement.scss";
@@ -46,7 +45,6 @@ const TAB_CONFIG = [
 ];
 
 const GeofenceManagement = () => {
-  const { hasPermission } = usePermissions();
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -279,7 +277,7 @@ const GeofenceManagement = () => {
       <div className="tw-flex tw-items-center tw-gap-2">
         <i
           className={`fa-light ${iconMap[type] || "fa-location-dot"
-            } tw-text-blue-600`}
+            } geofence-type-icon`}
         ></i>
         <span>{type}</span>
       </div>
@@ -303,26 +301,17 @@ const GeofenceManagement = () => {
     const isChecked = cellData.value;
     return (
       <div className="tw-flex tw-items-center tw-justify-center">
-        <button
-          type="button"
-          role="switch"
-          aria-checked={isChecked}
-          onClick={() => handleToggleAllowedForFueling(cellData.data.id, !isChecked)}
+        <input
+          type="checkbox"
+          className="tw-h-4 tw-w-4 tw-cursor-pointer"
+          checked={isChecked}
+          onChange={() => handleToggleAllowedForFueling(cellData.data.id, !isChecked)}
           disabled={saving}
-          className={`tw-relative tw-inline-flex tw-h-6 tw-w-11 tw-flex-shrink-0 tw-cursor-pointer tw-rounded-full tw-border-2 tw-border-transparent tw-transition-colors tw-duration-200 tw-ease-in-out focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-blue-500 focus:tw-ring-offset-2 ${isChecked ? "tw-bg-green-500" : "tw-bg-gray-300"
-            } ${saving ? "tw-opacity-50 tw-cursor-not-allowed" : ""}`}
-        >
-          <span
-            className={`tw-pointer-events-none tw-inline-block tw-h-5 tw-w-5 tw-transform tw-rounded-full tw-bg-white tw-shadow tw-ring-0 tw-transition tw-duration-200 tw-ease-in-out ${isChecked ? "tw-translate-x-5" : "tw-translate-x-0"
-              }`}
-          />
-        </button>
+          aria-label="Allowed for fueling"
+        />
       </div>
     );
   };
-
-  // Count allowed groups
-  const allowedGroupsCount = geofenceGroups.filter(g => g.isAllowedForFueling).length;
 
   return (
     <div className="geofence-management">
@@ -354,80 +343,57 @@ const GeofenceManagement = () => {
         </div>
       )}
 
-      {/* Header Section */}
-      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-shadow-sm tw-p-4 tw-mb-4">
-        <div className="tw-flex tw-items-center tw-justify-between tw-flex-wrap tw-gap-4">
-          <div>
-            <h2 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-flex tw-items-center tw-gap-2">
-              <i className="fa-light fa-map-location-dot tw-text-blue-600"></i>
-              Geofence Management
-            </h2>
-            <p className="tw-text-sm tw-text-gray-600 tw-mt-1">
-              Manage geofences synced from GPSGate. Select which groups are allowed for fueling validation.
-            </p>
-          </div>
-          <div className="tw-flex tw-items-center tw-gap-3">
-            {lastSyncTime && (
-              <span className="tw-text-sm tw-text-gray-500">
-                <i className="fa-light fa-clock tw-mr-1"></i>
-                Last sync: {formatDateTime(lastSyncTime)}
-              </span>
-            )}
-            <Button
-              text="Sync from GPSGate"
-              icon="fa-light fa-arrows-rotate"
-              type="default"
-              stylingMode="contained"
-              onClick={() => setShowSyncConfirm(true)}
-              disabled={syncing}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Info Banner - Simplified Global Policy */}
-      <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-mb-4 tw-flex tw-items-start tw-gap-3">
-        <i className="fa-light fa-info-circle tw-text-blue-600 tw-text-lg tw-mt-0.5"></i>
-        <div>
-          <p className="tw-text-sm tw-font-medium tw-text-blue-800">
-            Global Geofence Policy
-          </p>
-          <p className="tw-text-xs tw-text-blue-600 tw-mt-1">
-            Geofence validation is a system-wide policy. Toggle the "Allowed for Fueling" switch
-            on groups to permit fueling within their geofences. When geofence validation is enabled
-            (in System Configuration → Location Rules), tankers can only fuel at locations inside
-            allowed groups' geofences.
-            {allowedGroupsCount > 0 && (
-              <span className="tw-font-medium"> Currently {allowedGroupsCount} group(s) allowed.</span>
-            )}
-          </p>
+      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-lg tw-shadow-sm tw-p-3 tw-mb-3 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-flex-wrap">
+        <h2 className="tw-text-base tw-font-semibold tw-text-gray-800 dark:tw-text-gray-100 tw-flex tw-items-center tw-gap-2">
+          <i className="fa-light fa-map-location-dot tw-text-blue-600"></i>
+          Geofence Management
+        </h2>
+        <div className="tw-flex tw-items-center tw-gap-3">
+          {lastSyncTime && (
+            <span className="tw-text-sm tw-text-gray-500 dark:tw-text-gray-300">
+              <i className="fa-light fa-clock tw-mr-1"></i>
+              Last sync: {formatDateTime(lastSyncTime)}
+            </span>
+          )}
+          <Button
+            text="Sync from GPSGate"
+            icon="fa-light fa-arrows-rotate"
+            type="default"
+            stylingMode="contained"
+            onClick={() => setShowSyncConfirm(true)}
+            disabled={syncing}
+          />
         </div>
       </div>
 
       {/* Custom Tab Navigation */}
-      <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
+      <div className="geofence-management__tabs tw-bg-white dark:tw-bg-gray-900 tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
         <div className="tw-flex tw-items-center tw-justify-between tw-px-2">
-          <div className="tw-flex tw-items-center">
+          <div className="tw-flex tw-items-center tw-gap-1">
             {TAB_CONFIG.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setSelectedTabId(tab.id)}
-                className={`tw-flex tw-flex-col tw-items-center tw-px-4 tw-py-3 tw-text-sm tw-font-medium tw-transition-colors tw-border-b-2 tw-min-w-[100px] tw-bg-white ${selectedTabId === tab.id
-                  ? "tw-border-blue-600 tw-text-blue-600 !tw-bg-blue-50"
-                  : "tw-border-transparent tw-text-gray-600 hover:tw-text-gray-800 hover:tw-bg-gray-50"
+                className={`tw-relative tw-inline-flex tw-items-center tw-gap-1.5 tw-border-none tw-bg-transparent tw-cursor-pointer tw-px-4 tw-py-2.5 tw-text-[13px] tw-font-medium tw-transition-colors ${selectedTabId === tab.id
+                  ? "tw-text-[#0078d4]"
+                  : "tw-border-transparent tw-text-gray-600 dark:tw-text-gray-300 hover:tw-text-gray-800 dark:hover:tw-text-gray-100 hover:tw-bg-gray-50 dark:hover:tw-bg-gray-800"
                   }`}
               >
-                <i className={`fa-light ${tab.icon} tw-text-lg tw-mb-1`}></i>
-                <span className="tw-uppercase tw-text-xs tw-tracking-wide">
-                  {tab.label}
-                </span>
+                <i className={`fa-light ${tab.icon} tw-text-[13px]`}></i>
+                <span>{tab.label}</span>
+                {selectedTabId === tab.id && (
+                  <span
+                    className="tw-absolute tw-bottom-0 tw-left-3 tw-right-3 tw-rounded-t"
+                    style={{ height: 2, background: "#0078d4" }}
+                  />
+                )}
               </button>
             ))}
           </div>
           {/* Refresh Button */}
           <button
             onClick={handleRefreshCurrentTab}
-            className="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 tw-bg-white hover:tw-text-blue-600 hover:tw-bg-blue-50 tw-rounded tw-border tw-border-gray-300 tw-transition-colors tw-mr-2"
+            className="tw-flex tw-items-center tw-gap-2 tw-px-3 tw-py-2 tw-text-sm tw-text-gray-600 dark:tw-text-gray-200 tw-bg-white dark:tw-bg-gray-900 hover:tw-text-blue-600 dark:hover:tw-text-blue-300 hover:tw-bg-blue-50 dark:hover:tw-bg-blue-900/20 tw-rounded tw-border tw-border-gray-300 dark:tw-border-gray-700 tw-transition-colors tw-mr-2"
             title="Refresh current tab"
           >
             <i className="fa-light fa-arrows-rotate"></i>
@@ -441,6 +407,7 @@ const GeofenceManagement = () => {
         {selectedTabId === "geofences" && (
           <div className="tw-p-4">
             <DataGrid
+              className="geofence-grid"
               dataSource={geofences}
               keyExpr="id"
               showBorders={true}
@@ -501,6 +468,7 @@ const GeofenceManagement = () => {
         {selectedTabId === "groups" && (
           <div className="tw-p-4">
             <DataGrid
+              className="geofence-grid"
               dataSource={geofenceGroups}
               keyExpr="id"
               showBorders={true}
@@ -560,20 +528,6 @@ const GeofenceManagement = () => {
 
         {selectedTabId === "sync" && (
           <div className="tw-p-4">
-            {/* Info banner for selective sync */}
-            <div className="tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-4 tw-mb-4 tw-flex tw-items-start tw-gap-3">
-              <i className="fa-light fa-lightbulb tw-text-amber-600 tw-text-lg tw-mt-0.5"></i>
-              <div>
-                <p className="tw-text-sm tw-font-medium tw-text-amber-800">
-                  Selective Group Sync
-                </p>
-                <p className="tw-text-xs tw-text-amber-600 tw-mt-1">
-                  Select specific groups below to sync only their geofences. This is faster than syncing everything.
-                  Already synced groups show when they were last updated.
-                </p>
-              </div>
-            </div>
-
             {/* Action bar */}
             <div className="tw-flex tw-items-center tw-justify-between tw-mb-4">
               <div className="tw-text-sm tw-text-gray-600">
@@ -607,6 +561,7 @@ const GeofenceManagement = () => {
             />
 
             <DataGrid
+              className="geofence-grid"
               dataSource={availableGroups}
               keyExpr="externalGroupId"
               showBorders={true}

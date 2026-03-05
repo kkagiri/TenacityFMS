@@ -18,7 +18,7 @@ import React, { useEffect, useCallback, useRef } from "react";
 import ReactDOM from "react-dom";
 import "./_M365SidePanel.scss";
 
-const M365SidePanel = ({ visible, onClose, title, width = 1000, children }) => {
+const M365SidePanel = ({ visible, onClose, title, width = 1000, headerActions = null, children }) => {
     const panelRef = useRef(null);
 
     useEffect(() => {
@@ -56,13 +56,16 @@ const M365SidePanel = ({ visible, onClose, title, width = 1000, children }) => {
                 {/* Header */}
                 <div className="m365-side-panel__header">
                     <h3 className="m365-side-panel__title">{title}</h3>
-                    <button
-                        className="m365-side-panel__close"
-                        onClick={onClose}
-                        aria-label="Close panel"
-                    >
-                        <i className="fa-light fa-xmark" />
-                    </button>
+                    <div className="m365-side-panel__header-actions">
+                        {headerActions}
+                        <button
+                            className="m365-side-panel__close"
+                            onClick={onClose}
+                            aria-label="Close panel"
+                        >
+                            <i className="fa-light fa-xmark" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Body */}

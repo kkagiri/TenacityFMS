@@ -1,4 +1,14 @@
 .geofence-management {
+  .geofence-type-icon {
+    @apply tw-text-blue-600;
+  }
+
+  .geofence-grid {
+    .dx-datagrid-rowsview .dx-row > td {
+      @apply tw-transition-colors;
+    }
+  }
+
   // Custom tab navigation styles
   .custom-tabs {
     @apply tw-bg-white tw-rounded-t-lg tw-shadow-sm tw-border-b tw-border-gray-200;

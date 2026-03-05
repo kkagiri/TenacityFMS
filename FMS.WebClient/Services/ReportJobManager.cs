@@ -1,4 +1,4 @@
-/**
+﻿/**
  * File: ReportJobManager.cs
  * Purpose: In-memory manager for async report generation jobs.
  *          Orchestrates data fetching (via MediatR), PDF/Excel rendering (via JsReport),
@@ -24,7 +24,7 @@ using Newtonsoft.Json.Linq;
 using FMS.Application.Features.Reporting.DTOs;
 using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.Notification.Services;
-using FMS.Domain.Entities.enums;
+using FMS.Application.Features.TankManagement.TankVolumeHistory.Services;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.WebClient.Services.Reporting;
 using MediatR;
@@ -40,6 +40,7 @@ namespace FMS.WebClient.Services
     {
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IReportJobProgressService _progressService;
+        private readonly ITankVolumeReportDataBuilder _dataBuilder;
         private readonly ILogger<ReportJobManager> _logger;
 
         /// <summary>Active job metadata keyed by JobId</summary>
@@ -60,10 +61,12 @@ namespace FMS.WebClient.Services
         public ReportJobManager(
             IServiceScopeFactory scopeFactory,
             IReportJobProgressService progressService,
+            ITankVolumeReportDataBuilder dataBuilder,
             ILogger<ReportJobManager> logger)
         {
             _scopeFactory = scopeFactory;
             _progressService = progressService;
+            _dataBuilder = dataBuilder;
             _logger = logger;
         }
 
@@ -275,9 +278,9 @@ namespace FMS.WebClient.Services
             await _progressService.SendCompleted(BuildProgressDTO(job));
         }
 
-        // ──────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         //  Private: job execution pipeline
-        // ──────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private async Task ExecuteJobAsync(
             ReportJobDTO job, SubmitReportJobDTO request, CancellationToken ct)
@@ -289,7 +292,7 @@ namespace FMS.WebClient.Services
             // Brief delay to let the HTTP response reach the client and register SignalR listeners
             await Task.Delay(800, ct);
 
-            // ── Phase 1: Fetch data ──
+            // â”€â”€ Phase 1: Fetch data â”€â”€
             job.Status = ReportJobStatus.FetchingData;
             job.ProgressPercent = 10;
             job.StatusMessage = "Fetching report data...";
@@ -314,7 +317,7 @@ namespace FMS.WebClient.Services
 
             ct.ThrowIfCancellationRequested();
 
-            // ── Phase 2: Render report ──
+            // â”€â”€ Phase 2: Render report â”€â”€
             job.Status = ReportJobStatus.Rendering;
             job.ProgressPercent = 60;
             await _progressService.SendProgress(BuildProgressDTO(job));
@@ -353,10 +356,10 @@ namespace FMS.WebClient.Services
             job.StatusMessage = "Report rendered. Finalizing...";
             await _progressService.SendProgress(BuildProgressDTO(job));
 
-            // ── Phase 3: Store result for download ──
+            // â”€â”€ Phase 3: Store result for download â”€â”€
             _results[job.JobId] = (fileBytes, DateTime.UtcNow.Add(ResultTTL));
 
-            // ── Phase 4 (optional): Email delivery ──
+            // â”€â”€ Phase 4 (optional): Email delivery â”€â”€
             if (job.DeliverByEmail && !string.IsNullOrWhiteSpace(job.EmailAddress))
             {
                 job.StatusMessage = "Sending email...";
@@ -406,7 +409,7 @@ namespace FMS.WebClient.Services
                 catch (Exception ex)
                 {
                     _logger.LogError(ex, "Email delivery failed for report job {JobId}", job.JobId);
-                    // Job is still completed even if email fails — result available for download
+                    // Job is still completed even if email fails â€” result available for download
                     job.Status = ReportJobStatus.Completed;
                     job.StatusMessage = $"Report ready (email failed: {ex.Message})";
                 }
@@ -422,7 +425,7 @@ namespace FMS.WebClient.Services
             await _progressService.SendCompleted(BuildProgressDTO(job));
 
             _logger.LogInformation(
-                "Report job {JobId} completed in {Elapsed:F1}s — {Records} records, {Size} bytes",
+                "Report job {JobId} completed in {Elapsed:F1}s â€” {Records} records, {Size} bytes",
                 job.JobId, job.ElapsedSeconds, job.RecordCount, job.FileSizeBytes);
         }
 
@@ -437,7 +440,7 @@ namespace FMS.WebClient.Services
                 ? _jobs.Keys.Last() // gets the latest - fallback
                 : _jobs.Keys.Last()];
 
-            // We look up the job by matching — but cleaner to just use the request
+            // We look up the job by matching â€” but cleaner to just use the request
             var currentJob = _jobs.Values.FirstOrDefault(j =>
                 j.Status == ReportJobStatus.FetchingData &&
                 j.TemplateName == request.TemplateName);
@@ -460,13 +463,33 @@ namespace FMS.WebClient.Services
         private async Task<object> FetchTankVolumeHistoryData(
             IMediator mediator, SubmitReportJobDTO request, ReportJobDTO job, CancellationToken ct)
         {
+            // ── Timezone-aware date conversion ──
+            // The frontend sends local calendar dates (yyyy-MM-dd) + a timeZone IANA ID.
+            // The DB stores timestamps in UTC, so we must convert local midnight boundaries
+            // to their UTC equivalents, matching ScheduledReportDeliveryService behaviour.
+            var timeZoneId = GetStringParam(request.Parameters, "timeZone");
+            var tz = ResolveTimeZoneInfo(timeZoneId);
+
+            var localStart = GetDateParam(request.Parameters, "startDate");
+            var localEnd = GetDateParam(request.Parameters, "endDate");
+
+            // Convert local dates to UTC for DB query
+            DateTime? utcStart = localStart.HasValue
+                ? TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localStart.Value.Date, DateTimeKind.Unspecified), tz)
+                : null;
+            DateTime? utcEnd = localEnd.HasValue
+                ? TimeZoneInfo.ConvertTimeToUtc(
+                    DateTime.SpecifyKind(localEnd.Value.Date.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified), tz)
+                : null;
+
             var query = new FMS.Application.Features.TankManagement.TankVolumeHistory.Queries.GetTankVolumeHistoryFilteredQuery
             {
-                StartDate = GetDateParam(request.Parameters, "startDate"),
-                EndDate = GetDateParam(request.Parameters, "endDate"),
+                StartDate = utcStart,
+                EndDate = utcEnd,
                 SiteId = GetIntParam(request.Parameters, "siteId"),
                 TankId = GetIntParam(request.Parameters, "tankId"),
-                Take = null, // No limit for report — get all records
+                Take = null, // No limit for report â€” get all records
                 IncludeVehicleNames = true,
                 UseManualDispensing = false
             };
@@ -481,11 +504,25 @@ namespace FMS.WebClient.Services
             var records = result.Data;
             if (job != null) job.RecordCount = records.Count;
 
-            // Shape into template-ready payload — mirrors frontend reportDataBuilder
-            if (request.SourceId == "transaction-history-summary")
-                return BuildTransactionHistorySummaryPayload(records, request, job?.UserName);
+            // Shape into template-ready payload via shared data builder.
+            // Pass LOCAL dates (for display headers) and TimezoneId (for timestamp formatting).
+            var reportContext = new TankVolumeReportContext
+            {
+                ReportTitle = request.SourceId == "transaction-history-summary"
+                    ? (request.ReportTitle ?? "Transaction History Summary")
+                    : (request.ReportTitle ?? "Tank Volume History Report"),
+                CreatedBy = job?.UserName ?? "System",
+                DateFrom = localStart,
+                DateTo = localEnd,
+                SiteFilterId = GetIntParam(request.Parameters, "siteId"),
+                TankFilterId = GetIntParam(request.Parameters, "tankId"),
+                TimezoneId = timeZoneId,
+            };
 
-            return BuildTankVolumeHistoryPayload(records, request, job?.UserName);
+            if (request.SourceId == "transaction-history-summary")
+                return _dataBuilder.BuildTransactionHistorySummaryPayload(records, reportContext);
+
+            return _dataBuilder.BuildTankVolumeHistoryPayload(records, reportContext);
         }
 
         private async Task<object> FetchPumpTransactionData(
@@ -540,701 +577,10 @@ namespace FMS.WebClient.Services
             };
         }
 
-        /// <summary>
-        /// Type badge info for Handlebars: changeReasonLabel + changeReasonClass.
-        /// Keys mirror VolumeChangeReasonEnum integer values.
-        /// </summary>
-        /// <summary>
-        /// Display labels mapped to VolumeChangeReasonEnum integer values.
-        /// MUST match the enum ordering in VolumeChangeReasonEnum.cs:
-        ///   0=OpeningStock, 1=ClosingStock, 2=Delivery, 3=TransferIn, 4=TransferOut,
-        ///   5=Adjustment, 6=Dispensing, 7=AutomatedDispensing, 8=Reconciliation,
-        ///   9=AutomatedReconciliation, 10=InTankDelivery
-        /// </summary>
-        private static readonly Dictionary<int, (string Label, string CssClass)> _typeInfo =
-            new()
-            {
-                { 0,  ("Opening Stock",          "type-adjust")   },  // OpeningStock
-                { 1,  ("Closing Stock",          "type-adjust")   },  // ClosingStock
-                { 2,  ("Delivery",               "type-refill")   },  // Delivery
-                { 3,  ("Transfer In",            "type-transfer") },  // TransferIn
-                { 4,  ("Transfer Out",           "type-transfer") },  // TransferOut
-                { 5,  ("Adjustment",             "type-adjust")   },  // Adjustment
-                { 6,  ("Manual Dispensing",      "type-dispense") },  // Dispensing
-                { 7,  ("Auto Dispense",          "type-dispense") },  // AutomatedDispensing
-                { 8,  ("Reconciliation",         "type-adjust")   },  // Reconciliation
-                { 9,  ("Auto Reconciliation",    "type-adjust")   },  // AutomatedReconciliation
-                { 10, ("In-Tank Delivery",       "type-refill")   },  // InTankDelivery
-            };
 
-        /// <summary>
-        /// Reason codes for DELIVERY operations — used for totalDelivery.
-        /// Delivery=2, InTankDelivery=10
-        /// </summary>
-        private static readonly HashSet<int> _deliveryReasons = new() { 2, 10 };
-
-        /// <summary>
-        /// Reason codes that REMOVE fuel (negative VolumeChange) — used for totalDispensed.
-        /// Dispensing=6, AutomatedDispensing=7
-        /// </summary>
-        private static readonly HashSet<int> _dispensingReasons = new() { 6, 7 };
-
-        /// <summary>
-        /// Reason codes for TRANSFER operations — used for totalTransfer.
-        /// TransferIn=3, TransferOut=4
-        /// </summary>
-        private static readonly HashSet<int> _transferReasons = new() { 3, 4 };
-
-        private object BuildTankVolumeHistoryPayload(
-            List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> records,
-            SubmitReportJobDTO request,
-            string createdBy = null)
-        {
-            var displayCreatedBy = !string.IsNullOrWhiteSpace(createdBy) ? createdBy : "System";
-
-            if (records == null || records.Count == 0)
-            {
-                var emptyPayload = new
-                {
-                    reportTitle = request.ReportTitle ?? "Tank Volume History Report",
-                    reportSubtitle = "No data found",
-                    createdBy = displayCreatedBy,
-                    dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
-                    dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
-                    generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                    summary = new
-                    {
-                        totalTransactions = 0,
-                        totalDispensed = "0.00",
-                        totalTransfer = "0.00",
-                        totalDelivery = "0.00",
-                        netBalanceChange = "0.00",
-                        grandClosingBalance = "0.00",
-                        totalVariance = new { value = "0.00", formatted = "+0.00", isNegative = false },
-                        trends = new
-                        {
-                            transactions = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
-                            dispensed = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
-                            transfer = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
-                            delivery = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
-                            variance = new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" },
-                        },
-                    },
-                    siteGroups = Array.Empty<object>(),
-                };
-                return JToken.FromObject(emptyPayload);
-            }
-
-            // ── Global summary aggregates ─────────────────────────────────────────
-            decimal globalDelivery = 0m;
-            decimal globalDispensed = 0m;
-            decimal globalTransfer = 0m;
-
-            foreach (var r in records)
-            {
-                var code = (int)r.ChangeReason;
-                var vol = Math.Abs(r.VolumeChange ?? 0m);
-                if (_deliveryReasons.Contains(code)) globalDelivery += vol;
-                if (_dispensingReasons.Contains(code)) globalDispensed += vol;
-                if (_transferReasons.Contains(code)) globalTransfer += vol;
-            }
-
-            var netBalanceChange = globalDelivery + globalTransfer - globalDispensed;
-
-            // ── Group by TankId (sorted by TankName) ─────────────────────────────
-            var tankGroups = records
-                .GroupBy(r => r.TankId ?? 0)
-                .OrderBy(g => g.First().TankName ?? "")
-                .ToList();
-
-            // ── Build siteGroups: site → tanks[] + transactionGroups[] ─────────────
-            // Preserve insertion order by site appearance
-            var siteMap = new Dictionary<string, (List<object> Tanks, List<object> TxGroups)>(
-                StringComparer.OrdinalIgnoreCase);
-            decimal grandClosingBalance = 0m;
-            decimal globalTotalVariance = 0m;
-            int globalRowNumber = 1;
-
-            foreach (var group in tankGroups)
-            {
-                var tankRecords = group.OrderBy(r => r.Timestamp).ToList();
-                var tankName = tankRecords[0].TankName ?? $"Tank {group.Key}";
-                var siteName = tankRecords[0].Site ?? "—";
-
-                List<object> BuildLast2DispensingDays(
-                    List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> tankAllRecords,
-                    List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> tankDispensingRecords,
-                    int maxPreviousDays = 3)
-                {
-                    if (tankAllRecords == null || tankAllRecords.Count == 0)
-                        return new List<object>();
-
-                    var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-                    var dispensingByDate = tankDispensingRecords
-                        .GroupBy(r => r.Timestamp.AddHours(3).Date)
-                        .ToDictionary(g => g.Key, g => g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)));
-
-                    var anchorDate = tankAllRecords.Max(r => r.Timestamp.AddHours(3).Date);
-                    var targets = new[] { anchorDate.AddDays(-2), anchorDate.AddDays(-1) };
-                    var used = new HashSet<DateTime>();
-                    var result = new List<object>();
-
-                    foreach (var target in targets)
-                    {
-                        DateTime? selected = null;
-                        for (var offset = 0; offset <= maxPreviousDays; offset++)
-                        {
-                            var candidate = target.AddDays(-offset);
-                            if (dispensingByDate.ContainsKey(candidate) && !used.Contains(candidate))
-                            {
-                                selected = candidate;
-                                used.Add(candidate);
-                                break;
-                            }
-                        }
-
-                        if (!selected.HasValue) continue;
-
-                        var selectedDate = selected.Value;
-                        var value = dispensingByDate[selectedDate];
-                        result.Add(new
-                        {
-                            date = selectedDate.ToString("yyyy-MM-dd"),
-                            label = dayNames[(int)selectedDate.DayOfWeek],
-                            value,
-                            formatted = value.ToString("N2"),
-                        });
-                    }
-
-                    return result;
-                }
-
-                // Opening = NewVolume of first record minus its VolumeChange
-                var firstRec = tankRecords[0];
-                var openingBal = (firstRec.NewVolume ?? 0m) - (firstRec.VolumeChange ?? 0m);
-                var closingBal = tankRecords[^1].NewVolume ?? 0m;
-                grandClosingBalance += closingBal;
-
-                decimal dispensingTotal = 0m; int dispensingCount = 0;
-                decimal deliveryTotal = 0m; int deliveryCount = 0;
-                decimal transferInTotal = 0m; int transferInCount = 0;
-                decimal transferOutTotal = 0m; int transferOutCount = 0;
-
-                foreach (var r in tankRecords)
-                {
-                    var code = (int)r.ChangeReason;
-                    var vol = Math.Abs(r.VolumeChange ?? 0m);
-                    if (code == 6 || code == 7) { dispensingTotal += vol; dispensingCount++; }    // Dispensing=6, AutomatedDispensing=7
-                    if (code == 2 || code == 10) { deliveryTotal += vol; deliveryCount++; }       // Delivery=2, InTankDelivery=10
-                    if (code == 3) { transferInTotal += vol; transferInCount++; }                  // TransferIn=3
-                    if (code == 4) { transferOutTotal += vol; transferOutCount++; }                // TransferOut=4
-                }
-
-                var expectedClosing = openingBal + deliveryTotal + transferInTotal
-                                      - dispensingTotal - transferOutTotal;
-                var expectedMatch = Math.Abs(expectedClosing - closingBal) < 1m;
-                var transferCount = transferInCount + transferOutCount;
-
-                // Variance = Actual Closing − Expected Closing
-                // Negative = loss/shortage, Positive = gain/overage
-                var tankVariance = closingBal - expectedClosing;
-                globalTotalVariance += tankVariance;
-
-                // ── Last 2 days consumption trend (sparkline data) ─────────────
-                var dispensingRecords = tankRecords
-                    .Where(r => (int)r.ChangeReason == 6 || (int)r.ChangeReason == 7)
-                    .ToList();
-                var trendDays = BuildDailyConsumptionTrend(dispensingRecords, 2);
-                var trendDirection = trendDays.Count >= 2
-                    ? (trendDays[^1].Value > trendDays[^2].Value ? "up"
-                       : trendDays[^1].Value < trendDays[^2].Value ? "down" : "flat")
-                    : "flat";
-                     var last2DispensingDays = BuildLast2DispensingDays(tankRecords, dispensingRecords, 3);
-
-                var trendMaxVal = trendDays.Count > 0 ? trendDays.Max(d => d.Value) : 1m;
-                if (trendMaxVal == 0m) trendMaxVal = 1m;
-
-                var tankEntry = new
-                {
-                    tankName = tankName,
-                    fuelType = "Diesel",
-                    openingBalance = openingBal.ToString("N2"),
-                    closingBalance = closingBal.ToString("N2"),
-                    expectedClosing = expectedClosing.ToString("N2"),
-                    expectedMatch,
-                    variance = new
-                    {
-                        value = tankVariance.ToString("N2"),
-                        formatted = tankVariance.ToString("+0.00;-0.00;0.00"),
-                        isNegative = tankVariance < 0,
-                        percentage = openingBal != 0m
-                            ? ((tankVariance / openingBal) * 100m).ToString("N1")
-                            : "0.0",
-                    },
-                    consumptionTrend = new
-                    {
-                        days = trendDays.Select(d => new
-                        {
-                            label = d.Label,
-                            date = d.Date,
-                            value = d.Value,
-                            formatted = d.Value.ToString("N2"),
-                            barHeight = Math.Max((int)Math.Round(d.Value / trendMaxVal * 100m), 15),
-                        }).ToList(),
-                        direction = trendDirection,
-                        isUp = trendDirection == "up",
-                        isDown = trendDirection == "down",
-                    },
-                    dispensing = new { total = dispensingTotal.ToString("N2"), count = dispensingCount, last2Days = last2DispensingDays },
-                    delivery = new { total = deliveryTotal.ToString("N2"), count = deliveryCount },
-                    transfer = new { total = Math.Abs(transferInTotal - transferOutTotal).ToString("N2"), count = transferCount },
-                };
-
-                // ── Build transaction rows for this tank ──────────────────────────
-                decimal groupNet = 0m;
-                var rows = new List<object>();
-                foreach (var r in tankRecords)
-                {
-                    var code = (int)r.ChangeReason;
-                    if (!_typeInfo.TryGetValue(code, out var typeInfo))
-                        typeInfo = ($"Type {code}", "type-adjust");
-
-                    var volChange = r.VolumeChange ?? 0m;
-                    var volFormatted = volChange.ToString("+0.00;-0.00;0.00");
-                    groupNet += volChange;
-
-                    // Convert UTC → EAT (UTC+3) for display
-                    var eatTime = r.Timestamp.AddHours(3);
-
-                    rows.Add(new
-                    {
-                        rowNumber = globalRowNumber++,
-                        siteName = siteName,
-                        timestamp = new
-                        {
-                            date = eatTime.ToString("dd MMM yyyy"),
-                            time = eatTime.ToString("HH:mm"),
-                        },
-                        tankName = tankName,
-                        vehiclePlate = !string.IsNullOrWhiteSpace(r.VehicleName) ? r.VehicleName : "—",
-                        changeReasonLabel = typeInfo.Label,
-                        changeReasonClass = typeInfo.CssClass,
-                        isPositive = volChange >= 0,
-                        volumeChange = volFormatted,
-                        balanceAfter = (r.NewVolume ?? 0m).ToString("N2"),
-                        operatorName = !string.IsNullOrWhiteSpace(r.RecordedByUserName) ? r.RecordedByUserName
-                                          : !string.IsNullOrWhiteSpace(r.RecordedBy) ? r.RecordedBy
-                                          : "— (System)",
-                        notes = BuildTransactionNotes(r),
-                    });
-                }
-
-                var txGroup = new
-                {
-                    groupName = tankName,
-                    fuelType = "Diesel",
-                    openingBalance = openingBal.ToString("N2"),
-                    closingBalance = closingBal.ToString("N2"),
-                    groupNet = groupNet.ToString("+0.00;-0.00;0.00"),
-                    rows,
-                };
-
-                if (!siteMap.TryGetValue(siteName, out var siteData))
-                {
-                    siteData = (new List<object>(), new List<object>());
-                    siteMap[siteName] = siteData;
-                }
-                siteData.Tanks.Add(tankEntry);
-                siteData.TxGroups.Add(txGroup);
-            }
-
-            var siteGroupsPayload = siteMap
-                .OrderBy(kv => kv.Key)
-                .Select(kv =>
-                {
-                    // Compute site-level average daily consumption
-                    var siteRecords = records.Where(r => string.Equals(r.Site, kv.Key, StringComparison.OrdinalIgnoreCase)).ToList();
-                    var siteTotalDispensing = siteRecords
-                        .Where(r => _dispensingReasons.Contains((int)r.ChangeReason))
-                        .Sum(r => Math.Abs(r.VolumeChange ?? 0m));
-                    var uniqueDays = siteRecords
-                        .Select(r => r.Timestamp.AddHours(3).Date)
-                        .Distinct()
-                        .Count();
-                    if (uniqueDays == 0) uniqueDays = 1;
-                    var avgDailyConsumption = siteTotalDispensing / uniqueDays;
-
-                    return (object)new
-                    {
-                        siteName = kv.Key,
-                        tanks = kv.Value.Tanks,
-                        transactionGroups = kv.Value.TxGroups,
-                        siteSummary = new
-                        {
-                            totalDispensing = siteTotalDispensing.ToString("N2"),
-                            avgDailyConsumption = avgDailyConsumption.ToString("N2"),
-                            daysInPeriod = uniqueDays,
-                        },
-                    };
-                })
-                .ToList();
-
-            // ── Build dynamic subtitle from actual filter values ──────────────────
-            var siteFilterId = GetIntParam(request.Parameters, "siteId");
-            var tankFilterId = GetIntParam(request.Parameters, "tankId");
-            string siteFilterName = siteFilterId.HasValue
-                ? records.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.Site))?.Site ?? "All Sites"
-                : "All Sites";
-            string tankFilterName = tankFilterId.HasValue
-                ? records.FirstOrDefault(r => !string.IsNullOrWhiteSpace(r.TankName))?.TankName ?? "All Tanks"
-                : "All Tanks";
-            // Use GetStringParam for user-supplied filter labels (if frontend sends them)
-            var reportSubtitle = $"{tankFilterName} - {siteFilterName}";
-
-            // ── Assemble final payload ────────────────────────────────────────────
-            object BuildFiveDaySparkTrend(
-                IEnumerable<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> source,
-                Func<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO, decimal> valueSelector)
-            {
-                if (source == null)
-                    return new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" };
-
-                var dailySource = source
-                    .GroupBy(r => r.Timestamp.AddHours(3).Date)
-                    .Select(g => new { Date = g.Key, Value = g.Sum(valueSelector) })
-                    .OrderBy(x => x.Date)
-                    .ToList();
-
-                if (dailySource.Count == 0)
-                    return new { direction = "neutral", isUp = false, isDown = false, points = "2,8 7,8 12,8 17,8 22,8" };
-
-                var latestDate = dailySource[^1].Date;
-                var dailyMap = dailySource.ToDictionary(x => x.Date, x => x.Value);
-                var daily = new List<(DateTime Date, decimal Value)>();
-                for (var offset = 4; offset >= 0; offset--)
-                {
-                    var date = latestDate.AddDays(-offset);
-                    daily.Add((date, dailyMap.TryGetValue(date, out var value) ? value : 0m));
-                }
-
-                var last = daily[^1].Value;
-                var previous = daily[^2].Value;
-                var direction = last > previous ? "rise" : last < previous ? "fall" : "neutral";
-
-                var values = daily.Select(d => d.Value).ToList();
-                var minVal = values.Min();
-                var maxVal = values.Max();
-                int ToY(decimal value)
-                {
-                    if (maxVal == minVal) return 8;
-                    var normalized = (value - minVal) / (maxVal - minVal);
-                    return (int)Math.Round(14m - (normalized * 10m));
-                }
-
-                var xPoints = new[] { 2, 7, 12, 17, 22 };
-                var polylinePoints = string.Join(" ", daily.Select((d, idx) => $"{xPoints[idx]},{ToY(d.Value)}"));
-
-                return new
-                {
-                    direction,
-                    isUp = direction == "rise",
-                    isDown = direction == "fall",
-                    points = polylinePoints,
-                };
-            }
-
-            var summaryTrends = new
-            {
-                transactions = BuildFiveDaySparkTrend(records, _ => 1m),
-                dispensed = BuildFiveDaySparkTrend(records, r => _dispensingReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
-                transfer = BuildFiveDaySparkTrend(records, r => _transferReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
-                delivery = BuildFiveDaySparkTrend(records, r => _deliveryReasons.Contains((int)r.ChangeReason) ? Math.Abs(r.VolumeChange ?? 0m) : 0m),
-                variance = BuildFiveDaySparkTrend(records, r =>
-                {
-                    var vol = Math.Abs(r.VolumeChange ?? 0m);
-                    if (_deliveryReasons.Contains((int)r.ChangeReason) || _transferReasons.Contains((int)r.ChangeReason)) return vol;
-                    if (_dispensingReasons.Contains((int)r.ChangeReason)) return -vol;
-                    return 0m;
-                }),
-            };
-
-            // Wrap in JToken to ensure anonymous types inside List<object> serialize
-            // correctly regardless of the JSON serializer (System.Text.Json loses
-            // anonymous type properties when the declared type is 'object').
-            var payload = new
-            {
-                reportTitle = request.ReportTitle ?? "Tank Volume History Report",
-                reportSubtitle,
-                createdBy = displayCreatedBy,
-                dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
-                dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                summary = new
-                {
-                    totalTransactions = records.Count,
-                    totalDispensed = globalDispensed.ToString("N2"),
-                    totalTransfer = globalTransfer.ToString("N2"),
-                    totalDelivery = globalDelivery.ToString("N2"),
-                    netBalanceChange = netBalanceChange.ToString("+0.00;-0.00;0.00"),
-                    grandClosingBalance = grandClosingBalance.ToString("N2"),
-                    totalVariance = new
-                    {
-                        value = globalTotalVariance.ToString("N2"),
-                        formatted = globalTotalVariance.ToString("+0.00;-0.00;0.00"),
-                        isNegative = globalTotalVariance < 0,
-                    },
-                    trends = summaryTrends,
-                },
-                siteGroups = siteGroupsPayload,
-            };
-
-            // Serialize → parse → ensures nested anonymous objects in List<object>
-            // retain their properties (Newtonsoft resolves runtime types correctly)
-            return JToken.FromObject(payload);
-        }
-
-        /// <summary>
-        /// Builds a monthly-aggregated summary payload for the transaction-history-summary-report template.
-        /// Groups records by month → site → tank with totals for dispensing, delivery, transfer, and variance.
-        /// </summary>
-        private object BuildTransactionHistorySummaryPayload(
-            List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> records,
-            SubmitReportJobDTO request,
-            string createdBy = null)
-        {
-            var displayCreatedBy = !string.IsNullOrWhiteSpace(createdBy) ? createdBy : "System";
-
-            if (records == null || records.Count == 0)
-            {
-                return JToken.FromObject(new
-                {
-                    reportTitle = request.ReportTitle ?? "Transaction History Summary",
-                    reportSubtitle = "No data found",
-                    generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    generatedBy = displayCreatedBy,
-                    dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
-                    dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
-                    reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                    monthlyGroups = Array.Empty<object>(),
-                    grandTotal = new { dispensing = "0.00", delivery = "0.00", transfer = "0.00", variance = "0.00", varianceIsNegative = false },
-                    summary = new { totalTransactions = 0, totalDispensed = "0.00", totalDelivery = "0.00", totalTransfer = "0.00", netVariance = "0.00", monthsCovered = 0, sitesMonitored = 0, tanksMonitored = 0 },
-                });
-            }
-
-            var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December" };
-
-            // Group by month → site → tank
-            var monthGroups = records
-                .Where(r => r.TankId.HasValue)
-                .GroupBy(r => new { r.Timestamp.Year, r.Timestamp.Month })
-                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
-                .ToList();
-
-            decimal grandDispensing = 0m, grandDelivery = 0m, grandTransfer = 0m;
-            var monthlyGroupsList = new List<object>();
-
-            foreach (var monthGroup in monthGroups)
-            {
-                var year = monthGroup.Key.Year;
-                var month = monthGroup.Key.Month;
-                var monthLabel = $"{monthNames[month]} {year}";
-
-                decimal monthDisp = 0m, monthDel = 0m, monthXfer = 0m;
-                int monthDispCount = 0, monthDelCount = 0, monthXferCount = 0;
-
-                var siteGroupMap = monthGroup
-                    .GroupBy(r => r.Site ?? "—")
-                    .OrderBy(g => g.Key);
-
-                var siteGroupsList = new List<object>();
-                foreach (var siteGroup in siteGroupMap)
-                {
-                    var tankGroupMap = siteGroup
-                        .GroupBy(r => r.TankId!.Value)
-                        .OrderBy(g => g.First().TankName ?? "");
-
-                    var tanksList = new List<object>();
-                    foreach (var tankGroup in tankGroupMap)
-                    {
-                        var ordered = tankGroup.OrderBy(r => r.Timestamp).ToList();
-                        var first = ordered[0];
-                        var last = ordered[^1];
-                        var tankName = first.TankName ?? $"Tank {tankGroup.Key}";
-
-                        var openingRaw = (first.NewVolume ?? 0m) - (first.VolumeChange ?? 0m);
-                        var closingRaw = last.NewVolume ?? 0m;
-
-                        decimal dispTotal = 0m, delTotal = 0m, xferTotal = 0m;
-                        int dispCount = 0, delCount = 0, xferCount = 0;
-
-                        foreach (var r in ordered)
-                        {
-                            var code = (int)r.ChangeReason;
-                            var vol = r.VolumeChange ?? 0m;
-                            if (_dispensingReasons.Contains(code)) { dispTotal += Math.Abs(vol); dispCount++; }
-                            if (_deliveryReasons.Contains(code)) { delTotal += vol; delCount++; }
-                            if (_transferReasons.Contains(code)) { xferTotal += vol; xferCount++; }
-                        }
-
-                        var expectedClosing = openingRaw + delTotal + xferTotal - dispTotal;
-                        var variance = closingRaw - expectedClosing;
-                        var variancePercent = expectedClosing != 0m
-                            ? Math.Round(variance / Math.Abs(expectedClosing) * 100m, 2)
-                            : 0m;
-
-                        var daySpan = Math.Max(1, (int)Math.Ceiling((last.Timestamp - first.Timestamp).TotalDays));
-                        var avgDaily = Math.Round(dispTotal / daySpan, 2);
-
-                        monthDisp += dispTotal;
-                        monthDel += delTotal;
-                        monthXfer += Math.Abs(xferTotal);
-                        monthDispCount += dispCount;
-                        monthDelCount += delCount;
-                        monthXferCount += xferCount;
-
-                        tanksList.Add(new
-                        {
-                            tankName,
-                            openingBalance = openingRaw.ToString("N2"),
-                            closingBalance = closingRaw.ToString("N2"),
-                            expectedClosing = expectedClosing.ToString("N2"),
-                            dispensing = new { total = dispTotal.ToString("N2"), count = dispCount },
-                            delivery = new { total = delTotal.ToString("N2"), count = delCount },
-                            transfer = new { total = Math.Abs(xferTotal).ToString("N2"), count = xferCount },
-                            variance = variance.ToString("N2"),
-                            varianceIsNegative = variance < -0.5m,
-                            variancePercent = $"{variancePercent}%",
-                            avgDailyConsumption = avgDaily.ToString("N2"),
-                            totalTransactions = ordered.Count,
-                        });
-                    }
-
-                    siteGroupsList.Add(new { siteName = siteGroup.Key, tanks = tanksList });
-                }
-
-                grandDispensing += monthDisp;
-                grandDelivery += monthDel;
-                grandTransfer += monthXfer;
-
-                monthlyGroupsList.Add(new
-                {
-                    month = $"{year}-{month:D2}",
-                    monthLabel,
-                    year = year.ToString(),
-                    siteGroups = siteGroupsList,
-                    subtotal = new
-                    {
-                        dispensing = monthDisp.ToString("N2"),
-                        dispensingCount = monthDispCount,
-                        delivery = monthDel.ToString("N2"),
-                        deliveryCount = monthDelCount,
-                        transfer = monthXfer.ToString("N2"),
-                        transferCount = monthXferCount,
-                        variance = (monthDel + monthXfer - monthDisp).ToString("N2"),
-                    },
-                });
-            }
-
-            var netVariance = grandDelivery + grandTransfer - grandDispensing;
-
-            var payload = new
-            {
-                reportTitle = request.ReportTitle ?? "Transaction History Summary",
-                reportSubtitle = "",
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = displayCreatedBy,
-                dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("dd MMM yyyy") ?? "All",
-                dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("dd MMM yyyy") ?? "All",
-                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                monthlyGroups = monthlyGroupsList,
-                grandTotal = new
-                {
-                    dispensing = grandDispensing.ToString("N2"),
-                    delivery = grandDelivery.ToString("N2"),
-                    transfer = grandTransfer.ToString("N2"),
-                    variance = netVariance.ToString("N2"),
-                    varianceIsNegative = netVariance < -0.5m,
-                },
-                summary = new
-                {
-                    totalTransactions = records.Count,
-                    totalDispensed = grandDispensing.ToString("N2"),
-                    totalDelivery = grandDelivery.ToString("N2"),
-                    totalTransfer = grandTransfer.ToString("N2"),
-                    netVariance = netVariance.ToString("N2"),
-                    monthsCovered = monthGroups.Count,
-                    sitesMonitored = records.Select(r => r.Site).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count(),
-                    tanksMonitored = records.Where(r => r.TankId.HasValue).Select(r => r.TankId!.Value).Distinct().Count(),
-                },
-            };
-
-            return JToken.FromObject(payload);
-        }
-
-        /// <summary>Builds the Notes column text for a single transaction row.</summary>
-        private static string BuildTransactionNotes(
-            FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO r)
-        {
-            var parts = new List<string>();
-            // Only show vehicle type when an actual vehicle is on the transaction
-            if (!string.IsNullOrWhiteSpace(r.VehicleName) && !string.IsNullOrWhiteSpace(r.VehicleType))
-                parts.Add(r.VehicleType);
-            // Transfer destination/source (relevant for TransferIn / TransferOut rows)
-            // ← for TransferIn (fuel came FROM the named tank into this tank)
-            // → for TransferOut (fuel going TO the named tank from this tank)
-            if (!string.IsNullOrWhiteSpace(r.TransferTankName))
-            {
-                var arrow = r.ChangeReason == VolumeChangeReasonEnum.TransferIn ? "←" : "→";
-                parts.Add($"{arrow} {r.TransferTankName}" +
-                           (!string.IsNullOrWhiteSpace(r.TransferTankSite)
-                               ? $" ({r.TransferTankSite})"
-                               : ""));
-            }
-            // Site grouping is now shown as a separate column — omit from notes
-            return parts.Count > 0 ? string.Join(" · ", parts) : "";
-        }
-
-        /// <summary>
-        /// Builds daily consumption totals for the last N days from dispensing records.
-        /// Returns a list of (Label, Date, Value) sorted oldest→newest.
-        /// </summary>
-        private static List<(string Label, string Date, decimal Value)> BuildDailyConsumptionTrend(
-            List<FMS.Application.Features.FMS.TankVolumeHistory.TankVolumeHistoryDTO> dispensingRecords,
-            int numDays = 2)
-        {
-            if (dispensingRecords == null || dispensingRecords.Count == 0)
-                return new List<(string, string, decimal)>();
-
-            var dayNames = new[] { "Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat" };
-
-            // Group by date (EAT = UTC+3)
-            var dailyMap = new Dictionary<string, decimal>();
-            foreach (var r in dispensingRecords)
-            {
-                var eatDate = r.Timestamp.AddHours(3).Date;
-                var key = eatDate.ToString("yyyy-MM-dd");
-                if (!dailyMap.ContainsKey(key)) dailyMap[key] = 0m;
-                dailyMap[key] += Math.Abs(r.VolumeChange ?? 0m);
-            }
-
-            // Sort dates, take last N
-            return dailyMap
-                .OrderBy(kv => kv.Key)
-                .TakeLast(numDays)
-                .Select(kv =>
-                {
-                    var d = DateTime.Parse(kv.Key);
-                    return (dayNames[(int)d.DayOfWeek], kv.Key, kv.Value);
-                })
-                .ToList();
-        }
-
-        // ──────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
         //  Helpers
-        // ──────────────────────────────────────────────────────
+        // â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         private ReportJobProgressDTO BuildProgressDTO(ReportJobDTO job)
         {
@@ -1251,6 +597,31 @@ namespace FMS.WebClient.Services
                 ElapsedSeconds = job.ElapsedSeconds,
                 Timestamp = DateTime.UtcNow
             };
+        }
+
+        /// <summary>
+        /// Resolve an IANA or Windows timezone ID to a TimeZoneInfo.
+        /// Falls back to "E. Africa Standard Time" (UTC+3) when not provided,
+        /// matching the default in TankVolumeReportDataBuilder.
+        /// </summary>
+        private static TimeZoneInfo ResolveTimeZoneInfo(string timeZoneId)
+        {
+            if (string.IsNullOrWhiteSpace(timeZoneId))
+            {
+                try { return TimeZoneInfo.FindSystemTimeZoneById("E. Africa Standard Time"); }
+                catch { return TimeZoneInfo.Utc; }
+            }
+            try { return TimeZoneInfo.FindSystemTimeZoneById(timeZoneId); }
+            catch { return TimeZoneInfo.Utc; }
+        }
+
+        private static string GetStringParam(Dictionary<string, object> parameters, string key)
+        {
+            if (parameters == null || !parameters.TryGetValue(key, out var val)) return null;
+            if (val is string s) return s;
+            if (val is System.Text.Json.JsonElement je && je.ValueKind == System.Text.Json.JsonValueKind.String)
+                return je.GetString();
+            return val?.ToString();
         }
 
         private static DateTime? GetDateParam(Dictionary<string, object> parameters, string key)
@@ -1349,7 +720,7 @@ namespace FMS.WebClient.Services
     <table width='100%' cellpadding='0' cellspacing='0' border='0'>
     <tr>
       <td style='font-size:16px;font-weight:600;color:#ffffff;'>Hyoung Fleet Management</td>
-      <td align='right' style='font-size:11px;color:rgba(255,255,255,0.8);'>Report Delivery</td>
+      <td align='right' style='font-size:11px;color:#ffffff;'>Report Delivery</td>
     </tr>
     </table>
   </td></tr>

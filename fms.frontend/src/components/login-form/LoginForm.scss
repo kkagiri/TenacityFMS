@@ -3,6 +3,12 @@
 .login-form {
   .login-submit-button {
     width: 100%;
+
+    .dx-button-content,
+    .dx-button-text {
+      color: #ffffff !important;
+    }
+
     &.loading {
       cursor: progress;
     }

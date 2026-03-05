@@ -34,6 +34,12 @@
     background-color: #fff;
   }
 
+  .location-overview-grid {
+    .dx-datagrid-headers .dx-header-row > td {
+      font-weight: 600;
+    }
+  }
+
   .location-settings-overview__section-header {
     display: flex;
     flex-direction: column;
@@ -57,6 +63,26 @@
 
     .dx-datagrid-search-panel {
       margin-bottom: 0;
+    }
+  }
+
+  .dark & {
+    .location-settings-overview__tabs {
+      border-bottom-color: #3a3a3a;
+    }
+
+    .location-settings-overview__tab {
+      color: #a0a0a0;
+    }
+
+    .location-settings-overview__tab--active {
+      color: #8ecdf8;
+      border-bottom-color: #0f6cbd;
+    }
+
+    .location-settings-overview__grid-pane {
+      border-color: #3a3a3a;
+      background-color: #1f1f1f;
     }
   }
 }

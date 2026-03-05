@@ -225,8 +225,84 @@
     background: var(--fms-surface-secondary) !important;
     color: var(--fms-text-secondary) !important;
   }
+  .checkup-template-page .m365-page-header,
+  .checkup-template-page .m365-filters {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .checkup-template-page .m365-page-header__title,
+  .checkup-template-page .m365-page-header__icon,
+  .checkup-template-page .m365-checkbox__label {
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-template-page .m365-btn--ghost {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+  .checkup-template-page .m365-btn--ghost:hover {
+    background: var(--fms-hover-bg) !important;
+  }
+  .checkup-template-page .m365-select {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .checkup-template-page__grid {
+    background: #1e1e1e !important;
+  }
+  .checkup-template-page__grid .dx-datagrid,
+  .checkup-template-page__grid .dx-datagrid-rowsview,
+  .checkup-template-page__grid .dx-datagrid-content,
+  .checkup-template-page__grid .dx-datagrid-content .dx-datagrid-table,
+  .checkup-template-page__grid .dx-datagrid-content .dx-datagrid-table tbody,
+  .checkup-template-page__grid .dx-datagrid-content .dx-data-row > td {
+    background: #1e1e1e !important;
+    color: #e4e4e4 !important;
+    border-color: #3a3a3a !important;
+  }
+  .checkup-template-page__grid .dx-datagrid-header-panel,
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-toolbar,
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-toolbar-items-container,
+  .checkup-template-page__grid .dx-toolbar {
+    background: #1e1e1e !important;
+    border-color: #3a3a3a !important;
+    color: #e4e4e4 !important;
+  }
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-button,
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-button .dx-button-content,
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-button .dx-icon,
+  .checkup-template-page__grid .dx-datagrid-header-panel .dx-button .dx-button-text {
+    color: #e4e4e4 !important;
+  }
+  .checkup-template-page__grid .dx-searchpanel .dx-texteditor,
+  .checkup-template-page__grid .dx-searchpanel .dx-texteditor-input {
+    background: #252525 !important;
+    border-color: #3a3a3a !important;
+    color: #e4e4e4 !important;
+  }
   .checkup-template-page__grid .dx-datagrid-headers .dx-header-row td {
-    color: var(--fms-text-secondary) !important;
+    background: #252525 !important;
+    color: #e4e4e4 !important;
+    border-color: #3a3a3a !important;
+  }
+  .checkup-template-page__grid .dx-datagrid-headers .dx-header-row > td:hover,
+  .checkup-template-page__grid .dx-datagrid-headers .dx-header-row > td.dx-state-hover,
+  .checkup-template-page__grid .dx-datagrid-headers .dx-header-filter:hover {
+    background: #2f2f2f !important;
+    color: #e4e4e4 !important;
+  }
+  .checkup-template-page__grid .dx-row:hover > td,
+  .checkup-template-page__grid .dx-data-row.dx-state-hover > td {
+    background: #2a2a2a !important;
+    color: #e4e4e4 !important;
+  }
+  .checkup-template-page__grid .dx-datagrid .dx-row-focused > td,
+  .checkup-template-page__grid .dx-datagrid .dx-selection > td,
+  .checkup-template-page__grid .dx-datagrid-rowsview .dx-selection > td {
+    background: #303030 !important;
+    color: #ffffff !important;
   }
   .checkup-template-page .m365-cmd-btn {
     color: var(--fms-text-primary) !important;
@@ -1023,6 +1099,57 @@
   .loc-accordion__sub-heading {
     color: var(--fms-text-secondary) !important;
   }
+  .loc-config-nav {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-config-nav__item {
+    border-color: transparent !important;
+  }
+  .loc-config-nav__item:hover {
+    background: var(--fms-surface-secondary) !important;
+  }
+  .loc-config-nav__item--active {
+    background: #0f6cbd !important;
+    border-color: #1a7ed6 !important;
+  }
+  .loc-config-nav__item--active .loc-config-nav__title,
+  .loc-config-nav__item--active .loc-config-nav__desc,
+  .loc-config-nav__item--active .loc-config-nav__icon {
+    color: #ffffff !important;
+  }
+  .loc-config-nav__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-config-nav__desc {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-config-panel {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-config-panel__header {
+    border-bottom-color: var(--fms-border) !important;
+  }
+  .loc-config-panel__title {
+    color: var(--fms-text-primary) !important;
+  }
+  .loc-config-panel__title i,
+  .loc-header__icon,
+  .loc-main-toggle__icon {
+    color: #ffffff !important;
+  }
+  .loc-config-panel__desc {
+    color: var(--fms-text-secondary) !important;
+  }
+  .loc-checkbox-control__box {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .loc-checkbox-control__input:checked + .loc-checkbox-control__box {
+    background: #0078d4 !important;
+    border-color: #0078d4 !important;
+  }
   .loc-setting-row__icon {
     color: var(--fms-text-secondary) !important;
   }
@@ -1060,6 +1187,70 @@
   }
   .loc-bypass-form .m365-icon-btn {
     color: var(--fms-text-secondary) !important;
+  }
+
+  /* ══════════════════════════════════════════════════════════════
+     GEOFENCE MANAGEMENT — dark datagrid consistency
+     ══════════════════════════════════════════════════════════════ */
+  .geofence-management .geofence-type-icon {
+    color: #ffffff !important;
+  }
+  .geofence-management .geofence-grid,
+  .geofence-management .geofence-grid .dx-datagrid,
+  .geofence-management .geofence-grid .dx-datagrid-rowsview,
+  .geofence-management .geofence-grid .dx-datagrid-content,
+  .geofence-management .geofence-grid .dx-datagrid-content .dx-datagrid-table {
+    background: var(--fms-surface) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-headers,
+  .geofence-management .geofence-grid .dx-datagrid-headers .dx-header-row > td {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-filter-row > td,
+  .geofence-management .geofence-grid .dx-datagrid-filter-row .dx-editor-cell,
+  .geofence-management .geofence-grid .dx-datagrid-filter-row .dx-texteditor,
+  .geofence-management .geofence-grid .dx-datagrid-filter-row .dx-texteditor-input,
+  .geofence-management .geofence-grid .dx-datagrid-filter-row input {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-header-panel,
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-toolbar,
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-toolbar-items-container,
+  .geofence-management .geofence-grid .dx-datagrid-search-panel,
+  .geofence-management .geofence-grid .dx-datagrid-search-panel .dx-texteditor,
+  .geofence-management .geofence-grid .dx-datagrid-search-panel .dx-texteditor-input {
+    background: var(--fms-surface) !important;
+    color: #ffffff !important;
+    border-color: var(--fms-border) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-button,
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-button .dx-button-content,
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-button .dx-icon,
+  .geofence-management .geofence-grid .dx-datagrid-header-panel .dx-button .dx-button-text {
+    color: #ffffff !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-rowsview .dx-row > td {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+    border-color: var(--fms-border) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-rowsview .dx-row-alt > td,
+  .geofence-management .geofence-grid .dx-datagrid-rowsview .dx-data-row.dx-row-alt > td {
+    background: var(--fms-surface-secondary) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-rowsview .dx-row:hover > td,
+  .geofence-management .geofence-grid .dx-datagrid-rowsview .dx-state-hover > td {
+    background: rgba(0, 120, 212, 0.18) !important;
+  }
+  .geofence-management .geofence-grid .dx-datagrid-headers .dx-datagrid-text-content,
+  .geofence-management .geofence-grid .dx-datagrid-headers .dx-header-filter,
+  .geofence-management .geofence-grid .dx-datagrid-headers .dx-sort,
+  .geofence-management .geofence-grid .dx-datagrid-headers .dx-sort::before {
+    color: var(--fms-text-primary) !important;
   }
 
 }

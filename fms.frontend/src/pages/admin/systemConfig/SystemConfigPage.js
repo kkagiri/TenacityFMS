@@ -234,8 +234,6 @@ const SystemConfigPage = () => {
   const onRowPrepared = useCallback((e) => {
     if (e.rowType === "data" && e.data?.isCategory) {
       e.rowElement.classList.add("category-row");
-      e.rowElement.style.backgroundColor = "#f1f5f9";
-      e.rowElement.style.fontWeight = "600";
     }
   }, []);
 
@@ -374,7 +372,7 @@ const SystemConfigPage = () => {
 
   return (
     <ScrollView className="">
-      <div className=" content content-block">
+      <div className=" content content-block system-config-page">
         {/* Filters Panel */}
         {showFilters && (
           <div className="tw-mb-6 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">

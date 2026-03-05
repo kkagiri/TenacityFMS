@@ -10,6 +10,68 @@
     color: var(--fms-text-primary) !important;
   }
 
+  /* ── DevExtreme notify/toast: keep normal semantic colors ── */
+  .dx-overlay-wrapper.dx-toast .dx-overlay-content,
+  .dx-toast-wrapper .dx-overlay-content {
+    background-color: #2f2f2f !important;
+    color: #ffffff !important;
+    border: 1px solid #444 !important;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.35) !important;
+  }
+
+  .dx-toast .dx-toast-content,
+  .dx-toast-wrapper .dx-toast-content {
+    color: #ffffff !important;
+    border: 1px solid transparent !important;
+  }
+
+  .dx-toast .dx-toast-message,
+  .dx-toast-wrapper .dx-toast-message,
+  .dx-toast .dx-toast-icon,
+  .dx-toast-wrapper .dx-toast-icon {
+    color: #ffffff !important;
+  }
+
+  .dx-overlay-wrapper.dx-toast .dx-overlay-content.dx-toast-info,
+  .dx-overlay-wrapper.dx-toast .dx-toast-info,
+  .dx-toast.dx-toast-info .dx-toast-content,
+  .dx-toast-info .dx-toast-content {
+    background-color: #0078d4 !important;
+    border-color: #006cbe !important;
+  }
+
+  .dx-overlay-wrapper.dx-toast .dx-overlay-content.dx-toast-success,
+  .dx-overlay-wrapper.dx-toast .dx-toast-success,
+  .dx-toast.dx-toast-success .dx-toast-content,
+  .dx-toast-success .dx-toast-content {
+    background-color: #107c10 !important;
+    border-color: #0b6a0b !important;
+  }
+
+  .dx-overlay-wrapper.dx-toast .dx-overlay-content.dx-toast-warning,
+  .dx-overlay-wrapper.dx-toast .dx-toast-warning,
+  .dx-toast.dx-toast-warning .dx-toast-content,
+  .dx-toast-warning .dx-toast-content {
+    background-color: #ffb900 !important;
+    border-color: #e0a300 !important;
+    color: #201f1e !important;
+  }
+
+  .dx-toast.dx-toast-warning .dx-toast-message,
+  .dx-toast-warning .dx-toast-message,
+  .dx-toast.dx-toast-warning .dx-toast-icon,
+  .dx-toast-warning .dx-toast-icon {
+    color: #201f1e !important;
+  }
+
+  .dx-overlay-wrapper.dx-toast .dx-overlay-content.dx-toast-error,
+  .dx-overlay-wrapper.dx-toast .dx-toast-error,
+  .dx-toast.dx-toast-error .dx-toast-content,
+  .dx-toast-error .dx-toast-content {
+    background-color: #d13438 !important;
+    border-color: #b52d31 !important;
+  }
+
   .dx-popup-content {
     background-color: var(--fms-surface) !important;
     color: var(--fms-text-primary) !important;

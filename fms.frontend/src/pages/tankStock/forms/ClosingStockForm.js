@@ -40,6 +40,7 @@ import { createClosingStock } from "../../../redux/actions/ClosingStockActions";
 import { prepareOpeningClosingStockParams } from "../../../utils/stockDataPreparation";
 import LoadIndicator from "devextreme-react/load-indicator";
 import notify from "devextreme/ui/notify";
+import { confirm } from "devextreme/ui/dialog";
 import "./_m365-form-common.scss";
 
 // Future records validation imports
@@ -536,6 +537,39 @@ const ClosingStockForm = ({
         if (onSubmit) {
           onSubmit(formData);
         }
+      } else if (
+        response.message &&
+        response.message.startsWith("UNRECORDED_DELIVERY_WARNING:")
+      ) {
+        // Closing stock is significantly higher than expected with no delivery recorded
+        const warningText = response.message
+          .replace("UNRECORDED_DELIVERY_WARNING:", "")
+          .trim();
+        const confirmed = await confirm(
+          warningText + "\n\nDo you want to proceed anyway?",
+          "Unrecorded Delivery Warning"
+        );
+        if (confirmed) {
+          const retryResponse = await dispatch(
+            createClosingStock({ ...params, confirmOverride: true })
+          );
+          if (retryResponse.success) {
+            showNotification(
+              retryResponse.message || "Closing stock created successfully",
+              "success",
+              3000
+            );
+            resetValidation();
+            if (onCancel) onCancel();
+            if (onSubmit) onSubmit(formData);
+          } else {
+            showNotification(
+              retryResponse.message || "Failed to create closing stock",
+              "error",
+              5000
+            );
+          }
+        }
       } else {
         showNotification(
           response.message || "Failed to create closing stock",
@@ -601,6 +635,39 @@ const ClosingStockForm = ({
         resetValidation();
         // Clear form for new entry (keeps site and date)
         clearFormData();
+      } else if (
+        response.message &&
+        response.message.startsWith("UNRECORDED_DELIVERY_WARNING:")
+      ) {
+        // Closing stock is significantly higher than expected with no delivery recorded
+        const warningText = response.message
+          .replace("UNRECORDED_DELIVERY_WARNING:", "")
+          .trim();
+        const confirmed = await confirm(
+          warningText + "\n\nDo you want to proceed anyway?",
+          "Unrecorded Delivery Warning"
+        );
+        if (confirmed) {
+          const retryResponse = await dispatch(
+            createClosingStock({ ...params, confirmOverride: true })
+          );
+          if (retryResponse.success) {
+            showNotification(
+              retryResponse.message ||
+              "Closing stock created successfully. Form cleared for new entry.",
+              "success",
+              3000
+            );
+            resetValidation();
+            clearFormData();
+          } else {
+            showNotification(
+              retryResponse.message || "Failed to create closing stock",
+              "error",
+              5000
+            );
+          }
+        }
       } else {
         showNotification(
           response.message || "Failed to create closing stock",

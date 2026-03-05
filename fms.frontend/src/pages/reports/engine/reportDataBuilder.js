@@ -898,6 +898,68 @@ const mapTankVolumeHistory = (rawRecords, container) => {
         }),
     };
 
+    // ── Analytics — chart data for 7-day dispensing + vehicle type ──────
+    const dispensingRows = allRows.filter((r) => r.isDispensing);
+
+    // Daily dispensing grouped by date
+    const dailyMap = new Map();
+    dispensingRows.forEach((r) => {
+        const dateKey = r.timestamp?.date || 'Unknown';
+        dailyMap.set(dateKey, (dailyMap.get(dateKey) || 0) + Math.abs(r._volumeChangeRaw));
+    });
+    const dailyEntries = Array.from(dailyMap.entries())
+        .map(([date, vol]) => ({ date, volume: Math.round(vol * 100) / 100 }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+    const last7 = dailyEntries.length > 7 ? dailyEntries.slice(-7) : dailyEntries;
+
+    const sevenDayTotal = last7.reduce((s, d) => s + d.volume, 0);
+    const dailyAverage = last7.length > 0 ? Math.round(sevenDayTotal / last7.length) : 0;
+    const peakDay = [...last7].sort((a, b) => b.volume - a.volume)[0] || null;
+    const lowestDay = last7.filter((d) => d.volume > 0).sort((a, b) => a.volume - b.volume)[0] || null;
+
+    // Vehicle type consumption
+    const vtMap = new Map();
+    dispensingRows.forEach((r) => {
+        const vt = r.notes || 'Other';
+        vtMap.set(vt, (vtMap.get(vt) || 0) + Math.abs(r._volumeChangeRaw));
+    });
+    const vehicleTypeGroups = Array.from(vtMap.entries())
+        .map(([type, litres]) => ({ type, litres: Math.round(litres * 100) / 100 }))
+        .sort((a, b) => b.litres - a.litres);
+    const vtTotal = vehicleTypeGroups.reduce((s, v) => s + v.litres, 0);
+
+    const avgPerFill = dispensingRows.length > 0
+        ? (totalDispensedRaw / dispensingRows.length).toFixed(1)
+        : '0.0';
+    const activeVehicles = new Set(
+        dispensingRows.filter((r) => r.vehiclePlate && r.vehiclePlate !== '\u2014').map((r) => r.vehiclePlate)
+    ).size;
+
+    const chartData = {
+        dailyDispensing: {
+            labels: last7.map((d) => d.date),
+            data: last7.map((d) => d.volume),
+        },
+        vehicleTypeConsumption: {
+            labels: vehicleTypeGroups.map((v) => v.type),
+            data: vehicleTypeGroups.map((v) => v.litres),
+            total: vtTotal,
+        },
+    };
+
+    const analytics = {
+        kpis: {
+            sevenDayTotal: formatNumber(sevenDayTotal) + ' L',
+            dailyAverage: formatNumber(dailyAverage) + ' L',
+            peakDayLabel: peakDay ? peakDay.date : '\u2014',
+            peakDayVolume: peakDay ? formatNumber(peakDay.volume) : '0',
+            lowestDayLabel: lowestDay ? lowestDay.date : '\u2014',
+            lowestDayVolume: lowestDay ? formatNumber(lowestDay.volume) : '0',
+            avgPerVehicleFill: avgPerFill,
+            fleetActiveCount: activeVehicles,
+        },
+    };
+
     return {
         records: allRows,
         siteGroups,
@@ -918,6 +980,8 @@ const mapTankVolumeHistory = (rawRecords, container) => {
             tanksMonitored: tankGroupMap.size,
             sitesMonitored: siteMap.size,
         },
+        analytics,
+        analyticsJson: JSON.stringify(chartData),
     };
 };
 
@@ -1017,6 +1081,9 @@ const mapTransactionHistorySummary = (rawRecords) => {
             ? `${parsed.getFullYear()}-${String(parsed.getMonth() + 1).padStart(2, '0')}`
             : 'unknown';
 
+        const vehicleName = normalizeText(getValue(record, ['vehicleName', 'vehicle']), '');
+        const vehicleType = normalizeText(getValue(record, ['vehicleType']), '');
+
         return {
             tankId,
             tankName,
@@ -1026,6 +1093,8 @@ const mapTransactionHistorySummary = (rawRecords) => {
             volumeChangeRaw,
             newVolumeRaw,
             transactionType,
+            vehicleName,
+            vehicleType,
             isDelivery: isTankEventMatch(transactionType, ['delivery', 'intankdelivery']),
             isDispensing: isTankEventMatch(transactionType, ['dispensing']),
             isTransfer: isTankEventMatch(transactionType, ['transfer']),
@@ -1159,6 +1228,160 @@ const mapTransactionHistorySummary = (rawRecords) => {
     const grandTransfer = rows.filter((r) => r.isTransfer).reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
     const netVariance = grandDelivery + grandTransfer - grandDispensing;
 
+    // ── 5. Analytics — charts, gauges, top vehicles, days of supply ─────────
+    const dispensingRows = rows.filter((r) => r.isDispensing);
+    const deliveryRows = rows.filter((r) => r.isDelivery);
+    const transferRows = rows.filter((r) => r.isTransfer);
+    const adjustmentRows = rows.filter((r) => !r.isDispensing && !r.isDelivery && !r.isTransfer);
+    const dispensingTxnCount = dispensingRows.length;
+    const deliveryTxnCount = deliveryRows.length;
+    const transferTxnCount = transferRows.length;
+    const adjustmentTxnCount = adjustmentRows.length;
+
+    // Daily consumption trend (dispensing per day)
+    const dailyMap = new Map();
+    dispensingRows.forEach((r) => {
+        if (!r.timestamp) return;
+        const key = `${r.timestamp.getFullYear()}-${String(r.timestamp.getMonth() + 1).padStart(2, '0')}-${String(r.timestamp.getDate()).padStart(2, '0')}`;
+        dailyMap.set(key, (dailyMap.get(key) || 0) + Math.abs(r.volumeChangeRaw));
+    });
+    const dailyConsumption = Array.from(dailyMap.entries())
+        .map(([dateStr, volume]) => ({ date: new Date(dateStr), volume: roundTo(volume, 2) }))
+        .sort((a, b) => a.date - b.date);
+
+    const totalDays = Math.max(1, dailyConsumption.length);
+    const avgDailyAll = dailyConsumption.length > 0
+        ? roundTo(dailyConsumption.reduce((s, d) => s + d.volume, 0) / totalDays, 0) : 0;
+    const peakDay = dailyConsumption.length > 0
+        ? dailyConsumption.reduce((best, d) => d.volume > best.volume ? d : best, dailyConsumption[0]) : null;
+    const lowestDay = dailyConsumption.length > 0
+        ? dailyConsumption.reduce((best, d) => d.volume < best.volume ? d : best, dailyConsumption[0]) : null;
+
+    // Vehicle type consumption
+    const vehicleTypeMap = new Map();
+    dispensingRows.forEach((r) => {
+        const vt = r.vehicleType || 'Unknown';
+        vehicleTypeMap.set(vt, (vehicleTypeMap.get(vt) || 0) + Math.abs(r.volumeChangeRaw));
+    });
+    const vehicleTypeGroups = Array.from(vehicleTypeMap.entries())
+        .map(([type, litres]) => ({ type, litres: roundTo(litres, 2) }))
+        .sort((a, b) => b.litres - a.litres);
+    const vehicleTypeTotal = vehicleTypeGroups.reduce((s, v) => s + v.litres, 0) || 1;
+
+    // Site comparison — per month dispensing per site
+    const allSiteNames = [...new Set(rows.map((r) => r.siteName))].sort();
+    const monthKeysDistinct = [...new Set(rows.map((r) => r.monthKey))].sort();
+    const siteComparisonDatasets = monthKeysDistinct.map((mk) => ({
+        label: mk,
+        data: allSiteNames.map((site) => {
+            return roundTo(
+                rows.filter((r) => r.monthKey === mk && r.siteName === site && r.isDispensing)
+                    .reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0), 2);
+        }),
+    }));
+
+    // Top 10 vehicles by dispensing volume
+    const vehicleTotals = new Map();
+    dispensingRows.forEach((r) => {
+        const plate = r.vehicleName || 'Unknown';
+        if (!vehicleTotals.has(plate)) {
+            vehicleTotals.set(plate, { plate, litres: 0, txnCount: 0, fuelType: r.vehicleType || 'diesel' });
+        }
+        const v = vehicleTotals.get(plate);
+        v.litres += Math.abs(r.volumeChangeRaw);
+        v.txnCount += 1;
+    });
+    const topVehiclesList = Array.from(vehicleTotals.values())
+        .sort((a, b) => b.litres - a.litres)
+        .slice(0, 10)
+        .map((v) => ({ ...v, litres: roundTo(v.litres, 2) }));
+    const maxVehicleLitres = topVehiclesList.length > 0 ? topVehiclesList[0].litres : 1;
+
+    // Days of supply per site
+    const daysOfSupplyList = allSiteNames.map((siteName) => {
+        const siteRows = rows.filter((r) => r.siteName === siteName);
+        const siteDisp = siteRows.filter((r) => r.isDispensing);
+        const sorted = [...siteRows].sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
+        const closingStock = sorted.length > 0 ? sorted[sorted.length - 1].newVolumeRaw : 0;
+        const totalDisp = siteDisp.reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
+
+        const siteDailyMap = new Map();
+        siteDisp.forEach((r) => {
+            if (!r.timestamp) return;
+            const k = `${r.timestamp.getFullYear()}-${String(r.timestamp.getMonth() + 1).padStart(2, '0')}-${String(r.timestamp.getDate()).padStart(2, '0')}`;
+            siteDailyMap.set(k, (siteDailyMap.get(k) || 0) + Math.abs(r.volumeChangeRaw));
+        });
+        const siteDays = Math.max(1, siteDailyMap.size);
+        const avgDaily = roundTo(totalDisp / siteDays, 2);
+        const daysRemaining = avgDaily > 0 ? Math.round(closingStock / avgDaily) : 9999;
+        const statusColor = daysRemaining <= 7 ? '#DC3545' : daysRemaining <= 14 ? '#D97706' : '#107C10';
+        const widthPercent = Math.min(100, Math.max(3, Math.round((daysRemaining / 60) * 100)));
+
+        return {
+            siteName,
+            days: daysRemaining,
+            closingStockFormatted: formatNumber(closingStock),
+            avgDailyFormatted: formatNumber(avgDaily),
+            statusColor,
+            widthPercent,
+        };
+    });
+
+    const lowStockSites = daysOfSupplyList.filter((s) => s.days <= 10);
+
+    // Variance gauges per tank (across all months)
+    const allTankKeys = [...new Set(rows.filter((r) => r.tankId !== 'unknown').map((r) => `${r.tankId}||${r.tankName}||${r.siteName}`))];
+    const varianceGauges = allTankKeys.map((key) => {
+        const [tankId, tankName, siteName] = key.split('||');
+        const tankRows = rows.filter((r) => String(r.tankId) === tankId);
+        const sorted = [...tankRows].sort((a, b) => (a.timestamp?.getTime() || 0) - (b.timestamp?.getTime() || 0));
+        const first = sorted[0];
+        const last = sorted[sorted.length - 1];
+
+        const opening = first ? first.newVolumeRaw - first.volumeChangeRaw : 0;
+        const closing = last ? last.newVolumeRaw : 0;
+        const disp = tankRows.filter((r) => r.isDispensing).reduce((s, r) => s + Math.abs(r.volumeChangeRaw), 0);
+        const deliv = tankRows.filter((r) => r.isDelivery).reduce((s, r) => s + r.volumeChangeRaw, 0);
+        const trans = tankRows.filter((r) => r.isTransfer).reduce((s, r) => s + r.volumeChangeRaw, 0);
+        const expected = opening + deliv + trans - disp;
+        const variance = closing - expected;
+        const variPct = expected !== 0 ? Math.abs(roundTo((variance / Math.abs(expected)) * 100, 2)) : 0;
+        const status = variPct < 0.5 ? 'ok' : variPct < 2 ? 'warn' : 'danger';
+        const filledRatio = Math.min(1, variPct / 3);
+
+        return { tankName, siteName, variancePercent: variPct, isLoss: variance < 0, status, filledRatio };
+    }).sort((a, b) => b.variancePercent - a.variancePercent);
+
+    const avgPerVehicleTxn = dispensingTxnCount > 0 ? roundTo(grandDispensing / dispensingTxnCount, 1) : 0;
+
+    // Format date labels
+    const fmtDate = (d) => {
+        const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        return `${d.getDate()} ${MONTHS[d.getMonth()]}`;
+    };
+
+    // Build chart data object (mirrors backend chartData for analyticsJson)
+    const chartData = {
+        dailyTrend: {
+            labels: dailyConsumption.map((d) => fmtDate(d.date)),
+            data: dailyConsumption.map((d) => d.volume),
+        },
+        txnTypeSplit: {
+            labels: ['Dispensing', 'Delivery', 'Transfer', 'Adjustment'],
+            data: [dispensingTxnCount, deliveryTxnCount, transferTxnCount, adjustmentTxnCount],
+        },
+        siteComparison: {
+            labels: allSiteNames,
+            datasets: siteComparisonDatasets,
+        },
+        vehicleTypeConsumption: {
+            labels: vehicleTypeGroups.map((v) => v.type),
+            data: vehicleTypeGroups.map((v) => v.litres),
+            total: vehicleTypeTotal,
+        },
+        varianceGauges,
+    };
+
     return {
         records: rows,
         monthlyGroups,
@@ -1179,7 +1402,33 @@ const mapTransactionHistorySummary = (rawRecords) => {
             monthsCovered: monthlyGroups.length,
             sitesMonitored: new Set(rows.map((r) => r.siteName)).size,
             tanksMonitored: new Set(rows.map((r) => r.tankId)).size,
+            avgDailyDispensed: formatNumber(avgDailyAll),
         },
+        analytics: {
+            topVehicles: topVehiclesList.map((v) => ({
+                plate: v.plate,
+                litresFormatted: formatNumber(v.litres),
+                txnCount: v.txnCount,
+                fuelType: v.fuelType,
+                widthPercent: Math.round((v.litres / maxVehicleLitres) * 100),
+            })),
+            daysOfSupply: daysOfSupplyList,
+            kpis: {
+                peakDayLabel: peakDay ? fmtDate(peakDay.date) : '\u2014',
+                peakDayVolume: peakDay ? `${formatNumber(peakDay.volume)} L` : '0 L',
+                avgDailyLabel: `${formatNumber(avgDailyAll)} L`,
+                avgDailyNote: `across ${totalDays} days`,
+                lowestDayLabel: lowestDay ? fmtDate(lowestDay.date) : '\u2014',
+                lowestDayVolume: lowestDay ? `${formatNumber(lowestDay.volume)} L` : '0 L',
+                avgPerVehicleTxn: `${avgPerVehicleTxn} L`,
+                lowStockAlertCount: lowStockSites.length,
+                lowStockSites: lowStockSites.length > 0
+                    ? lowStockSites.map((s) => s.siteName).join(' \u00B7 ') : 'None',
+                dispensingTxnCount,
+                deliveryTxnCount,
+            },
+        },
+        analyticsJson: JSON.stringify(chartData),
     };
 };
 

@@ -1,3 +1,12 @@
+/**
+ * File: LocationRulesSettings.js
+ * Purpose: Manage location validation settings, bypass controls, and related geofence rules.
+ * Dependencies: redux, devextreme-react, geofenceService, M365SidePanel
+ * Last Modified: 2026-03-05
+ *
+ * Key Components:
+ * - LocationRulesSettings: Full-page configuration UI for location rule administration.
+ */
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { LoadPanel } from "devextreme-react/load-panel";
@@ -25,7 +34,7 @@ import LocationSettingsOverview from "./LocationSettingsOverview";
 import M365SidePanel from "../../../components/common/M365SidePanel";
 import "./LocationRulesSettings.scss";
 
-const LocationRulesSettings = () => {
+const LocationRulesSettings = ({ showTopInfo = true, onActionStateChange = null }) => {
   const dispatch = useDispatch();
   const { hasPermission } = usePermissions();
   const { configurations, loading } = useSelector(
@@ -83,9 +92,17 @@ const LocationRulesSettings = () => {
 
   // Bypass history popup state
   const [showBypassHistoryPopup, setShowBypassHistoryPopup] = useState(false);
+  const [bypassHistoryHeaderActions, setBypassHistoryHeaderActions] = useState({
+    onRefresh: null,
+    canRefresh: false,
+  });
 
   // Location settings overview popup state
   const [showSettingsOverviewPopup, setShowSettingsOverviewPopup] = useState(false);
+  const [settingsOverviewHeaderActions, setSettingsOverviewHeaderActions] = useState({
+    onRefresh: null,
+    canRefresh: false,
+  });
 
   // Check if user has admin permission for location rules
   const hasAdminPermission = hasPermission("_Manage_LocationValidation");
@@ -291,6 +308,27 @@ const LocationRulesSettings = () => {
     dispatch(fetchSystemConfigurations({ category: "FuelingRules" }));
     fetchBypassStatus();
   }, [dispatch]);
+
+  useEffect(() => {
+    if (!onActionStateChange) {
+      return;
+    }
+
+    onActionStateChange({
+      onRefresh: handleRefresh,
+      onSave: handleSave,
+      canRefresh: !loading && !saving,
+      canSave: hasChanges && hasAdminPermission && !saving,
+    });
+  }, [
+    onActionStateChange,
+    handleRefresh,
+    handleSave,
+    loading,
+    saving,
+    hasChanges,
+    hasAdminPermission,
+  ]);
 
   // Fetch temporary bypass status
   const fetchBypassStatus = useCallback(async () => {
@@ -559,36 +597,62 @@ const LocationRulesSettings = () => {
     (bypassStatus.vehicleBypasses?.length || 0) +
     (bypassStatus.userBypasses?.length || 0);
 
-  // Accordion section state
-  const [expandedSections, setExpandedSections] = useState({
-    bypass: true,
-    geofence: false,
-    proximity: false,
-    gps: false,
-    mobile: false,
-    fallback: false,
-  });
+  const [activeConfigSection, setActiveConfigSection] = useState("bypass");
 
-  const toggleSection = (key) => {
-    setExpandedSections((prev) => ({ ...prev, [key]: !prev[key] }));
-  };
+  const SECTION_ITEMS = [
+    {
+      id: "bypass",
+      icon: "fa-shield-xmark",
+      title: "Temporary Bypass",
+      description: "Emergency controls",
+      badge: activeBypassCount > 0 ? `${activeBypassCount}` : null,
+    },
+    {
+      id: "geofence",
+      icon: "fa-map-location-dot",
+      title: "Geofence Validation",
+      description: "Boundary requirements",
+    },
+    {
+      id: "proximity",
+      icon: "fa-bullseye",
+      title: "Proximity Radius",
+      description: "Distance thresholds",
+    },
+    {
+      id: "gps",
+      icon: "fa-satellite",
+      title: "GPS Configuration",
+      description: "Accuracy and cache",
+    },
+    {
+      id: "mobile",
+      icon: "fa-mobile-screen-button",
+      title: "Mobile App Location",
+      description: "App GPS validation",
+    },
+    {
+      id: "fallback",
+      icon: "fa-shield-check",
+      title: "Fallback & Grace",
+      description: "Exception handling",
+    },
+  ];
 
-  // Accordion header component
-  const AccordionHeader = ({ sectionKey, icon, title, description, badge }) => (
+  const ConfigNavItem = ({ item }) => (
     <button
       type="button"
-      className="loc-accordion__header"
-      onClick={() => toggleSection(sectionKey)}
+      className={`loc-config-nav__item ${activeConfigSection === item.id ? "loc-config-nav__item--active" : ""}`}
+      onClick={() => setActiveConfigSection(item.id)}
     >
-      <div className="loc-accordion__header-left">
-        <i className={`fa-light ${icon} loc-accordion__icon`}></i>
-        <div>
-          <span className="loc-accordion__title">{title}</span>
-          {description && <span className="loc-accordion__desc">{description}</span>}
+      <div className="loc-config-nav__content">
+        <i className={`fa-light ${item.icon} loc-config-nav__icon`}></i>
+        <div className="loc-config-nav__text">
+          <span className="loc-config-nav__title">{item.title}</span>
+          <span className="loc-config-nav__desc">{item.description}</span>
         </div>
-        {badge}
       </div>
-      <i className={`fa-light fa-chevron-${expandedSections[sectionKey] ? "up" : "down"} loc-accordion__chevron`}></i>
+      {item.badge && <span className="m365-badge m365-badge--error">{item.badge}</span>}
     </button>
   );
 
@@ -608,17 +672,19 @@ const LocationRulesSettings = () => {
     </div>
   );
 
-  // Clean toggle switch component
+  // Checkbox control component
   const ToggleSwitch = ({ checked, onChange, disabled }) => (
-    <label className="loc-toggle">
+    <label className="loc-checkbox-control">
       <input
         type="checkbox"
         checked={checked}
         onChange={(e) => onChange(e.target.checked)}
         disabled={disabled}
-        className="tw-sr-only tw-peer"
+        className="loc-checkbox-control__input"
       />
-      <div className="loc-toggle__track tw-peer peer-checked:after:tw-translate-x-full peer-checked:after:tw-border-white after:tw-content-[''] after:tw-absolute after:tw-top-[2px] after:tw-left-[2px] after:tw-bg-white after:tw-border-gray-300 after:tw-border after:tw-rounded-full after:tw-h-5 after:tw-w-5 after:tw-transition-all peer-checked:tw-bg-[#0078d4] peer-disabled:tw-opacity-40 peer-disabled:tw-cursor-not-allowed"></div>
+      <span className="loc-checkbox-control__box">
+        <i className="fa-light fa-check"></i>
+      </span>
     </label>
   );
 
@@ -633,19 +699,6 @@ const LocationRulesSettings = () => {
             <span className="loc-header__subtitle">Configure GPS and location-based validation for fuel dispensing</span>
           </div>
         </div>
-        <div className="loc-header__actions">
-          <button className="m365-btn m365-btn--ghost" onClick={handleRefresh} disabled={loading}>
-            <i className="fa-light fa-rotate-right"></i> Refresh
-          </button>
-          {hasChanges && (
-            <button className="m365-btn m365-btn--ghost" onClick={handleReset}>
-              <i className="fa-light fa-undo"></i> Reset
-            </button>
-          )}
-          <button className="m365-btn m365-btn--primary" onClick={handleSave} disabled={!hasChanges || !hasAdminPermission || saving}>
-            <i className="fa-light fa-save"></i> Save
-          </button>
-        </div>
       </div>
 
       {/* Permission Warning */}
@@ -653,6 +706,30 @@ const LocationRulesSettings = () => {
         <div className="m365-info-banner m365-info-banner--warning" style={{ margin: "0 0 12px 0" }}>
           <i className="fa-light fa-triangle-exclamation m365-info-banner__icon"></i>
           <span className="m365-info-banner__text">You don't have permission to modify these settings.</span>
+        </div>
+      )}
+
+      {/* Top Info Bubbles */}
+      {showTopInfo && (
+        <div className="loc-info-section loc-info-section--top">
+          <div className="m365-info-banner">
+            <i className="fa-light fa-circle-info m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                Location validation ensures vehicles are within the specified proximity before dispensing.
+                Vehicle GPS tracking must be enabled. Mobile app users need location permissions.
+              </span>
+            </div>
+          </div>
+          <div className="m365-info-banner m365-info-banner--warning">
+            <i className="fa-light fa-location-dot m365-info-banner__icon"></i>
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                To set tank GPS coordinates, navigate to <strong>Admin → Tank Management</strong>.
+                Each tank must have valid GPS coordinates for location validation to work.
+              </span>
+            </div>
+          </div>
         </div>
       )}
 
@@ -672,315 +749,328 @@ const LocationRulesSettings = () => {
         />
       </div>
 
-      {/* Accordion Sections */}
-      <div className="loc-accordion-list">
+      {/* Configuration Layout */}
+      <div className="loc-config-layout">
+        <aside className="loc-config-nav">
+          {SECTION_ITEMS.map((item) => (
+            <ConfigNavItem key={item.id} item={item} />
+          ))}
+        </aside>
 
-        {/* 1. Temporary Bypass Section */}
-        <div className="loc-accordion">
-          <AccordionHeader
-            sectionKey="bypass"
-            icon="fa-shield-xmark"
-            title="Temporary Location Bypass"
-            description="Disable location validation temporarily for emergencies"
-            badge={activeBypassCount > 0 ? (
-              <span className="m365-badge m365-badge--error">{activeBypassCount} Active</span>
-            ) : null}
-          />
-          {expandedSections.bypass && (
-            <div className="loc-accordion__body">
-              {/* Active System-Wide Bypass */}
-              {bypassStatus.isActive && (
-                <div className="loc-bypass-active">
-                  <div className="loc-bypass-active__info">
-                    <i className="fa-light fa-globe"></i>
-                    <div>
-                      <span className="loc-bypass-active__label">System-Wide Bypass</span>
-                      <span className="loc-bypass-active__meta">
-                        Expires: {bypassStatus.expiresAt ? new Date(bypassStatus.expiresAt).toLocaleTimeString() : "N/A"}
-                        {countdownDisplay && ` — ${countdownDisplay} remaining`}
-                      </span>
-                      <span className="loc-bypass-active__meta">
-                        By: {bypassStatus.enabledBy}{bypassStatus.reason && ` — ${bypassStatus.reason}`}
-                      </span>
-                    </div>
-                  </div>
-                  <button className="m365-btn m365-btn--danger" onClick={handleCancelBypass} disabled={!hasAdminPermission || bypassLoading}>
-                    <i className="fa-light fa-times"></i> Cancel
-                  </button>
-                </div>
-              )}
+        <section className="loc-config-content">
+          {activeConfigSection === "bypass" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-shield-xmark"></i>
+                  Temporary Location Bypass
+                </h3>
+                <span className="loc-config-panel__desc">Disable location validation temporarily for emergencies.</span>
+              </div>
 
-              {/* Active Vehicle Bypasses */}
-              {bypassStatus.vehicleBypasses?.length > 0 && (
-                <div className="loc-bypass-group">
-                  <span className="loc-bypass-group__label"><i className="fa-light fa-car"></i> Vehicle Bypasses</span>
-                  {bypassStatus.vehicleBypasses.map((bypass) => (
-                    <div key={bypass.id} className="loc-bypass-item">
+              <div className="loc-accordion__body">
+                {/* Active System-Wide Bypass */}
+                {bypassStatus.isActive && (
+                  <div className="loc-bypass-active">
+                    <div className="loc-bypass-active__info">
+                      <i className="fa-light fa-globe"></i>
                       <div>
-                        <span className="loc-bypass-item__name">{bypass.vehicleName || bypass.vehicleHyoungNo || `Vehicle #${bypass.vehicleId}`}</span>
-                        <span className="loc-bypass-item__meta">Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}</span>
+                        <span className="loc-bypass-active__label">System-Wide Bypass</span>
+                        <span className="loc-bypass-active__meta">
+                          Expires: {bypassStatus.expiresAt ? new Date(bypassStatus.expiresAt).toLocaleTimeString() : "N/A"}
+                          {countdownDisplay && ` — ${countdownDisplay} remaining`}
+                        </span>
+                        <span className="loc-bypass-active__meta">
+                          By: {bypassStatus.enabledBy}{bypassStatus.reason && ` — ${bypassStatus.reason}`}
+                        </span>
                       </div>
-                      <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.vehicleName || bypass.vehicleHyoungNo)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
-                        <i className="fa-light fa-times"></i>
-                      </button>
                     </div>
-                  ))}
-                </div>
-              )}
+                    <button className="m365-btn m365-btn--danger" onClick={handleCancelBypass} disabled={!hasAdminPermission || bypassLoading}>
+                      <i className="fa-light fa-times"></i> Cancel
+                    </button>
+                  </div>
+                )}
 
-              {/* Active User Bypasses */}
-              {bypassStatus.userBypasses?.length > 0 && (
-                <div className="loc-bypass-group">
-                  <span className="loc-bypass-group__label"><i className="fa-light fa-user"></i> User Bypasses</span>
-                  {bypassStatus.userBypasses.map((bypass) => (
-                    <div key={bypass.id} className="loc-bypass-item">
-                      <div>
-                        <span className="loc-bypass-item__name">{bypass.fullName || bypass.userName || `User #${bypass.userId}`}</span>
-                        <span className="loc-bypass-item__meta">Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}</span>
+                {/* Active Vehicle Bypasses */}
+                {bypassStatus.vehicleBypasses?.length > 0 && (
+                  <div className="loc-bypass-group">
+                    <span className="loc-bypass-group__label"><i className="fa-light fa-car"></i> Vehicle Bypasses</span>
+                    {bypassStatus.vehicleBypasses.map((bypass) => (
+                      <div key={bypass.id} className="loc-bypass-item">
+                        <div>
+                          <span className="loc-bypass-item__name">{bypass.vehicleName || bypass.vehicleHyoungNo || `Vehicle #${bypass.vehicleId}`}</span>
+                          <span className="loc-bypass-item__meta">Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}</span>
+                        </div>
+                        <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.vehicleName || bypass.vehicleHyoungNo)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
+                          <i className="fa-light fa-times"></i>
+                        </button>
                       </div>
-                      <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.fullName || bypass.userName)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
-                        <i className="fa-light fa-times"></i>
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
+                    ))}
+                  </div>
+                )}
 
-              {/* Add New Bypass Form */}
-              <div className="loc-bypass-form">
-                <span className="loc-bypass-form__title"><i className="fa-light fa-plus"></i> Add New Bypass</span>
-                <div className="loc-bypass-form__grid">
-                  <div className="loc-bypass-form__field">
-                    <label>Bypass Type</label>
-                    <SelectBox
-                      items={bypassTypeOptions}
-                      value={bypassType}
-                      displayExpr="text"
-                      valueExpr="value"
-                      onValueChanged={(e) => { setBypassType(e.value); setSelectedVehicleIds([]); setSelectedUserIds([]); }}
-                      disabled={!hasAdminPermission || bypassLoading}
-                      width="100%"
-                    />
+                {/* Active User Bypasses */}
+                {bypassStatus.userBypasses?.length > 0 && (
+                  <div className="loc-bypass-group">
+                    <span className="loc-bypass-group__label"><i className="fa-light fa-user"></i> User Bypasses</span>
+                    {bypassStatus.userBypasses.map((bypass) => (
+                      <div key={bypass.id} className="loc-bypass-item">
+                        <div>
+                          <span className="loc-bypass-item__name">{bypass.fullName || bypass.userName || `User #${bypass.userId}`}</span>
+                          <span className="loc-bypass-item__meta">Expires: {bypass.expiresAt ? new Date(bypass.expiresAt).toLocaleTimeString() : "Never"}</span>
+                        </div>
+                        <button className="m365-icon-btn m365-icon-btn--danger" onClick={() => handleCancelSpecificBypass(bypass.id, bypass.fullName || bypass.userName)} disabled={!hasAdminPermission || bypassLoading} title="Cancel">
+                          <i className="fa-light fa-times"></i>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                  <div className="loc-bypass-form__field">
-                    <label>Duration</label>
-                    <SelectBox
-                      items={bypassDurationOptions}
-                      value={bypassDuration}
-                      displayExpr="text"
-                      valueExpr="value"
-                      onValueChanged={(e) => setBypassDuration(e.value)}
-                      disabled={!hasAdminPermission || bypassLoading}
-                      width="100%"
-                    />
-                  </div>
-                  {bypassType === "Vehicle" && (
-                    <div className="loc-bypass-form__field loc-bypass-form__field--wide">
-                      <label>Select Vehicles</label>
-                      <TagBox
-                        dataSource={vehicles}
-                        value={selectedVehicleIds}
-                        displayExpr="hyoungNo"
-                        valueExpr="vehicleId"
-                        onValueChanged={(e) => setSelectedVehicleIds(e.value || [])}
+                )}
+
+                {/* Add New Bypass Form */}
+                <div className="loc-bypass-form">
+                  <span className="loc-bypass-form__title"><i className="fa-light fa-plus"></i> Add New Bypass</span>
+                  <div className="loc-bypass-form__grid">
+                    <div className="loc-bypass-form__field">
+                      <label>Bypass Type</label>
+                      <SelectBox
+                        items={bypassTypeOptions}
+                        value={bypassType}
+                        displayExpr="text"
+                        valueExpr="value"
+                        onValueChanged={(e) => { setBypassType(e.value); setSelectedVehicleIds([]); setSelectedUserIds([]); }}
                         disabled={!hasAdminPermission || bypassLoading}
-                        searchEnabled={true}
-                        showSelectionControls={true}
-                        placeholder="Select vehicles..."
                         width="100%"
                       />
                     </div>
-                  )}
-                  {bypassType === "User" && (
-                    <div className="loc-bypass-form__field loc-bypass-form__field--wide">
-                      <label>Select Users</label>
-                      <TagBox
-                        dataSource={users.filter(u => !u.isDeleted)}
-                        value={selectedUserIds}
-                        displayExpr={(item) => item ? `${item.fullname || item.username || item.userName}` : ""}
-                        valueExpr="id"
-                        onValueChanged={(e) => setSelectedUserIds(e.value || [])}
+                    <div className="loc-bypass-form__field">
+                      <label>Duration</label>
+                      <SelectBox
+                        items={bypassDurationOptions}
+                        value={bypassDuration}
+                        displayExpr="text"
+                        valueExpr="value"
+                        onValueChanged={(e) => setBypassDuration(e.value)}
                         disabled={!hasAdminPermission || bypassLoading}
-                        searchEnabled={true}
-                        showSelectionControls={true}
-                        placeholder="Select users..."
                         width="100%"
                       />
                     </div>
-                  )}
-                  <div className="loc-bypass-form__field">
-                    <label>Reason (optional)</label>
-                    <TextArea
-                      value={bypassReason}
-                      onValueChanged={(e) => setBypassReason(e.value)}
-                      placeholder="Enter reason..."
-                      disabled={!hasAdminPermission || bypassLoading}
-                      height={32}
-                      maxLength={200}
-                    />
+                    {bypassType === "Vehicle" && (
+                      <div className="loc-bypass-form__field loc-bypass-form__field--wide">
+                        <label>Select Vehicles</label>
+                        <TagBox
+                          dataSource={vehicles}
+                          value={selectedVehicleIds}
+                          displayExpr="hyoungNo"
+                          valueExpr="vehicleId"
+                          onValueChanged={(e) => setSelectedVehicleIds(e.value || [])}
+                          disabled={!hasAdminPermission || bypassLoading}
+                          searchEnabled={true}
+                          showSelectionControls={true}
+                          placeholder="Select vehicles..."
+                          width="100%"
+                        />
+                      </div>
+                    )}
+                    {bypassType === "User" && (
+                      <div className="loc-bypass-form__field loc-bypass-form__field--wide">
+                        <label>Select Users</label>
+                        <TagBox
+                          dataSource={users.filter(u => !u.isDeleted)}
+                          value={selectedUserIds}
+                          displayExpr={(item) => item ? `${item.fullname || item.username || item.userName}` : ""}
+                          valueExpr="id"
+                          onValueChanged={(e) => setSelectedUserIds(e.value || [])}
+                          disabled={!hasAdminPermission || bypassLoading}
+                          searchEnabled={true}
+                          showSelectionControls={true}
+                          placeholder="Select users..."
+                          width="100%"
+                        />
+                      </div>
+                    )}
+                    <div className="loc-bypass-form__field">
+                      <label>Reason (optional)</label>
+                      <TextArea
+                        value={bypassReason}
+                        onValueChanged={(e) => setBypassReason(e.value)}
+                        placeholder="Enter reason..."
+                        disabled={!hasAdminPermission || bypassLoading}
+                        height={32}
+                        maxLength={200}
+                      />
+                    </div>
+                  </div>
+                  <div className="loc-bypass-form__actions">
+                    <button className="m365-btn m365-btn--danger" onClick={handleEnableBypass} disabled={!hasAdminPermission || bypassLoading}>
+                      <i className="fa-light fa-shield-xmark"></i> Enable {bypassType === "All" ? "System-Wide" : bypassType} Bypass
+                    </button>
                   </div>
                 </div>
-                <div className="loc-bypass-form__actions">
-                  <button className="m365-btn m365-btn--danger" onClick={handleEnableBypass} disabled={!hasAdminPermission || bypassLoading}>
-                    <i className="fa-light fa-shield-xmark"></i> Enable {bypassType === "All" ? "System-Wide" : bypassType} Bypass
+
+                {/* Warning */}
+                <div className="m365-info-banner m365-info-banner--warning" style={{ margin: "12px 0 0 0" }}>
+                  <i className="fa-light fa-triangle-exclamation m365-info-banner__icon"></i>
+                  <span className="m365-info-banner__text">
+                    {bypassType === "All"
+                      ? "System-wide bypass disables ALL location validation for all vehicles."
+                      : bypassType === "Vehicle"
+                        ? "Vehicle bypass disables location validation only for selected vehicles."
+                        : "User bypass disables location validation only for selected users."}
+                    {" "}Use for emergencies only.
+                  </span>
+                </div>
+
+                {/* History/Overview buttons */}
+                <div className="loc-bypass-links">
+                  <button className="m365-btn m365-btn--ghost" onClick={() => setShowSettingsOverviewPopup(true)}>
+                    <i className="fa-light fa-sliders"></i> Settings Overview
+                  </button>
+                  <button className="m365-btn m365-btn--ghost" onClick={() => setShowBypassHistoryPopup(true)}>
+                    <i className="fa-light fa-clock-rotate-left"></i> Bypass History
                   </button>
                 </div>
               </div>
+            </div>
+          )}
 
-              {/* Warning */}
-              <div className="m365-info-banner m365-info-banner--warning" style={{ margin: "12px 0 0 0" }}>
-                <i className="fa-light fa-triangle-exclamation m365-info-banner__icon"></i>
-                <span className="m365-info-banner__text">
-                  {bypassType === "All"
-                    ? "System-wide bypass disables ALL location validation for all vehicles."
-                    : bypassType === "Vehicle"
-                      ? "Vehicle bypass disables location validation only for selected vehicles."
-                      : "User bypass disables location validation only for selected users."}
-                  {" "}Use for emergencies only.
-                </span>
+          {activeConfigSection === "geofence" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-map-location-dot"></i>
+                  Geofence Validation
+                </h3>
+                <span className="loc-config-panel__desc">Validate fueling against geofence boundaries.</span>
               </div>
 
-              {/* History/Overview buttons */}
-              <div className="loc-bypass-links">
-                <button className="m365-btn m365-btn--ghost" onClick={() => setShowSettingsOverviewPopup(true)}>
-                  <i className="fa-light fa-sliders"></i> Settings Overview
-                </button>
-                <button className="m365-btn m365-btn--ghost" onClick={() => setShowBypassHistoryPopup(true)}>
-                  <i className="fa-light fa-clock-rotate-left"></i> Bypass History
-                </button>
-              </div>
-            </div>
-          )}
-        </div>
-
-        {/* 2. Geofence Validation Section */}
-        <div className="loc-accordion">
-          <AccordionHeader sectionKey="geofence" icon="fa-map-location-dot" title="Geofence Validation" description="Validate fueling against geofence boundaries" />
-          {expandedSections.geofence && (
-            <div className="loc-accordion__body">
-              <SettingRow icon="fa-map-location-dot" title="Enable Geofence Validation" description="Validate fueling locations against configured geofence boundaries.">
-                <ToggleSwitch checked={settings.enableGeofenceValidation} onChange={(val) => handleSettingChange("enableGeofenceValidation", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              {settings.enableGeofenceValidation && (
-                <>
-                  <div className="loc-accordion__divider"></div>
-                  <span className="loc-accordion__sub-heading">Geofence Requirements</span>
-                  <SettingRow icon="fa-truck-container" title="Require Tanker in Geofence" description="Tanker/pump must be within geofence boundary.">
-                    <ToggleSwitch checked={settings.requireTankerInGeofence} onChange={(val) => handleSettingChange("requireTankerInGeofence", val)} disabled={!hasAdminPermission} />
-                  </SettingRow>
-                  <SettingRow icon="fa-user-helmet-safety" title="Require Operator in Geofence" description="Mobile app user must be within geofence.">
-                    <ToggleSwitch checked={settings.requireOperatorInGeofence} onChange={(val) => handleSettingChange("requireOperatorInGeofence", val)} disabled={!hasAdminPermission} />
-                  </SettingRow>
-                  <SettingRow icon="fa-truck" title="Require Vehicle in Geofence" description="Vehicle being fueled must be in geofence.">
-                    <ToggleSwitch checked={settings.requireVehicleInGeofence} onChange={(val) => handleSettingChange("requireVehicleInGeofence", val)} disabled={!hasAdminPermission} />
-                  </SettingRow>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* 3. Proximity Settings */}
-        <div className="loc-accordion">
-          <AccordionHeader sectionKey="proximity" icon="fa-bullseye" title="Proximity Radius" description="Default radius settings for vehicle and mobile proximity" />
-          {expandedSections.proximity && (
-            <div className="loc-accordion__body">
-              <SettingRow icon="fa-car" title="Vehicle Proximity Radius" description="Default radius in meters for vehicle proximity validation.">
-                <NumberBox value={settings.defaultVehicleProximityRadius} onValueChanged={(e) => handleSettingChange("defaultVehicleProximityRadius", e.value)} min={10} max={1000} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-              <SettingRow icon="fa-mobile" title="Mobile Proximity Radius" description="Default radius in meters for mobile app proximity.">
-                <NumberBox value={settings.defaultMobileProximityRadius} onValueChanged={(e) => handleSettingChange("defaultMobileProximityRadius", e.value)} min={5} max={500} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-              <SettingRow icon="fa-plus-circle" title="Grace Period" description="Extra tolerance in meters added to proximity radius.">
-                <NumberBox value={settings.proximityGracePeriodMeters} onValueChanged={(e) => handleSettingChange("proximityGracePeriodMeters", e.value)} min={0} max={50} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-            </div>
-          )}
-        </div>
-
-        {/* 4. GPS Configuration */}
-        <div className="loc-accordion">
-          <AccordionHeader sectionKey="gps" icon="fa-satellite" title="GPS Configuration" description="Minimum accuracy and cache settings" />
-          {expandedSections.gps && (
-            <div className="loc-accordion__body">
-              <SettingRow icon="fa-crosshairs" title="Minimum GPS Accuracy" description="Minimum accuracy in meters required for location validation.">
-                <NumberBox value={settings.minimumGPSAccuracy} onValueChanged={(e) => handleSettingChange("minimumGPSAccuracy", e.value)} min={5} max={100} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-              <SettingRow icon="fa-clock" title="Location Cache Duration" description="How long to cache vehicle GPS location before fetching fresh data.">
-                <NumberBox value={settings.locationCacheSeconds} onValueChanged={(e) => handleSettingChange("locationCacheSeconds", e.value)} min={5} max={300} showSpinButtons={true} format="#0 sec" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-            </div>
-          )}
-        </div>
-
-        {/* 5. Mobile App Location */}
-        <div className="loc-accordion">
-          <AccordionHeader sectionKey="mobile" icon="fa-mobile-screen-button" title="Mobile App Location" description="How the mobile app obtains and validates GPS location" />
-          {expandedSections.mobile && (
-            <div className="loc-accordion__body">
-              <SettingRow icon="fa-location-dot" title="Require Mobile Location" description="Mobile app must provide GPS location for authorization.">
-                <ToggleSwitch checked={settings.requireMobileLocation} onChange={(val) => handleSettingChange("requireMobileLocation", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              <SettingRow icon="fa-location-xmark" title="Force Fresh GPS Location" description="Always get fresh GPS fix, reject cached locations.">
-                <ToggleSwitch checked={settings.rejectCachedMobileLocation} onChange={(val) => handleSettingChange("rejectCachedMobileLocation", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              <div className="loc-accordion__divider"></div>
-              <SettingRow icon="fa-stopwatch" title="Max Location Age" description="Maximum age of GPS location in seconds.">
-                <NumberBox value={settings.maxMobileLocationAgeSeconds} onValueChanged={(e) => handleSettingChange("maxMobileLocationAgeSeconds", e.value)} min={10} max={300} step={5} showSpinButtons={true} format="#0 sec" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-              <SettingRow icon="fa-bullseye" title="Max Location Accuracy" description="Maximum acceptable GPS accuracy in meters.">
-                <NumberBox value={settings.maxMobileLocationAccuracyMeters} onValueChanged={(e) => handleSettingChange("maxMobileLocationAccuracyMeters", e.value)} min={10} max={1000} step={10} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
-              </SettingRow>
-              <div className="m365-info-banner" style={{ margin: "12px 0 0 0" }}>
-                <i className="fa-light fa-circle-info m365-info-banner__icon"></i>
-                <span className="m365-info-banner__text">These settings control how the mobile app obtains GPS location before requesting authorization. The server validates that the location meets these requirements.</span>
+              <div className="loc-accordion__body">
+                <SettingRow icon="fa-map-location-dot" title="Enable Geofence Validation" description="Validate fueling locations against configured geofence boundaries.">
+                  <ToggleSwitch checked={settings.enableGeofenceValidation} onChange={(val) => handleSettingChange("enableGeofenceValidation", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                {settings.enableGeofenceValidation && (
+                  <>
+                    <div className="loc-accordion__divider"></div>
+                    <span className="loc-accordion__sub-heading">Geofence Requirements</span>
+                    <SettingRow icon="fa-truck-container" title="Require Tanker in Geofence" description="Tanker/pump must be within geofence boundary.">
+                      <ToggleSwitch checked={settings.requireTankerInGeofence} onChange={(val) => handleSettingChange("requireTankerInGeofence", val)} disabled={!hasAdminPermission} />
+                    </SettingRow>
+                    <SettingRow icon="fa-user-helmet-safety" title="Require Operator in Geofence" description="Mobile app user must be within geofence.">
+                      <ToggleSwitch checked={settings.requireOperatorInGeofence} onChange={(val) => handleSettingChange("requireOperatorInGeofence", val)} disabled={!hasAdminPermission} />
+                    </SettingRow>
+                    <SettingRow icon="fa-truck" title="Require Vehicle in Geofence" description="Vehicle being fueled must be in geofence.">
+                      <ToggleSwitch checked={settings.requireVehicleInGeofence} onChange={(val) => handleSettingChange("requireVehicleInGeofence", val)} disabled={!hasAdminPermission} />
+                    </SettingRow>
+                  </>
+                )}
               </div>
             </div>
           )}
-        </div>
 
-        {/* 6. Fallback & Grace Options */}
-        <div className="loc-accordion">
-          <AccordionHeader sectionKey="fallback" icon="fa-shield-check" title="Fallback & Grace Options" description="Handling of non-GPS vehicles, GPS failures, and audit logging" />
-          {expandedSections.fallback && (
-            <div className="loc-accordion__body">
-              <SettingRow icon="fa-car-circle-bolt" title="Allow Non-GPS Vehicles" description="Permit fueling for vehicles without GPS tracking.">
-                <ToggleSwitch checked={settings.allowNonGPSVehicles} onChange={(val) => handleSettingChange("allowNonGPSVehicles", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              <SettingRow icon="fa-signal-slash" title="Bypass on GPS Failure" description="Allow fueling if GPS is temporarily unavailable.">
-                <ToggleSwitch checked={settings.bypassOnGPSFailure} onChange={(val) => handleSettingChange("bypassOnGPSFailure", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              <SettingRow icon="fa-database" title="Allow Cached Mobile Location" description="Accept cached location from mobile app when offline.">
-                <ToggleSwitch checked={settings.allowCachedMobileLocation} onChange={(val) => handleSettingChange("allowCachedMobileLocation", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
-              <SettingRow icon="fa-file-lines" title="Enable Location Audit Log" description="Log all location validation attempts for auditing.">
-                <ToggleSwitch checked={settings.enableLocationAuditLog} onChange={(val) => handleSettingChange("enableLocationAuditLog", val)} disabled={!hasAdminPermission} />
-              </SettingRow>
+          {activeConfigSection === "proximity" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-bullseye"></i>
+                  Proximity Radius
+                </h3>
+                <span className="loc-config-panel__desc">Default radius settings for vehicle and mobile proximity.</span>
+              </div>
+
+              <div className="loc-accordion__body">
+                <SettingRow icon="fa-car" title="Vehicle Proximity Radius" description="Default radius in meters for vehicle proximity validation.">
+                  <NumberBox value={settings.defaultVehicleProximityRadius} onValueChanged={(e) => handleSettingChange("defaultVehicleProximityRadius", e.value)} min={10} max={1000} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+                <SettingRow icon="fa-mobile" title="Mobile Proximity Radius" description="Default radius in meters for mobile app proximity.">
+                  <NumberBox value={settings.defaultMobileProximityRadius} onValueChanged={(e) => handleSettingChange("defaultMobileProximityRadius", e.value)} min={5} max={500} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+                <SettingRow icon="fa-plus-circle" title="Grace Period" description="Extra tolerance in meters added to proximity radius.">
+                  <NumberBox value={settings.proximityGracePeriodMeters} onValueChanged={(e) => handleSettingChange("proximityGracePeriodMeters", e.value)} min={0} max={50} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+              </div>
             </div>
           )}
-        </div>
-      </div>
 
-      {/* Info banners at bottom */}
-      <div className="loc-info-section">
-        <div className="m365-info-banner">
-          <i className="fa-light fa-circle-info m365-info-banner__icon"></i>
-          <div className="m365-info-banner__content">
-            <span className="m365-info-banner__text">
-              Location validation ensures vehicles are within the specified proximity before dispensing.
-              Vehicle GPS tracking must be enabled. Mobile app users need location permissions.
-            </span>
-          </div>
-        </div>
-        <div className="m365-info-banner m365-info-banner--warning">
-          <i className="fa-light fa-location-dot m365-info-banner__icon"></i>
-          <div className="m365-info-banner__content">
-            <span className="m365-info-banner__text">
-              To set tank GPS coordinates, navigate to <strong>Admin → Tank Management</strong>.
-              Each tank must have valid GPS coordinates for location validation to work.
-            </span>
-          </div>
-        </div>
+          {activeConfigSection === "gps" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-satellite"></i>
+                  GPS Configuration
+                </h3>
+                <span className="loc-config-panel__desc">Minimum accuracy and location cache settings.</span>
+              </div>
+
+              <div className="loc-accordion__body">
+                <SettingRow icon="fa-crosshairs" title="Minimum GPS Accuracy" description="Minimum accuracy in meters required for location validation.">
+                  <NumberBox value={settings.minimumGPSAccuracy} onValueChanged={(e) => handleSettingChange("minimumGPSAccuracy", e.value)} min={5} max={100} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+                <SettingRow icon="fa-clock" title="Location Cache Duration" description="How long to cache vehicle GPS location before fetching fresh data.">
+                  <NumberBox value={settings.locationCacheSeconds} onValueChanged={(e) => handleSettingChange("locationCacheSeconds", e.value)} min={5} max={300} showSpinButtons={true} format="#0 sec" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+              </div>
+            </div>
+          )}
+
+          {activeConfigSection === "mobile" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-mobile-screen-button"></i>
+                  Mobile App Location
+                </h3>
+                <span className="loc-config-panel__desc">How the mobile app obtains and validates GPS location.</span>
+              </div>
+
+              <div className="loc-accordion__body">
+                <SettingRow icon="fa-location-dot" title="Require Mobile Location" description="Mobile app must provide GPS location for authorization.">
+                  <ToggleSwitch checked={settings.requireMobileLocation} onChange={(val) => handleSettingChange("requireMobileLocation", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                <SettingRow icon="fa-location-xmark" title="Force Fresh GPS Location" description="Always get fresh GPS fix, reject cached locations.">
+                  <ToggleSwitch checked={settings.rejectCachedMobileLocation} onChange={(val) => handleSettingChange("rejectCachedMobileLocation", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                <div className="loc-accordion__divider"></div>
+                <SettingRow icon="fa-stopwatch" title="Max Location Age" description="Maximum age of GPS location in seconds.">
+                  <NumberBox value={settings.maxMobileLocationAgeSeconds} onValueChanged={(e) => handleSettingChange("maxMobileLocationAgeSeconds", e.value)} min={10} max={300} step={5} showSpinButtons={true} format="#0 sec" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+                <SettingRow icon="fa-bullseye" title="Max Location Accuracy" description="Maximum acceptable GPS accuracy in meters.">
+                  <NumberBox value={settings.maxMobileLocationAccuracyMeters} onValueChanged={(e) => handleSettingChange("maxMobileLocationAccuracyMeters", e.value)} min={10} max={1000} step={10} showSpinButtons={true} format="#0 m" disabled={!hasAdminPermission} width={120} />
+                </SettingRow>
+                <div className="m365-info-banner" style={{ margin: "12px 0 0 0" }}>
+                  <i className="fa-light fa-circle-info m365-info-banner__icon"></i>
+                  <span className="m365-info-banner__text">These settings control how the mobile app obtains GPS location before requesting authorization. The server validates that the location meets these requirements.</span>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {activeConfigSection === "fallback" && (
+            <div className="loc-config-panel">
+              <div className="loc-config-panel__header">
+                <h3 className="loc-config-panel__title">
+                  <i className="fa-light fa-shield-check"></i>
+                  Fallback & Grace Options
+                </h3>
+                <span className="loc-config-panel__desc">Handling of non-GPS vehicles, GPS failures, and audit logging.</span>
+              </div>
+
+              <div className="loc-accordion__body">
+                <SettingRow icon="fa-car-circle-bolt" title="Allow Non-GPS Vehicles" description="Permit fueling for vehicles without GPS tracking.">
+                  <ToggleSwitch checked={settings.allowNonGPSVehicles} onChange={(val) => handleSettingChange("allowNonGPSVehicles", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                <SettingRow icon="fa-signal-slash" title="Bypass on GPS Failure" description="Allow fueling if GPS is temporarily unavailable.">
+                  <ToggleSwitch checked={settings.bypassOnGPSFailure} onChange={(val) => handleSettingChange("bypassOnGPSFailure", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                <SettingRow icon="fa-database" title="Allow Cached Mobile Location" description="Accept cached location from mobile app when offline.">
+                  <ToggleSwitch checked={settings.allowCachedMobileLocation} onChange={(val) => handleSettingChange("allowCachedMobileLocation", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+                <SettingRow icon="fa-file-lines" title="Enable Location Audit Log" description="Log all location validation attempts for auditing.">
+                  <ToggleSwitch checked={settings.enableLocationAuditLog} onChange={(val) => handleSettingChange("enableLocationAuditLog", val)} disabled={!hasAdminPermission} />
+                </SettingRow>
+              </div>
+            </div>
+          )}
+        </section>
       </div>
 
       <LoadPanel
@@ -998,10 +1088,20 @@ const LocationRulesSettings = () => {
         onClose={() => setShowBypassHistoryPopup(false)}
         title="Location Bypass History"
         width={1200}
+        headerActions={(
+          <button
+            className="m365-side-panel__header-action-btn"
+            onClick={() => bypassHistoryHeaderActions.onRefresh?.()}
+            disabled={!bypassHistoryHeaderActions.canRefresh}
+          >
+            <i className="fa-light fa-rotate-right" />
+            Refresh
+          </button>
+        )}
       >
         <div className="tw-p-4">
           <LocationBypassHistoryView
-            onClose={() => setShowBypassHistoryPopup(false)}
+            onHeaderActionsChange={setBypassHistoryHeaderActions}
           />
         </div>
       </M365SidePanel>
@@ -1012,10 +1112,20 @@ const LocationRulesSettings = () => {
         onClose={() => setShowSettingsOverviewPopup(false)}
         title="Location Settings Overview"
         width={1200}
+        headerActions={(
+          <button
+            className="m365-side-panel__header-action-btn"
+            onClick={() => settingsOverviewHeaderActions.onRefresh?.()}
+            disabled={!settingsOverviewHeaderActions.canRefresh}
+          >
+            <i className="fa-light fa-rotate-right" />
+            Refresh
+          </button>
+        )}
       >
         <div className="tw-p-4">
           <LocationSettingsOverview
-            onClose={() => setShowSettingsOverviewPopup(false)}
+            onHeaderActionsChange={setSettingsOverviewHeaderActions}
           />
         </div>
       </M365SidePanel>

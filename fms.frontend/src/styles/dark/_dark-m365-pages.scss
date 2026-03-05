@@ -59,6 +59,22 @@
       border-color: var(--fms-border) !important;
       &:hover { background: var(--fms-hover-bg) !important; }
     }
+
+    &--text {
+      color: var(--fms-text-secondary) !important;
+      &:hover {
+        color: var(--fms-text-primary) !important;
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    &--text-danger {
+      color: #f2787c !important;
+      &:hover {
+        color: #ff9a9e !important;
+        background: rgba(209, 52, 56, 0.12) !important;
+      }
+    }
   }
 
   .m365-icon-btn {

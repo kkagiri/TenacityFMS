@@ -16,6 +16,7 @@ using System.Threading.Tasks;
 using FMS.Application.Features.FMS.TankVolumeHistory;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
+using FMS.Application.Features.TankManagement.TankVolumeHistory.Services;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.Features.Notifications;
 using NotificationEntity = FMS.Domain.Entities.Features.Notifications.Notification;
@@ -42,19 +43,22 @@ namespace FMS.Application.Features.Notification.Services
         private readonly INotificationReportRenderer _reportRenderer;
         private readonly ILogger<ScheduledReportDeliveryService> _logger;
         private readonly ScheduledReportPayloadBuilder _payloadBuilder;
+        private readonly ITankVolumeReportDataBuilder _dataBuilder;
 
         public ScheduledReportDeliveryService(
             IMediator mediator,
             GpsdataContext context,
             INotificationReportRenderer reportRenderer,
             ILogger<ScheduledReportDeliveryService> logger,
-            ScheduledReportPayloadBuilder payloadBuilder)
+            ScheduledReportPayloadBuilder payloadBuilder,
+            ITankVolumeReportDataBuilder dataBuilder)
         {
             _mediator = mediator;
             _context = context;
             _reportRenderer = reportRenderer;
             _logger = logger;
             _payloadBuilder = payloadBuilder;
+            _dataBuilder = dataBuilder;
         }
 
         public async Task<ScheduledReportEmailPayload?> BuildEmailPayloadAsync(
@@ -183,13 +187,20 @@ namespace FMS.Application.Features.Notification.Services
                     .Where(tank => resolvedTankIds.Contains(tank.Id))
                     .ToDictionaryAsync(tank => tank.Id, tank => tank.Name ?? $"Tank {tank.Id}", cancellationToken);
 
+            var reportContext = new TankVolumeReportContext
+            {
+                ReportTitle = metadata.Value<string>("reportName") ?? notification.Title ?? "Tank Volume History Report",
+                ReportSubtitle = ResolveSiteDisplay(siteNames) + " \u2014 All Transaction Types",
+                CreatedBy = metadata.Value<string>("requestedBy") ?? notification.TriggeredBy ?? "System",
+                DateFrom = windowStartLocal,
+                DateTo = windowEndLocal,
+                TimezoneId = timezoneId,
+                TankNameLookup = tankNameLookup
+            };
+
             var existingReportData = isSummaryReport
-                ? BuildTransactionHistorySummaryReportData(
-                    rows, tankNameLookup, notification, metadata,
-                    windowStartLocal, windowEndLocal, siteNames, timezoneId)
-                : BuildTransactionVolumeHistoryReportData(
-                    rows, tankNameLookup, notification, metadata,
-                    windowStartLocal, windowEndLocal, siteNames, timezoneId);
+                ? _dataBuilder.BuildTransactionHistorySummaryPayload(rows, reportContext)
+                : _dataBuilder.BuildTankVolumeHistoryPayload(rows, reportContext);
 
             if (format == "html")
             {
@@ -225,7 +236,10 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var fileName = BuildAttachmentFileName(windowStartLocal, windowEndLocal, extension);
-            var payloadBody = BuildDeliveryBody(notification, metadata, format, windowStartLocal, windowEndLocal);
+            var volumeReportTitle = metadata.Value<string>("reportName")
+                ?? notification.Title
+                ?? "Scheduled Report";
+            var payloadBody = BuildStyledEmailBody(volumeReportTitle, format, rows.Count, reportBytes.Length);
 
             var payload = new ScheduledReportEmailPayload
             {
@@ -242,15 +256,10 @@ namespace FMS.Application.Features.Notification.Services
                     ContentType = contentType,
                     Content = reportBytes
                 });
-                payload.Body += "<p><strong>Attachment:</strong> Included in this email.</p>";
                 return payload;
             }
 
-            var attachmentMessage = reportBytes.Length > MaxAttachmentBytes
-                ? "<p><strong>Note:</strong> Attachment size exceeded limit, use the report link to download.</p>"
-                : "<p><strong>Note:</strong> Report attachment could not be generated. Use the report link below.</p>";
-            payload.Body = $"{payload.Body}{attachmentMessage}";
-
+            // Oversized or empty — no attachment
             return payload;
         }
 
@@ -314,7 +323,10 @@ namespace FMS.Application.Features.Notification.Services
                 ? $"{safeSourceId}_{startText}.{extension}"
                 : $"{safeSourceId}_{startText}_to_{endText}.{extension}";
 
-            var payloadBody = BuildDeliveryBody(notification, metadata, format, windowStartLocal, windowEndLocal);
+            var genericTitle = metadata.Value<string>("reportName")
+                ?? notification.Title
+                ?? "Scheduled Report";
+            var payloadBody = BuildStyledEmailBody(genericTitle, format, -1, reportBytes.Length);
 
             var payload = new ScheduledReportEmailPayload
             {
@@ -331,15 +343,10 @@ namespace FMS.Application.Features.Notification.Services
                     ContentType = contentType,
                     Content = reportBytes
                 });
-                payload.Body += "<p><strong>Attachment:</strong> Included in this email.</p>";
                 return payload;
             }
 
-            var attachmentMessage = reportBytes.Length > MaxAttachmentBytes
-                ? "<p><strong>Note:</strong> Attachment size exceeded limit, use the report link to download.</p>"
-                : "<p><strong>Note:</strong> Report attachment could not be generated. Use the report link below.</p>";
-            payload.Body = $"{payload.Body}{attachmentMessage}";
-
+            // Oversized or empty — no attachment
             return payload;
         }
 
@@ -350,9 +357,10 @@ namespace FMS.Application.Features.Notification.Services
             DateTime windowStartLocal,
             DateTime windowEndLocal)
         {
-            var formatLabel = format == "excel" ? "Excel" : format == "pdf" ? "PDF" : "HTML";
-            var body = BuildDeliveryBody(notification, metadata, format, windowStartLocal, windowEndLocal);
-            body += $"<p><strong>Runtime report generation failed.</strong> Requested format: {formatLabel}.</p>";
+            var title = metadata.Value<string>("reportName")
+                ?? notification.Title
+                ?? "Scheduled Report";
+            var body = BuildStyledEmailBody(title, format, 0, 0);
 
             return new ScheduledReportEmailPayload
             {
@@ -361,241 +369,6 @@ namespace FMS.Application.Features.Notification.Services
                 IsHtml = true
             };
         }
-
-        private static object BuildTransactionVolumeHistoryReportData(
-            IReadOnlyCollection<TankVolumeHistoryDTO> rows,
-            IReadOnlyDictionary<int, string> tankNameLookup,
-            NotificationEntity notification,
-            JObject metadata,
-            DateTime windowStartLocal,
-            DateTime windowEndLocal,
-            List<string> siteNames,
-            string timezoneId)
-        {
-            var groupedRows = rows
-                .Where(row => row.TankId.HasValue)
-                .GroupBy(row => row.TankId!.Value)
-                .Select(group =>
-                {
-                    var ordered = group.OrderBy(item => item.Timestamp).ToList();
-                    var opening = ordered.FirstOrDefault();
-                    var closing = ordered.LastOrDefault();
-                    var tankName = tankNameLookup.TryGetValue(group.Key, out var resolvedName)
-                        ? resolvedName
-                        : $"Tank {group.Key}";
-
-                    return new
-                    {
-                        tankId = group.Key,
-                        tankName,
-                        openingVolume = FormatDecimal(opening?.NewVolume),
-                        openingTimestamp = FormatTimestamp(opening?.Timestamp, timezoneId),
-                        closingVolume = FormatDecimal(closing?.NewVolume),
-                        closingTimestamp = FormatTimestamp(closing?.Timestamp, timezoneId),
-                        totalTransactions = ordered.Count,
-                        transactions = ordered.Select((item, index) => new
-                        {
-                            index = index + 1,
-                            timestamp = FormatTimestamp(item.Timestamp, timezoneId),
-                            changeReason = FormatChangeReason(item.ChangeReason),
-                            volumeChange = FormatDecimal(item.VolumeChange),
-                            newVolume = FormatDecimal(item.NewVolume),
-                            vehicleName = Sanitize(item.VehicleName, "N/A"),
-                            recordedBy = Sanitize(item.RecordedByUserName, "Unknown")
-                        }).ToList()
-                    };
-                })
-                .OrderBy(entry => entry.tankName)
-                .ToList();
-
-            return new
-            {
-                reportTitle = metadata.Value<string>("reportName") ?? notification.Title ?? "Transaction Volume History Report",
-                generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = metadata.Value<string>("requestedBy") ?? notification.TriggeredBy ?? "System",
-                dateRange = FormatDateRange(windowStartLocal, windowEndLocal),
-                siteName = ResolveSiteDisplay(siteNames),
-                totalTransactions = rows.Count,
-                tankReports = groupedRows
-            };
-        }
-
-        /// <summary>
-        /// Builds an aggregated monthly summary report data object for the
-        /// 'transaction-history-summary-report' Handlebars template.
-        /// Groups transactions by month → site → tank with totals for dispensing, delivery, transfer, and variance.
-        /// </summary>
-        private static object BuildTransactionHistorySummaryReportData(
-            IReadOnlyCollection<TankVolumeHistoryDTO> rows,
-            IReadOnlyDictionary<int, string> tankNameLookup,
-            NotificationEntity notification,
-            JObject metadata,
-            DateTime windowStartLocal,
-            DateTime windowEndLocal,
-            List<string> siteNames,
-            string timezoneId)
-        {
-            var timezone = ResolveTimeZoneInfo(timezoneId);
-            var monthNames = new[] { "", "January", "February", "March", "April", "May", "June",
-                "July", "August", "September", "October", "November", "December" };
-
-            // Group by month → site → tank
-            var monthGroups = rows
-                .Where(r => r.TankId.HasValue)
-                .Select(r =>
-                {
-                    var ts = r.Timestamp.Kind == DateTimeKind.Utc
-                        ? TimeZoneInfo.ConvertTimeFromUtc(r.Timestamp, timezone)
-                        : r.Timestamp;
-                    return new { Row = r, LocalTimestamp = ts };
-                })
-                .GroupBy(x => new { x.LocalTimestamp.Year, x.LocalTimestamp.Month })
-                .OrderBy(g => g.Key.Year).ThenBy(g => g.Key.Month)
-                .ToList();
-
-            decimal grandDispensing = 0, grandDelivery = 0, grandTransfer = 0;
-            var monthlyGroups = new List<object>();
-
-            foreach (var monthGroup in monthGroups)
-            {
-                var year = monthGroup.Key.Year;
-                var month = monthGroup.Key.Month;
-                var monthLabel = $"{monthNames[month]} {year}";
-
-                decimal monthDispensing = 0, monthDelivery = 0, monthTransfer = 0;
-                int monthDispCount = 0, monthDelCount = 0, monthXferCount = 0;
-
-                var siteGroupMap = monthGroup
-                    .GroupBy(x => Sanitize(x.Row.Site, "-"))
-                    .OrderBy(g => g.Key);
-
-                var siteGroupsList = new List<object>();
-                foreach (var siteGroup in siteGroupMap)
-                {
-                    var tankGroupMap = siteGroup
-                        .GroupBy(x => x.Row.TankId!.Value)
-                        .OrderBy(g => tankNameLookup.TryGetValue(g.Key, out var n) ? n : $"Tank {g.Key}");
-
-                    var tanksList = new List<object>();
-                    foreach (var tankGroup in tankGroupMap)
-                    {
-                        var ordered = tankGroup.OrderBy(x => x.LocalTimestamp).ToList();
-                        var first = ordered.First();
-                        var last = ordered.Last();
-                        var tankName = tankNameLookup.TryGetValue(tankGroup.Key, out var tn) ? tn : $"Tank {tankGroup.Key}";
-
-                        var openingRaw = (first.Row.NewVolume ?? 0m) - (first.Row.VolumeChange ?? 0m);
-                        var closingRaw = last.Row.NewVolume ?? 0m;
-
-                        var dispensingRows = ordered.Where(x => IsDispensing(x.Row.ChangeReason)).ToList();
-                        var deliveryRows = ordered.Where(x => IsDelivery(x.Row.ChangeReason)).ToList();
-                        var transferRows = ordered.Where(x => IsTransfer(x.Row.ChangeReason)).ToList();
-
-                        var dispTotal = dispensingRows.Sum(x => Math.Abs(x.Row.VolumeChange ?? 0m));
-                        var delTotal = deliveryRows.Sum(x => x.Row.VolumeChange ?? 0m);
-                        var xferTotal = transferRows.Sum(x => x.Row.VolumeChange ?? 0m);
-
-                        var expectedClosing = openingRaw + delTotal + xferTotal - dispTotal;
-                        var variance = closingRaw - expectedClosing;
-                        var variancePercent = expectedClosing != 0
-                            ? Math.Round(variance / Math.Abs(expectedClosing) * 100, 2)
-                            : 0m;
-
-                        var daySpan = Math.Max(1, (int)Math.Ceiling((last.LocalTimestamp - first.LocalTimestamp).TotalDays));
-                        var avgDaily = Math.Round(dispTotal / daySpan, 2);
-
-                        monthDispensing += dispTotal;
-                        monthDelivery += delTotal;
-                        monthTransfer += Math.Abs(xferTotal);
-                        monthDispCount += dispensingRows.Count;
-                        monthDelCount += deliveryRows.Count;
-                        monthXferCount += transferRows.Count;
-
-                        tanksList.Add(new
-                        {
-                            tankName,
-                            openingBalance = FormatDecimal(openingRaw),
-                            closingBalance = FormatDecimal(closingRaw),
-                            expectedClosing = FormatDecimal(expectedClosing),
-                            dispensing = new { total = FormatDecimal(dispTotal), count = dispensingRows.Count },
-                            delivery = new { total = FormatDecimal(delTotal), count = deliveryRows.Count },
-                            transfer = new { total = FormatDecimal(Math.Abs(xferTotal)), count = transferRows.Count },
-                            variance = FormatDecimal(variance),
-                            varianceIsNegative = variance < -0.5m,
-                            variancePercent = $"{variancePercent}%",
-                            avgDailyConsumption = FormatDecimal(avgDaily),
-                            totalTransactions = ordered.Count,
-                        });
-                    }
-
-                    siteGroupsList.Add(new { siteName = siteGroup.Key, tanks = tanksList });
-                }
-
-                grandDispensing += monthDispensing;
-                grandDelivery += monthDelivery;
-                grandTransfer += monthTransfer;
-
-                monthlyGroups.Add(new
-                {
-                    month = $"{year}-{month:D2}",
-                    monthLabel,
-                    year = year.ToString(),
-                    siteGroups = siteGroupsList,
-                    subtotal = new
-                    {
-                        dispensing = FormatDecimal(monthDispensing),
-                        dispensingCount = monthDispCount,
-                        delivery = FormatDecimal(monthDelivery),
-                        deliveryCount = monthDelCount,
-                        transfer = FormatDecimal(monthTransfer),
-                        transferCount = monthXferCount,
-                        variance = FormatDecimal(monthDelivery + monthTransfer - monthDispensing),
-                    },
-                });
-            }
-
-            var netVariance = grandDelivery + grandTransfer - grandDispensing;
-
-            return new
-            {
-                reportTitle = metadata.Value<string>("reportName") ?? notification.Title ?? "Transaction History Summary",
-                reportSubtitle = $"Period: {FormatDateRange(windowStartLocal, windowEndLocal)}",
-                generatedAt = DateTime.UtcNow.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = metadata.Value<string>("requestedBy") ?? notification.TriggeredBy ?? "System",
-                dateFrom = windowStartLocal.ToString("yyyy-MM-dd"),
-                dateTo = windowEndLocal.ToString("yyyy-MM-dd"),
-                siteName = ResolveSiteDisplay(siteNames),
-                monthlyGroups,
-                grandTotal = new
-                {
-                    dispensing = FormatDecimal(grandDispensing),
-                    delivery = FormatDecimal(grandDelivery),
-                    transfer = FormatDecimal(grandTransfer),
-                    variance = FormatDecimal(netVariance),
-                    varianceIsNegative = netVariance < -0.5m,
-                },
-                summary = new
-                {
-                    totalTransactions = rows.Count,
-                    totalDispensed = FormatDecimal(grandDispensing),
-                    totalDelivery = FormatDecimal(grandDelivery),
-                    totalTransfer = FormatDecimal(grandTransfer),
-                    netVariance = FormatDecimal(netVariance),
-                    monthsCovered = monthGroups.Count,
-                    sitesMonitored = rows.Select(r => r.Site).Where(s => !string.IsNullOrWhiteSpace(s)).Distinct().Count(),
-                    tanksMonitored = rows.Where(r => r.TankId.HasValue).Select(r => r.TankId!.Value).Distinct().Count(),
-                },
-            };
-        }
-
-        private static bool IsDispensing(VolumeChangeReasonEnum reason)
-            => reason == VolumeChangeReasonEnum.Dispensing || reason == VolumeChangeReasonEnum.AutomatedDispensing;
-
-        private static bool IsDelivery(VolumeChangeReasonEnum reason)
-            => reason == VolumeChangeReasonEnum.Delivery || reason == VolumeChangeReasonEnum.InTankDelivery;
-
-        private static bool IsTransfer(VolumeChangeReasonEnum reason)
-            => reason == VolumeChangeReasonEnum.TransferIn || reason == VolumeChangeReasonEnum.TransferOut;
 
         private static (DateTime startUtc, DateTime endUtc, DateTime startLocal, DateTime endLocal, string timeZoneId)
             ResolveExecutionWindow(NotificationEntity notification, JObject metadata)
@@ -723,35 +496,135 @@ namespace FMS.Application.Features.Notification.Services
             return $"TransactionVolumeHistory_{startText}_to_{endText}.{extension}";
         }
 
-        private static string BuildDeliveryBody(
-            NotificationEntity notification,
-            JObject metadata,
+        /// <summary>
+        /// Builds an M365-style flat-design HTML email body for scheduled report delivery.
+        /// Matches the on-demand report email style from ReportJobManager.
+        /// </summary>
+        private static string BuildStyledEmailBody(
+            string reportTitle,
             string format,
-            DateTime windowStartLocal,
-            DateTime windowEndLocal)
+            int recordCount,
+            long fileSizeBytes)
         {
-            var formatLabel = format == "excel" ? "Excel" : format == "html" ? "HTML" : "PDF";
-            var title = metadata.Value<string>("reportName")
-                ?? notification.Title
-                ?? "Scheduled Report";
-            var description = metadata.Value<string>("reportDescription");
-            var reportLink = ResolveReportLink(metadata);
-
-            var body = $"<p>Your scheduled report <strong>{title}</strong> is ready.</p>" +
-                $"<p>Report window: {windowStartLocal:yyyy-MM-dd} to {windowEndLocal:yyyy-MM-dd}</p>" +
-                $"<p>Requested format: {formatLabel}</p>";
-
-            if (!string.IsNullOrWhiteSpace(description))
+            var formatUpper = (format ?? "pdf").Trim().ToUpperInvariant();
+            var formatBadge = formatUpper switch
             {
-                body += $"<p>{description.Trim()}</p>";
-            }
+                "PDF" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#deecf9;color:#0078d4;'>PDF</span>",
+                "EXCEL" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#dff6dd;color:#107c10;'>EXCEL</span>",
+                "HTML" => "<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#fff4ce;color:#ca5010;'>HTML</span>",
+                _ => $"<span style='display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:600;background:#f3f2f1;color:#605e5c;'>{formatUpper}</span>"
+            };
 
-            if (!string.IsNullOrWhiteSpace(reportLink))
-            {
-                body += $"<p><a href=\"{reportLink}\">Click here to view the report</a></p>";
-            }
+            var safeTitle = System.Net.WebUtility.HtmlEncode(reportTitle);
 
-            return body;
+            // Build optional info rows
+            var recordsRow = recordCount > 0
+                ? $@"
+      <tr>
+        <td style='padding:14px 18px;border-bottom:1px solid #edebe9;'>
+          <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='font-size:12px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.3px;'>Records</td>
+            <td align='right' style='font-size:14px;font-weight:600;color:#201f1e;'>{recordCount:N0}</td>
+          </tr>
+          </table>
+        </td>
+      </tr>"
+                : "";
+
+            var fileSizeRow = fileSizeBytes > 0
+                ? $@"
+      <tr>
+        <td style='padding:14px 18px;border-bottom:1px solid #edebe9;'>
+          <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='font-size:12px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.3px;'>File Size</td>
+            <td align='right' style='font-size:13px;color:#201f1e;'>{FormatFileSize(fileSizeBytes)}</td>
+          </tr>
+          </table>
+        </td>
+      </tr>"
+                : "";
+
+            return $@"
+<!DOCTYPE html>
+<html>
+<head><meta charset='UTF-8'></head>
+<body style='margin:0;padding:0;background:#f3f2f1;font-family:""Segoe UI"",-apple-system,system-ui,sans-serif;'>
+<table cellpadding='0' cellspacing='0' border='0' width='100%' style='background:#f3f2f1;padding:32px 0;'>
+<tr><td align='center'>
+<table cellpadding='0' cellspacing='0' border='0' width='560' style='max-width:560px;background:#ffffff;border:1px solid #edebe9;border-radius:8px;overflow:hidden;'>
+
+  <!-- Header Bar -->
+  <tr><td style='background:#0078d4;padding:16px 24px;'>
+    <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+    <tr>
+      <td style='font-size:16px;font-weight:600;color:#ffffff;'>Hyoung Fleet Management</td>
+      <td align='right' style='font-size:11px;color:#ffffff;'>Report Delivery</td>
+    </tr>
+    </table>
+  </td></tr>
+
+  <!-- Body -->
+  <tr><td style='padding:28px 24px 12px;'>
+    <h2 style='margin:0 0 4px;font-size:18px;font-weight:600;color:#201f1e;'>{safeTitle}</h2>
+    <p style='margin:0 0 20px;font-size:13px;color:#605e5c;'>Your requested report has been generated and is attached to this email.</p>
+
+    <!-- Info Card -->
+    <table cellpadding='0' cellspacing='0' border='0' width='100%' style='background:#faf9f8;border:1px solid #edebe9;border-radius:6px;'>
+{recordsRow}
+      <tr>
+        <td style='padding:14px 18px;border-bottom:1px solid #edebe9;'>
+          <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='font-size:12px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.3px;'>Format</td>
+            <td align='right'>{formatBadge}</td>
+          </tr>
+          </table>
+        </td>
+      </tr>
+{fileSizeRow}
+      <tr>
+        <td style='padding:14px 18px;'>
+          <table width='100%' cellpadding='0' cellspacing='0' border='0'>
+          <tr>
+            <td style='font-size:12px;font-weight:600;color:#605e5c;text-transform:uppercase;letter-spacing:0.3px;'>Generated</td>
+            <td align='right' style='font-size:13px;color:#201f1e;'>{DateTime.Now:dd MMM yyyy, HH:mm}</td>
+          </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </td></tr>
+
+  <!-- Attachment Note -->
+  <tr><td style='padding:8px 24px 24px;'>
+    <p style='margin:0;font-size:13px;color:#605e5c;'>
+      <span style='display:inline-block;width:16px;height:16px;border-radius:50%;background:#deecf9;text-align:center;line-height:16px;font-size:10px;color:#0078d4;margin-right:6px;vertical-align:middle;'>&#128206;</span>
+      The report file is attached to this email.
+    </p>
+  </td></tr>
+
+  <!-- Footer -->
+  <tr><td style='padding:16px 24px;border-top:1px solid #edebe9;background:#faf9f8;'>
+    <p style='margin:0;font-size:11px;color:#a19f9d;'>
+      This is an automated message from Hyoung FMS Report Engine. Please do not reply to this email.
+    </p>
+  </td></tr>
+
+</table>
+</td></tr>
+</table>
+</body>
+</html>";
+        }
+
+        /// <summary>Formats byte count to human-readable size string.</summary>
+        private static string FormatFileSize(long bytes)
+        {
+            if (bytes < 1024) return $"{bytes} B";
+            if (bytes < 1024 * 1024) return $"{bytes / 1024.0:F1} KB";
+            return $"{bytes / (1024.0 * 1024.0):F1} MB";
         }
 
         private static string? ResolveReportLink(JObject metadata)

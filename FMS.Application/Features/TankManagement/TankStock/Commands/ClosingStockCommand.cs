@@ -21,7 +21,7 @@ using Microsoft.Extensions.Logging;
 
 namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
 {
-    public record ClosingStockCommand(int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null, decimal? ClosingMeter = null) : IRequest<FMSResponseMessage>;
+    public record ClosingStockCommand(int TankId, decimal ClosingStock, string RecordedBy, DateTime? EntryDate = null, decimal? ClosingMeter = null, bool ConfirmOverride = false) : IRequest<FMSResponseMessage>;
 
     public class ClosingStockCommandHandler : IRequestHandler<ClosingStockCommand, FMSResponseMessage>
     {
@@ -287,6 +287,33 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                                 && t.ReferenceId.HasValue
                                 && validTransferIds.Contains(t.ReferenceId.Value))
                     .Sum(t => t.VolumeChange);
+
+                // ─── VALIDATION: Detect likely unrecorded delivery ───
+                // If closing stock is significantly higher than expected and no deliveries/transfers-in were recorded,
+                // the user likely forgot to record a delivery. Block unless they explicitly confirm.
+                if (!request.ConfirmOverride)
+                {
+                    decimal openingStockValue = openingStock.NewVolume ?? 0;
+                    decimal expectedWithoutDelivery = openingStockValue + (totalRefills ?? 0) + (totalTransfersIn ?? 0) + (totalTransfersOut ?? 0);
+                    decimal gainOverExpected = request.ClosingStock - expectedWithoutDelivery;
+                    bool noDeliveriesRecorded = (totalDeliveries ?? 0) == 0;
+                    bool noTransfersInRecorded = (totalTransfersIn ?? 0) == 0;
+
+                    // Threshold: closing stock is at least 500L above expected AND no deliveries/transfers-in
+                    const decimal unrecordedDeliveryThresholdLiters = 500m;
+
+                    if (gainOverExpected >= unrecordedDeliveryThresholdLiters && noDeliveriesRecorded && noTransfersInRecorded)
+                    {
+                        _logger.LogWarning(
+                            "Possible unrecorded delivery detected for Tank {TankId}: Closing={ClosingStock}L, Expected={Expected}L, Gain={Gain}L with 0 deliveries/transfers-in",
+                            request.TankId, request.ClosingStock, expectedWithoutDelivery, gainOverExpected);
+
+                        return new FMSResponseMessage(false,
+                            $"UNRECORDED_DELIVERY_WARNING: Closing stock ({request.ClosingStock:N0}L) is {gainOverExpected:N0}L higher than expected ({expectedWithoutDelivery:N0}L) " +
+                            $"with no recorded deliveries or transfers-in for this day. " +
+                            $"Please record the delivery first, or confirm this entry if the stock level is correct.");
+                    }
+                }
 
                 // ─── Detailed transaction breakdown for event template placeholders ───
                 var totalManualDispensing = transactions.Where(t => t.ChangeReason == VolumeChangeReasonEnum.Dispensing).Sum(t => t.VolumeChange);
@@ -850,6 +877,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     Severity = priority,
                     Message = message,
                     TankName = tank.Name ?? "",
+                    ProductName = tank.FuelGradeName ?? "",
                     SiteName = siteName,
                     // Stock Levels
                     OpeningStock = reconciliation.OpeningStock,

@@ -194,6 +194,10 @@ export class TankStockService extends BaseService {
         dateTime: dateTime
       });
 
+      if (params.confirmOverride) {
+        queryParams.append('confirmOverride', 'true');
+      }
+
       const result = await this.post(`${this.baseUrl}/closingstock?${queryParams.toString()}`);
 
       // Clear related caches

@@ -6,10 +6,10 @@
     --left-panel-width: 400px;
     --right-panel-width: 360px;
   }
-  
+
   .toolbar-details {
     margin-bottom: calc(var(--toolbar-margin-bottom) / 2);
-   
+
     .dx-toolbar-label > div {
       @include header();
     }
@@ -21,7 +21,7 @@
     flex-grow: 1;
     padding-top: var(--content-padding);
     padding-bottom: var(--content-padding);
-  
+
     @media only screen and (max-width: 875px) {
       .role-toolbar-item {
         min-width: calc(var(--left-panel-width) + var(--right-panel-width) - 145px);
@@ -37,6 +37,9 @@
       flex: 1 var(--left-panel-width);
       margin-top: 8px;
       background-color: white;
+      border: 1px solid var(--m365-border, #edebe9);
+      border-radius: 8px;
+      overflow: hidden;
     }
 
     .right {
@@ -44,6 +47,53 @@
       margin-top: 8px;
       min-width: 340px;
       background-color: white;
+      border: 1px solid var(--m365-border, #edebe9);
+      border-radius: 8px;
+      overflow: hidden;
     }
+  }
+
+  .role-toolbar {
+    border: 1px solid var(--m365-border, #edebe9);
+    border-radius: 8px;
+    background: var(--m365-bg, #fff);
+
+    .dx-toolbar-items-container {
+      min-height: 48px;
+    }
+  }
+
+  .role-filter-btn.dx-button {
+    border: 1px solid var(--m365-border, #d1d1d1) !important;
+    background: var(--m365-bg, #fff) !important;
+    color: var(--m365-text, #323130) !important;
+    border-radius: 8px !important;
+    height: 32px !important;
+
+    .dx-button-content {
+      padding: 0 12px !important;
+    }
+
+    .dx-icon,
+    .dx-button-text {
+      color: inherit !important;
+    }
+
+    &:not(.dx-state-disabled):hover {
+      background: var(--m365-bg-hover, #f3f2f1) !important;
+      border-color: var(--m365-border, #c8c6c4) !important;
+    }
+  }
+
+  .role-filter-btn--primary.dx-button {
+    border-color: #0078d4 !important;
+    background: #deecf9 !important;
+    color: #004578 !important;
+  }
+
+  .role-filter-btn--danger.dx-button {
+    border-color: #d13438 !important;
+    background: #fde7e9 !important;
+    color: #a4262c !important;
   }
 }

@@ -474,6 +474,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
         services.AddScoped<ScheduledReportPayloadBuilder>();
         services.AddScoped<IScheduledReportDeliveryService, ScheduledReportDeliveryService>();
+        services.AddSingleton<FMS.Application.Features.TankManagement.TankVolumeHistory.Services.ITankVolumeReportDataBuilder,
+                              FMS.Application.Features.TankManagement.TankVolumeHistory.Services.TankVolumeReportDataBuilder>();
 
         // GPS Fetch Progress Service (SignalR)
         services.AddScoped<FMS.Application.Communication.SignalR.IGpsFetchProgressService, FMS.Application.Communication.SignalR.GpsFetchProgressService>();

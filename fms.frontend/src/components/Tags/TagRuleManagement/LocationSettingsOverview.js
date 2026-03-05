@@ -1,11 +1,11 @@
 /**
  * File: LocationSettingsOverview.js
- * Purpose: Show location settings overview for users, PTS devices, and vehicles in a tabbed panel view.
+ * Purpose: Show location settings overview for users and PTS devices in a tabbed panel view.
  * Dependencies: devextreme-react, geofenceService
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-05
  *
  * Key Components:
- * - LocationSettingsOverview: Tabbed overview with summary cards and three data grids.
+ * - LocationSettingsOverview: Tabbed overview with summary cards and two data grids.
  */
 import React, { useState, useEffect, useCallback } from "react";
 import { Button } from "devextreme-react/button";
@@ -35,9 +35,9 @@ const TAB_ITEMS = [
  * Shows:
  * - Users with mobile bypass settings
  * - PTS devices with location validation settings
- * - Vehicles with GPS settings
+ * - Vehicle GPS summary counts
  */
-const LocationSettingsOverview = ({ onClose }) => {
+const LocationSettingsOverview = ({ onHeaderActionsChange = null }) => {
   const [loading, setLoading] = useState(true);
   const [activeTabId, setActiveTabId] = useState("users");
   const [showUserEditor, setShowUserEditor] = useState(false);
@@ -154,20 +154,6 @@ const LocationSettingsOverview = ({ onClose }) => {
     notify("PTS device details updated", "success", 1800);
   };
 
-  const handleVehicleRowUpdating = (e) => {
-    const updated = { ...e.oldData, ...e.newData };
-    setData((prev) => {
-      const vehicles = prev.vehicles.map((v) => (v.vehicleId === e.key ? updated : v));
-      return {
-        ...prev,
-        vehicles,
-        totalVehiclesWithGPS: vehicles.filter((v) => v.hasGPSInstalled).length,
-        totalVehiclesWithoutGPS: vehicles.filter((v) => !v.hasGPSInstalled).length,
-      };
-    });
-    notify("Vehicle details updated", "success", 1800);
-  };
-
   const openUserEditor = (row) => {
     setEditingUser({ ...row });
     setShowUserEditor(true);
@@ -207,6 +193,17 @@ const LocationSettingsOverview = ({ onClose }) => {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useEffect(() => {
+    if (!onHeaderActionsChange) {
+      return;
+    }
+
+    onHeaderActionsChange({
+      onRefresh: fetchData,
+      canRefresh: !loading,
+    });
+  }, [onHeaderActionsChange, fetchData, loading]);
 
   const renderBooleanCell = (cellData, trueLabel = "Yes", falseLabel = "No") => {
     const value = cellData.value;
@@ -254,9 +251,9 @@ const LocationSettingsOverview = ({ onClose }) => {
           <i className={`${icon} tw-text-lg`}></i>
         </div>
         <div>
-          <div className="tw-text-2xl tw-font-bold tw-text-gray-800">{value}</div>
-          <div className="tw-text-xs tw-text-gray-600">{label}</div>
-          {subValue && <div className="tw-text-xs tw-text-gray-500">{subValue}</div>}
+          <div className="tw-text-2xl tw-font-bold tw-text-gray-800 dark:tw-text-gray-100">{value}</div>
+          <div className="tw-text-xs tw-text-gray-600 dark:tw-text-gray-300">{label}</div>
+          {subValue && <div className="tw-text-xs tw-text-gray-500 dark:tw-text-gray-400">{subValue}</div>}
         </div>
       </div>
     </div>
@@ -265,58 +262,57 @@ const LocationSettingsOverview = ({ onClose }) => {
   return (
     <div className="location-settings-overview tw-flex tw-flex-col tw-h-full">
       {/* Header */}
-      <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-border-b tw-border-gray-200">
-        <p className="tw-text-sm tw-text-gray-600 tw-m-0">
+      <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
+        <p className="tw-text-sm tw-text-gray-600 dark:tw-text-gray-300 tw-m-0">
           <i className="fa-light fa-info-circle tw-mr-2 tw-text-blue-500"></i>
-          View users, PTS devices, and vehicles with location-related settings
+          View users and PTS devices with location-related settings
         </p>
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <Button
-            icon="fa-light fa-refresh"
-            text="Refresh"
-            stylingMode="outlined"
-            onClick={fetchData}
-            disabled={loading}
-          />
-          {onClose && (
-            <Button
-              icon="fa-light fa-times"
-              stylingMode="text"
-              onClick={onClose}
-            />
-          )}
-        </div>
+        <div />
       </div>
 
       {/* Summary Stats */}
-      <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-p-4 tw-bg-gray-50 tw-border-b tw-border-gray-200">
+      <div className="tw-grid tw-grid-cols-2 md:tw-grid-cols-3 lg:tw-grid-cols-6 tw-gap-3 tw-p-4 tw-bg-gray-50 dark:tw-bg-gray-900/30 tw-border-b tw-border-gray-200 dark:tw-border-gray-700">
         <StatCard
           icon="fa-light fa-user-check"
-          iconColor="tw-bg-purple-100 tw-text-purple-600"
+          iconColor="tw-bg-purple-100 dark:tw-bg-purple-900/30 tw-text-purple-600 dark:tw-text-purple-300"
           label="Users with Bypass"
           value={data.totalUsersWithBypass}
-          bgColor="tw-bg-purple-50 tw-border-purple-200"
+          bgColor="tw-bg-purple-50 dark:tw-bg-gray-800 tw-border-purple-200 dark:tw-border-gray-700"
         />
         <StatCard
           icon="fa-light fa-user"
-          iconColor="tw-bg-gray-100 tw-text-gray-600"
+          iconColor="tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-600 dark:tw-text-gray-300"
           label="Users without Bypass"
           value={data.totalUsersWithoutBypass}
-          bgColor="tw-bg-gray-50 tw-border-gray-200"
+          bgColor="tw-bg-gray-50 dark:tw-bg-gray-800 tw-border-gray-200 dark:tw-border-gray-700"
         />
         <StatCard
           icon="fa-light fa-location-dot"
-          iconColor="tw-bg-green-100 tw-text-green-600"
+          iconColor="tw-bg-green-100 dark:tw-bg-green-900/30 tw-text-green-600 dark:tw-text-green-300"
           label="PTS with Location"
           value={data.totalPTSDevicesWithLocationValidation}
-          bgColor="tw-bg-green-50 tw-border-green-200"
+          bgColor="tw-bg-green-50 dark:tw-bg-gray-800 tw-border-green-200 dark:tw-border-gray-700"
         />
         <StatCard
           icon="fa-light fa-gas-pump"
-          iconColor="tw-bg-gray-100 tw-text-gray-600"
+          iconColor="tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-600 dark:tw-text-gray-300"
           label="PTS without Location"
           value={data.totalPTSDevicesWithoutLocationValidation}
-          bgColor="tw-bg-gray-50 tw-border-gray-200"
+          bgColor="tw-bg-gray-50 dark:tw-bg-gray-800 tw-border-gray-200 dark:tw-border-gray-700"
+        />
+        <StatCard
+          icon="fa-light fa-satellite-dish"
+          iconColor="tw-bg-blue-100 dark:tw-bg-blue-900/30 tw-text-blue-600 dark:tw-text-blue-300"
+          label="Vehicles with GPS"
+          value={data.totalVehiclesWithGPS}
+          bgColor="tw-bg-blue-50 dark:tw-bg-gray-800 tw-border-blue-200 dark:tw-border-gray-700"
+        />
+        <StatCard
+          icon="fa-light fa-car"
+          iconColor="tw-bg-gray-100 dark:tw-bg-gray-700 tw-text-gray-600 dark:tw-text-gray-300"
+          label="Vehicles without GPS"
+          value={data.totalVehiclesWithoutGPS}
+          bgColor="tw-bg-gray-50 dark:tw-bg-gray-800 tw-border-gray-200 dark:tw-border-gray-700"
         />
       </div>
 
@@ -337,13 +333,14 @@ const LocationSettingsOverview = ({ onClose }) => {
       <div className="tw-flex-1 tw-overflow-hidden tw-p-4">
         {activeTabId === "users" && (
           <div className="location-settings-overview__grid-pane tw-h-full">
-            <div className="tw-mb-3 tw-text-xs tw-text-gray-500">
+            <div className="tw-mb-3 tw-text-xs tw-text-gray-500 dark:tw-text-gray-400">
               Users with <strong>Bypass Location Validation</strong> can skip GPS validation during mobile fueling.
             </div>
-            <div className="tw-mb-2 tw-text-xs tw-text-blue-600">
+            <div className="tw-mb-2 tw-text-xs tw-text-blue-600 dark:tw-text-blue-300">
               Select a row to edit validation settings.
             </div>
             <DataGrid
+              className="location-overview-grid"
               keyExpr="userId"
               dataSource={data.users}
               showBorders={true}
@@ -391,13 +388,14 @@ const LocationSettingsOverview = ({ onClose }) => {
 
         {activeTabId === "pts" && (
           <div className="location-settings-overview__grid-pane tw-h-full">
-            <div className="tw-mb-3 tw-text-xs tw-text-gray-500">
+            <div className="tw-mb-3 tw-text-xs tw-text-gray-500 dark:tw-text-gray-400">
               Devices with <strong>Enable Location Validation</strong> check proximity before fueling.
             </div>
-            <div className="tw-mb-2 tw-text-xs tw-text-blue-600">
+            <div className="tw-mb-2 tw-text-xs tw-text-blue-600 dark:tw-text-blue-300">
               Select a row to edit validation settings.
             </div>
             <DataGrid
+              className="location-overview-grid"
               keyExpr="ptsId"
               dataSource={data.ptsDevices}
               showBorders={true}

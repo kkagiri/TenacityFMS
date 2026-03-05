@@ -31,23 +31,28 @@
         .value {
           @apply tw-text-sm tw-font-semibold tw-text-gray-900;
         }
-
-        .status-badge {
-          @apply tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium;
-
-          &.success {
-            @apply tw-bg-green-100 tw-text-green-700;
-          }
-
-          &.error {
-            @apply tw-bg-red-100 tw-text-red-700;
-          }
-
-          &.warning {
-            @apply tw-bg-yellow-100 tw-text-yellow-700;
-          }
-        }
       }
+    }
+  }
+
+  /* ─ Status badges (used in cards, headers, alarms) ─ */
+  .status-badge {
+    @apply tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium tw-inline-flex tw-items-center;
+
+    &.success {
+      @apply tw-bg-green-100 tw-text-green-700;
+    }
+
+    &.error {
+      @apply tw-bg-red-100 tw-text-red-700;
+    }
+
+    &.warning {
+      @apply tw-bg-yellow-100 tw-text-yellow-700;
+    }
+
+    &.info {
+      @apply tw-bg-blue-100 tw-text-blue-700;
     }
   }
 
@@ -66,6 +71,86 @@
     }
     50% {
       opacity: 0.5;
+    }
+  }
+}
+
+[data-theme="dark"] {
+  .pts-device-live-info {
+    .info-card {
+      background: var(--fms-surface) !important;
+      border-color: var(--fms-border) !important;
+
+      .card-header {
+        background: var(--fms-surface-secondary) !important;
+        border-bottom-color: var(--fms-border) !important;
+
+        h4 {
+          color: var(--fms-text-primary) !important;
+        }
+      }
+
+      .card-body {
+        background: var(--fms-surface) !important;
+
+        .info-row {
+          border-bottom-color: var(--fms-border) !important;
+
+          label {
+            color: var(--fms-text-secondary) !important;
+          }
+
+          .value {
+            color: var(--fms-text-primary) !important;
+          }
+        }
+      }
+    }
+
+    /* ─ Dark: section headings (h4 outside cards) ─ */
+    h4.tw-text-lg {
+      color: var(--fms-text-primary) !important;
+    }
+
+    /* ─ Dark: status badges everywhere ─ */
+    .status-badge {
+      &.success {
+        background: rgba(16, 124, 16, 0.15) !important;
+        color: #6ccf6c !important;
+      }
+      &.error {
+        background: rgba(209, 52, 56, 0.15) !important;
+        color: #f2787c !important;
+      }
+      &.warning {
+        background: rgba(202, 80, 16, 0.15) !important;
+        color: #f0a050 !important;
+      }
+      &.info {
+        background: rgba(0, 120, 212, 0.15) !important;
+        color: #60c0ff !important;
+      }
+    }
+
+    /* ─ Dark: Fuel grades table ─ */
+    table {
+      color: var(--fms-text-primary) !important;
+
+      thead tr {
+        border-bottom-color: var(--fms-border) !important;
+
+        th {
+          color: var(--fms-text-secondary) !important;
+        }
+      }
+
+      tbody tr {
+        border-bottom-color: var(--fms-border) !important;
+
+        td {
+          color: var(--fms-text-primary) !important;
+        }
+      }
     }
   }
 }

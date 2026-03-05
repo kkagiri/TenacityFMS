@@ -61,18 +61,21 @@
 
 /* ── Header ── */
 .m365-detail-header {
+  position: relative;
   background: var(--m365-bg-card, #ffffff);
   padding: 16px 24px;
   border-bottom: 1px solid var(--m365-border-light, #edebe9);
 
   &__nav {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
     margin-bottom: 8px;
   }
 
   &__title-row {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
     gap: 16px;
   }
 
@@ -94,8 +97,37 @@
   &__actions {
     display: flex;
     align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
+    gap: 4px;
+    position: absolute;
+    top: 12px;
+    right: 8px;
+    z-index: 1;
+
+    .m365-btn--text {
+      background: transparent;
+      border: none;
+      color: var(--m365-text-secondary, #605e5c);
+      font-weight: 400;
+      padding: 0 12px;
+      height: 32px;
+      font-size: 13px;
+
+      &:hover {
+        color: var(--m365-text, #201f1e);
+        background: var(--m365-bg-hover, #f3f2f1);
+      }
+
+      i { font-size: 14px; }
+    }
+
+    .m365-btn--text-danger {
+      color: var(--m365-error, #d13438);
+
+      &:hover {
+        color: #a4262c;
+        background: rgba(209, 52, 56, 0.06);
+      }
+    }
   }
 }
 
@@ -221,7 +253,18 @@
 
 /* ── Tab Bar Override — extra top/left padding ── */
 .m365-detail-page .m365-tabs {
-  padding: 12px 32px 0;
+  padding: 12px 32px 0 !important;
+  gap: 8px;
+}
+
+.m365-detail-page .m365-tabs .m365-tab {
+  padding: 12px 16px !important;
+}
+
+/* Ensure content padding always applies for all tabs on this page */
+.m365-detail-page > .m365-detail-content,
+.m365-detail-page .m365-detail-content {
+  padding: 28px 32px !important;
 }
 
 /* ── Terminal border fix ── */
@@ -242,7 +285,11 @@
     padding: 12px 16px;
 
     &__title-row { flex-direction: column; }
-    &__actions { align-self: flex-end; }
+    &__actions {
+      position: static;
+      align-self: flex-end;
+      margin-top: 6px;
+    }
   }
 
   .pts-detail-stat-section { padding: 12px 16px; }
@@ -253,9 +300,10 @@
   }
 
   .m365-detail-tanks { padding: 12px 16px; }
-  .m365-detail-content { padding: 16px; }
+  .m365-detail-content { padding: 16px !important; }
 
-  .m365-detail-page .m365-tabs { padding: 8px 16px 0; }
+  .m365-detail-page .m365-tabs { padding: 8px 16px 0 !important; }
+  .m365-detail-page .m365-tabs .m365-tab { padding: 10px 12px !important; }
 }
 
 @media (max-width: 480px) {

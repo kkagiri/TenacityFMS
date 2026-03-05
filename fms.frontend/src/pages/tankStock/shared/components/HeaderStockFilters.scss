@@ -2,6 +2,33 @@
 // Overrides any global styles that might be interfering
 
 .header-stock-filters {
+  $header-control-height: 36px;
+
+  .dx-daterangebox,
+  .dx-tagbox,
+  .dx-button {
+    min-height: $header-control-height;
+    height: $header-control-height;
+  }
+
+  .dx-texteditor,
+  .dx-texteditor.dx-editor-outlined,
+  .dx-texteditor-container,
+  .dx-texteditor-input-container {
+    min-height: $header-control-height !important;
+    height: $header-control-height !important;
+  }
+
+  .dx-button-content {
+    min-height: $header-control-height;
+    height: $header-control-height;
+    padding-top: 0;
+    padding-bottom: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
   // Reset TagBox to use DevExtreme defaults
   .dx-tagbox {
     // Keep single line for header filters

@@ -57,6 +57,13 @@
   }
 }
 
+.single-card-container {
+  .dx-texteditor-input::placeholder {
+    color: transparent !important;
+    opacity: 0 !important;
+  }
+}
+
 [data-theme="dark"] {
   .single-card-container {
     background: linear-gradient(140deg, #f8fafc 0%, #eef2ff 100%) !important;
@@ -99,6 +106,16 @@
       .dx-placeholder::before {
         color: rgba($base-text-color, alpha($base-text-color) * 0.55) !important;
       }
+    }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="search"],
+    input[type="email"],
+    input[type="number"] {
+      background-color: #ffffff !important;
+      color: $base-text-color !important;
+      -webkit-text-fill-color: $base-text-color !important;
     }
   }
 }
