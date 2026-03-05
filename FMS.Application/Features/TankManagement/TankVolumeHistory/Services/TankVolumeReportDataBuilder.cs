@@ -298,27 +298,43 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
             };
 
             // ── Analytics — chart data for 7-day dispensing + vehicle type ──────
+            var analyticsRecords = (context.AnalyticsRecords ?? recordsList).ToList();
+
             var allDispensingRecs = recordsList
                 .Where(r => DispensingReasons.Contains((int)r.ChangeReason))
                 .ToList();
 
-            // 7-day daily dispensing
-            var dailyDispensingAll = allDispensingRecs
-                .GroupBy(r => ToLocal(r.Timestamp, tz).Date)
-                .OrderBy(g => g.Key)
-                .Select(g => new { date = g.Key, volume = Math.Round(g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)), 2) })
+            var analyticsDispensingRecs = analyticsRecords
+                .Where(r => DispensingReasons.Contains((int)r.ChangeReason))
                 .ToList();
 
-            var last7 = dailyDispensingAll.Count > 7
-                ? dailyDispensingAll.Skip(dailyDispensingAll.Count - 7).ToList()
-                : dailyDispensingAll;
+            // 7-day daily dispensing (always 7 points, zero-filled)
+            var dailyDispensingMap = analyticsDispensingRecs
+                .GroupBy(r => ToLocal(r.Timestamp, tz).Date)
+                .ToDictionary(
+                    g => g.Key,
+                    g => Math.Round(g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)), 2)
+                );
+
+            var latestAnalyticsDate = dailyDispensingMap.Count > 0
+                ? dailyDispensingMap.Keys.Max()
+                : (context.DateTo?.Date ?? DateTime.Now.Date);
+
+            var last7 = Enumerable.Range(0, 7)
+                .Select(offset => latestAnalyticsDate.AddDays(offset - 6))
+                .Select(date => new
+                {
+                    date,
+                    volume = dailyDispensingMap.TryGetValue(date, out var value) ? value : 0m,
+                })
+                .ToList();
 
             var sevenDayTotal = last7.Sum(d => d.volume);
             var dailyAvg = last7.Count > 0 ? Math.Round(sevenDayTotal / last7.Count, 0) : 0m;
             var peakDay = last7.OrderByDescending(d => d.volume).FirstOrDefault();
             var lowestDay = last7.Where(d => d.volume > 0).OrderBy(d => d.volume).FirstOrDefault();
 
-            // Vehicle type consumption
+            // Vehicle type consumption (top 7)
             var vehicleTypeGroups = allDispensingRecs
                 .GroupBy(r => Sanitize(r.VehicleType, "Other"))
                 .Select(g => new
@@ -327,6 +343,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
                     litres = Math.Round(g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)), 2)
                 })
                 .OrderByDescending(x => x.litres)
+                .Take(7)
                 .ToList();
 
             var vehicleTypeTotal = vehicleTypeGroups.Sum(v => v.litres);
@@ -633,7 +650,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
                 };
             }).ToList();
 
-            // Vehicle type consumption
+            // Vehicle type consumption (top 7)
             var vehicleTypeGroups = allDispensingRecords
                 .GroupBy(r => Sanitize(r.VehicleType, "Other"))
                 .Select(g => new
@@ -642,6 +659,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
                     litres = Math.Round(g.Sum(r => Math.Abs(r.VolumeChange ?? 0m)), 2)
                 })
                 .OrderByDescending(x => x.litres)
+                .Take(7)
                 .ToList();
 
             var vehicleTypeTotal = vehicleTypeGroups.Sum(v => v.litres);

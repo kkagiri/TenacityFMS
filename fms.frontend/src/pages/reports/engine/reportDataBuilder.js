@@ -925,7 +925,8 @@ const mapTankVolumeHistory = (rawRecords, container) => {
     });
     const vehicleTypeGroups = Array.from(vtMap.entries())
         .map(([type, litres]) => ({ type, litres: Math.round(litres * 100) / 100 }))
-        .sort((a, b) => b.litres - a.litres);
+        .sort((a, b) => b.litres - a.litres)
+        .slice(0, 7);
     const vtTotal = vehicleTypeGroups.reduce((s, v) => s + v.litres, 0);
 
     const avgPerFill = dispensingRows.length > 0
@@ -1265,7 +1266,8 @@ const mapTransactionHistorySummary = (rawRecords) => {
     });
     const vehicleTypeGroups = Array.from(vehicleTypeMap.entries())
         .map(([type, litres]) => ({ type, litres: roundTo(litres, 2) }))
-        .sort((a, b) => b.litres - a.litres);
+        .sort((a, b) => b.litres - a.litres)
+        .slice(0, 7);
     const vehicleTypeTotal = vehicleTypeGroups.reduce((s, v) => s + v.litres, 0) || 1;
 
     // Site comparison — per month dispensing per site

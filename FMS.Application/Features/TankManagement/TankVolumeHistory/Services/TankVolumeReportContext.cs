@@ -7,6 +7,7 @@
  */
 using System;
 using System.Collections.Generic;
+using FMS.Application.Features.FMS.TankVolumeHistory;
 
 namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
 {
@@ -48,5 +49,11 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
         /// Scheduled path provides this from DB; on-demand path relies on DTO TankName.
         /// </summary>
         public IReadOnlyDictionary<int, string>? TankNameLookup { get; set; }
+
+        /// <summary>
+        /// Optional analytics-specific records (for 7-day charts).
+        /// When provided, chart calculations can use this window while report detail still uses main records.
+        /// </summary>
+        public IReadOnlyCollection<TankVolumeHistoryDTO>? AnalyticsRecords { get; set; }
     }
 }

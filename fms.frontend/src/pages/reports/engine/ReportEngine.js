@@ -322,9 +322,12 @@ const ReportEngine = () => {
 
         // Build params once for preview/async paths
         const params = buildQueryParams();
+        const useUnifiedBackendPath =
+            activeSource?.id === 'tank-volume-history' ||
+            activeSource?.id === 'transaction-history-summary';
 
         // ── HTML preview: try sync preview, then auto-fallback to background on timeout ──
-        if (selectedFormat === 'html') {
+        if (selectedFormat === 'html' && !useUnifiedBackendPath) {
             setGenerating(true);
             try {
                 const dataResult = await reportingService.fetchReportData(activeSource.apiEndpoint, params);
@@ -344,6 +347,14 @@ const ReportEngine = () => {
                 // Skip the synchronous preview entirely when the dataset is too
                 // large to render within the 12-second timeout window.  Instead,
                 // show an immediate informational message and fall through to the
+
+        if (selectedFormat === 'html' && useUnifiedBackendPath) {
+            notify({
+                message: 'Generating HTML in background to keep HTML/PDF output identical...',
+                type: 'info',
+                displayTime: 2800,
+            });
+        }
                 // async background job path below.
                 const _recordArray = Array.isArray(dataResult.data?.data)
                     ? dataResult.data.data

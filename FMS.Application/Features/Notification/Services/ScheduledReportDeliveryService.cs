@@ -174,6 +174,24 @@ namespace FMS.Application.Features.Notification.Services
             }
 
             var rows = filteredRows.ToList();
+
+            var analyticsResult = await _mediator.Send(
+                new GetTankVolumeHistoryFilteredQuery
+                {
+                    StartDate = windowEndUtc.AddDays(-6).Date,
+                    EndDate = windowEndUtc,
+                    SiteId = siteIds.Count == 1 ? siteIds.First() : null,
+                    TankId = tankIds.Count == 1 ? tankIds.First() : null,
+                    IncludeVehicleNames = true,
+                    UseManualDispensing = metadata.Value<bool?>("useManualDispensing") ?? false,
+                    IncludeGpsData = metadata.Value<bool?>("includeGpsData") ?? false
+                },
+                cancellationToken);
+
+            var analyticsRows = analyticsResult.IsSuccess && analyticsResult.Data != null
+                ? analyticsResult.Data
+                : rows;
+
             var resolvedTankIds = rows
                 .Where(row => row.TankId.HasValue)
                 .Select(row => row.TankId!.Value)
@@ -195,7 +213,8 @@ namespace FMS.Application.Features.Notification.Services
                 DateFrom = windowStartLocal,
                 DateTo = windowEndLocal,
                 TimezoneId = timezoneId,
-                TankNameLookup = tankNameLookup
+                TankNameLookup = tankNameLookup,
+                AnalyticsRecords = analyticsRows
             };
 
             var existingReportData = isSummaryReport

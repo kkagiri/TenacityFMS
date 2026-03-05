@@ -80,11 +80,11 @@ namespace FMS.WebClient.Services.Reporting
         .company-bar {
             background: #1F2937;
             margin: -28px -32px 0;
-            padding: 12px 32px;
+            padding: 14px 32px 16px;
             display: flex; align-items: center; justify-content: space-between;
-            margin-bottom: 24px;
+            margin-bottom: 30px;
         }
-        .company-bar-left { display: flex; align-items: center; gap: 14px; }
+        .company-bar-left { display: flex; align-items: center; gap: 14px; min-height: 40px; }
         .company-logo { height: 40px; width: auto; object-fit: contain; filter: brightness(0) invert(1); }
         .company-bar-titles { display: flex; flex-direction: column; gap: 1px; }
         .company-main-title { font-size: 15px; font-weight: 800; color: #FFFFFF; letter-spacing: 0.3px; }
@@ -94,7 +94,7 @@ namespace FMS.WebClient.Services.Reporting
         /* â”€â”€ Report Header â”€â”€ */
         .report-header {
             display: flex; justify-content: space-between; align-items: flex-end;
-            padding-bottom: 18px; margin-bottom: 24px;
+            padding-top: 4px; padding-bottom: 18px; margin-bottom: 24px;
             border-bottom: 2px solid var(--border);
         }
         .report-title h1 { font-size: 20px; font-weight: 800; color: var(--text-strong); letter-spacing: -0.3px; }
@@ -828,16 +828,35 @@ if (typeof Chart !== 'undefined') {
 
     // 2. Vehicle Type Consumption
     if (cd.vehicleTypeConsumption && cd.vehicleTypeConsumption.labels.length > 0) {
-        var vtColors = [PRIMARY, SUCCESS, WARNING, '#7C3AED', DANGER, '#0EA5E9'];
-        var vtTotal = cd.vehicleTypeConsumption.total;
+        var vtColors = [PRIMARY, SUCCESS, WARNING, '#7C3AED', DANGER, '#0EA5E9', '#9CA3AF'];
+
+        var vtPairs = cd.vehicleTypeConsumption.labels.map(function(label, index) {
+            return {
+                label: label,
+                value: cd.vehicleTypeConsumption.data[index] || 0
+            };
+        });
+
+        vtPairs.sort(function(a, b) { return b.value - a.value; });
+
+        var vtTop = vtPairs.slice(0, 6);
+        var vtOthersTotal = vtPairs.slice(6).reduce(function(sum, item) { return sum + item.value; }, 0);
+        if (vtOthersTotal > 0) {
+            vtTop.push({ label: 'Others', value: vtOthersTotal });
+        }
+
+        var vtLabels = vtTop.map(function(item) { return item.label; });
+        var vtData = vtTop.map(function(item) { return item.value; });
+        var vtTotal = vtData.reduce(function(sum, value) { return sum + value; }, 0);
+
         new Chart(document.getElementById('vehicleTypeChart'), {
             type: 'bar',
             data: {
-                labels: cd.vehicleTypeConsumption.labels,
+                labels: vtLabels,
                 datasets: [{
                     label: 'Litres Dispensed',
-                    data: cd.vehicleTypeConsumption.data,
-                    backgroundColor: vtColors.slice(0, cd.vehicleTypeConsumption.labels.length),
+                    data: vtData,
+                    backgroundColor: vtColors.slice(0, vtLabels.length),
                     borderRadius: 4,
                     barPercentage: 0.6
                 }]
@@ -850,7 +869,7 @@ if (typeof Chart !== 'undefined') {
                     tooltip: {
                         callbacks: {
                             label: function(ctx) {
-                                var pct = ((ctx.parsed.x / vtTotal) * 100).toFixed(1);
+                                var pct = vtTotal > 0 ? ((ctx.parsed.x / vtTotal) * 100).toFixed(1) : '0.0';
                                 return ' ' + ctx.parsed.x.toLocaleString() + ' L  (' + pct + '%)';
                             }
                         }
@@ -868,7 +887,7 @@ if (typeof Chart !== 'undefined') {
                     chart.data.datasets.forEach(function(dataset, di) {
                         chart.getDatasetMeta(di).data.forEach(function(bar, i) {
                             var val = dataset.data[i];
-                            var pct = ((val / vtTotal) * 100).toFixed(1);
+                            var pct = vtTotal > 0 ? ((val / vtTotal) * 100).toFixed(1) : '0.0';
                             ctx2.save();
                             ctx2.font = '700 9px Nunito Sans, sans-serif';
                             ctx2.fillStyle = '#6B7280';

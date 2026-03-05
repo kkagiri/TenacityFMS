@@ -504,6 +504,26 @@ namespace FMS.WebClient.Services
             var records = result.Data;
             if (job != null) job.RecordCount = records.Count;
 
+            // Dedicated 7-day analytics fetch (independent of detail range)
+            var analyticsUtcEnd = utcEnd ?? DateTime.UtcNow;
+            var analyticsUtcStart = analyticsUtcEnd.AddDays(-6).Date;
+
+            var analyticsQuery = new FMS.Application.Features.TankManagement.TankVolumeHistory.Queries.GetTankVolumeHistoryFilteredQuery
+            {
+                StartDate = analyticsUtcStart,
+                EndDate = analyticsUtcEnd,
+                SiteId = GetIntParam(request.Parameters, "siteId"),
+                TankId = GetIntParam(request.Parameters, "tankId"),
+                Take = null,
+                IncludeVehicleNames = true,
+                UseManualDispensing = false
+            };
+
+            var analyticsResult = await mediator.Send(analyticsQuery, ct);
+            var analyticsRecords = analyticsResult.IsSuccess && analyticsResult.Data != null
+                ? analyticsResult.Data
+                : records;
+
             // Shape into template-ready payload via shared data builder.
             // Pass LOCAL dates (for display headers) and TimezoneId (for timestamp formatting).
             var reportContext = new TankVolumeReportContext
@@ -517,6 +537,7 @@ namespace FMS.WebClient.Services
                 SiteFilterId = GetIntParam(request.Parameters, "siteId"),
                 TankFilterId = GetIntParam(request.Parameters, "tankId"),
                 TimezoneId = timeZoneId,
+                AnalyticsRecords = analyticsRecords,
             };
 
             if (request.SourceId == "transaction-history-summary")
