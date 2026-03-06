@@ -4,7 +4,7 @@
  *          Eliminates magic strings across controllers and services.
  *          Values MUST match the 'Name' column in the 'permissions' database table exactly.
  * Dependencies: None (pure constants)
- * Last Modified: 2025-07-17
+ * Last Modified: 2026-03-06
  *
  * Key Sections:
  * - Modules: Parent/module-level permission group names
@@ -281,6 +281,9 @@ namespace FMS.Application.Common.Constants
             /// <summary>View dashboard (Id: 68) - DB name: _View_Dashboard</summary>
             public const string View = "_View_Dashboard";
 
+            /// <summary>[NEW] View dashboard reporting widgets - DB name: _View_DashboardReporting</summary>
+            public const string Reporting = "_View_DashboardReporting";
+
             /// <summary>Create dashboard widgets (Id: 65) - DB name: _Create_Dashboard</summary>
             public const string Create = "_Create_Dashboard";
 
@@ -300,7 +303,7 @@ namespace FMS.Application.Common.Constants
             /// <summary>Read tank volume history (Id: 63) - DB name: _Read_TankVolumeHistory</summary>
             public const string Read = "_Read_TankVolumeHistory";
 
-            /// <summary>[NEW] Update tank volume history - DB name: _Update_TankVolumeHistory</summary>
+            /// <summary>Update tank volume history (Id: 220) - DB name: _Update_TankVolumeHistory</summary>
             public const string Update = "_Update_TankVolumeHistory";
 
             /// <summary>Delete tank volume history (Id: 64) - DB name: _Delete_TankVolumeHistory</summary>
@@ -314,16 +317,16 @@ namespace FMS.Application.Common.Constants
 
         public static class Site
         {
-            /// <summary>Read site data (Id: TBD) - DB name: _Read_Site</summary>
+            /// <summary>Read site data (Id: 218) - DB name: _Read_Site</summary>
             public const string Read = "_Read_Site";
 
-            /// <summary>[NEW] Create site - DB name: _Create_Site</summary>
+            /// <summary>Create site (Id: 223) - DB name: _Create_Site</summary>
             public const string Create = "_Create_Site";
 
-            /// <summary>[NEW] Update site - DB name: _Update_Site</summary>
+            /// <summary>Update site (Id: 224) - DB name: _Update_Site</summary>
             public const string Update = "_Update_Site";
 
-            /// <summary>[NEW] Delete site - DB name: _Delete_Site</summary>
+            /// <summary>Delete site (Id: 225) - DB name: _Delete_Site</summary>
             public const string Delete = "_Delete_Site";
         }
 
@@ -578,8 +581,7 @@ namespace FMS.Application.Common.Constants
         }
 
         /// <summary>
-        /// [NEW] Report management permissions (templates, generation).
-        /// Requires DB migration before use.
+        /// Report management permissions (templates, generation).
         /// </summary>
         public static class Reporting
         {

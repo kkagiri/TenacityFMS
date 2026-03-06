@@ -1,44 +1,39 @@
 /**
  * File: NotificationController.cs
- * Purpose: Exposes notification management APIs for policies, preferences, history, and delivery actions.
- * Dependencies: INotificationService, IMediator, AutoMapper, ASP.NET Core Identity
- * Last Modified: 2026-02-07
+ * Purpose: Slim API controller for notification management. Delegates to INotificationService,
+ *          IMediator (CQRS handlers), INotificationGroupService and IEmailService.
+ * Dependencies: INotificationService, IMediator, AutoMapper, INotificationGroupService, IEmailService
+ * Last Modified: 2026-03-05
  *
  * Key Endpoints:
- * - CreateNotificationPolicy(): Creates a new policy using authenticated user context.
- * - GetNotificationPolicies(): Returns available notification policies.
- * - BulkUpdateNotificationPreferences(): Saves user notification preferences.
+ * - CRUD for notifications, policies, preferences, categories
+ * - Admin history, scheduled report emails, recipient candidates
+ * - Search users/roles
+ * - Testing: test email, SMTP connection, diagnostics
  */
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Claims;
-using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
+using FMS.Application.Common.Constants;
 using FMS.Application.Features.Notification.Commands;
+using FMS.Application.Features.Notification.Commands.ScheduledReport;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.DTOs.Groups;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Queries;
 using FMS.Application.Features.Notification.Services;
-using FMS.Domain.Entities;
-using FMS.Persistence.DataAccess;
+using FMS.WebClient.Attributes;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
-using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
-
-using FMS.WebClient.Attributes;
-using FMS.Application.Common.Constants;
 
 namespace FMS.WebClient.Controllers
 {
@@ -55,29 +50,22 @@ namespace FMS.WebClient.Controllers
         private readonly IMediator _mediator;
         private readonly IMapper _mapper;
         private readonly FMS.Application.Features.Notification.Services.Groups.INotificationGroupService _groupService;
-        private readonly GpsdataContext _context;
-        private readonly UserManager<User> _userManager;
-        private readonly RoleManager<Role> _roleManager;
 
         public NotificationController(
             INotificationService notificationService,
             ILogger<NotificationController> logger,
             IMediator mediator,
             IMapper mapper,
-            FMS.Application.Features.Notification.Services.Groups.INotificationGroupService groupService,
-            GpsdataContext context,
-            UserManager<User> userManager,
-            RoleManager<Role> roleManager)
+            FMS.Application.Features.Notification.Services.Groups.INotificationGroupService groupService)
         {
             _notificationService = notificationService;
             _logger = logger;
             _mediator = mediator;
             _mapper = mapper;
             _groupService = groupService;
-            _context = context;
-            _userManager = userManager;
-            _roleManager = roleManager;
         }
+
+        #region Private Helpers
 
         private bool TryGetCurrentUserId(out string userId)
         {
@@ -104,244 +92,19 @@ namespace FMS.WebClient.Controllers
             return TryGetCurrentUserId(out var userId) ? userId : fallback;
         }
 
-        private ScheduledReportEmailDto MapScheduledReportEmail(FMS.Domain.Entities.Features.Notifications.Notification notification)
-        {
-            var root = ParseNotificationData(notification.Data);
-            var recurringSchedule = root["recurringSchedule"] as JObject;
+        #endregion
 
-            var recipients = notification.Recipients?
-                .Select(r => new ScheduledReportRecipientDto
-                {
-                    UserId = r.UserId,
-                    UserName = r.User?.UserName ?? r.UserId,
-                    DeliveryMethod = r.DeliveryMethod,
-                    RecipientAddress = r.RecipientAddress,
-                    DeliveryStatus = string.IsNullOrWhiteSpace(r.DeliveryStatus) ? "Pending" : r.DeliveryStatus,
-                    SentAt = r.SentAt,
-                    DeliveredAt = r.DeliveredAt,
-                    DeliveryError = r.DeliveryError
-                })
-                .ToList() ?? new List<ScheduledReportRecipientDto>();
-
-            var deliveredCount = recipients.Count(r =>
-                string.Equals(r.DeliveryStatus, "Sent", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(r.DeliveryStatus, "Delivered", StringComparison.OrdinalIgnoreCase));
-            var failedCount = recipients.Count(r =>
-                string.Equals(r.DeliveryStatus, "Failed", StringComparison.OrdinalIgnoreCase));
-            var pendingCount = recipients.Count - deliveredCount - failedCount;
-
-            return new ScheduledReportEmailDto
-            {
-                Id = notification.Id,
-                NotificationId = notification.NotificationId,
-                Title = notification.Title,
-                Message = notification.Message,
-                TriggerSource = notification.TriggerSource,
-                Status = notification.Status,
-                Priority = notification.Priority,
-                CreatedAt = notification.CreatedAt,
-                ScheduledAt = notification.ScheduledAt,
-                SentAt = notification.SentAt,
-                ReportType = root.Value<string>("reportType"),
-                ReportTemplateName = root.Value<string>("templateName"),
-                Format = root.Value<string>("format"),
-                PeriodType = root.Value<string>("periodType"),
-                RequestedBy = root.Value<string>("requestedBy"),
-                ReportDescription = root.Value<string>("reportDescription"),
-                ReportViewPath = root.Value<string>("reportViewPath"),
-                ReportViewUrl = root.Value<string>("reportViewUrl"),
-                SiteIds = ParseIntList(root["siteIds"]),
-                TankIds = ParseIntList(root["tankIds"]),
-                EffectiveStartDate = root.Value<string>("effectiveStartDate"),
-                EffectiveEndDate = root.Value<string>("effectiveEndDate"),
-                OffsetDays = root.Value<int?>("offsetDays") ?? root.Value<int?>("lookbackDays") ?? 1,
-                WindowDays = root.Value<int?>("windowDays") ?? 1,
-                SiteNames = ParseStringList(root["siteNames"], "All Sites"),
-                TankNames = ParseStringList(root["tankNames"], "All Tanks"),
-                Filters = root["filters"]?.ToString(Newtonsoft.Json.Formatting.None),
-                TimeZone = recurringSchedule?.Value<string>("timeZone"),
-                ScheduleType = recurringSchedule?.Value<string>("scheduleType"),
-                ScheduleTimeOfDay = recurringSchedule?.Value<string>("timeOfDay"),
-                ScheduleWeekOfMonth = recurringSchedule?.Value<string>("weekOfMonth"),
-                ScheduleWeeksOfMonth = NormalizeScheduleWeeks(ParseStringList(recurringSchedule?["weeksOfMonth"], recurringSchedule?.Value<string>("weekOfMonth") ?? string.Empty)),
-                ScheduleDaysOfWeek = ParseStringList(recurringSchedule?["daysOfWeek"], recurringSchedule?.Value<string>("dayOfWeek") ?? "monday"),
-                NextRunAtUtc = recurringSchedule?.Value<DateTime?>("nextRunAtUtc"),
-                LastProcessedAtUtc = recurringSchedule?.Value<DateTime?>("lastProcessedAtUtc"),
-                RecipientCount = recipients.Count,
-                DeliveredCount = deliveredCount,
-                FailedCount = failedCount,
-                PendingCount = pendingCount,
-                Recipients = recipients
-            };
-        }
-
-        private static JObject ParseNotificationData(string? dataJson)
-        {
-            if (string.IsNullOrWhiteSpace(dataJson))
-            {
-                return new JObject();
-            }
-
-            try
-            {
-                return JObject.Parse(dataJson);
-            }
-            catch
-            {
-                return new JObject();
-            }
-        }
-
-        private static List<string> ParseStringList(JToken? token, string fallbackIfEmpty)
-        {
-            if (token is JArray arrayToken)
-            {
-                var values = arrayToken
-                    .Select(value => value?.ToString())
-                    .Where(value => !string.IsNullOrWhiteSpace(value))
-                    .Select(value => value!.Trim())
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-
-                if (values.Count > 0)
-                {
-                    return values;
-                }
-            }
-
-            if (token is JValue scalarToken)
-            {
-                var scalarValue = scalarToken.ToString();
-                if (!string.IsNullOrWhiteSpace(scalarValue))
-                {
-                    return scalarValue
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(value => value.Trim())
-                        .Where(value => !string.IsNullOrWhiteSpace(value))
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-                }
-            }
-
-            return new List<string> { fallbackIfEmpty };
-        }
-
-        private static List<int> ParseIntList(JToken? token)
-        {
-            if (token is JArray arrayToken && arrayToken.Count > 0)
-            {
-                return arrayToken
-                    .Select(value => int.TryParse(value?.ToString(), out var parsed) ? parsed : 0)
-                    .Where(value => value > 0)
-                    .Distinct()
-                    .ToList();
-            }
-
-            if (token is JValue scalarToken)
-            {
-                var scalarValue = scalarToken.ToString();
-                if (!string.IsNullOrWhiteSpace(scalarValue))
-                {
-                    return scalarValue
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(value => int.TryParse(value.Trim(), out var parsed) ? parsed : 0)
-                        .Where(value => value > 0)
-                        .Distinct()
-                        .ToList();
-                }
-            }
-
-            return new List<int>();
-        }
-
-        private static List<string> NormalizeScheduleDays(IEnumerable<string>? values)
-        {
-            if (values == null)
-            {
-                return new List<string>();
-            }
-
-            return values
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value.Trim().ToLowerInvariant())
-                .Where(value =>
-                    value == "monday" ||
-                    value == "tuesday" ||
-                    value == "wednesday" ||
-                    value == "thursday" ||
-                    value == "friday" ||
-                    value == "saturday" ||
-                    value == "sunday")
-                .Distinct()
-                .ToList();
-        }
-
-        private static List<string> NormalizeScheduleWeeks(IEnumerable<string>? values)
-        {
-            if (values == null)
-            {
-                return new List<string>();
-            }
-
-            return values
-                .Where(value => !string.IsNullOrWhiteSpace(value))
-                .Select(value => value.Trim().ToLowerInvariant())
-                .Where(value =>
-                    value == "first" ||
-                    value == "second" ||
-                    value == "third" ||
-                    value == "fourth" ||
-                    value == "last")
-                .Distinct()
-                .ToList();
-        }
-
-        private static string NormalizeScheduleTime(string? value)
-        {
-            if (string.IsNullOrWhiteSpace(value))
-            {
-                return "08:00";
-            }
-
-            var rawValue = value.Trim();
-            if (TimeSpan.TryParse(rawValue, out var parsedTime))
-            {
-                var hours = Math.Max(0, Math.Min(23, parsedTime.Hours));
-                var minutes = Math.Max(0, Math.Min(59, parsedTime.Minutes));
-                return $"{hours:D2}:{minutes:D2}";
-            }
-
-            return "08:00";
-        }
-
-        private static DateTime NormalizeToUtc(DateTime value)
-        {
-            if (value.Kind == DateTimeKind.Utc)
-            {
-                return value;
-            }
-
-            if (value.Kind == DateTimeKind.Local)
-            {
-                return value.ToUniversalTime();
-            }
-
-            return DateTime.SpecifyKind(value, DateTimeKind.Utc);
-        }
+        #region Notification CRUD (existing service delegation)
 
         /// <summary>
         /// Create a new notification
         /// </summary>
-        /// <param name="request">Notification creation request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Created notification ID</returns>
         [HttpPost]
         [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> CreateNotification([FromBody] CreateNotificationRequest request, CancellationToken cancellationToken = default)
         {
             try
             {
-                // Set triggered by from current user if not specified
                 if (string.IsNullOrEmpty(request.TriggeredBy) && TryGetCurrentUserId(out var userId))
                 {
                     request.TriggeredBy = userId;
@@ -371,9 +134,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Send a notification immediately
         /// </summary>
-        /// <param name="notificationId">Notification ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Send result</returns>
         [HttpPost("{notificationId}/send")]
         [RequirePermission(Permissions.Notification.Create)]
         public async Task<IActionResult> SendNotification(int notificationId, CancellationToken cancellationToken = default)
@@ -399,21 +159,18 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Get notifications for the current user
         /// </summary>
-        /// <param name="type">Filter by notification type</param>
-        /// <param name="category">Filter by category</param>
-        /// <param name="priority">Filter by priority</param>
-        /// <param name="isRead">Filter by read status</param>
-        /// <param name="siteId">Filter by site</param>
-        /// <param name="fromDate">Filter from date</param>
-        /// <param name="toDate">Filter to date</param>
-        /// <param name="skip">Number of records to skip</param>
-        /// <param name="take">Number of records to take</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of notifications</returns>
         [HttpGet]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetNotifications(
-            [FromQuery] string? type = null, [FromQuery] string? category = null, [FromQuery] string? priority = null, [FromQuery] bool? isRead = null, [FromQuery] int? siteId = null, [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] int? skip = null, [FromQuery] int? take = null,
+            [FromQuery] string? type = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? priority = null,
+            [FromQuery] bool? isRead = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] int? skip = null,
+            [FromQuery] int? take = null,
             CancellationToken cancellationToken = default)
         {
             try
@@ -454,527 +211,8 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Get ALL notification history for admin view (not scoped to current user).
-        /// Shows every notification sent through the system with recipient details.
-        /// </summary>
-        [HttpGet("admin-history")]
-        [RequirePermission(Permissions.Notification.Read)]
-        public async Task<IActionResult> GetAdminNotificationHistory(
-            [FromQuery] string? type = null,
-            [FromQuery] string? status = null,
-            [FromQuery] string? category = null,
-            [FromQuery] string? priority = null,
-            [FromQuery] int? siteId = null,
-            [FromQuery] DateTime? fromDate = null,
-            [FromQuery] DateTime? toDate = null,
-            [FromQuery] string? search = null,
-            [FromQuery] int skip = 0,
-            [FromQuery] int take = 100,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var safeTake = Math.Max(1, Math.Min(take, 500));
-                var safeSkip = Math.Max(0, skip);
-
-                var query = _context.Notifications
-                    .Include(n => n.Recipients)
-                        .ThenInclude(r => r.User)
-                    .Include(n => n.Site)
-                    .Include(n => n.Tank)
-                    .Include(n => n.Vehicle)
-                    .Include(n => n.PtsDevice)
-                    .Include(n => n.NotificationPolicy)
-                    .Include(n => n.NotificationCategory)
-                    .AsQueryable();
-
-                // Apply filters
-                if (!string.IsNullOrEmpty(type))
-                    query = query.Where(n => n.Type == type);
-
-                if (!string.IsNullOrEmpty(status))
-                    query = query.Where(n => n.Status == status);
-
-                if (!string.IsNullOrEmpty(category))
-                    query = query.Where(n => n.Category == category);
-
-                if (!string.IsNullOrEmpty(priority))
-                    query = query.Where(n => n.Priority == priority);
-
-                if (siteId.HasValue)
-                    query = query.Where(n => n.SiteId == siteId.Value);
-
-                if (fromDate.HasValue)
-                    query = query.Where(n => n.CreatedAt >= fromDate.Value);
-
-                if (toDate.HasValue)
-                    query = query.Where(n => n.CreatedAt <= toDate.Value);
-
-                if (!string.IsNullOrEmpty(search))
-                    query = query.Where(n =>
-                        n.Title.Contains(search) ||
-                        n.Message.Contains(search) ||
-                        n.NotificationId.Contains(search));
-
-                var totalCount = await query.CountAsync(cancellationToken);
-
-                var notifications = await query
-                    .OrderByDescending(n => n.CreatedAt)
-                    .Skip(safeSkip)
-                    .Take(safeTake)
-                    .Select(n => new FMS.Application.Features.Notification.DTOs.AdminNotificationHistoryDto
-                    {
-                        Id = n.Id,
-                        NotificationId = n.NotificationId,
-                        Type = n.Type,
-                        Category = n.Category,
-                        Priority = n.Priority,
-                        Title = n.Title,
-                        Message = n.Message,
-                        HtmlBody = null,
-                        Data = n.Data,
-                        Status = n.Status,
-                        TriggerSource = n.TriggerSource,
-                        TriggeredBy = n.TriggeredBy,
-                        CreatedAt = n.CreatedAt,
-                        SentAt = n.SentAt,
-                        SendAttempts = n.SendAttempts,
-                        ErrorMessage = n.ErrorMessage,
-                        SiteName = n.Site != null ? n.Site.Name : null,
-                        TankName = n.Tank != null ? n.Tank.Name : null,
-                        VehicleName = n.Vehicle != null ? n.Vehicle.HyoungNo : null,
-                        PtsDeviceName = n.PtsDevice != null ? n.PtsDevice.Ptsid : null,
-                        PolicyName = n.NotificationPolicy != null ? n.NotificationPolicy.Name : null,
-                        CategoryName = n.NotificationCategory != null ? n.NotificationCategory.Name : null,
-                        RecipientCount = n.Recipients.Count,
-                        DeliveredCount = n.Recipients.Count(r => r.DeliveryStatus == "Delivered" || r.DeliveryStatus == "Sent"),
-                        FailedCount = n.Recipients.Count(r => r.DeliveryStatus == "Failed"),
-                        Recipients = n.Recipients.Select(r => new FMS.Application.Features.Notification.DTOs.AdminNotificationRecipientDto
-                        {
-                            UserId = r.UserId,
-                            UserName = r.User != null ? r.User.UserName : null,
-                            Email = r.User != null ? r.User.Email : r.UserId,
-                            DeliveryMethod = r.DeliveryMethod,
-                            DeliveryStatus = r.DeliveryStatus,
-                            IsRead = r.IsRead,
-                            IsAcknowledged = r.IsAcknowledged,
-                            ReadAt = r.ReadAt,
-                            DeliveredAt = r.DeliveredAt
-                        }).ToList()
-                    })
-                    .ToListAsync(cancellationToken);
-
-                return Ok(new
-                {
-                    success = true,
-                    message = $"Retrieved {notifications.Count} of {totalCount} notifications",
-                    data = new
-                    {
-                        items = notifications,
-                        totalCount,
-                        skip = safeSkip,
-                        take = safeTake
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting admin notification history");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Get scheduled report email notifications for administrative monitoring.
-        /// </summary>
-        [HttpGet("scheduled-reports")]
-        [RequirePermission(Permissions.Notification.Read)]
-        public async Task<IActionResult> GetScheduledReportEmails(
-            [FromQuery] bool includeCompleted = true,
-            [FromQuery] int take = 200,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var safeTake = Math.Max(1, Math.Min(take, 500));
-
-                var query = _context.Notifications
-                    .Include(n => n.Recipients)
-                    .ThenInclude(r => r.User)
-                    .Where(n =>
-                        n.TriggerSource == "TransactionVolumeHistoryReportSchedule" ||
-                        (n.TriggerSource != null && n.TriggerSource.EndsWith("ReportSchedule")));
-
-                if (!includeCompleted)
-                {
-                    query = query.Where(n =>
-                        n.Status == "Scheduled" ||
-                        n.Status == "Pending" ||
-                        n.Status == "PartiallyFailed");
-                }
-
-                var notifications = await query
-                    .OrderByDescending(n => n.CreatedAt)
-                    .Take(safeTake)
-                    .ToListAsync(cancellationToken);
-
-                var response = notifications
-                    .Select(MapScheduledReportEmail)
-                    .ToList();
-
-                return Ok(new
-                {
-                    success = true,
-                    message = $"Retrieved {response.Count} scheduled report email records",
-                    data = response
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving scheduled report emails");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Update a scheduled report email timing/configuration.
-        /// </summary>
-        [HttpPut("scheduled-reports/{notificationId:int}")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> UpdateScheduledReportEmail(
-            int notificationId,
-            [FromBody] UpdateScheduledReportEmailRequest request,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (request == null)
-                {
-                    return BadRequest(new { success = false, message = "Request payload is required" });
-                }
-
-                var notification = await _context.Notifications
-                    .Include(n => n.Recipients)
-                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
-
-                if (notification == null)
-                {
-                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
-                }
-
-                if (string.Equals(notification.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                {
-                    return BadRequest(new { success = false, message = "Cancelled schedules cannot be updated" });
-                }
-
-                var root = ParseNotificationData(notification.Data);
-                var recurringSchedule = root["recurringSchedule"] as JObject ?? new JObject();
-
-                var normalizedDays = NormalizeScheduleDays(request.DaysOfWeek);
-                if (normalizedDays.Any())
-                {
-                    recurringSchedule["daysOfWeek"] = JArray.FromObject(normalizedDays);
-                    recurringSchedule["dayOfWeek"] = normalizedDays[0];
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.ScheduleType))
-                {
-                    recurringSchedule["scheduleType"] = request.ScheduleType.Trim().ToLowerInvariant();
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.ScheduleTimeOfDay))
-                {
-                    recurringSchedule["timeOfDay"] = NormalizeScheduleTime(request.ScheduleTimeOfDay);
-                }
-
-                var normalizedWeeks = NormalizeScheduleWeeks(request.WeeksOfMonth);
-                if (normalizedWeeks.Any())
-                {
-                    recurringSchedule["weeksOfMonth"] = JArray.FromObject(normalizedWeeks);
-                    recurringSchedule["weekOfMonth"] = normalizedWeeks[0];
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.WeekOfMonth))
-                {
-                    var normalizedSingleWeek = NormalizeScheduleWeeks(new[] { request.WeekOfMonth });
-                    if (normalizedSingleWeek.Any())
-                    {
-                        recurringSchedule["weeksOfMonth"] = JArray.FromObject(normalizedSingleWeek);
-                        recurringSchedule["weekOfMonth"] = normalizedSingleWeek[0];
-                    }
-                }
-
-                if (!string.IsNullOrWhiteSpace(request.TimeZone))
-                {
-                    recurringSchedule["timeZone"] = request.TimeZone.Trim();
-                }
-
-                if (request.Enabled.HasValue)
-                {
-                    recurringSchedule["enabled"] = request.Enabled.Value;
-                }
-
-                var hasRecurringConfig =
-                    recurringSchedule["daysOfWeek"] != null ||
-                    recurringSchedule["dayOfWeek"] != null ||
-                    recurringSchedule["scheduleType"] != null ||
-                    recurringSchedule["timeOfDay"] != null ||
-                    recurringSchedule["weekOfMonth"] != null ||
-                    recurringSchedule["weeksOfMonth"] != null ||
-                    recurringSchedule["timeZone"] != null;
-
-                if (hasRecurringConfig && recurringSchedule["enabled"] == null)
-                {
-                    recurringSchedule["enabled"] = true;
-                }
-
-                if (hasRecurringConfig)
-                {
-                    root["recurringSchedule"] = recurringSchedule;
-                }
-
-                // Persist offsetDays and windowDays if provided
-                if (request.OffsetDays.HasValue)
-                {
-                    root["offsetDays"] = Math.Max(1, request.OffsetDays.Value);
-                }
-                if (request.WindowDays.HasValue)
-                {
-                    root["windowDays"] = Math.Max(1, request.WindowDays.Value);
-                }
-
-                // Persist format if provided
-                if (!string.IsNullOrWhiteSpace(request.Format))
-                {
-                    root["format"] = request.Format.Trim().ToUpperInvariant();
-                }
-
-                // Persist sourceId if provided
-                if (!string.IsNullOrWhiteSpace(request.SourceId))
-                {
-                    root["sourceId"] = request.SourceId.Trim();
-                }
-
-                // Persist schedule display name if provided
-                if (!string.IsNullOrWhiteSpace(request.ScheduleName))
-                {
-                    var scheduleName = request.ScheduleName.Trim();
-                    notification.Title = scheduleName;
-                    root["reportName"] = scheduleName;
-                }
-
-                // Persist filter changes if provided
-                if (request.Filters != null)
-                {
-                    root["filters"] = ConvertToJToken(request.Filters);
-                }
-
-                // Persist day-of-month for monthly schedules
-                if (request.DayOfMonth.HasValue)
-                {
-                    recurringSchedule["dayOfMonth"] = request.DayOfMonth.Value;
-                    root["recurringSchedule"] = recurringSchedule;
-                }
-
-                var scheduledAtUtc = request.ScheduledAtUtc;
-                if (!scheduledAtUtc.HasValue)
-                {
-                    var dataNextRun = root["recurringSchedule"]?["nextRunAtUtc"]?.Value<DateTime?>();
-                    if (dataNextRun.HasValue)
-                    {
-                        scheduledAtUtc = NormalizeToUtc(dataNextRun.Value);
-                    }
-                }
-
-                if (!scheduledAtUtc.HasValue)
-                {
-                    return BadRequest(new { success = false, message = "ScheduledAtUtc is required to update schedule timing" });
-                }
-
-                var normalizedScheduledAtUtc = NormalizeToUtc(scheduledAtUtc.Value);
-                recurringSchedule["nextRunAtUtc"] = normalizedScheduledAtUtc.ToString("o");
-                recurringSchedule["lastUpdatedAtUtc"] = DateTime.UtcNow.ToString("o");
-                root["recurringSchedule"] = recurringSchedule;
-
-                notification.ScheduledAt = normalizedScheduledAtUtc;
-                notification.Status = "Scheduled";
-                notification.ErrorMessage = null;
-                notification.Data = root.ToString(Formatting.None);
-
-                // Reconcile recipients if email list was provided
-                if (request.RecipientEmails != null)
-                {
-                    var existingRecipients = notification.Recipients?.ToList()
-                        ?? new List<FMS.Domain.Entities.Features.Notifications.NotificationRecipient>();
-
-                    // Remove recipients no longer in the list
-                    var toRemove = existingRecipients
-                        .Where(r => !request.RecipientEmails.Contains(r.RecipientAddress, StringComparer.OrdinalIgnoreCase))
-                        .ToList();
-                    if (toRemove.Any())
-                    {
-                        _context.NotificationRecipients.RemoveRange(toRemove);
-                    }
-
-                    // Add new recipients that don't already exist
-                    var existingAddresses = existingRecipients
-                        .Select(r => r.RecipientAddress.ToLowerInvariant())
-                        .ToHashSet();
-
-                    foreach (var email in request.RecipientEmails)
-                    {
-                        if (!existingAddresses.Contains(email.ToLowerInvariant()))
-                        {
-                            var user = await _context.Users
-                                .FirstOrDefaultAsync(u => u.Email == email, cancellationToken);
-
-                            notification.Recipients ??= new List<FMS.Domain.Entities.Features.Notifications.NotificationRecipient>();
-                            notification.Recipients.Add(
-                                new FMS.Domain.Entities.Features.Notifications.NotificationRecipient
-                                {
-                                    NotificationId = notification.Id,
-                                    UserId = user?.Id ?? "unknown",
-                                    DeliveryMethod = "Email",
-                                    RecipientAddress = email,
-                                    DeliveryStatus = "Pending"
-                                });
-                        }
-                    }
-
-                    // Update recipientNames in Data JSON
-                    root["recipientNames"] = JArray.FromObject(
-                        request.RecipientEmails.Select(e => e).ToList());
-                    notification.Data = root.ToString(Formatting.None);
-                }
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                return Ok(new
-                {
-                    success = true,
-                    message = "Scheduled report email updated successfully",
-                    data = MapScheduledReportEmail(notification)
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error updating scheduled report email {NotificationId}", notificationId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        private static JToken ConvertToJToken(object value)
-        {
-            if (value is JsonElement jsonElement)
-            {
-                try
-                {
-                    return JToken.Parse(jsonElement.GetRawText());
-                }
-                catch
-                {
-                    return JValue.CreateNull();
-                }
-            }
-
-            return JToken.FromObject(value);
-        }
-
-        /// <summary>
-        /// Cancel a scheduled report email notification.
-        /// </summary>
-        [HttpDelete("scheduled-reports/{notificationId:int}")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> CancelScheduledReportEmail(
-            int notificationId,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var notification = await _context.Notifications
-                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
-
-                if (notification == null)
-                {
-                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
-                }
-
-                if (string.Equals(notification.Status, "Cancelled", StringComparison.OrdinalIgnoreCase))
-                {
-                    return Ok(new { success = true, message = "Schedule already cancelled" });
-                }
-
-                var root = ParseNotificationData(notification.Data);
-                var recurringSchedule = root["recurringSchedule"] as JObject ?? new JObject();
-                recurringSchedule["enabled"] = false;
-                recurringSchedule["cancelledAtUtc"] = DateTime.UtcNow.ToString("o");
-                root["recurringSchedule"] = recurringSchedule;
-
-                notification.Status = "Cancelled";
-                notification.ScheduledAt = null;
-                notification.ErrorMessage = "Schedule cancelled by administrator";
-                notification.Data = root.ToString(Formatting.None);
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                return Ok(new { success = true, message = "Scheduled report email cancelled successfully" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error cancelling scheduled report email {NotificationId}", notificationId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Permanently delete a scheduled report email notification and its recipients.
-        /// </summary>
-        [HttpDelete("scheduled-reports/{notificationId:int}/permanent")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> DeleteScheduledReportEmail(
-            int notificationId,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var notification = await _context.Notifications
-                    .Include(n => n.Recipients)
-                    .FirstOrDefaultAsync(n => n.Id == notificationId, cancellationToken);
-
-                if (notification == null)
-                {
-                    return NotFound(new { success = false, message = "Scheduled report notification not found" });
-                }
-
-                // Remove associated recipients first
-                if (notification.Recipients?.Any() == true)
-                {
-                    _context.NotificationRecipients.RemoveRange(notification.Recipients);
-                }
-
-                // Remove the notification itself
-                _context.Notifications.Remove(notification);
-
-                await _context.SaveChangesAsync(cancellationToken);
-
-                _logger.LogInformation("Permanently deleted scheduled report email {NotificationId} (DB ID: {Id})",
-                    notification.NotificationId, notificationId);
-
-                return Ok(new { success = true, message = "Scheduled report email deleted permanently" });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error permanently deleting scheduled report email {NotificationId}", notificationId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
         /// Mark a notification as read
         /// </summary>
-        /// <param name="notificationId">Notification ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("{notificationId}/read")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> MarkAsRead(int notificationId, CancellationToken cancellationToken = default)
@@ -1002,8 +240,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Mark all notifications as read for the current user
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("read-all")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken = default)
@@ -1031,9 +267,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Acknowledge a notification
         /// </summary>
-        /// <param name="notificationId">Notification ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("{notificationId}/acknowledge")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> AcknowledgeNotification(int notificationId, CancellationToken cancellationToken = default)
@@ -1058,17 +291,21 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        #endregion
+
+        #region Statistics
+
         /// <summary>
         /// Get notification statistics for dashboard
         /// </summary>
-        /// <param name="fromDate">Start date for statistics</param>
-        /// <param name="toDate">End date for statistics</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Statistics data</returns>
         [HttpGet("statistics")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetStatistics(
-            [FromQuery] DateTime? fromDate = null, [FromQuery] DateTime? toDate = null, [FromQuery] int? recentCount = null, [FromQuery] bool includeDailyBreakdown = true, [FromQuery] bool includeRecentNotifications = true,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] int? recentCount = null,
+            [FromQuery] bool includeDailyBreakdown = true,
+            [FromQuery] bool includeRecentNotifications = true,
             CancellationToken cancellationToken = default)
         {
             try
@@ -1078,7 +315,7 @@ namespace FMS.WebClient.Controllers
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
 
-                GetNotificationStatisticsRequest statsRequest = new GetNotificationStatisticsRequest
+                var statsRequest = new GetNotificationStatisticsRequest
                 {
                     UserId = userId,
                     FromDate = fromDate,
@@ -1088,12 +325,9 @@ namespace FMS.WebClient.Controllers
                     IncludeRecentNotifications = includeRecentNotifications
                 };
 
-                FMSResponse<NotificationStatisticsDto> result = await _notificationService.GetNotificationStatisticsAsync(statsRequest, cancellationToken);
+                var result = await _notificationService.GetNotificationStatisticsAsync(statsRequest, cancellationToken);
 
-                if (result.IsSuccess)
-                {
-                    return Ok(result.Data);
-                }
+                if (result.IsSuccess) return Ok(result.Data);
 
                 return BadRequest(new { success = false, message = result.Message });
             }
@@ -1124,7 +358,7 @@ namespace FMS.WebClient.Controllers
                     request.UserId = userId;
                 }
 
-                FMSResponse<NotificationStatisticsDto> result = await _notificationService.GetNotificationStatisticsAsync(request, cancellationToken);
+                var result = await _notificationService.GetNotificationStatisticsAsync(request, cancellationToken);
                 if (result.IsSuccess) return Ok(result.Data);
                 return BadRequest(new { success = false, message = result.Message });
             }
@@ -1135,11 +369,269 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        #endregion
+
+        #region Admin History & Scheduled Reports (CQRS via MediatR)
+
+        /// <summary>
+        /// Get ALL notification history for admin view (not scoped to current user).
+        /// </summary>
+        [HttpGet("admin-history")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetAdminNotificationHistory(
+            [FromQuery] string? type = null,
+            [FromQuery] string? status = null,
+            [FromQuery] string? category = null,
+            [FromQuery] string? priority = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] DateTime? fromDate = null,
+            [FromQuery] DateTime? toDate = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int skip = 0,
+            [FromQuery] int take = 100,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new GetAdminNotificationHistoryQuery
+                {
+                    Type = type,
+                    Status = status,
+                    Category = category,
+                    Priority = priority,
+                    SiteId = siteId,
+                    FromDate = fromDate,
+                    ToDate = toDate,
+                    Search = search,
+                    Skip = skip,
+                    Take = take
+                };
+
+                var result = await _mediator.Send(query, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting admin notification history");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get scheduled report email notifications for administrative monitoring.
+        /// </summary>
+        [HttpGet("scheduled-reports")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetScheduledReportEmails(
+            [FromQuery] bool includeCompleted = true,
+            [FromQuery] int take = 200,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new GetScheduledReportEmailsQuery(includeCompleted, take);
+                var result = await _mediator.Send(query, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving scheduled report emails");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Update a scheduled report email timing/configuration.
+        /// </summary>
+        [HttpPut("scheduled-reports/{notificationId:int}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> UpdateScheduledReportEmail(
+            int notificationId,
+            [FromBody] UpdateScheduledReportEmailRequest request,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var command = new UpdateScheduledReportEmailCommand(notificationId, request);
+                var result = await _mediator.Send(command, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating scheduled report email {NotificationId}", notificationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Cancel a scheduled report email notification.
+        /// </summary>
+        [HttpDelete("scheduled-reports/{notificationId:int}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> CancelScheduledReportEmail(
+            int notificationId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var command = new CancelScheduledReportEmailCommand(notificationId);
+                var result = await _mediator.Send(command, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error cancelling scheduled report email {NotificationId}", notificationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Permanently delete a scheduled report email notification and its recipients.
+        /// </summary>
+        [HttpDelete("scheduled-reports/{notificationId:int}/permanent")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> DeleteScheduledReportEmail(
+            int notificationId,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var command = new DeleteScheduledReportEmailCommand(notificationId);
+                var result = await _mediator.Send(command, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error permanently deleting scheduled report email {NotificationId}", notificationId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #endregion
+
+        #region Search Users & Roles, Recipient Candidates (CQRS via MediatR)
+
+        /// <summary>
+        /// Search users by query (username or email)
+        /// </summary>
+        [HttpGet("search/users")]
+        [RequirePermission(Permissions.Admin.Users)]
+        public async Task<IActionResult> SearchUsers([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
+        {
+            try
+            {
+                var query = new SearchUsersQuery(q, take);
+                var result = await _mediator.Send(query);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching users");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Search roles by query (name)
+        /// </summary>
+        [HttpGet("search/roles")]
+        [RequirePermission(Permissions.Admin.Users)]
+        public async Task<IActionResult> SearchRoles([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
+        {
+            try
+            {
+                var query = new SearchRolesQuery(q, take);
+                var result = await _mediator.Send(query);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error searching roles");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get recipient candidates with rich filtering for the dual-pane recipient picker.
+        /// </summary>
+        [HttpGet("recipient-candidates")]
+        [RequirePermission(Permissions.Admin.Users)]
+        public async Task<IActionResult> GetRecipientCandidates(
+            [FromQuery] int? siteId = null,
+            [FromQuery] int? departmentId = null,
+            [FromQuery] bool? isSiteAdmin = null,
+            [FromQuery] string? search = null,
+            [FromQuery] int take = 100,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new GetRecipientCandidatesQuery(siteId, departmentId, isSiteAdmin, search, take);
+                var result = await _mediator.Send(query, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, data = result.Data, total = result.Data?.Count ?? 0 });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error fetching recipient candidates");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #endregion
+
+        #region Policies
+
         /// <summary>
         /// Get notification policies
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of notification policies</returns>
         [HttpGet("policies")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> GetNotificationPolicies(CancellationToken cancellationToken = default)
@@ -1186,272 +678,14 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Get groups mapped to a notification policy
-        /// </summary>
-        [HttpGet("policies/{policyId}/groups")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> GetGroupsForPolicy(int policyId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                FMSResponse<List<NotificationGroupDto>> result = await _groupService.GetGroupsForPolicyAsync(policyId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, message = result.Message, data = result.Data });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error retrieving groups for policy {PolicyId}", policyId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Map a policy to a group
-        /// </summary>
-        [HttpPost("policies/{policyId}/groups")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> MapPolicyToGroup(int policyId, [FromBody] MapPolicyGroupRequest request, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
-                request.PolicyId = policyId;
-                FMSResponse result = await _groupService.MapPolicyToGroupAsync(request, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error mapping policy {PolicyId} to group {GroupId}", policyId, request?.GroupId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Unmap a policy from a group
-        /// </summary>
-        [HttpDelete("policies/{policyId}/groups/{groupId}")]
-        [RequirePermission(Permissions.Notification.ManagePolicy)]
-        public async Task<IActionResult> UnmapPolicyFromGroup(int policyId, int groupId, CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                FMSResponse result = await _groupService.UnmapPolicyFromGroupAsync(policyId, groupId, cancellationToken);
-                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error unmapping policy {PolicyId} from group {GroupId}", policyId, groupId);
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Search users by query (username or email)
-        /// </summary>
-        [HttpGet("search/users")]
-        [RequirePermission(Permissions.Admin.Users)]
-        public IActionResult SearchUsers([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
-        {
-            try
-            {
-                IQueryable<User> usersQuery = _userManager.Users;
-                if (!string.IsNullOrWhiteSpace(q))
-                {
-                    string term = q.Trim();
-                    usersQuery = usersQuery.Where(u => (u.UserName != null && u.UserName.Contains(term)) || (u.Email != null && u.Email.Contains(term)));
-                }
-
-                var data = usersQuery
-                    .Take(take)
-                    .Select(u => new { id = u.Id, userName = u.UserName, email = u.Email })
-                    .ToList();
-                return Ok(new { success = true, data });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching users");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Search roles by query (name)
-        /// </summary>
-        [HttpGet("search/roles")]
-        [RequirePermission(Permissions.Admin.Users)]
-        public IActionResult SearchRoles([FromQuery(Name = "query")] string? q = null, [FromQuery] int take = 20)
-        {
-            try
-            {
-                IQueryable<Role> rolesQuery = _roleManager.Roles;
-                if (!string.IsNullOrWhiteSpace(q))
-                {
-                    string term = q.Trim();
-                    rolesQuery = rolesQuery.Where(r => r.Name != null && r.Name.Contains(term));
-                }
-
-                var data = rolesQuery
-                    .Take(take)
-                    .Select(r => new { id = r.Id, name = r.Name })
-                    .ToList();
-                return Ok(new { success = true, data });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error searching roles");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
-        /// Get recipient candidates with rich filtering for the dual-pane recipient picker.
-        /// Returns users enriched with site assignments, department, and site admin status.
-        /// </summary>
-        /// <param name="siteId">Filter users assigned to this site via UserSites</param>
-        /// <param name="departmentId">Filter users in this department</param>
-        /// <param name="isSiteAdmin">Filter to only site administrators</param>
-        /// <param name="search">Search by username or email</param>
-        /// <param name="take">Maximum results (default 100)</param>
-        [HttpGet("recipient-candidates")]
-        [RequirePermission(Permissions.Admin.Users)]
-        public async Task<IActionResult> GetRecipientCandidates(
-            [FromQuery] int? siteId = null,
-            [FromQuery] int? departmentId = null,
-            [FromQuery] bool? isSiteAdmin = null,
-            [FromQuery] string? search = null,
-            [FromQuery] int take = 100,
-            CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                // Start with all users
-                IQueryable<User> usersQuery = _userManager.Users
-                    .Where(u => u.IsDeleted != true);
-
-                // Filter by search term
-                if (!string.IsNullOrWhiteSpace(search))
-                {
-                    string term = search.Trim();
-                    usersQuery = usersQuery.Where(u =>
-                        (u.UserName != null && u.UserName.Contains(term)) ||
-                        (u.Email != null && u.Email.Contains(term)));
-                }
-
-                // Filter by department
-                if (departmentId.HasValue)
-                {
-                    usersQuery = usersQuery.Where(u => u.DepartmentId == departmentId.Value);
-                }
-
-                // Filter by site assignment via UserSites
-                if (siteId.HasValue)
-                {
-                    var userIdsAtSite = _context.UserSites
-                        .Where(us => us.SiteId == siteId.Value)
-                        .Select(us => us.UserId);
-                    usersQuery = usersQuery.Where(u => userIdsAtSite.Contains(u.Id));
-                }
-
-                // Get site admin user IDs (for filtering and display)
-                var siteAdminUserIds = await _context.Sites
-                    .Where(s => s.SiteAdministratorId != null)
-                    .Select(s => s.SiteAdministratorId!)
-                    .Distinct()
-                    .ToListAsync(cancellationToken);
-                var siteAdminSet = new HashSet<string>(siteAdminUserIds);
-
-                // Filter by site admin flag
-                if (isSiteAdmin == true)
-                {
-                    usersQuery = usersQuery.Where(u => siteAdminSet.Contains(u.Id));
-                }
-
-                // Execute user query
-                var users = await usersQuery
-                    .Take(take)
-                    .Select(u => new
-                    {
-                        u.Id,
-                        u.UserName,
-                        u.Email,
-                        u.DepartmentId
-                    })
-                    .ToListAsync(cancellationToken);
-
-                var userIds = users.Select(u => u.Id).ToList();
-
-                // Batch-load site assignments for these users
-                var userSiteAssignments = await _context.UserSites
-                    .Where(us => userIds.Contains(us.UserId))
-                    .Join(_context.Sites, us => us.SiteId, s => s.Id, (us, s) => new { us.UserId, s.Id, s.Name })
-                    .ToListAsync(cancellationToken);
-
-                // Batch-load sites where these users are admins
-                var adminSites = await _context.Sites
-                    .Where(s => s.SiteAdministratorId != null && userIds.Contains(s.SiteAdministratorId))
-                    .Select(s => new { UserId = s.SiteAdministratorId!, s.Id, s.Name })
-                    .ToListAsync(cancellationToken);
-
-                // Batch-load department names
-                var departmentIds = users.Where(u => u.DepartmentId.HasValue).Select(u => u.DepartmentId!.Value).Distinct().ToList();
-                var deptLookup = new Dictionary<int, string>();
-                if (departmentIds.Any())
-                {
-                    var deptData = await _context.Departments
-                        .Where(d => departmentIds.Contains(d.DepartmentId))
-                        .Select(d => new { d.DepartmentId, d.Name })
-                        .ToListAsync(cancellationToken);
-                    foreach (var d in deptData) deptLookup[d.DepartmentId] = d.Name;
-                }
-
-                // Build result DTOs
-                var data = users.Select(u => new
-                {
-                    id = u.Id,
-                    userName = u.UserName,
-                    email = u.Email,
-                    departmentId = u.DepartmentId,
-                    departmentName = u.DepartmentId.HasValue && deptLookup.ContainsKey(u.DepartmentId.Value)
-                        ? deptLookup[u.DepartmentId.Value] : null,
-                    isSiteAdmin = siteAdminSet.Contains(u.Id),
-                    adminOfSites = adminSites
-                        .Where(a => a.UserId == u.Id)
-                        .Select(a => new { id = a.Id, name = a.Name })
-                        .ToList(),
-                    assignedSites = userSiteAssignments
-                        .Where(a => a.UserId == u.Id)
-                        .Select(a => new { id = a.Id, name = a.Name })
-                        .ToList()
-                }).ToList();
-
-                return Ok(new { success = true, data, total = data.Count });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error fetching recipient candidates");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        /// <summary>
         /// Create notification policy
         /// </summary>
-        /// <param name="request">Policy creation request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Created policy</returns>
         [HttpPost("policies")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> CreateNotificationPolicy([FromBody] CreateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
         {
             try
             {
-                //TO:do implemnt later
-                //           var hasPermission = User.HasClaim ("permissions", "_createFuelRefill");
-                //  if (!hasPermission) return Forbid ();
-                //  if (!ModelState.IsValid) return BadRequest (ModelState);
-
                 if (!TryGetCurrentGuidUserId(out var userId)) return BadRequest("Invalid User ID");
                 request.CreatedBy = userId;
 
@@ -1479,10 +713,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Update notification policy
         /// </summary>
-        /// <param name="policyId">Policy identifier</param>
-        /// <param name="request">Policy update request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Updated status</returns>
         [HttpPut("policies/{policyId}")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> UpdateNotificationPolicy(int policyId, [FromBody] UpdateNotificationPolicyRequestDTO request, CancellationToken cancellationToken = default)
@@ -1507,15 +737,79 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        #endregion
+
+        #region Policy–Group Mapping
+
+        /// <summary>
+        /// Get groups mapped to a notification policy
+        /// </summary>
+        [HttpGet("policies/{policyId}/groups")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> GetGroupsForPolicy(int policyId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _groupService.GetGroupsForPolicyAsync(policyId, cancellationToken);
+                if (result.IsSuccess) return Ok(new { success = true, message = result.Message, data = result.Data });
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving groups for policy {PolicyId}", policyId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Map a policy to a group
+        /// </summary>
+        [HttpPost("policies/{policyId}/groups")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> MapPolicyToGroup(int policyId, [FromBody] MapPolicyGroupRequest request, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                if (request == null) return BadRequest(new { success = false, message = "Invalid request" });
+                request.PolicyId = policyId;
+                var result = await _groupService.MapPolicyToGroupAsync(request, cancellationToken);
+                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error mapping policy {PolicyId} to group {GroupId}", policyId, request?.GroupId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Unmap a policy from a group
+        /// </summary>
+        [HttpDelete("policies/{policyId}/groups/{groupId}")]
+        [RequirePermission(Permissions.Notification.ManagePolicy)]
+        public async Task<IActionResult> UnmapPolicyFromGroup(int policyId, int groupId, CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _groupService.UnmapPolicyFromGroupAsync(policyId, groupId, cancellationToken);
+                if (result.IsSuccess) return Ok(new { success = true, message = result.Message });
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error unmapping policy {PolicyId} from group {GroupId}", policyId, groupId);
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        #endregion
+
+        #region Alert Records
+
         /// <summary>
         /// Get alert records from PTS
         /// </summary>
-        /// <param name="fromDate">Start date</param>
-        /// <param name="toDate">End date</param>
-        /// <param name="skip">Records to skip</param>
-        /// <param name="take">Records to take</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of alert records</returns>
         [HttpGet("alert-records")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetAlertRecords([FromQuery] DateTime? fromDate, [FromQuery] DateTime? toDate, [FromQuery] int skip = 0, [FromQuery] int take = 100, CancellationToken cancellationToken = default)
@@ -1538,12 +832,13 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        #endregion
+
+        #region Test Notification
+
         /// <summary>
         /// Test notification system
         /// </summary>
-        /// <param name="request">Test request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("test")]
         [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> TestNotification([FromBody] TestNotificationRequest request, CancellationToken cancellationToken = default)
@@ -1564,11 +859,13 @@ namespace FMS.WebClient.Controllers
                     Message = request.Message ?? "This is a test notification from the API",
                     TriggerSource = "API",
                     TriggeredBy = userId,
-                    Recipients = new List<NotificationRecipientDto> {
-                    new NotificationRecipientDto {
-                    UserId = userId,
-                    DeliveryMethods = new List<string> { "System" }
-                    }
+                    Recipients = new List<NotificationRecipientDto>
+                    {
+                        new NotificationRecipientDto
+                        {
+                            UserId = userId,
+                            DeliveryMethods = new List<string> { "System" }
+                        }
                     }
                 };
 
@@ -1588,19 +885,19 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        #endregion
+
+        #region User Notification Preferences
+
         /// <summary>
         /// Get user notification preferences
         /// </summary>
-        /// <param name="userId">User ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>User notification preferences</returns>
         [HttpGet("preferences/user/{userId}")]
         [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> GetUserPreferences(string userId, CancellationToken cancellationToken = default)
         {
             try
             {
-                // Ensure user can only access their own preferences or has manage permission
                 var currentUserId = GetCurrentUserIdOrDefault(string.Empty);
                 var canManageOthers = User.HasClaim("permissions", Permissions.Notification.ManagePreferences);
                 if (currentUserId != userId && !canManageOthers)
@@ -1608,23 +905,19 @@ namespace FMS.WebClient.Controllers
                     return StatusCode(403, new { success = false, message = "Access denied" });
                 }
 
-                // Mock response for now - replace with actual service call when implemented
-                var mockPreferences = new List<object> {
-                    new {
-                    id = 1,
-                    userId = userId,
-                    notificationCategory = "SensorVariance",
-                    deliveryMethods = "System,Email",
-                    isEnabled = true,
-                    priority = "Medium",
-                    quietHoursStart = (string?) null,
-                    quietHoursEnd = (string?) null,
-                    maxNotificationsPerHour = 0,
-                    maxNotificationsPerDay = 0,
-                    requireAcknowledgment = false
+                var mockPreferences = new List<object>
+                {
+                    new
+                    {
+                        id = 1, userId,
+                        notificationCategory = "SensorVariance",
+                        deliveryMethods = "System,Email",
+                        isEnabled = true, priority = "Medium",
+                        quietHoursStart = (string?)null, quietHoursEnd = (string?)null,
+                        maxNotificationsPerHour = 0, maxNotificationsPerDay = 0,
+                        requireAcknowledgment = false
                     }
                 };
-                // simulate async for analyzer satisfaction
                 await Task.FromResult(0);
                 return Ok(new { success = true, message = "Preferences retrieved successfully", data = mockPreferences });
             }
@@ -1638,8 +931,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Get current user's notification preferences
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Current user's notification preferences</returns>
         [HttpGet("preferences/user/current-user")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetCurrentUserPreferences(CancellationToken cancellationToken = default)
@@ -1653,10 +944,7 @@ namespace FMS.WebClient.Controllers
 
                 var query = new GetUserNotificationPreferencesQuery
                 {
-                    Request = new GetUserNotificationPreferencesRequest
-                    {
-                        UserId = currentUserId
-                    }
+                    Request = new GetUserNotificationPreferencesRequest { UserId = currentUserId }
                 };
 
                 var result = await _mediator.Send(query, cancellationToken);
@@ -1678,9 +966,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Bulk update user notification preferences
         /// </summary>
-        /// <param name="request">Bulk update request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("preferences/bulk-update")]
         [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> BulkUpdateNotificationPreferences([FromBody] BulkUpdatePreferencesRequest request, CancellationToken cancellationToken = default)
@@ -1694,15 +979,11 @@ namespace FMS.WebClient.Controllers
 
                 var currentUserId = userId;
 
-                // Always trust the authenticated user id for preference operations; override any client-provided value
-                // This avoids foreign key violations when the frontend sends a placeholder like 'current-user'.
                 if (string.IsNullOrWhiteSpace(request.UserId) || !string.Equals(request.UserId, currentUserId, StringComparison.OrdinalIgnoreCase))
                 {
-                    request.UserId = currentUserId; // force correct user id
+                    request.UserId = currentUserId;
                 }
-                // If admin explicitly attempts to update another user's preferences (future feature), that logic can be reintroduced.
 
-                // Use AutoMapper to map controller DTOs to application DTOs
                 var applicationPreferences = (request.Preferences ?? new List<BulkUpdatePreferenceDto>())
                     .Select(p =>
                     {
@@ -1741,45 +1022,8 @@ namespace FMS.WebClient.Controllers
         }
 
         /// <summary>
-        /// Get notification categories
-        /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of notification categories</returns>
-        [HttpGet("categories")]
-        [AllowAnonymous]
-        public async Task<IActionResult> GetNotificationCategories(CancellationToken cancellationToken = default)
-        {
-            try
-            {
-                var query = new GetNotificationCategoriesQuery
-                {
-                    IncludeInactive = false
-                };
-
-                var result = await _mediator.Send(query, cancellationToken);
-
-                if (result.IsSuccess)
-                {
-                    return Ok(new { success = true, message = result.Message, data = result.Data });
-                }
-
-                return BadRequest(new { success = false, message = result.Message });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error getting notification categories");
-                return StatusCode(500, new { success = false, message = "Internal server error" });
-            }
-        }
-
-        #region Notification Preferences CRUD
-
-        /// <summary>
         /// Create a new notification preference
         /// </summary>
-        /// <param name="request">Create preference request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Created preference ID</returns>
         [HttpPost("preferences")]
         [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> CreateNotificationPreference([FromBody] CreateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default)
@@ -1793,11 +1037,7 @@ namespace FMS.WebClient.Controllers
                     return StatusCode(403, new { success = false, message = "Access denied" });
                 }
 
-                var command = new CreateUserNotificationPreferenceCommand
-                {
-                    Request = request
-                };
-
+                var command = new CreateUserNotificationPreferenceCommand { Request = request };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -1817,10 +1057,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Update an existing notification preference
         /// </summary>
-        /// <param name="id">Preference ID</param>
-        /// <param name="request">Update preference request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPut("preferences/{id}")]
         [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> UpdateNotificationPreference(int id, [FromBody] UpdateUserNotificationPreferenceRequest request, CancellationToken cancellationToken = default)
@@ -1835,11 +1071,7 @@ namespace FMS.WebClient.Controllers
                 request.Id = id;
                 request.UpdatedBy = currentUserId;
 
-                var command = new UpdateUserNotificationPreferenceCommand
-                {
-                    Request = request
-                };
-
+                var command = new UpdateUserNotificationPreferenceCommand { Request = request };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -1859,9 +1091,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Delete a notification preference
         /// </summary>
-        /// <param name="id">Preference ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpDelete("preferences/{id}")]
         [RequirePermission(Permissions.Notification.ManagePreferences, Permissions.Notification.Read)]
         public async Task<IActionResult> DeleteNotificationPreference(int id, CancellationToken cancellationToken = default)
@@ -1873,12 +1102,7 @@ namespace FMS.WebClient.Controllers
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
 
-                var command = new DeleteUserNotificationPreferenceCommand
-                {
-                    Id = id,
-                    DeletedBy = currentUserId
-                };
-
+                var command = new DeleteUserNotificationPreferenceCommand { Id = id, DeletedBy = currentUserId };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -1900,11 +1124,34 @@ namespace FMS.WebClient.Controllers
         #region Notification Categories CRUD (Admin Only)
 
         /// <summary>
+        /// Get notification categories
+        /// </summary>
+        [HttpGet("categories")]
+        [AllowAnonymous]
+        public async Task<IActionResult> GetNotificationCategories(CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var query = new GetNotificationCategoriesQuery { IncludeInactive = false };
+                var result = await _mediator.Send(query, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(new { success = true, message = result.Message, data = result.Data });
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting notification categories");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
         /// Get all notification categories (including inactive for admin)
         /// </summary>
-        /// <param name="includeInactive">Include inactive categories</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>List of notification categories</returns>
         [HttpGet("admin/categories")]
         [Authorize]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
@@ -1912,11 +1159,7 @@ namespace FMS.WebClient.Controllers
         {
             try
             {
-                var query = new GetNotificationCategoriesQuery
-                {
-                    IncludeInactive = includeInactive
-                };
-
+                var query = new GetNotificationCategoriesQuery { IncludeInactive = includeInactive };
                 var result = await _mediator.Send(query, cancellationToken);
 
                 if (result.IsSuccess)
@@ -1936,9 +1179,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Create a new notification category
         /// </summary>
-        /// <param name="request">Create category request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Created category</returns>
         [HttpPost("admin/categories")]
         [Authorize]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
@@ -1947,12 +1187,7 @@ namespace FMS.WebClient.Controllers
             try
             {
                 request.CreatedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
-
-                var command = new CreateNotificationCategoryCommand
-                {
-                    Request = request
-                };
-
+                var command = new CreateNotificationCategoryCommand { Request = request };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -1972,10 +1207,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Update an existing notification category
         /// </summary>
-        /// <param name="id">Category ID</param>
-        /// <param name="request">Update category request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPut("admin/categories/{id}")]
         [Authorize]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
@@ -1987,11 +1218,7 @@ namespace FMS.WebClient.Controllers
                 request.Id = id;
                 request.UpdatedBy = currentUserId;
 
-                var command = new UpdateNotificationCategoryCommand
-                {
-                    Request = request
-                };
-
+                var command = new UpdateNotificationCategoryCommand { Request = request };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -2011,20 +1238,13 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Delete a notification category
         /// </summary>
-        /// <param name="id">Category ID</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpDelete("admin/categories/{id}")]
         [RequirePermission(Permissions.Notification.ManagePolicy)]
         public async Task<IActionResult> DeleteNotificationCategory(int id, CancellationToken cancellationToken = default)
         {
             try
             {
-                var command = new DeleteNotificationCategoryCommand
-                {
-                    Id = id
-                };
-
+                var command = new DeleteNotificationCategoryCommand { Id = id };
                 var result = await _mediator.Send(command, cancellationToken);
 
                 if (result.IsSuccess)
@@ -2048,9 +1268,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Send a test email to verify SMTP configuration
         /// </summary>
-        /// <param name="request">Test email request</param>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Result</returns>
         [HttpPost("test-email")]
         [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> SendTestEmail([FromBody] SendTestEmailRequest request, CancellationToken cancellationToken = default)
@@ -2062,7 +1279,6 @@ namespace FMS.WebClient.Controllers
                     return BadRequest(new { success = false, message = "Email address is required" });
                 }
 
-                // Get email service from DI
                 var emailService = HttpContext.RequestServices.GetService<IEmailService>();
                 if (emailService == null)
                 {
@@ -2091,8 +1307,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Test SMTP connection without sending email
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Connection status</returns>
         [HttpPost("test-smtp-connection")]
         [RequirePermission(Permissions.Notification.ManageEmailConfig)]
         public async Task<IActionResult> TestSmtpConnection(CancellationToken cancellationToken = default)
@@ -2105,14 +1319,13 @@ namespace FMS.WebClient.Controllers
                     return Ok(new { success = false, status = "error", message = "Email service not configured" });
                 }
 
-                // Check if configuration is valid
                 var isConfigured = emailService.IsConfigurationValid();
                 if (!isConfigured)
                 {
                     return Ok(new { success = false, status = "error", message = "SMTP configuration is invalid or missing. Please configure email settings." });
                 }
 
-                await Task.CompletedTask; // Placeholder for actual connection test if needed
+                await Task.CompletedTask;
 
                 return Ok(new { success = true, status = "success", message = "SMTP configuration is valid and ready." });
             }
@@ -2126,8 +1339,6 @@ namespace FMS.WebClient.Controllers
         /// <summary>
         /// Get system diagnostics for notification system
         /// </summary>
-        /// <param name="cancellationToken">Cancellation token</param>
-        /// <returns>Diagnostic info</returns>
         [HttpGet("diagnostics")]
         [RequirePermission(Permissions.Notification.Read)]
         public async Task<IActionResult> GetDiagnostics(CancellationToken cancellationToken = default)
@@ -2137,13 +1348,12 @@ namespace FMS.WebClient.Controllers
                 var emailService = HttpContext.RequestServices.GetService<IEmailService>();
                 var isEmailConfigured = emailService?.IsConfigurationValid() ?? false;
 
-                // Get recent notification counts
                 if (!TryGetCurrentUserId(out var userId))
                 {
                     return Unauthorized(new { success = false, message = "User not authenticated" });
                 }
 
-                GetNotificationStatisticsRequest statsRequest = new GetNotificationStatisticsRequest
+                var statsRequest = new GetNotificationStatisticsRequest
                 {
                     UserId = userId,
                     FromDate = DateTime.UtcNow.AddHours(-24),
@@ -2173,10 +1383,11 @@ namespace FMS.WebClient.Controllers
                     },
                     lastDelivery = new
                     {
-                        timestamp = DateTime.UtcNow.AddMinutes(-2), // Would need actual tracking
+                        timestamp = DateTime.UtcNow.AddMinutes(-2),
                         status = "delivered"
                     },
-                    recentActivity = new[] {
+                    recentActivity = new[]
+                    {
                         new { id = "recent-1", title = "System Ready", status = "success" }
                     }
                 };
@@ -2192,14 +1403,4 @@ namespace FMS.WebClient.Controllers
 
         #endregion
     }
-}
-
-/// <summary>
-/// Request model for sending test email
-/// </summary>
-public class SendTestEmailRequest
-{
-    public string ToAddress { get; set; } = string.Empty;
-    public string? Subject { get; set; }
-    public string? Message { get; set; }
 }

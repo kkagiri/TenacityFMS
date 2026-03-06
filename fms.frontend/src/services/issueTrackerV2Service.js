@@ -97,7 +97,12 @@ class IssueTrackerV2Service {
    */
   async updateDeviceType(id, deviceTypeData) {
     try {
-      const response = await axiosInstance.put(`${this.deviceTypesURL}/${id}`, deviceTypeData);
+      const payload = {
+        id,
+        ...deviceTypeData
+      };
+
+      const response = await axiosInstance.put(`${this.deviceTypesURL}/${id}`, payload);
       this.showNotification('Device type updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {
@@ -202,7 +207,12 @@ class IssueTrackerV2Service {
    */
   async updateTemplate(id, templateData, options = {}) {
     try {
-      const response = await axiosInstance.put(`${this.templatesURL}/${id}`, templateData);
+      const payload = {
+        id,
+        ...templateData
+      };
+
+      const response = await axiosInstance.put(`${this.templatesURL}/${id}`, payload);
       if (!options.silent) this.showNotification('Issue template updated successfully', 'success');
       return this.handleResponse(response);
     } catch (error) {

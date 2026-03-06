@@ -22,104 +22,28 @@ import DataGrid, {
     Scrolling,
     ColumnFixing,
 } from 'devextreme-react/data-grid';
-import { Button } from 'devextreme-react/button';
 import { LoadPanel } from 'devextreme-react/load-panel';
 import notify from 'devextreme/ui/notify';
 import reportingService from '../../../services/reportingService';
 import { usePermissions } from '../../../hooks/usePermissions';
 import ScheduleReportPanel from '../../../components/Reporting/ScheduleReportPanel';
+import SlidePanel from '../../../components/ui/SlidePanel';
 import { buildUpdatePayloadFromForm } from './reportScheduleFormUtils';
-import RecipientDeliveryStatusPopup from '../components/RecipientDeliveryStatusPopup';
+import ReportScheduleDetailPanel from './ReportScheduleDetailPanel';
+import {
+    formatScheduleDateTime,
+    getDeliveryStats,
+    getFrequency,
+    getRecipientEmails,
+    getReportLabel,
+    getScheduleDetail,
+    getStatusBadgeClass,
+    isScheduledReport,
+    resolveSourceId,
+} from './reportScheduleDisplayUtils';
 import './ReportScheduleManager.scss';
 
-// Map backend triggerSource values to frontend reportSourceRegistry IDs
-const TRIGGER_SOURCE_TO_SOURCE_ID = {
-    TransactionVolumeHistoryReportSchedule: 'tank-volume-history',
-    ConsumptionByRefillReportSchedule: 'consumption-by-refills',
-    VehicleConsumptionReportSchedule: 'vehicle-consumption',
-    PTSDeviceOfflineReportSchedule: 'pts-device',
-    FuelRefillReportSchedule: 'fuel-refill',
-    PumpTransactionReportSchedule: 'pump-transaction',
-    DeviceOfflineReportSchedule: 'device-offline',
-};
-
-const resolveSourceId = (schedule) => {
-    if (schedule.reportType) return schedule.reportType;
-    if (schedule.reportSourceId) return schedule.reportSourceId;
-    return TRIGGER_SOURCE_TO_SOURCE_ID[schedule.triggerSource || ''] || '';
-};
-
-/**
- * Determine if a record is a true scheduled report (vs an event-triggered notification).
- */
-const isScheduledReport = (row) => {
-    const ts = row.triggerSource || '';
-    // True scheduled reports have a TriggerSource ending in 'ReportSchedule'
-    if (ts.endsWith('ReportSchedule')) return true;
-    // Or they have a reportType that maps to something we know
-    if (row.reportType && TRIGGER_SOURCE_TO_SOURCE_ID[row.reportType]) return true;
-    if (row.scheduleType && row.scheduleType !== '') return true;
-    return false;
-};
-
-const STATUS_BADGE = {
-    pending: 'm365-badge m365-badge--warning',
-    scheduled: 'm365-badge m365-badge--info',
-    active: 'm365-badge m365-badge--success',
-    sent: 'm365-badge m365-badge--success',
-    completed: 'm365-badge m365-badge--info',
-    cancelled: 'm365-badge m365-badge--error',
-    failed: 'm365-badge m365-badge--error',
-};
-
-const REPORT_TYPE_LABELS = {
-    // reportType values
-    'device-offline': 'Device Offline',
-    'tank-volume-history': 'Tank Volume History',
-    'consumption-by-refills': 'Consumption by Refills',
-    'vehicle-consumption': 'Vehicle Consumption',
-    'pump-transaction': 'Pump Transaction',
-    'fuel-refill': 'Fuel Refill',
-    'delivery': 'Delivery',
-    'pts-device': 'PTS Device',
-    TransactionVolumeHistory: 'Tank Volume History',
-    ConsumptionByRefill: 'Consumption by Refills',
-    VehicleConsumption: 'Vehicle Consumption',
-    PTSDeviceOffline: 'PTS Device Offline',
-    // triggerSource values
-    TransactionVolumeHistoryReportSchedule: 'Tank Volume History',
-    ConsumptionByRefillReportSchedule: 'Consumption by Refills',
-    VehicleConsumptionReportSchedule: 'Vehicle Consumption',
-    PTSDeviceOfflineReportSchedule: 'PTS Device Offline',
-    FuelRefillReportSchedule: 'Fuel Refill',
-    PumpTransactionReportSchedule: 'Pump Transaction',
-    DeviceOfflineReportSchedule: 'Device Offline',
-};
-
-// Derive a human-readable label from reportType or triggerSource
-const getReportLabel = (row) => {
-    const key = row.reportType || row.triggerSource || '';
-    if (REPORT_TYPE_LABELS[key]) return REPORT_TYPE_LABELS[key];
-    // Strip trailing 'ReportSchedule' and space it out as fallback
-    const stripped = key.replace(/ReportSchedule$/, '').replace(/([A-Z])/g, ' $1').trim();
-    return stripped || '\u2014';
-};
-
-// Infer frequency when scheduleType is null
-const getFrequency = (row) => {
-    const v = row.scheduleType || row.frequency || '';
-    if (v) return v.charAt(0).toUpperCase() + v.slice(1);
-    // Infer from available schedule data
-    const hasWeeks = Array.isArray(row.scheduleWeeksOfMonth) && row.scheduleWeeksOfMonth.length > 0;
-    const hasDays = Array.isArray(row.scheduleDaysOfWeek) && row.scheduleDaysOfWeek.length > 0;
-    // Parse from message field (e.g. "Daily PDF report")
-    const msg = (row.message || '').toLowerCase();
-    if (msg.includes('daily')) return 'Daily';
-    if (msg.includes('weekly') || (hasDays && hasWeeks)) return 'Weekly';
-    if (msg.includes('monthly')) return 'Monthly';
-    if (hasDays) return 'Weekly';
-    return '\u2014';
-};
+const SCHEDULE_PANEL_WIDTH = 1000;
 
 const ReportScheduleManager = () => {
     const [searchParams] = useSearchParams();
@@ -138,8 +62,8 @@ const ReportScheduleManager = () => {
     const [editPanelOpen, setEditPanelOpen] = useState(false);
     const [editTarget, setEditTarget] = useState(null);
 
-    // Delivery status popup
-    const [deliveryTarget, setDeliveryTarget] = useState(null);
+    // Detail side panel
+    const [detailTarget, setDetailTarget] = useState(null);
 
     const preselectedSource = searchParams.get('source');
 
@@ -174,6 +98,10 @@ const ReportScheduleManager = () => {
             setNewPanelOpen(true);
         }
     }, [preselectedSource]);
+
+    const handleScheduleCreated = useCallback(async () => {
+        await loadSchedules();
+    }, [loadSchedules]);
 
     // â”€â”€ Edit / Update â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
@@ -255,6 +183,7 @@ const ReportScheduleManager = () => {
                 windowDays: schedule.windowDays ?? 1,
             },
         });
+        setDetailTarget(null);
         setEditPanelOpen(true);
     }, []);
 
@@ -288,6 +217,7 @@ const ReportScheduleManager = () => {
             const result = await reportingService.cancelScheduledReportEmail(schedule.id);
             if (result.success) {
                 notify({ message: 'Schedule cancelled', type: 'success' });
+                setDetailTarget((current) => (current?.id === schedule.id ? null : current));
                 await loadSchedules();
             } else {
                 notify({ message: result.error || 'Failed to cancel', type: 'error' });
@@ -306,6 +236,7 @@ const ReportScheduleManager = () => {
             const result = await reportingService.deleteScheduledReportEmail(schedule.id);
             if (result.success) {
                 notify({ message: 'Schedule deleted permanently', type: 'success' });
+                setDetailTarget((current) => (current?.id === schedule.id ? null : current));
                 await loadSchedules();
             } else {
                 notify({ message: result.error || 'Failed to delete', type: 'error' });
@@ -319,49 +250,38 @@ const ReportScheduleManager = () => {
 
     // â”€â”€ Cell renderers â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
+    const handleViewDetails = useCallback((schedule) => {
+        setDetailTarget(schedule);
+    }, []);
+
+    const getScheduleActionState = useCallback((schedule) => {
+        const statusLower = String(schedule?.status || '').toLowerCase();
+        const isCancelled = statusLower === 'cancelled';
+        const isCompleted = statusLower === 'completed';
+        const isSent = statusLower === 'sent';
+        const isScheduleRecord = isScheduledReport(schedule || {});
+        const isEditable = !isCancelled && !isCompleted && !isSent && isScheduleRecord;
+
+        return {
+            isCancelled,
+            isCompleted,
+            isSent,
+            isScheduleRecord,
+            isEditable,
+        };
+    }, []);
+
     const renderStatus = useCallback((cellInfo) => {
-        const status = String(cellInfo.value || 'pending').toLowerCase();
-        const cls = STATUS_BADGE[status] || STATUS_BADGE.pending;
+        const label = String(cellInfo.value || 'pending');
         return (
-            <span className={cls}>
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+            <span className={getStatusBadgeClass(label)}>
+                {label.charAt(0).toUpperCase() + label.slice(1)}
             </span>
         );
     }, []);
 
-    const renderActions = useCallback((cellInfo) => {
-        const schedule = cellInfo.data;
-        const statusLower = String(schedule.status || '').toLowerCase();
-        const isCancelled = statusLower === 'cancelled';
-        const isCompleted = statusLower === 'completed';
-        const isSent = statusLower === 'sent';
-        const isScheduleRecord = isScheduledReport(schedule);
-        const isEditable = !isCancelled && !isCompleted && !isSent && isScheduleRecord;
-        return (
-            <div className="sched-mgr__action-buttons">
-                <Button icon="fa-light fa-pen-to-square" hint="Edit Schedule" stylingMode="text"
-                    onClick={() => handleEdit(schedule)} disabled={!isEditable}
-                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
-                <Button icon="fa-light fa-users" hint="View Delivery Status" stylingMode="text"
-                    onClick={() => setDeliveryTarget(schedule)}
-                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
-                <Button icon="fa-light fa-ban" hint="Cancel Schedule" stylingMode="text"
-                    onClick={() => handleCancel(schedule)} disabled={!isEditable}
-                    elementAttr={{ class: 'sched-mgr__action-btn' }} />
-                <Button icon="fa-light fa-trash" hint="Delete Permanently" stylingMode="text"
-                    onClick={() => handleDelete(schedule)}
-                    elementAttr={{ class: 'sched-mgr__action-btn sched-mgr__action-btn--danger' }} />
-            </div>
-        );
-    }, [handleCancel, handleDelete, handleEdit]);
-
     const renderDeliveryStats = useCallback((cellInfo) => {
-        const schedule = cellInfo.data;
-        const recipientList = Array.isArray(schedule.recipients) ? schedule.recipients : [];
-        const total = schedule.recipientCount || recipientList.length || 0;
-        const delivered = schedule.deliveredCount || recipientList.filter(r => r.deliveryStatus === 'delivered').length || 0;
-        const failed = schedule.failedCount || recipientList.filter(r => r.deliveryStatus === 'failed').length || 0;
-        const pending = total - delivered - failed;
+        const { total, delivered, failed, pending } = getDeliveryStats(cellInfo.data);
 
         if (total === 0) return <span style={{ color: 'var(--m365-text-tertiary)', fontSize: 12 }}>{"\u2014"}</span>;
 
@@ -376,15 +296,7 @@ const ReportScheduleManager = () => {
     }, []);
 
     const renderRecipients = useCallback((cellInfo) => {
-        const schedule = cellInfo.data;
-        let emails = [];
-        if (Array.isArray(schedule.recipients)) {
-            emails = schedule.recipients.map(r => r.recipientAddress || r.email || r).filter(Boolean);
-        } else if (typeof schedule.recipients === 'string') {
-            try {
-                emails = JSON.parse(schedule.recipients).map(r => r.recipientAddress || r.email || r).filter(Boolean);
-            } catch { /* ignore */ }
-        }
+        const emails = getRecipientEmails(cellInfo.data);
         if (emails.length === 0) return <span style={{ color: 'var(--m365-text-tertiary)', fontSize: 12 }}>{"\u2014"}</span>;
         return (
             <div style={{ fontSize: 12 }}>
@@ -401,77 +313,14 @@ const ReportScheduleManager = () => {
     }, []);
 
     const renderScheduleDetail = useCallback((cellInfo) => {
-        const row = cellInfo.data;
-        const time = row.scheduleTimeOfDay || null;
-
-        // Derive time from scheduledAt when scheduleTimeOfDay not populated
-        let resolvedTime = time;
-        if (!resolvedTime) {
-            const sat = row.scheduledAt || row.nextRunAtUtc;
-            if (sat) {
-                let s = String(sat);
-                if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(s) && !/[Z+\-]\d*$/.test(s)) s += 'Z';
-                const d = new Date(s);
-                if (!Number.isNaN(d.getTime())) {
-                    resolvedTime = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
-                }
-            }
-        }
-
-        let detail = resolvedTime || '';
-
-        // Read schedule config (may be JSON string or object)
-        let cfg = {};
-        if (typeof row.scheduleConfig === 'string') { try { cfg = JSON.parse(row.scheduleConfig); } catch { /* ignore */ } }
-        else if (row.scheduleConfig) { cfg = row.scheduleConfig; }
-
-        // Top-level fields take precedence over parsed scheduleConfig
-        const daysOfWeek = row.scheduleDaysOfWeek || cfg.scheduleDayOfWeekIds || [];
-        const weeksOfMonth = row.scheduleWeeksOfMonth || cfg.scheduleWeekOfMonthIds || [];
-        const dayOfMonth = row.scheduleDayOfMonth || cfg.scheduleDayOfMonth;
-
-        const inferredFreq = getFrequency(row).toLowerCase();
-        const offset = row.offsetDays ?? 1;
-        const winDays = row.windowDays ?? 1;
-
-        if (inferredFreq === 'weekly') {
-            const days = daysOfWeek.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ');
-            const weeks = weeksOfMonth.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ');
-            detail = [days, weeks, resolvedTime].filter(v => v && v !== '\u2014').join(' \u00B7 ');
-        } else if (inferredFreq === 'monthly') {
-            if (dayOfMonth) {
-                detail = ['Day ' + dayOfMonth, resolvedTime].filter(Boolean).join(' \u00B7 ');
-            } else {
-                const days = daysOfWeek.map(d => d.charAt(0).toUpperCase() + d.slice(1, 3)).join(', ');
-                const weeks = weeksOfMonth.map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(', ');
-                detail = [weeks, days, resolvedTime].filter(v => v && v !== '\u2014').join(' \u00B7 ');
-            }
-        }
-
-        // Append window info for non-monthly schedules when non-default
-        const windowLabel = inferredFreq !== 'monthly' && (offset > 1 || winDays > 1)
-            ? `-${offset}d, ${winDays}d window`
-            : '';
-
-        return <span style={{ fontSize: 12, color: 'var(--m365-text-secondary)' }}>{[detail, windowLabel].filter(Boolean).join(' \u00B7 ') || '\u2014'}</span>;
+        return <span style={{ fontSize: 12, color: 'var(--m365-text-secondary)' }}>{getScheduleDetail(cellInfo.data)}</span>;
     }, []);
 
-    const formatDateTime = useCallback((value, isUtc = true) => {
-        if (!value) return '\u2014';
-        // Bare ISO strings (no Z or offset) from the server are UTC — append Z so
-        // the browser parses them as UTC and toLocaleString() converts to local time.
-        let str = String(value);
-        if (isUtc && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}/.test(str) && !/[Z+\-]\d*$/.test(str)) {
-            str = str + 'Z';
-        }
-        const d = new Date(str);
-        if (Number.isNaN(d.getTime())) return '\u2014';
-        return d.toLocaleString(undefined, {
-            year: 'numeric', month: 'numeric', day: 'numeric',
-            hour: '2-digit', minute: '2-digit',
-            timeZoneName: 'short',
-        });
-    }, []);
+    const handleRowClick = useCallback((event) => {
+        if (event?.rowType !== 'data') return;
+        if (event?.event?.target?.closest?.('.sched-mgr__action-buttons')) return;
+        handleViewDetails(event.data);
+    }, [handleViewDetails]);
 
     if (!isAdmin) {
         return (
@@ -527,6 +376,7 @@ const ReportScheduleManager = () => {
                     noDataText="No schedules found"
                     columnResizingMode="widget"
                     allowColumnResizing={true}
+                    onRowClick={handleRowClick}
                 >
                     <Scrolling mode="standard" showScrollbar="always" />
                     <ColumnFixing enabled={true} />
@@ -593,18 +443,18 @@ const ReportScheduleManager = () => {
                             if (freq === 'once' && ['sent', 'completed', 'cancelled', 'failed'].includes(status)) {
                                 return '\u2014';
                             }
-                            return formatDateTime(row.nextRunAtUtc || row.scheduledAt);
+                            return formatScheduleDateTime(row.nextRunAtUtc || row.scheduledAt);
                         }}
                     />
                     <Column
                         caption="Last Run"
                         width={155}
-                        calculateCellValue={(row) => formatDateTime(row.lastProcessedAtUtc || row.sentAt || row.lastRunAtUtc || row.lastRunAt)}
+                        calculateCellValue={(row) => formatScheduleDateTime(row.lastProcessedAtUtc || row.sentAt || row.lastRunAtUtc || row.lastRunAt)}
                     />
                     <Column
                         caption="Created"
                         width={155}
-                        calculateCellValue={(row) => formatDateTime(row.createdOnUtc || row.createdAt || row.createdDate)}
+                        calculateCellValue={(row) => formatScheduleDateTime(row.createdOnUtc || row.createdAt || row.createdDate)}
                     />
                     <Column
                         caption="Requested By"
@@ -618,17 +468,6 @@ const ReportScheduleManager = () => {
                         allowSorting={false}
                         allowFiltering={false}
                     />
-                    <Column
-                        caption="Actions"
-                        width={160}
-                        cellRender={renderActions}
-                        cssClass="sched-mgr__action-col"
-                        alignment="center"
-                        allowSorting={false}
-                        allowFiltering={false}
-                        fixed={true}
-                        fixedPosition="right"
-                    />
                 </DataGrid>
             </div>
 
@@ -636,7 +475,9 @@ const ReportScheduleManager = () => {
             <ScheduleReportPanel
                 open={newPanelOpen}
                 onClose={() => setNewPanelOpen(false)}
+                onScheduled={handleScheduleCreated}
                 initialSourceId={preselectedSource || ''}
+                width={SCHEDULE_PANEL_WIDTH}
             />
 
             {/* Edit Schedule — reuse ScheduleReportPanel in edit mode */}
@@ -646,18 +487,52 @@ const ReportScheduleManager = () => {
                 mode="edit"
                 initialValues={editTarget?.formValues || null}
                 onUpdate={handleUpdate}
+                width={SCHEDULE_PANEL_WIDTH}
             />
 
-            {/* Recipient Delivery Status Popup */}
-            <RecipientDeliveryStatusPopup
-                schedule={deliveryTarget}
-                onHiding={() => setDeliveryTarget(null)}
-                formatLocalDateTime={(val) => {
-                    if (!val) return '\u2014';
-                    const d = new Date(val);
-                    return Number.isNaN(d.getTime()) ? '\u2014' : d.toLocaleString();
-                }}
-            />
+            {/* Schedule Detail Side Panel */}
+            <SlidePanel
+                open={!!detailTarget}
+                onClose={() => setDetailTarget(null)}
+                title={detailTarget?.title || detailTarget?.scheduleName || 'Schedule Details'}
+                width={SCHEDULE_PANEL_WIDTH}
+                panelClassName="sched-mgr__detail-shell"
+                headerActions={detailTarget ? (() => {
+                    const { isEditable } = getScheduleActionState(detailTarget);
+                    return (
+                        <div className="sched-mgr__panel-actions">
+                            <button
+                                type="button"
+                                className="sched-mgr__panel-action"
+                                onClick={() => handleEdit(detailTarget)}
+                                disabled={!isEditable}
+                            >
+                                <i className="fa-light fa-pen-to-square" />
+                                Edit
+                            </button>
+                            <button
+                                type="button"
+                                className="sched-mgr__panel-action"
+                                onClick={() => handleCancel(detailTarget)}
+                                disabled={!isEditable}
+                            >
+                                <i className="fa-light fa-ban" />
+                                Cancel
+                            </button>
+                            <button
+                                type="button"
+                                className="sched-mgr__panel-action sched-mgr__panel-action--danger"
+                                onClick={() => handleDelete(detailTarget)}
+                            >
+                                <i className="fa-light fa-trash" />
+                                Delete
+                            </button>
+                        </div>
+                    );
+                })() : null}
+            >
+                <ReportScheduleDetailPanel schedule={detailTarget} />
+            </SlidePanel>
         </div>
     );
 };

@@ -1,6 +1,16 @@
+/**
+ * File: VolumeCorrectionMain.js
+ * Purpose: Render the tank volume correction workspace with M365-style navigation and workflow panels.
+ * Dependencies: React, Redux Toolkit hooks, usePermissions, volume correction tab components
+ * Last Modified: 2026-03-06
+ *
+ * Key Functions/Components:
+ * - VolumeCorrectionMain: Hosts workflow tabs, sidebar guidance, and clear-all action.
+ * - handleTabSelectionChange(): Switches active workflow tab and lazy-loads content.
+ * - renderContent(): Resolves the active workflow panel.
+ */
 import React, { useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Tabs from 'devextreme-react/tabs';
 import {
   setActiveTab,
   selectActiveTab,
@@ -86,19 +96,8 @@ const VolumeCorrectionMain = () => {
     }
   ];
 
-  // Custom tab item renderer
-  const renderTabItem = (item) => {
-    return (
-      <div className="tvcc-tab-item">
-        <i className={item.icon}></i>
-        <span className="tvcc-tab-text">{item.text}</span>
-      </div>
-    );
-  };
-
   // Handle tab change and lazy loading
-  const handleTabSelectionChange = (e) => {
-    const newIndex = e.itemIndex;
+  const handleTabSelectionChange = (newIndex) => {
     dispatch(setActiveTab(newIndex));
     setLoadedTabs(prev => new Set([...prev, newIndex]));
   };
@@ -153,15 +152,28 @@ const VolumeCorrectionMain = () => {
       {/* Main Content Area */}
       <div className="tvcc-content">
         <div className="tvcc-tabs-wrapper">
-          {/* Tabs Navigation */}
-          <Tabs
-            dataSource={tabData}
-            selectedIndex={activeTab}
-            onItemClick={handleTabSelectionChange}
-            width="100%"
-            className="tvcc-tabs"
-            itemRender={renderTabItem}
-          />
+          <div className="tvcc-tab-nav" role="tablist" aria-label="Tank volume correction workflow tabs">
+            {tabData.map((tab, index) => {
+              const isActive = activeTab === index;
+
+              return (
+                <button
+                  key={tab.text}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  className={`tvcc-tab-button ${isActive ? 'active' : ''}`}
+                  onClick={() => handleTabSelectionChange(index)}
+                >
+                  <i className={tab.icon}></i>
+                  <span className="tvcc-tab-button-texts">
+                    <span className="tvcc-tab-caption">{tab.text}</span>
+                    <span className="tvcc-tab-description">{tab.description}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
 
           {/* Tab Content */}
           <div className="tvcc-tab-content">

@@ -76,6 +76,8 @@ public class IssueTemplatesController : ControllerBase
     [HttpPut("{id}")]
     public async Task<IActionResult> Update(int id, [FromBody] UpdateIssueTemplateDTO dto)
     {
+        dto.Id = dto.Id == default ? id : dto.Id;
+
         if (id != dto.Id)
         {
             return BadRequest(FMSResponse<IssueTemplateDTO>.Failed("ID mismatch between URL and body"));

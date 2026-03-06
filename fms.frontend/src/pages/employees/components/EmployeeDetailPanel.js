@@ -77,11 +77,11 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
       {/* ── Header ── */}
       <div className="m365-detail-header">
         <div className="m365-detail-header__icon-circle"
-             style={{ background: '#deecf9', color: '#0078d4' }}>
+          style={{ background: '#deecf9', color: '#0078d4' }}>
           <i className="fa-light fa-user-hard-hat" />
         </div>
         <div className="m365-detail-header__title-block">
-          <h2 className="m365-detail-header__name">{employee.fullName || "Employee"}</h2>
+          <span className="m365-detail-header__eyebrow">Employee overview</span>
           <div className="m365-detail-header__meta">
             <span className={`m365-badge m365-badge--${statusTone}`}>
               {employee.employeestatus || "Unknown"}
@@ -89,24 +89,26 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
             <span>{siteName}</span>
             {employee.employeeWorkNo && <span>Work No: {employee.employeeWorkNo}</span>}
           </div>
+          <p className="m365-detail-header__description">
+            Review employment details, assigned vehicles, and audit information from a single workspace.
+          </p>
         </div>
       </div>
 
       {/* ── Quick Actions ── */}
       <div className="emp-panel-actions">
         {onEdit && (
-          <button className="m365-btn m365-btn--ghost" onClick={onEdit}>
+          <button className="m365-action-link" onClick={onEdit}>
             <i className="fa-light fa-pen-to-square" /> Edit
           </button>
         )}
         {onDelete && (
-          <button className="m365-btn m365-btn--ghost" onClick={onDelete}
-                  style={{ color: '#d13438' }}>
+          <button className="m365-action-link m365-action-link--danger" onClick={onDelete}>
             <i className="fa-light fa-trash-can" /> Delete
           </button>
         )}
         <button
-          className="m365-btn m365-btn--ghost"
+          className="m365-action-link"
           style={{ marginLeft: 'auto' }}
           onClick={() => navigate(getEmployeeDetailsRoute(employee.id))}
         >
@@ -135,7 +137,7 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
         <div className="emp-detail-tile">
           <div className={`emp-detail-tile__bar emp-detail-tile__bar--${isActive ? 'green' : 'gray'}`} />
           <i className={`fa-light ${isActive ? 'fa-circle-check' : 'fa-circle-xmark'} emp-detail-tile__icon`}
-             style={{ color: isActive ? '#107c10' : '#a19f9d' }} />
+            style={{ color: isActive ? '#107c10' : '#a19f9d' }} />
           <div className="emp-detail-tile__body">
             <span className={`emp-detail-tile__val m365-badge m365-badge--${statusTone}`} style={{ display: 'inline-flex', width: 'fit-content' }}>
               {employee.employeestatus || "Unknown"}

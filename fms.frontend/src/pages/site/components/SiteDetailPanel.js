@@ -77,6 +77,23 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
 
   return (
     <div className="m365-site-detail">
+      <div className="m365-site-detail__intro">
+        <div className="m365-site-detail__intro-icon">
+          <i className="fa-light fa-buildings" />
+        </div>
+        <div className="m365-site-detail__intro-body">
+          <span className="m365-site-detail__intro-eyebrow">Site overview</span>
+          <div className="m365-site-detail__intro-meta">
+            <M365StatusBadge isActive={site.isActive} />
+            <span>{site.siteAdministratorName || "No administrator assigned"}</span>
+            <span>{hasGeofenceMapping ? "Geofence mapped" : "Geofence not mapped"}</span>
+          </div>
+          <p className="m365-site-detail__intro-text">
+            A site represents a project workspace with assigned users, vehicles, devices, issue tracking, and GPSGate location controls.
+          </p>
+        </div>
+      </div>
+
       <div
         className="m365-flat-section"
         style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}
@@ -110,10 +127,7 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
         className="m365-flat-section m365-flat-section--intro"
         style={{ marginTop: 0, paddingTop: 0, borderTop: "none" }}
       >
-        <p className="m365-site-intro">
-          A site represents a project workspace with assigned users, vehicles,
-          devices, issue tracking, and GPSGate location controls.
-        </p>
+        <p className="m365-site-intro">Use these details to validate scope, location mapping, and operational health.</p>
       </div>
 
       <div className="m365-flat-section">
@@ -156,9 +170,8 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
         <div className="m365-flat-section__title-row">
           <h3 className="m365-flat-section__title">Location (GPSGate Geofence)</h3>
           <span
-            className={`m365-health-pill m365-health-pill--${
-              hasGeofenceMapping ? "success" : "neutral"
-            }`}
+            className={`m365-health-pill m365-health-pill--${hasGeofenceMapping ? "success" : "neutral"
+              }`}
           >
             {hasGeofenceMapping ? "Mapped" : "Not mapped"}
           </span>
@@ -196,7 +209,7 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
             <span className="m365-info-cell__label">Center Coordinates</span>
             <span className="m365-info-cell__value">
               {site.gpsGeofenceCenterLatitude != null &&
-              site.gpsGeofenceCenterLongitude != null
+                site.gpsGeofenceCenterLongitude != null
                 ? `${Number(site.gpsGeofenceCenterLatitude).toFixed(5)}, ${Number(site.gpsGeofenceCenterLongitude).toFixed(5)}`
                 : "Not Available"}
             </span>

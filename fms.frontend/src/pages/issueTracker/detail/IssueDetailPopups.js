@@ -1,8 +1,8 @@
 /**
  * File: IssueDetailPopups.js
- * Purpose: All popup dialogs for the Issue Detail page (complete, close, print, completion-with-actions, reassign)
+ * Purpose: All dialogs and side panels for the Issue Detail page (close, print, completion-with-actions, reassign)
  * Dependencies: React, IssueActionPopup, IssuePrintPopup, IssueCompletionPopup, IssueReassignPopup
- * Last Modified: 2026-02-23
+ * Last Modified: 2026-03-06
  */
 import React from 'react';
 import IssueActionPopup from '../components/IssueActionPopup';
@@ -12,8 +12,7 @@ import IssueReassignPopup from '../components/IssueReassignPopup';
 
 const IssueDetailPopups = ({
   issue, displayIssue,
-  // Complete
-  showCompletePopup, setShowCompletePopup, handleQuickMarkComplete, isSaving,
+  isSaving,
   // Close
   showClosePopup, setShowClosePopup, handleCloseIssue, isClosing,
   // Print
@@ -26,22 +25,6 @@ const IssueDetailPopups = ({
 }) => {
   return (
     <>
-      <IssueActionPopup
-        visible={showCompletePopup}
-        onHide={() => setShowCompletePopup(false)}
-        onConfirm={handleQuickMarkComplete}
-        title="Mark Issue as Complete"
-        subtitle="This will update the status and notify the issue opener."
-        confirmText="Mark Complete"
-        confirmIcon="fa-light fa-circle-check"
-        confirmType="success"
-        placeholder="Enter completion notes…"
-        isProcessing={isSaving}
-        icon="fa-light fa-circle-check"
-        iconColor="tw-text-green-600"
-        asPanel={true}
-        panelWidth={1000}
-      />
       <IssueActionPopup
         visible={showClosePopup}
         onHide={() => setShowClosePopup(false)}

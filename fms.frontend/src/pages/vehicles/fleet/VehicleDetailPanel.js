@@ -157,7 +157,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
             Boolean(normalized) &&
             normalized !== emptyDisplay &&
             normalized !== "—" &&
-            normalized !== "�"
+            normalized !== "�"
         );
     };
 
@@ -743,6 +743,12 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
         [VIEWS.TRANSFERS]: "Transfer History",
     };
 
+    const panelTitle = activeView !== VIEWS.NONE
+        ? `${displayName} · ${viewTitles[activeView] || "Vehicle"}`
+        : editMode
+            ? `Edit Vehicle: ${displayName}`
+            : displayName;
+
     // ── Render: Drill-down view (replaces tabs) ──────────────────────────
     const renderDrillDown = () => (
         <div className="vdp-drill-down">
@@ -818,7 +824,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
         <SlidePanel
             open={open}
             onClose={handleClose}
-            title=""
+            title={panelTitle}
             width={1000}
             headerActions={
                 <button
@@ -838,9 +844,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                         <i className="fa-light fa-truck" />
                     </div>
                     <div className="m365-detail-profile__body">
-                        <h2 className="m365-detail-profile__name">
-                            {displayName}
-                        </h2>
+                        <span className="m365-detail-profile__eyebrow">Vehicle overview</span>
                         <div className="m365-detail-profile__meta">
                             <span className="m365-detail-profile__email">
                                 {subtitle}
@@ -857,6 +861,9 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                                 </span>
                             )}
                         </div>
+                        <p className="m365-detail-profile__description">
+                            Review configuration, assignment, live status, and related applications from one panel.
+                        </p>
                         {/* Inline action links */}
                         {isAdmin && (
                             <div className="m365-detail-profile__actions">

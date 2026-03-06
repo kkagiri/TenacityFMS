@@ -1,193 +1,542 @@
-// HeaderStockFilters - Fix TagBox styling
-// Overrides any global styles that might be interfering
+// ═══════════════════════════════════════════════════════════════════════════════
+// HeaderStockFilters.scss
+// Command-bar style filter panel — custom date picker + multi-select dropdowns
+// Mirrors the HTML prototype design (segment pills, calendar, select buttons)
+// Last Modified: 2026-03-06 (selected-theme adaptive theming)
+// ═══════════════════════════════════════════════════════════════════════════════
 
+// ── Design tokens — light mode (default) ────────────────────────────────────
 .header-stock-filters {
-  $header-control-height: 36px;
+  // Light palette — M365 / Fluent
+  --hsf-accent:        #0078d4;
+  --hsf-accent-hover:  #106ebe;
+  --hsf-bg-bar:        #ffffff;
+  --hsf-bg-raised:     #f3f2f1;
+  --hsf-bg-hover:      #edebe9;
+  --hsf-bg-active:     #e1dfdd;
+  --hsf-border:        #c8c6c4;
+  --hsf-border-focus:  #a19f9d;
+  --hsf-border-hover:  #8a8886;
+  --hsf-text:          #201f1e;
+  --hsf-text-muted:    #605e5c;
+  --hsf-text-subtle:   #c8c6c4;
+  --hsf-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.08);
+  --hsf-shadow:        0 8px 32px rgba(0, 0, 0, 0.14);
+  --hsf-today-bg:      #deecf9;
+  --hsf-today-color:   #0078d4;
+  --hsf-in-range-bg:   rgba(0, 120, 212, 0.10);
+  --hsf-focus-ring:    rgba(0, 120, 212, 0.20);
+  --hsf-accent-glow:   rgba(0, 120, 212, 0.40);
+  --hsf-radius:        8px;
+  --hsf-ease:          cubic-bezier(0.16, 1, 0.3, 1);
+  --hsf-font-mono:     "DM Mono", "Consolas", monospace;
 
-  .dx-daterangebox,
-  .dx-tagbox,
-  .dx-button {
-    min-height: $header-control-height;
-    height: $header-control-height;
+  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+  position: relative;
+  color-scheme: light dark;
+}
+
+// ── Design tokens — dark mode (follows selected app theme) ──────────────────
+html[data-theme="dark"] .header-stock-filters {
+  // Dark palette — mirrors HTML prototype [data-theme="dark"]
+  --hsf-accent:        #3b5bdb;
+  --hsf-accent-hover:  #4c6ef5;
+  --hsf-bg-bar:        #111114;
+  --hsf-bg-raised:     #18181c;
+  --hsf-bg-hover:      #1f1f24;
+  --hsf-bg-active:     #26262d;
+  --hsf-border:        #2a2a32;
+  --hsf-border-focus:  #3d3d4a;
+  --hsf-border-hover:  #4a4a58;
+  --hsf-text:          #e8e8f0;
+  --hsf-text-muted:    #6b6b7e;
+  --hsf-text-subtle:   #3d3d4a;
+  --hsf-shadow-sm:     0 2px 8px rgba(0, 0, 0, 0.40);
+  --hsf-shadow:        0 8px 32px rgba(0, 0, 0, 0.60);
+  --hsf-today-bg:      #1e3a8a;
+  --hsf-today-color:   #93c5fd;
+  --hsf-in-range-bg:   rgba(59, 91, 219, 0.12);
+  --hsf-focus-ring:    rgba(59, 91, 219, 0.25);
+  --hsf-accent-glow:   rgba(59, 91, 219, 0.45);
+}
+
+// ── Overlay ───────────────────────────────────────────────────────────────────
+.hsf-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  cursor: default;
+}
+
+// ── Filter bar ────────────────────────────────────────────────────────────────
+.hsf-filter-bar {
+  background: var(--hsf-bg-bar);
+  border: 1px solid var(--hsf-border);
+  border-radius: 10px;
+  padding: 6px 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  box-shadow: var(--hsf-shadow-sm);
+  flex-wrap: wrap;
+}
+
+// ── Segment pills ─────────────────────────────────────────────────────────────
+.hsf-seg-pills {
+  display: flex;
+  background: var(--hsf-bg-raised);
+  border: 1px solid var(--hsf-border);
+  border-radius: 7px;
+  padding: 3px;
+  gap: 1px;
+  flex-shrink: 0;
+}
+
+.hsf-seg-pill {
+  font-family: var(--hsf-font-mono);
+  font-size: 11px;
+  padding: 5px 11px;
+  border-radius: 5px;
+  color: var(--hsf-text-muted);
+  cursor: pointer;
+  border: none;
+  background: transparent;
+  transition: all 0.15s var(--hsf-ease);
+  white-space: nowrap;
+  line-height: 1;
+
+  &:hover:not(.active) {
+    color: var(--hsf-text);
+    background: var(--hsf-bg-hover);
   }
 
-  .dx-texteditor,
-  .dx-texteditor.dx-editor-outlined,
-  .dx-texteditor-container,
-  .dx-texteditor-input-container {
-    min-height: $header-control-height !important;
-    height: $header-control-height !important;
-  }
-
-  .dx-button-content {
-    min-height: $header-control-height;
-    height: $header-control-height;
-    padding-top: 0;
-    padding-bottom: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-  }
-
-  // Reset TagBox to use DevExtreme defaults
-  .dx-tagbox {
-    // Keep single line for header filters
-    &.dx-tagbox-single-line {
-      .dx-tag-container {
-        flex-wrap: nowrap !important;
-        overflow: hidden !important;
-      }
-    }
-
-    // Reset tag styling to DevExtreme defaults
-    .dx-tag {
-      background-color: rgba(0, 0, 0, 0.08) !important;
-      color: rgba(0, 0, 0, 0.87) !important;
-      border-radius: 4px !important;
-      padding: 0 8px !important;
-      margin: 2px !important;
-      font-size: 13px !important;
-      height: 24px !important;
-      line-height: 24px !important;
-      display: inline-flex !important;
-      align-items: center !important;
-      border: none !important;
-      box-shadow: none !important;
-      position: relative !important;
-
-      .dx-tag-content {
-        padding: 0 !important;
-        padding-right: 20px !important; // Space for remove button
-        background-color: transparent !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        gap: 4px !important;
-
-        // Ensure text doesn't overlap with button
-        span {
-          display: inline-block !important;
-          max-width: 150px !important;
-          overflow: hidden !important;
-          text-overflow: ellipsis !important;
-          white-space: nowrap !important;
-        }
-      }
-
-      .dx-tag-remove-button {
-        position: absolute !important;
-        right: 2px !important;
-        top: 50% !important;
-        transform: translateY(-50%) !important;
-        margin: 0 !important;
-        padding: 0 !important;
-        background-color: transparent !important;
-        color: rgba(0, 0, 0, 0.54) !important;
-        width: 16px !important;
-        height: 16px !important;
-        min-width: 16px !important;
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        border: none !important;
-        box-shadow: none !important;
-        cursor: pointer !important;
-
-        &:hover {
-          color: rgba(0, 0, 0, 0.87) !important;
-          background-color: rgba(0, 0, 0, 0.04) !important;
-          border-radius: 50% !important;
-        }
-
-        &::before {
-          content: '\00d7' !important; // × character
-          font-size: 16px !important;
-          font-weight: 400 !important;
-          line-height: 1 !important;
-        }
-      }
-
-      &:hover {
-        background-color: rgba(0, 0, 0, 0.12) !important;
-      }
-    }
-
-    // Ensure container doesn't have forced backgrounds
-    .dx-texteditor-container {
-      background-color: transparent !important;
-      border: none !important;
-    }
-
-    .dx-texteditor-input-container {
-      background-color: transparent !important;
-      min-height: auto !important;
-      padding: 4px 8px !important;
-
-      &:focus-within {
-        box-shadow: none !important;
-      }
-    }
-
-    .dx-texteditor-input {
-      padding: 0 !important;
-      background-color: transparent !important;
-      border: none !important;
-    }
-
-    // Fix the clear button icon
-    .dx-clear-button-area {
-      width: 24px !important;
-      height: 24px !important;
-
-      .dx-icon-clear {
-        &::before {
-          content: '\00d7' !important; // × character
-          font-size: 18px !important;
-          font-weight: 400 !important;
-          color: rgba(0, 0, 0, 0.54) !important;
-        }
-
-        &:hover::before {
-          color: rgba(0, 0, 0, 0.87) !important;
-        }
-      }
-    }
-
-    // Maintain proper height on state changes
-    &.dx-state-hover,
-    &.dx-state-focused,
-    &.dx-state-active {
-      .dx-texteditor-input-container {
-        min-height: auto !important;
-        background-color: transparent !important;
-        border: none !important;
-      }
-
-      .dx-texteditor-container {
-        background-color: transparent !important;
-        border: none !important;
-      }
-    }
-
-    // Fix outlined mode
-    &.dx-editor-outlined {
-      background-color: transparent !important;
-
-      .dx-texteditor-input-container {
-        border: none !important;
-      }
-    }
-  }
-
-  // Fix DateRangeBox styling
-  .dx-daterangebox {
-    background-color: transparent !important;
-
-    .dx-texteditor-container {
-      background-color: transparent !important;
-    }
-
-    .dx-texteditor-input-container {
-      background-color: transparent !important;
-    }
+  &.active {
+    background: var(--hsf-bg-active);
+    color: var(--hsf-text);
+    font-weight: 500;
   }
 }
+
+// ── Divider ───────────────────────────────────────────────────────────────────
+.hsf-bar-divider {
+  width: 1px;
+  height: 26px;
+  background: var(--hsf-border);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+// ── Date range button ─────────────────────────────────────────────────────────
+.hsf-date-range-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--hsf-bg-raised);
+  border: 1px solid var(--hsf-border);
+  border-radius: var(--hsf-radius);
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: all 0.15s var(--hsf-ease);
+  flex-shrink: 0;
+  position: relative;
+  user-select: none;
+
+  &:hover { border-color: var(--hsf-border-hover); }
+
+  &.open {
+    border-color: var(--hsf-accent);
+    box-shadow: 0 0 0 2px var(--hsf-focus-ring);
+  }
+}
+
+.hsf-date-icon {
+  color: var(--hsf-text-muted);
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.hsf-date-val {
+  font-family: var(--hsf-font-mono);
+  font-size: 12px;
+  color: var(--hsf-text);
+  letter-spacing: 0.01em;
+}
+
+.hsf-date-sep {
+  color: var(--hsf-text-subtle);
+  font-size: 12px;
+}
+
+// ── Calendar dropdown ─────────────────────────────────────────────────────────
+.hsf-cal-dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  background: var(--hsf-bg-bar);
+  border: 1px solid var(--hsf-border);
+  border-radius: 12px;
+  box-shadow: var(--hsf-shadow);
+  z-index: 1000;
+  padding: 16px;
+  animation: hsfDropIn 0.18s var(--hsf-ease) both;
+  min-width: 540px;
+}
+
+.hsf-cal-months-row {
+  display: flex;
+  gap: 16px;
+}
+
+.hsf-cal-separator {
+  width: 1px;
+  background: var(--hsf-border);
+  flex-shrink: 0;
+}
+
+.hsf-cal-month { flex: 1; }
+
+.hsf-cal-month-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.hsf-cal-month-name {
+  font-family: var(--hsf-font-mono);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hsf-text);
+  font-weight: 500;
+}
+
+.hsf-cal-nav {
+  background: none;
+  border: 1px solid var(--hsf-border);
+  border-radius: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--hsf-text-muted);
+  font-size: 10px;
+  flex-shrink: 0;
+  transition: all 0.12s;
+
+  &:hover {
+    background: var(--hsf-bg-hover);
+    color: var(--hsf-text);
+    border-color: var(--hsf-border-hover);
+  }
+}
+
+.hsf-cal-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+
+.hsf-cal-dow {
+  font-family: var(--hsf-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--hsf-text-subtle);
+  text-align: center;
+  padding: 4px 0 6px;
+}
+
+.hsf-cal-day {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--hsf-font-mono);
+  font-size: 11px;
+  color: var(--hsf-text);
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.1s;
+  user-select: none;
+
+  &:hover:not(.hsf-cal-empty):not(.selected):not(.range-start):not(.range-end) {
+    background: var(--hsf-bg-hover);
+  }
+
+  &.hsf-cal-empty { cursor: default; }
+
+  &.today      { background: var(--hsf-today-bg); color: var(--hsf-today-color); font-weight: 500; }
+  &.selected   { background: var(--hsf-accent); color: #fff; font-weight: 500; border-radius: 5px; }
+  &.range-start { background: var(--hsf-accent); color: #fff; border-radius: 5px 0 0 5px; }
+  &.range-end   { background: var(--hsf-accent); color: #fff; border-radius: 0 5px 5px 0; }
+  &.in-range    { background: var(--hsf-in-range-bg); border-radius: 0; }
+}
+
+.hsf-cal-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--hsf-border);
+}
+
+.hsf-cal-step-hint {
+  font-family: var(--hsf-font-mono);
+  font-size: 10px;
+  color: var(--hsf-text-muted);
+  letter-spacing: 0.06em;
+  flex: 1;
+
+  em { font-style: normal; color: var(--hsf-accent); font-weight: 500; }
+}
+
+// ── Select button ─────────────────────────────────────────────────────────────
+.hsf-select-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  background: var(--hsf-bg-raised);
+  border: 1px solid var(--hsf-border);
+  border-radius: var(--hsf-radius);
+  padding: 6px 10px;
+  cursor: pointer;
+  transition: all 0.15s var(--hsf-ease);
+  position: relative;
+  flex-shrink: 0;
+  min-width: 130px;
+  user-select: none;
+
+  &:hover { border-color: var(--hsf-border-hover); }
+
+  &.open {
+    border-color: var(--hsf-accent);
+    box-shadow: 0 0 0 2px var(--hsf-focus-ring);
+  }
+}
+
+.hsf-select-icon { color: var(--hsf-text-muted); font-size: 13px; flex-shrink: 0; }
+
+.hsf-select-text {
+  font-size: 12px;
+  color: var(--hsf-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 150px;
+  flex: 1;
+
+  &.placeholder { color: var(--hsf-text-muted); }
+}
+
+.hsf-select-count {
+  background: var(--hsf-accent);
+  color: #fff;
+  font-family: var(--hsf-font-mono);
+  font-size: 10px;
+  font-weight: 500;
+  padding: 1px 6px;
+  border-radius: 4px;
+  flex-shrink: 0;
+  line-height: 1.5;
+}
+
+.hsf-select-caret {
+  color: var(--hsf-text-subtle);
+  font-size: 11px;
+  flex-shrink: 0;
+  transition: transform 0.2s var(--hsf-ease);
+
+  .hsf-select-btn.open &,
+  .hsf-date-range-btn.open & {
+    transform: rotate(180deg);
+  }
+}
+
+// ── Dropdown menu ─────────────────────────────────────────────────────────────
+.hsf-dropdown-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  background: var(--hsf-bg-bar);
+  border: 1px solid var(--hsf-border);
+  border-radius: 10px;
+  box-shadow: var(--hsf-shadow);
+  z-index: 1000;
+  min-width: 210px;
+  overflow: hidden;
+
+  &.open {
+    display: block;
+    animation: hsfDropIn 0.16s var(--hsf-ease) both;
+  }
+}
+
+.hsf-dropdown-search {
+  padding: 8px;
+  border-bottom: 1px solid var(--hsf-border);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  i { color: var(--hsf-text-subtle); font-size: 12px; flex-shrink: 0; padding-left: 4px; }
+
+  input {
+    width: 100%;
+    background: var(--hsf-bg-raised);
+    border: 1px solid var(--hsf-border);
+    border-radius: 5px;
+    padding: 5px 9px;
+    font-family: "Segoe UI", sans-serif;
+    font-size: 12px;
+    color: var(--hsf-text);
+    outline: none;
+    transition: border 0.15s;
+
+    &:focus { border-color: var(--hsf-accent); box-shadow: 0 0 0 1px var(--hsf-accent); }
+    &::placeholder { color: var(--hsf-text-subtle); }
+  }
+}
+
+.hsf-dropdown-list {
+  padding: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar { width: 4px; }
+  &::-webkit-scrollbar-track { background: transparent; }
+  &::-webkit-scrollbar-thumb { background: var(--hsf-border); border-radius: 2px; }
+}
+
+.hsf-dropdown-group-label {
+  padding: 6px 9px 3px;
+  font-family: var(--hsf-font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--hsf-text-muted);
+}
+
+.hsf-dropdown-divider { height: 1px; background: var(--hsf-border); margin: 4px 0; }
+
+.hsf-dropdown-empty {
+  padding: 12px;
+  font-size: 12px;
+  color: var(--hsf-text-subtle);
+  text-align: center;
+  font-family: var(--hsf-font-mono);
+}
+
+.hsf-dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 9px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--hsf-text);
+  transition: background 0.1s;
+  user-select: none;
+
+  &:hover { background: var(--hsf-bg-hover); }
+
+  &.selected {
+    background: var(--hsf-bg-active);
+    .hsf-check { background: var(--hsf-accent); border-color: var(--hsf-accent); color: #fff; }
+  }
+}
+
+.hsf-check {
+  width: 15px;
+  height: 15px;
+  border: 1.5px solid var(--hsf-border);
+  border-radius: 3px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.12s;
+}
+
+.hsf-item-label { flex: 1; }
+.hsf-item-sub { font-family: var(--hsf-font-mono); font-size: 10px; color: var(--hsf-text-subtle); margin-left: auto; }
+
+.hsf-dropdown-footer {
+  padding: 8px;
+  border-top: 1px solid var(--hsf-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.hsf-dropdown-footer-count { font-family: var(--hsf-font-mono); font-size: 10px; color: var(--hsf-text-muted); }
+
+.hsf-dropdown-footer-clear {
+  font-family: var(--hsf-font-mono);
+  font-size: 10px;
+  color: var(--hsf-text-muted);
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+  transition: all 0.1s;
+
+  &:hover { background: var(--hsf-bg-hover); color: var(--hsf-text); }
+}
+
+// ── Spacer ────────────────────────────────────────────────────────────────────
+.hsf-bar-spacer { flex: 1; }
+
+// ── Buttons ───────────────────────────────────────────────────────────────────
+.hsf-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--hsf-font-mono);
+  font-size: 11px;
+  font-weight: 400;
+  letter-spacing: 0.04em;
+  padding: 7px 14px;
+  border-radius: var(--hsf-radius);
+  border: none;
+  cursor: pointer;
+  transition: all 0.15s var(--hsf-ease);
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  i { font-size: 12px; }
+  &:disabled { opacity: 0.4; cursor: not-allowed; }
+}
+
+.hsf-btn-apply {
+  background: var(--hsf-accent);
+  color: #fff;
+
+  &:hover {
+    background: var(--hsf-accent-hover);
+    box-shadow: 0 2px 10px var(--hsf-accent-glow);
+    transform: translateY(-1px);
+  }
+
+  &:active { transform: translateY(0); box-shadow: none; }
+}
+
+.hsf-btn-reset {
+  background: var(--hsf-bg-raised);
+  color: var(--hsf-text-muted);
+  border: 1px solid var(--hsf-border);
+
+  &:hover { color: var(--hsf-text); border-color: var(--hsf-border-hover); background: var(--hsf-bg-hover); }
+}
+
+// ── Animation ─────────────────────────────────────────────────────────────────
+@keyframes hsfDropIn {
+  from { opacity: 0; transform: translateY(-6px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0)    scale(1);    }
+}
+
+

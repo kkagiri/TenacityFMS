@@ -1,8 +1,8 @@
 /**
  * File: WidgetConfigModal.js
  * Purpose: Configure, create, and update dashboard widgets from the modal workflow
- * Dependencies: React, Redux, DevExtreme popup/button, dashboardService, dataSourceService
- * Last Modified: 2026-02-07
+ * Dependencies: React, Redux, DevExtreme button, M365SidePanel, dashboardService, widgetFactoryService
+ * Last Modified: 2026-03-06
  *
  * Key Functions:
  * - loadWidgetTemplates(): Fetches widget templates for add/edit flows
@@ -11,12 +11,11 @@
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import Popup from 'devextreme-react/popup';
 import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
-import dashboardMetricsService from '../../../services/DashboardMetricsService'; // Still using for widget testing
-import dataSourceService from '../../../services/dataSourceService'; // Phase 2 unified service
 import dashboardService from '../../../services/dashboardService';
+import widgetFactoryService from '../../../services/widgetFactoryService';
+import M365SidePanel from '../../common/M365SidePanel';
 
 // Import Redux actions
 import { fetchVehicleTypes } from '../../../redux/actions/vehicleTypeActions';
@@ -57,12 +56,12 @@ export default function WidgetConfigModal({
   const [editingWidget, setEditingWidget] = useState(null);
   const [activeCategory, setActiveCategory] = useState('all');
 
-  // Widget form state
-  const [newWidget, setNewWidget] = useState({
+  const createDefaultWidgetState = useCallback(() => ({
     customName: '',
     templateId: null,
     category: '',
     settings: {},
+    filters: {},
     visualizationType: '',
     metric: '',
     mode: 'cumulative',
@@ -71,10 +70,16 @@ export default function WidgetConfigModal({
     siteIds: [],
     aggregation: 'SUM',
     vehicleTypeIds: [],
-    // Add default values for BIG_STAT_CARD required fields
     defaultValue: '0',
-    unit: 'count' // Changed from 'liters' to more generic 'count'
-  });
+    unit: 'count',
+    groupBy: 'none',
+    granularity: 'daily',
+    includeTotal: false,
+    topK: undefined
+  }), []);
+
+  // Widget form state
+  const [newWidget, setNewWidget] = useState(createDefaultWidgetState);
 
   // Data loading states
   const [widgetTemplates, setWidgetTemplates] = useState([]);
@@ -147,6 +152,197 @@ export default function WidgetConfigModal({
     { id: 'this_month', label: 'This Month' },
     { id: 'last_month', label: 'Last Month' }
   ];
+
+  const parseConfigurationJson = useCallback((configurationJson) => {
+    if (!configurationJson) {
+      return {};
+    }
+
+    try {
+      return typeof configurationJson === 'string'
+        ? JSON.parse(configurationJson)
+        : configurationJson;
+    } catch (error) {
+      console.warn('[WidgetConfigModal] Failed to parse configurationJson:', error);
+      return {};
+    }
+  }, []);
+
+  const getTemplateById = useCallback((templateId) => {
+    if (!templateId) {
+      return null;
+    }
+
+    const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
+    return templatesArray.find(template => String(template.id) === String(templateId)) || null;
+  }, [widgetTemplates]);
+
+  const buildWidgetStateFromInstance = useCallback((widget) => {
+    const parsedConfig = parseConfigurationJson(widget.configurationJson);
+    const parsedSettings = parsedConfig.settings || {};
+    const parsedFilters = parsedConfig.filters || {};
+    const templateId = widget.templateId || widget.template?.id || null;
+    const template = getTemplateById(templateId) || widget.template || null;
+
+    return {
+      ...createDefaultWidgetState(),
+      customName: widget.customName || widget.template?.displayName || '',
+      templateId,
+      category: widget.category || parsedConfig.category || parsedSettings.originalCategory || template?.category || '',
+      settings: parsedSettings,
+      filters: parsedFilters,
+      visualizationType:
+        widget.widgetType ||
+        parsedConfig.visualizationType ||
+        parsedSettings.customWidgetType ||
+        template?.widgetType ||
+        '',
+      metric:
+        widget.dataSource ||
+        parsedConfig.dataSource ||
+        parsedSettings.dataSource ||
+        template?.dataSource ||
+        '',
+      mode: parsedSettings.mode || parsedConfig.mode || 'cumulative',
+      datePreset: parsedSettings.datePreset || parsedConfig.datePreset || 'yesterday',
+      sitesMode: parsedSettings.sitesMode || (parsedFilters.siteIds?.length ? 'custom' : 'all'),
+      siteIds: parsedFilters.siteIds || [],
+      aggregation: parsedSettings.aggregation || 'SUM',
+      vehicleTypeIds: parsedFilters.vehicleTypeIds || [],
+      defaultValue: parsedSettings.defaultValue || parsedSettings.value || '0',
+      unit: parsedSettings.unit || 'count',
+      groupBy: parsedSettings.groupBy || 'none',
+      granularity: parsedSettings.granularity || 'daily',
+      includeTotal: parsedSettings.includeTotal || false,
+      topK: parsedSettings.topK
+    };
+  }, [createDefaultWidgetState, getTemplateById, parseConfigurationJson]);
+
+  const buildCanonicalWidgetPayload = useCallback((widgetState, options = {}) => {
+    const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
+    const template = getTemplateById(widgetState.templateId);
+    const resolvedVisualizationType = widgetState.visualizationType || template?.widgetType || 'default';
+    const hasCustomDefinition = Boolean(widgetState.category && resolvedVisualizationType);
+    const isCustomWidget = !widgetState.templateId && hasCustomDefinition;
+    const baseTemplate = template || (isCustomWidget
+      ? templatesArray.find(item =>
+        item.widgetType === resolvedVisualizationType ||
+        item.category === widgetState.category
+      ) || null
+      : null);
+    const resolvedTemplateId = widgetState.templateId || options.fallbackTemplateId || baseTemplate?.id || null;
+    const resolvedCategory = isCustomWidget
+      ? widgetState.category
+      : (template?.category || widgetState.category || '');
+    const resolvedDataSource = isCustomWidget
+      ? (widgetState.metric || widgetState.settings?.dataSource || '')
+      : (template?.dataSource || widgetState.metric || widgetState.settings?.dataSource || '');
+
+    const settings = {
+      ...(widgetState.settings || {}),
+      ...((options.extraSettings) || {}),
+      mode: widgetState.mode || widgetState.settings?.mode || 'cumulative',
+      datePreset: widgetState.datePreset || widgetState.settings?.datePreset || 'yesterday',
+      sitesMode: widgetState.sitesMode || widgetState.settings?.sitesMode || ((widgetState.siteIds || []).length ? 'custom' : 'all'),
+      aggregation: widgetState.aggregation || widgetState.settings?.aggregation || 'SUM',
+      dataSource: resolvedDataSource
+    };
+
+    if (widgetState.groupBy && widgetState.groupBy !== 'none') {
+      settings.groupBy = widgetState.groupBy;
+    }
+
+    if (widgetState.granularity) {
+      settings.granularity = widgetState.granularity;
+    }
+
+    if (widgetState.includeTotal !== undefined) {
+      settings.includeTotal = widgetState.includeTotal;
+    }
+
+    if (widgetState.topK !== undefined && widgetState.topK !== null && widgetState.topK !== '') {
+      settings.topK = widgetState.topK;
+    }
+
+    if (widgetState.unit) {
+      settings.unit = widgetState.unit;
+    }
+
+    if (resolvedVisualizationType === 'BIG_STAT_CARD') {
+      settings.value = widgetState.defaultValue || settings.value || '0';
+      settings.unit = widgetState.unit || settings.unit || 'count';
+    }
+
+    if (isCustomWidget) {
+      settings.isCustomWidget = true;
+      settings.originalCategory = resolvedCategory;
+      settings.customWidgetType = resolvedVisualizationType;
+
+      if (baseTemplate?.id) {
+        settings.baseTemplateId = baseTemplate.id;
+      }
+    }
+
+    const filters = {
+      ...(widgetState.filters || {}),
+      ...((options.extraFilters) || {}),
+      siteIds: widgetState.sitesMode === 'all' ? [] : (widgetState.siteIds || []),
+      vehicleTypeIds: widgetState.vehicleTypeIds || []
+    };
+
+    const payload = {
+      customName: widgetState.customName?.trim?.() || '',
+      visualizationType: resolvedVisualizationType,
+      settings,
+      filters
+    };
+
+    if (resolvedTemplateId) {
+      payload.templateId = resolvedTemplateId;
+    }
+
+    if (widgetState.positionX !== undefined) {
+      payload.positionX = widgetState.positionX;
+    }
+
+    if (widgetState.positionY !== undefined) {
+      payload.positionY = widgetState.positionY;
+    }
+
+    if (widgetState.width !== undefined) {
+      payload.width = widgetState.width;
+    }
+
+    if (widgetState.height !== undefined) {
+      payload.height = widgetState.height;
+    }
+
+    return payload;
+  }, [getTemplateById, widgetTemplates]);
+
+  const buildFactoryRequest = useCallback((widgetState, options = {}) => {
+    const payload = buildCanonicalWidgetPayload(widgetState, options);
+    const template = getTemplateById(payload.templateId);
+    const category = payload.settings?.originalCategory || template?.category || widgetState.category || '';
+    const dataSource = payload.settings?.dataSource || template?.dataSource || '';
+
+    return {
+      widgetType: payload.visualizationType,
+      category,
+      dataSource,
+      filters: payload.filters || {},
+      settings: payload.settings || {},
+      mode: payload.settings?.mode || 'cumulative',
+      timeRange: payload.settings?.datePreset || 'yesterday',
+      aggregationType: payload.settings?.aggregation || 'SUM'
+    };
+  }, [buildCanonicalWidgetPayload, getTemplateById]);
+
+  const resetWidgetForm = useCallback(() => {
+    setNewWidget(createDefaultWidgetState());
+    setPreviewData(null);
+    setPreviewError(null);
+  }, [createDefaultWidgetState]);
 
   // Load data functions
   const loadWidgetTemplates = useCallback(async () => {
@@ -227,73 +423,16 @@ export default function WidgetConfigModal({
   // Populate form when editing
   useEffect(() => {
     if (editingWidget) {
-      const templateId = editingWidget.templateId || editingWidget.template?.id;
-      const category = editingWidget.category || editingWidget.template?.category || '';
-
-      // Parse configurationJson if it's a string
-      let parsedConfig = {};
-      if (editingWidget.configurationJson) {
-        try {
-          parsedConfig = typeof editingWidget.configurationJson === 'string'
-            ? JSON.parse(editingWidget.configurationJson)
-            : editingWidget.configurationJson;
-        } catch (e) {
-          console.warn('Failed to parse configurationJson:', e);
-        }
-      }
-
-      // Merge all possible settings sources
-      const settings = {
-        ...parsedConfig,
-        ...(editingWidget.settings || {}),
-        ...(editingWidget.configuration || {})
-      };
-
-      // Extract metric/data source from various locations (backend uses 'dataSource')
-      const metric = editingWidget.dataSource ||
-                    editingWidget.metric ||
-                    settings.dataSource ||
-                    settings.metric ||
-                    editingWidget.template?.dataSource ||
-                    '';
-
-      // Extract visualization type
-      const visualizationType = editingWidget.widgetType ||
-                               editingWidget.visualizationType ||
-                               editingWidget.template?.widgetType ||
-                               settings.visualizationType ||
-                               '';
+      const hydratedWidgetState = buildWidgetStateFromInstance(editingWidget);
 
       console.log('[WidgetConfigModal] Populating edit form:', {
         editingWidget,
-        parsedConfig,
-        metric,
-        visualizationType,
-        category
+        hydratedWidgetState
       });
 
-      setNewWidget({
-        customName: editingWidget.customName || editingWidget.template?.displayName || '',
-        templateId: templateId,
-        category: category,
-        settings: settings,
-        visualizationType: visualizationType,
-        metric: metric,
-        mode: settings.mode || 'cumulative',
-        datePreset: settings.datePreset || 'yesterday',
-        sitesMode: settings.sitesMode || (settings.siteIds?.length ? 'custom' : 'all'),
-        siteIds: settings.siteIds || editingWidget.siteIds || [],
-        // Add smart filter properties
-        aggregation: settings.aggregation || 'SUM',
-        vehicleTypeIds: settings.vehicleTypeIds || (settings.vehicleType ? [settings.vehicleType] : []),
-        // Add other fields that might be in settings
-        unit: settings.unit || 'count',
-        defaultValue: settings.defaultValue || settings.value || '0',
-        groupBy: settings.groupBy || 'none',
-        granularity: settings.granularity || 'daily'
-      });
+      setNewWidget(hydratedWidgetState);
     }
-  }, [editingWidget]);
+  }, [buildWidgetStateFromInstance, editingWidget]);
 
   // Form validation - Updated for enhanced widgets (template or custom)
   const isFormValid = useMemo(() => {
@@ -345,78 +484,7 @@ export default function WidgetConfigModal({
       const editingTemplateId = formMode === 'edit'
         ? (editingWidget?.templateId || editingWidget?.template?.id || null)
         : null;
-
-      // Build widget payload with enhanced widget support
-      const widgetPayload = {
-        customName: newWidget.customName.trim(),
-        settings: {
-          ...newWidget.settings,
-          mode: newWidget.mode,
-          datePreset: newWidget.datePreset,
-          sitesMode: newWidget.sitesMode,
-          siteIds: newWidget.siteIds,
-          // Add smart filter properties
-          aggregation: newWidget.aggregation,
-          vehicleTypeIds: newWidget.vehicleTypeIds
-        }
-      };
-
-      // Handle template-based widgets
-      if (newWidget.templateId) {
-        widgetPayload.templateId = newWidget.templateId;
-      }
-      // Handle custom widgets - template link is optional
-      else if (newWidget.category && newWidget.visualizationType) {
-        const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
-
-        // Optional: find a related template for traceability, but do not block custom saves
-        const baseTemplate = templatesArray.find(t =>
-          t.widgetType === newWidget.visualizationType ||
-          t.category === newWidget.category
-        ) || templatesArray[0]; // Fallback to first template
-
-        const resolvedTemplateId = editingTemplateId || baseTemplate?.id;
-
-        if (resolvedTemplateId) {
-          widgetPayload.templateId = resolvedTemplateId;
-        }
-
-        widgetPayload.visualizationType = newWidget.visualizationType;
-
-        // Explicit custom-widget markers required by backend create/update flows
-        widgetPayload.settings = {
-          ...widgetPayload.settings,
-          isCustomWidget: true,
-          originalCategory: newWidget.category,
-          customWidgetType: newWidget.visualizationType,
-          ...(baseTemplate?.id ? { baseTemplateId: baseTemplate.id } : {})
-        };
-      }
-
-      // Add metric/dataSource if specified
-      if (newWidget.metric) {
-        widgetPayload.metric = newWidget.metric;
-        widgetPayload.settings.dataSource = newWidget.metric;
-      }
-
-      // Add widget-type specific required fields
-      if (newWidget.visualizationType === 'BIG_STAT_CARD') {
-        // Ensure required fields for BIG_STAT_CARD widget type
-        widgetPayload.settings.value = newWidget.defaultValue || newWidget.settings?.value || '0';
-        widgetPayload.settings.unit = newWidget.unit || newWidget.settings?.unit || 'count';
-
-        // Also add to filters for validation compatibility
-        if (!widgetPayload.filters) {
-          widgetPayload.filters = {};
-        }
-        // Only add to filters if not already in settings
-        if (!widgetPayload.settings.value) {
-          widgetPayload.filters.value = widgetPayload.settings.value;
-        }
-        if (!widgetPayload.settings.unit) {
-          widgetPayload.filters.unit = widgetPayload.settings.unit;
-        }
-      }
+      const widgetPayload = buildCanonicalWidgetPayload(newWidget, { fallbackTemplateId: editingTemplateId });
 
       let result;
       if (formMode === 'edit' && editingWidget?.id) {
@@ -430,26 +498,8 @@ export default function WidgetConfigModal({
       }
 
       // Reset form
-      setNewWidget({
-        customName: '',
-        templateId: null,
-        category: '',
-        settings: {},
-        visualizationType: '',
-        metric: '',
-        mode: 'cumulative',
-        datePreset: 'yesterday',
-        sitesMode: 'all',
-        siteIds: [],
-        aggregation: 'SUM',
-        vehicleTypeIds: [],
-        // Add default values for BIG_STAT_CARD required fields
-        defaultValue: '0',
-        unit: 'count'
-      });
+      resetWidgetForm();
       setEditingWidget(null);
-      setPreviewData(null);
-      setPreviewError(null);
 
       await loadWidgets();
       setView('list');
@@ -463,25 +513,7 @@ export default function WidgetConfigModal({
   };
 
   const handleCancel = () => {
-    setNewWidget({
-      customName: '',
-      templateId: null,
-      category: '',
-      settings: {},
-      visualizationType: '',
-      metric: '',
-      mode: 'cumulative',
-      datePreset: 'yesterday',
-      sitesMode: 'all',
-      siteIds: [],
-      aggregation: 'SUM',
-      vehicleTypeIds: [],
-      // Add default values for BIG_STAT_CARD required fields
-      defaultValue: '0',
-      unit: 'count'
-    });
-    setPreviewData(null);
-    setPreviewError(null);
+    resetWidgetForm();
     setEditingWidget(null);
     setView('list');
     setFormMode('add');
@@ -512,16 +544,13 @@ export default function WidgetConfigModal({
 
   const handleToggleVisibility = async (widget) => {
     try {
-      const payload = {
-        customName: widget.customName,
-        templateId: widget.templateId || widget.template?.id,
-        metric: widget.metric,
-        settings: {
-          ...(widget.settings || {}),
-          ...(widget.configuration || {}),
+      const widgetState = buildWidgetStateFromInstance(widget);
+      const payload = buildCanonicalWidgetPayload(widgetState, {
+        extraSettings: {
           isVisible: !widget.isVisible
         }
-      };
+      });
+
       await dashboardService.updateWidgetInstance(widget.id, payload);
       notify(`Widget ${!widget.isVisible ? 'shown' : 'hidden'} successfully`, 'success', 2000);
       await loadWidgets();
@@ -550,21 +579,40 @@ export default function WidgetConfigModal({
     setPreviewError(null);
 
     try {
-      const testConfig = {
-        templateId: newWidget.templateId,
-        category: newWidget.category,
-        visualizationType: newWidget.visualizationType,
-        metric: newWidget.metric || 'default',
-        mode: newWidget.mode,
-        datePreset: newWidget.datePreset,
-        siteIds: newWidget.sitesMode === 'all' ? [] : newWidget.siteIds
-      };
+      const factoryRequest = buildFactoryRequest(newWidget, {
+        fallbackTemplateId: formMode === 'edit'
+          ? (editingWidget?.templateId || editingWidget?.template?.id || null)
+          : null
+      });
 
-      const result = await dashboardMetricsService.testWidgetConfiguration(testConfig);
-      setPreviewData(result);
+      const validation = await widgetFactoryService.validateWidgetConfiguration({
+        ...factoryRequest,
+        aggregationType: factoryRequest.aggregationType
+      });
+
+      if (!validation.isValid) {
+        const errorMessage = Array.isArray(validation.validationErrors) && validation.validationErrors.length > 0
+          ? validation.validationErrors.map(error => error?.message || error).join(', ')
+          : (validation.message || 'Widget configuration is invalid.');
+
+        setPreviewData(null);
+        setPreviewError(errorMessage);
+        return;
+      }
+
+      const result = await widgetFactoryService.getWidgetData(factoryRequest);
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to generate widget preview.');
+      }
+
+      setPreviewData({
+        ...result,
+        validation
+      });
     } catch (error) {
       console.error('Error testing widget configuration:', error);
-      setPreviewError('Failed to test configuration. Please check your settings.');
+      setPreviewData(null);
+      setPreviewError(error.message || 'Failed to test configuration. Please check your settings.');
     } finally {
       setPreviewLoading(false);
     }
@@ -580,16 +628,13 @@ export default function WidgetConfigModal({
       // Persist new positions sequentially
       for (let i = 0; i < reorderedWidgets.length; i++) {
         const w = reorderedWidgets[i];
-        const payload = {
-          customName: w.customName,
-          templateId: w.templateId || w.template?.id,
-          metric: w.metric,
-          settings: {
-            ...(w.settings || {}),
-            ...(w.configuration || {}),
+        const widgetState = buildWidgetStateFromInstance(w);
+        const payload = buildCanonicalWidgetPayload(widgetState, {
+          extraSettings: {
             position: w.position
           }
-        };
+        });
+
         await dashboardService.updateWidgetInstance(w.id, payload);
       }
       notify('Widget order saved', 'success', 1500);
@@ -675,7 +720,12 @@ export default function WidgetConfigModal({
               width="100%"
               className="sm:tw-w-auto"
               elementAttr={{ style: 'max-width: 300px;' }}
-              onClick={() => { setView('form'); setFormMode('add'); setEditingWidget(null); }}
+              onClick={() => {
+                resetWidgetForm();
+                setView('form');
+                setFormMode('add');
+                setEditingWidget(null);
+              }}
             />
           </div>
 
@@ -691,7 +741,7 @@ export default function WidgetConfigModal({
             {categories.map(cat => (
               <Button
                 key={cat}
-                text={`${cat.replace(/_/g,' ')} (${widgets.filter(w => (w.template?.category || w.category) === cat).length})`}
+                text={`${cat.replace(/_/g, ' ')} (${widgets.filter(w => (w.template?.category || w.category) === cat).length})`}
                 type={activeCategory === cat ? 'default' : 'normal'}
                 stylingMode={activeCategory === cat ? 'contained' : 'outlined'}
                 height={32}
@@ -724,22 +774,14 @@ export default function WidgetConfigModal({
 
   return (
     <>
-      <Popup
+      <M365SidePanel
         visible={open}
-        onHiding={handleClose}
+        onClose={handleClose}
         title={view === 'form' ? (formMode === 'add' ? 'Add New Widget' : 'Edit Widget') : 'Dashboard Widgets'}
-        width="95vw"
-        maxWidth={1200}
-        minWidth={320}
-        height="90vh"
-        maxHeight={900}
-        showCloseButton={true}
-        dragEnabled={true}
-        resizeEnabled={true}
-        className="widget-config-modal"
+        width={1200}
       >
         {renderContent()}
-      </Popup>
+      </M365SidePanel>
 
       {/* Widget Visibility Modal */}
       {/* Legacy visibility modal retained (can be removed later) */}

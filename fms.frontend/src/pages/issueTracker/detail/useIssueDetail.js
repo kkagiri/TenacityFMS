@@ -66,7 +66,6 @@ const useIssueDetail = () => {
     const [isFollowLoading, setIsFollowLoading] = useState(false);
 
     // Action popup states
-    const [showCompletePopup, setShowCompletePopup] = useState(false);
     const [showClosePopup, setShowClosePopup] = useState(false);
     const [showReassignPopup, setShowReassignPopup] = useState(false);
     const [showCompletionWithActionsPopup, setShowCompletionWithActionsPopup] = useState(false);
@@ -398,29 +397,6 @@ const useIssueDetail = () => {
     }, []);
 
     // ===== ACTION HANDLERS =====
-    const handleQuickMarkComplete = useCallback(async (notes) => {
-        if (isAlreadyClosed || isAlreadyComplete) return;
-        if (!completeStatusOption) {
-            notify({ message: 'No complete/closed status configured.', type: 'warning', displayTime: 3000 });
-            return;
-        }
-        try {
-            setIsSaving(true);
-            await issueTrackerService.markIssueComplete(issue.id, notes || null);
-            const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
-            setIssue(refreshedIssue);
-            initializeEditData(refreshedIssue);
-            setIsEditMode(false);
-            setShowCompletePopup(false);
-            refreshActivityStream();
-        } catch (error) {
-            console.error(`Error marking issue ${issue.id} as complete:`, error);
-            notify({ message: 'Unable to mark issue as complete.', type: 'error', displayTime: 3000 });
-        } finally {
-            setIsSaving(false);
-        }
-    }, [issue, isAlreadyClosed, isAlreadyComplete, completeStatusOption, initializeEditData, refreshActivityStream]);
-
     const handleCompletionWithActionsSuccess = useCallback(async () => {
         try {
             const refreshedIssue = await issueTrackerService.getIssueById(issue.id);
@@ -534,13 +510,12 @@ const useIssueDetail = () => {
         // Tabs
         tabItems, selectedTabIndex, renderTabItem, handleTabSelectionChange,
         // Popups
-        showCompletePopup, setShowCompletePopup,
         showClosePopup, setShowClosePopup,
         showReassignPopup, setShowReassignPopup,
         showCompletionWithActionsPopup, setShowCompletionWithActionsPopup,
         showPrintPopup, setShowPrintPopup,
         // Actions
-        handleQuickMarkComplete, handleCompletionWithActionsSuccess,
+        handleCompletionWithActionsSuccess,
         handleReassignSuccess, handleOpenCompletePopup, handleQuickMarkHighPriority,
         handleCloseIssue, handleDeleteIssue,
         // Actions dropdown

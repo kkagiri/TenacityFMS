@@ -91,15 +91,17 @@
 
 // ── Flat sections (no borders / no cards — Teams / M365 style) ──
 .m365-flat-section {
-  margin-top: 8px;
-  padding-top: 16px;
+  margin-top: 0;
+  padding-top: 20px;
   border-top: 1px solid var(--m365-border-light);
 
   &__title {
-    font-size: 14px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--m365-text);
+    color: var(--m365-text-secondary);
     margin: 0 0 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   &__title-row {
@@ -126,16 +128,16 @@
   padding: 12px 4px;
 
   &__label {
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 600;
-    color: var(--m365-text);
-    margin-bottom: 2px;
+    color: var(--m365-text-secondary);
+    margin-bottom: 4px;
   }
 
   &__value {
     font-size: 13px;
-    font-weight: 400;
-    color: var(--m365-text-secondary);
+    font-weight: 500;
+    color: var(--m365-text);
     line-height: 1.5;
     word-break: break-word;
   }
@@ -203,12 +205,71 @@
 
 // ── Detail Panel (inside SlidePanel) ──
 .m365-site-detail {
-  padding: 20px 24px;
+  padding: 18px 24px 24px;
   font-family: var(--m365-font);
 
+  .m365-flat-section {
+    border-top: none;
+    padding-top: 18px;
+  }
+
+  &__intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 0 0 18px;
+  }
+
+  &__intro-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(180deg, rgba(0, 120, 212, 0.18) 0%, rgba(0, 120, 212, 0.08) 100%);
+    color: var(--m365-primary);
+    flex-shrink: 0;
+    font-size: 16px;
+  }
+
+  &__intro-body {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__intro-eyebrow {
+    display: inline-flex;
+    margin: 0;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--m365-text-secondary);
+  }
+
+  &__intro-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--m365-text-secondary);
+  }
+
+  &__intro-text {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--m365-text-secondary);
+    max-width: 760px;
+  }
+
   .m365-flat-section__title {
-    text-transform: none;
-    letter-spacing: 0;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 
   .m365-info-grid {

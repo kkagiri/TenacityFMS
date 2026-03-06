@@ -53,7 +53,12 @@ import {
   VolumeChangeReasonEnum,
   allowedPageSizes,
 } from "./transactionHub/transactionHubConstants";
-import { calculateDispensingCustomSummary } from "./transactionHub/transactionHubUtils";
+import {
+  calculateDispensingCustomSummary,
+  formatUtcDateTimeToEastAfrica,
+  getEastAfricaDateKey,
+  formatEastAfricaDateKey,
+} from "./transactionHub/transactionHubUtils";
 import { DeleteConfirmationDialog } from "./transactionHub/DeleteConfirmationDialog";
 import { TransactionFilters } from "./transactionHub/TransactionFilters";
 import { GroupingControls } from "./transactionHub/GroupingControls";
@@ -194,49 +199,19 @@ const TransactionHub = () => {
     }
   }, []);
 
-  // Format timestamp for display - uses local timezone (East Africa Time for Kenya)
+  // Format timestamp for display in East Africa Time (UTC+3)
   const formatTime = useCallback((cellInfo) => {
-    if (!cellInfo.value) return "";
-    const date = new Date(cellInfo.value);
-    if (isNaN(date.getTime())) return cellInfo.value;
-
-    // Format with explicit locale and timezone display
-    // This will show local time based on user's browser timezone
-    return date.toLocaleString('en-GB', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-      hour12: false
-    });
+    return formatUtcDateTimeToEastAfrica(cellInfo.value);
   }, []);
 
-  // Calculate group value for date grouping - extracts date only (no time) in LOCAL timezone
+  // Calculate group value for date grouping in East Africa Time (UTC+3)
   const calculateDateGroupValue = useCallback((rowData) => {
-    if (!rowData.timestamp) return null;
-    const date = new Date(rowData.timestamp);
-    if (isNaN(date.getTime())) return null;
-    // Return date string in YYYY-MM-DD format using LOCAL timezone (not UTC)
-    // This ensures dates match the displayed time in the user's timezone
-    const year = date.getFullYear();
-    const month = String(date.getMonth() + 1).padStart(2, '0');
-    const day = String(date.getDate()).padStart(2, '0');
-    return `${year}-${month}-${day}`;
+    return getEastAfricaDateKey(rowData.timestamp);
   }, []);
 
-  // Render group cell for date grouping - displays formatted date
+  // Render group cell for date grouping - displays formatted UTC+3 date
   const groupCellRenderDate = useCallback((cellInfo) => {
-    if (!cellInfo.value) return "No Date";
-    const date = new Date(cellInfo.value);
-    if (isNaN(date.getTime())) return cellInfo.value;
-    return date.toLocaleDateString("en-US", {
-      weekday: "short",
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatEastAfricaDateKey(cellInfo.value);
   }, []);
 
   // Render change reason

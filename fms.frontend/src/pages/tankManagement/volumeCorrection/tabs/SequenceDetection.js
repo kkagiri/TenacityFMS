@@ -131,13 +131,13 @@ const SequenceDetection = () => {
 
   const getSeverityIcon = (severity) => {
     const icons = {
-      'CRITICAL': 'fa-triangle-exclamation tvcc-severity-critical',
-      'HIGH': 'fa-exclamation-circle tvcc-severity-high',
-      'MEDIUM': 'fa-circle-exclamation tvcc-severity-medium',
-      'LOW': 'fa-circle-info tvcc-severity-low',
-      'MINIMAL': 'fa-circle-check tvcc-severity-minimal'
+      'CRITICAL': 'fa-light fa-triangle-exclamation tvcc-severity-critical',
+      'HIGH': 'fa-light fa-exclamation-circle tvcc-severity-high',
+      'MEDIUM': 'fa-light fa-circle-exclamation tvcc-severity-medium',
+      'LOW': 'fa-light fa-circle-info tvcc-severity-low',
+      'MINIMAL': 'fa-light fa-circle-check tvcc-severity-minimal'
     };
-    return icons[severity] || 'fa-circle-question';
+    return icons[severity] || 'fa-light fa-circle-question';
   };
 
   const displayBreaks = filteredBreaks || breaks || [];
@@ -259,7 +259,7 @@ const SequenceDetection = () => {
                     }`}
                   onClick={() => dispatch(setFilterSeverity(filterSeverity === severity ? null : severity))}
                 >
-                  <i className={`fa-light ${getSeverityIcon(severity)}`}></i>
+                  <i className={getSeverityIcon(severity)}></i>
                   {severity} ({count})
                 </button>
               );
@@ -304,7 +304,7 @@ const SequenceDetection = () => {
                 alignment="center"
                 cellRender={(data) => (
                   <div className="tvcc-severity-cell">
-                    <i className={`fa-light ${getSeverityIcon(data.value)}`}></i>
+                    <i className={getSeverityIcon(data.value)}></i>
                     <span>{data.value}</span>
                   </div>
                 )}

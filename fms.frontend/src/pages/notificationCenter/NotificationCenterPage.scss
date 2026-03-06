@@ -1,7 +1,7 @@
 /**
  * File: NotificationCenterPage.scss
  * Purpose: M365-style full-page notification center
- * Last Modified: 2026-02-24
+ * Last Modified: 2026-03-06
  */
 
 // ── Page Layout ─────────────────────────────────────────────────────────────
@@ -133,6 +133,27 @@
   }
 }
 
+.nc-filter-field {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+
+  &--select {
+    min-width: 130px;
+  }
+
+  &__icon {
+    position: absolute;
+    right: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #605e5c;
+    font-size: 11px;
+    pointer-events: none;
+  }
+}
+
 // ── Flat Select & Date (M365 Admin style) ────────────────────────────────────
 
 .nc-select,
@@ -163,12 +184,15 @@
 }
 
 .nc-select {
-  padding-right: 28px;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  background-size: 10px 6px;
+  width: 100%;
+  padding-right: 34px;
+  background-image: none;
   min-width: 130px;
+
+  option {
+    background: #ffffff;
+    color: #201f1e;
+  }
 }
 
 .nc-date-input {
@@ -220,6 +244,11 @@
   @apply tw-flex tw-flex-col tw-items-center tw-justify-center tw-py-20;
 
   &--loading { @apply tw-gap-2; }
+
+  &__loading-text {
+    color: #605e5c;
+    margin-top: 12px;
+  }
 
   &__icon {
     font-size: 3.5rem;
@@ -396,6 +425,9 @@
 
 .nc-detail {
   @apply tw-p-2;
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
 
   &__badges {
     @apply tw-flex tw-flex-wrap tw-gap-2 tw-mb-4;
@@ -429,8 +461,29 @@
     @apply tw-flex tw-items-center;
   }
 
+  &__ts-icon {
+    color: #a19f9d;
+    margin-right: 8px;
+
+    &--success {
+      color: #107c10;
+    }
+  }
+
+  &__ts-label {
+    color: #605e5c;
+    font-size: 13px;
+  }
+
+  &__ts-value {
+    color: #201f1e;
+    font-size: 13px;
+    margin-left: 4px;
+  }
+
   &__footer {
     @apply tw-flex tw-flex-wrap tw-gap-2 tw-pt-3;
+    margin-top: auto;
     border-top: 1px solid #edebe9;
   }
 
@@ -465,7 +518,8 @@
   .nc-filters {
     @apply tw-px-4;
     flex-wrap: wrap;
-    .nc-select, .nc-date-input { min-width: 0; flex: 1; }
+    .nc-filter-field,
+    .nc-date-input { min-width: 0; flex: 1; }
   }
 
   .nc-content { @apply tw-p-4; }

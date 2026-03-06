@@ -1,5 +1,9 @@
-// _dark-notifications.scss
-// Lines 3876-3957 of original dark-theme.scss
+/**
+ * File: _dark-notifications.scss
+ * Purpose: Dark-mode overrides for notification admin pages and the user notification center.
+ * Dependencies: CSS variables from src/styles/dark-theme.scss
+ * Last Modified: 2026-03-06
+ */
 
 [data-theme="dark"] {
   /* ── Notification Pages ───────────────────────────────────── */
@@ -81,6 +85,196 @@
       background: var(--fms-surface) !important;
       border-color: var(--fms-border) !important;
       color: var(--fms-text-primary) !important;
+    }
+  }
+
+  /* ── User notification center (/my-notifications) ────────── */
+  .nc-page {
+    background: var(--fms-page-bg) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .nc-header,
+  .nc-tabs,
+  .nc-filters {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+  }
+
+  .nc-header__title,
+  .nc-state__title,
+  .nc-detail__title,
+  .nc-card__title,
+  .nc-detail__ts-value {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .nc-header__badge,
+  .nc-tab__badge {
+    background: #d13438 !important;
+    color: #ffffff !important;
+  }
+
+  .nc-tab {
+    color: var(--fms-text-secondary) !important;
+
+    &:hover {
+      color: var(--fms-text-primary) !important;
+    }
+
+    &.nc-tab--active {
+      color: #4fb3ff !important;
+
+      &::after {
+        background: #4fb3ff !important;
+      }
+    }
+  }
+
+  .nc-filters__search-input,
+  .nc-select,
+  .nc-date-input {
+    background: var(--fms-input-bg) !important;
+    border-color: var(--fms-input-border) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .nc-filter-field__icon {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .nc-filters__search-input::placeholder {
+    color: var(--fms-text-tertiary) !important;
+  }
+
+  .nc-filters__search-icon,
+  .nc-state__icon,
+  .nc-card__time,
+  .nc-detail__ts-icon,
+  .nc-detail__ts-label,
+  .nc-pagination__info,
+  .nc-state__sub,
+  .nc-state__loading-text,
+  .nc-card__message,
+  .nc-card--read .nc-card__title {
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .nc-select {
+    background-image: none !important;
+  }
+
+  .nc-select option {
+    background: var(--fms-surface) !important;
+    color: var(--fms-text-primary) !important;
+  }
+
+  .nc-btn {
+    &.nc-btn--ghost {
+      background: var(--fms-surface-secondary) !important;
+      border-color: var(--fms-border) !important;
+      color: var(--fms-text-primary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
+    }
+
+    &.nc-btn--text {
+      color: var(--fms-text-secondary) !important;
+
+      &:hover {
+        color: var(--fms-text-primary) !important;
+        background: transparent !important;
+      }
+    }
+  }
+
+  .nc-card {
+    background: var(--fms-surface) !important;
+    border-color: var(--fms-border) !important;
+    box-shadow: none !important;
+
+    &:hover {
+      background: var(--fms-hover-bg) !important;
+      border-color: var(--fms-input-border) !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22) !important;
+    }
+
+    &.nc-card--unread {
+      background: rgba(0, 120, 212, 0.12) !important;
+      border-left-color: #4fb3ff !important;
+
+      &:hover {
+        background: rgba(0, 120, 212, 0.18) !important;
+      }
+    }
+  }
+
+  .nc-card__new-badge {
+    background: rgba(79, 179, 255, 0.18) !important;
+    color: #7cc7ff !important;
+  }
+
+  .nc-card__badge {
+    &.nc-card__badge--category {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-secondary) !important;
+    }
+
+    &.nc-card__badge--type {
+      background: rgba(57, 73, 171, 0.22) !important;
+      color: #b9c3ff !important;
+    }
+
+    &.nc-card__badge--ack {
+      background: rgba(16, 124, 16, 0.2) !important;
+      color: #7bd77b !important;
+    }
+  }
+
+  .nc-action-btn {
+    color: var(--fms-text-tertiary) !important;
+
+    &:hover {
+      color: #4fb3ff !important;
+      background: rgba(79, 179, 255, 0.14) !important;
+      border-color: #4fb3ff !important;
+    }
+
+    &.nc-action-btn--ack:hover {
+      color: #7bd77b !important;
+      background: rgba(16, 124, 16, 0.18) !important;
+      border-color: #7bd77b !important;
+    }
+  }
+
+  .nc-detail {
+    color: var(--fms-text-primary) !important;
+  }
+
+  .nc-detail__message {
+    background: var(--fms-surface-secondary) !important;
+    color: var(--fms-text-secondary) !important;
+  }
+
+  .nc-detail__timestamps,
+  .nc-detail__footer {
+    border-color: var(--fms-border) !important;
+  }
+
+  .nc-detail__ts-icon--success {
+    color: #7bd77b !important;
+  }
+
+  .nc-detail__btn {
+    &.nc-detail__btn--close {
+      background: var(--fms-surface-secondary) !important;
+      color: var(--fms-text-primary) !important;
+
+      &:hover {
+        background: var(--fms-hover-bg) !important;
+      }
     }
   }
 

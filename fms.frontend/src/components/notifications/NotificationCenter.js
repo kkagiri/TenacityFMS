@@ -2,7 +2,7 @@
  * File: NotificationCenter.js
  * Purpose: Bell popover for in-app notifications and report/action shortcuts
  * Dependencies: react, react-redux, notification actions, DevExtreme button
- * Last Modified: 2026-02-16
+ * Last Modified: 2026-03-06
  *
  * Key Components:
  * - NotificationCenter: Loads backend notifications and renders compact actionable list
@@ -24,6 +24,59 @@ import NotificationPreferencesPopup from "./NotificationPreferencesPopup";
 
 // Maximum notifications to show initially
 const MAX_VISIBLE_NOTIFICATIONS = 3;
+const EAST_AFRICA_TIME_ZONE = "Africa/Nairobi";
+const RELATIVE_TIME_FORMATTER = new Intl.RelativeTimeFormat("en", {
+  numeric: "auto",
+});
+
+const parseUtcDate = (value) => {
+  if (value === null || value === undefined || value === "") {
+    return null;
+  }
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  if (typeof value === "number") {
+    const numericDate = new Date(value);
+    return Number.isNaN(numericDate.getTime()) ? null : numericDate;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) {
+    return null;
+  }
+
+  const hasTimezone = /(?:[zZ]|[+\-]\d{2}:?\d{2})$/.test(raw);
+  const normalized = hasTimezone
+    ? raw
+    : `${raw.replace(" ", "T").replace(/\//g, "-")}${raw.includes("T") || raw.includes(" ") ? "Z" : "T00:00:00Z"}`;
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
+const formatUtcDateTimeToEastAfrica = (value) => {
+  const date = parseUtcDate(value);
+  if (!date) return "";
+
+  return new Intl.DateTimeFormat("en-GB", {
+    timeZone: EAST_AFRICA_TIME_ZONE,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+};
 
 const stripHtmlTags = (value) => {
   if (!value) return "";
@@ -381,13 +434,14 @@ const NotificationCenter = () => {
           title: backendNotification?.title || backendNotification?.Title || "Notification",
           message: normalizedMessage,
           data: parsedData,
-          timestamp: new Date(
-            backendNotification?.createdAt ||
-            backendNotification?.CreatedAt ||
-            backendNotification?.timestamp ||
-            backendNotification?.Timestamp ||
-            Date.now()
-          ).getTime(),
+          timestamp:
+            parseUtcDate(
+              backendNotification?.createdAt ||
+              backendNotification?.CreatedAt ||
+              backendNotification?.timestamp ||
+              backendNotification?.Timestamp ||
+              Date.now()
+            )?.getTime() || Date.now(),
           isBackendNotification: true,
           isRead: isBackendNotificationRead(backendNotification),
         };
@@ -504,21 +558,38 @@ const NotificationCenter = () => {
 
   // Format timestamp into relative time
   const formatTimeAgo = (timestamp) => {
-    if (!timestamp) return "just now";
+    const parsedTimestamp = parseUtcDate(timestamp)?.getTime();
+    if (!parsedTimestamp) return "just now";
 
     const now = Date.now();
-    const seconds = Math.floor((now - timestamp) / 1000);
+    const seconds = Math.floor((now - parsedTimestamp) / 1000);
     const minutes = Math.floor(seconds / 60);
     const hours = Math.floor(minutes / 60);
     const days = Math.floor(hours / 24);
 
-    if (minutes < 1) return "just now";
-    if (minutes === 1) return "1 minute ago";
-    if (minutes < 60) return `${minutes} minutes ago`;
-    if (hours === 1) return "1 hour ago";
-    if (hours < 24) return `${hours} hours ago`;
-    if (days === 1) return "1 day ago";
-    return `${days} days ago`;
+    if (seconds < 60) {
+      return RELATIVE_TIME_FORMATTER.format(-Math.max(seconds, 0), "second");
+    }
+
+    if (minutes < 60) {
+      return RELATIVE_TIME_FORMATTER.format(-minutes, "minute");
+    }
+
+    if (hours < 24) {
+      return RELATIVE_TIME_FORMATTER.format(-hours, "hour");
+    }
+
+    if (days < 30) {
+      return RELATIVE_TIME_FORMATTER.format(-days, "day");
+    }
+
+    const months = Math.floor(days / 30);
+    if (months < 12) {
+      return RELATIVE_TIME_FORMATTER.format(-months, "month");
+    }
+
+    const years = Math.floor(days / 365);
+    return RELATIVE_TIME_FORMATTER.format(-years, "year");
   };
 
   const openReportLink = useCallback((reportLink) => {
@@ -760,7 +831,9 @@ const NotificationCenter = () => {
     const reportLink = resolveReportViewLink(data);
     const reportActionText = resolveReportActionText(data);
     const markReadId = resolveBackendNotificationDbId(item);
-    const timeAgo = formatTimeAgo(timestamp || Date.now());
+    const resolvedTimestamp = timestamp || Date.now();
+    const timeAgo = formatTimeAgo(resolvedTimestamp);
+    const localTimestampLabel = formatUtcDateTimeToEastAfrica(resolvedTimestamp);
 
     return (
       <div
@@ -795,7 +868,9 @@ const NotificationCenter = () => {
           )}
           {/* Metadata: time + chips */}
           <div className="m365-notif-meta">
-            <span className="m365-notif-time">{timeAgo}</span>
+            <span className="m365-notif-time" title={localTimestampLabel ? `${localTimestampLabel} (UTC+3)` : undefined}>
+              {timeAgo}
+            </span>
             {data?.source && <span className="m365-notif-chip"><i className="fa-light fa-signal-stream"></i> {data.source}</span>}
             {data?.deviceId && <span className="m365-notif-chip"><i className="fa-light fa-microchip"></i> {data.deviceId}</span>}
           </div>

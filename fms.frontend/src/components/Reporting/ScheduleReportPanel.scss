@@ -94,6 +94,28 @@ $font-stack:      'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
         margin: 2px 0 0;
     }
 
+    &__source-option {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-width: 0;
+    }
+
+    &__source-option-icon {
+        width: 16px;
+        color: $m-primary;
+        font-size: 14px;
+        text-align: center;
+        flex-shrink: 0;
+    }
+
+    &__source-option-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
     // ── Text input ───────────────────────────────────────────────────────────
     &__text-input,
     &__time-input,
@@ -540,5 +562,13 @@ $font-stack:      'Segoe UI', -apple-system, BlinkMacSystemFont, sans-serif;
             opacity: 0.5;
             cursor: not-allowed;
         }
+    }
+}
+
+[data-theme="dark"] {
+    .dx-selectbox-popup-wrapper .schedule-report-panel__source-option-icon,
+    .dx-dropdownlist-popup-wrapper .schedule-report-panel__source-option-icon,
+    .schedule-report-panel .schedule-report-panel__source-option-icon {
+        color: #ffffff !important;
     }
 }

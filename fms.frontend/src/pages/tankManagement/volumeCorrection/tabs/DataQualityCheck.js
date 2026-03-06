@@ -64,13 +64,13 @@ const DataQualityCheck = () => {
 
   const getSeverityIcon = (severity) => {
     const icons = {
-      'CRITICAL': 'fa-triangle-exclamation',
-      'HIGH': 'fa-exclamation-circle',
-      'MEDIUM': 'fa-circle-exclamation',
-      'LOW': 'fa-circle-info',
-      'WARNING': 'fa-circle-check'
+      'CRITICAL': 'fa-light fa-triangle-exclamation',
+      'HIGH': 'fa-light fa-exclamation-circle',
+      'MEDIUM': 'fa-light fa-circle-exclamation',
+      'LOW': 'fa-light fa-circle-info',
+      'WARNING': 'fa-light fa-circle-check'
     };
-    return icons[severity] || 'fa-circle-question';
+    return icons[severity] || 'fa-light fa-circle-question';
   };
 
   const getCategoryLabel = (category) => {

@@ -80,7 +80,7 @@ const ReportListPage = () => {
     // ── DataGrid cell renderers ────────────────────────────
     const renderIcon = useCallback((cellInfo) => (
         <div className="tw-flex tw-items-center tw-gap-2">
-            <i className={`${cellInfo.data.icon} tw-text-blue-500`} />
+            <i className={`${cellInfo.data.icon} report-list-page__source-icon tw-text-blue-500`} />
             <span className="tw-font-medium">{cellInfo.data.name}</span>
         </div>
     ), []);
@@ -130,7 +130,7 @@ const ReportListPage = () => {
                         className="report-tile__icon-wrap"
                         style={{ color: color.bg, background: `${color.bg}22` }}
                     >
-                        <i className={report.icon} />
+                        <i className={`${report.icon} report-list-page__tile-icon`} />
                     </span>
                     {report.formats[0] && (
                         <span className="format-badge">{report.formats[0]}</span>

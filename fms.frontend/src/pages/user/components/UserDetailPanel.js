@@ -939,11 +939,14 @@ const UserDetailPanel = ({
                     <div className="m365-detail-profile">
                         <UserAvatar user={user} size={64} />
                         <div className="m365-detail-profile__body">
-                            <h2 className="m365-detail-profile__name">{displayName}</h2>
+                            <span className="m365-detail-profile__eyebrow">User overview</span>
                             <div className="m365-detail-profile__meta">
                                 <span className="m365-detail-profile__email">{userEmail}</span>
                                 <UserStatusBadge isActive={isActive} />
                             </div>
+                            <p className="m365-detail-profile__description">
+                                Review identity, access, recent activity, and site assignments in one place.
+                            </p>
                             {/* Inline action links */}
                             {canManage && (
                                 <div className="m365-detail-profile__actions">

@@ -121,7 +121,7 @@
   font-size: var(--m365-font-body);   // 13px — establishes cascade baseline
   line-height: 1.4;
   background: #fff;
-  padding: 16px 20px;
+  padding: 18px 24px 24px;
 
   // ─ Command bar ─
   &__cmd {
@@ -171,22 +171,22 @@
   }
 
   &__icon-circle {
-    width: 44px;
-    height: 44px;
-    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     flex-shrink: 0;
 
     &--stationary {
-      background: var(--m365-blue-bg);
+      background: linear-gradient(180deg, rgba(0, 120, 212, 0.18) 0%, rgba(0, 120, 212, 0.08) 100%);
       color: var(--m365-primary);
     }
 
     &--mobile {
-      background: var(--m365-orange-bg);
+      background: linear-gradient(180deg, rgba(202, 80, 16, 0.18) 0%, rgba(202, 80, 16, 0.08) 100%);
       color: var(--m365-warning);
     }
   }
@@ -344,16 +344,16 @@
 
 .m365-tank-detail .m365-flat-section,
 .m365-tank-site-summary .m365-flat-section {
-  border-top: none;
-  padding-top: 0;
-  margin-bottom: 22px;
+  border-top: 1px solid var(--m365-border-light);
+  padding-top: 20px;
+  margin-bottom: 0;
 
   .m365-flat-section__title {
-    font-size: 13px;
-    font-weight: 600;
-    color: var(--m365-text);
-    text-transform: none;          // override shared uppercase
-    letter-spacing: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
   }
 }
 
@@ -370,13 +370,19 @@
 .m365-tank-site-summary .m365-info-cell {
   border: none;
   padding: 0;
+  margin-bottom: 12px;
 
   .m365-info-cell__label {
-    text-transform: none;   // override shared uppercase
-    letter-spacing: 0;
     font-size: 12px;
-    font-weight: 500;
+    font-weight: 600;
     color: var(--m365-text-secondary);
+    margin-bottom: 4px;
+  }
+
+  .m365-info-cell__value {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--m365-text);
   }
 }
 

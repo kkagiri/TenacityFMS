@@ -102,7 +102,7 @@ const ReportsDashboard = () => {
                   className="jsreport-card tw-cursor-pointer"
                   onClick={() => navigate(reportsRoutes.engineSource(source.id))}
                 >
-                  <i className={`${source.icon || 'fa-light fa-file-chart-column'} tw-text-3xl tw-text-blue-500 tw-mb-2`}></i>
+                  <i className={`${source.icon || 'fa-light fa-file-chart-column'} reports-dashboard__source-icon tw-text-3xl tw-text-blue-500 tw-mb-2`}></i>
                   <h4 className="tw-font-semibold tw-text-gray-800">{source.name}</h4>
                   <p className="tw-text-sm tw-text-gray-500">{source.description}</p>
                   <div className="tw-mt-2 tw-flex tw-gap-1">

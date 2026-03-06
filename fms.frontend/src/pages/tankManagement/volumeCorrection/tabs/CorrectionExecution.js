@@ -135,28 +135,28 @@ const CorrectionExecution = () => {
       key: 'RECALCULATE',
       title: 'RECALCULATE (Recommended)',
       description: 'Bulk rebuild from opening stock baseline',
-      icon: 'fa-calculator',
+      icon: 'fa-light fa-calculator',
       best_for: 'Multiple transactions, valid opening stock'
     },
     {
       key: 'MANUAL',
       title: 'MANUAL (Override)',
       description: 'Override with physically verified value',
-      icon: 'fa-pen',
+      icon: 'fa-light fa-pen',
       best_for: 'Single known error with verification'
     },
     {
       key: 'RECALCULATE_SINGLE',
       title: 'RECALCULATE_SINGLE (Isolated)',
       description: 'Fix one broken transaction',
-      icon: 'fa-wrench',
+      icon: 'fa-light fa-wrench',
       best_for: 'Single isolated break'
     },
     {
       key: 'RECALCULATE_FROM_POINT',
       title: 'RECALCULATE_FROM_POINT (Complex)',
       description: 'Fix multi-date corruption',
-      icon: 'fa-arrow-right',
+      icon: 'fa-light fa-arrow-right',
       best_for: 'Multi-date corruption'
     }
   ];
@@ -420,7 +420,7 @@ const CorrectionExecution = () => {
                 onClick={() => handleStrategySelect(strategy.key)}
               >
                 <div className="tvcc-strategy-option-header">
-                  <i className={`fa-light ${strategy.icon}`}></i>
+                  <i className={strategy.icon}></i>
                   <span className="tvcc-strategy-option-title">{strategy.title}</span>
                 </div>
                 <p className="tvcc-strategy-option-desc">{strategy.description}</p>

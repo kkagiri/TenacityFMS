@@ -1,15 +1,14 @@
 /**
  * File: NotificationCenterPage.js
  * Purpose: User-facing full-page notification center - view, read, acknowledge and manage notifications.
- * Dependencies: react, react-redux, devextreme-react, notificationActions, notificationsApi
- * Last Modified: 2026-02-23
+ * Dependencies: react, react-redux, devextreme-react, notificationActions, notificationsApi, SlidePanel
+ * Last Modified: 2026-03-06
  *
  * Key Components:
- * - NotificationCenterPage: Full page listing of user notifications with filters, bulk actions, and detail popup.
+ * - NotificationCenterPage: Full page listing of user notifications with filters, bulk actions, and detail side panel.
  */
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { Popup } from 'devextreme-react/popup';
 import { LoadIndicator } from 'devextreme-react/load-indicator';
 import notify from 'devextreme/ui/notify';
 import {
@@ -18,6 +17,7 @@ import {
     markAllNotificationsAsRead,
     acknowledgeNotification,
 } from '../../redux/actions/notificationActions';
+import SlidePanel from '../../components/ui/SlidePanel';
 import './NotificationCenterPage.scss';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -175,9 +175,9 @@ const NotificationCard = ({ notification, onPress, onMarkRead, onAcknowledge }) 
     );
 };
 
-// ─── Detail Popup ────────────────────────────────────────────────────────────
+// ─── Detail Side Panel ───────────────────────────────────────────────────────
 
-const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, onAcknowledge }) => {
+const NotificationDetailPanel = ({ notification, open, onClose, onMarkRead, onAcknowledge }) => {
     if (!notification) return null;
 
     const title = resolveField(notification, 'title', 'Title', 'subject', 'Subject') || 'Notification';
@@ -195,14 +195,12 @@ const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, on
     const nId = notification.id || notification.Id;
 
     return (
-        <Popup
-            visible={visible}
-            onHiding={onHide}
+        <SlidePanel
+            open={open}
+            onClose={onClose}
             title="Notification Details"
-            showCloseButton={true}
-            width="auto"
-            height="auto"
-            maxWidth={560}
+            width={620}
+            panelClassName="nc-detail-panel"
         >
             <div className="nc-detail">
                 <div className="nc-detail__badges">
@@ -221,44 +219,44 @@ const NotificationDetailPopup = ({ notification, visible, onHide, onMarkRead, on
                 <div className="nc-detail__timestamps">
                     {createdAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-clock tw-mr-2" style={{ color: '#a19f9d' }} />
-                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Sent:</span>
-                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(createdAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-clock nc-detail__ts-icon" />
+                            <span className="nc-detail__ts-label">Sent:</span>
+                            <span className="nc-detail__ts-value">{parseDateToLocal(createdAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                     {readAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-envelope-open tw-mr-2" style={{ color: '#a19f9d' }} />
-                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Read:</span>
-                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(readAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-envelope-open nc-detail__ts-icon" />
+                            <span className="nc-detail__ts-label">Read:</span>
+                            <span className="nc-detail__ts-value">{parseDateToLocal(readAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                     {acknowledgedAt && (
                         <div className="nc-detail__ts-row">
-                            <i className="fa-light fa-circle-check tw-mr-2" style={{ color: '#107c10' }} />
-                            <span style={{ color: '#605e5c', fontSize: '13px' }}>Acknowledged:</span>
-                            <span style={{ color: '#201f1e', fontSize: '13px', marginLeft: '4px' }}>{parseDateToLocal(acknowledgedAt)?.toLocaleString() || '—'}</span>
+                            <i className="fa-light fa-circle-check nc-detail__ts-icon nc-detail__ts-icon--success" />
+                            <span className="nc-detail__ts-label">Acknowledged:</span>
+                            <span className="nc-detail__ts-value">{parseDateToLocal(acknowledgedAt)?.toLocaleString() || '—'}</span>
                         </div>
                     )}
                 </div>
 
                 <div className="nc-detail__footer">
                     {!isRead && (
-                        <button className="nc-detail__btn" onClick={() => { onMarkRead(nId); onHide(); }}>
+                        <button className="nc-detail__btn" onClick={() => { onMarkRead(nId); onClose(); }}>
                             <i className="fa-light fa-envelope-open tw-mr-2" />Mark as Read
                         </button>
                     )}
                     {!isAcknowledged && (
-                        <button className="nc-detail__btn nc-detail__btn--ack" onClick={() => { onAcknowledge(nId); onHide(); }}>
+                        <button className="nc-detail__btn nc-detail__btn--ack" onClick={() => { onAcknowledge(nId); onClose(); }}>
                             <i className="fa-light fa-circle-check tw-mr-2" />Acknowledge
                         </button>
                     )}
-                    <button className="nc-detail__btn nc-detail__btn--close" onClick={onHide}>
+                    <button className="nc-detail__btn nc-detail__btn--close" onClick={onClose}>
                         Close
                     </button>
                 </div>
             </div>
-        </Popup>
+        </SlidePanel>
     );
 };
 
@@ -429,25 +427,35 @@ const NotificationCenterPage = () => {
                     />
                 </div>
 
-                <select
-                    className="nc-select"
-                    value={filterCategory}
-                    onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}
-                >
-                    {CATEGORY_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.text}</option>
-                    ))}
-                </select>
+                <div className="nc-filter-field nc-filter-field--select">
+                    <select
+                        className="nc-select"
+                        value={filterCategory}
+                        onChange={(e) => { setFilterCategory(e.target.value); setPage(0); }}
+                    >
+                        {CATEGORY_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.text}</option>
+                        ))}
+                    </select>
+                    <span className="nc-filter-field__icon" aria-hidden="true">
+                        <i className="fa-light fa-chevron-down"></i>
+                    </span>
+                </div>
 
-                <select
-                    className="nc-select"
-                    value={filterPriority}
-                    onChange={(e) => { setFilterPriority(e.target.value); setPage(0); }}
-                >
-                    {PRIORITY_OPTIONS.map((o) => (
-                        <option key={o.value} value={o.value}>{o.text}</option>
-                    ))}
-                </select>
+                <div className="nc-filter-field nc-filter-field--select">
+                    <select
+                        className="nc-select"
+                        value={filterPriority}
+                        onChange={(e) => { setFilterPriority(e.target.value); setPage(0); }}
+                    >
+                        {PRIORITY_OPTIONS.map((o) => (
+                            <option key={o.value} value={o.value}>{o.text}</option>
+                        ))}
+                    </select>
+                    <span className="nc-filter-field__icon" aria-hidden="true">
+                        <i className="fa-light fa-chevron-down"></i>
+                    </span>
+                </div>
 
                 <input
                     type="date"
@@ -476,7 +484,7 @@ const NotificationCenterPage = () => {
                 {isLoading ? (
                     <div className="nc-state nc-state--loading">
                         <LoadIndicator visible={true} height={40} width={40} />
-                        <span style={{ color: '#605e5c', marginTop: '12px' }}>Loading notifications…</span>
+                        <span className="nc-state__loading-text">Loading notifications…</span>
                     </div>
                 ) : filteredNotifications.length === 0 ? (
                     <div className="nc-state nc-state--empty">
@@ -531,11 +539,11 @@ const NotificationCenterPage = () => {
                 )}
             </div>
 
-            {/* ── Detail Popup ── */}
-            <NotificationDetailPopup
+            {/* ── Detail Side Panel ── */}
+            <NotificationDetailPanel
                 notification={selectedNotification}
-                visible={detailVisible}
-                onHide={() => setDetailVisible(false)}
+                open={detailVisible}
+                onClose={() => setDetailVisible(false)}
                 onMarkRead={handleMarkRead}
                 onAcknowledge={handleAcknowledge}
             />

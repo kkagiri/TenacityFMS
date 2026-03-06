@@ -6,6 +6,104 @@
 
 import { VolumeChangeReasonEnum } from './transactionHubConstants';
 
+const EAST_AFRICA_TIME_ZONE = 'Africa/Nairobi';
+
+/**
+ * Parse backend UTC dates safely.
+ * Backend dates are stored in UTC; if timezone suffix is missing, assume UTC.
+ * @param {Date|string|number} value - Raw date value
+ * @returns {Date|null} Parsed date or null when invalid
+ */
+export const parseUtcDate = (value) => {
+  if (!value) return null;
+
+  if (value instanceof Date) {
+    return Number.isNaN(value.getTime()) ? null : value;
+  }
+
+  const raw = String(value).trim();
+  if (!raw) return null;
+
+  const hasTimezone = /(?:[zZ]|[+\-]\d{2}:?\d{2})$/.test(raw);
+  const normalized = hasTimezone
+    ? raw
+    : `${raw.replace(' ', 'T').replace(/\//g, '-')}${raw.includes('T') || raw.includes(' ') ? 'Z' : 'T00:00:00Z'}`;
+
+  const parsed = new Date(normalized);
+  if (!Number.isNaN(parsed.getTime())) {
+    return parsed;
+  }
+
+  const fallback = new Date(raw);
+  return Number.isNaN(fallback.getTime()) ? null : fallback;
+};
+
+/**
+ * Format a UTC date value for East Africa Time (UTC+3).
+ * @param {Date|string|number} value - Raw date value
+ * @returns {string} Formatted date-time string
+ */
+export const formatUtcDateTimeToEastAfrica = (value) => {
+  const date = parseUtcDate(value);
+  if (!date) return value ? String(value) : '';
+
+  return new Intl.DateTimeFormat('en-GB', {
+    timeZone: EAST_AFRICA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false,
+  }).format(date);
+};
+
+/**
+ * Build a YYYY-MM-DD date key using East Africa Time (UTC+3).
+ * @param {Date|string|number} value - Raw date value
+ * @returns {string|null} Date key for grouping
+ */
+export const getEastAfricaDateKey = (value) => {
+  const date = parseUtcDate(value);
+  if (!date) return null;
+
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: EAST_AFRICA_TIME_ZONE,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).formatToParts(date);
+
+  const year = parts.find((part) => part.type === 'year')?.value;
+  const month = parts.find((part) => part.type === 'month')?.value;
+  const day = parts.find((part) => part.type === 'day')?.value;
+
+  return year && month && day ? `${year}-${month}-${day}` : null;
+};
+
+/**
+ * Format a YYYY-MM-DD date key for grouped date labels.
+ * @param {string} dateKey - Group date key
+ * @returns {string} Human-readable date label
+ */
+export const formatEastAfricaDateKey = (dateKey) => {
+  if (!dateKey) return 'No Date';
+
+  const [year, month, day] = String(dateKey).split('-').map(Number);
+  if (![year, month, day].every(Number.isFinite)) {
+    return dateKey;
+  }
+
+  return new Intl.DateTimeFormat('en-US', {
+    timeZone: 'UTC',
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(new Date(Date.UTC(year, month - 1, day)));
+};
+
 /**
  * Get transaction type priority for sorting
  * OpeningStock should come first, ClosingStock should come last
@@ -73,9 +171,7 @@ export const sortTransactions = (transactions) => {
  * @returns {string} Formatted date string
  */
 export const formatTimestamp = (cellInfo) => {
-  if (!cellInfo.value) return '';
-  const date = new Date(cellInfo.value);
-  return isNaN(date.getTime()) ? cellInfo.value : date.toLocaleString();
+  return formatUtcDateTimeToEastAfrica(cellInfo?.value);
 };
 
 /**

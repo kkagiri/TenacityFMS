@@ -213,9 +213,6 @@ const IssueTrackerDetailPage = () => {
             <IssueDetailPopups
                 issue={detail.issue}
                 displayIssue={detail.displayIssue}
-                showCompletePopup={detail.showCompletePopup}
-                setShowCompletePopup={detail.setShowCompletePopup}
-                handleQuickMarkComplete={detail.handleQuickMarkComplete}
                 isSaving={detail.isSaving}
                 showClosePopup={detail.showClosePopup}
                 setShowClosePopup={detail.setShowClosePopup}

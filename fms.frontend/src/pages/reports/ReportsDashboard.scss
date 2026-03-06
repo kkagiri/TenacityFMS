@@ -1,3 +1,9 @@
+/**
+ * File: ReportsDashboard.scss
+ * Purpose: Styling and dark-mode overrides for the reports dashboard source catalog
+ * Last Modified: 2026-03-06
+ */
+
 // Reports Dashboard Styling
 .reports-dashboard {
   padding: 0;
@@ -148,6 +154,10 @@
       }
     }
   }
+
+  &__source-icon {
+    color: #3b82f6;
+  }
 }
 
 // Responsive design
@@ -202,6 +212,14 @@
       @apply tw-border-blue-300;
       box-shadow: 0 4px 16px rgba(59, 130, 246, 0.15);
       transform: translateY(-2px);
+    }
+  }
+}
+
+[data-theme="dark"] {
+  .reports-dashboard {
+    &__source-icon {
+      color: #ffffff !important;
     }
   }
 }

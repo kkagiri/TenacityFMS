@@ -59,9 +59,20 @@ const FORMAT_OPTIONS = [
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+const renderReportSourceOption = (item) => {
+    if (!item) return null;
+
+    return (
+        <div className="schedule-report-panel__source-option">
+            <i className={`${item.icon || 'fa-light fa-file-chart-column'} schedule-report-panel__source-option-icon`} />
+            <span className="schedule-report-panel__source-option-name">{item.name}</span>
+        </div>
+    );
+};
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
-const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'create', initialValues = null, onUpdate = null }) => {
+const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'create', initialValues = null, onUpdate = null, onScheduled = null, width = 460 }) => {
     const dispatch = useDispatch();
     const systemUsers = useSelector((state) => state.user?.users || []);
     const currentUser = useSelector((state) => state.auth?.user);
@@ -336,7 +347,21 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                 return;
             }
 
-            await reportingService.scheduleReportEmail(request);
+            const result = await reportingService.scheduleReportEmail(request);
+            if (!result.success) {
+                notify({
+                    message: result.error || result.message || 'Failed to create schedule.',
+                    type: 'error',
+                    displayTime: 5000,
+                });
+                setSubmitting(false);
+                return;
+            }
+
+            if (typeof onScheduled === 'function') {
+                await onScheduled(result.data?.data || result.data || null);
+            }
+
             notify({ message: 'Report schedule created successfully.', type: 'success', displayTime: 4000 });
             onClose();
         } catch (err) {
@@ -351,7 +376,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
     }, [mode, onUpdate,
         activeSource, scheduleName, recipients, frequency, scheduleTime,
         selectedDays, selectedWeeks, dayOfMonth, offsetDays, windowDays, selectedFormat, filters,
-        currentUser, userSuggestions, onClose,
+        currentUser, userSuggestions, onClose, onScheduled,
     ]);
 
     // ── Render helpers ───────────────────────────────────────────────────────
@@ -365,6 +390,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
                     dataSource={allSources}
                     valueExpr="id"
                     displayExpr="name"
+                    itemRender={renderReportSourceOption}
                     onValueChanged={(e) => setSelectedSourceId(e.value)}
                     placeholder="Select a report..."
                     searchEnabled={true}
@@ -672,7 +698,7 @@ const ScheduleReportPanel = ({ open, onClose, initialSourceId = '', mode = 'crea
             open={open}
             onClose={onClose}
             title={mode === 'edit' ? 'Edit Schedule' : 'Schedule Report'}
-            width={460}
+            width={width}
         >
             <div className="schedule-report-panel">
                 <div className="schedule-report-panel__body">

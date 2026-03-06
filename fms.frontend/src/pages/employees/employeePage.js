@@ -524,7 +524,7 @@ const EmployeePage = () => {
       <SlidePanel
         open={detailOpen}
         onClose={closeDetailPanel}
-        title=""
+        title={selectedEmployee?.fullName || "Employee Details"}
         width={900}
       >
         <EmployeeDetailPanel
