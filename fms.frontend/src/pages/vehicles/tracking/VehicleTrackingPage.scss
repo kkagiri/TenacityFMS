@@ -1,0 +1,638 @@
+/**
+ * File: VehicleTrackingPage.scss
+ * Purpose: Provides vehicle tracking page styling including the DataGrid sidebar and Google Maps info windows
+ * Dependencies: VehicleTrackingPage.js, application theme context, Google Maps info window DOM
+ * Last Modified: 2026-03-10
+ *
+ * Key Sections:
+ * - Ancestor overrides: remove dead space below the tracking page
+ * - .vehicle-tracking-page: Full-viewport page container
+ * - .vehicle-tracking-sidebar: Sidebar layout and filter controls
+ * - .vehicle-tracking-grid: Vehicle grid states and header styling
+ * - .vehicle-tracking-info-window: Google Maps popup styling
+ */
+
+.vehicle-tracking-page {
+  display: flex;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  contain: layout size;
+}
+
+.vehicle-tracking-sidebar {
+  background: #ffffff;
+  border-right: none;
+  min-height: 0;
+  overflow: hidden;
+
+  &__search {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  &__summary {
+    color: #6b7280;
+  }
+
+  &__cluster-filter {
+    border-color: #bfdbfe;
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  &__cluster-filter-clear {
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+  }
+
+  &__status-filter {
+    height: 34px;
+    padding: 0 32px 0 10px;
+  .vehicle-tracking-debug-popup {
+    &__card {
+      border-color: #dbe4f0;
+    }
+
+    &__header {
+      background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+    }
+
+    &__section,
+    &__events,
+    &__event {
+      border-color: #e2e8f0;
+    }
+
+    &__metric {
+      border: 1px solid #e2e8f0;
+    }
+
+    pre {
+      margin: 0;
+      font-family: 'Cascadia Code', 'Consolas', 'Courier New', monospace;
+    }
+  }
+    border: 1px solid #d1d5db;
+    border-radius: 0.5rem;
+    background-color: #ffffff;
+    color: #111827;
+    font-size: 0.875rem;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%236b7280' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:focus {
+      border-color: #3b82f6;
+      box-shadow: 0 0 0 1px #3b82f6;
+    }
+  }
+}
+
+.vehicle-tracking-search {
+  &__input {
+    background: #ffffff;
+    color: #111827;
+    border-color: #d1d5db;
+
+    &::placeholder {
+      color: #9ca3af;
+    }
+  }
+
+  &__clear {
+    color: #9ca3af;
+  }
+}
+
+.vehicle-tracking-grid {
+  display: flex;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  background: #ffffff;
+
+  &__hint {
+    color: #6b7280;
+  }
+
+  .dx-datagrid {
+    background: transparent;
+    height: 100% !important;
+    min-height: 0;
+  }
+
+  .dx-datagrid-container,
+  .dx-datagrid-rowsview,
+  .dx-scrollable,
+  .dx-scrollable-container,
+  .dx-scrollable-content {
+    min-height: 0;
+  }
+
+  .dx-datagrid-rowsview {
+    height: 100% !important;
+  }
+
+  .dx-toolbar {
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
+    padding: 8px 12px;
+  }
+
+  .dx-datagrid-header-panel,
+  .dx-toolbar-before,
+  .dx-toolbar-after,
+  .dx-toolbar-center {
+    background: #ffffff;
+  }
+
+  .dx-toolbar-items-container {
+    min-height: 42px;
+  }
+
+  .dx-datagrid-search-panel {
+    margin: 0;
+  }
+
+  .dx-datagrid-search-panel .dx-texteditor {
+    border: 1px solid #d1d5db;
+    border-radius: 8px;
+    background: #ffffff;
+    box-shadow: none;
+  }
+
+  .dx-datagrid-search-panel .dx-texteditor-input,
+  .dx-datagrid-search-panel .dx-placeholder,
+  .dx-datagrid-search-panel .dx-icon-search,
+  .dx-toolbar .dx-button .dx-icon {
+    color: #6b7280;
+  }
+
+  .dx-toolbar .dx-button {
+    border-radius: 8px;
+  }
+
+  .dx-datagrid-headers {
+    border-top: 1px solid #e5e7eb;
+  }
+
+  .dx-header-row > td {
+    padding: 10px 12px;
+    background: #f9fafb;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 600;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .dx-data-row > td {
+    padding: 9px 12px;
+    font-size: 12px;
+    color: #111827;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .dx-datagrid-rowsview .dx-row-focused > td,
+  .dx-datagrid-rowsview .dx-selection.dx-row > td {
+    background: #eff6ff !important;
+    color: #111827 !important;
+  }
+
+  .dx-row-alt > td {
+    background: #ffffff;
+  }
+
+  .dx-datagrid-nodata {
+    color: #6b7280;
+    font-size: 13px;
+  }
+
+  .dx-column-indicators .dx-icon {
+    color: #6b7280;
+  }
+
+  .dx-datagrid-focus-overlay {
+    border-color: #60a5fa;
+  }
+}
+
+.vehicle-tracking-status-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  &__dot {
+    width: 9px;
+    height: 9px;
+    border-radius: 9999px;
+    flex: 0 0 auto;
+
+    &--moving {
+      background: #16a34a;
+      box-shadow: 0 0 0 3px rgba(22, 163, 74, 0.16);
+    }
+
+    &--stopped {
+      background: #d97706;
+      box-shadow: 0 0 0 3px rgba(217, 119, 6, 0.16);
+    }
+
+    &--parked {
+      background: #64748b;
+      box-shadow: 0 0 0 3px rgba(100, 116, 139, 0.16);
+    }
+
+    &--offline {
+      background: #dc2626;
+      box-shadow: 0 0 0 3px rgba(220, 38, 38, 0.16);
+    }
+  }
+
+  &__text {
+    font-weight: 600;
+    color: #111827;
+  }
+}
+
+.vehicle-tracking-info-window {
+  min-width: 220px;
+  padding: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+
+  &__title {
+    margin: 0 0 8px;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  &__description {
+    margin: 0 0 8px;
+  }
+
+  &__details p {
+    margin: 4px 0;
+  }
+
+  &--light {
+    color: #111827;
+
+    .vehicle-tracking-info-window__description {
+      color: #4b5563;
+    }
+  }
+
+  &--dark {
+    color: #f3f4f6;
+
+    .vehicle-tracking-info-window__description {
+      color: #d1d5db;
+    }
+  }
+}
+
+.vehicle-tracking-map-label {
+  position: relative;
+  top: -18px;
+  display: inline-block;
+  min-width: 52px;
+  padding: 1px 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  border: 1px solid rgba(148, 163, 184, 0.75);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.3;
+  text-align: center;
+  white-space: nowrap;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.18);
+  pointer-events: none;
+
+  &--selected {
+    background: rgba(37, 99, 235, 0.95);
+    color: #ffffff;
+    border-color: rgba(37, 99, 235, 0.95);
+  }
+}
+
+.vehicle-tracking-cluster-menu {
+  border-color: #dbeafe;
+  background: #ffffff;
+  color: #111827;
+  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.18);
+
+  &__header {
+    border-color: #e5e7eb;
+    color: #6b7280;
+  }
+
+  &__summary {
+    color: #6b7280;
+  }
+
+  &__action {
+    color: #111827;
+    border: none;
+    background: transparent;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover {
+      background: #f3f4f6;
+    }
+  }
+
+  button {
+    border: none;
+    background: transparent;
+  }
+}
+
+[data-theme="dark"] {
+  .vehicle-tracking-page {
+    background: var(--fms-page-bg);
+  }
+
+  .vehicle-tracking-sidebar {
+    background: #111827 !important;
+    border-right-color: transparent !important;
+
+    &__search {
+      background: #111827 !important;
+      border-bottom-color: #374151 !important;
+    }
+
+    &__summary {
+      color: #9ca3af !important;
+    }
+
+    &__cluster-filter {
+      border-color: rgba(96, 165, 250, 0.35) !important;
+      background: rgba(30, 64, 175, 0.2) !important;
+      color: #bfdbfe !important;
+    }
+
+    &__cluster-filter-clear {
+      background: #111827 !important;
+      border-color: #60a5fa !important;
+      color: #bfdbfe !important;
+
+      &:hover {
+        background: rgba(30, 64, 175, 0.35) !important;
+      }
+    }
+
+    &__status-filter {
+      background-color: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23d1d5db' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E") !important;
+
+      &:focus {
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 0 1px #60a5fa !important;
+      }
+    }
+  }
+
+  .vehicle-tracking-grid {
+    background: #111827 !important;
+
+    &__hint {
+      color: #9ca3af !important;
+    }
+
+    .dx-datagrid,
+    .dx-datagrid-rowsview,
+    .dx-datagrid-headers {
+      background: #111827 !important;
+      color: #f9fafb !important;
+    }
+
+    .dx-toolbar {
+      background: #111827 !important;
+      border-bottom-color: #374151 !important;
+    }
+
+    .dx-datagrid-header-panel,
+    .dx-toolbar-before,
+    .dx-toolbar-after,
+    .dx-toolbar-center,
+    .dx-datagrid-header-panel .dx-toolbar,
+    .dx-datagrid-header-panel .dx-toolbar-items-container {
+      background: #111827 !important;
+      border-color: #374151 !important;
+    }
+
+    .dx-datagrid-search-panel .dx-texteditor {
+      background: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+
+    .dx-datagrid-search-panel .dx-texteditor-input,
+    .dx-datagrid-search-panel .dx-placeholder,
+    .dx-datagrid-search-panel .dx-icon-search,
+    .dx-toolbar .dx-button .dx-icon,
+    .dx-toolbar .dx-button .dx-button-text {
+      color: #d1d5db !important;
+    }
+
+    .dx-toolbar .dx-button {
+      background: #1f2937 !important;
+      border-color: #4b5563 !important;
+    }
+
+    .dx-toolbar .dx-button:hover,
+    .dx-toolbar .dx-button.dx-state-hover {
+      background: #374151 !important;
+      border-color: #60a5fa !important;
+    }
+
+    .dx-datagrid-headers {
+      border-top-color: #374151 !important;
+    }
+
+    .dx-header-row > td {
+      background: #1f2937 !important;
+      color: #d1d5db !important;
+      border-bottom-color: #374151 !important;
+    }
+
+    .dx-data-row > td {
+      background: #111827 !important;
+      color: #f9fafb !important;
+      border-bottom-color: #1f2937 !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row:hover > td {
+      background: #1f2937 !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row-focused > td,
+    .dx-datagrid-rowsview .dx-selection.dx-row > td {
+      background: rgba(30, 64, 175, 0.28) !important;
+      color: #f9fafb !important;
+    }
+
+    .dx-column-indicators .dx-icon,
+    .dx-datagrid-text-content,
+    .dx-sort,
+    .dx-header-filter {
+      color: #d1d5db !important;
+    }
+
+    .dx-datagrid-nodata {
+      color: #9ca3af !important;
+    }
+
+    .dx-scrollbar-vertical .dx-scrollable-scroll {
+      background: #4b5563 !important;
+    }
+
+    .dx-overlay-content.dx-resizable,
+    .dx-context-menu .dx-menu-items-container,
+    .dx-menu-base,
+    .dx-submenu,
+    .dx-datagrid-column-chooser .dx-overlay-content,
+    .dx-datagrid-column-chooser .dx-popup-title,
+    .dx-datagrid-column-chooser .dx-popup-content {
+      background: #111827 !important;
+      border-color: #374151 !important;
+      color: #f9fafb !important;
+    }
+
+    .dx-context-menu .dx-menu-item-content,
+    .dx-menu-item .dx-menu-item-content,
+    .dx-datagrid-column-chooser .dx-treeview-item,
+    .dx-datagrid-column-chooser .dx-checkbox-text,
+    .dx-datagrid-column-chooser .dx-popup-title .dx-toolbar-label {
+      color: #f9fafb !important;
+    }
+
+    .dx-context-menu .dx-menu-item.dx-state-hover,
+    .dx-context-menu .dx-menu-item.dx-state-focused,
+    .dx-context-menu .dx-menu-item.dx-state-active,
+    .dx-menu-item.dx-state-hover,
+    .dx-datagrid-column-chooser .dx-treeview-item.dx-state-hover,
+    .dx-datagrid-column-chooser .dx-list-item.dx-state-hover {
+      background: #1f2937 !important;
+    }
+
+    .dx-datagrid-column-chooser .dx-searchbox .dx-texteditor,
+    .dx-datagrid-column-chooser .dx-searchbox .dx-texteditor-input {
+      background: #1f2937 !important;
+      border-color: #4b5563 !important;
+      color: #f9fafb !important;
+    }
+  }
+
+  .vehicle-tracking-status-cell {
+    &__text {
+      color: #f9fafb !important;
+    }
+  }
+
+  .vehicle-tracking-search {
+    .fa-magnifying-glass {
+      color: #9ca3af !important;
+    }
+
+    &__input {
+      background: #1f2937 !important;
+      color: #f9fafb !important;
+      border-color: #4b5563 !important;
+      box-shadow: none !important;
+
+      &::placeholder {
+        color: #9ca3af !important;
+      }
+
+      &:focus {
+        border-color: #60a5fa !important;
+        box-shadow: 0 0 0 1px #60a5fa !important;
+      }
+    }
+
+    &__clear {
+      color: #9ca3af !important;
+
+      &:hover {
+        background: #374151 !important;
+        color: #f3f4f6 !important;
+      }
+    }
+  }
+
+  .vehicle-tracking-page {
+    .gm-style {
+      .gm-style-iw-c {
+        background: #111827 !important;
+        border: 1px solid #374151 !important;
+        border-radius: 12px !important;
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4) !important;
+        padding: 0 !important;
+      }
+
+      .gm-style-iw-d {
+        overflow: hidden !important;
+        background: #111827 !important;
+      }
+
+      .gm-style-iw-tc::after {
+        background: #111827 !important;
+      }
+
+      button.gm-ui-hover-effect {
+        filter: invert(1) brightness(1.8);
+      }
+    }
+  }
+
+  .vehicle-tracking-map-label {
+    background: rgba(255, 255, 255, 0.96);
+    color: #0f172a;
+    border-color: rgba(148, 163, 184, 0.8);
+    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
+
+    &--selected {
+      background: rgba(96, 165, 250, 0.95);
+      color: #0f172a;
+      border-color: rgba(96, 165, 250, 0.95);
+    }
+  }
+
+  .vehicle-tracking-cluster-menu {
+    border-color: #374151 !important;
+    background: #111827 !important;
+    color: #f9fafb !important;
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45) !important;
+
+    &__header {
+      border-color: #374151 !important;
+      color: #9ca3af !important;
+      background: #111827 !important;
+    }
+
+    &__body {
+      background: #111827 !important;
+    }
+
+    &__summary {
+      color: #cbd5e1 !important;
+    }
+
+    &__action {
+      color: #f9fafb !important;
+
+      &:hover {
+        background: #1f2937 !important;
+      }
+    }
+  }
+}

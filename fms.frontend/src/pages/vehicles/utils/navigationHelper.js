@@ -1,8 +1,14 @@
-// Navigation helper functions for vehicle management routes
+/**
+ * File: navigationHelper.js
+ * Purpose: Centralizes vehicle-module routes and sidebar navigation metadata.
+ * Dependencies: Vehicle module route structure.
+ * Last Modified: 2026-03-10
+ */
 
 export const vehicleRoutes = {
   dashboard: '/vehicles',
   fleet: '/vehicles/fleet',
+  trips: '/vehicles/trips',
   maintenance: '/vehicles/maintenance',
   consumption: '/vehicles/consumption',
   consumptionComparison: '/vehicles/consumption-comparison',
@@ -60,6 +66,14 @@ export const navigationGroups = {
     }
   ],
   operations: [
+    {
+      id: 'trips',
+      title: 'Trip Management',
+      icon: 'fa-light fa-route',
+      path: vehicleRoutes.trips,
+      badge: 'New',
+      description: 'Review persisted trip groups and detection modes'
+    },
     {
       id: 'consumption',
       title: 'Fuel Consumption',

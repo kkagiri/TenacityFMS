@@ -1,3 +1,14 @@
+/**
+ * File: TableWidgetFactory.cs
+ * Purpose: Processes table, progress-list, and alert widget requests into normalized dashboard query settings.
+ * Dependencies: Widget factory contracts, dashboard DTOs, Microsoft.Extensions.Logging
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - ProcessWidgetDataAsync(): Normalizes filters and settings for table-style widgets.
+ * - ProcessTableFilters(): Applies common site, vehicle-type, and widget-specific filters.
+ * - GetWidgetTypeConfig(): Returns the factory contract for table/list widget types.
+ */
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
@@ -5,49 +16,60 @@ using FMS.Application.Features.Dashboard;
 using FMS.Application.Services.Dashboard.WidgetFactories;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Services.Dashboard.WidgetFactories {
+namespace FMS.Application.Services.Dashboard.WidgetFactories
+{
     // Table and list widget factory (Data Table, Progress List, Alert Widget)
-    public class TableWidgetFactory : IWidgetTypeFactory {
+    public class TableWidgetFactory : IWidgetTypeFactory
+    {
         private readonly ILogger<TableWidgetFactory> _logger;
 
-        public TableWidgetFactory (ILogger<TableWidgetFactory> logger) {
+        public TableWidgetFactory(ILogger<TableWidgetFactory> logger)
+        {
             _logger = logger;
         }
 
-        public async Task<WidgetDataProcessingResult> ProcessWidgetDataAsync (
+        public async Task<WidgetDataProcessingResult> ProcessWidgetDataAsync(
             string widgetType,
             string category,
             string dataSource,
             Dictionary<string, object> filters,
             Dictionary<string, object> settings,
             string timeRange,
-            string mode) {
+            string mode)
+        {
 
-            try {
-                var config = GetWidgetTypeConfig (widgetType);
-                var processedFilters = ProcessTableFilters (filters, timeRange, mode, widgetType);
-                var processedSettings = ProcessTableSettings (settings, widgetType);
+            try
+            {
+                var config = GetWidgetTypeConfig(widgetType);
+                var processedFilters = ProcessTableFilters(filters, timeRange, mode, widgetType);
+                var processedSettings = ProcessTableSettings(settings, widgetType);
 
-                return new WidgetDataProcessingResult {
+                return new WidgetDataProcessingResult
+                {
                     Success = true,
-                        ProcessedFilters = processedFilters,
-                        ProcessedSettings = processedSettings,
-                        AggregationType = GetAggregationType (mode, settings, widgetType),
-                        RequiredFields = config.RequiredDataFields,
-                        DataQueryType = GetDataQueryType (dataSource, timeRange, widgetType)
+                    ProcessedFilters = processedFilters,
+                    ProcessedSettings = processedSettings,
+                    AggregationType = GetAggregationType(mode, settings, widgetType),
+                    RequiredFields = config.RequiredDataFields,
+                    DataQueryType = GetDataQueryType(dataSource, timeRange, widgetType)
                 };
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error processing table widget data for type {WidgetType}", widgetType);
-                return new WidgetDataProcessingResult {
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing table widget data for type {WidgetType}", widgetType);
+                return new WidgetDataProcessingResult
+                {
                     Success = false,
-                        ErrorMessage = ex.Message
+                    ErrorMessage = ex.Message
                 };
             }
         }
 
-        public bool SupportsWidgetType (string widgetType) {
+        public bool SupportsWidgetType(string widgetType)
+        {
             return widgetType
-            switch {
+            switch
+            {
                 "DATA_TABLE_DETAILED" => true,
                 "PROGRESS_LIST" => true,
                 "ALERT_NOTIFICATION" => true,
@@ -55,10 +77,13 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
             };
         }
 
-        public WidgetTypeConfiguration GetWidgetTypeConfig (string widgetType) {
+        public WidgetTypeConfiguration GetWidgetTypeConfig(string widgetType)
+        {
             return widgetType
-            switch {
-                "DATA_TABLE_DETAILED" => new WidgetTypeConfiguration {
+            switch
+            {
+                "DATA_TABLE_DETAILED" => new WidgetTypeConfiguration
+                {
                     WidgetType = widgetType,
                     ExpectedDataFormat = "tableData",
                     RequiredDataFields = new List<string> { "rows", "columns" },
@@ -73,8 +98,9 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
                     RequiresTrendData = false,
                     SupportsRealTimeData = true,
                     DefaultRefreshInterval = 60
-                    },
-                    "PROGRESS_LIST" => new WidgetTypeConfiguration {
+                },
+                "PROGRESS_LIST" => new WidgetTypeConfiguration
+                {
                     WidgetType = widgetType,
                     ExpectedDataFormat = "progressList",
                     RequiredDataFields = new List<string> { "items", "label", "value", "target" },
@@ -88,8 +114,9 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
                     RequiresTrendData = false,
                     SupportsRealTimeData = true,
                     DefaultRefreshInterval = 60
-                    },
-                    "ALERT_NOTIFICATION" => new WidgetTypeConfiguration {
+                },
+                "ALERT_NOTIFICATION" => new WidgetTypeConfiguration
+                {
                     WidgetType = widgetType,
                     ExpectedDataFormat = "alertList",
                     RequiredDataFields = new List<string> { "alerts", "severity", "message", "timestamp" },
@@ -103,172 +130,207 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
                     RequiresTrendData = false,
                     SupportsRealTimeData = true,
                     DefaultRefreshInterval = 15
-                    },
-                    _ =>
-                    throw new ArgumentException ($"Unsupported widget type: {widgetType}")
+                },
+                _ =>
+                throw new ArgumentException($"Unsupported widget type: {widgetType}")
             };
         }
 
-        private Dictionary<string, object> ProcessTableFilters (
+        private Dictionary<string, object> ProcessTableFilters(
             Dictionary<string, object> filters,
             string timeRange,
             string mode,
-            string widgetType) {
+            string widgetType)
+        {
 
-            var processed = new Dictionary<string, object> (filters);
+            var processed = new Dictionary<string, object>(filters);
 
             // Add time-based filters
             processed["timeRange"] = timeRange;
             processed["mode"] = mode;
 
             // Widget-specific filter processing
-            switch (widgetType) {
+            switch (widgetType)
+            {
                 case "DATA_TABLE_DETAILED":
-                    ProcessDataTableFilters (processed, filters);
+                    ProcessDataTableFilters(processed, filters);
                     break;
                 case "PROGRESS_LIST":
-                    ProcessProgressListFilters (processed, filters);
+                    ProcessProgressListFilters(processed, filters);
                     break;
                 case "ALERT_NOTIFICATION":
-                    ProcessAlertFilters (processed, filters);
+                    ProcessAlertFilters(processed, filters);
                     break;
             }
 
             // Common filters
-            if (filters.ContainsKey ("siteIds") && filters["siteIds"] is List<object> sites) {
+            if (filters.ContainsKey("siteIds") && filters["siteIds"] is List<object> sites)
+            {
                 processed["siteFilter"] = sites.Count > 0 ? sites : null;
+            }
+
+            if (filters.ContainsKey("vehicleTypeIds") && filters["vehicleTypeIds"] is List<object> vehicleTypes)
+            {
+                processed["vehicleTypeFilter"] = vehicleTypes.Count > 0 ? vehicleTypes : null;
             }
 
             return processed;
         }
 
-        private void ProcessDataTableFilters (Dictionary<string, object> processed, Dictionary<string, object> filters) {
+        private void ProcessDataTableFilters(Dictionary<string, object> processed, Dictionary<string, object> filters)
+        {
             // Column filters
-            if (filters.ContainsKey ("columnFilters")) {
+            if (filters.ContainsKey("columnFilters"))
+            {
                 processed["tableColumnFilters"] = filters["columnFilters"];
             }
 
             // Search filters
-            if (filters.ContainsKey ("searchText")) {
+            if (filters.ContainsKey("searchText"))
+            {
                 processed["globalSearch"] = filters["searchText"];
             }
 
             // Sorting
-            if (filters.ContainsKey ("sortBy")) {
+            if (filters.ContainsKey("sortBy"))
+            {
                 processed["tableSortBy"] = filters["sortBy"];
             }
         }
 
-        private void ProcessProgressListFilters (Dictionary<string, object> processed, Dictionary<string, object> filters) {
+        private void ProcessProgressListFilters(Dictionary<string, object> processed, Dictionary<string, object> filters)
+        {
             // Performance threshold filters
-            if (filters.ContainsKey ("performanceThreshold")) {
+            if (filters.ContainsKey("performanceThreshold"))
+            {
                 processed["minPerformance"] = filters["performanceThreshold"];
             }
 
             // Category filters for progress items
-            if (filters.ContainsKey ("progressCategories")) {
+            if (filters.ContainsKey("progressCategories"))
+            {
                 processed["categoryFilter"] = filters["progressCategories"];
             }
         }
 
-        private void ProcessAlertFilters (Dictionary<string, object> processed, Dictionary<string, object> filters) {
+        private void ProcessAlertFilters(Dictionary<string, object> processed, Dictionary<string, object> filters)
+        {
             // Severity level filters
-            if (filters.ContainsKey ("severityLevels")) {
+            if (filters.ContainsKey("severityLevels"))
+            {
                 processed["severityFilter"] = filters["severityLevels"];
             }
 
             // Alert status filters
-            if (filters.ContainsKey ("alertStatus")) {
+            if (filters.ContainsKey("alertStatus"))
+            {
                 processed["statusFilter"] = filters["alertStatus"];
             }
 
             // Source system filters
-            if (filters.ContainsKey ("alertSources")) {
+            if (filters.ContainsKey("alertSources"))
+            {
                 processed["sourceFilter"] = filters["alertSources"];
             }
         }
 
-        private Dictionary<string, object> ProcessTableSettings (
+        private Dictionary<string, object> ProcessTableSettings(
             Dictionary<string, object> settings,
-            string widgetType) {
+            string widgetType)
+        {
 
-            var config = GetWidgetTypeConfig (widgetType);
-            var processed = new Dictionary<string, object> (config.DefaultSettings);
+            var config = GetWidgetTypeConfig(widgetType);
+            var processed = new Dictionary<string, object>(config.DefaultSettings);
 
             // Override with user settings
-            foreach (var setting in settings) {
+            foreach (var setting in settings)
+            {
                 processed[setting.Key] = setting.Value;
             }
 
             // Widget-specific settings processing
-            switch (widgetType) {
+            switch (widgetType)
+            {
                 case "DATA_TABLE_DETAILED":
-                    ProcessDataTableSettings (processed, settings);
+                    ProcessDataTableSettings(processed, settings);
                     break;
                 case "PROGRESS_LIST":
-                    ProcessProgressListSettings (processed, settings);
+                    ProcessProgressListSettings(processed, settings);
                     break;
                 case "ALERT_NOTIFICATION":
-                    ProcessAlertSettings (processed, settings);
+                    ProcessAlertSettings(processed, settings);
                     break;
             }
 
             return processed;
         }
 
-        private void ProcessDataTableSettings (Dictionary<string, object> processed, Dictionary<string, object> settings) {
+        private void ProcessDataTableSettings(Dictionary<string, object> processed, Dictionary<string, object> settings)
+        {
             // Column configuration
-            if (settings.ContainsKey ("visibleColumns")) {
+            if (settings.ContainsKey("visibleColumns"))
+            {
                 processed["tableVisibleColumns"] = settings["visibleColumns"];
             }
 
             // Export settings
-            if (settings.ContainsKey ("exportFormats")) {
+            if (settings.ContainsKey("exportFormats"))
+            {
                 processed["enabledExportFormats"] = settings["exportFormats"];
             }
         }
 
-        private void ProcessProgressListSettings (Dictionary<string, object> processed, Dictionary<string, object> settings) {
+        private void ProcessProgressListSettings(Dictionary<string, object> processed, Dictionary<string, object> settings)
+        {
             // Color scheme for progress bars
-            if (settings.ContainsKey ("colorScheme")) {
+            if (settings.ContainsKey("colorScheme"))
+            {
                 processed["progressColorScheme"] = settings["colorScheme"];
             }
 
             // Performance thresholds
-            if (settings.ContainsKey ("performanceThresholds")) {
+            if (settings.ContainsKey("performanceThresholds"))
+            {
                 processed["progressThresholds"] = settings["performanceThresholds"];
             }
         }
 
-        private void ProcessAlertSettings (Dictionary<string, object> processed, Dictionary<string, object> settings) {
+        private void ProcessAlertSettings(Dictionary<string, object> processed, Dictionary<string, object> settings)
+        {
             // Notification settings
-            if (settings.ContainsKey ("notificationSettings")) {
+            if (settings.ContainsKey("notificationSettings"))
+            {
                 processed["alertNotificationConfig"] = settings["notificationSettings"];
             }
 
             // Display settings
-            if (settings.ContainsKey ("displaySettings")) {
+            if (settings.ContainsKey("displaySettings"))
+            {
                 processed["alertDisplayConfig"] = settings["displaySettings"];
             }
         }
 
-        private string GetAggregationType (string mode, Dictionary<string, object> settings, string widgetType) {
+        private string GetAggregationType(string mode, Dictionary<string, object> settings, string widgetType)
+        {
             // Check if custom aggregation is specified in settings
-            if (settings.ContainsKey ("aggregation")) {
-                return settings["aggregation"].ToString () ?? "none";
+            if (settings.ContainsKey("aggregation"))
+            {
+                return settings["aggregation"].ToString() ?? "none";
             }
 
             // Default based on widget type and mode
             return widgetType
-            switch {
+            switch
+            {
                 "DATA_TABLE_DETAILED" => mode == "group" ? "group" : "none",
-                    "PROGRESS_LIST" => "percentage",
-                    "ALERT_NOTIFICATION" => "count",
-                    _ => "none"
+                "PROGRESS_LIST" => "percentage",
+                "ALERT_NOTIFICATION" => "count",
+                _ => "none"
             };
         }
 
-        private string GetDataQueryType (string dataSource, string timeRange, string widgetType) {
+        private string GetDataQueryType(string dataSource, string timeRange, string widgetType)
+        {
             if (widgetType == "ALERT_NOTIFICATION") return "realtime";
             if (dataSource == "realtime") return "realtime";
             if (timeRange == "live" || timeRange == "today") return "realtime";

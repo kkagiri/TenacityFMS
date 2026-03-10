@@ -112,6 +112,11 @@ public class UpdateSingleVehicleCommandHandler : IRequestHandler<UpdateSingleVeh
             var expectedAvg = await _context.Expectedaverages.FindAsync(vehicleDTO.DefaultExptdAvgid);
             if (expectedAvg == null) errors.Add($"Expected Average with id {vehicleDTO.DefaultExptdAvgid} not found");
         }
+
+        if (!Enum.IsDefined(typeof(VehicleMovementProfile), vehicleDTO.MovementProfile))
+        {
+            errors.Add("Movement profile is invalid");
+        }
         return (errors.Count == 0, errors.ToArray());
 
     }

@@ -106,6 +106,26 @@ public class GeofenceController : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    /// <summary>
+    /// Create a new GPSGate geofence and sync it into the local cache.
+    /// </summary>
+    [HttpPost("geofences")]
+    public async Task<IActionResult> CreateGeofence([FromBody] CreateGeofenceRequestDTO request)
+    {
+        var result = await _mediator.Send(new CreateGeofenceCommand { Request = request });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Delete a synced GPSGate geofence and mark it inactive locally.
+    /// </summary>
+    [HttpDelete("geofences/{id}")]
+    public async Task<IActionResult> DeleteGeofence(int id)
+    {
+        var result = await _mediator.Send(new DeleteGeofenceCommand { LocalGeofenceId = id });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     #endregion
 
     #region Async Sync Jobs
@@ -209,6 +229,71 @@ public class GeofenceController : ControllerBase
             return NotFound(FMSResponse<object>.Failed($"Geofence group with ID {id} not found"));
         }
         return Ok(FMSResponse<GpsGeofenceGroupDTO>.Success(result, "Geofence group retrieved successfully"));
+    }
+
+    /// <summary>
+    /// Create a GPSGate geofence group and sync it into local cache.
+    /// </summary>
+    [HttpPost("groups")]
+    public async Task<IActionResult> CreateGeofenceGroup([FromBody] CreateGeofenceGroupRequestDTO request)
+    {
+        var result = await _mediator.Send(new CreateGeofenceGroupCommand { Request = request });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Update a synced GPSGate geofence group.
+    /// </summary>
+    [HttpPut("groups/{id}")]
+    public async Task<IActionResult> UpdateGeofenceGroup(int id, [FromBody] UpdateGeofenceGroupRequestDTO request)
+    {
+        var result = await _mediator.Send(new UpdateGeofenceGroupCommand
+        {
+            LocalGroupId = id,
+            Request = request
+        });
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Delete a synced GPSGate geofence group.
+    /// </summary>
+    [HttpDelete("groups/{id}")]
+    public async Task<IActionResult> DeleteGeofenceGroup(int id)
+    {
+        var result = await _mediator.Send(new DeleteGeofenceGroupCommand { LocalGroupId = id });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Add an existing synced geofence to an existing synced group.
+    /// </summary>
+    [HttpPost("groups/{id}/geofences")]
+    public async Task<IActionResult> AddGeofenceToGroup(int id, [FromBody] GeofenceGroupMembershipRequestDTO request)
+    {
+        var result = await _mediator.Send(new AddGeofenceToGroupCommand
+        {
+            LocalGroupId = id,
+            LocalGeofenceId = request.GeofenceId
+        });
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Remove a synced geofence from a synced group.
+    /// </summary>
+    [HttpDelete("groups/{groupId}/geofences/{geofenceId}")]
+    public async Task<IActionResult> RemoveGeofenceFromGroup(int groupId, int geofenceId)
+    {
+        var result = await _mediator.Send(new RemoveGeofenceFromGroupCommand
+        {
+            LocalGroupId = groupId,
+            LocalGeofenceId = geofenceId
+        });
+
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
     /// <summary>

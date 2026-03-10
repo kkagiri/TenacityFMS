@@ -347,7 +347,8 @@ namespace FMS.Application.Services.Dashboard
                     // Convert time-series points to categorical slices for pie chart
                     decimal timeSeriesTotal = timeSeries.Sum(p => p.value);
                     categories = timeSeries
-                        .Select(p => {
+                        .Select(p =>
+                        {
                             var label = p.timestamp.ToString("MMM dd", System.Globalization.CultureInfo.InvariantCulture);
                             var percent = timeSeriesTotal > 0 ? Math.Round((p.value / timeSeriesTotal) * 100m, 2) : 0m;
                             return (key: label, value: p.value, percent: percent);
@@ -582,6 +583,9 @@ namespace FMS.Application.Services.Dashboard
         {
             var metadata = ExtractMetadata(rawData);
             var lastUpdated = ResolveTimestamp(rawData, DateTime.UtcNow);
+            var columns = ExtractNamedCollection(rawData, "columns", "Columns");
+            var summary = GetMemberValue(rawData, "summary", "Summary");
+            var total = GetMemberValue(rawData, "total", "Total");
             var rows = new List<object>();
             var maxRows = int.MaxValue;
             if (configuration != null && configuration.TryGetValue("maxRows", out var maxRowsObj) && int.TryParse(maxRowsObj?.ToString(), out var configuredMax) && configuredMax > 0)
@@ -639,6 +643,9 @@ namespace FMS.Application.Services.Dashboard
             return Task.FromResult<object>(new
             {
                 rows,
+                columns,
+                summary,
+                total,
                 metadata,
                 lastUpdated
             });

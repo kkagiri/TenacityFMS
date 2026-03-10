@@ -1,0 +1,246 @@
+/**
+ * File: WidgetList.scss
+ * Purpose: M365-style dashboard widget list styling for category groups, shared-state badges, and row actions.
+ * Dependencies: WidgetList.js
+ * Last Modified: 2026-03-07
+ */
+
+.widget-list-m365 {
+  color: #201f1e;
+
+  &__overview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+
+  &__overview-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3f2f1;
+    color: #605e5c;
+    font-size: 12px;
+    line-height: 1;
+  }
+
+  &__group {
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 8px 0;
+  }
+
+  &__group-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 0 0 8px;
+  }
+
+  &__group-title {
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #323130;
+  }
+
+  &__group-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f3f2f1;
+    color: #605e5c;
+    font-size: 11px;
+    font-weight: 600;
+  }
+
+  &__rows {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    background: #faf9f8;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease;
+
+    &:hover {
+      background: #f3f2f1;
+    }
+
+    &--dragging {
+      background: #eff6fc;
+      box-shadow: 0 0 0 1px rgba(0, 120, 212, 0.18);
+    }
+
+    @media (max-width: 768px) {
+      flex-direction: column;
+      align-items: stretch;
+    }
+  }
+
+  &__main {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__drag {
+    color: #a19f9d;
+    font-size: 14px;
+    line-height: 1;
+    cursor: grab;
+    user-select: none;
+  }
+
+  &__name {
+    min-width: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #201f1e;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  &__meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  &__subtext {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.4;
+    color: #605e5c;
+  }
+
+  &__meta-item {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #605e5c;
+    font-size: 12px;
+    line-height: 1.2;
+  }
+
+  &__meta-item--accent {
+    background: #eff6fc;
+    color: #005a9e;
+  }
+
+  &__meta-item--soft {
+    background: #f3f2f1;
+    color: #605e5c;
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    @media (max-width: 768px) {
+      justify-content: flex-start;
+    }
+  }
+
+  &__action {
+    appearance: none;
+    border: none;
+    background: transparent;
+    color: #0078d4;
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: #eff6fc;
+      color: #005a9e;
+    }
+
+    &:disabled {
+      color: #a19f9d;
+      cursor: not-allowed;
+    }
+  }
+
+  &__action--danger {
+    color: #d13438;
+
+    &:hover:not(:disabled) {
+      background: #fde7e9;
+      color: #a4262c;
+    }
+  }
+
+  &__empty,
+  &__error,
+  &__loading {
+    border-radius: 12px;
+    background: #faf9f8;
+    padding: 24px;
+  }
+
+  &__empty-title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__empty-copy,
+  &__error,
+  &__loading {
+    font-size: 13px;
+    color: #605e5c;
+  }
+
+  &__error {
+    color: #a4262c;
+    background: #fdf6f6;
+  }
+
+  &__confirm-copy {
+    font-size: 13px;
+    line-height: 1.5;
+    color: #323130;
+    margin: 0;
+  }
+
+  &__confirm-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+  }
+}

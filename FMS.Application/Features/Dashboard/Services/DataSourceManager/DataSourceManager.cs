@@ -1,11 +1,25 @@
+/**
+ * File: DataSourceManager.cs
+ * Purpose: Orchestrates dashboard data-source retrieval, aggregation, live updates, and widget transformations.
+ * Dependencies: DashboardHub, GpsdataContext, IDataSourceManager collaborators, IdentifierNormalizer
+ * Last Modified: 2026-03-07
+ *
+ * Key Functions:
+ * - GetInitialDataAsync(): Loads the initial payload for a dashboard data source.
+ * - GetLiveDataAsync(): Loads live payloads for streaming-compatible sources.
+ * - GetAggregatedDataAsync(): Loads aggregated payloads for chart-oriented widgets.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using FMS.Application.Communication.SignalR;
 using FMS.Application.Features.Dashboard;
+using FMS.Application.Features.PTSService.Services;
 using FMS.Domain.Entities.Dashboard;
+using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 
@@ -37,23 +51,35 @@ namespace FMS.Application.Services.Dashboard
     {
         private readonly IHubContext<DashboardHub> _hubContext;
         private readonly ILogger<DataSourceManager> _logger;
+        private readonly GpsdataContext _context;
         private readonly IMetricCalculationService _metricService;
         private readonly IWidgetDataTransformerService _transformerService;
         private readonly ITimeSeriesDataService _timeSeriesService;
+        private readonly ConnectionMonitor _connectionMonitor;
+        private readonly IServiceControlService _serviceControlService;
+        private readonly IServiceProvider _serviceProvider;
         private static readonly Dictionary<string, DataSourceMetadata> _dataSourceMetadata = BuildMetadata();
 
         public DataSourceManager(
             IHubContext<DashboardHub> hubContext,
             ILogger<DataSourceManager> logger,
+            GpsdataContext context,
             IMetricCalculationService metricService,
             IWidgetDataTransformerService transformerService,
-            ITimeSeriesDataService timeSeriesService)
+            ITimeSeriesDataService timeSeriesService,
+            ConnectionMonitor connectionMonitor,
+            IServiceControlService serviceControlService,
+            IServiceProvider serviceProvider)
         {
             _hubContext = hubContext;
             _logger = logger;
+            _context = context;
             _metricService = metricService;
             _transformerService = transformerService;
             _timeSeriesService = timeSeriesService;
+            _connectionMonitor = connectionMonitor;
+            _serviceControlService = serviceControlService;
+            _serviceProvider = serviceProvider;
         }
 
         public async Task<object> GetInitialDataAsync(string dataSource, DashboardMetricRequestDto request)
@@ -62,6 +88,21 @@ namespace FMS.Application.Services.Dashboard
             {
                 var canonicalSource = IdentifierNormalizer.NormalizeDataSource(dataSource);
                 _logger.LogInformation("Getting initial data for data source: {DataSource}, Mode: {Mode}", canonicalSource, request.Mode);
+
+                if (IsEventAlertDataSource(canonicalSource))
+                {
+                    return await GetEventAlertDataAsync(canonicalSource, request, "initial");
+                }
+
+                if (IsIssueTrackerDataSource(canonicalSource))
+                {
+                    return await GetIssueTrackerDataAsync(canonicalSource, request, "initial");
+                }
+
+                if (IsAdminDataSource(canonicalSource))
+                {
+                    return await GetAdminDataAsync(canonicalSource, request, "initial");
+                }
 
                 // Get base metric data (computed internally)
                 var metricResponse = await _metricService.ComputeMetricAsync(request);
@@ -112,6 +153,21 @@ namespace FMS.Application.Services.Dashboard
             try
             {
                 var canonicalSource = IdentifierNormalizer.NormalizeDataSource(dataSource);
+                if (IsEventAlertDataSource(canonicalSource))
+                {
+                    return await GetEventAlertDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsIssueTrackerDataSource(canonicalSource))
+                {
+                    return await GetIssueTrackerDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsAdminDataSource(canonicalSource))
+                {
+                    return await GetAdminDataAsync(canonicalSource, request, "live");
+                }
+
                 if (!IsLiveDataSource(canonicalSource))
                 {
                     return new { error = $"Data source {canonicalSource} does not support live data", timestamp = DateTime.UtcNow };
@@ -171,6 +227,21 @@ namespace FMS.Application.Services.Dashboard
             {
                 var canonicalSource = IdentifierNormalizer.NormalizeDataSource(dataSource);
                 _logger.LogInformation("Getting aggregated data for data source: {DataSource}, Interval: {Interval}", canonicalSource, aggregationInterval);
+
+                if (IsEventAlertDataSource(canonicalSource))
+                {
+                    return await GetEventAlertDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
+
+                if (IsIssueTrackerDataSource(canonicalSource))
+                {
+                    return await GetIssueTrackerDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
+
+                if (IsAdminDataSource(canonicalSource))
+                {
+                    return await GetAdminDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
 
                 // Map aggregationInterval to granularity for time-series service
                 var granularity = MapAggregationIntervalToGranularity(aggregationInterval);

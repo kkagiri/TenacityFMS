@@ -77,6 +77,11 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnName("VehicleStatus")
                     .HasDefaultValue(VehicleStatus.Working)
                     .HasConversion<int>();
+                builder.Property(e => e.MovementProfile)
+                    .HasColumnType("tinyint(4)")
+                    .HasColumnName("MovementProfile")
+                    .HasDefaultValue(VehicleMovementProfile.Geofence)
+                    .HasConversion<int>();
                 builder.Property(e => e.HyoungNo).HasMaxLength(45);
                 builder.Property(e => e.FuelTankCapacity)
                     .HasColumnType("decimal(10,2)")
@@ -136,6 +141,16 @@ namespace FMS.Persistence.EntityConfigurations
                 builder.HasMany(v => v.VehicleDocuments)
                            .WithOne(vd => vd.Vehicle)
                            .HasForeignKey(vd => vd.VehicleId);
+
+                builder.HasMany(v => v.VehicleTripGroups)
+                    .WithOne(g => g.Vehicle)
+                    .HasForeignKey(g => g.VehicleId)
+                    .OnDelete(DeleteBehavior.Restrict);
+
+                builder.HasMany(v => v.VehicleTrips)
+                    .WithOne(t => t.Vehicle)
+                    .HasForeignKey(t => t.VehicleId)
+                    .OnDelete(DeleteBehavior.Restrict);
 
                 builder.HasOne(d => d.ModifiedByNavigation).WithMany(p => p.Vehicles)
                     .HasForeignKey(d => d.ModifiedBy)

@@ -205,7 +205,14 @@ const EnhancedWidgetRenderer = memo(({
 
     // Table
     if (t.includes('data_table') || t.includes('data-table') || t.includes('datatable') || t.includes('table')) {
-      return Array.isArray(envelope.data.rows) ? envelope.data.rows : [];
+      return {
+        rows: Array.isArray(envelope.data.rows) ? envelope.data.rows : [],
+        columns: Array.isArray(envelope.data.columns) ? envelope.data.columns : [],
+        summary: envelope.data.summary || null,
+        total: envelope.data.total,
+        lastUpdated: envelope.data.lastUpdated || envelope.data.freshnessUtc || envelope.timestamp,
+        metadata: meta
+      };
     }
 
     // Progress List (ranked)
@@ -293,9 +300,15 @@ const EnhancedWidgetRenderer = memo(({
 
     // Table expects array of rows
     if (t.includes('table')) {
-      if (Array.isArray(transformedData)) return transformedData;
-      if (Array.isArray(transformedData?.rows)) return transformedData.rows;
-      return [];
+      if (Array.isArray(transformedData)) {
+        return { rows: transformedData, columns: [], summary: null };
+      }
+
+      if (transformedData && typeof transformedData === 'object') {
+        return transformedData;
+      }
+
+      return { rows: [], columns: [], summary: null };
     }
 
     // Progress list expects array of items

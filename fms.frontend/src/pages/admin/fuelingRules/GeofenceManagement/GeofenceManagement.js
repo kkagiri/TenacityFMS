@@ -21,6 +21,10 @@ import {
 import notify from "devextreme/ui/notify";
 import geofenceService from "../../../../api/geofenceService";
 import SlidePanel from "../../../../components/ui/SlidePanel";
+import GeofenceCreateForm from "./GeofenceCreateForm";
+import GeofenceGroupForm from "./GeofenceGroupForm";
+import GeofenceWorksiteForm from "./GeofenceWorksiteForm";
+import SiteGeofenceMapPopup from "../../../site/components/SiteGeofenceMapPopup";
 import "./GeofenceManagement.scss";
 
 /**
@@ -48,11 +52,20 @@ const GeofenceManagement = () => {
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [geofences, setGeofences] = useState([]);
   const [geofenceGroups, setGeofenceGroups] = useState([]);
+  const [sites, setSites] = useState([]);
   const [selectedTabId, setSelectedTabId] = useState("geofences");
   const [showSyncConfirm, setShowSyncConfirm] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState(null);
+  const [selectedGeofenceIds, setSelectedGeofenceIds] = useState([]);
+  const [selectedGroupIdsLocal, setSelectedGroupIdsLocal] = useState([]);
+  const [showCreateGeofencePanel, setShowCreateGeofencePanel] = useState(false);
+  const [showGroupPanel, setShowGroupPanel] = useState(false);
+  const [editingGroup, setEditingGroup] = useState(null);
+  const [showWorksitePanel, setShowWorksitePanel] = useState(false);
+  const [showMapPreview, setShowMapPreview] = useState(false);
 
   // Async sync job state
   const [syncJobId, setSyncJobId] = useState(null);
@@ -69,6 +82,9 @@ const GeofenceManagement = () => {
     fetchGeofences();
     fetchGeofenceGroups();
   }, []);
+
+  const selectedGeofence = geofences.find((item) => item.id === selectedGeofenceIds[0]) || null;
+  const selectedGroup = geofenceGroups.find((item) => item.id === selectedGroupIdsLocal[0]) || null;
 
   const fetchGeofences = useCallback(async () => {
     setLoading(true);
@@ -107,6 +123,16 @@ const GeofenceManagement = () => {
     }
   }, []);
 
+  const fetchSites = useCallback(async () => {
+    try {
+      const data = await geofenceService.getSites(true);
+      setSites(Array.isArray(data) ? data : []);
+    } catch (error) {
+      console.error("Error fetching sites:", error);
+      notify("Failed to load sites for worksite classification", "error", 3000);
+    }
+  }, []);
+
   const fetchAvailableGroups = useCallback(async () => {
     setLoadingAvailableGroups(true);
     try {
@@ -130,6 +156,12 @@ const GeofenceManagement = () => {
       fetchAvailableGroups();
     }
   }, [selectedTabId, fetchAvailableGroups]);
+
+  useEffect(() => {
+    if (showWorksitePanel && sites.length === 0) {
+      fetchSites();
+    }
+  }, [fetchSites, showWorksitePanel, sites.length]);
 
   const handleSyncGeofences = async (forceFullSync = false, groupIds = null) => {
     setShowSyncConfirm(false);
@@ -234,6 +266,196 @@ const GeofenceManagement = () => {
 
   const handleGroupSelectionChanged = (e) => {
     setSelectedGroupIds(e.selectedRowKeys || []);
+  };
+
+  const handleGeofenceSelectionChanged = (e) => {
+    setSelectedGeofenceIds(e.selectedRowKeys || []);
+  };
+
+  const handleCachedGroupSelectionChanged = (e) => {
+    setSelectedGroupIdsLocal(e.selectedRowKeys || []);
+  };
+
+  const handleCreateGeofence = async (payload) => {
+    setSaving(true);
+    try {
+      const response = await geofenceService.createGeofence(payload);
+      if (response?.isSuccess) {
+        notify(response.message || "Geofence created successfully", "success", 3000);
+        setShowCreateGeofencePanel(false);
+        await fetchGeofences();
+        await fetchGeofenceGroups();
+        if (selectedTabId === "sync") {
+          await fetchAvailableGroups();
+        }
+        return;
+      }
+
+      notify(response?.message || "Failed to create geofence", "error", 4000);
+    } catch (error) {
+      console.error("Error creating geofence:", error);
+      notify(error.response?.data?.message || error.message || "Failed to create geofence", "error", 4000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteGeofence = async () => {
+    if (!selectedGeofence) {
+      notify("Select a geofence first", "warning", 2500);
+      return;
+    }
+
+    const confirmed = window.confirm(`Delete geofence '${selectedGeofence.name}' from GPSGate and local cache?`);
+    if (!confirmed) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await geofenceService.deleteGeofence(selectedGeofence.id);
+      if (response?.isSuccess) {
+        notify(response.message || "Geofence deleted successfully", "success", 3000);
+        setSelectedGeofenceIds([]);
+        setShowMapPreview(false);
+        setShowWorksitePanel(false);
+        await fetchGeofences();
+        await fetchGeofenceGroups();
+        await fetchSites();
+        if (selectedTabId === "sync") {
+          await fetchAvailableGroups();
+        }
+        return;
+      }
+
+      notify(response?.message || "Failed to delete geofence", "error", 4000);
+    } catch (error) {
+      console.error("Error deleting geofence:", error);
+      notify(error.response?.data?.message || error.message || "Failed to delete geofence", "error", 4000);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const handleOpenCreateGroup = () => {
+    setEditingGroup(null);
+    setShowGroupPanel(true);
+  };
+
+  const handleOpenEditGroup = () => {
+    if (!selectedGroup) {
+      notify("Select a group first", "warning", 2500);
+      return;
+    }
+
+    setEditingGroup(selectedGroup);
+    setShowGroupPanel(true);
+  };
+
+  const handleSaveGroup = async (payload) => {
+    setSaving(true);
+    try {
+      const response = editingGroup
+        ? await geofenceService.updateGeofenceGroup(editingGroup.id, payload)
+        : await geofenceService.createGeofenceGroup(payload);
+
+      if (response?.isSuccess) {
+        notify(response.message || `Group ${editingGroup ? "updated" : "created"} successfully`, "success", 3000);
+        setShowGroupPanel(false);
+        setEditingGroup(null);
+        await fetchGeofenceGroups();
+        await fetchGeofences();
+        if (selectedTabId === "sync") {
+          await fetchAvailableGroups();
+        }
+        return;
+      }
+
+      notify(response?.message || "Failed to save group", "error", 4000);
+    } catch (error) {
+      console.error("Error saving geofence group:", error);
+      notify(error.response?.data?.message || error.message || "Failed to save geofence group", "error", 4000);
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleDeleteGroup = async (group) => {
+    if (!group) {
+      return;
+    }
+
+    setDeleting(true);
+    try {
+      const response = await geofenceService.deleteGeofenceGroup(group.id);
+      if (response?.isSuccess) {
+        notify(response.message || "Group deleted successfully", "success", 3000);
+        setShowGroupPanel(false);
+        setEditingGroup(null);
+        setSelectedGroupIdsLocal([]);
+        await fetchGeofenceGroups();
+        if (selectedTabId === "sync") {
+          await fetchAvailableGroups();
+        }
+        return;
+      }
+
+      notify(response?.message || "Failed to delete group", "error", 4000);
+    } catch (error) {
+      console.error("Error deleting geofence group:", error);
+      notify(error.response?.data?.message || error.message || "Failed to delete group", "error", 4000);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const buildSiteUpdatePayload = (siteRecord, geofence) => ({
+    name: siteRecord.name,
+    isActive: siteRecord.isActive,
+    siteAdministratorId: siteRecord.siteAdministratorId || null,
+    gpsGateTagId: siteRecord.gpsGateTagId || null,
+    gpsGateTagName: siteRecord.gpsGateTagName || null,
+    autoUpdateGpsGateTag: siteRecord.autoUpdateGpsGateTag !== false,
+    gpsGeofenceId: geofence?.id || null,
+    gpsGeofenceName: geofence?.name || null,
+    gpsGeofenceType: geofence?.geofenceType || null,
+    gpsGeofenceCenterLatitude: geofence?.centerLatitude ?? null,
+    gpsGeofenceCenterLongitude: geofence?.centerLongitude ?? null,
+  });
+
+  const handleSaveWorksiteClassification = async (siteId) => {
+    if (!selectedGeofence) {
+      return;
+    }
+
+    setSaving(true);
+    try {
+      if (selectedGeofence.siteId && selectedGeofence.siteId !== siteId) {
+        const currentSite = await geofenceService.getSiteById(selectedGeofence.siteId);
+        await geofenceService.updateSiteGeofence(
+          selectedGeofence.siteId,
+          buildSiteUpdatePayload(currentSite, null)
+        );
+      }
+
+      if (siteId) {
+        const targetSite = await geofenceService.getSiteById(siteId);
+        await geofenceService.updateSiteGeofence(
+          siteId,
+          buildSiteUpdatePayload(targetSite, selectedGeofence)
+        );
+      }
+
+      notify(siteId ? "Geofence classified as worksite successfully" : "Worksite classification removed", "success", 3000);
+      setShowWorksitePanel(false);
+      await fetchGeofences();
+      await fetchSites();
+    } catch (error) {
+      console.error("Error saving worksite classification:", error);
+      notify(error.response?.data?.message || error.message || "Failed to save worksite classification", "error", 4000);
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleToggleAllowedForFueling = async (groupId, newValue) => {
@@ -406,6 +628,19 @@ const GeofenceManagement = () => {
       <div className="tw-bg-white dark:tw-bg-gray-900 tw-rounded-b-lg tw-shadow-sm">
         {selectedTabId === "geofences" && (
           <div className="tw-p-4">
+            <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-flex-wrap">
+              <div className="tw-text-sm tw-text-gray-600">
+                {selectedGeofence
+                  ? <span>Selected geofence: <span className="tw-font-semibold tw-text-gray-900">{selectedGeofence.name}</span>{selectedGeofence.siteName ? ` • worksite ${selectedGeofence.siteName}` : " • not linked to a worksite"}</span>
+                  : "Select a geofence to preview it or classify it as a worksite."}
+              </div>
+              <div className="tw-flex tw-items-center tw-gap-2 tw-flex-wrap">
+                <Button text="New Geofence" icon="fa-light fa-plus" type="default" stylingMode="contained" onClick={() => setShowCreateGeofencePanel(true)} />
+                <Button text="Preview" icon="fa-light fa-map-location-dot" stylingMode="outlined" onClick={() => setShowMapPreview(true)} disabled={!selectedGeofence} />
+                <Button text="Classify Worksite" icon="fa-light fa-industry-windows" stylingMode="outlined" onClick={() => setShowWorksitePanel(true)} disabled={!selectedGeofence} />
+                <Button text={deleting ? "Deleting..." : "Delete"} icon="fa-light fa-trash" stylingMode="outlined" type="danger" onClick={handleDeleteGeofence} disabled={!selectedGeofence || deleting || saving} />
+              </div>
+            </div>
             <DataGrid
               className="geofence-grid"
               dataSource={geofences}
@@ -416,6 +651,8 @@ const GeofenceManagement = () => {
               allowColumnResizing={true}
               columnAutoWidth={true}
               height={500}
+              selectedRowKeys={selectedGeofenceIds}
+              onSelectionChanged={handleGeofenceSelectionChanged}
             >
               <SearchPanel visible={true} placeholder="Search geofences..." />
               <FilterRow visible={true} />
@@ -424,6 +661,16 @@ const GeofenceManagement = () => {
 
               <Column dataField="name" caption="Name" />
               <Column dataField="description" caption="Description" />
+              <Column
+                dataField="siteName"
+                caption="Worksite"
+                width={180}
+                cellRender={(cellData) => (
+                  cellData.data?.isAssignedToSite
+                    ? <span className="tw-inline-flex tw-items-center tw-gap-1 tw-rounded-full tw-bg-blue-100 tw-px-2 tw-py-1 tw-text-xs tw-font-medium tw-text-blue-800"><i className="fa-light fa-industry-windows"></i>{cellData.value}</span>
+                    : <span className="tw-text-gray-400">Not linked</span>
+                )}
+              />
               <Column
                 dataField="geofenceType"
                 caption="Type"
@@ -467,6 +714,17 @@ const GeofenceManagement = () => {
 
         {selectedTabId === "groups" && (
           <div className="tw-p-4">
+            <div className="tw-mb-4 tw-flex tw-items-center tw-justify-between tw-gap-3 tw-flex-wrap">
+              <div className="tw-text-sm tw-text-gray-600">
+                {selectedGroup
+                  ? <span>Selected group: <span className="tw-font-semibold tw-text-gray-900">{selectedGroup.name}</span></span>
+                  : "Select a group to edit memberships or fueling policy."}
+              </div>
+              <div className="tw-flex tw-items-center tw-gap-2 tw-flex-wrap">
+                <Button text="New Group" icon="fa-light fa-plus" type="default" stylingMode="contained" onClick={handleOpenCreateGroup} />
+                <Button text="Edit Group" icon="fa-light fa-pen-to-square" stylingMode="outlined" onClick={handleOpenEditGroup} disabled={!selectedGroup} />
+              </div>
+            </div>
             <DataGrid
               className="geofence-grid"
               dataSource={geofenceGroups}
@@ -477,6 +735,8 @@ const GeofenceManagement = () => {
               allowColumnResizing={true}
               columnAutoWidth={true}
               height={500}
+              selectedRowKeys={selectedGroupIdsLocal}
+              onSelectionChanged={handleCachedGroupSelectionChanged}
             >
               <SearchPanel visible={true} placeholder="Search groups..." />
               <FilterRow visible={true} />
@@ -685,6 +945,64 @@ const GeofenceManagement = () => {
           </div>
         </div>
       </SlidePanel>
+
+      <SlidePanel
+        open={showCreateGeofencePanel}
+        onClose={() => setShowCreateGeofencePanel(false)}
+        title="Create GPSGate Geofence"
+        width={1200}
+      >
+        <GeofenceCreateForm
+          geofenceGroups={geofenceGroups}
+          saving={saving}
+          onCancel={() => setShowCreateGeofencePanel(false)}
+          onSubmit={handleCreateGeofence}
+        />
+      </SlidePanel>
+
+      <SlidePanel
+        open={showGroupPanel}
+        onClose={() => {
+          setShowGroupPanel(false);
+          setEditingGroup(null);
+        }}
+        title={editingGroup ? "Edit Geofence Group" : "Create Geofence Group"}
+        width={1100}
+      >
+        <GeofenceGroupForm
+          group={editingGroup}
+          geofences={geofences}
+          saving={saving}
+          deleting={deleting}
+          onCancel={() => {
+            setShowGroupPanel(false);
+            setEditingGroup(null);
+          }}
+          onDelete={handleDeleteGroup}
+          onSubmit={handleSaveGroup}
+        />
+      </SlidePanel>
+
+      <SlidePanel
+        open={showWorksitePanel}
+        onClose={() => setShowWorksitePanel(false)}
+        title="Worksite Classification"
+        width={720}
+      >
+        <GeofenceWorksiteForm
+          geofence={selectedGeofence}
+          sites={sites}
+          saving={saving}
+          onCancel={() => setShowWorksitePanel(false)}
+          onSubmit={handleSaveWorksiteClassification}
+        />
+      </SlidePanel>
+
+      <SiteGeofenceMapPopup
+        visible={showMapPreview && !!selectedGeofence}
+        onClose={() => setShowMapPreview(false)}
+        geofence={selectedGeofence}
+      />
     </div>
   );
 };

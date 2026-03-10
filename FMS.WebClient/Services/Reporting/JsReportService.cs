@@ -75,7 +75,8 @@ namespace FMS.WebClient.Services.Reporting
         private ILocalUtilityReportingService _reportingService;
         private readonly JsReportTemplateManager _templateManager;
         private readonly JsReportLetterheadBranding _branding;
-        private readonly string? _chromeExePath;
+        private readonly IReadOnlyList<string> _browserExecutablePaths;
+        private string? _chromeExePath;
 
         /// <summary>Shared browser instance — lazily created, reused across renders.</summary>
         private IBrowser? _browser;
@@ -174,11 +175,19 @@ namespace FMS.WebClient.Services.Reporting
             _reportingService = CreateJsReportService(jsReportTempPath);
 
             // ── Chrome detection (for PuppeteerSharp PDF conversion) ──────────────
-            _chromeExePath = ChromeExecutablePaths.FirstOrDefault(File.Exists);
+            _browserExecutablePaths = ChromeExecutablePaths
+                .Where(File.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _chromeExePath = _browserExecutablePaths.FirstOrDefault();
 
             if (_chromeExePath != null)
             {
-                _logger.LogInformation("PuppeteerSharp will use system Chrome: {Path}", _chromeExePath);
+                _logger.LogInformation(
+                    "PuppeteerSharp detected {Count} browser executable(s). Preferred path: {Path}",
+                    _browserExecutablePaths.Count,
+                    _chromeExePath);
             }
             else
             {
@@ -1057,7 +1066,7 @@ namespace FMS.WebClient.Services.Reporting
                 if (_browser != null && _browser.IsConnected)
                     return _browser;
 
-                if (_chromeExePath == null)
+                if (_browserExecutablePaths.Count == 0)
                 {
                     throw new InvalidOperationException(
                         "No system Chrome or Edge browser found. Install Chrome or Edge to enable PDF rendering. " +
@@ -1066,39 +1075,58 @@ namespace FMS.WebClient.Services.Reporting
 
                 // Attempt launch with retry on timeout
                 const int maxAttempts = 2;
+                Exception? lastLaunchException = null;
                 for (int attempt = 1; attempt <= maxAttempts; attempt++)
                 {
-                    try
+                    foreach (var browserPath in GetBrowserLaunchCandidates())
                     {
-                        _browser = await LaunchBrowserCoreAsync(attempt);
+                        try
+                        {
+                            _chromeExePath = browserPath;
+                            _browser = await LaunchBrowserCoreAsync(attempt);
 
-                        _logger.LogInformation("PuppeteerSharp browser launched successfully (PID: {Pid}, attempt: {Attempt})",
-                            _browser.Process?.Id ?? -1, attempt);
+                            _logger.LogInformation(
+                                "PuppeteerSharp browser launched successfully (PID: {Pid}, attempt: {Attempt}, path: {Path})",
+                                _browser.Process?.Id ?? -1,
+                                attempt,
+                                _chromeExePath);
 
-                        return _browser;
+                            return _browser;
+                        }
+                        catch (PuppeteerSharp.ProcessException ex)
+                        {
+                            lastLaunchException = ex;
+
+                            _logger.LogWarning(
+                                ex,
+                                "PuppeteerSharp launch failed on attempt {Attempt} using {Path}",
+                                attempt,
+                                browserPath);
+
+                            if (_browser != null)
+                            {
+                                try { _browser.Dispose(); } catch { /* ignore */ }
+                                _browser = null;
+                            }
+
+                            KillStaleChromePuppeteerProcesses();
+                        }
                     }
-                    catch (PuppeteerSharp.ProcessException ex) when (attempt < maxAttempts)
+
+                    if (attempt < maxAttempts)
                     {
-                        _logger.LogWarning(ex,
-                            "PuppeteerSharp launch attempt {Attempt} timed out. Killing stale Chrome processes and retrying...",
+                        _logger.LogWarning(
+                            lastLaunchException,
+                            "All PuppeteerSharp browser launch candidates failed on attempt {Attempt}. Retrying after cleanup.",
                             attempt);
 
-                        // Dispose the failed browser attempt if it exists
-                        if (_browser != null)
-                        {
-                            try { _browser.Dispose(); } catch { /* ignore */ }
-                            _browser = null;
-                        }
-
-                        KillStaleChromePuppeteerProcesses();
-
-                        // Brief delay to let OS release handles/ports
                         await Task.Delay(2_000);
                     }
                 }
 
-                // Should not reach here, but just in case
-                throw new InvalidOperationException("Browser launch failed after all retry attempts.");
+                throw new InvalidOperationException(
+                    "Browser launch failed after all retry attempts. See preceding logs for each browser candidate.",
+                    lastLaunchException);
             }
             catch (Exception ex) when (ex is not InvalidOperationException)
             {
@@ -1117,9 +1145,31 @@ namespace FMS.WebClient.Services.Reporting
         /// </summary>
         private async Task<IBrowser> LaunchBrowserCoreAsync(int attempt)
         {
-            // Use a dedicated temp profile dir to prevent lock conflicts with
-            // the user's regular Chrome profile or leftover Puppeteer profiles.
-            var userDataDir = Path.Combine(Path.GetTempPath(), "fms-puppeteer-profile");
+            if (string.IsNullOrWhiteSpace(_chromeExePath))
+            {
+                throw new InvalidOperationException("Chrome/Edge executable path is not available.");
+            }
+
+            // Use a dedicated writable profile root under C:\FMSData to avoid
+            // IIS service-account TEMP issues and profile lock conflicts.
+            var browserName = Path.GetFileNameWithoutExtension(_chromeExePath);
+            var userDataDir = Path.Combine(
+                @"C:\FMSData",
+                "PuppeteerProfiles",
+                $"{browserName}-attempt-{attempt}");
+
+            if (Directory.Exists(userDataDir))
+            {
+                try
+                {
+                    Directory.Delete(userDataDir, recursive: true);
+                }
+                catch
+                {
+                    // best effort only
+                }
+            }
+
             Directory.CreateDirectory(userDataDir);
 
             _logger.LogInformation(
@@ -1147,6 +1197,22 @@ namespace FMS.WebClient.Services.Reporting
                     $"--user-data-dir={userDataDir}"
                 ]
             });
+        }
+
+        private IEnumerable<string> GetBrowserLaunchCandidates()
+        {
+            if (!string.IsNullOrWhiteSpace(_chromeExePath) && File.Exists(_chromeExePath))
+            {
+                yield return _chromeExePath;
+            }
+
+            foreach (var browserPath in _browserExecutablePaths)
+            {
+                if (!string.Equals(browserPath, _chromeExePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return browserPath;
+                }
+            }
         }
 
         /// <summary>

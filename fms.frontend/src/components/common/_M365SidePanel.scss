@@ -2,13 +2,13 @@
  * File: _M365SidePanel.scss
  * Purpose: M365 Admin Center side panel styles — slide-in from right with overlay
  * Dependencies: None
- * Last Modified: 2026-02-10
+ * Last Modified: 2026-03-07
  */
 
 .m365-side-panel-overlay {
   position: fixed;
   inset: 0;
-  z-index: 9999;
+  z-index: 110000;
   background: rgba(0, 0, 0, 0.4);
   display: flex;
   justify-content: flex-end;
@@ -121,8 +121,8 @@
 }
 
 // Ensure DevExtreme dropdowns (SelectBox, DateBox, etc.) render above the side panel overlay
-// DX dropdowns use container:"body" and default to z-index ~1500, which is below our 9999 overlay
+// DX dropdowns use container:"body" and default to z-index ~1500, which is below our side panel overlay
 .dx-overlay-wrapper.dx-dropdowneditor-overlay,
 .dx-overlay-wrapper.dx-popup-wrapper {
-  z-index: 10001 !important;
+  z-index: 110002 !important;
 }

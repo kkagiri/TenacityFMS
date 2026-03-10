@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Vehicle.DTOs;
 
 namespace FMS.Application.CommonInterface;
@@ -44,6 +45,16 @@ public interface IGPSGateGeofenceService
     /// </summary>
     Task<FMSResponse<List<GeofenceDTO>>> GetVehicleGeofencesAsync(int vehicleId);
 
+    /// <summary>
+    /// Create a new geofence in GPSGate.
+    /// </summary>
+    Task<FMSResponse<GeofenceDTO>> CreateGeofenceAsync(CreateGeofenceRequestDTO request);
+
+    /// <summary>
+    /// Delete a geofence in GPSGate.
+    /// </summary>
+    Task<FMSResponse<bool>> DeleteGeofenceAsync(int geofenceId);
+
     #endregion
 
     #region Geofence Group Operations
@@ -85,6 +96,31 @@ public interface IGPSGateGeofenceService
     /// Get all geofence groups that a vehicle is currently in
     /// </summary>
     Task<FMSResponse<List<GeofenceGroupDTO>>> GetVehicleGeofenceGroupsAsync(int vehicleId);
+
+    /// <summary>
+    /// Create a geofence group in GPSGate.
+    /// </summary>
+    Task<FMSResponse<GeofenceGroupDTO>> CreateGeofenceGroupAsync(CreateGeofenceGroupRequestDTO request);
+
+    /// <summary>
+    /// Update a geofence group in GPSGate.
+    /// </summary>
+    Task<FMSResponse<GeofenceGroupDTO>> UpdateGeofenceGroupAsync(int groupId, UpdateGeofenceGroupRequestDTO request);
+
+    /// <summary>
+    /// Delete a geofence group in GPSGate.
+    /// </summary>
+    Task<FMSResponse<bool>> DeleteGeofenceGroupAsync(int groupId);
+
+    /// <summary>
+    /// Add a geofence to a group in GPSGate.
+    /// </summary>
+    Task<FMSResponse<bool>> AddGeofenceToGroupAsync(int groupId, int geofenceId);
+
+    /// <summary>
+    /// Remove a geofence from a group in GPSGate.
+    /// </summary>
+    Task<FMSResponse<bool>> RemoveGeofenceFromGroupAsync(int groupId, int geofenceId);
 
     #endregion
 }

@@ -1,3 +1,13 @@
+/**
+ * File: DataSourceManager.Metadata.cs
+ * Purpose: Registers dashboard data-source metadata used by the catalog, widget form, and renderer defaults.
+ * Dependencies: DataSourceMetadata, WidgetTypeDefinitions, DataSourceRecommendations
+ * Last Modified: 2026-03-07
+ *
+ * Key Functions:
+ * - BuildMetadata(): Creates the complete dashboard data-source catalog.
+ * - NormalizeMetadataEntry(): Ensures every metadata entry has normalized defaults.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -33,6 +43,27 @@ namespace FMS.Application.Services.Dashboard
 
             // M1 remaining categories
             Add(WidgetTypeDefinitions.DataSources.ALERT_SUMMARY, CreateAlertSummaryMetadata());
+            Add(ActiveEventSummaryDataSource, CreateActiveEventSummaryMetadata());
+            Add(ActiveEventsBySeverityDataSource, CreateActiveEventsBySeverityMetadata());
+            Add(ActiveEventsByTypeDataSource, CreateActiveEventsByTypeMetadata());
+            Add(ActiveEventsByCategoryDataSource, CreateActiveEventsByCategoryMetadata());
+            Add(RecentActiveEventsDataSource, CreateRecentActiveEventsMetadata());
+            Add(EventsOverTimeDataSource, CreateEventsOverTimeMetadata());
+            Add(IssueTrackerSummaryDataSource, CreateIssueTrackerSummaryMetadata());
+            Add(IssuesByStatusDataSource, CreateIssuesByStatusMetadata());
+            Add(IssuesByPriorityDataSource, CreateIssuesByPriorityMetadata());
+            Add(IssuesByCategoryDataSource, CreateIssuesByCategoryMetadata());
+            Add(IssuesByVehicleDataSource, CreateIssuesByVehicleMetadata());
+            Add(IssuesBySiteDataSource, CreateIssuesBySiteMetadata());
+            Add(RecentIssuesDataSource, CreateRecentIssuesMetadata());
+            Add(OverdueIssuesDataSource, CreateOverdueIssuesMetadata());
+            Add(IssuesOverTimeDataSource, CreateIssuesOverTimeMetadata());
+            Add(IssueDetailsTableDataSource, CreateIssueDetailTableMetadata());
+            Add(CurrentLoggedInUsersDataSource, CreateCurrentLoggedInUsersMetadata());
+            Add(PtsWindowsServiceStatusDataSource, CreatePtsWindowsServiceStatusMetadata());
+            Add(NotificationPerformanceAllUsersDataSource, CreateNotificationPerformanceAllUsersMetadata());
+            Add(LocationValidationOutcomesDataSource, CreateLocationValidationOutcomesMetadata());
+            Add(ProviderHealthStatusDataSource, CreateProviderHealthStatusMetadata());
             Add(WidgetTypeDefinitions.DataSources.PERFORMANCE_TRENDS, CreatePerformanceTrendsMetadata());
             Add(WidgetTypeDefinitions.DataSources.SITE_COMPARISON, CreateSiteComparisonMetadata());
             Add(WidgetTypeDefinitions.DataSources.VEHICLE_BREAKDOWN, CreateVehicleBreakdownMetadata());
@@ -1199,6 +1230,216 @@ namespace FMS.Application.Services.Dashboard
                 },
                 Category = WidgetTypeDefinitions.Categories.OPERATIONAL_METRICS,
                 RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateCurrentLoggedInUsersMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Currently Logged In Users",
+                Unit = "users",
+                SupportedUnits = new List<string> { "users" },
+                Description = "Active frontend sessions with recent successful login activity.",
+                SupportsLiveData = true,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "live", "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "live",
+                RecommendedUnits = new List<string> { "users" },
+                CompatibleWidgetTypes = new List<string>
+                {
+                    "BIG_STAT_CARD",
+                    "DATA_TABLE_DETAILED",
+                    "ticker"
+                },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "live",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "users",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "admin",
+                RefreshIntervalSeconds = 30
+            };
+        }
+
+        private static DataSourceMetadata CreatePtsWindowsServiceStatusMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "PTS Windows Service Status",
+                Unit = "hours",
+                SupportedUnits = new List<string> { "hours" },
+                Description = "PTS Windows Service running state, uptime, and process health.",
+                SupportsLiveData = true,
+                SupportsHistoricalData = false,
+                SupportedModes = new List<string> { "live" },
+                SupportedAggregations = new List<string> { "max" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "live",
+                RecommendedUnits = new List<string> { "hours" },
+                CompatibleWidgetTypes = new List<string>
+                {
+                    "BIG_STAT_CARD",
+                    "DATA_TABLE_DETAILED"
+                },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "live",
+                    ["aggregation"] = "max",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "hours",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 1
+                },
+                Category = "admin",
+                RefreshIntervalSeconds = 30
+            };
+        }
+
+        private static DataSourceMetadata CreateNotificationPerformanceAllUsersMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Notification Performance - All Users",
+                Unit = "notifications",
+                SupportedUnits = new List<string> { "notifications" },
+                Description = "Daily sent, delivered, and failed notification performance across all users.",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day", "week" },
+                DefaultGranularity = "day",
+                DefaultMode = "daily_aggregated",
+                RecommendedUnits = new List<string> { "notifications" },
+                CompatibleWidgetTypes = new List<string>
+                {
+                    "CHART_BAR_COMPARISON",
+                    "DATA_TABLE_DETAILED",
+                    "BIG_STAT_CARD"
+                },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "daily_aggregated",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "last_7_days",
+                    ["unit"] = "notifications",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 14
+                },
+                Category = "admin",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateLocationValidationOutcomesMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Location Validation Outcomes",
+                Unit = "validations",
+                SupportedUnits = new List<string> { "validations" },
+                Description = "Daily passed, failed, and bypassed location validation outcomes.",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day", "week" },
+                DefaultGranularity = "day",
+                DefaultMode = "daily_aggregated",
+                RecommendedUnits = new List<string> { "validations" },
+                CompatibleWidgetTypes = new List<string>
+                {
+                    "CHART_BAR_COMPARISON",
+                    "DATA_TABLE_DETAILED",
+                    "BIG_STAT_CARD"
+                },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = true,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "daily_aggregated",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "last_7_days",
+                    ["unit"] = "validations",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 14
+                },
+                Category = "admin",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateProviderHealthStatusMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Provider Health",
+                Unit = "providers",
+                SupportedUnits = new List<string> { "providers", "percent" },
+                Description = "Provider health, availability, response times, and request success rates.",
+                SupportsLiveData = true,
+                SupportsHistoricalData = false,
+                SupportedModes = new List<string> { "live" },
+                SupportedAggregations = new List<string> { "count", "avg" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "live",
+                RecommendedUnits = new List<string> { "providers" },
+                CompatibleWidgetTypes = new List<string>
+                {
+                    "PROGRESS_LIST",
+                    "DATA_TABLE_DETAILED",
+                    "BIG_STAT_CARD",
+                    "CHART_PIE_DISTRIBUTION"
+                },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "live",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "providers",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "admin",
+                RefreshIntervalSeconds = 60
             };
         }
     }

@@ -28,7 +28,7 @@ namespace FMS.Application.Services.Dashboard
         Task SeedWidgetTemplatesAsync();
     }
 
-    public class WidgetTemplateSeeder : IWidgetTemplateSeeder
+    public partial class WidgetTemplateSeeder : IWidgetTemplateSeeder
     {
         private readonly GpsdataContext _context;
         private readonly ILogger<WidgetTemplateSeeder> _logger;
@@ -102,8 +102,11 @@ namespace FMS.Application.Services.Dashboard
             var dashboardReportingPermission = string.Join(",", Permissions.Dashboard.View, Permissions.Dashboard.Reporting);
             var dashboardTankPermission = string.Join(",", Permissions.Dashboard.View, Permissions.Tank.Read);
             var dashboardVehiclePermission = string.Join(",", Permissions.Dashboard.View, Permissions.Vehicle.Read);
+            var dashboardAdminUsersPermission = string.Join(",", Permissions.Dashboard.View, Permissions.Admin.Users);
+            var dashboardAdminDevicePermission = string.Join(",", Permissions.Dashboard.View, Permissions.Admin.Device);
+            var dashboardNotificationPermission = string.Join(",", Permissions.Dashboard.View, Permissions.Notification.Read);
 
-            return new List<DashboardWidgetTemplate> {
+            var templates = new List<DashboardWidgetTemplate> {
                 // Key Statistics Widgets
                 new DashboardWidgetTemplate {
                     WidgetType = "ticker",
@@ -474,6 +477,18 @@ namespace FMS.Application.Services.Dashboard
                             IsEnabled = true
                             }
             };
+
+            templates.AddRange(GetEventAndIssueTemplates(
+                string.Join(",", Permissions.Dashboard.View, Permissions.EventExpression.Read),
+                string.Join(",", Permissions.Dashboard.View, Permissions.IssueTracker.Read)));
+
+            templates.AddRange(GetAdminTemplates(
+                dashboardAdminUsersPermission,
+                dashboardAdminDevicePermission,
+                dashboardNotificationPermission,
+                dashboardVehiclePermission));
+
+            return templates;
         }
 
         private async Task EnsureDashboardReportingPermissionAsync()
@@ -495,7 +510,8 @@ namespace FMS.Application.Services.Dashboard
 
             if (dashboardReportingPermission == null)
             {
-                dashboardReportingPermission = new Permission {
+                dashboardReportingPermission = new Permission
+                {
                     Name = Permissions.Dashboard.Reporting,
                     ParentId = dashboardModuleId.Value
                 };
@@ -508,7 +524,7 @@ namespace FMS.Application.Services.Dashboard
                     dashboardModuleId.Value);
             }
 
-            var donorPermissionNames = new [] {
+            var donorPermissionNames = new[] {
                 Permissions.Dashboard.View,
                 Permissions.Reporting.Read,
                 Permissions.Report.VehicleConsumption,
@@ -553,7 +569,8 @@ namespace FMS.Application.Services.Dashboard
             }
 
             await _context.RolePermissions.AddRangeAsync(
-                missingRoleIds.Select(roleId => new RolePermission {
+                missingRoleIds.Select(roleId => new RolePermission
+                {
                     RoleId = roleId,
                     PermissionId = dashboardReportingPermission.Id
                 }));

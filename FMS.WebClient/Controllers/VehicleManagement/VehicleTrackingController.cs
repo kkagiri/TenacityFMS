@@ -1,12 +1,28 @@
+/// <summary>
+/// File: VehicleTrackingController.cs
+/// Purpose: Exposes vehicle tracking APIs including live location retrieval and user preference persistence.
+/// Dependencies: MediatR, GPS provider services, GpsdataContext, FMSResponse, VehicleTrackingUserPreferenceDto
+/// Last Modified: 2026-03-09
+///
+/// Key Actions:
+/// - GetTags(): Retrieves available GPS tracking tags and views.
+/// - GetVehiclesByTag(): Retrieves live vehicles for a selected tag.
+/// - GetPreferences(): Retrieves persisted vehicle tracking page preferences for the current user.
+/// </summary>
+using System.Security.Claims;
 using FMS.Application.Features.Vehicle.Queries.VehicleTracking;
 using FMS.Application.Features.Vehicle.Services;
+using FMS.Application.Common;
+using FMS.Domain.Entities.Dashboard;
 using FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services;
 using FMS.Persistence.DataAccess;
+using FMS.WebClient.Models.VehicleManagement;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using FMS.WebClient.Attributes;
 using FMS.Application.Common.Constants;
 
@@ -18,6 +34,7 @@ namespace FMS.WebClient.Controllers
     [RequirePermission(Permissions.Vehicle.Read)]
     public class VehicleTrackingController : ControllerBase
     {
+        private const string VehicleTrackingPreferenceLayoutName = "VehicleTracking.Preference";
         private readonly IMediator _mediator;
         private readonly IGPSService _gpsService;
         private readonly IGPSGateViewsService _viewsService;
@@ -40,6 +57,24 @@ namespace FMS.WebClient.Controllers
             _context = context;
             _logger = logger;
         }
+
+        private bool TryGetCurrentUserId(out string userId)
+        {
+            userId = User.FindFirstValue(ClaimTypes.NameIdentifier)
+                ?? User.FindFirstValue("sub")
+                ?? User.FindFirstValue("userId")
+                ?? string.Empty;
+
+            return !string.IsNullOrWhiteSpace(userId);
+        }
+
+        private string GetCurrentUserIdOrDefault(string fallback = "system")
+        {
+            return TryGetCurrentUserId(out var userId) ? userId : fallback;
+        }
+
+        private string CurrentUserId => GetCurrentUserIdOrDefault(User?.Identity?.Name ?? "system");
+        private string CurrentActor => User?.Identity?.Name ?? CurrentUserId;
 
         /// <summary>
         /// Get vehicle location by ID for dispatch module
@@ -298,6 +333,101 @@ namespace FMS.WebClient.Controllers
             {
                 _logger.LogError(ex, "Error getting GPS tags");
                 return StatusCode(500, new { Success = false, Message = "Internal server error" });
+            }
+        }
+
+        /// <summary>
+        /// Get persisted vehicle tracking page preferences for the current user.
+        /// </summary>
+        [HttpGet("preferences")]
+        public async Task<IActionResult> GetPreferences()
+        {
+            if (!TryGetCurrentUserId(out var userId))
+            {
+                return Unauthorized(FMSResponse<VehicleTrackingUserPreferenceDto>.Unauthorized());
+            }
+
+            try
+            {
+                var entity = await _context.UserDashboardLayouts
+                    .AsNoTracking()
+                    .FirstOrDefaultAsync(layout => layout.UserId == userId && layout.LayoutName == VehicleTrackingPreferenceLayoutName);
+
+                if (entity == null || string.IsNullOrWhiteSpace(entity.LayoutJson))
+                {
+                    return Ok(FMSResponse<VehicleTrackingUserPreferenceDto>.Success(new VehicleTrackingUserPreferenceDto(), "Vehicle tracking preferences retrieved successfully"));
+                }
+
+                var preferences = JsonConvert.DeserializeObject<VehicleTrackingUserPreferenceDto>(entity.LayoutJson)
+                    ?? new VehicleTrackingUserPreferenceDto();
+
+                preferences.UpdatedAtUtc ??= entity.UpdatedAt;
+
+                return Ok(FMSResponse<VehicleTrackingUserPreferenceDto>.Success(preferences, "Vehicle tracking preferences retrieved successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting vehicle tracking preferences for user {UserId}", userId);
+                return StatusCode(500, FMSResponse<VehicleTrackingUserPreferenceDto>.SystemError("Error retrieving vehicle tracking preferences"));
+            }
+        }
+
+        /// <summary>
+        /// Save persisted vehicle tracking page preferences for the current user.
+        /// </summary>
+        [HttpPut("preferences")]
+        public async Task<IActionResult> SavePreferences([FromBody] VehicleTrackingUserPreferenceDto request)
+        {
+            if (!TryGetCurrentUserId(out var userId))
+            {
+                return Unauthorized(FMSResponse<VehicleTrackingUserPreferenceDto>.Unauthorized());
+            }
+
+            if (request == null)
+            {
+                return BadRequest(FMSResponse<VehicleTrackingUserPreferenceDto>.ValidationFailed(new List<string> { "Preference payload is required." }));
+            }
+
+            try
+            {
+                request.UpdatedAtUtc = DateTime.UtcNow;
+                var serializedPreference = JsonConvert.SerializeObject(request, Formatting.None);
+
+                var entity = await _context.UserDashboardLayouts
+                    .FirstOrDefaultAsync(layout => layout.UserId == userId && layout.LayoutName == VehicleTrackingPreferenceLayoutName);
+
+                if (entity == null)
+                {
+                    entity = new UserDashboardLayout
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        LayoutName = VehicleTrackingPreferenceLayoutName,
+                        LayoutJson = serializedPreference,
+                        IsActive = false,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow,
+                        CreatedBy = CurrentActor,
+                        UpdatedBy = CurrentActor,
+                    };
+
+                    _context.UserDashboardLayouts.Add(entity);
+                }
+                else
+                {
+                    entity.LayoutJson = serializedPreference;
+                    entity.UpdatedAt = DateTime.UtcNow;
+                    entity.UpdatedBy = CurrentActor;
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok(FMSResponse<VehicleTrackingUserPreferenceDto>.Success(request, "Vehicle tracking preferences saved successfully"));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error saving vehicle tracking preferences for user {UserId}", userId);
+                return StatusCode(500, FMSResponse<VehicleTrackingUserPreferenceDto>.SystemError("Error saving vehicle tracking preferences"));
             }
         }
 

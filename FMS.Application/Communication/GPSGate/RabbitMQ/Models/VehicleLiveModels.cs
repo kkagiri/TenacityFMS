@@ -63,6 +63,31 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
         public bool IsOnline { get; set; }
 
         /// <summary>
+        /// Whether the vehicle is currently moving, derived from streamed telemetry and cache.
+        /// </summary>
+        public bool IsMoving { get; set; }
+
+        /// <summary>
+        /// Whether the vehicle is currently parked.
+        /// </summary>
+        public bool IsParked { get; set; }
+
+        /// <summary>
+        /// Current operational status such as Moving, Stopped, or Parked.
+        /// </summary>
+        public string? OperationalStatus { get; set; }
+
+        /// <summary>
+        /// Describes which signal was used to determine movement state.
+        /// </summary>
+        public string? MovementSource { get; set; }
+
+        /// <summary>
+        /// Last time the backend observed the vehicle moving.
+        /// </summary>
+        public DateTime? LastMovedAt { get; set; }
+
+        /// <summary>
         /// Ignition status
         /// </summary>
         public bool IgnitionOn { get; set; }
@@ -98,6 +123,12 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
         public string? CurrentGeofence { get; set; }
 
         /// <summary>
+        /// Additional GPSGate field values captured from the RabbitMQ payload.
+        /// This preserves custom variables, accumulators, and device-specific signals.
+        /// </summary>
+        public Dictionary<string, object?>? AdditionalFields { get; set; }
+
+        /// <summary>
         /// Device IMEI (from GPSGate)
         /// </summary>
         public string? Imei { get; set; }
@@ -119,6 +150,7 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
 
         public double? Latitude { get; set; }
         public double? Longitude { get; set; }
+        public double? Altitude { get; set; }
 
         public DateTime EventTimestamp { get; set; }
         public bool IsOngoing { get; set; }

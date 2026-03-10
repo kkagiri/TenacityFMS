@@ -115,7 +115,14 @@ namespace FMS.WebClient.Controllers
 
         [HttpGet("manualRefillsFiltered")]
         public async Task<IActionResult> GetManualConsumptionFiltered(
-            [FromQuery] string startDate, [FromQuery] string endDate, [FromQuery] string? vehicleType = null, [FromQuery] string? hyoungNo = null, [FromQuery] int? siteId = null, [FromQuery] int? driverId = null)
+            [FromQuery] string startDate,
+            [FromQuery] string endDate,
+            [FromQuery] string? vehicleType = null,
+            [FromQuery] int? vehicleTypeId = null,
+            [FromQuery] string? hyoungNo = null,
+            [FromQuery] int? vehicleId = null,
+            [FromQuery] int? siteId = null,
+            [FromQuery] int? driverId = null)
         {
 
             var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -133,7 +140,9 @@ namespace FMS.WebClient.Controllers
                     _startDate,
                     _endDate,
                     vehicleType,
+                    vehicleTypeId,
                     hyoungNo,
+                    vehicleId,
                     siteId,
                     driverId
                 );

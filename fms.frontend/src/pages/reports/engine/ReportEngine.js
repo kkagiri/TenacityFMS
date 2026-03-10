@@ -117,6 +117,33 @@ const ReportEngine = () => {
         }
     }, [reportJob?.status, reportJob?.jobId, selectedFormat, fetchHtmlContent, downloadReport]);
 
+    const activeErrorMessage = useMemo(() => {
+        if (reportError) {
+            return reportError;
+        }
+
+        if (reportJob?.status === ReportJobStatus.Failed) {
+            return reportJob?.statusMessage || reportJob?.errorMessage || 'Report generation failed';
+        }
+
+        return '';
+    }, [reportError, reportJob?.status, reportJob?.statusMessage, reportJob?.errorMessage]);
+
+    const lastNotifiedErrorRef = useRef('');
+    useEffect(() => {
+        const notificationKey = `${reportJob?.jobId || 'no-job'}:${activeErrorMessage}`;
+        if (!activeErrorMessage || lastNotifiedErrorRef.current === notificationKey) {
+            return;
+        }
+
+        lastNotifiedErrorRef.current = notificationKey;
+        notify({
+            message: activeErrorMessage,
+            type: 'error',
+            displayTime: 5000,
+        });
+    }, [activeErrorMessage, reportJob?.jobId]);
+
     // Sync source from URL params
     useEffect(() => {
         if (sourceId && sourceId !== activeSourceId) {
@@ -668,6 +695,26 @@ const ReportEngine = () => {
 
                 {/* Output panel */}
                 <div className="engine-output">
+
+                    {activeErrorMessage && (
+                        <div className="engine-error">
+                            <div className="engine-error__top">
+                                <span className="engine-error__msg">
+                                    <i className="fa-light fa-circle-exclamation" />
+                                    {activeErrorMessage}
+                                </span>
+                                <button
+                                    type="button"
+                                    className="m365-btn m365-btn--danger-text"
+                                    onClick={dismissReportJob}
+                                    title="Dismiss report error"
+                                >
+                                    <i className="fa-light fa-xmark" />
+                                    Dismiss
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Progress banner */}
                     {isReportTracking && reportJob && (

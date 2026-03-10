@@ -2,6 +2,7 @@ using System;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Threading;
 using System.Threading.Tasks;
 using FMS.Domain.Entities.VehicleTracking;
 using FMS.Persistence.DataAccess;
@@ -26,10 +27,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private readonly HttpClient _httpClient;
         private readonly ILogger<GPSGateConfigurationProvider> _logger;
 
-        // Cache configuration and token for 5 minutes to reduce database/API calls
-        private (string BaseUrl, int ApplicationId, AuthenticationHeaderValue AuthHeader)? _cachedSettings;
-        private DateTime _cacheExpiry = DateTime.MinValue;
+        // Cache configuration and token for 5 minutes to reduce database/API calls.
+        // Static cache is required because this provider is created per request.
+        private static (string BaseUrl, int ApplicationId, AuthenticationHeaderValue AuthHeader)? _cachedSettings;
+        private static DateTime _cacheExpiry = DateTime.MinValue;
         private readonly TimeSpan _cacheDuration = TimeSpan.FromMinutes(5);
+        private static readonly SemaphoreSlim CacheLock = new(1, 1);
 
         public GPSGateConfigurationProvider(
             GpsdataContext context,
@@ -49,8 +52,15 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 return _cachedSettings.Value;
             }
 
+            await CacheLock.WaitAsync();
+
             try
             {
+                if (_cachedSettings.HasValue && DateTime.UtcNow < _cacheExpiry)
+                {
+                    return _cachedSettings.Value;
+                }
+
                 var providerConfig = await _context.ProviderConfigurations
                     .AsNoTracking()
                     .FirstOrDefaultAsync(p => p.Name == "GPSGate" && p.IsEnabled);
@@ -118,6 +128,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             {
                 _logger.LogError(ex, "Error loading GPSGate configuration from database");
                 throw;
+            }
+            finally
+            {
+                CacheLock.Release();
             }
         }
 

@@ -1,3 +1,13 @@
+/**
+ * File: ServiceControlService.cs
+ * Purpose: Reads and controls the Windows PTS service, including runtime status, logs, and uptime details.
+ * Dependencies: ServiceController, Process, IConfiguration, ServiceStatusDto
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - GetServiceStatusAsync(): Returns current Windows service status and process health.
+ * - ExecuteServiceActionAsync(): Starts, stops, restarts, or inspects the service.
+ */
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
@@ -57,6 +67,9 @@ namespace FMS.Application.Features.PTSService.Services {
                 var processInfo = GetServiceProcessInfo (serviceName);
                 var logPath = GetLogFilePath ();
                 var recentLogs = await GetRecentLogsAsync (logPath, 20);
+                var uptime = processInfo?.StartTime.HasValue == true
+                    ? DateTime.Now - processInfo.Value.StartTime.Value
+                    : (TimeSpan?) null;
 
                 return new ServiceStatusDto {
                     ServiceName = serviceName,
@@ -67,13 +80,16 @@ namespace FMS.Application.Features.PTSService.Services {
                         CanStop = canStop,
                         CanRestart = canStop,
                         StartType = service.StartType.ToString (),
+                        LastStartTime = processInfo?.StartTime,
                         ProcessId = processInfo?.ProcessId,
                         MemoryUsageMB = processInfo?.MemoryUsageMB,
                         LogFilePath = logPath,
                         RecentLogEntries = recentLogs,
                         AdditionalInfo = new Dictionary<string, object> {
                             ["MachineName"] = service.MachineName,
-                            ["ServiceType"] = service.ServiceType.ToString ()
+                            ["ServiceType"] = service.ServiceType.ToString (),
+                            ["UptimeHours"] = uptime.HasValue ? Math.Round (uptime.Value.TotalHours, 2) : 0d,
+                            ["UptimeMinutes"] = uptime.HasValue ? Math.Round (uptime.Value.TotalMinutes, 2) : 0d
                             }
                 };
             } catch (Exception ex) {
@@ -156,7 +172,7 @@ namespace FMS.Application.Features.PTSService.Services {
             }
         }
 
-        private (string ProcessId, long MemoryUsageMB) ? GetServiceProcessInfo (string serviceName) {
+        private (string ProcessId, long MemoryUsageMB, DateTime? StartTime) ? GetServiceProcessInfo (string serviceName) {
             try {
                 using var service = new ServiceController (serviceName);
                 if (service.Status == ServiceControllerStatus.Running) {
@@ -165,7 +181,7 @@ namespace FMS.Application.Features.PTSService.Services {
                     var process = processes.FirstOrDefault ();
 
                     if (process != null) {
-                        return (process.Id.ToString (), process.WorkingSet64 / (1024 * 1024));
+                        return (process.Id.ToString (), process.WorkingSet64 / (1024 * 1024), process.StartTime);
                     }
                 }
             } catch (Exception ex) {

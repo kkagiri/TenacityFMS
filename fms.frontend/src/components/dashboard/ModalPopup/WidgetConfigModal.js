@@ -447,7 +447,7 @@ export default function WidgetConfigModal({
     }
 
     // For enhanced widgets, check if metric is required based on category
-    const requiresMetric = ['fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
+    const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
     if (requiresMetric && !newWidget.metric) {
       return false;
     }
@@ -569,7 +569,7 @@ export default function WidgetConfigModal({
     }
 
     // Check if metric is required for this category
-    const requiresMetric = ['fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
+    const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
     if (requiresMetric && !newWidget.metric) {
       notify('Please select a data source first', 'warning', 3000);
       return;
@@ -708,54 +708,62 @@ export default function WidgetConfigModal({
     return (
       <div className="tw-h-full tw-flex tw-flex-col tw-overflow-hidden">
         {/* Header with category filters */}
-        <div className="tw-border-b tw-border-gray-200 tw-px-4 sm:tw-px-6 tw-py-4">
-          {/* Add Widget Button Row - Mobile: Full width, Desktop: Top right */}
-          <div className="tw-flex tw-justify-center sm:tw-justify-end tw-mb-4">
-            <Button
-              text="Add Widget"
-              icon="fa-solid fa-plus"
-              type="default"
-              stylingMode="contained"
-              height={36}
-              width="100%"
-              className="sm:tw-w-auto"
-              elementAttr={{ style: 'max-width: 300px;' }}
+        <div className="tw-border-b tw-border-gray-200 tw-px-4 sm:tw-px-6 tw-py-4 tw-space-y-4">
+          <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-start sm:tw-justify-between tw-gap-3">
+            <div className="tw-space-y-1">
+              <div className="tw-text-sm tw-font-semibold tw-text-gray-900">Manage dashboard widgets</div>
+              <div className="tw-text-xs tw-text-gray-500">Shared widgets appear together with your own widgets and are marked in the list.</div>
+            </div>
+
+            <button
+              type="button"
+              className="tw-inline-flex tw-items-center tw-justify-center tw-rounded-md tw-border-0 tw-shadow-none tw-bg-[#0078d4] tw-px-3 tw-py-1.5 tw-text-xs tw-font-medium tw-text-white hover:tw-bg-[#106ebe] focus:tw-outline-none focus:tw-ring-2 focus:tw-ring-[#0078d4]/30"
               onClick={() => {
                 resetWidgetForm();
                 setView('form');
                 setFormMode('add');
                 setEditingWidget(null);
               }}
-            />
+            >
+              <span className="tw-mr-1.5 tw-text-sm tw-leading-none">+</span>
+              Add widget
+            </button>
           </div>
 
           {/* Category Filters Row */}
           <div className="tw-flex tw-flex-wrap tw-gap-2 tw-mb-3">
-            <Button
-              text={`All (${widgets.length})`}
-              type={activeCategory === 'all' ? 'default' : 'normal'}
-              stylingMode={activeCategory === 'all' ? 'contained' : 'outlined'}
-              height={32}
+            <button
+              type="button"
+              className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-xs tw-font-medium ${activeCategory === 'all'
+                ? 'tw-bg-[#eff6fc] tw-text-[#005a9e]'
+                : 'tw-bg-[#f3f2f1] tw-text-gray-600 hover:tw-bg-[#edebe9]'
+                }`}
               onClick={() => setActiveCategory('all')}
-            />
+            >
+              {`All (${widgets.length})`}
+            </button>
             {categories.map(cat => (
-              <Button
+              <button
                 key={cat}
-                text={`${cat.replace(/_/g, ' ')} (${widgets.filter(w => (w.template?.category || w.category) === cat).length})`}
-                type={activeCategory === cat ? 'default' : 'normal'}
-                stylingMode={activeCategory === cat ? 'contained' : 'outlined'}
-                height={32}
+                type="button"
+                className={`tw-rounded-full tw-px-3 tw-py-1.5 tw-text-xs tw-font-medium ${activeCategory === cat
+                  ? 'tw-bg-[#eff6fc] tw-text-[#005a9e]'
+                  : 'tw-bg-[#f3f2f1] tw-text-gray-600 hover:tw-bg-[#edebe9]'
+                  }`}
                 onClick={() => setActiveCategory(cat)}
-              />
+              >
+                {`${cat.replace(/_/g, ' ')} (${widgets.filter(w => (w.template?.category || w.category) === cat).length})`}
+              </button>
             ))}
           </div>
 
           {/* Drag Instructions */}
           <div className="tw-text-xs tw-text-gray-500">
-            <i className="fa-solid fa-arrows-up-down-left-right tw-mr-1"></i>
             Drag to reorder within categories
           </div>
-        </div>        <div className="tw-flex-1 tw-overflow-y-auto tw-p-4 sm:tw-p-6">
+        </div>
+
+        <div className="tw-flex-1 tw-overflow-y-auto tw-p-4 sm:tw-p-6">
           <WidgetList
             widgets={widgets}
             loading={widgetsLoading}

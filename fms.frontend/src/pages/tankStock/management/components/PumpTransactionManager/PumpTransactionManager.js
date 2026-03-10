@@ -716,11 +716,10 @@ const TransactionDataGrid = ({
         width={100}
         cellRender={(data) => (
           <span
-            className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${
-              data.value
+            className={`tw-px-2 tw-py-1 tw-rounded tw-text-xs tw-font-medium ${data.value
                 ? "tw-bg-green-100 tw-text-green-800"
                 : "tw-bg-yellow-100 tw-text-yellow-800"
-            }`}
+              }`}
           >
             {data.value ? "Processed" : "Pending"}
           </span>
@@ -778,11 +777,11 @@ const TransactionDataGrid = ({
             consumptionValue > 15
               ? "tw-text-red-600"
               : consumptionValue > 10
-              ? "tw-text-yellow-600"
-              : "tw-text-green-600";
+                ? "tw-text-yellow-600"
+                : "tw-text-green-600";
           return (
             <span className={`tw-font-medium ${colorClass}`}>
-              {consumptionValue.toFixed(2)} L/100km
+              {consumptionValue.toFixed(2)} km/l
             </span>
           );
         }}

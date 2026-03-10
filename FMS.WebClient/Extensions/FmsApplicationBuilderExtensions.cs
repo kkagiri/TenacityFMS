@@ -1,3 +1,12 @@
+/**
+ * File: FmsApplicationBuilderExtensions.cs
+ * Purpose: Configures the ASP.NET Core middleware pipeline and endpoint mappings for FMS WebClient.
+ * Dependencies: ASP.NET Core hosting pipeline, SignalR hubs, DevExpress, Serilog
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - UseFmsPipeline(): Applies middleware, diagnostics, and endpoint mappings.
+ */
 using System.Diagnostics;
 using System.IO;
 using Serilog;
@@ -227,11 +236,9 @@ public static class FmsApplicationBuilderExtensions
                 .RequireCors(corsPolicy);
 
             // Vehicle Tracking Hub - Real-time GPS updates from GPSGate RabbitMQ
-            // DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
-            // Uncomment the lines below to re-enable real-time vehicle tracking via SignalR
-            // endpoints.MapHub<VehicleTrackingHub>("/vehicleTrackingHub")
-            //     .RequireAuthorization()
-            //     .RequireCors(corsPolicy);
+            endpoints.MapHub<VehicleTrackingHub>("/vehicleTrackingHub")
+                .RequireAuthorization()
+                .RequireCors(corsPolicy);
         });
 
         return app;

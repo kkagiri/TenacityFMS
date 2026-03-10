@@ -1,12 +1,23 @@
+/**
+ * File: WidgetForm.js
+ * Purpose: Render the dashboard widget creation form for template-based and custom widgets.
+ * Dependencies: React, DevExtreme inputs, dataSourceService, widgetFactoryService, ModeSelector
+ * Last Modified: 2026-03-07
+ *
+ * Key Functions:
+ * - handleTemplateSelect(): Applies template defaults for a one-touch widget setup flow
+ * - handleCreateCustom(): Resets the form into advanced custom-widget mode
+ * - mergeWithMetadataDefaults(): Normalizes widget settings using data source metadata
+ */
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import SelectBox from 'devextreme-react/select-box';
 import TagBox from 'devextreme-react/tag-box';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import TextBox from 'devextreme-react/text-box';
-import Button from 'devextreme-react/button';
 import dataSourceService from '../../../services/dataSourceService';
 import widgetFactoryService from '../../../services/widgetFactoryService';
 import ModeSelector from './ModeSelector';
+import './WidgetForm.scss';
 import {
   getRecommendedMode
 } from '../../../utils/widgetModeCompatibility';
@@ -59,16 +70,31 @@ const formatCategoryLabel = (category = '') => category
   .map(part => part.charAt(0).toUpperCase() + part.slice(1))
   .join(' ');
 
-const LEGACY_CATEGORY_OPTIONS = [
+const getWidgetDisplayStyleLabel = (widgetType = '') => {
+  if (!widgetType) return '';
+  return WIDGET_TYPE_DEFINITIONS[widgetType]?.label || formatCategoryLabel(widgetType.toLowerCase());
+};
+
+const SYSTEM_CATEGORY_OPTIONS = [
+  { id: 'admin', label: 'Admin' },
   { id: 'fuel_management', label: 'Fuel Management' },
   { id: 'vehicle_performance', label: 'Vehicle Performance' },
+  { id: 'operational_metrics', label: 'Operational Metrics' },
+  { id: 'financial_analysis', label: 'Financial Analysis' },
   { id: 'alerts_monitoring', label: 'Alerts & Monitoring' },
-  { id: 'key_statistics', label: 'Key Statistics' },
-  { id: 'performance_metrics', label: 'Performance Metrics' },
-  { id: 'system_status', label: 'System Status' },
-  { id: 'reporting', label: 'Reporting' },
-  { id: 'configuration', label: 'Configuration' }
+  { id: 'custom_analytics', label: 'Custom Analytics' }
 ];
+
+const CATEGORY_ALIAS_MAP = {
+  key_statistics: 'operational_metrics',
+  performance_metrics: 'vehicle_performance',
+  system_status: 'alerts_monitoring',
+  reporting: 'financial_analysis',
+  configuration: 'custom_analytics',
+  general: 'custom_analytics'
+};
+
+const normalizeCategoryId = (category = '') => CATEGORY_ALIAS_MAP[category] || category || 'custom_analytics';
 
 export default function WidgetForm({
   newWidget,
@@ -98,16 +124,126 @@ export default function WidgetForm({
   const [dsError, setDsError] = useState('');
   const [dataSourceMeta, setDataSourceMeta] = useState(null);
   const [catalog, setCatalog] = useState({ items: [], categories: [], widgetCompatibility: {} });
+  const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('');
+
+  const selectedTemplate = useMemo(() => {
+    if (!newWidget.templateId) return null;
+    const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
+    return templatesArray.find(template => String(template.id) === String(newWidget.templateId)) || null;
+  }, [newWidget.templateId, widgetTemplates]);
+
+  const isTemplateWidget = useMemo(() => Boolean(newWidget.templateId && !isCustomWidget), [isCustomWidget, newWidget.templateId]);
 
   const categoryOptions = useMemo(() => {
-    if (catalog.categories?.length) {
-      return catalog.categories.map(({ category }) => ({
+    const rawCategories = catalog.categories?.length
+      ? catalog.categories.map(({ category }) => normalizeCategoryId(category))
+      : SYSTEM_CATEGORY_OPTIONS.map(({ id }) => id);
+
+    return [...new Set(rawCategories)]
+      .map(category => ({
         id: category,
-        label: formatCategoryLabel(category)
-      }));
-    }
-    return LEGACY_CATEGORY_OPTIONS;
+        label: SYSTEM_CATEGORY_OPTIONS.find(option => option.id === category)?.label || formatCategoryLabel(category)
+      }))
+      .sort((left, right) => left.label.localeCompare(right.label));
   }, [catalog.categories]);
+
+  const categoryLabelLookup = useMemo(() => categoryOptions.reduce((lookup, option) => {
+    lookup[option.id] = option.label;
+    return lookup;
+  }, {}), [categoryOptions]);
+
+  const dataSourceCategoryLookup = useMemo(() => {
+    const items = Array.isArray(catalog.items) ? catalog.items : [];
+    return items.reduce((lookup, item) => {
+      if (!item?.id) {
+        return lookup;
+      }
+
+      lookup[item.id] = normalizeCategoryId(item.metadata?.category || item.category || '');
+      return lookup;
+    }, {});
+  }, [catalog.items]);
+
+  const resolveTemplateCategory = useCallback((template) => {
+    if (!template) {
+      return 'custom_analytics';
+    }
+
+    return dataSourceCategoryLookup[template.dataSource]
+      || normalizeCategoryId(template.category)
+      || 'custom_analytics';
+  }, [dataSourceCategoryLookup]);
+
+  const templateSelectItems = useMemo(() => {
+    const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
+    return [...templatesArray]
+      .map(template => {
+        const categoryId = resolveTemplateCategory(template);
+        const categoryLabel = categoryLabelLookup[categoryId] || formatCategoryLabel(categoryId);
+
+        return {
+          ...template,
+          categoryId,
+          categoryLabel,
+          pickerLabel: `${template.displayName} · ${categoryLabel} · ${getWidgetDisplayStyleLabel(template.widgetType)}`
+        };
+      })
+      .sort((left, right) => {
+        const categoryCompare = (left.categoryLabel || '').localeCompare(right.categoryLabel || '');
+        if (categoryCompare !== 0) {
+          return categoryCompare;
+        }
+
+        return (left.displayName || '').localeCompare(right.displayName || '');
+      });
+  }, [categoryLabelLookup, resolveTemplateCategory, widgetTemplates]);
+
+  const templateCategoryOptions = useMemo(() => {
+    const availableTemplateCategories = new Set(templateSelectItems.map(template => template.categoryId));
+    return categoryOptions.filter(option => availableTemplateCategories.has(option.id));
+  }, [categoryOptions, templateSelectItems]);
+
+  const filteredTemplateSelectItems = useMemo(() => {
+    if (!selectedTemplateCategory) {
+      return templateSelectItems;
+    }
+
+    return templateSelectItems.filter(template => template.categoryId === selectedTemplateCategory);
+  }, [selectedTemplateCategory, templateSelectItems]);
+
+  const templateBehaviorSummary = useMemo(() => {
+    if (!selectedTemplate) return [];
+
+    const items = [];
+    if (newWidget.visualizationType) {
+      items.push({ label: 'Display', value: getWidgetDisplayStyleLabel(newWidget.visualizationType) });
+    }
+    if (newWidget.metric) {
+      items.push({ label: 'Data', value: formatCategoryLabel(newWidget.metric) });
+    }
+    if (newWidget.aggregation) {
+      items.push({ label: 'Aggregation', value: newWidget.aggregation });
+    }
+    if (newWidget.groupBy && newWidget.groupBy !== 'none') {
+      items.push({ label: 'Group by', value: formatCategoryLabel(newWidget.groupBy) });
+    }
+    if (newWidget.granularity && ['CHART_LINE_TREND', 'ticker', 'BIG_STAT_CARD'].includes(newWidget.visualizationType)) {
+      items.push({ label: 'Trend', value: formatCategoryLabel(newWidget.granularity) });
+    }
+
+    return items;
+  }, [newWidget.aggregation, newWidget.granularity, newWidget.groupBy, newWidget.metric, newWidget.visualizationType, selectedTemplate]);
+
+  const templateFriendlySummary = useMemo(() => {
+    if (!selectedTemplate) return '';
+
+    const displayStyle = getWidgetDisplayStyleLabel(newWidget.visualizationType);
+    if (!displayStyle) {
+      return 'This template is ready to use. Only set the name, site scope, and date range.';
+    }
+
+    return `This template is ready to use as a ${displayStyle}. You only need to set the name, site scope, and date range.`;
+  }, [newWidget.visualizationType, selectedTemplate]);
 
   const mergeWithMetadataDefaults = useCallback((prevState, partial = {}, metadataOverride = null) => {
     const draft = { ...prevState, ...partial };
@@ -184,6 +320,7 @@ export default function WidgetForm({
     // Comprehensive fallback widget types per category when catalog doesn't have metadata
     if (widgetTypeSet.size === 0) {
       const fallbackWidgetTypes = {
+        admin: ['BIG_STAT_CARD', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
         key_statistics: ['BIG_STAT_CARD', 'ticker'],
         performance_metrics: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED'],
         fuel_management: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'CHART_PIE_DISTRIBUTION', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
@@ -208,6 +345,11 @@ export default function WidgetForm({
       };
     });
   }, [catalog.categories, newWidget.category]);
+
+  const selectedWidgetTypeDefinition = useMemo(
+    () => availableWidgetTypes.find(type => type.id === newWidget.visualizationType) || null,
+    [availableWidgetTypes, newWidget.visualizationType]
+  );
 
   // Vehicle type options - combines loaded vehicle types with "All" option
   const vehicleTypeOptions = useMemo(() => {
@@ -306,6 +448,24 @@ export default function WidgetForm({
 
   // Smart filter configuration based on data source/metric
   const getAvailableFilters = useMemo(() => {
+    const supportsVehicleType = dataSourceMeta?.requiresVehicleFilter ?? false;
+    const supportsGrouping = Boolean(
+      newWidget.visualizationType &&
+      ['CHART_BAR_COMPARISON', 'CHART_PIE_DISTRIBUTION', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'].includes(newWidget.visualizationType) &&
+      (dataSourceMeta?.supportedGroupBy?.length || 0) > 1
+    );
+
+    if (isTemplateWidget) {
+      return {
+        aggregation: false,
+        granularity: false,
+        sites: true,
+        dateRange: true,
+        vehicleTypes: supportsVehicleType,
+        groupBy: supportsGrouping
+      };
+    }
+
     // Always show aggregation and granularity - they are fundamental configuration options
     // The SelectBox will use defaults if metadata isn't available
     return {
@@ -313,9 +473,10 @@ export default function WidgetForm({
       granularity: true, // Always show granularity option
       sites: dataSourceMeta?.requiresSiteFilter ?? true,
       dateRange: true,
-      vehicleTypes: dataSourceMeta?.requiresVehicleFilter ?? false
+      vehicleTypes: supportsVehicleType,
+      groupBy: supportsGrouping
     };
-  }, [dataSourceMeta]);
+  }, [dataSourceMeta, isTemplateWidget, newWidget.visualizationType]);
 
   // Widget types available for each category - moved to CustomWidgetDialog  // Widget types available for each category - moved to CustomWidgetDialog
   // const widgetTypesByCategory = useMemo(() => ({
@@ -372,36 +533,56 @@ export default function WidgetForm({
 
   // Handle template selection
   const handleTemplateSelect = (templateId) => {
-    const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
-    const selectedTemplate = templatesArray.find(t => t.id === templateId);
+    const selectedTemplate = templateSelectItems.find(t => String(t.id) === String(templateId));
     if (selectedTemplate) {
       const config = JSON.parse(selectedTemplate.configurationJson || '{}');
       const defaultSettings = config.defaultSettings || {};
-
-      console.log('Template selected:', selectedTemplate);
-      console.log('Template dataSource:', selectedTemplate.dataSource);
-      console.log('Default settings dataSource:', defaultSettings.dataSource);
+      const templateText = `${selectedTemplate.displayName || ''} ${selectedTemplate.description || ''} ${selectedTemplate.name || ''}`.toLowerCase();
+      const inferredGroupBy = templateText.includes('by site')
+        ? 'site'
+        : templateText.includes('vehicle type')
+          ? 'vehicleType'
+          : (defaultSettings.groupBy || 'none');
+      const inferredAggregation = templateText.includes('average') || templateText.includes('avg')
+        ? 'AVG'
+        : (defaultSettings.aggregation || config.aggregation || 'SUM');
+      const inferredMode = templateText.includes('live')
+        ? 'live'
+        : (defaultSettings.mode || config.defaultMode || 'cumulative');
+      const inferredDatePreset = templateText.includes('today')
+        ? 'today'
+        : templateText.includes('yesterday')
+          ? 'yesterday'
+          : templateText.includes('last week')
+            ? 'last_7_days'
+            : (defaultSettings.datePreset || config.defaultDatePreset || 'yesterday');
+      const inferredGranularity = defaultSettings.granularity || config.defaultGranularity || (selectedTemplate.widgetType === 'CHART_LINE_TREND' ? 'day' : 'none');
+      const nextSettings = {
+        ...defaultSettings,
+        aggregation: inferredAggregation,
+        groupBy: inferredGroupBy,
+        granularity: inferredGranularity,
+        mode: inferredMode,
+        datePreset: inferredDatePreset,
+        dataSource: selectedTemplate.dataSource || defaultSettings.dataSource
+      };
 
       setNewWidget(prev => ({
         ...prev,
         templateId: templateId,
         customName: prev.customName || selectedTemplate.displayName,
-        category: selectedTemplate.category,
-        settings: defaultSettings,
+        category: selectedTemplate.categoryId,
+        settings: nextSettings,
         visualizationType: selectedTemplate.widgetType,
         metric: selectedTemplate.dataSource || defaultSettings.dataSource || prev.metric,
-        mode: defaultSettings.mode || config.defaultMode || 'cumulative',
-        datePreset: defaultSettings.datePreset || config.defaultDatePreset || 'yesterday'
+        aggregation: inferredAggregation,
+        groupBy: inferredGroupBy,
+        granularity: inferredGranularity,
+        mode: inferredMode,
+        datePreset: inferredDatePreset
       }));
 
-      // Additional debug logging after state update
-      console.log('Widget state after template selection:', {
-        templateId: templateId,
-        category: selectedTemplate.category,
-        visualizationType: selectedTemplate.widgetType,
-        metric: selectedTemplate.dataSource || defaultSettings.dataSource,
-        dataSource: selectedTemplate.dataSource
-      });
+      setSelectedTemplateCategory(selectedTemplate.categoryId);
       setIsCustomWidget(false);
     }
   };
@@ -412,7 +593,7 @@ export default function WidgetForm({
     setNewWidget(prev => ({
       ...prev,
       templateId: null,
-      category: '',
+      category: selectedTemplateCategory || prev.category || '',
       visualizationType: '',
       customName: '',
       metric: '',
@@ -421,6 +602,17 @@ export default function WidgetForm({
       datePreset: 'yesterday'
     }));
   };
+
+  useEffect(() => {
+    if (!selectedTemplate) {
+      return;
+    }
+
+    const resolvedCategory = resolveTemplateCategory(selectedTemplate);
+    if (resolvedCategory !== selectedTemplateCategory) {
+      setSelectedTemplateCategory(resolvedCategory);
+    }
+  }, [resolveTemplateCategory, selectedTemplate, selectedTemplateCategory]);
 
   // Auto-update unit when metric changes (for smart defaults)
   React.useEffect(() => {
@@ -613,18 +805,15 @@ export default function WidgetForm({
   const showTemplateSelection = !isEditMode && !newWidget.templateId && !(isCustomWidget && newWidget.category && newWidget.visualizationType);
 
   return (
-    <div className="tw-space-y-6">
+    <div className="widget-form-m365 tw-space-y-4">
       {/* Edit Mode Header */}
       {isEditMode && (
-        <div className="tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded-lg tw-p-4 tw-space-y-4">
-          <div className="tw-flex tw-items-center">
-            <i className="fa-light fa-pen-to-square tw-text-blue-600 tw-text-xl tw-mr-3"></i>
-            <div>
-              <h4 className="tw-font-semibold tw-text-blue-900">Editing Widget</h4>
-              <p className="tw-text-sm tw-text-blue-700">
-                {newWidget.templateId ? 'Template-based widget' : 'Custom widget'}
-              </p>
-            </div>
+        <div className="widget-form-m365__section widget-form-m365__section--muted tw-space-y-4">
+          <div className="widget-form-m365__section-header tw-mb-0">
+            <h4 className="widget-form-m365__section-title">Editing widget</h4>
+            <p className="widget-form-m365__section-copy">
+              {newWidget.templateId ? 'Template-based widget' : 'Custom widget'}
+            </p>
           </div>
 
           {/* Widget Name Input */}
@@ -645,22 +834,21 @@ export default function WidgetForm({
       {/* Template vs Custom Selection - Simple and Clean (only for Add mode) */}
       {showTemplateSelection && (
         <div className="tw-space-y-3">
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 tw-gap-3">
+          <div className="widget-form-m365__intro">
             {/* Use Template Option */}
             <button
               type="button"
-              className={`tw-border-2 tw-rounded-lg tw-p-6 tw-transition-all tw-text-left ${
-                !isCustomWidget
-                  ? 'tw-border-blue-500 tw-bg-blue-50 tw-shadow-sm'
-                  : 'tw-border-gray-300 hover:tw-border-blue-300 hover:tw-bg-gray-50'
-              }`}
-              onClick={() => setIsCustomWidget(false)}
+              className={`widget-form-m365__choice ${!isCustomWidget
+                ? 'widget-form-m365__choice--active'
+                : ''
+                }`}
+              onClick={() => {
+                setIsCustomWidget(false);
+                setSelectedTemplateCategory(prev => prev || normalizeCategoryId(newWidget.category || ''));
+              }}
             >
-              <div className="tw-flex tw-items-center tw-mb-3">
-                <i className="fa-light fa-layer-group tw-text-2xl tw-text-blue-600 tw-mr-3"></i>
-                <h4 className="tw-text-lg tw-font-semibold tw-text-gray-900">Choose Template</h4>
-              </div>
-              <p className="tw-text-sm tw-text-gray-600 tw-leading-relaxed">
+              <h4 className="widget-form-m365__choice-title">Choose template</h4>
+              <p className="widget-form-m365__choice-copy">
                 Quick start with pre-configured widgets designed for common dashboard needs
               </p>
             </button>
@@ -668,18 +856,14 @@ export default function WidgetForm({
             {/* Custom Widget Option */}
             <button
               type="button"
-              className={`tw-border-2 tw-rounded-lg tw-p-6 tw-transition-all tw-text-left ${
-                isCustomWidget
-                  ? 'tw-border-blue-500 tw-bg-blue-50 tw-shadow-sm'
-                  : 'tw-border-gray-300 hover:tw-border-blue-300 hover:tw-bg-gray-50'
-              }`}
+              className={`widget-form-m365__choice ${isCustomWidget
+                ? 'widget-form-m365__choice--active'
+                : ''
+                }`}
               onClick={handleCreateCustom}
             >
-              <div className="tw-flex tw-items-center tw-mb-3">
-                <i className="fa-light fa-wand-magic-sparkles tw-text-2xl tw-text-purple-600 tw-mr-3"></i>
-                <h4 className="tw-text-lg tw-font-semibold tw-text-gray-900">Create Custom</h4>
-              </div>
-              <p className="tw-text-sm tw-text-gray-600 tw-leading-relaxed">
+              <h4 className="widget-form-m365__choice-title">Create custom</h4>
+              <p className="widget-form-m365__choice-copy">
                 Build a unique widget tailored to your specific requirements
               </p>
             </button>
@@ -689,13 +873,12 @@ export default function WidgetForm({
 
       {/* Template Selection - Show in Add mode when using templates */}
       {!isEditMode && !isCustomWidget && (
-        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
-          <div className="tw-mb-3">
+        <div className="widget-form-m365__section">
+          <div className="widget-form-m365__section-header">
             <label className="tw-block tw-text-sm tw-font-semibold tw-text-gray-800 tw-mb-1">
-              <i className="fa-light fa-rectangle-history tw-mr-2 tw-text-blue-600"></i>
               Select Template
             </label>
-            <p className="tw-text-xs tw-text-gray-500">Choose from available pre-built widgets</p>
+            <p className="widget-form-m365__section-copy">Choose from available pre-built widgets</p>
           </div>
 
           {templatesLoading && (
@@ -705,37 +888,97 @@ export default function WidgetForm({
           )}
 
           {templatesError && (
-            <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-text-red-700 tw-p-3 tw-rounded-md tw-text-sm">
-              <i className="fa-light fa-circle-exclamation tw-mr-2"></i>
-              {templatesError}
-            </div>
+            <div className="widget-form-m365__message">{templatesError}</div>
           )}
 
           {!templatesLoading && !templatesError && (
-            <SelectBox
-              items={Array.isArray(widgetTemplates) ? widgetTemplates : []}
-              value={newWidget.templateId}
-              displayExpr="displayName"
-              valueExpr="id"
-              width="100%"
-              placeholder="Select a template..."
-              searchEnabled={true}
-              searchMode="contains"
-              onValueChanged={(e) => handleTemplateSelect(e.value)}
-            />
+            <div className="tw-space-y-4">
+              <div>
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                  Category <span className="tw-text-red-500">*</span>
+                </label>
+                <SelectBox
+                  items={templateCategoryOptions}
+                  value={selectedTemplateCategory || null}
+                  displayExpr="label"
+                  valueExpr="id"
+                  width="100%"
+                  placeholder="Select a category..."
+                  searchEnabled={true}
+                  searchMode="contains"
+                  onValueChanged={(e) => {
+                    const nextCategory = e.value || '';
+                    setSelectedTemplateCategory(nextCategory);
+
+                    const activeTemplate = templateSelectItems.find(template => String(template.id) === String(newWidget.templateId));
+                    if (activeTemplate && activeTemplate.categoryId !== nextCategory) {
+                      setNewWidget(prev => ({
+                        ...prev,
+                        templateId: null,
+                        category: nextCategory,
+                        visualizationType: '',
+                        metric: '',
+                        customName: '',
+                        settings: {},
+                        mode: 'cumulative',
+                        datePreset: 'yesterday'
+                      }));
+                    }
+                  }}
+                />
+              </div>
+
+              <div>
+                <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+                  Template <span className="tw-text-red-500">*</span>
+                </label>
+                <SelectBox
+                  items={filteredTemplateSelectItems}
+                  value={newWidget.templateId}
+                  displayExpr="pickerLabel"
+                  valueExpr="id"
+                  width="100%"
+                  placeholder={selectedTemplateCategory ? 'Select a template...' : 'Select a category first...'}
+                  searchEnabled={true}
+                  searchMode="contains"
+                  disabled={!selectedTemplateCategory}
+                  onValueChanged={(e) => handleTemplateSelect(e.value)}
+                />
+              </div>
+            </div>
           )}
+        </div>
+      )}
+
+      {!isEditMode && isTemplateWidget && (
+        <div className="widget-form-m365__section tw-space-y-4">
+          <div className="widget-form-m365__section-header">
+            <h4 className="widget-form-m365__section-title">Template quick setup</h4>
+            <p className="widget-form-m365__section-copy">
+              {templateFriendlySummary}
+            </p>
+          </div>
+
+          <div>
+            <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
+              Widget Name <span className="tw-text-red-500">*</span>
+            </label>
+            <TextBox
+              value={newWidget.customName}
+              placeholder="Enter a descriptive name..."
+              width="100%"
+              onValueChanged={(e) => setNewWidget(prev => ({ ...prev, customName: e.value }))}
+            />
+          </div>
         </div>
       )}
 
       {/* Custom Widget Configuration - Show in Add mode for custom widgets OR Edit mode for custom widgets */}
       {((!isEditMode && isCustomWidget) || isEditingCustomWidget) && (
-        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
-          <div className="tw-mb-2">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
-              <i className="fa-light fa-sliders tw-mr-2 tw-text-purple-600"></i>
-              Custom Widget Configuration
-            </h4>
-            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Configure your widget settings</p>
+        <div className="widget-form-m365__section tw-space-y-4">
+          <div className="widget-form-m365__section-header">
+            <h4 className="widget-form-m365__section-title">Custom widget configuration</h4>
+            <p className="widget-form-m365__section-copy">Configure your widget settings</p>
           </div>
 
           {/* Category Selection */}
@@ -752,11 +995,15 @@ export default function WidgetForm({
               placeholder="Select a category..."
               searchEnabled={true}
               searchMode="contains"
-              onValueChanged={(e) => setNewWidget(prev => ({
-                ...prev,
-                category: e.value,
-                visualizationType: ''
-              }))}
+              onValueChanged={(e) => {
+                const nextCategory = e.value;
+                setSelectedTemplateCategory(nextCategory || '');
+                setNewWidget(prev => ({
+                  ...prev,
+                  category: nextCategory,
+                  visualizationType: ''
+                }));
+              }}
             />
           </div>
 
@@ -766,26 +1013,11 @@ export default function WidgetForm({
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
                 Widget Type <span className="tw-text-red-500">*</span>
               </label>
-              <SelectBox
-                items={availableWidgetTypes}
-                value={newWidget.visualizationType}
-                displayExpr="label"
-                valueExpr="id"
-                width="100%"
-                placeholder="Select widget type..."
-                searchEnabled={true}
-                searchMode="contains"
-                itemRender={(data) => (
-                  <div className="tw-py-1">
-                    <div className="tw-font-medium tw-text-sm">{data.label}</div>
-                    {data.description && (
-                      <div className="tw-text-xs tw-text-gray-500">{data.description}</div>
-                    )}
-                  </div>
-                )}
-                onValueChanged={(e) => {
-                  const newWidgetType = e.value;
-                  // Get recommended mode for this widget type
+              <select
+                className="widget-form-m365__native-select"
+                value={newWidget.visualizationType || ''}
+                onChange={(e) => {
+                  const newWidgetType = e.target.value;
                   const recommendedMode = getRecommendedMode(newWidgetType, dataSourceMeta);
 
                   setNewWidget(prev => mergeWithMetadataDefaults(prev, {
@@ -793,7 +1025,20 @@ export default function WidgetForm({
                     mode: recommendedMode
                   }));
                 }}
-              />
+              >
+                <option value="">Select widget type...</option>
+                {availableWidgetTypes.map(type => (
+                  <option key={type.id} value={type.id}>
+                    {type.label}
+                  </option>
+                ))}
+              </select>
+
+              {selectedWidgetTypeDefinition?.description && (
+                <div className="widget-form-m365__field-help">
+                  {selectedWidgetTypeDefinition.description}
+                </div>
+              )}
             </div>
           )}
 
@@ -816,25 +1061,42 @@ export default function WidgetForm({
 
       {/* Data Source & Configuration */}
       {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
-        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
-          <div className="tw-mb-2">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
-              <i className="fa-light fa-database tw-mr-2 tw-text-green-600"></i>
-              Data Source
-            </h4>
-            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Select what data this widget will display</p>
+        <div className="widget-form-m365__section tw-space-y-4">
+          <div className="widget-form-m365__section-header">
+            <h4 className="widget-form-m365__section-title">Data source</h4>
+            <p className="widget-form-m365__section-copy">Select what data this widget will display</p>
           </div>
 
           {/* Data Source SelectBox */}
-          {dsLoading ? (
+          {isTemplateWidget && selectedTemplate ? (
+            <div className="widget-form-m365__summary">
+              <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                <div>
+                  <div className="widget-form-m365__summary-title">{selectedTemplate.displayName}</div>
+                  <div className="widget-form-m365__summary-copy">{templateFriendlySummary}</div>
+                </div>
+                <span className="widget-form-m365__chip">
+                  {getWidgetDisplayStyleLabel(newWidget.visualizationType) || formatCategoryLabel(newWidget.metric || '')}
+                </span>
+              </div>
+
+              {templateBehaviorSummary.length > 0 && (
+                <div className="widget-form-m365__chips">
+                  {templateBehaviorSummary.map(item => (
+                    <span key={`${item.label}-${item.value}`} className="widget-form-m365__chip">
+                      <span className="tw-font-semibold tw-mr-1">{item.label}:</span>
+                      <span>{item.value}</span>
+                    </span>
+                  ))}
+                </div>
+              )}
+            </div>
+          ) : dsLoading ? (
             <div className="tw-flex tw-items-center tw-justify-center tw-py-4">
               <LoadIndicator width={20} height={20} />
             </div>
           ) : dsError ? (
-            <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-text-red-700 tw-p-3 tw-rounded-md tw-text-sm">
-              <i className="fa-light fa-circle-exclamation tw-mr-2"></i>
-              {dsError}
-            </div>
+            <div className="widget-form-m365__message">{dsError}</div>
           ) : (
             <SelectBox
               items={availableDataSources}
@@ -902,13 +1164,10 @@ export default function WidgetForm({
 
       {/* Data Filters - Simplified */}
       {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
-        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
-          <div className="tw-mb-2">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
-              <i className="fa-light fa-filter tw-mr-2 tw-text-indigo-600"></i>
-              Data Filters
-            </h4>
-            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Configure how data is aggregated and displayed</p>
+        <div className="widget-form-m365__section tw-space-y-4">
+          <div className="widget-form-m365__section-header">
+            <h4 className="widget-form-m365__section-title">Data filters</h4>
+            <p className="widget-form-m365__section-copy">Configure how data is aggregated and displayed</p>
           </div>
 
           {/* Aggregation */}
@@ -918,7 +1177,7 @@ export default function WidgetForm({
                 Aggregation
               </label>
               <SelectBox
-                items={(dataSourceMeta?.supportedAggregations || ['SUM','COUNT','AVG']).map(a => ({ value: a, text: a }))}
+                items={(dataSourceMeta?.supportedAggregations || ['SUM', 'COUNT', 'AVG']).map(a => ({ value: a, text: a }))}
                 value={newWidget.aggregation || 'SUM'}
                 displayExpr="text"
                 valueExpr="value"
@@ -932,13 +1191,13 @@ export default function WidgetForm({
           )}
 
           {/* Group By */}
-          {newWidget.visualizationType && ['CHART_BAR_COMPARISON','CHART_PIE_DISTRIBUTION','DATA_TABLE_DETAILED','PROGRESS_LIST'].includes(newWidget.visualizationType) && (
+          {getAvailableFilters.groupBy && (
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
                 Group By
               </label>
               <SelectBox
-                items={(dataSourceMeta?.supportedGroupBy || ['none','site','vehicleType']).map(g => ({
+                items={(dataSourceMeta?.supportedGroupBy || ['none', 'site', 'vehicleType']).map(g => ({
                   value: g,
                   text: g === 'none' ? 'Time-based' : g.charAt(0).toUpperCase() + g.slice(1).replace(/([A-Z])/g, ' $1')
                 }))}
@@ -959,7 +1218,7 @@ export default function WidgetForm({
                 Granularity
               </label>
               <SelectBox
-                items={(dataSourceMeta?.supportedGranularities || dataSourceMeta?.supportedGranularity || ['minute','hour','day','week']).map(g => ({ value: g, text: g.charAt(0).toUpperCase() + g.slice(1) }))}
+                items={(dataSourceMeta?.supportedGranularities || dataSourceMeta?.supportedGranularity || ['minute', 'hour', 'day', 'week']).map(g => ({ value: g, text: g.charAt(0).toUpperCase() + g.slice(1) }))}
                 value={newWidget.granularity || (newWidget.mode === 'live' ? 'minute' : 'day')}
                 displayExpr="text"
                 valueExpr="value"
@@ -995,15 +1254,30 @@ export default function WidgetForm({
         </div>
       )}
 
+      {isTemplateWidget && templateBehaviorSummary.length > 0 && (
+        <div className="widget-form-m365__section widget-form-m365__section--muted tw-space-y-3">
+          <div className="widget-form-m365__section-header tw-mb-0">
+            <h4 className="widget-form-m365__section-title">Template behavior</h4>
+            <p className="widget-form-m365__section-copy">Preset configuration from the selected template.</p>
+          </div>
+
+          <div className="widget-form-m365__grid">
+            {templateBehaviorSummary.map(item => (
+              <div key={`${item.label}-readonly`} className="widget-form-m365__detail-card">
+                <div className="widget-form-m365__detail-label">{item.label}</div>
+                <div className="widget-form-m365__detail-value">{item.value}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Configuration - Mode & Sites */}
       {(isEditMode || newWidget.templateId || (isCustomWidget && newWidget.visualizationType)) && (
-        <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4 tw-space-y-4">
-          <div className="tw-mb-2">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-800 tw-flex tw-items-center">
-              <i className="fa-light fa-gear tw-mr-2 tw-text-gray-600"></i>
-              Configuration
-            </h4>
-            <p className="tw-text-xs tw-text-gray-500 tw-mt-1">Data mode and site selection</p>
+        <div className="widget-form-m365__section tw-space-y-4">
+          <div className="widget-form-m365__section-header">
+            <h4 className="widget-form-m365__section-title">Configuration</h4>
+            <p className="widget-form-m365__section-copy">Data mode and site selection</p>
           </div>
 
           {/* Data Mode - New Hybrid Selector */}
@@ -1073,16 +1347,16 @@ export default function WidgetForm({
             <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
               Date Range
             </label>
-            <div className="tw-flex tw-flex-wrap tw-gap-2">
+            <div className="widget-form-m365__preset-list">
               {(newWidget.mode === 'live' ? liveDatePresets : cumulativeDatePresets).map(p => (
-                <Button
+                <button
                   key={p.id}
-                  text={p.label}
-                  type={newWidget.datePreset === p.id ? 'default' : 'normal'}
-                  stylingMode={newWidget.datePreset === p.id ? 'contained' : 'outlined'}
-                  height={32}
+                  type="button"
+                  className={`widget-form-m365__preset-btn ${newWidget.datePreset === p.id ? 'widget-form-m365__preset-btn--active' : ''}`}
                   onClick={() => setNewWidget(prev => ({ ...prev, datePreset: p.id }))}
-                />
+                >
+                  {p.label}
+                </button>
               ))}
             </div>
           </div>

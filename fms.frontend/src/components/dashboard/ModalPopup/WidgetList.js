@@ -1,9 +1,15 @@
-import React, { useState, useMemo, useCallback } from 'react';
+/**
+ * File: WidgetList.js
+ * Purpose: Render the dashboard widget management list with category grouping, shared-state visibility, and M365-style actions.
+ * Dependencies: React, DevExtreme LoadIndicator/Popup/Button, ShareWidgetModal, WidgetList.scss
+ * Last Modified: 2026-03-07
+ */
+import React, { useState, useMemo } from 'react';
 import LoadIndicator from 'devextreme-react/load-indicator';
 import Button from 'devextreme-react/button';
-import CheckBox from 'devextreme-react/check-box';
 import Popup from 'devextreme-react/popup';
 import ShareWidgetModal from './ShareWidgetModal';
+import './WidgetList.scss';
 
 export default function WidgetList({
   widgets,
@@ -19,6 +25,50 @@ export default function WidgetList({
   const [dragState, setDragState] = useState({ widgetId: null, category: null });
   const [deleteConfirm, setDeleteConfirm] = useState({ visible: false, widget: null });
   const [shareModal, setShareModal] = useState({ visible: false, widget: null });
+
+  const toDisplayText = (value, fallback = '') => {
+    if (value === null || value === undefined || value === '') {
+      return fallback;
+    }
+
+    if (typeof value === 'string' || typeof value === 'number') {
+      return String(value);
+    }
+
+    if (typeof value === 'object') {
+      if (typeof value.message === 'string' && value.message.trim()) {
+        return value.message;
+      }
+
+      if (typeof value.displayName === 'string' && value.displayName.trim()) {
+        return value.displayName;
+      }
+
+      if (typeof value.name === 'string' && value.name.trim()) {
+        return value.name;
+      }
+
+      if (typeof value.label === 'string' && value.label.trim()) {
+        return value.label;
+      }
+
+      if (typeof value.value === 'string' && value.value.trim()) {
+        return value.value;
+      }
+    }
+
+    return fallback;
+  };
+
+  const formatCategoryLabel = (value = '') => toDisplayText(value).replace(/_/g, ' ');
+
+  const formatWidgetTypeLabel = (value = '') => toDisplayText(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
+
+  const formatDataSourceLabel = (value = '') => toDisplayText(value)
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, char => char.toUpperCase());
 
   const filtered = useMemo(() => {
     if (activeCategory === 'all') return widgets;
@@ -36,6 +86,17 @@ export default function WidgetList({
     map.forEach((arr, key) => arr.sort((a, b) => (a.settings?.position ?? a.position ?? a.id) - (b.settings?.position ?? b.position ?? b.id)));
     return map;
   }, [filtered]);
+
+  const listSummary = useMemo(() => {
+    const sharedWithMeCount = widgets.filter(widget => widget.isShared).length;
+    const sharedByMeCount = widgets.filter(widget => !widget.isShared && (widget.sharedWithCount || 0) > 0).length;
+
+    return {
+      total: widgets.length,
+      sharedWithMeCount,
+      sharedByMeCount
+    };
+  }, [widgets]);
 
   const startDrag = (e, widget, category) => {
     e.dataTransfer.effectAllowed = 'move';
@@ -98,70 +159,81 @@ export default function WidgetList({
     const isDragging = dragState.widgetId === widget.id;
     const isShared = widget.isShared || false;
     const canDelete = widget.canDelete !== false; // default true if not specified
+    const canEdit = widget.canEdit !== false;
+    const widgetName = toDisplayText(widget.customName)
+      || toDisplayText(widget.template?.displayName)
+      || 'Untitled widget';
+    const metaItems = [
+      widget.isCustomWidget ? 'Custom widget' : 'Template widget',
+      widget.category ? formatCategoryLabel(widget.category) : null,
+      widget.dataSource ? formatDataSourceLabel(widget.dataSource) : null
+    ].filter(Boolean);
+
+    const secondaryDetail = isShared
+      ? `Shared by ${toDisplayText(widget.sharedFromUserName, 'another user')}${widget.sharedAt ? ` • received ${new Date(widget.sharedAt).toLocaleDateString()}` : ''}`
+      : widget.sharedWithCount > 0
+        ? `Shared with ${widget.sharedWithCount} user${widget.sharedWithCount === 1 ? '' : 's'}`
+        : (widget.visualizationType ? formatWidgetTypeLabel(widget.visualizationType) : '');
+
     return (
       <div
-
+        className={`widget-list-m365__row ${isDragging ? 'widget-list-m365__row--dragging' : ''}`}
+        draggable
+        onDragStart={(e) => startDrag(e, widget, category)}
+        onDragOver={onDragOver}
+        onDrop={(e) => handleDrop(e, widget, category)}
+        onDragEnd={cancelDrag}
       >
-        {/* Responsive layout: Stacked on mobile, inline on desktop */}
-        <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-center tw-gap-3">
-          {/* Left section: Drag handle + Position + Checkbox + Widget info */}
-          <div className="tw-flex tw-items-center tw-gap-3 tw-flex-1 tw-min-w-0">
-
-
-            <div className="tw-flex-1 tw-min-w-0">
-              <div className="tw-font-medium tw-text-gray-900 tw-truncate">{widget.customName || widget.template?.displayName}</div>
-              <div className="tw-text-xs tw-text-gray-500 tw-flex tw-gap-2">
-              </div>
-            </div>
+        <div className="widget-list-m365__main">
+          <div className="widget-list-m365__title-row">
+            <span className="widget-list-m365__drag" aria-hidden="true">⋮⋮</span>
+            <div className="widget-list-m365__name">{widgetName}</div>
           </div>
 
-          {/* Right section: Action buttons - Stack on mobile, inline on desktop */}
-          <div className="tw-flex tw-gap-1 tw-flex-shrink-0 tw-justify-start sm:tw-justify-end">
-            {/* Shared indicator */}
-            {isShared && (
-              <div className="tw-flex tw-items-center tw-gap-1 tw-px-2 tw-py-1 tw-bg-blue-50 tw-border tw-border-blue-200 tw-rounded tw-text-xs tw-text-blue-700 tw-mr-1">
-                <i className="fa-light fa-share-nodes"></i>
-                <span>Shared</span>
-              </div>
-            )}
-
-            <Button
-              text="Edit"
-              icon="fa-solid fa-edit"
-              type="normal"
-              stylingMode="text"
-              height={28}
-              onClick={() => onEditWidget(widget)}
-              className="tw-text-blue-600 hover:tw-bg-blue-50"
-            />
-
-            {/* Share button - only show for original widgets (not shared) */}
-            {!isShared && (
-              <Button
-                text="Share"
-                icon="fa-solid fa-share"
-                type="normal"
-                stylingMode="text"
-                height={28}
-                onClick={() => handleShareClick(widget)}
-                className="tw-text-green-600 hover:tw-bg-green-50"
-                hint="Share this widget with other users"
-              />
-            )}
-
-            {/* Delete button - disabled for shared widgets */}
-            <Button
-              text="Delete"
-              icon="fa-solid fa-trash"
-              type="normal"
-              stylingMode="text"
-              height={28}
-              onClick={() => handleDeleteClick(widget)}
-              disabled={!canDelete}
-              className={canDelete ? "tw-text-red-600 hover:tw-bg-red-50" : "tw-text-gray-400 tw-cursor-not-allowed"}
-              hint={canDelete ? "Delete this widget" : "Cannot delete shared widgets"}
-            />
+          <div className="widget-list-m365__meta">
+            {metaItems.map(item => (
+              <span
+                key={`${widget.id}-${item}`}
+                className="widget-list-m365__meta-item widget-list-m365__meta-item--soft"
+              >
+                {item}
+              </span>
+            ))}
           </div>
+
+          {secondaryDetail && (
+            <div className="widget-list-m365__subtext">{secondaryDetail}</div>
+          )}
+        </div>
+
+        <div className="widget-list-m365__actions">
+          <button
+            type="button"
+            className="widget-list-m365__action"
+            onClick={() => onEditWidget(widget)}
+            disabled={!canEdit}
+          >
+            Edit
+          </button>
+
+          {!isShared && (
+            <button
+              type="button"
+              className="widget-list-m365__action"
+              onClick={() => handleShareClick(widget)}
+            >
+              {widget.sharedWithCount > 0 ? 'Manage share' : 'Share'}
+            </button>
+          )}
+
+          <button
+            type="button"
+            className="widget-list-m365__action widget-list-m365__action--danger"
+            onClick={() => handleDeleteClick(widget)}
+            disabled={!canDelete}
+          >
+            Delete
+          </button>
         </div>
       </div>
     );
@@ -169,43 +241,52 @@ export default function WidgetList({
 
   if (loading) {
     return (
-      <div className="tw-flex tw-items-center tw-justify-center tw-py-8">
+      <div className="widget-list-m365__loading tw-flex tw-items-center tw-justify-center tw-gap-3">
         <LoadIndicator width={32} height={32} />
-        <span className="tw-ml-3 tw-text-gray-600">Loading widgets...</span>
+        <span>Loading widgets...</span>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="tw-bg-red-50 tw-border tw-border-red-200 tw-text-red-700 tw-p-4 tw-rounded-md">
-        <i className="fa-solid fa-exclamation-triangle tw-mr-2"></i>
-        Error loading widgets: {error}
+      <div className="widget-list-m365__error">
+        Error loading widgets: {toDisplayText(error, 'Unknown error')}
       </div>
     );
   }
 
   if (widgets.length === 0) {
     return (
-      <div className="tw-text-center tw-py-12 tw-bg-gray-50 tw-rounded-lg tw-border-2 tw-border-dashed tw-border-gray-300">
-        <i className="fa-solid fa-chart-line tw-text-4xl tw-text-gray-400 tw-mb-4"></i>
-        <h3 className="tw-text-lg tw-font-medium tw-text-gray-900 tw-mb-2">No widgets created yet</h3>
-        <p className="tw-text-gray-600 tw-mb-4">Use Add Widget to create your first dashboard widget</p>
+      <div className="widget-list-m365__empty tw-text-center">
+        <h3 className="widget-list-m365__empty-title">No widgets created yet</h3>
+        <p className="widget-list-m365__empty-copy">Use Add Widget to create your first dashboard widget.</p>
       </div>
     );
   }
 
   return (
-    <div className="tw-space-y-6">
+    <div className="widget-list-m365 tw-space-y-5">
+      <div className="widget-list-m365__overview">
+        <span className="widget-list-m365__overview-pill">Total {listSummary.total}</span>
+        {listSummary.sharedWithMeCount > 0 && (
+          <span className="widget-list-m365__overview-pill">Shared with me {listSummary.sharedWithMeCount}</span>
+        )}
+        {listSummary.sharedByMeCount > 0 && (
+          <span className="widget-list-m365__overview-pill">Shared by me {listSummary.sharedByMeCount}</span>
+        )}
+      </div>
+
       {/* Groups */}
       {Array.from(grouped.entries()).map(([cat, list]) => (
-        <div key={cat} className="tw-space-y-3">
-          <div className="tw-flex tw-items-center tw-gap-2">
-            <h4 className="tw-text-sm tw-font-semibold tw-text-gray-700 tw-uppercase">{cat.replace(/_/g,' ')}</h4>
-            <span className="tw-text-[10px] tw-bg-gray-100 tw-text-gray-500 tw-rounded-full tw-px-2 tw-py-0.5">{list.length}</span>
+        <div key={cat} className="widget-list-m365__group tw-space-y-3">
+          <div className="widget-list-m365__group-header">
+            <h4 className="widget-list-m365__group-title">{formatCategoryLabel(cat)}</h4>
+            <span className="widget-list-m365__group-count">{list.length}</span>
           </div>
-          <div className="tw-space-y-2">
-            {list.map((w, idx) => renderCard(w, idx, cat))}
+
+          <div className="widget-list-m365__rows">
+            {list.map((widget, idx) => renderCard(widget, idx, cat))}
           </div>
         </div>
       ))}
@@ -219,11 +300,11 @@ export default function WidgetList({
         height="auto"
         showCloseButton={true}
       >
-        <div className="tw-p-4">
-          <p className="tw-text-gray-700 tw-mb-4">
-            Are you sure you want to delete "{deleteConfirm.widget?.customName || deleteConfirm.widget?.template?.displayName}"?
+        <div className="tw-p-5">
+          <p className="widget-list-m365__confirm-copy">
+            Are you sure you want to delete "{toDisplayText(deleteConfirm.widget?.customName) || toDisplayText(deleteConfirm.widget?.template?.displayName) || 'this widget'}"?
           </p>
-          <div className="tw-flex tw-justify-end tw-gap-3">
+          <div className="widget-list-m365__confirm-actions">
             <Button
               text="Cancel"
               type="normal"
@@ -246,7 +327,7 @@ export default function WidgetList({
           visible={shareModal.visible}
           onHiding={closeShareModal}
           widgetInstanceId={shareModal.widget.id}
-          widgetName={shareModal.widget.customName || shareModal.widget.template?.displayName || 'Widget'}
+          widgetName={toDisplayText(shareModal.widget.customName) || toDisplayText(shareModal.widget.template?.displayName) || 'Widget'}
         />
       )}
     </div>

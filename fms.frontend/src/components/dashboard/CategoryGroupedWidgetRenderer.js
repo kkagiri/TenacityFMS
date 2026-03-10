@@ -31,6 +31,7 @@ const CategoryGroupedWidgetRenderer = ({
   onConfigChange = null,
   onWidgetSizeChange = null,
   isEditMode = false,
+  saveRequestVersion = 0,
   widgetStaleness = {}, // map of widgetId -> lastUpdated timestamp (ms) from hook
   onEditModeComplete = null, // New callback for when editing is done
   layoutSettings = {}
@@ -71,7 +72,7 @@ const CategoryGroupedWidgetRenderer = ({
   const widgetSizes = useMemo(() => {
     const result = isEditMode ? editingWidgetSizes : (layoutFromRedux.widgetSizes || {});
     return result;
-  }, [isEditMode, editingWidgetSizes, layoutFromRedux.widgetSizes]);  const widgetOrder = useMemo(() =>
+  }, [isEditMode, editingWidgetSizes, layoutFromRedux.widgetSizes]); const widgetOrder = useMemo(() =>
     isEditMode ? editingWidgetOrder : (layoutFromRedux.widgetOrder || {}),
     [isEditMode, editingWidgetOrder, layoutFromRedux.widgetOrder]
   );
@@ -101,7 +102,7 @@ const CategoryGroupedWidgetRenderer = ({
       setEditingWidgetOrder({});
       setEditingCategoryOrder([]);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isEditMode, layoutFromRedux.widgetSizes, layoutFromRedux.widgetOrder, layoutFromRedux.categoryOrder]);
 
   // Initialize default widget sizes ONLY for widgets not already in Redux state
@@ -322,6 +323,15 @@ const CategoryGroupedWidgetRenderer = ({
     }
   };
 
+  useEffect(() => {
+    if (!isEditMode || saveRequestVersion === 0) {
+      return;
+    }
+
+    saveAllChanges();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [saveRequestVersion]);
+
   // Update individual widget size via API
   const updateWidgetSizeAPI = async (widgetId, newSize) => {
     try {
@@ -404,9 +414,9 @@ const CategoryGroupedWidgetRenderer = ({
       const config = JSON.parse(configurationJson || '{}');
       const filters = [];
 
-  // Prefer envelope/live data over static config; also prefer settings.datePreset over root datePreset
-  const configDatePreset = (config.settings && config.settings.datePreset) || config.datePreset;
-  const period = liveData?.timeRange || config.timeRange || configDatePreset;
+      // Prefer envelope/live data over static config; also prefer settings.datePreset over root datePreset
+      const configDatePreset = (config.settings && config.settings.datePreset) || config.datePreset;
+      const period = liveData?.timeRange || config.timeRange || configDatePreset;
       const mode = liveData?.mode || config.mode;
 
       if (period) {
@@ -511,16 +521,8 @@ const CategoryGroupedWidgetRenderer = ({
                 <div className="layout-info">
                   <span className="layout-info-text">
                     <i className="fa-solid fa-info-circle" />
-                    Make your changes, then click "Done Editing" to save all changes at once
+                    Make your changes, then use the Save layout button in the dashboard header.
                   </span>
-                  <button
-                    className="save-changes-btn"
-                    onClick={saveAllChanges}
-                    title="Save All Changes"
-                  >
-                    <i className="fa-solid fa-save" />
-                    Save Changes
-                  </button>
                 </div>
               )}
             </div>
@@ -636,7 +638,7 @@ const CategoryGroupedWidgetRenderer = ({
                                 {data?.lastUpdated ? `Updated: ${new Date(data.lastUpdated).toLocaleTimeString()}` : 'No data'}
                               </span>
                               {isStale && (
-                                <span className="stale-indicator" title={`Data stale (${Math.round(ageMs/1000)}s old)`}>
+                                <span className="stale-indicator" title={`Data stale (${Math.round(ageMs / 1000)}s old)`}>
                                   <i className="fa-solid fa-clock" /> Stale
                                 </span>
                               )}
@@ -697,6 +699,7 @@ CategoryGroupedWidgetRenderer.propTypes = {
   onConfigChange: PropTypes.func,
   onWidgetSizeChange: PropTypes.func,
   isEditMode: PropTypes.bool,
+  saveRequestVersion: PropTypes.number,
   onEditModeComplete: PropTypes.func, // New callback for when editing is complete
   layoutSettings: PropTypes.object
 };

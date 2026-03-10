@@ -24,7 +24,8 @@ namespace FMS.Application.Features.Vehicle.MappingProfiles
                 .ForMember(dest => dest.HasGPSInstalled, opt => opt.MapFrom(src => src.HasGPSInstalled ? (sbyte)1 : (sbyte)0))
                 .ForMember(dest => dest.GpsgategeneratedId, opt => opt.MapFrom(src => src.GpsgategeneratedId ? (sbyte)1 : (sbyte)0))
                 .ForMember(dest => dest.IsCompanyVehicle, opt => opt.MapFrom(src => src.IsCompanyVehicle.HasValue ? (sbyte)1 : (sbyte)0))
-                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive.HasValue ? (sbyte)1 : (sbyte)0));
+                .ForMember(dest => dest.IsActive, opt => opt.MapFrom(src => src.IsActive.HasValue ? (sbyte)1 : (sbyte)0))
+                .ForMember(dest => dest.MovementProfile, opt => opt.MapFrom(src => src.MovementProfile));
         }
     }
 }

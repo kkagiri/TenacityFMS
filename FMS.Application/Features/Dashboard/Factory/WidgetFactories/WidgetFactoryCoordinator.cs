@@ -1,3 +1,13 @@
+/**
+ * File: WidgetFactoryCoordinator.cs
+ * Purpose: Coordinates widget-type factories for validation and runtime processing.
+ * Dependencies: IWidgetTypeFactory, ChartWidgetFactory, StatCardWidgetFactory, TableWidgetFactory
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - ValidateWidgetConfiguration(): Validates widget configuration inputs before persistence/runtime execution.
+ * - ProcessWidgetDataAsync(): Delegates widget processing to the correct widget factory.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -5,17 +15,20 @@ using System.Threading.Tasks;
 using FMS.Application.Features.Dashboard;
 using Microsoft.Extensions.Logging;
 
-namespace FMS.Application.Services.Dashboard.WidgetFactories {
+namespace FMS.Application.Services.Dashboard.WidgetFactories
+{
     // Main widget factory coordinator
-    public class WidgetFactoryCoordinator : IWidgetTypeFactory {
+    public class WidgetFactoryCoordinator : IWidgetTypeFactory
+    {
         private readonly List<IWidgetTypeFactory> _factories;
         private readonly ILogger<WidgetFactoryCoordinator> _logger;
 
-        public WidgetFactoryCoordinator (
+        public WidgetFactoryCoordinator(
             ChartWidgetFactory chartFactory,
             StatCardWidgetFactory statCardFactory,
             TableWidgetFactory tableFactory,
-            ILogger<WidgetFactoryCoordinator> logger) {
+            ILogger<WidgetFactoryCoordinator> logger)
+        {
 
             _factories = new List<IWidgetTypeFactory> {
                 chartFactory,
@@ -25,49 +38,57 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
             _logger = logger;
         }
 
-        public async Task<WidgetDataProcessingResult> ProcessWidgetDataAsync (
+        public async Task<WidgetDataProcessingResult> ProcessWidgetDataAsync(
             string widgetType,
             string category,
             string dataSource,
             Dictionary<string, object> filters,
             Dictionary<string, object> settings,
             string timeRange,
-            string mode) {
+            string mode)
+        {
 
-            var factory = GetFactoryForWidgetType (widgetType);
-            if (factory == null) {
-                _logger.LogWarning ("No factory found for widget type {WidgetType}", widgetType);
-                return new WidgetDataProcessingResult {
+            var factory = GetFactoryForWidgetType(widgetType);
+            if (factory == null)
+            {
+                _logger.LogWarning("No factory found for widget type {WidgetType}", widgetType);
+                return new WidgetDataProcessingResult
+                {
                     Success = false,
-                        ErrorMessage = $"Unsupported widget type: {widgetType}"
+                    ErrorMessage = $"Unsupported widget type: {widgetType}"
                 };
             }
 
-            return await factory.ProcessWidgetDataAsync (widgetType, category, dataSource, filters, settings, timeRange, mode);
+            return await factory.ProcessWidgetDataAsync(widgetType, category, dataSource, filters, settings, timeRange, mode);
         }
 
-        public bool SupportsWidgetType (string widgetType) {
-            return _factories.Any (f => f.SupportsWidgetType (widgetType));
+        public bool SupportsWidgetType(string widgetType)
+        {
+            return _factories.Any(f => f.SupportsWidgetType(widgetType));
         }
 
-        public WidgetTypeConfiguration GetWidgetTypeConfig (string widgetType) {
-            var factory = GetFactoryForWidgetType (widgetType);
-            if (factory == null) {
-                throw new ArgumentException ($"Unsupported widget type: {widgetType}");
+        public WidgetTypeConfiguration GetWidgetTypeConfig(string widgetType)
+        {
+            var factory = GetFactoryForWidgetType(widgetType);
+            if (factory == null)
+            {
+                throw new ArgumentException($"Unsupported widget type: {widgetType}");
             }
 
-            return factory.GetWidgetTypeConfig (widgetType);
+            return factory.GetWidgetTypeConfig(widgetType);
         }
 
-        private IWidgetTypeFactory? GetFactoryForWidgetType (string widgetType) {
-            return _factories.FirstOrDefault (f => f.SupportsWidgetType (widgetType));
+        private IWidgetTypeFactory? GetFactoryForWidgetType(string widgetType)
+        {
+            return _factories.FirstOrDefault(f => f.SupportsWidgetType(widgetType));
         }
 
         // Helper method to get all supported widget types
-        public Dictionary<string, WidgetTypeConfiguration> GetAllSupportedWidgetTypes () {
-            var supportedTypes = new Dictionary<string, WidgetTypeConfiguration> ();
+        public Dictionary<string, WidgetTypeConfiguration> GetAllSupportedWidgetTypes()
+        {
+            var supportedTypes = new Dictionary<string, WidgetTypeConfiguration>();
 
-            var widgetTypes = new [] {
+            var widgetTypes = new[] {
                 // Chart widgets
                 "CHART_LINE_TREND",
                 "CHART_BAR_COMPARISON",
@@ -83,14 +104,19 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
                 "ALERT_NOTIFICATION"
             };
 
-            foreach (var widgetType in widgetTypes) {
-                try {
-                    var factory = GetFactoryForWidgetType (widgetType);
-                    if (factory != null) {
-                        supportedTypes[widgetType] = factory.GetWidgetTypeConfig (widgetType);
+            foreach (var widgetType in widgetTypes)
+            {
+                try
+                {
+                    var factory = GetFactoryForWidgetType(widgetType);
+                    if (factory != null)
+                    {
+                        supportedTypes[widgetType] = factory.GetWidgetTypeConfig(widgetType);
                     }
-                } catch (Exception ex) {
-                    _logger.LogWarning (ex, "Error getting configuration for widget type {WidgetType}", widgetType);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Error getting configuration for widget type {WidgetType}", widgetType);
                 }
             }
 
@@ -98,73 +124,66 @@ namespace FMS.Application.Services.Dashboard.WidgetFactories {
         }
 
         // Helper method to validate widget configuration
-        public WidgetValidationResult ValidateWidgetConfiguration (
+        public WidgetValidationResult ValidateWidgetConfiguration(
             string widgetType,
             string category,
             string dataSource,
             Dictionary<string, object> filters,
-            Dictionary<string, object> settings) {
+            Dictionary<string, object> settings)
+        {
 
-            var factory = GetFactoryForWidgetType (widgetType);
-            if (factory == null) {
-                return new WidgetValidationResult {
-                IsValid = false,
-                ErrorMessage = $"Unsupported widget type: {widgetType}"
+            var factory = GetFactoryForWidgetType(widgetType);
+            if (factory == null)
+            {
+                return new WidgetValidationResult
+                {
+                    IsValid = false,
+                    ErrorMessage = $"Unsupported widget type: {widgetType}"
                 };
             }
 
-            try {
-                var config = factory.GetWidgetTypeConfig (widgetType);
-                var validationErrors = new List<string> ();
+            try
+            {
+                var config = factory.GetWidgetTypeConfig(widgetType);
+                var validationErrors = new List<string>();
 
-                // Validate required fields are present in settings
-                // For chart widgets, required data fields (like "date", "value") are expected to come from the data source
-                // not from the user configuration, so we skip this validation for chart widgets
-                if (!IsChartWidget (widgetType)) {
-                    foreach (var requiredField in config.RequiredDataFields) {
-                        if (!filters.ContainsKey (requiredField) && !settings.ContainsKey (requiredField)) {
-                            validationErrors.Add ($"Required field '{requiredField}' is missing");
-                        }
-                    }
-                }
+                // RequiredDataFields describe the runtime data shape expected from the data source/transformer
+                // (for example `rows`, `columns`, `value`, `date`, `category`) rather than user-supplied
+                // create/update payload fields. They must not be enforced against widget configuration.
+                // Runtime data validation happens later when data is retrieved and transformed.
 
                 // Validate data source compatibility
-                if (dataSource == "realtime" && !config.SupportsRealTimeData) {
-                    validationErrors.Add ($"Widget type '{widgetType}' does not support real-time data");
+                if (dataSource == "realtime" && !config.SupportsRealTimeData)
+                {
+                    validationErrors.Add($"Widget type '{widgetType}' does not support real-time data");
                 }
 
-                return new WidgetValidationResult {
+                return new WidgetValidationResult
+                {
                     IsValid = validationErrors.Count == 0,
-                        ErrorMessage = validationErrors.Count > 0 ? string.Join (", ", validationErrors) : null,
-                        ValidationErrors = validationErrors,
-                        Configuration = config
-                };
-            } catch (Exception ex) {
-                _logger.LogError (ex, "Error validating widget configuration for type {WidgetType}", widgetType);
-                return new WidgetValidationResult {
-                    IsValid = false,
-                        ErrorMessage = ex.Message
+                    ErrorMessage = validationErrors.Count > 0 ? string.Join(", ", validationErrors) : null,
+                    ValidationErrors = validationErrors,
+                    Configuration = config
                 };
             }
-        }
-
-        // Helper method to check if a widget type is a chart widget
-        private bool IsChartWidget (string widgetType) {
-            return widgetType
-            switch {
-                "CHART_LINE_TREND" => true,
-                "CHART_BAR_COMPARISON" => true,
-                "CHART_PIE_DISTRIBUTION" => true,
-                _ => false
-            };
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error validating widget configuration for type {WidgetType}", widgetType);
+                return new WidgetValidationResult
+                {
+                    IsValid = false,
+                    ErrorMessage = ex.Message
+                };
+            }
         }
     }
 
     // Widget validation result
-    public class WidgetValidationResult {
+    public class WidgetValidationResult
+    {
         public bool IsValid { get; set; }
         public string? ErrorMessage { get; set; }
-        public List<string> ValidationErrors { get; set; } = new ();
+        public List<string> ValidationErrors { get; set; } = new();
         public WidgetTypeConfiguration? Configuration { get; set; }
     }
 }

@@ -1,3 +1,14 @@
+/**
+ * File: VehicleLayout.js
+ * Purpose: Provides the shared vehicle module layout with sidebar navigation and route-aware header behavior
+ * Dependencies: React, react-router-dom, navigationHelper, VehicleSearchBar
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - getPageInfo(): Resolves the page title and subtitle from the current route
+ * - handleNavigation(): Navigates to vehicle module routes and closes the mobile drawer
+ * - renderNavigationGroup(): Renders grouped sidebar navigation items
+ */
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
@@ -10,6 +21,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sidebarRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
+  const isTrackingPage = location.pathname.includes('/tracking');
 
   // Track viewport to switch to drawer-like behavior on mobile
   useEffect(() => {
@@ -51,6 +63,11 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       return {
         title: 'Fleet Management',
         subtitle: 'Manage your vehicle fleet and assignments'
+      };
+    } else if (pathname.includes('/trips')) {
+      return {
+        title: 'Trip Management',
+        subtitle: 'Review persisted trip groups, routing patterns, and detection modes'
       };
     } else if (pathname.includes('/consumption')) {
       return {
@@ -103,6 +120,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const { title: autoTitle, subtitle: autoSubtitle } = getPageInfo();
   const finalTitle = pageTitle || autoTitle;
   const finalSubtitle = pageSubtitle || autoSubtitle;
+  const showMainHeader = !location.pathname.includes('/tracking');
 
   const handleNavigation = (path) => {
     navigate(path);
@@ -133,7 +151,7 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   };
 
   return (
-    <div className="vehicle-layout">
+    <div className={`vehicle-layout ${isTrackingPage ? 'vehicle-layout--tracking' : ''}`}>
       {/* Sidebar */}
       <aside ref={sidebarRef} className={`vehicle-sidebar ${sidebarCollapsed ? 'collapsed' : ''}`}>
         {/* Header */}
@@ -199,28 +217,29 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
       )}
 
       {/* Main Content */}
-      <main className="vehicle-main">
-        {/* Header */}
-        <header className="main-header">
-          <div className="header-content">
-            {/* Left: Title + Subtitle aligned to content edge via header padding */}
-            <div>
-              <h1 className="main-title">{finalTitle}</h1>
-              {finalSubtitle && (
-                <p className="tw-text-sm tw-text-gray-600 tw-mt-1">{finalSubtitle}</p>
-              )}
-            </div>
-            {/* Right: Search at the far right */}
-            <div className="tw-flex tw-items-center">
-              <div className="tw-w-full md:tw-w-96 tw-max-w-md">
-                <VehicleSearchBar placeholder="Search vehicles by name, plate, or ID..." />
+      <main className={`vehicle-main ${isTrackingPage ? 'vehicle-main--tracking' : ''}`}>
+        {showMainHeader && (
+          <header className="main-header">
+            <div className="header-content">
+              {/* Left: Title + Subtitle aligned to content edge via header padding */}
+              <div>
+                <h1 className="main-title">{finalTitle}</h1>
+                {finalSubtitle && (
+                  <p className="tw-text-sm tw-text-gray-600 tw-mt-1">{finalSubtitle}</p>
+                )}
+              </div>
+              {/* Right: Search at the far right */}
+              <div className="tw-flex tw-items-center">
+                <div className="tw-w-full md:tw-w-96 tw-max-w-md">
+                  <VehicleSearchBar placeholder="Search vehicles by name, plate, or ID..." />
+                </div>
               </div>
             </div>
-          </div>
-        </header>
+          </header>
+        )}
 
         {/* Content */}
-        <div className="main-content">
+        <div className={`main-content ${isTrackingPage ? 'main-content--tracking' : ''}`}>
           {children}
         </div>
       </main>
