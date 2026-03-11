@@ -1,3 +1,13 @@
+/**
+ * File: CustomWidgetDialog.js
+ * Purpose: Legacy step-by-step dialog for creating custom dashboard widgets.
+ * Dependencies: React, DevExtreme popup/editors, dashboardFactory API
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - renderStepContent(): Guides category, widget type, name, and data source selection.
+ * - isStepValid(): Validates each wizard step before moving forward.
+ */
 import React, { useState, useMemo, useEffect } from 'react';
 import Popup from 'devextreme-react/popup';
 import Button from 'devextreme-react/button';
@@ -40,6 +50,12 @@ export default function CustomWidgetDialog({
 
   // Widget types available for each category
   const widgetTypesByCategory = useMemo(() => ({
+    admin: [
+      { id: 'BIG_STAT_CARD', label: 'Admin Summary Card', description: 'Operational admin KPI and uptime summary' },
+      { id: 'CHART_BAR_COMPARISON', label: 'Admin Comparison Chart', description: 'Compare admin activity and health outcomes' },
+      { id: 'DATA_TABLE_DETAILED', label: 'Admin Data Table', description: 'Detailed operational admin data' },
+      { id: 'PROGRESS_LIST', label: 'Admin Progress List', description: 'Provider and service health ranking' }
+    ],
     key_statistics: [
       { id: 'ticker', label: 'Ticker', description: 'Simple numeric display with trend' }
     ],
@@ -93,6 +109,7 @@ export default function CustomWidgetDialog({
 
   // Category options
   const categoryOptions = [
+    { id: 'admin', label: 'Admin' },
     { id: 'fuel_management', label: 'Fuel Management' },
     { id: 'vehicle_performance', label: 'Vehicle Performance' },
     { id: 'alerts_monitoring', label: 'Alerts & Monitoring' },
@@ -142,7 +159,7 @@ export default function CustomWidgetDialog({
         return widgetConfig.customName.trim();
       case 4:
         // Data source is optional for some categories
-        const requiresMetric = ['fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
+        const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
         return !requiresMetric || widgetConfig.metric;
       default:
         return false;
@@ -251,7 +268,7 @@ export default function CustomWidgetDialog({
         );
 
       case 4:
-        const requiresMetric = ['fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
+        const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
         return (
           <div className="tw-space-y-4">
             <p className="tw-text-gray-600 tw-text-sm">

@@ -300,16 +300,19 @@ namespace FMS.WebClient.Services
 
             ct.ThrowIfCancellationRequested();
 
-            var reportData = await FetchDataViaMediator(mediator, request, ct);
+            var reportData = await FetchDataViaMediator(scope.ServiceProvider, mediator, request, ct);
 
             if (reportData == null)
             {
                 job.Status = ReportJobStatus.Failed;
                 job.StatusMessage = "No data returned from query";
+                job.ErrorMessage = job.StatusMessage;
                 job.CompletedAtUtc = DateTime.UtcNow;
                 await _progressService.SendError(BuildProgressDTO(job));
                 return;
             }
+
+            job.RecordCount = ExtractRecordCount(reportData, job.RecordCount);
 
             job.ProgressPercent = 50;
             job.StatusMessage = $"Data fetched ({job.RecordCount} records). Rendering {job.OutputFormat.ToUpper()}...";
@@ -434,7 +437,10 @@ namespace FMS.WebClient.Services
         /// then shapes the result into a template-ready payload.
         /// </summary>
         private async Task<object> FetchDataViaMediator(
-            IMediator mediator, SubmitReportJobDTO request, CancellationToken ct)
+            IServiceProvider serviceProvider,
+            IMediator mediator,
+            SubmitReportJobDTO request,
+            CancellationToken ct)
         {
             var job = _jobs[request.SourceId == "tank-volume-history"
                 ? _jobs.Keys.Last() // gets the latest - fallback
@@ -455,9 +461,56 @@ namespace FMS.WebClient.Services
                     return await FetchPumpTransactionData(mediator, request, currentJob, ct);
 
                 default:
+                    if (ScheduledReportPayloadBuilder.CanHandle(request.SourceId))
+                    {
+                        return await FetchSupportedSharedReportData(serviceProvider, request, ct);
+                    }
+
                     _logger.LogWarning("Unknown report source: {SourceId}", request.SourceId);
                     return null;
             }
+        }
+
+        private async Task<object> FetchSupportedSharedReportData(
+            IServiceProvider serviceProvider,
+            SubmitReportJobDTO request,
+            CancellationToken ct)
+        {
+            var payloadBuilder = serviceProvider.GetService<ScheduledReportPayloadBuilder>();
+            if (payloadBuilder == null)
+            {
+                _logger.LogWarning("ScheduledReportPayloadBuilder is not registered for source {SourceId}", request.SourceId);
+                return null;
+            }
+
+            var timeZoneId = GetStringParam(request.Parameters, "timeZone");
+            var tz = ResolveTimeZoneInfo(timeZoneId);
+
+            var localStart = GetDateParam(request.Parameters, "startDate")?.Date ?? DateTime.Today;
+            var localEnd = GetDateParam(request.Parameters, "endDate")?.Date ?? localStart;
+
+            var utcStart = TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(localStart, DateTimeKind.Unspecified),
+                tz);
+
+            var utcEnd = TimeZoneInfo.ConvertTimeToUtc(
+                DateTime.SpecifyKind(localEnd.AddDays(1).AddTicks(-1), DateTimeKind.Unspecified),
+                tz);
+
+            var metadata = JObject.FromObject(request.Parameters ?? new Dictionary<string, object>());
+            var reportTitle = string.IsNullOrWhiteSpace(request.ReportTitle)
+                ? BuildDefaultReportTitle(request.SourceId)
+                : request.ReportTitle;
+
+            return await payloadBuilder.FetchAndBuildAsync(
+                request.SourceId,
+                metadata,
+                utcStart,
+                utcEnd,
+                localStart,
+                localEnd,
+                reportTitle,
+                ct);
         }
 
         private async Task<object> FetchTankVolumeHistoryData(
@@ -698,6 +751,50 @@ namespace FMS.WebClient.Services
                     .ToList();
             }
             return null;
+        }
+
+        private static int ExtractRecordCount(object reportData, int fallbackCount)
+        {
+            if (reportData == null)
+            {
+                return fallbackCount;
+            }
+
+            try
+            {
+                var payload = JObject.FromObject(reportData);
+                var summaryTotal = payload["summary"]?["totalRecords"]?.Value<int?>();
+                if (summaryTotal.HasValue)
+                {
+                    return summaryTotal.Value;
+                }
+
+                var recordsCount = payload["records"]?.Values()?.Count();
+                if (recordsCount.HasValue)
+                {
+                    return recordsCount.Value;
+                }
+            }
+            catch
+            {
+                // Ignore payload inspection failures and keep existing count.
+            }
+
+            return fallbackCount;
+        }
+
+        private static string BuildDefaultReportTitle(string sourceId)
+        {
+            if (string.IsNullOrWhiteSpace(sourceId))
+            {
+                return "Report";
+            }
+
+            var words = sourceId
+                .Split('-', StringSplitOptions.RemoveEmptyEntries)
+                .Select(part => char.ToUpperInvariant(part[0]) + part.Substring(1));
+
+            return $"{string.Join(" ", words)} Report";
         }
 
         private static string SanitizeFileName(string name)

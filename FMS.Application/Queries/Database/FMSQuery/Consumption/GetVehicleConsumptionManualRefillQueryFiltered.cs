@@ -15,7 +15,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
         DateTime StartDate,
         DateTime EndDate,
         string? VehicleType = null,
+        int? VehicleTypeId = null,
         string? HyoungNo = null,
+        int? VehicleId = null,
         int? SiteId = null,
         int? DriverId = null
     ) : IRequest<List<ManualDispenseConsumptionDTO>>;
@@ -42,10 +44,17 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                     .AsQueryable ();
 
                 // Apply vehicle type filter
-                if (!string.IsNullOrEmpty (request.VehicleType)) {
+                if (request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0) {
+                    vehiclesQuery = vehiclesQuery.Where (v => v.VehicleTypeId == request.VehicleTypeId.Value);
+                } else if (!string.IsNullOrEmpty (request.VehicleType)) {
                     vehiclesQuery = vehiclesQuery.Where (v =>
                         v.VehicleType != null &&
                         EF.Functions.Like (v.VehicleType.Name.ToLower (), $"%{request.VehicleType.ToLower()}%"));
+                }
+
+                // Apply vehicle ID filter
+                if (request.VehicleId.HasValue && request.VehicleId.Value > 0) {
+                    vehiclesQuery = vehiclesQuery.Where (v => v.VehicleId == request.VehicleId.Value);
                 }
 
                 // Apply Hyoung number filter
@@ -74,7 +83,9 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                 }
 
                 // If we have vehicle filters, we need to limit fuel refills to those vehicles
-                if (!string.IsNullOrEmpty (request.VehicleType) ||
+                if ((request.VehicleTypeId.HasValue && request.VehicleTypeId.Value > 0) ||
+                    !string.IsNullOrEmpty (request.VehicleType) ||
+                    (request.VehicleId.HasValue && request.VehicleId.Value > 0) ||
                     !string.IsNullOrEmpty (request.HyoungNo) ||
                     (request.SiteId.HasValue && request.SiteId > 0)) {
                     var vehicleIds = vehicles.Select (v => v.VehicleId).ToList ();
@@ -122,18 +133,18 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
 
                 _logger.LogInformation (
                     "Filtered consumption query completed. Date range: {StartDate} to {EndDate}, " +
-                    "Filters: VehicleType={VehicleType}, HyoungNo={HyoungNo}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, DriverId={DriverId}. Results: {ResultCount}",
-                    request.StartDate, request.EndDate, request.VehicleType, request.HyoungNo,
+                    request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId,
                     request.SiteId, request.DriverId, result.Count);
 
                 return result;
             } catch (Exception ex) {
                 _logger.LogError (ex,
                     "Error fetching filtered vehicle consumption data. " +
-                    "Filters: VehicleType={VehicleType}, HyoungNo={HyoungNo}, " +
+                    "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
                     "SiteId={SiteId}, DriverId={DriverId}",
-                    request.VehicleType, request.HyoungNo, request.SiteId, request.DriverId);
+                    request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId, request.SiteId, request.DriverId);
                 throw;
             }
         }

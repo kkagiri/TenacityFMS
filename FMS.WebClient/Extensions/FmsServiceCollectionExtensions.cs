@@ -54,6 +54,7 @@ using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.PTSService.Services;
+using FMS.Application.Features.VehicleTrips.Services;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
@@ -198,7 +199,7 @@ public static class FmsServiceCollectionExtensions
                 {
                     var accessToken = ctx.Request.Query["access_token"]; // SignalR support
                     var path = ctx.HttpContext.Request.Path;
-                    if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/dashboardHub") || path.StartsWithSegments("/ptsHub") || path.StartsWithSegments("/frontendHub")))
+                    if (!string.IsNullOrEmpty(accessToken) && (path.StartsWithSegments("/dashboardHub") || path.StartsWithSegments("/ptsHub") || path.StartsWithSegments("/frontendHub") || path.StartsWithSegments("/vehicleTrackingHub")))
                     {
                         ctx.Token = accessToken;
                     }
@@ -490,6 +491,9 @@ public static class FmsServiceCollectionExtensions
         services.AddHttpClient<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
         services.AddScoped<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateService>();
         services.AddScoped<IGPSService, FMS.Infrastructure.VehicleTracking.Adapters.VehicleTrackingServiceAdapter>();
+        services.AddScoped<FMS.Application.Features.Geofence.Services.IGeofenceCacheSyncService, FMS.Application.Features.Geofence.Services.GeofenceCacheSyncService>();
+        services.AddScoped<IVehicleTripGeofenceDetectionService, VehicleTripGeofenceDetectionService>();
+        services.AddScoped<IVehicleTripClusterDetectionService, VehicleTripClusterDetectionService>();
 
         // Configuration Services
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
@@ -557,9 +561,7 @@ public static class FmsServiceCollectionExtensions
 
         // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
         // Consumes GPS position updates from GPSGate and broadcasts to connected clients
-        // DISABLED: RabbitMQ vehicle tracking temporarily disabled (2026-01-28)
-        // Uncomment the line below to re-enable real-time vehicle tracking via RabbitMQ
-        // services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
+        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
 
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
         services.AddIssueTrackerBackgroundServices();
@@ -597,6 +599,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IWidgetDataTransformerService, WidgetDataTransformerService>();
         services.AddScoped<ITimeSeriesDataService, TimeSeriesDataService>();
         services.AddScoped<IDataSourceMetadataService, DataSourceMetadataService>();
+        services.AddScoped<IWidgetConfigurationPreparationService, WidgetConfigurationPreparationService>();
+        services.AddScoped<IWidgetInstanceDtoHydrationService, WidgetInstanceDtoHydrationService>();
         // Tank Management Services
         services.AddScoped<InventoryCostingService>();
         services.AddScoped<FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand.TankVolumeHistoryIntegrationService>();

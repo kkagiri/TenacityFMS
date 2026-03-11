@@ -1,3 +1,14 @@
+/**
+ * File: ConnectionMonitor.cs
+ * Purpose: Tracks active frontend SignalR connections for lightweight operational monitoring.
+ * Dependencies: ConcurrentDictionary, ILogger
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - AddConnection(): Registers a newly connected client.
+ * - RemoveConnection(): Removes a disconnected client.
+ * - GetConnectionCount(): Returns the current active connection count.
+ */
 using System;
 using System.Collections.Concurrent;
 using Microsoft.Extensions.Logging;
@@ -23,6 +34,10 @@ namespace FMS.Application.Communication.SignalR {
                 _logger.LogInformation ("Removed connection {ConnectionId}. Duration: {Duration}",
                     connectionId, DateTime.UtcNow - connectedAt);
             }
+        }
+
+        public int GetConnectionCount () {
+            return _connections.Count;
         }
     }
 }

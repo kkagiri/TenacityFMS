@@ -17,6 +17,13 @@ import SiteGeofenceMapPopup from "./SiteGeofenceMapPopup";
 const SiteDetailPanel = ({ site, geofences = [] }) => {
   const { siteStats, loadingStats } = useSelector((state) => state.site);
   const [showGeofenceMap, setShowGeofenceMap] = useState(false);
+  const accessCount = loadingStats ? null : siteStats?.userCount;
+  const accessSummary =
+    typeof accessCount === "number"
+      ? `${accessCount.toLocaleString()} user${accessCount === 1 ? "" : "s"} with access`
+      : loadingStats
+        ? "Checking user access"
+        : "User access not available";
 
   const statValue = (field) =>
     loadingStats ? "..." : siteStats?.[field] ?? "-";
@@ -86,6 +93,7 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
           <div className="m365-site-detail__intro-meta">
             <M365StatusBadge isActive={site.isActive} />
             <span>{site.siteAdministratorName || "No administrator assigned"}</span>
+            <span>{accessSummary}</span>
             <span>{hasGeofenceMapping ? "Geofence mapped" : "Geofence not mapped"}</span>
           </div>
           <p className="m365-site-detail__intro-text">
@@ -134,7 +142,7 @@ const SiteDetailPanel = ({ site, geofences = [] }) => {
         <h3 className="m365-flat-section__title">Project Scope</h3>
         <div className="m365-info-grid">
           <div className="m365-info-cell">
-            <span className="m365-info-cell__label">Users</span>
+            <span className="m365-info-cell__label">Users with Access</span>
             <span className="m365-info-cell__value">{statNumber("userCount")}</span>
           </div>
           <div className="m365-info-cell">

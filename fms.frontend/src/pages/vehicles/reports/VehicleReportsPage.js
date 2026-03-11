@@ -1,180 +1,359 @@
-import React from 'react';
+/**
+ * File: VehicleReportsPage.js
+ * Purpose: Replace placeholder vehicle report tiles with real report entry points that map to the current reports module and existing vehicle exports.
+ * Dependencies: react, react-router-dom, usePermissions, report source registry, reports navigation helper
+ * Last Modified: 2026-03-10
+ *
+ * Key Functions:
+ * - VehicleReportsPage: Vehicle reporting landing page with live report sources, existing exports, and identified feature gaps
+ */
+import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { getAllReportSources } from '../../reports/sources';
+import { reportsRoutes } from '../../reports/utils/navigationHelper';
+import './VehicleReportsPage.scss';
+
+const LEGACY_ROUTE_BY_SOURCE = {
+  'vehicle-consumption': reportsRoutes.vehicleConsumption,
+  'consumption-by-refills': reportsRoutes.consumptionRefills,
+};
+
+const CORE_VEHICLE_REPORT_IDS = ['vehicle-consumption'];
+
+const OPERATIONAL_EXPORTS = [
+  {
+    id: 'maintenance-export',
+    title: 'Maintenance Alerts Export',
+    description:
+      'The maintenance workspace already supports direct grid export for alert reviews and maintenance follow-up.',
+    icon: 'fa-light fa-wrench',
+    badge: 'Available now',
+    badgeTone: 'success',
+    route: '/vehicles/maintenance',
+    actionLabel: 'Open Maintenance',
+    helperText: 'Uses the existing export tools inside the maintenance grid.',
+  },
+  {
+    id: 'transfer-pdf',
+    title: 'Vehicle Transfer Checkup Reports',
+    description:
+      'Transfer history already supports PDF report downloads and list export for completed transfer checkup records.',
+    icon: 'fa-light fa-truck-arrow-right',
+    badge: 'Available now',
+    badgeTone: 'success',
+    route: '/vehicles/transfers',
+    actionLabel: 'Open Transfers',
+    helperText: 'Includes PDF download for completed transfer reports.',
+  },
+];
+
+const MISSING_REPORTS = [
+  {
+    id: 'fleet-performance-gap',
+    title: 'Fleet Performance',
+    description:
+      'The old tile existed only as a placeholder. There is no registered vehicle KPI source in the current reports engine.',
+    missingReason: 'Needs a backend aggregation endpoint and a report source definition.',
+    fallbackRoute: '/vehicles/dashboard',
+    fallbackLabel: 'Open Dashboard',
+  },
+  {
+    id: 'route-analysis-gap',
+    title: 'Route Analysis',
+    description:
+      'Tracking is available as a live operational view, but there is no report-ready route summary source in the reporting module.',
+    missingReason: 'Needs a historical trip or route reporting endpoint and template.',
+    fallbackRoute: '/vehicles/tracking',
+    fallbackLabel: 'Open Tracking',
+  },
+  {
+    id: 'cost-analysis-gap',
+    title: 'Cost Analysis',
+    description:
+      'Fuel, maintenance, and transfer costs are not yet blended into a single fleet cost report.',
+    missingReason: 'Needs a combined financial dataset and report source.',
+    fallbackRoute: '/vehicles/maintenance',
+    fallbackLabel: 'Review Maintenance',
+  },
+  {
+    id: 'driver-performance-gap',
+    title: 'Driver Performance',
+    description:
+      'No current source calculates driver scorecards, efficiency ranking, or driver-behavior KPIs.',
+    missingReason: 'Needs driver-linked telemetry and report templates.',
+    fallbackRoute: '/vehicles/fleet',
+    fallbackLabel: 'Open Fleet',
+  },
+];
+
+const toneClassMap = {
+  success: 'vehicle-reports-page__badge--success',
+  info: 'vehicle-reports-page__badge--info',
+  warning: 'vehicle-reports-page__badge--warning',
+};
 
 const VehicleReportsPage = () => {
+  const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+
+  const availableVehicleReports = useMemo(() => {
+    return getAllReportSources()
+      .filter((source) => (
+        Array.isArray(source.parameters)
+        && source.parameters.some((parameter) => parameter.key === 'vehicleId')
+      ))
+      .filter((source) => !source.permission || hasPermission(source.permission))
+      .map((source) => ({
+        id: source.id,
+        title: source.name,
+        description: source.description,
+        icon: source.icon || 'fa-light fa-file-chart-column',
+        category: source.category,
+        isCoreVehicleReport: CORE_VEHICLE_REPORT_IDS.includes(source.id),
+        formats: source.supportedFormats || [],
+        openRoute: reportsRoutes.engineSource(source.id),
+        scheduleRoute: `${reportsRoutes.scheduling}?source=${encodeURIComponent(source.id)}`,
+        legacyRoute: LEGACY_ROUTE_BY_SOURCE[source.id] || null,
+      }))
+      .sort((left, right) => {
+        if (left.isCoreVehicleReport && !right.isCoreVehicleReport) {
+          return -1;
+        }
+
+        if (!left.isCoreVehicleReport && right.isCoreVehicleReport) {
+          return 1;
+        }
+
+        return left.title.localeCompare(right.title);
+      });
+  }, [hasPermission]);
+
+  const summary = {
+    available: availableVehicleReports.length,
+    exports: OPERATIONAL_EXPORTS.length,
+    missing: MISSING_REPORTS.length,
+  };
+
   return (
-    <div className="tw-p-6">
-      <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
-        <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-4">Vehicle Reports</h2>
-        <p className="tw-text-gray-600 tw-mb-6">
-          Generate comprehensive reports for fleet analytics and insights
-        </p>
-
-        <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-2 lg:tw-grid-cols-3 tw-gap-6 tw-mb-8">
-          <div className="tw-bg-blue-50 tw-p-6 tw-rounded-lg tw-border tw-border-blue-200 tw-cursor-pointer hover:tw-bg-blue-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-chart-bar tw-text-2xl tw-text-blue-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-blue-800">Fleet Performance</h3>
+    <div className="vehicle-reports-page tw-flex tw-flex-col tw-gap-6">
+      <section className="vehicle-reports-page__hero tw-rounded-xl tw-border tw-bg-white tw-p-6">
+        <div className="tw-flex tw-flex-col tw-gap-4 lg:tw-flex-row lg:tw-items-start lg:tw-justify-between">
+          <div className="tw-max-w-4xl">
+            <div className="vehicle-reports-page__eyebrow">
+              <i className="fa-light fa-chart-column"></i>
+              <span>Vehicle reporting audit</span>
             </div>
-            <p className="tw-text-blue-600 tw-text-sm tw-mb-4">
-              Overall fleet performance metrics and KPIs
+
+            <h2 className="tw-mt-3 tw-text-2xl tw-font-semibold tw-text-slate-900">
+              Vehicle reports now point to live features instead of placeholders
+            </h2>
+
+            <p className="tw-mt-3 tw-text-sm tw-leading-6 tw-text-slate-600">
+              This page now blends the current report engine, the vehicle-specific report sources already wired in
+              the reports module, and the export tools that already exist inside vehicle operations.
             </p>
-            <button className="tw-text-blue-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
           </div>
 
-          <div className="tw-bg-green-50 tw-p-6 tw-rounded-lg tw-border tw-border-green-200 tw-cursor-pointer hover:tw-bg-green-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-gas-pump tw-text-2xl tw-text-green-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-green-800">Fuel Efficiency</h3>
+          <div className="vehicle-reports-page__summary-grid">
+            <div className="vehicle-reports-page__summary-card">
+              <span className="vehicle-reports-page__summary-value">{summary.available}</span>
+              <span className="vehicle-reports-page__summary-label">Live vehicle report sources</span>
             </div>
-            <p className="tw-text-green-600 tw-text-sm tw-mb-4">
-              Detailed fuel consumption and efficiency analysis
-            </p>
-            <button className="tw-text-green-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
-          </div>
-
-          <div className="tw-bg-yellow-50 tw-p-6 tw-rounded-lg tw-border tw-border-yellow-200 tw-cursor-pointer hover:tw-bg-yellow-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-wrench tw-text-2xl tw-text-yellow-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-yellow-800">Maintenance</h3>
+            <div className="vehicle-reports-page__summary-card">
+              <span className="vehicle-reports-page__summary-value">{summary.exports}</span>
+              <span className="vehicle-reports-page__summary-label">Existing vehicle exports</span>
             </div>
-            <p className="tw-text-yellow-600 tw-text-sm tw-mb-4">
-              Maintenance schedules, costs, and history reports
-            </p>
-            <button className="tw-text-yellow-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
-          </div>
-
-          <div className="tw-bg-purple-50 tw-p-6 tw-rounded-lg tw-border tw-border-purple-200 tw-cursor-pointer hover:tw-bg-purple-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-route tw-text-2xl tw-text-purple-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-purple-800">Route Analysis</h3>
-            </div>
-            <p className="tw-text-purple-600 tw-text-sm tw-mb-4">
-              Route optimization and travel pattern insights
-            </p>
-            <button className="tw-text-purple-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
-          </div>
-
-          <div className="tw-bg-red-50 tw-p-6 tw-rounded-lg tw-border tw-border-red-200 tw-cursor-pointer hover:tw-bg-red-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-dollar-sign tw-text-2xl tw-text-red-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-red-800">Cost Analysis</h3>
-            </div>
-            <p className="tw-text-red-600 tw-text-sm tw-mb-4">
-              Operational costs and budget analysis reports
-            </p>
-            <button className="tw-text-red-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
-          </div>
-
-          <div className="tw-bg-indigo-50 tw-p-6 tw-rounded-lg tw-border tw-border-indigo-200 tw-cursor-pointer hover:tw-bg-indigo-100 tw-transition-colors">
-            <div className="tw-flex tw-items-center tw-mb-4">
-              <i className="fa-light fa-user-check tw-text-2xl tw-text-indigo-600 tw-mr-3"></i>
-              <h3 className="tw-text-lg tw-font-semibold tw-text-indigo-800">Driver Performance</h3>
-            </div>
-            <p className="tw-text-indigo-600 tw-text-sm tw-mb-4">
-              Driver behavior and performance metrics
-            </p>
-            <button className="tw-text-indigo-700 tw-font-medium tw-text-sm hover:tw-underline">
-              Generate Report →
-            </button>
-          </div>
-        </div>
-
-        <div className="tw-bg-gray-50 tw-p-6 tw-rounded-lg tw-mb-6">
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Custom Report Builder</h3>
-          <div className="tw-grid tw-grid-cols-1 md:tw-grid-cols-3 tw-gap-4 tw-mb-4">
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Report Type</label>
-              <select className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm">
-                <option>Select report type...</option>
-                <option>Fleet Overview</option>
-                <option>Fuel Analysis</option>
-                <option>Maintenance Summary</option>
-                <option>Cost Report</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Date Range</label>
-              <select className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm">
-                <option>Last 30 days</option>
-                <option>Last 3 months</option>
-                <option>Last 6 months</option>
-                <option>Last year</option>
-                <option>Custom range</option>
-              </select>
-            </div>
-
-            <div>
-              <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">Format</label>
-              <select className="tw-w-full tw-p-2 tw-border tw-border-gray-300 tw-rounded-lg tw-text-sm">
-                <option>PDF</option>
-                <option>Excel</option>
-                <option>CSV</option>
-                <option>Email</option>
-              </select>
-            </div>
-          </div>
-
-          <button className="tw-bg-blue-600 tw-text-white tw-px-6 tw-py-2 tw-rounded-lg tw-font-medium hover:tw-bg-blue-700 tw-transition-colors">
-            <i className="fa-light fa-download tw-mr-2"></i>
-            Generate Custom Report
-          </button>
-        </div>
-
-        <div className="tw-bg-white tw-border tw-border-gray-200 tw-rounded-lg tw-p-6">
-          <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">Recent Reports</h3>
-          <div className="tw-space-y-3">
-            <div className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded-lg">
-              <div className="tw-flex tw-items-center">
-                <i className="fa-light fa-file-pdf tw-text-red-500 tw-mr-3"></i>
-                <div>
-                  <p className="tw-font-medium tw-text-gray-800">Fleet Performance - December 2024</p>
-                  <p className="tw-text-sm tw-text-gray-600">Generated on Jan 5, 2025</p>
-                </div>
-              </div>
-              <button className="tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium tw-text-sm">
-                Download
-              </button>
-            </div>
-
-            <div className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded-lg">
-              <div className="tw-flex tw-items-center">
-                <i className="fa-light fa-file-excel tw-text-green-500 tw-mr-3"></i>
-                <div>
-                  <p className="tw-font-medium tw-text-gray-800">Fuel Efficiency Q4 2024</p>
-                  <p className="tw-text-sm tw-text-gray-600">Generated on Jan 3, 2025</p>
-                </div>
-              </div>
-              <button className="tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium tw-text-sm">
-                Download
-              </button>
-            </div>
-
-            <div className="tw-flex tw-items-center tw-justify-between tw-p-3 tw-bg-gray-50 tw-rounded-lg">
-              <div className="tw-flex tw-items-center">
-                <i className="fa-light fa-file-csv tw-text-blue-500 tw-mr-3"></i>
-                <div>
-                  <p className="tw-font-medium tw-text-gray-800">Maintenance Report - December</p>
-                  <p className="tw-text-sm tw-text-gray-600">Generated on Jan 1, 2025</p>
-                </div>
-              </div>
-              <button className="tw-text-blue-600 hover:tw-text-blue-800 tw-font-medium tw-text-sm">
-                Download
-              </button>
+            <div className="vehicle-reports-page__summary-card vehicle-reports-page__summary-card--warning">
+              <span className="vehicle-reports-page__summary-value">{summary.missing}</span>
+              <span className="vehicle-reports-page__summary-label">Still missing report integrations</span>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      <section className="tw-grid tw-gap-4 xl:tw-grid-cols-[minmax(0,2fr)_minmax(320px,1fr)]">
+        <div className="vehicle-reports-page__panel tw-rounded-xl tw-border tw-bg-white tw-p-6">
+          <div className="vehicle-reports-page__section-header">
+            <div>
+              <h3 className="tw-text-lg tw-font-semibold tw-text-slate-900">Live reports from the reports module</h3>
+              <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
+                These report entries are already backed by report-engine sources and can be opened or scheduled now.
+              </p>
+            </div>
+            <button
+              type="button"
+              className="m365-btn m365-btn--ghost"
+              onClick={() => navigate(`${reportsRoutes.list}?view=gallery`)}
+            >
+              <i className="fa-light fa-grid-2"></i>
+              Browse all reports
+            </button>
+          </div>
+
+          <div className="tw-mt-5 tw-grid tw-gap-4 md:tw-grid-cols-2">
+            {availableVehicleReports.map((report) => (
+              <article key={report.id} className="vehicle-reports-page__card">
+                <div className="vehicle-reports-page__card-top">
+                  <div className="vehicle-reports-page__icon-wrap">
+                    <i className={report.icon}></i>
+                  </div>
+                  <span className={`vehicle-reports-page__badge ${report.isCoreVehicleReport ? 'vehicle-reports-page__badge--info' : 'vehicle-reports-page__badge--success'}`}>
+                    {report.isCoreVehicleReport ? 'Core vehicle report' : 'Available now'}
+                  </span>
+                </div>
+
+                <div className="tw-mt-4">
+                  <h4 className="tw-text-base tw-font-semibold tw-text-slate-900">{report.title}</h4>
+                  <p className="tw-mt-2 tw-text-sm tw-leading-6 tw-text-slate-600">{report.description}</p>
+                </div>
+
+                <div className="tw-mt-4 tw-flex tw-flex-wrap tw-gap-2">
+                  <span className="vehicle-reports-page__meta-pill">
+                    <i className="fa-light fa-folder"></i>
+                    {report.category}
+                  </span>
+                  {report.formats.map((format) => (
+                    <span key={`${report.id}-${format}`} className="vehicle-reports-page__meta-pill vehicle-reports-page__meta-pill--format">
+                      {format.toUpperCase()}
+                    </span>
+                  ))}
+                </div>
+
+                <div className="tw-mt-5 tw-flex tw-flex-wrap tw-gap-2">
+                  <button
+                    type="button"
+                    className="m365-btn m365-btn--primary"
+                    onClick={() => navigate(report.openRoute)}
+                  >
+                    <i className="fa-light fa-play"></i>
+                    Open report
+                  </button>
+                  <button
+                    type="button"
+                    className="m365-btn m365-btn--ghost"
+                    onClick={() => navigate(report.scheduleRoute)}
+                  >
+                    <i className="fa-light fa-calendar-plus"></i>
+                    Schedule
+                  </button>
+                  {report.legacyRoute && (
+                    <button
+                      type="button"
+                      className="m365-btn m365-btn--text"
+                      onClick={() => navigate(report.legacyRoute)}
+                    >
+                      <i className="fa-light fa-arrow-up-right-from-square"></i>
+                      Legacy view
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
+
+            {availableVehicleReports.length === 0 && (
+              <div className="vehicle-reports-page__empty-state tw-col-span-full">
+                <i className="fa-light fa-lock-keyhole"></i>
+                <h4 className="tw-text-base tw-font-semibold tw-text-slate-900">No vehicle report sources are visible</h4>
+                <p className="tw-text-sm tw-text-slate-500">
+                  Either the related reporting permissions are missing or no vehicle-linked sources are currently registered.
+                </p>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <aside className="vehicle-reports-page__stack tw-flex tw-flex-col tw-gap-4">
+          <section className="vehicle-reports-page__panel tw-rounded-xl tw-border tw-bg-white tw-p-6">
+            <h3 className="tw-text-lg tw-font-semibold tw-text-slate-900">Report orchestration</h3>
+            <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
+              The report center already provides discovery, scheduling, and monitoring for the live report sources.
+            </p>
+
+            <div className="tw-mt-5 tw-flex tw-flex-col tw-gap-3">
+              <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.list)}>
+                <i className="fa-light fa-list"></i>
+                All report sources
+              </button>
+              <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.scheduling)}>
+                <i className="fa-light fa-calendar-clock"></i>
+                Scheduling
+              </button>
+              <button type="button" className="m365-btn m365-btn--ghost vehicle-reports-page__wide-btn" onClick={() => navigate(reportsRoutes.monitoring)}>
+                <i className="fa-light fa-waveform-lines"></i>
+                Monitoring
+              </button>
+            </div>
+          </section>
+
+          <section className="vehicle-reports-page__panel tw-rounded-xl tw-border tw-bg-white tw-p-6">
+            <h3 className="tw-text-lg tw-font-semibold tw-text-slate-900">Already available in vehicle operations</h3>
+            <div className="tw-mt-4 tw-flex tw-flex-col tw-gap-3">
+              {OPERATIONAL_EXPORTS.map((item) => (
+                <article key={item.id} className="vehicle-reports-page__compact-card">
+                  <div className="tw-flex tw-items-start tw-justify-between tw-gap-3">
+                    <div className="tw-flex tw-gap-3">
+                      <span className="vehicle-reports-page__compact-icon">
+                        <i className={item.icon}></i>
+                      </span>
+                      <div>
+                        <h4 className="tw-text-sm tw-font-semibold tw-text-slate-900">{item.title}</h4>
+                        <p className="tw-mt-1 tw-text-sm tw-leading-6 tw-text-slate-600">{item.description}</p>
+                      </div>
+                    </div>
+                    <span className={`vehicle-reports-page__badge ${toneClassMap[item.badgeTone]}`}>
+                      {item.badge}
+                    </span>
+                  </div>
+
+                  <div className="tw-mt-3 tw-flex tw-items-center tw-justify-between tw-gap-3">
+                    <span className="tw-text-xs tw-text-slate-500">{item.helperText}</span>
+                    <button type="button" className="m365-btn m365-btn--text" onClick={() => navigate(item.route)}>
+                      <i className="fa-light fa-arrow-right"></i>
+                      {item.actionLabel}
+                    </button>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </section>
+        </aside>
+      </section>
+
+      <section className="vehicle-reports-page__panel tw-rounded-xl tw-border tw-bg-white tw-p-6">
+        <div className="vehicle-reports-page__section-header">
+          <div>
+            <h3 className="tw-text-lg tw-font-semibold tw-text-slate-900">Identified report gaps from the old placeholder screen</h3>
+            <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
+              These are the report concepts that were displayed before but are still not connected to real data or templates.
+            </p>
+          </div>
+        </div>
+
+        <div className="tw-mt-5 tw-grid tw-gap-4 md:tw-grid-cols-2 xl:tw-grid-cols-4">
+          {MISSING_REPORTS.map((item) => (
+            <article key={item.id} className="vehicle-reports-page__gap-card">
+              <span className="vehicle-reports-page__badge vehicle-reports-page__badge--warning">
+                Missing integration
+              </span>
+              <h4 className="tw-mt-4 tw-text-base tw-font-semibold tw-text-slate-900">{item.title}</h4>
+              <p className="tw-mt-2 tw-text-sm tw-leading-6 tw-text-slate-600">{item.description}</p>
+              <p className="tw-mt-3 tw-text-xs tw-font-medium tw-uppercase tw-tracking-wide tw-text-amber-700">
+                {item.missingReason}
+              </p>
+
+              <button
+                type="button"
+                className="m365-btn m365-btn--text tw-mt-4"
+                onClick={() => navigate(item.fallbackRoute)}
+              >
+                <i className="fa-light fa-arrow-up-right-from-square"></i>
+                {item.fallbackLabel}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
     </div>
   );
 };

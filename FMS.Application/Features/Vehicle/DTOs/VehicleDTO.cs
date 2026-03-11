@@ -49,6 +49,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
         // GPS and tracking properties
         public bool HasGPSInstalled { get; set; }
         public bool GpsgategeneratedId { get; set; }
+        public VehicleMovementProfile MovementProfile { get; set; } = VehicleMovementProfile.Geofence;
 
         // Added fields for tracking
         public DateTime? DateCreated { get; set; }

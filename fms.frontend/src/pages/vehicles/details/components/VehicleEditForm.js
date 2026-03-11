@@ -32,6 +32,12 @@ import { fetchSiteList } from "../../../../redux/actions/siteActions";
 import { fetchEmployees } from "../../../../redux/actions/employeeActions";
 import { fetchExpectedAvg } from "../../../../redux/actions/expectedAvgActions";
 
+const MOVEMENT_PROFILE_OPTIONS = [
+  { id: 0, name: "Undefined" },
+  { id: 1, name: "Geofence" },
+  { id: 2, name: "Cluster" },
+];
+
 const VehicleEditForm = ({
   vehicle,
   isEditing = false,
@@ -77,6 +83,7 @@ const VehicleEditForm = ({
         isCompanyVehicle: vehicle.isCompanyVehicle || false,
         isActive: vehicle.isActive || true,
         gpsgategeneratedId: vehicle.gpsgategeneratedId || false,
+        movementProfile: vehicle.movementProfile ?? 1,
       });
     }
   }, [vehicle?.vehicleId]); // Only depend on vehicle ID
@@ -579,6 +586,22 @@ const VehicleEditForm = ({
             >
               <RangeRule min={0} message="Cost cannot be negative" />
             </SimpleItem>
+
+            <SimpleItem
+              dataField="movementProfile"
+              caption="Movement Profile"
+              editorType="dxSelectBox"
+              editorOptions={{
+                dataSource: MOVEMENT_PROFILE_OPTIONS,
+                valueExpr: "id",
+                displayExpr: "name",
+                placeholder: "Select movement profile",
+                onValueChanged: (e) =>
+                  handleFieldChange("movementProfile", e.value ?? 1),
+                readOnly: isFormDisabled,
+                stylingMode: isFormDisabled ? "outlined" : "outlined",
+              }}
+            />
           </GroupItem>
 
           {/* GPS and Tracking Group */}

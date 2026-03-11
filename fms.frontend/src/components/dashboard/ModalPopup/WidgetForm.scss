@@ -1,0 +1,274 @@
+/**
+ * File: WidgetForm.scss
+ * Purpose: M365-style visual design for the dashboard add widget side panel form.
+ * Dependencies: DevExtreme editors rendered by WidgetForm.js
+ * Last Modified: 2026-03-07
+ */
+
+.widget-form-m365 {
+  color: #201f1e;
+
+  &__intro {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__choice {
+    appearance: none;
+    border: none;
+    border-radius: 12px;
+    background: #f7f7f7;
+    padding: 20px;
+    text-align: left;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, color 0.15s ease;
+    &:hover {
+      background: #f3f2f1;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #0078d4;
+    }
+
+    &--active {
+      background: #eff6fc;
+      box-shadow: 0 0 0 1px rgba(0, 120, 212, 0.25);
+    }
+  }
+
+  &__choice-title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    line-height: 1.2;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__choice-copy {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #605e5c;
+  }
+
+  &__section {
+    background: #ffffff;
+    border: none;
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  &__section--muted {
+    background: #faf9f8;
+  }
+
+  &__section-title {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.3;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__section-copy {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #605e5c;
+  }
+
+  &__section-header {
+    margin-bottom: 16px;
+  }
+
+  &__summary {
+    background: #f7f7f7;
+    border-radius: 10px;
+    padding: 16px;
+  }
+
+  &__summary-title {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__summary-copy {
+    margin: 4px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #605e5c;
+  }
+
+  &__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+
+  &__chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #ffffff;
+    color: #323130;
+    font-size: 12px;
+    line-height: 1.2;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.04);
+  }
+
+  &__grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  &__detail-card {
+    background: #f7f7f7;
+    border-radius: 10px;
+    padding: 12px 14px;
+  }
+
+  &__detail-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: #605e5c;
+  }
+
+  &__detail-value {
+    margin-top: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #201f1e;
+  }
+
+  &__message {
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13px;
+    line-height: 1.4;
+    background: #fdf6f6;
+    color: #a4262c;
+    box-shadow: none;
+  }
+
+  &__native-select {
+    width: 100%;
+    min-height: 36px;
+    padding: 0 36px 0 12px;
+    font-size: 13px;
+    color: #201f1e;
+    background: #ffffff;
+    border: 1px solid #c8c6c4;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+
+    &:hover {
+      border-color: #8a8886;
+    }
+
+    &:focus {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 1px #0078d4;
+    }
+  }
+
+  &__field-help {
+    margin-top: 8px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #605e5c;
+  }
+
+  &__preset-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  &__preset-btn {
+    appearance: none;
+    border: none;
+    background: #f7f7f7;
+    color: #323130;
+    border-radius: 999px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    cursor: pointer;
+    transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+    box-shadow: none;
+
+    &:hover {
+      background: #f3f2f1;
+    }
+
+    &:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px #0078d4;
+    }
+
+    &--active {
+      background: #eff6fc;
+      color: #005a9e;
+      box-shadow: 0 0 0 1px rgba(0, 120, 212, 0.2);
+    }
+  }
+
+  .dx-texteditor,
+  .dx-dropdowneditor,
+  .dx-tagbox {
+    border-radius: 4px;
+  }
+
+  .dx-texteditor,
+  .dx-dropdowneditor-button-visible,
+  .dx-tagbox {
+    background: #ffffff;
+    border: 1px solid #c8c6c4;
+    box-shadow: none;
+  }
+
+  .dx-texteditor.dx-state-hover,
+  .dx-dropdowneditor.dx-state-hover,
+  .dx-tagbox.dx-state-hover {
+    border-color: #8a8886;
+  }
+
+  .dx-texteditor.dx-state-focused,
+  .dx-dropdowneditor.dx-state-focused,
+  .dx-tagbox.dx-state-focused {
+    border-color: #0078d4;
+    box-shadow: 0 0 0 1px #0078d4;
+  }
+
+  .dx-texteditor-input,
+  .dx-placeholder,
+  .dx-tag-content,
+  .dx-dropdowneditor-input-wrapper {
+    font-size: 13px;
+  }
+}

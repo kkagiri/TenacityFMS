@@ -175,6 +175,7 @@ const WidgetSelectionModal = ({
   // Helper to map backend category to UI category
   const mapCategoryToUICategory = (category) => {
     const categoryMap = {
+      'admin': 'Admin',
       'fuel_management': 'Operations',
       'vehicle_performance': 'Analytics',
       'alerts_monitoring': 'Monitoring',
@@ -190,6 +191,7 @@ const WidgetSelectionModal = ({
   // Helper to get icon based on category
   const getCategoryIcon = (category) => {
     const iconMap = {
+      'admin': 'fa-user-shield',
       'fuel_management': 'fa-gas-pump',
       'vehicle_performance': 'fa-car',
       'alerts_monitoring': 'fa-exclamation-triangle',

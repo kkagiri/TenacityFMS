@@ -28,6 +28,12 @@ import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchEmployees } from "../../../redux/actions/employeeActions";
 import { fetchExpectedAvg } from "../../../redux/actions/expectedAvgActions";
 
+const MOVEMENT_PROFILE_OPTIONS = [
+    { id: 0, name: "Undefined" },
+    { id: 1, name: "Geofence" },
+    { id: 2, name: "Cluster" },
+];
+
 /* ── empty form shape ── */
 const buildFormData = (v) => ({
     hyoungNo: v?.hyoungNo || "",
@@ -50,6 +56,7 @@ const buildFormData = (v) => ({
     isCompanyVehicle: v?.isCompanyVehicle || false,
     isActive: v?.isActive ?? true,
     gpsgategeneratedId: v?.gpsgategeneratedId || false,
+    movementProfile: v?.movementProfile ?? 1,
 });
 
 const VehicleFormPanel = ({
@@ -536,6 +543,20 @@ const VehicleFormPanel = ({
                                     step={0.01}
                                 />
                             </div>
+                        </div>
+
+                        <div>
+                            <label className="m365-field__label">Movement Profile</label>
+                            <SelectBox
+                                dataSource={MOVEMENT_PROFILE_OPTIONS}
+                                value={form.movementProfile}
+                                valueExpr="id"
+                                displayExpr="name"
+                                onValueChanged={(e) => set("movementProfile", e.value ?? 1)}
+                                placeholder="Select movement profile"
+                                height={34}
+                                stylingMode="outlined"
+                            />
                         </div>
 
                         {/* Current Physical Reading */}

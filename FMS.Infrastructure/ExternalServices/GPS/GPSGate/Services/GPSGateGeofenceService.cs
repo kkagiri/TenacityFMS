@@ -2,11 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Net.Http;
+using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface;
+using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 using Microsoft.Extensions.Logging;
@@ -302,6 +304,75 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
         }
 
+        public async Task<FMSResponse<GeofenceDTO>> CreateGeofenceAsync(CreateGeofenceRequestDTO request)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                var payload = BuildGeofencePayload(request);
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post,
+                    $"{baseUrl}/applications/{applicationId}/geofences")
+                {
+                    Content = JsonContent.Create(payload, options: _jsonOptions)
+                };
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to create geofence. Status: {StatusCode}. Response: {Response}", response.StatusCode, errorContent);
+                    return FMSResponse<GeofenceDTO>.Failed("Failed to create geofence in GPSGate.");
+                }
+
+                var geofenceId = await TryResolveResourceIdAsync(response);
+                if (geofenceId.HasValue)
+                {
+                    var geofenceResult = await GetGeofenceByIdAsync(geofenceId.Value);
+                    if (geofenceResult.IsSuccess && geofenceResult.Data != null)
+                    {
+                        return geofenceResult;
+                    }
+                }
+
+                return FMSResponse<GeofenceDTO>.Success(BuildFallbackGeofence(request, geofenceId ?? 0), "Geofence created successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating geofence {GeofenceName}", request.Name);
+                return FMSResponse<GeofenceDTO>.Failed($"Error creating geofence: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<bool>> DeleteGeofenceAsync(int geofenceId)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Delete,
+                    $"{baseUrl}/applications/{applicationId}/geofences/{geofenceId}");
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to delete geofence {GeofenceId}. Status: {StatusCode}. Response: {Response}", geofenceId, response.StatusCode, errorContent);
+                    return FMSResponse<bool>.Failed("Failed to delete geofence in GPSGate.");
+                }
+
+                return FMSResponse<bool>.Success(true, "Geofence deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting geofence {GeofenceId}", geofenceId);
+                return FMSResponse<bool>.Failed($"Error deleting geofence: {ex.Message}");
+            }
+        }
+
         #region Geofence Group Operations
 
         public async Task<FMSResponse<List<GeofenceGroupDTO>>> GetGeofenceGroupsAsync()
@@ -495,9 +566,343 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
         }
 
+        public async Task<FMSResponse<GeofenceGroupDTO>> CreateGeofenceGroupAsync(CreateGeofenceGroupRequestDTO request)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                var payload = new GPSGateGeofenceGroup
+                {
+                    Id = 0,
+                    Name = request.Name,
+                    Description = request.Description,
+                    Colour = request.Colour,
+                    Pinned = request.IsPinned,
+                    UseInGeocoding = request.UseInGeocoding,
+                    GeofenceIds = request.GeofenceIds
+                };
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post,
+                    $"{baseUrl}/applications/{applicationId}/geofencegroups")
+                {
+                    Content = JsonContent.Create(payload, options: _jsonOptions)
+                };
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to create geofence group. Status: {StatusCode}. Response: {Response}", response.StatusCode, errorContent);
+                    return FMSResponse<GeofenceGroupDTO>.Failed("Failed to create geofence group in GPSGate.");
+                }
+
+                var groupId = await TryResolveResourceIdAsync(response);
+                if (groupId.HasValue)
+                {
+                    var groupResult = await GetGeofenceGroupByIdAsync(groupId.Value);
+                    if (groupResult.IsSuccess && groupResult.Data != null)
+                    {
+                        return groupResult;
+                    }
+                }
+
+                return FMSResponse<GeofenceGroupDTO>.Success(new GeofenceGroupDTO
+                {
+                    Id = groupId ?? 0,
+                    Name = request.Name,
+                    Description = request.Description ?? string.Empty,
+                    Colour = request.Colour ?? "#808080",
+                    IsPinned = request.IsPinned,
+                    UseInGeocoding = request.UseInGeocoding,
+                    GeofenceIds = request.GeofenceIds,
+                    LastSyncedAt = DateTime.UtcNow,
+                    IsActive = true
+                }, "Geofence group created successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error creating geofence group {GroupName}", request.Name);
+                return FMSResponse<GeofenceGroupDTO>.Failed($"Error creating geofence group: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<GeofenceGroupDTO>> UpdateGeofenceGroupAsync(int groupId, UpdateGeofenceGroupRequestDTO request)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                var payload = new GPSGateGeofenceGroup
+                {
+                    Id = groupId,
+                    Name = request.Name,
+                    Description = request.Description,
+                    Colour = request.Colour,
+                    Pinned = request.IsPinned,
+                    UseInGeocoding = request.UseInGeocoding,
+                    GeofenceIds = request.GeofenceIds
+                };
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Put,
+                    $"{baseUrl}/applications/{applicationId}/geofencegroups/{groupId}")
+                {
+                    Content = JsonContent.Create(payload, options: _jsonOptions)
+                };
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to update geofence group {GroupId}. Status: {StatusCode}. Response: {Response}", groupId, response.StatusCode, errorContent);
+                    return FMSResponse<GeofenceGroupDTO>.Failed("Failed to update geofence group in GPSGate.");
+                }
+
+                return await GetGeofenceGroupByIdAsync(groupId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating geofence group {GroupId}", groupId);
+                return FMSResponse<GeofenceGroupDTO>.Failed($"Error updating geofence group: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<bool>> DeleteGeofenceGroupAsync(int groupId)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Delete,
+                    $"{baseUrl}/applications/{applicationId}/geofencegroups/{groupId}");
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to delete geofence group {GroupId}. Status: {StatusCode}. Response: {Response}", groupId, response.StatusCode, errorContent);
+                    return FMSResponse<bool>.Failed("Failed to delete geofence group in GPSGate.");
+                }
+
+                return FMSResponse<bool>.Success(true, "Geofence group deleted successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting geofence group {GroupId}", groupId);
+                return FMSResponse<bool>.Failed($"Error deleting geofence group: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<bool>> AddGeofenceToGroupAsync(int groupId, int geofenceId)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Post,
+                    $"{baseUrl}/applications/{applicationId}/geofencegroups/{groupId}/geofences")
+                {
+                    Content = JsonContent.Create(new { id = geofenceId }, options: _jsonOptions)
+                };
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to add geofence {GeofenceId} to group {GroupId}. Status: {StatusCode}. Response: {Response}", geofenceId, groupId, response.StatusCode, errorContent);
+                    return FMSResponse<bool>.Failed("Failed to add geofence to group in GPSGate.");
+                }
+
+                return FMSResponse<bool>.Success(true, "Geofence added to group successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding geofence {GeofenceId} to group {GroupId}", geofenceId, groupId);
+                return FMSResponse<bool>.Failed($"Error adding geofence to group: {ex.Message}");
+            }
+        }
+
+        public async Task<FMSResponse<bool>> RemoveGeofenceFromGroupAsync(int groupId, int geofenceId)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Delete,
+                    $"{baseUrl}/applications/{applicationId}/geofencegroups/{groupId}/geofences/{geofenceId}");
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to remove geofence {GeofenceId} from group {GroupId}. Status: {StatusCode}. Response: {Response}", geofenceId, groupId, response.StatusCode, errorContent);
+                    return FMSResponse<bool>.Failed("Failed to remove geofence from group in GPSGate.");
+                }
+
+                return FMSResponse<bool>.Success(true, "Geofence removed from group successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error removing geofence {GeofenceId} from group {GroupId}", geofenceId, groupId);
+                return FMSResponse<bool>.Failed($"Error removing geofence from group: {ex.Message}");
+            }
+        }
+
         #endregion
 
         #region Helper Methods
+
+        private object BuildGeofencePayload(CreateGeofenceRequestDTO request)
+        {
+            var type = request.GeofenceType?.ToLowerInvariant();
+
+            return type switch
+            {
+                "circle" => new GPSGateGeofence
+                {
+                    Id = 0,
+                    Name = request.Name,
+                    Description = request.Description,
+                    ShapeType = GPSGateShapeType.Circle,
+                    CircleShape = new GPSGateCircleShape
+                    {
+                        Center = new GPSGatePosition2D
+                        {
+                            Latitude = (double)(request.CenterLatitude ?? 0),
+                            Longitude = (double)(request.CenterLongitude ?? 0)
+                        },
+                        Radius = (double)(request.RadiusMeters ?? 0)
+                    }
+                },
+                "route" => new GPSGateGeofence
+                {
+                    Id = 0,
+                    Name = request.Name,
+                    Description = request.Description,
+                    ShapeType = GPSGateShapeType.Route,
+                    RouteShape = new GPSGateRouteShape
+                    {
+                        Radius = (double)(request.RadiusMeters ?? 0),
+                        Vertices = request.Coordinates
+                            .OrderBy(x => x.Order)
+                            .Select(x => new GPSGatePosition2D
+                            {
+                                Latitude = (double)x.Latitude,
+                                Longitude = (double)x.Longitude
+                            })
+                            .ToList()
+                    }
+                },
+                _ => new GPSGateGeofence
+                {
+                    Id = 0,
+                    Name = request.Name,
+                    Description = request.Description,
+                    ShapeType = GPSGateShapeType.Polygon,
+                    PolygonShape = new GPSGatePolygonShape
+                    {
+                        Vertices = request.Coordinates
+                            .OrderBy(x => x.Order)
+                            .Select(x => new GPSGatePosition2D
+                            {
+                                Latitude = (double)x.Latitude,
+                                Longitude = (double)x.Longitude
+                            })
+                            .ToList()
+                    }
+                }
+            };
+        }
+
+        private async Task<int?> TryResolveResourceIdAsync(HttpResponseMessage response)
+        {
+            var content = await response.Content.ReadAsStringAsync();
+            if (!string.IsNullOrWhiteSpace(content))
+            {
+                if (int.TryParse(content, out var numericId))
+                {
+                    return numericId;
+                }
+
+                try
+                {
+                    using var document = JsonDocument.Parse(content);
+                    if (document.RootElement.ValueKind == JsonValueKind.Object &&
+                        document.RootElement.TryGetProperty("id", out var idProperty) &&
+                        idProperty.TryGetInt32(out var jsonId))
+                    {
+                        return jsonId;
+                    }
+                }
+                catch (JsonException)
+                {
+                    // ignore and fall back to Location header parsing
+                }
+            }
+
+            if (response.Headers.Location != null)
+            {
+                var lastSegment = response.Headers.Location.Segments.LastOrDefault()?.Trim('/');
+                if (int.TryParse(lastSegment, out var locationId))
+                {
+                    return locationId;
+                }
+            }
+
+            return null;
+        }
+
+        private GeofenceDTO BuildFallbackGeofence(CreateGeofenceRequestDTO request, int id)
+        {
+            var geofence = new GeofenceDTO
+            {
+                Id = id,
+                Name = request.Name,
+                Description = request.Description ?? string.Empty,
+                IsActive = true,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            };
+
+            if (request.GeofenceType.Equals("Circle", StringComparison.OrdinalIgnoreCase))
+            {
+                geofence.Type = GeofenceType.Circle;
+                geofence.Radius = request.RadiusMeters;
+                geofence.Coordinates.Add(new GeofenceCoordinate
+                {
+                    Latitude = request.CenterLatitude ?? 0,
+                    Longitude = request.CenterLongitude ?? 0,
+                    Order = 0
+                });
+                geofence.GeometryJson = GenerateCircleGeoJson((double)(request.CenterLatitude ?? 0), (double)(request.CenterLongitude ?? 0), (double)(request.RadiusMeters ?? 0));
+                return geofence;
+            }
+
+            geofence.Type = request.GeofenceType.Equals("Route", StringComparison.OrdinalIgnoreCase)
+                ? GeofenceType.Route
+                : GeofenceType.Polygon;
+            geofence.Radius = request.RadiusMeters;
+            geofence.Coordinates = request.Coordinates
+                .OrderBy(x => x.Order)
+                .Select(x => new GeofenceCoordinate
+                {
+                    Latitude = x.Latitude,
+                    Longitude = x.Longitude,
+                    Order = x.Order
+                })
+                .ToList();
+
+            geofence.GeometryJson = geofence.Type == GeofenceType.Route
+                ? GenerateLineStringGeoJson(geofence.Coordinates.Select(x => new GPSGatePosition2D { Latitude = (double)x.Latitude, Longitude = (double)x.Longitude }).ToList())
+                : GeneratePolygonGeoJson(geofence.Coordinates.Select(x => new GPSGatePosition2D { Latitude = (double)x.Latitude, Longitude = (double)x.Longitude }).ToList());
+
+            return geofence;
+        }
 
         private GeofenceDTO MapToGeofenceDTO(GPSGateGeofence gpsGateGeofence)
         {

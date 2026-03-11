@@ -258,3 +258,28 @@ $m-danger:        #d13438;
     margin-left: 5px;
   }
 }
+
+.engine-error {
+  padding: 10px 16px;
+  background: #fde7e9;
+  border-bottom: 1px solid lighten($m-danger, 28%);
+  flex-shrink: 0;
+
+  &__top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__msg {
+    font-size: 13px;
+    font-weight: 500;
+    color: $m-danger;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    i { font-size: 14px; }
+  }
+}

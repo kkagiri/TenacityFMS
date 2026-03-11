@@ -49,7 +49,7 @@ const vehicleConsumption = {
         },
         {
             key: 'vehicleTypeId',
-            queryParam: 'vehicleType',
+            queryParam: 'vehicleTypeId',
             label: 'Vehicle Type',
             type: 'lookup',
             lookupSource: 'vehicleTypes',
@@ -60,6 +60,7 @@ const vehicleConsumption = {
         },
         {
             key: 'vehicleId',
+            queryParam: 'vehicleId',
             label: 'Vehicle',
             type: 'lookup',
             lookupSource: 'vehicles',

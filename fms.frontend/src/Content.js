@@ -277,9 +277,15 @@ export default function Content() {
             {signalRState.isBusinessConnected && (
               <span style={{ color: "#4caf50" }}>● Business</span>
             )}
+            {signalRState.isVehicleTrackingConnected && (
+              <span style={{ color: "#4caf50", marginLeft: signalRState.isBusinessConnected ? "10px" : 0 }}>
+                ● Vehicle Tracking
+              </span>
+            )}
             {!signalRState.isDashboardConnected &&
               !signalRState.isPtsConnected &&
-              !signalRState.isBusinessConnected && (
+              !signalRState.isBusinessConnected &&
+              !signalRState.isVehicleTrackingConnected && (
                 <span style={{ color: "#ff9800" }}>● Offline</span>
               )}
           </div>

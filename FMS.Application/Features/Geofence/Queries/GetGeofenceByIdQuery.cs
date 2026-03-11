@@ -24,6 +24,11 @@ public class GetGeofenceByIdQueryHandler : IRequestHandler<GetGeofenceByIdQuery,
 
     public async Task<GpsGeofenceDTO?> Handle(GetGeofenceByIdQuery request, CancellationToken cancellationToken)
     {
+        var siteLink = await _context.Sites
+            .Where(s => s.GpsGeofenceId == request.GeofenceId)
+            .Select(s => new { s.Id, s.Name })
+            .FirstOrDefaultAsync(cancellationToken);
+
         var geofence = await _context.GpsGeofences
             .Where(g => g.Id == request.GeofenceId)
             .Select(g => new GpsGeofenceDTO
@@ -38,6 +43,9 @@ public class GetGeofenceByIdQueryHandler : IRequestHandler<GetGeofenceByIdQuery,
                 CenterLongitude = g.CenterLongitude,
                 RadiusMeters = g.RadiusMeters,
                 IsActive = g.IsActive,
+                IsAssignedToSite = siteLink != null,
+                SiteId = siteLink != null ? siteLink.Id : null,
+                SiteName = siteLink != null ? siteLink.Name : null,
                 LastSyncedAt = g.LastSyncedAt,
                 CreatedAt = g.CreatedAt,
                 UpdatedAt = g.UpdatedAt

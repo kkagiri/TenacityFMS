@@ -1,109 +1,235 @@
-import React, { useState, useMemo } from 'react';
-import PropTypes from 'prop-types';
-import './DataTableWidget.css';
-
 /**
- * Data Table Widget Component
- * Displays tabular data with sorting, filtering, and pagination
+ * File: DataTableWidget.js
+ * Purpose: Renders business-friendly dashboard tables with search, sorting, summary chips, and pagination.
+ * Dependencies: React, PropTypes, DataTableWidget.scss
+ * Last Modified: 2026-03-09
+ *
+ * Key Functions:
+ * - normalizeIncomingData(): Normalizes array and object table payloads into a single shape.
+ * - normalizeColumn(): Applies business labels, inferred types, and visibility rules to table columns.
+ * - DataTableWidget(): Displays compact issue-friendly tables with Fluent-inspired styling.
  */
+import React, { useMemo, useState } from 'react';
+import PropTypes from 'prop-types';
+import './DataTableWidget.scss';
+
+const TECHNICAL_FIELDS = new Set(['rowIndex', 'rowNumber']);
+
+const DEFAULT_CONFIG = {
+  title: 'Data Table',
+  pageSize: 8,
+  showPagination: true,
+  showSearch: true,
+  showRowNumbers: false,
+  columns: [],
+  actions: []
+};
+
+const prettifyFieldName = (field) => {
+  if (!field) {
+    return '';
+  }
+
+  return field
+    .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/\b\w/g, (letter) => letter.toUpperCase());
+};
+
+const inferColumnType = (value) => {
+  if (typeof value === 'boolean') return 'boolean';
+  if (typeof value === 'number') return 'number';
+
+  if (typeof value === 'string') {
+    if (/^\d{4}-\d{2}-\d{2}T/.test(value)) return 'datetime';
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return 'date';
+  }
+
+  if (value instanceof Date) return 'datetime';
+  return 'text';
+};
+
+const normalizeIncomingData = (data) => {
+  if (Array.isArray(data)) {
+    return { rows: data, columns: [], summary: null, total: data.length, lastUpdated: null };
+  }
+
+  if (data && typeof data === 'object') {
+    return {
+      rows: Array.isArray(data.rows) ? data.rows : [],
+      columns: Array.isArray(data.columns) ? data.columns : [],
+      summary: data.summary || null,
+      total: typeof data.total === 'number' ? data.total : null,
+      lastUpdated: data.lastUpdated || data.timestamp || data.metadata?.lastUpdated || null
+    };
+  }
+
+  return { rows: [], columns: [], summary: null, total: 0, lastUpdated: null };
+};
+
+const normalizeColumn = (column, sampleRow) => {
+  const normalized = typeof column === 'string' ? { field: column } : { ...column };
+  const field = normalized.field || normalized.name || normalized.key;
+  const sampleValue = field ? sampleRow?.[field] : undefined;
+
+  return {
+    field,
+    title: normalized.title || normalized.caption || prettifyFieldName(field),
+    type: normalized.type || inferColumnType(sampleValue),
+    sortable: normalized.sortable !== false,
+    hidden: normalized.hidden === true || TECHNICAL_FIELDS.has(field),
+    isPrimary: normalized.isPrimary === true,
+    width: normalized.width || 'auto'
+  };
+};
+
+const isDateLikeValue = (value) => value instanceof Date || (typeof value === 'string' && !Number.isNaN(Date.parse(value)));
+
+const compareValues = (left, right, type) => {
+  if (left === right) return 0;
+  if (left === null || left === undefined || left === '') return 1;
+  if (right === null || right === undefined || right === '') return -1;
+  if (type === 'number') return Number(left) - Number(right);
+  if (type === 'date' || type === 'datetime' || isDateLikeValue(left) || isDateLikeValue(right)) {
+    return new Date(left).getTime() - new Date(right).getTime();
+  }
+  if (typeof left === 'boolean' || typeof right === 'boolean') return Number(Boolean(left)) - Number(Boolean(right));
+  return String(left).localeCompare(String(right), undefined, { numeric: true, sensitivity: 'base' });
+};
+
+const getBadgeTone = (field, value) => {
+  const normalizedField = (field || '').toLowerCase();
+  const normalizedValue = String(value || '').trim().toLowerCase();
+
+  if (normalizedField === 'status') {
+    if (normalizedValue.includes('closed')) return 'success';
+    if (normalizedValue.includes('progress')) return 'info';
+    if (normalizedValue.includes('open')) return 'warning';
+  }
+
+  if (normalizedField === 'priority') {
+    if (normalizedValue.includes('critical')) return 'critical';
+    if (normalizedValue.includes('high')) return 'danger';
+    if (normalizedValue.includes('medium')) return 'warning';
+    if (normalizedValue.includes('low')) return 'neutral';
+  }
+
+  if (normalizedField === 'overdue') {
+    return value ? 'danger' : 'success';
+  }
+
+  return 'neutral';
+};
+
+const formatDateValue = (value, includeTime = false) => {
+  if (!value) return '—';
+
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return String(value);
+
+  return includeTime
+    ? parsed.toLocaleString([], { dateStyle: 'medium', timeStyle: 'short' })
+    : parsed.toLocaleDateString([], { dateStyle: 'medium' });
+};
+
 const DataTableWidget = ({
   widgetId,
+  widget = null,
   config = {},
   data = null,
   onRefresh,
+  onConfigChange,
   onConfigure,
-  isEditing = false
+  isEditing = false,
+  isEditMode = false,
+  title,
+  hideHeader = false,
+  isLoading = false,
+  error = null
 }) => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [refreshError, setRefreshError] = useState(null);
   const [sortColumn, setSortColumn] = useState(null);
   const [sortDirection, setSortDirection] = useState('asc');
   const [searchTerm, setSearchTerm] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
 
-  // Default configuration
-  const defaultConfig = {
-    title: 'Data Table',
-    pageSize: 10,
-    showPagination: true,
-    showSearch: true,
-    showRowNumbers: true,
-    sortable: true,
-    filterable: false,
-    striped: true,
-    bordered: true,
-    compact: false,
-    columns: [],
-    actions: []
-  };
+  const normalizedPayload = useMemo(() => normalizeIncomingData(data), [data]);
 
-  const mergedConfig = { ...defaultConfig, ...config };
+  const mergedConfig = useMemo(() => ({
+    ...DEFAULT_CONFIG,
+    ...(widget || {}),
+    ...(config || {}),
+    title: title || config?.title || widget?.title || widget?.name || DEFAULT_CONFIG.title,
+    columns: config?.columns || widget?.columns || DEFAULT_CONFIG.columns,
+    actions: config?.actions || DEFAULT_CONFIG.actions
+  }), [widget, config, title]);
 
-  // Process table data and columns
   const { processedData, columns } = useMemo(() => {
-    if (!data || !Array.isArray(data) || data.length === 0) {
-      return { processedData: [], columns: [] };
-    }
+    const rows = normalizedPayload.rows;
+    if (!rows.length) return { processedData: [], columns: [] };
 
-    // Auto-detect columns if not configured
+    const sampleRow = rows[0] || {};
     let detectedColumns = mergedConfig.columns;
-    if (!detectedColumns.length && data.length > 0) {
-      const firstRow = data[0];
-      detectedColumns = Object.keys(firstRow).map(key => ({
-        field: key,
-        title: key.charAt(0).toUpperCase() + key.slice(1).replace(/([A-Z])/g, ' $1'),
-        sortable: true,
-        width: 'auto',
-        type: typeof firstRow[key] === 'number' ? 'number' : 'text'
-      }));
-    }
+    if (!detectedColumns.length && normalizedPayload.columns.length) detectedColumns = normalizedPayload.columns;
+    if (!detectedColumns.length) detectedColumns = Object.keys(sampleRow).map((field) => ({ field }));
 
-    // Filter data based on search term
-    let filtered = data;
+    const visibleColumns = detectedColumns
+      .map((column) => normalizeColumn(column, sampleRow))
+      .filter((column) => column.field && !column.hidden);
+
+    let filtered = rows;
     if (searchTerm) {
-      filtered = data.filter(row =>
-        Object.values(row).some(value =>
-          String(value).toLowerCase().includes(searchTerm.toLowerCase())
-        )
+      const loweredTerm = searchTerm.toLowerCase();
+      filtered = rows.filter((row) =>
+        visibleColumns.some((column) => String(row[column.field] ?? '').toLowerCase().includes(loweredTerm))
       );
     }
 
-    // Sort data
     if (sortColumn) {
+      const activeColumn = visibleColumns.find((column) => column.field === sortColumn);
       filtered = [...filtered].sort((a, b) => {
-        const aVal = a[sortColumn];
-        const bVal = b[sortColumn];
-
-        let comparison = 0;
-        if (aVal > bVal) comparison = 1;
-        if (aVal < bVal) comparison = -1;
-
+        const comparison = compareValues(a[sortColumn], b[sortColumn], activeColumn?.type);
         return sortDirection === 'desc' ? -comparison : comparison;
       });
     }
 
-    return { processedData: filtered, columns: detectedColumns };
-  }, [data, mergedConfig.columns, searchTerm, sortColumn, sortDirection]);
+    return { processedData: filtered, columns: visibleColumns };
+  }, [normalizedPayload, mergedConfig.columns, searchTerm, sortColumn, sortDirection]);
 
-  // Pagination
-  const totalPages = Math.ceil(processedData.length / mergedConfig.pageSize);
+  const totalPages = Math.max(1, Math.ceil(processedData.length / mergedConfig.pageSize));
   const startIndex = (currentPage - 1) * mergedConfig.pageSize;
   const paginatedData = processedData.slice(startIndex, startIndex + mergedConfig.pageSize);
+  const effectiveError = refreshError || error;
+  const showEditingState = isEditing || isEditMode;
+  const configureHandler = onConfigure || onConfigChange;
+
+  const summaryEntries = useMemo(() => {
+    if (!normalizedPayload.summary || typeof normalizedPayload.summary !== 'object') return [];
+
+    return Object.entries(normalizedPayload.summary)
+      .filter(([, value]) => typeof value === 'number')
+      .map(([key, value]) => ({ key, label: prettifyFieldName(key), value }))
+      .slice(0, 5);
+  }, [normalizedPayload.summary]);
 
   const handleRefresh = async () => {
     if (!onRefresh) return;
 
     setLoading(true);
-    setError(null);
+    setRefreshError(null);
 
     try {
       await onRefresh();
       setCurrentPage(1);
       setSearchTerm('');
       setSortColumn(null);
-    } catch (err) {
-      setError('Failed to refresh table data');
-      console.error('Data table widget refresh error:', err);
+      setSortDirection('asc');
+    } catch (refreshException) {
+      setRefreshError('Failed to refresh table data');
+      console.error('Data table widget refresh error:', refreshException);
     } finally {
       setLoading(false);
     }
@@ -118,33 +244,24 @@ const DataTableWidget = ({
       setSortColumn(column.field);
       setSortDirection('asc');
     }
+
     setCurrentPage(1);
   };
 
-  const handleSearch = (term) => {
-    setSearchTerm(term);
-    setCurrentPage(1);
-  };
-
-  const formatCellValue = (value, column) => {
-    if (value === null || value === undefined) return '-';
+  const renderCellValue = (value, column) => {
+    if (value === null || value === undefined || value === '') return '—';
 
     switch (column.type) {
+      case 'badge':
+        return <span className={`data-table-widget__badge data-table-widget__badge--${getBadgeTone(column.field, value)}`}>{String(value)}</span>;
       case 'number':
-        return parseFloat(value).toLocaleString();
-      case 'currency':
-        return new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD'
-        }).format(value);
-      case 'percentage':
-        return `${parseFloat(value).toFixed(1)}%`;
+        return Number(value).toLocaleString();
       case 'date':
-        return new Date(value).toLocaleDateString();
+        return formatDateValue(value, false);
       case 'datetime':
-        return new Date(value).toLocaleString();
+        return formatDateValue(value, true);
       case 'boolean':
-        return value ? 'Yes' : 'No';
+        return <span className={`data-table-widget__badge data-table-widget__badge--${getBadgeTone(column.field, value)}`}>{value ? 'Yes' : 'No'}</span>;
       default:
         return String(value);
     }
@@ -152,51 +269,49 @@ const DataTableWidget = ({
 
   const getSortIcon = (column) => {
     if (!column.sortable) return null;
-
-    if (sortColumn !== column.field) {
-      return <i className="fa-solid fa-refresh" />;
-    }
-
-    return (
-      <i
-        className={`fa-solid ${sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down'} sort-icon active`}
-      />
-    );
+    if (sortColumn !== column.field) return <i className="fa-light fa-arrow-up-arrow-down" />;
+    return <i className={`fa-light ${sortDirection === 'asc' ? 'fa-sort-up' : 'fa-sort-down'}`} />;
   };
 
-  // Loading state
-  if (loading && !data) {
+  if ((loading || isLoading) && !normalizedPayload.rows.length) {
     return (
       <div className="data-table-widget">
-        <div className="widget-header">
-          <h3>{mergedConfig.title}</h3>
-        </div>
-        <div className="widget-content">
-          <div className="loading-state">
-            <div className="loading-spinner" />
-            <span>Loading table data...</span>
+        {!hideHeader && (
+          <div className="data-table-widget__header">
+            <div>
+              <h3 className="data-table-widget__title">{mergedConfig.title}</h3>
+            </div>
+          </div>
+        )}
+        <div className="data-table-widget__content">
+          <div className="data-table-widget__empty-state">
+            <div className="data-table-widget__loading-spinner" />
+            <span>Loading table data…</span>
           </div>
         </div>
       </div>
     );
   }
 
-  // Error state
-  if (error) {
+  if (effectiveError && !normalizedPayload.rows.length) {
     return (
       <div className="data-table-widget">
-        <div className="widget-header">
-          <h3>{mergedConfig.title}</h3>
-          <div className="widget-actions">
-            <button className="widget-action-btn" onClick={handleRefresh} title="Retry">
-              <i className="fa-solid fa-refresh" />
-            </button>
+        {!hideHeader && (
+          <div className="data-table-widget__header">
+            <h3 className="data-table-widget__title">{mergedConfig.title}</h3>
+            <div className="data-table-widget__actions">
+              {onRefresh && (
+                <button className="data-table-widget__icon-button" onClick={handleRefresh} title="Retry">
+                  <i className="fa-light fa-rotate-right" />
+                </button>
+              )}
+            </div>
           </div>
-        </div>
-        <div className="widget-content">
-          <div className="error-state">
-            <i className="fa-solid fa-exclamation-triangle" />
-            <span>{error}</span>
+        )}
+        <div className="data-table-widget__content">
+          <div className="data-table-widget__error-state">
+            <i className="fa-light fa-circle-exclamation" />
+            <span>{typeof effectiveError === 'string' ? effectiveError : effectiveError?.message || 'Unable to load table data.'}</span>
           </div>
         </div>
       </div>
@@ -204,104 +319,119 @@ const DataTableWidget = ({
   }
 
   return (
-    <div className="data-table-widget">
-      <div className="widget-header">
-        <h3>{mergedConfig.title}</h3>
-        <div className="widget-actions">
-          <button
-            className="widget-action-btn"
-            onClick={handleRefresh}
-            disabled={loading}
-            title="Refresh"
-          >
-            <i className="fa-solid fa-refresh" />
-          </button>
-          {onConfigure && (
-            <button className="widget-action-btn" onClick={onConfigure} title="Configure">
-              <i className="fa-solid fa-cog" />
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="widget-content">
-        {mergedConfig.showSearch && (
-          <div className="table-controls">
-            <div className="search-box">
-              <i className="fa-solid fa-refresh" />
-              <input
-                type="text"
-                placeholder="Search table..."
-                value={searchTerm}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="search-input"
-              />
-            </div>
-            {mergedConfig.filterable && (
-              <button className="filter-btn" title="Advanced Filter">
-                <i className="fa-solid fa-refresh" />
+    <div className="data-table-widget" data-widget-id={widgetId}>
+      {!hideHeader && (
+        <div className="data-table-widget__header">
+          <div>
+            <h3 className="data-table-widget__title">{mergedConfig.title}</h3>
+            <p className="data-table-widget__subtitle">
+              {searchTerm
+                ? `${processedData.length} matching ${processedData.length === 1 ? 'issue' : 'issues'}`
+                : `${normalizedPayload.total ?? processedData.length} issue records in scope`}
+            </p>
+          </div>
+          <div className="data-table-widget__actions">
+            {onRefresh && (
+              <button
+                className="data-table-widget__icon-button"
+                onClick={handleRefresh}
+                disabled={loading || isLoading}
+                title="Refresh"
+              >
+                <i className={`fa-light fa-rotate-right ${loading || isLoading ? 'fa-spin' : ''}`} />
               </button>
             )}
+            {configureHandler && (
+              <button className="data-table-widget__icon-button" onClick={configureHandler} title="Configure">
+                <i className="fa-light fa-sliders" />
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
+      <div className="data-table-widget__content">
+        <div className="data-table-widget__toolbar">
+          {mergedConfig.showSearch && (
+            <label className="data-table-widget__search">
+              <i className="fa-light fa-magnifying-glass" />
+              <input
+                type="text"
+                placeholder="Search issues, sites, priorities…"
+                value={searchTerm}
+                onChange={(event) => {
+                  setSearchTerm(event.target.value);
+                  setCurrentPage(1);
+                }}
+                className="data-table-widget__search-input"
+              />
+            </label>
+          )}
+
+          <div className="data-table-widget__toolbar-meta">
+            <span>{processedData.length} shown</span>
+            {normalizedPayload.lastUpdated && <span>Updated {formatDateValue(normalizedPayload.lastUpdated, true)}</span>}
+          </div>
+        </div>
+
+        {summaryEntries.length > 0 && (
+          <div className="data-table-widget__summary-chips">
+            {summaryEntries.map((item) => (
+              <div key={item.key} className="data-table-widget__summary-chip">
+                <span className="data-table-widget__summary-label">{item.label}</span>
+                <span className="data-table-widget__summary-value">{item.value.toLocaleString()}</span>
+              </div>
+            ))}
           </div>
         )}
 
         {!processedData.length ? (
-          <div className="no-data-state">
-            <i className="fa-solid fa-table" />
-            <span>No data available</span>
+          <div className="data-table-widget__empty-state">
+            <i className="fa-light fa-table-list" />
+            <span>No issue data matched the current filters.</span>
           </div>
         ) : (
           <>
-            <div className="table-wrapper">
-              <table
-                className={`data-table ${mergedConfig.striped ? 'striped' : ''} ${mergedConfig.bordered ? 'bordered' : ''} ${mergedConfig.compact ? 'compact' : ''}`}
-              >
+            <div className="data-table-widget__table-wrapper">
+              <table className="data-table-widget__table">
                 <thead>
                   <tr>
-                    {mergedConfig.showRowNumbers && (
-                      <th className="row-number-header">#</th>
-                    )}
+                    {mergedConfig.showRowNumbers && <th className="data-table-widget__row-number-header">#</th>}
                     {columns.map((column) => (
                       <th
                         key={column.field}
-                        className={`column-header ${column.sortable ? 'sortable' : ''}`}
+                        className={`data-table-widget__column-header ${column.sortable ? 'is-sortable' : ''}`}
                         onClick={() => handleSort(column)}
                         style={{ width: column.width }}
                       >
-                        <div className="header-content">
-                          <span className="header-title">{column.title}</span>
+                        <div className="data-table-widget__header-content">
+                          <span>{column.title}</span>
                           {getSortIcon(column)}
                         </div>
                       </th>
                     ))}
-                    {mergedConfig.actions.length > 0 && (
-                      <th className="actions-header">Actions</th>
-                    )}
+                    {mergedConfig.actions.length > 0 && <th className="data-table-widget__actions-header">Actions</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {paginatedData.map((row, index) => (
-                    <tr key={index} className="data-row">
-                      {mergedConfig.showRowNumbers && (
-                        <td className="row-number">
-                          {startIndex + index + 1}
-                        </td>
-                      )}
+                    <tr key={`${row.issueNumber || row.id || index}-${index}`} className="data-table-widget__row">
+                      {mergedConfig.showRowNumbers && <td className="data-table-widget__row-number">{startIndex + index + 1}</td>}
                       {columns.map((column) => (
-                        <td key={column.field} className="data-cell">
-                          {formatCellValue(row[column.field], column)}
+                        <td key={column.field} className={`data-table-widget__cell ${column.isPrimary ? 'is-primary' : ''}`}>
+                          {renderCellValue(row[column.field], column)}
                         </td>
                       ))}
                       {mergedConfig.actions.length > 0 && (
-                        <td className="actions-cell">
+                        <td className="data-table-widget__actions-cell">
                           {mergedConfig.actions.map((action, actionIndex) => (
                             <button
-                              key={actionIndex}
-                              className="action-btn"
-                              onClick={() => action.handler(row)}
+                              key={`${action.title || 'action'}-${actionIndex}`}
+                              className="data-table-widget__row-action"
+                              onClick={() => action.handler?.(row)}
                               title={action.title}
                             >
-                              <i className="fa-solid fa-refresh" />
+                              <i className={action.iconClassName || 'fa-light fa-arrow-up-right-from-square'} />
                             </button>
                           ))}
                         </td>
@@ -313,44 +443,44 @@ const DataTableWidget = ({
             </div>
 
             {mergedConfig.showPagination && totalPages > 1 && (
-              <div className="pagination">
-                <div className="pagination-info">
-                  Showing {startIndex + 1} to {Math.min(startIndex + mergedConfig.pageSize, processedData.length)} of {processedData.length} entries
+              <div className="data-table-widget__pagination">
+                <div className="data-table-widget__pagination-info">
+                  Showing {startIndex + 1}-{Math.min(startIndex + mergedConfig.pageSize, processedData.length)} of {processedData.length}
                 </div>
-                <div className="pagination-controls">
+                <div className="data-table-widget__pagination-controls">
                   <button
-                    className="pagination-btn"
+                    className="data-table-widget__page-button"
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
                   >
                     Previous
                   </button>
-                  <span className="page-numbers">
-                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
-                      let pageNum;
+                  <span className="data-table-widget__page-numbers">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, index) => {
+                      let pageNumber;
                       if (totalPages <= 5) {
-                        pageNum = i + 1;
+                        pageNumber = index + 1;
                       } else if (currentPage <= 3) {
-                        pageNum = i + 1;
+                        pageNumber = index + 1;
                       } else if (currentPage >= totalPages - 2) {
-                        pageNum = totalPages - 4 + i;
+                        pageNumber = totalPages - 4 + index;
                       } else {
-                        pageNum = currentPage - 2 + i;
+                        pageNumber = currentPage - 2 + index;
                       }
 
                       return (
                         <button
-                          key={pageNum}
-                          className={`page-btn ${currentPage === pageNum ? 'active' : ''}`}
-                          onClick={() => setCurrentPage(pageNum)}
+                          key={pageNumber}
+                          className={`data-table-widget__page-number ${currentPage === pageNumber ? 'is-active' : ''}`}
+                          onClick={() => setCurrentPage(pageNumber)}
                         >
-                          {pageNum}
+                          {pageNumber}
                         </button>
                       );
                     })}
                   </span>
                   <button
-                    className="pagination-btn"
+                    className="data-table-widget__page-button"
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
                   >
@@ -362,32 +492,39 @@ const DataTableWidget = ({
           </>
         )}
 
-        <div className="widget-meta">
-          {processedData.length !== data?.length && (
-            <span>Filtered: {processedData.length} of {data?.length} records | </span>
-          )}
-          Last updated: {new Date().toLocaleTimeString()}
-        </div>
-      </div>
+        {effectiveError && normalizedPayload.rows.length > 0 && (
+          <div className="data-table-widget__inline-warning">
+            <i className="fa-light fa-circle-exclamation" />
+            <span>{typeof effectiveError === 'string' ? effectiveError : effectiveError?.message || 'Some table data may be stale.'}</span>
+          </div>
+        )}
 
-      {isEditing && (
-        <div className="widget-config-preview">
-          <span>Rows: {processedData.length}</span>
-          <span>Columns: {columns.length}</span>
-          <span>Page size: {mergedConfig.pageSize}</span>
-        </div>
-      )}
+        {showEditingState && (
+          <div className="data-table-widget__config-preview">
+            <span>Rows: {processedData.length}</span>
+            <span>Columns: {columns.length}</span>
+            <span>Page size: {mergedConfig.pageSize}</span>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
 DataTableWidget.propTypes = {
-  widgetId: PropTypes.string.isRequired,
+  widgetId: PropTypes.string,
+  widget: PropTypes.object,
   config: PropTypes.object,
-  data: PropTypes.array,
+  data: PropTypes.oneOfType([PropTypes.array, PropTypes.object]),
   onRefresh: PropTypes.func,
+  onConfigChange: PropTypes.func,
   onConfigure: PropTypes.func,
-  isEditing: PropTypes.bool
+  isEditing: PropTypes.bool,
+  isEditMode: PropTypes.bool,
+  title: PropTypes.string,
+  hideHeader: PropTypes.bool,
+  isLoading: PropTypes.bool,
+  error: PropTypes.oneOfType([PropTypes.string, PropTypes.object])
 };
 
 export default DataTableWidget;

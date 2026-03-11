@@ -203,19 +203,45 @@ namespace FMS.Application.Communication.SignalR
                     return defaultValue;
                 });
 
-                // Extract capability fields with sane defaults
-                var resolvedMode = (string)getConfigValue(new[] { "mode", "settings.mode" }, "cumulative") ?? "cumulative";
-                var resolvedDatePreset = (string)getConfigValue(new[] { "settings.datePreset", "datePreset" }, "yesterday") ?? "yesterday";
-                var resolvedAggregation = ((string)getConfigValue(new[] { "settings.aggregation", "aggregation" }, "SUM") ?? "SUM").ToUpperInvariant();
-                var resolvedGroupBy = ((string)getConfigValue(new[] { "settings.groupBy", "groupBy" }, "none") ?? "none").ToLowerInvariant();
-                var resolvedGranularity = (string)getConfigValue(new[] { "settings.granularity", "granularity" }, null);
+                var dataSourceMetadata = _dataSourceManager.GetDataSourceMetadata(dataSource);
+
+                // Extract capability fields with data-source and template-aware defaults
+                var resolvedMode = (
+                    (string)getConfigValue(new[] { "settings.mode", "mode", "defaultMode" }, null) ??
+                    dataSourceMetadata?.DefaultMode ??
+                    "cumulative").Trim();
+
+                var resolvedDatePreset = (
+                    (string)getConfigValue(new[] { "settings.datePreset", "datePreset", "defaultDatePreset" }, null) ??
+                    dataSourceMetadata?.Recommendations?.DatePreset ??
+                    "yesterday").Trim();
+
+                var resolvedAggregation = (
+                    (string)getConfigValue(new[] { "settings.aggregation", "aggregation", "defaultAggregation" }, null) ??
+                    dataSourceMetadata?.DefaultAggregation ??
+                    "SUM").ToUpperInvariant();
+
+                var resolvedGroupBy = (
+                    (string)getConfigValue(new[] { "settings.groupBy", "groupBy", "defaultGroupBy" }, null) ??
+                    dataSourceMetadata?.DefaultGroupBy ??
+                    "none").ToLowerInvariant();
+
+                var resolvedGranularity = (string)getConfigValue(new[] { "settings.granularity", "granularity", "defaultGranularity" }, null);
+                if (string.IsNullOrEmpty(resolvedGranularity))
+                {
+                    resolvedGranularity = dataSourceMetadata?.DefaultGranularity;
+                }
                 if (string.IsNullOrEmpty(resolvedGranularity))
                 {
                     // derive from mode/date preset
                     resolvedGranularity = resolvedMode.Equals("live", StringComparison.OrdinalIgnoreCase) ? "minute" : (resolvedDatePreset.Contains("24", StringComparison.OrdinalIgnoreCase) ? "hour" : "day");
                 }
-                var includeTotal = GetConfigValue<bool?>(configuration, "includeTotal", null) ?? true;
-                var topK = GetConfigValue<int?>(configuration, "topK", null) ?? 10;
+                var includeTotal = GetConfigValue<bool?>(configuration, "includeTotal", null)
+                    ?? dataSourceMetadata?.IncludeTotalDefault
+                    ?? true;
+                var topK = GetConfigValue<int?>(configuration, "topK", null)
+                    ?? dataSourceMetadata?.TopKDefault
+                    ?? 10;
 
                 // Ensure configuration.settings contains normalized capability fields for downstream shaping
                 try

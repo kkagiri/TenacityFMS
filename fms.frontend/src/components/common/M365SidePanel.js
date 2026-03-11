@@ -2,7 +2,7 @@
  * File: M365SidePanel.js
  * Purpose: Reusable M365 Admin Center side panel (slide-in from right) replacing DevExtreme Popup for forms.
  * Dependencies: React, ReactDOM (createPortal), _M365SidePanel.scss
- * Last Modified: 2026-02-10
+ * Last Modified: 2026-03-07
  *
  * Key Components:
  * - M365SidePanel: Overlay + slide-in panel with header, scrollable body, and optional footer
@@ -21,6 +21,12 @@ import "./_M365SidePanel.scss";
 const M365SidePanel = ({ visible, onClose, title, width = 1000, headerActions = null, children }) => {
     const panelRef = useRef(null);
 
+    const handleClose = useCallback(() => {
+        if (onClose) {
+            onClose();
+        }
+    }, [onClose]);
+
     useEffect(() => {
         if (visible) {
             document.body.style.overflow = "hidden";
@@ -37,12 +43,27 @@ const M365SidePanel = ({ visible, onClose, title, width = 1000, headerActions = 
         }
     }, [visible]);
 
+    useEffect(() => {
+        if (!visible) {
+            return undefined;
+        }
+
+        const handleKeyDown = (event) => {
+            if (event.key === "Escape") {
+                handleClose();
+            }
+        };
+
+        document.addEventListener("keydown", handleKeyDown);
+        return () => document.removeEventListener("keydown", handleKeyDown);
+    }, [handleClose, visible]);
+
     if (!visible) return null;
 
     const panelWidth = typeof width === "number" ? `${width}px` : width;
 
     return ReactDOM.createPortal(
-        <div className="m365-side-panel-overlay">
+        <div className="m365-side-panel-overlay" onClick={handleClose}>
             <div
                 ref={panelRef}
                 className="m365-side-panel"
@@ -59,8 +80,9 @@ const M365SidePanel = ({ visible, onClose, title, width = 1000, headerActions = 
                     <div className="m365-side-panel__header-actions">
                         {headerActions}
                         <button
+                            type="button"
                             className="m365-side-panel__close"
-                            onClick={onClose}
+                            onClick={handleClose}
                             aria-label="Close panel"
                         >
                             <i className="fa-light fa-xmark" />

@@ -378,7 +378,7 @@ const VehicleDashboard = () => {
           <Column dataField="plateNumber" caption="Plate No." minWidth={120} />
           <Column
             dataField="fuelEfficiency"
-            caption="Fuel Eff. (L/100km)"
+            caption="Fuel Eff. (km/l)"
             dataType="number"
             format="fixedPoint"
             precision={2}
@@ -512,7 +512,7 @@ const VehicleDashboard = () => {
               <p className="tw-text-2xl tw-font-bold tw-text-gray-800">
                 {loading.performanceMetrics ? '-' : performanceMetrics.fuelEfficiency?.toFixed(2) || '0'}
               </p>
-              <p className="tw-text-sm tw-text-gray-600">Avg Fuel Efficiency (L/100km)</p>
+              <p className="tw-text-sm tw-text-gray-600">Avg Fuel Efficiency (km/l)</p>
             </div>
             <div className="tw-text-center tw-p-4 tw-bg-gray-50 tw-rounded-lg">
               <p className="tw-text-2xl tw-font-bold tw-text-gray-800">

@@ -169,6 +169,10 @@ namespace FMS.Application.Features.Notification.Services
                     }
                 }
 
+                var serializedDataToken = request.Data != null
+                    ? NotificationDataHelper.ConvertToJToken(request.Data)
+                    : null;
+
                 // Create notification
                 Domain.Entities.Features.Notifications.Notification notification = new Domain.Entities.Features.Notifications.Notification
                 {
@@ -179,7 +183,9 @@ namespace FMS.Application.Features.Notification.Services
                     Priority = (request.Priority ?? NotificationPriority.Medium).ToString(),
                     Title = request.Title,
                     Message = request.Message,
-                    Data = request.Data != null ? JsonConvert.SerializeObject(request.Data) : null,
+                    Data = serializedDataToken == null || serializedDataToken.Type == JTokenType.Null
+                        ? null
+                        : serializedDataToken.ToString(Formatting.None),
                     TriggerSource = request.TriggerSource,
                     TriggeredBy = request.TriggeredBy,
                     ScheduledAt = request.ScheduledAt,

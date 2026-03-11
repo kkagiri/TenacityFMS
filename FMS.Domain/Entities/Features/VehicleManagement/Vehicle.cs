@@ -1,4 +1,9 @@
-﻿
+﻿/**
+ * File: Vehicle.cs
+ * Purpose: Core vehicle aggregate used across fleet, fueling, and tracking workflows.
+ * Dependencies: Fuel rules, vehicle documents, vehicle trip entities.
+ * Last Modified: 2026-03-10
+ */
 using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -79,6 +84,11 @@ public partial class Vehicle
     public VehicleStatus VehicleStatusValue { get; set; } = VehicleStatus.Working;
 
     /// <summary>
+    /// Determines which trip-detection engine should process this vehicle.
+    /// </summary>
+    public VehicleMovementProfile MovementProfile { get; set; } = VehicleMovementProfile.Geofence;
+
+    /// <summary>
     /// [DEPRECATED] Use VehicleProviderMapping instead. This field will be removed in a future version.
     /// Legacy GPSGate-specific flag. Use VehicleProviderMapping.ExternalDeviceId for multi-provider support.
     /// </summary>
@@ -142,6 +152,16 @@ public partial class Vehicle
     /// Vehicle's expected fuel average assignments (can have multiple for different routes/conditions)
     /// </summary>
     public virtual ICollection<VehicleExpectedAverageAssignment> ExpectedAverageAssignments { get; set; } = new List<VehicleExpectedAverageAssignment>();
+
+    /// <summary>
+    /// Persisted trip route summaries for this vehicle.
+    /// </summary>
+    public virtual ICollection<VehicleTripGroup> VehicleTripGroups { get; set; } = new List<VehicleTripGroup>();
+
+    /// <summary>
+    /// Persisted detected trip legs for this vehicle.
+    /// </summary>
+    public virtual ICollection<VehicleTrip> VehicleTrips { get; set; } = new List<VehicleTrip>();
 
     // NOTE: Fixed Location Properties have been REMOVED.
     // Valid fueling locations for stationary equipment (generators, pumps, etc.)

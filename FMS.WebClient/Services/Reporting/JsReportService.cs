@@ -83,7 +83,7 @@ namespace FMS.WebClient.Services.Reporting
         private readonly JsReportLetterheadBranding _branding;
 
         /// <summary>All Chrome/Edge executables that exist on this machine, checked at startup.</summary>
-        private readonly string[] _availableBrowserPaths;
+        private readonly IReadOnlyList<string> _browserExecutablePaths;
 
         /// <summary>The executable path that successfully launched the current browser instance.</summary>
         private string? _activeBrowserExePath;
@@ -185,7 +185,12 @@ namespace FMS.WebClient.Services.Reporting
             _reportingService = CreateJsReportService(jsReportTempPath);
 
             // ── Chrome/Edge detection (for PuppeteerSharp PDF conversion) ─────
-            _availableBrowserPaths = ChromeExecutablePaths.Where(File.Exists).ToArray();
+            _browserExecutablePaths = ChromeExecutablePaths
+                .Where(File.Exists)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            _activeBrowserExePath = _browserExecutablePaths.FirstOrDefault();
 
             // Ensure the dedicated profile root exists and is writable
             try
@@ -201,12 +206,12 @@ namespace FMS.WebClient.Services.Reporting
                     PuppeteerProfileRoot);
             }
 
-            if (_availableBrowserPaths.Length > 0)
+            if (_browserExecutablePaths.Count > 0)
             {
                 _logger.LogInformation(
                     "PuppeteerSharp detected {Count} browser executable(s): {Paths}",
-                    _availableBrowserPaths.Length,
-                    string.Join(", ", _availableBrowserPaths));
+                    _browserExecutablePaths.Count,
+                    string.Join(", ", _browserExecutablePaths));
             }
             else
             {
@@ -971,7 +976,7 @@ namespace FMS.WebClient.Services.Reporting
         /// </summary>
         private async Task<byte[]> ConvertHtmlToPdfByChromeCliAsync(string html, bool landscape)
         {
-            var cliExePath = _activeBrowserExePath ?? _availableBrowserPaths.FirstOrDefault();
+            var cliExePath = _activeBrowserExePath ?? _browserExecutablePaths.FirstOrDefault();
             if (string.IsNullOrWhiteSpace(cliExePath))
                 throw new InvalidOperationException("Chrome/Edge executable path is not available for CLI PDF fallback.");
 
@@ -1087,7 +1092,7 @@ namespace FMS.WebClient.Services.Reporting
                 if (_browser != null && _browser.IsConnected)
                     return _browser;
 
-                if (_availableBrowserPaths.Length == 0)
+                if (_browserExecutablePaths.Count == 0)
                 {
                     throw new InvalidOperationException(
                         "No system Chrome or Edge browser found. Install Chrome or Edge to enable PDF rendering. " +
@@ -1099,7 +1104,7 @@ namespace FMS.WebClient.Services.Reporting
                 // kills stale processes and recreates the profile directory).
                 var allErrors = new List<string>();
 
-                foreach (var exePath in _availableBrowserPaths)
+                foreach (var exePath in GetBrowserLaunchCandidates())
                 {
                     const int maxAttemptsPerExe = 2;
                     for (int attempt = 1; attempt <= maxAttemptsPerExe; attempt++)
@@ -1125,7 +1130,6 @@ namespace FMS.WebClient.Services.Reporting
                                 "Killing stale processes and retrying with fresh profile...",
                                 exePath, attempt);
 
-                            // Dispose the failed browser attempt if it exists
                             if (_browser != null)
                             {
                                 try { _browser.Dispose(); } catch { /* ignore */ }
@@ -1137,7 +1141,6 @@ namespace FMS.WebClient.Services.Reporting
                         }
                         catch (Exception ex)
                         {
-                            // Final attempt for this executable failed
                             var msg = $"{exePath} attempt {attempt}: {ex.GetType().Name} — {ex.Message}";
                             allErrors.Add(msg);
                             _logger.LogWarning(ex,
@@ -1156,7 +1159,6 @@ namespace FMS.WebClient.Services.Reporting
                     }
                 }
 
-                // All executables exhausted
                 throw new InvalidOperationException(
                     "Browser launch failed for all detected executables. " +
                     "Tried: [" + string.Join("; ", allErrors) + "]");
@@ -1215,7 +1217,7 @@ namespace FMS.WebClient.Services.Reporting
             {
                 ExecutablePath = exePath,
                 Headless = true,
-                Timeout = 120_000, // 120 s — generous for slow machines / first launch
+                Timeout = 120_000,
                 Args =
                 [
                     "--no-sandbox",
@@ -1232,6 +1234,22 @@ namespace FMS.WebClient.Services.Reporting
                     $"--user-data-dir={profileDir}"
                 ]
             });
+        }
+
+        private IEnumerable<string> GetBrowserLaunchCandidates()
+        {
+            if (!string.IsNullOrWhiteSpace(_activeBrowserExePath) && File.Exists(_activeBrowserExePath))
+            {
+                yield return _activeBrowserExePath;
+            }
+
+            foreach (var browserPath in _browserExecutablePaths)
+            {
+                if (!string.Equals(browserPath, _activeBrowserExePath, StringComparison.OrdinalIgnoreCase))
+                {
+                    yield return browserPath;
+                }
+            }
         }
 
         /// <summary>

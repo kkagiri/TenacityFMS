@@ -481,7 +481,7 @@ namespace FMS.WebClient.Services.Reporting
                     <th>PTS / Pump</th>
                     <th>Vehicle</th>
                     <th class=""text-right"">Volume (L)</th>
-                    <th class=""text-right"">L/100km</th>
+                    <th class=""text-right"">km/l</th>
                     <th class=""text-right"">Amount ({{summary.currency}})</th>
                     <th class=""text-right"">Odometer (km)</th>
                     <th>Operator</th>
@@ -595,7 +595,7 @@ namespace FMS.WebClient.Services.Reporting
                 <th>PTS / Pump</th>
                 <th>Vehicle</th>
                 <th class=""text-right"">Volume (L)</th>
-                <th class=""text-right"">L/100km</th>
+                <th class=""text-right"">km/l</th>
                 <th class=""text-right"">Amount ({{summary.currency}})</th>
                 <th class=""text-right"">Odometer (km)</th>
                 <th>Operator</th>
@@ -628,11 +628,11 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
         <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
         <div class=""summary-card card-warning""><div class=""value"">{{summary.totalCost}}</div><div class=""label"">Total Cost</div></div>
-        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg L/100km</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg km/l</div></div>
     </div>{{/if}}";
 
         private static string VehicleConsumptionTable() => @"    {{#if records}}
-    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">L/100km</th><th class=""text-right"">Cost</th></tr></thead>
+    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th><th class=""text-right"">Cost</th></tr></thead>
         <tbody>{{#each records}}<tr>
             <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{vehicleType}}</td><td>{{siteName}}</td>
             <td class=""text-right text-success font-bold"">{{volume}}</td><td class=""text-right"">{{distance}}</td><td class=""text-right font-bold"">{{consumption}}</td><td class=""text-right"">{{cost}}</td>
@@ -720,11 +720,11 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
         <div class=""summary-card card-success""><div class=""value"">{{summary.totalFuel}} L</div><div class=""label"">Total Fuel</div></div>
         <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDistance}} km</div><div class=""label"">Total Distance</div></div>
-        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg L/100km</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg km/l</div></div>
     </div>{{/if}}";
 
         private static string ConsumptionByRefillsTable() => @"    {{#if records}}
-    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th><th class=""text-right"">Refills</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">L/100km</th></tr></thead>
+    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Site</th><th class=""text-right"">Refills</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th></tr></thead>
         <tbody>{{#each records}}<tr>
             <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{siteName}}</td>
             <td class=""text-center"">{{refillCount}}</td><td class=""text-right text-success font-bold"">{{totalVolume}}</td><td class=""text-right"">{{totalDistance}}</td><td class=""text-right font-bold"">{{consumption}}</td>

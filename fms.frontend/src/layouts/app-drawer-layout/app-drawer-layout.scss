@@ -1,3 +1,16 @@
+/**
+ * File: app-drawer-layout.scss
+ * Purpose: Styles the global drawer layout, scroll content region, and footer behavior across routed pages
+ * Dependencies: app-drawer-layout.js, DevExtreme ScrollView markup
+ * Last Modified: 2026-03-10
+ *
+ * Key Sections:
+ * - .app-drawer-layout: Root shell layout sizing
+ * - .content: Shared routed page host area
+ * - .content-block: Shared footer container
+ * - Tracking-specific ScrollView overrides: prevent footer overflow on vehicle tracking
+ */
+
 .app-drawer-layout {
   display: flex;
   flex-direction: column;
@@ -11,6 +24,8 @@
     padding: 0 !important;
     margin: 0 !important;
     width: 100% !important;
+    display: flex;
+    flex-direction: column;
   }
 
   // Ensure child pages don't have gaps
@@ -39,6 +54,8 @@
   margin: 0; // Remove margin to eliminate gaps
   min-height: calc(100vh - 80px); /* Adjust based on header height only */
   width: 100%;
+  display: flex;
+  flex-direction: column;
 }
 
 .content-block {
@@ -49,4 +66,24 @@
   @media (max-width: 768px) {
     padding: 0 0 10px 0;
   }
+}
+
+.dx-scrollview-content:has(.vehicle-layout--tracking) {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.dx-scrollview-content:has(.vehicle-layout--tracking) > .content {
+  flex: 1 1 auto;
+  min-height: 0 !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.dx-scrollview-content:has(.vehicle-layout--tracking) > .content-block {
+  flex: 0 0 auto;
+  margin-top: 0;
 }

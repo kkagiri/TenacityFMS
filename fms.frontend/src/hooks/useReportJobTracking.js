@@ -97,6 +97,13 @@ const useReportJobTracking = () => {
       if (response?.isSuccess && response?.data) {
         setActiveJob(response.data);
         const status = response.data.status;
+        if (status === ReportJobStatus.Failed) {
+          setError(
+            response.data.statusMessage ||
+            response.data.errorMessage ||
+            "Report generation failed"
+          );
+        }
         if (
           status === ReportJobStatus.Completed ||
           status === ReportJobStatus.Failed ||
@@ -188,7 +195,11 @@ const useReportJobTracking = () => {
           ...prev,
           ...data,
         }));
-        setError(data.errorMessage || "Report generation failed");
+        setError(
+          data.statusMessage ||
+          data.errorMessage ||
+          "Report generation failed"
+        );
         setIsTracking(false);
         // Move to completed reports history as Failed
         dispatchRef.current(addCompletedReport({
@@ -198,7 +209,10 @@ const useReportJobTracking = () => {
           completedAt: Date.now(),
           status: 'Failed',
           outputFormat: activeJobRef.current?.outputFormat || 'html',
-          errorMessage: data.errorMessage || 'Failed',
+          errorMessage:
+            data.statusMessage ||
+            data.errorMessage ||
+            'Failed',
         }));
         dispatchRef.current(clearReportProgress());
       }

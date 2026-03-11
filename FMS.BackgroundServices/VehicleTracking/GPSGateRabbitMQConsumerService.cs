@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -20,6 +21,17 @@ using RabbitMQ.Client.Exceptions;
 namespace FMS.BackgroundServices.VehicleTracking
 {
     /// <summary>
+    /// File: GPSGateRabbitMQConsumerService.cs
+    /// Purpose: Consumes GPSGate RabbitMQ messages and forwards live vehicle updates to SignalR clients.
+    /// Dependencies: RabbitMQ.Client, SignalR, Entity Framework Core, GPSGate RabbitMQ models
+    /// Last Modified: 2026-03-10
+    ///
+    /// Key Functions:
+    /// - ExecuteAsync(): Maintains the RabbitMQ consumer lifecycle and reconnect loop.
+    /// - ProcessTrackMessageAsync(): Maps live track messages to frontend vehicle location updates.
+    /// - GetVehicleMappingAsync(): Resolves GPSGate user ids to FMS vehicles using a lock-free cache read path.
+    /// </summary>
+    /// <summary>
     /// Background service that consumes GPS tracking data from GPSGate RabbitMQ
     /// and broadcasts to connected clients via SignalR VehicleTrackingHub
     ///
@@ -35,12 +47,23 @@ namespace FMS.BackgroundServices.VehicleTracking
         private IModel? _channel;
         private GPSGateRabbitMQSettings? _settings;
         private bool _isConnected;
+        private DateTime _lastQueueDiagnosticsUtc = DateTime.MinValue;
 
         // Cache for GPSGate UserId → FMS VehicleId mapping
-        private readonly Dictionary<int, VehicleMapping> _vehicleCache = new();
-        private DateTime _vehicleCacheExpiry = DateTime.MinValue;
+        private IReadOnlyDictionary<int, VehicleMapping> _vehicleCache = new Dictionary<int, VehicleMapping>();
+        private long _vehicleCacheExpiryTicks = DateTime.MinValue.Ticks;
         private readonly TimeSpan _vehicleCacheDuration = TimeSpan.FromMinutes(5);
-        private readonly SemaphoreSlim _cacheLock = new(1, 1);
+        private int _isRefreshingVehicleCache;
+
+        // Cache for streamed motion state so moving/stopped can be derived consistently.
+        private readonly ConcurrentDictionary<int, VehicleMotionState> _motionCache = new();
+        private readonly TimeSpan _motionCacheRetention = TimeSpan.FromMinutes(10);
+        private const double MovingSpeedThresholdKmh = 5d;
+        private const double MovingDistanceThresholdMeters = 20d;
+        private const int MovingSampleThreshold = 2;
+        private const int StoppedSampleThreshold = 3;
+        private const int MovementWindowSeconds = 120;
+        private static readonly TimeSpan ParkedAfterStationaryDuration = TimeSpan.FromMinutes(1);
 
         public GPSGateRabbitMQConsumerService(
             ILogger<GPSGateRabbitMQConsumerService> logger,
@@ -110,6 +133,8 @@ namespace FMS.BackgroundServices.VehicleTracking
                     {
                         await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
 
+                        await LogQueueDiagnosticsIfDueAsync();
+
                         // Check if connection is still alive
                         if (_connection == null || !_connection.IsOpen)
                         {
@@ -143,6 +168,43 @@ namespace FMS.BackgroundServices.VehicleTracking
             }
 
             _logger.LogInformation("🛑 GPSGate RabbitMQ Consumer Service stopped.");
+        }
+
+        private Task LogQueueDiagnosticsIfDueAsync()
+        {
+            if (_channel == null || _settings == null || !_isConnected || !_logger.IsEnabled(LogLevel.Debug))
+            {
+                return Task.CompletedTask;
+            }
+
+            var nowUtc = DateTime.UtcNow;
+            if ((nowUtc - _lastQueueDiagnosticsUtc) < TimeSpan.FromSeconds(15))
+            {
+                return Task.CompletedTask;
+            }
+
+            _lastQueueDiagnosticsUtc = nowUtc;
+
+            try
+            {
+                var messageCount = _channel.MessageCount(_settings.QueueName);
+                var consumerCount = _channel.ConsumerCount(_settings.QueueName);
+
+                _logger.LogDebug(
+                    "RabbitMQ queue diagnostics. Queue: {Queue}, MessagesReady: {MessageCount}, Consumers: {ConsumerCount}, Connected: {IsConnected}",
+                    _settings.QueueName,
+                    messageCount,
+                    consumerCount,
+                    _isConnected);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex,
+                    "Failed to read RabbitMQ queue diagnostics for queue {Queue}",
+                    _settings.QueueName);
+            }
+
+            return Task.CompletedTask;
         }
 
         private async Task<GPSGateRabbitMQSettings?> LoadSettingsAsync()
@@ -210,6 +272,7 @@ namespace FMS.BackgroundServices.VehicleTracking
 
                 // Set QoS (prefetch)
                 _channel.BasicQos(0, _settings.PrefetchCount, false);
+                _logger.LogInformation("Configured RabbitMQ prefetch count to {PrefetchCount}", _settings.PrefetchCount);
 
                 // Declare the queue (idempotent - will not recreate if exists)
                 _channel.QueueDeclare(
@@ -227,15 +290,20 @@ namespace FMS.BackgroundServices.VehicleTracking
                         exchange: _settings.ExchangeName,
                         routingKey: routingKey);
 
-                    _logger.LogDebug("Bound queue {Queue} to exchange {Exchange} with routing key {RoutingKey}",
-                        _settings.QueueName, _settings.ExchangeName, routingKey);
                 }
+
+                _logger.LogInformation(
+                    "RabbitMQ vehicle tracking binding ready. VHost: {VirtualHost}, Exchange: {Exchange}, Queue: {Queue}, RoutingKeys: {RoutingKeys}",
+                    _settings.VirtualHost,
+                    _settings.ExchangeName,
+                    _settings.QueueName,
+                    string.Join(", ", _settings.RoutingKeys));
 
                 _isConnected = true;
                 _logger.LogInformation("✅ Connected to RabbitMQ successfully");
 
                 // Pre-load vehicle cache
-                await RefreshVehicleCacheAsync();
+                await RefreshVehicleCacheAsync(stoppingToken);
             }
             catch (Exception ex)
             {
@@ -271,7 +339,6 @@ namespace FMS.BackgroundServices.VehicleTracking
             var body = Encoding.UTF8.GetString(ea.Body.ToArray());
             var routingKey = ea.RoutingKey;
 
-            _logger.LogDebug("Received message with routing key: {RoutingKey}", routingKey);
 
             try
             {
@@ -317,11 +384,13 @@ namespace FMS.BackgroundServices.VehicleTracking
                 return;
             }
 
+
+
             // Get vehicle mapping from cache (GPSGate userID maps to FMS vehicle)
-            var vehicleMapping = await GetVehicleMappingAsync(message.UserId);
+            var vehicleMapping = await GetVehicleMappingAsync(message.UserId, stoppingToken);
             if (vehicleMapping == null)
             {
-                _logger.LogDebug("No vehicle mapping found for GPSGate userId {UserId}", message.UserId);
+                _logger.LogWarning("No vehicle mapping found for GPSGate userId {UserId}; track message skipped", message.UserId);
                 return;
             }
 
@@ -341,7 +410,8 @@ namespace FMS.BackgroundServices.VehicleTracking
                 IsOnline = true,
                 GpsTimestamp = message.GetUtcDateTime(),
                 ServerTimestamp = DateTime.UtcNow,
-                Imei = message.Imei
+                Imei = message.Imei,
+                AdditionalFields = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase)
             };
 
             // Extract common variables from fields if present
@@ -350,12 +420,12 @@ namespace FMS.BackgroundServices.VehicleTracking
                 ExtractFieldsToLocation(message.Fields, liveLocation);
             }
 
+            ApplyMotionState(liveLocation);
+
             // Broadcast via SignalR
             await _hubContext.BroadcastVehicleLocationAsync(liveLocation, _logger);
 
-            _logger.LogDebug("📍 Broadcasted location for vehicle {VehicleId} ({NumberPlate}): {Lat}, {Lon} @ {Speed:F1} km/h",
-                vehicleMapping.VehicleId, vehicleMapping.NumberPlate,
-                liveLocation.Latitude, liveLocation.Longitude, liveLocation.SpeedKmh);
+
         }
 
         /// <summary>
@@ -367,6 +437,8 @@ namespace FMS.BackgroundServices.VehicleTracking
             {
                 var key = field.Key.ToLowerInvariant();
                 var value = field.Value;
+                location.AdditionalFields ??= new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+                location.AdditionalFields[field.Key] = ConvertJsonElementToObject(value);
 
                 try
                 {
@@ -391,6 +463,15 @@ namespace FMS.BackgroundServices.VehicleTracking
                             var engineSeconds = GetDoubleFromJsonElement(value);
                             if (engineSeconds.HasValue)
                                 location.EngineHours = engineSeconds.Value / 3600; // Convert from seconds
+                            break;
+                        case "geofence":
+                        case "currentgeofence":
+                        case "zone":
+                            location.CurrentGeofence = GetStringFromJsonElement(value);
+                            break;
+                        case "drivername":
+                        case "driver":
+                            location.DriverName = GetStringFromJsonElement(value);
                             break;
                     }
                 }
@@ -423,6 +504,50 @@ namespace FMS.BackgroundServices.VehicleTracking
             };
         }
 
+        private string? GetStringFromJsonElement(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.GetRawText(),
+                JsonValueKind.True => bool.TrueString,
+                JsonValueKind.False => bool.FalseString,
+                JsonValueKind.Object or JsonValueKind.Array => element.GetRawText(),
+                _ => null
+            };
+        }
+
+        private object? ConvertJsonElementToObject(JsonElement element)
+        {
+            return element.ValueKind switch
+            {
+                JsonValueKind.Object => ConvertJsonObject(element),
+                JsonValueKind.Array => element.EnumerateArray().Select(ConvertJsonElementToObject).ToList(),
+                JsonValueKind.String => element.GetString(),
+                JsonValueKind.Number => element.TryGetInt64(out var longValue)
+                    ? longValue
+                    : element.TryGetDouble(out var doubleValue)
+                        ? doubleValue
+                        : element.GetRawText(),
+                JsonValueKind.True => true,
+                JsonValueKind.False => false,
+                JsonValueKind.Null or JsonValueKind.Undefined => null,
+                _ => element.GetRawText(),
+            };
+        }
+
+        private Dictionary<string, object?> ConvertJsonObject(JsonElement element)
+        {
+            var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var property in element.EnumerateObject())
+            {
+                result[property.Name] = ConvertJsonElementToObject(property.Value);
+            }
+
+            return result;
+        }
+
         /// <summary>
         /// Process event message matching GPSGate JSON schema
         /// </summary>
@@ -437,7 +562,7 @@ namespace FMS.BackgroundServices.VehicleTracking
                 return;
             }
 
-            var vehicleMapping = await GetVehicleMappingAsync(message.UserId);
+            var vehicleMapping = await GetVehicleMappingAsync(message.UserId, stoppingToken);
             if (vehicleMapping == null)
             {
                 _logger.LogDebug("No vehicle mapping found for GPSGate userId {UserId}", message.UserId);
@@ -454,6 +579,7 @@ namespace FMS.BackgroundServices.VehicleTracking
                 EventName = message.RuleName ?? "Unknown",
                 Latitude = message.Latitude,
                 Longitude = message.Longitude,
+                Altitude = message.Altitude,
                 EventTimestamp = message.GetUtcDateTime(),
                 IsOngoing = message.State?.Equals("Start", StringComparison.OrdinalIgnoreCase) ?? false,
                 Severity = DetermineEventSeverity(message.RuleName),
@@ -462,38 +588,191 @@ namespace FMS.BackgroundServices.VehicleTracking
                     ["State"] = message.State,
                     ["Value"] = message.Value,
                     ["Namespace"] = message.Namespace,
-                    ["UserName"] = message.UserName
+                    ["UserName"] = message.UserName,
+                    ["Altitude"] = message.Altitude,
+                    ["Utc"] = message.Utc
                 }
             };
 
             await _hubContext.BroadcastVehicleEventAsync(eventNotification, _logger);
 
-            _logger.LogInformation("🚨 Broadcasted event for vehicle {VehicleId}: {EventName} (state: {State})",
-                vehicleMapping.VehicleId, message.RuleName, message.State);
+
         }
+
+        private void ApplyMotionState(VehicleLiveLocation location)
+        {
+            var currentTimestamp = location.GpsTimestamp;
+            var rawSpeedCandidate = location.SpeedKmh > MovingSpeedThresholdKmh;
+            var motionState = _motionCache.AddOrUpdate(
+                location.VehicleId,
+                _ => CreateInitialMotionState(location, rawSpeedCandidate),
+                (_, existing) => UpdateMotionState(existing, location, rawSpeedCandidate));
+
+            if (currentTimestamp - motionState.LastSeenAt > _motionCacheRetention)
+            {
+                motionState = CreateInitialMotionState(location, rawSpeedCandidate);
+                _motionCache[location.VehicleId] = motionState;
+            }
+
+            location.IsMoving = motionState.IsMoving;
+            location.LastMovedAt = motionState.LastMovedAt;
+            location.MovementSource = motionState.MovementSource;
+            location.IsParked = DetermineIsParked(location, motionState, currentTimestamp);
+            location.OperationalStatus = DetermineOperationalStatus(location);
+
+            CleanupStaleMotionCacheEntries(currentTimestamp);
+        }
+
+        private VehicleMotionState CreateInitialMotionState(VehicleLiveLocation location, bool rawSpeedCandidate)
+        {
+            return new VehicleMotionState
+            {
+                LastLatitude = location.Latitude,
+                LastLongitude = location.Longitude,
+                LastSpeedKmh = location.SpeedKmh,
+                LastHeading = location.Heading,
+                LastSeenAt = location.GpsTimestamp,
+                LastMovedAt = rawSpeedCandidate ? location.GpsTimestamp : (DateTime?)null,
+                BecameStationaryAt = rawSpeedCandidate ? null : location.GpsTimestamp,
+                ConsecutiveMovingSamples = rawSpeedCandidate ? 1 : 0,
+                ConsecutiveStoppedSamples = rawSpeedCandidate ? 0 : 1,
+                IsMoving = rawSpeedCandidate,
+                MovementSource = rawSpeedCandidate ? "Speed" : "InitialBaseline"
+            };
+        }
+
+        private VehicleMotionState UpdateMotionState(VehicleMotionState state, VehicleLiveLocation location, bool rawSpeedCandidate)
+        {
+            var deltaSeconds = Math.Max((location.GpsTimestamp - state.LastSeenAt).TotalSeconds, 0d);
+            var distanceMeters = CalculateDistanceMeters(state.LastLatitude, state.LastLongitude, location.Latitude, location.Longitude);
+            var distanceCandidate = deltaSeconds > 0
+                && deltaSeconds <= MovementWindowSeconds
+                && distanceMeters >= MovingDistanceThresholdMeters;
+
+            var movingCandidate = rawSpeedCandidate || distanceCandidate;
+            state.ConsecutiveMovingSamples = movingCandidate ? state.ConsecutiveMovingSamples + 1 : 0;
+            state.ConsecutiveStoppedSamples = movingCandidate ? 0 : state.ConsecutiveStoppedSamples + 1;
+
+            if (movingCandidate && state.ConsecutiveMovingSamples >= MovingSampleThreshold)
+            {
+                state.IsMoving = true;
+                state.LastMovedAt = location.GpsTimestamp;
+                state.BecameStationaryAt = null;
+                state.MovementSource = rawSpeedCandidate ? "Speed" : "DistanceDelta";
+            }
+            else if (!movingCandidate && state.ConsecutiveStoppedSamples >= StoppedSampleThreshold)
+            {
+                state.IsMoving = false;
+                state.BecameStationaryAt ??= location.GpsTimestamp;
+                state.MovementSource = deltaSeconds > MovementWindowSeconds ? "StaleSample" : "StoppedSamples";
+            }
+
+            if (!state.IsMoving && rawSpeedCandidate)
+            {
+                state.MovementSource = "SpeedPending";
+            }
+            else if (!state.IsMoving && distanceCandidate)
+            {
+                state.MovementSource = "DistancePending";
+            }
+
+            state.LastLatitude = location.Latitude;
+            state.LastLongitude = location.Longitude;
+            state.LastSpeedKmh = location.SpeedKmh;
+            state.LastHeading = location.Heading;
+            state.LastSeenAt = location.GpsTimestamp;
+
+            return state;
+        }
+
+        private bool DetermineIsParked(VehicleLiveLocation location, VehicleMotionState motionState, DateTime currentTimestamp)
+        {
+            if (location.IsMoving)
+            {
+                return false;
+            }
+
+            if (!location.IgnitionOn)
+            {
+                return true;
+            }
+
+            var stationarySince = motionState.BecameStationaryAt ?? motionState.LastMovedAt ?? currentTimestamp;
+            return currentTimestamp - stationarySince >= ParkedAfterStationaryDuration;
+        }
+
+        private static string DetermineOperationalStatus(VehicleLiveLocation location)
+        {
+            if (location.IsMoving)
+            {
+                return "Moving";
+            }
+
+            if (location.IsParked)
+            {
+                return "Parked";
+            }
+
+            return "Stopped";
+        }
+
+        private void CleanupStaleMotionCacheEntries(DateTime referenceTime)
+        {
+            foreach (var entry in _motionCache)
+            {
+                if (referenceTime - entry.Value.LastSeenAt > _motionCacheRetention)
+                {
+                    _motionCache.TryRemove(entry.Key, out _);
+                }
+            }
+        }
+
+        private static double CalculateDistanceMeters(double startLatitude, double startLongitude, double endLatitude, double endLongitude)
+        {
+            const double EarthRadiusMeters = 6_371_000d;
+            var latitudeDelta = DegreesToRadians(endLatitude - startLatitude);
+            var longitudeDelta = DegreesToRadians(endLongitude - startLongitude);
+            var startLatitudeRadians = DegreesToRadians(startLatitude);
+            var endLatitudeRadians = DegreesToRadians(endLatitude);
+
+            var a = Math.Sin(latitudeDelta / 2) * Math.Sin(latitudeDelta / 2) +
+                    Math.Cos(startLatitudeRadians) * Math.Cos(endLatitudeRadians) *
+                    Math.Sin(longitudeDelta / 2) * Math.Sin(longitudeDelta / 2);
+
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return EarthRadiusMeters * c;
+        }
+
+        private static double DegreesToRadians(double degrees) => degrees * (Math.PI / 180d);
 
         #region Vehicle Mapping Cache
 
-        private async Task<VehicleMapping?> GetVehicleMappingAsync(int gpsGateUserId)
+        private async Task<VehicleMapping?> GetVehicleMappingAsync(int gpsGateUserId, CancellationToken cancellationToken)
         {
-            await _cacheLock.WaitAsync();
-            try
-            {
-                // Refresh cache if expired
-                if (DateTime.UtcNow > _vehicleCacheExpiry)
-                {
-                    await RefreshVehicleCacheAsync();
-                }
+            var cache = Volatile.Read(ref _vehicleCache);
 
-                return _vehicleCache.TryGetValue(gpsGateUserId, out var mapping) ? mapping : null;
-            }
-            finally
+            if (DateTime.UtcNow.Ticks > Volatile.Read(ref _vehicleCacheExpiryTicks))
             {
-                _cacheLock.Release();
+                // Allow one refresh at a time while other readers continue with the last cache snapshot.
+                if (Interlocked.CompareExchange(ref _isRefreshingVehicleCache, 1, 0) == 0)
+                {
+                    try
+                    {
+                        await RefreshVehicleCacheAsync(cancellationToken);
+                    }
+                    finally
+                    {
+                        Interlocked.Exchange(ref _isRefreshingVehicleCache, 0);
+                    }
+
+                    cache = Volatile.Read(ref _vehicleCache);
+                }
             }
+
+            return cache.TryGetValue(gpsGateUserId, out var mapping) ? mapping : null;
         }
 
-        private async Task RefreshVehicleCacheAsync()
+        private async Task RefreshVehicleCacheAsync(CancellationToken cancellationToken = default)
         {
             try
             {
@@ -512,14 +791,14 @@ namespace FMS.BackgroundServices.VehicleTracking
                         m.Vehicle.NumberPlate,
                         m.Vehicle.HyoungNo
                     })
-                    .ToListAsync();
+                    .ToListAsync(cancellationToken);
 
-                _vehicleCache.Clear();
+                var newCache = new Dictionary<int, VehicleMapping>(mappings.Count);
                 foreach (var mapping in mappings)
                 {
                     if (int.TryParse(mapping.GpsGateUserId, out var gpsUserId))
                     {
-                        _vehicleCache[gpsUserId] = new VehicleMapping
+                        newCache[gpsUserId] = new VehicleMapping
                         {
                             VehicleId = mapping.VehicleId,
                             NumberPlate = mapping.NumberPlate,
@@ -528,11 +807,13 @@ namespace FMS.BackgroundServices.VehicleTracking
                     }
                 }
 
-                _vehicleCacheExpiry = DateTime.UtcNow.Add(_vehicleCacheDuration);
-                _logger.LogInformation("Refreshed vehicle mapping cache: {Count} vehicles", _vehicleCache.Count);
+                Volatile.Write(ref _vehicleCache, newCache);
+                Volatile.Write(ref _vehicleCacheExpiryTicks, DateTime.UtcNow.Add(_vehicleCacheDuration).Ticks);
+                _logger.LogInformation("Refreshed vehicle mapping cache: {Count} vehicles", newCache.Count);
             }
             catch (Exception ex)
             {
+                Volatile.Write(ref _vehicleCacheExpiryTicks, DateTime.UtcNow.AddSeconds(30).Ticks);
                 _logger.LogError(ex, "Error refreshing vehicle mapping cache");
             }
         }
@@ -542,6 +823,21 @@ namespace FMS.BackgroundServices.VehicleTracking
             public int VehicleId { get; set; }
             public string? NumberPlate { get; set; }
             public string? HyoungNo { get; set; }
+        }
+
+        private class VehicleMotionState
+        {
+            public double LastLatitude { get; set; }
+            public double LastLongitude { get; set; }
+            public double LastSpeedKmh { get; set; }
+            public double LastHeading { get; set; }
+            public DateTime LastSeenAt { get; set; }
+            public DateTime? LastMovedAt { get; set; }
+            public DateTime? BecameStationaryAt { get; set; }
+            public bool IsMoving { get; set; }
+            public string? MovementSource { get; set; }
+            public int ConsecutiveMovingSamples { get; set; }
+            public int ConsecutiveStoppedSamples { get; set; }
         }
 
         #endregion
@@ -587,7 +883,6 @@ namespace FMS.BackgroundServices.VehicleTracking
         public override void Dispose()
         {
             Disconnect();
-            _cacheLock.Dispose();
             base.Dispose();
         }
 

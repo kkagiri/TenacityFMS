@@ -39,9 +39,12 @@ class VehicleTrackingSignalRService {
   constructor() {
     this.connection = null;
     this.connectionState = ConnectionState.DISCONNECTED;
+    this.transportName = "None";
     this.listeners = new Map();
     this.handlers = new Map();
     this._isStarting = false;
+    this.debugEvents = [];
+    this.maxDebugEvents = 100;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
     this.reconnectDelay = 3000;
@@ -151,8 +154,8 @@ class VehicleTrackingSignalRService {
       this.connection = new HubConnectionBuilder()
         .withUrl(hubUrl, {
           accessTokenFactory: createAccessTokenFactory("VehicleTracking"),
-          transport: HttpTransportType.WebSockets | HttpTransportType.LongPolling,
-          skipNegotiation: false,
+          transport: HttpTransportType.WebSockets,
+          skipNegotiation: true,
         })
         .withAutomaticReconnect({
           nextRetryDelayInMilliseconds: (retryContext) => {
@@ -169,10 +172,12 @@ class VehicleTrackingSignalRService {
 
       // Start connection
       await this.connection.start();
+      this.transportName = "WebSockets";
 
       this.state = ConnectionState.CONNECTED;
       this.reconnectAttempts = 0;
       logConnectionSuccess("VehicleTracking", hubUrl);
+      console.log(`[VehicleTracking SignalR] Transport: ${this.transportName}`);
 
       // Restore subscriptions if we had any
       await this._restoreSubscriptions();
@@ -201,6 +206,7 @@ class VehicleTrackingSignalRService {
       }
     }
     this.state = ConnectionState.DISCONNECTED;
+    this.transportName = "None";
     this.connection = null;
   }
 
@@ -233,27 +239,40 @@ class VehicleTrackingSignalRService {
    */
   _setupMessageHandlers() {
     // Handle vehicle location updates
-    this.connection.on("VehicleLocationUpdate", (location) => {
-      console.debug("[VehicleTracking SignalR] Location update:", location?.vehicleId);
+    const handleLocationUpdate = (location) => {
+
       this._notifyEvent("locationUpdate", location);
-    });
+    };
+
+    this.connection.on("VehicleLocationUpdate", handleLocationUpdate);
 
     // Handle vehicle events (geofence, speed alerts, etc.)
-    this.connection.on("VehicleEventReceived", (event) => {
+    const handleVehicleEvent = (event) => {
       console.debug("[VehicleTracking SignalR] Event received:", event?.eventType);
       this._notifyEvent("vehicleEvent", event);
-    });
+    };
+
+    this.connection.on("VehicleEventReceived", handleVehicleEvent);
+    this.connection.on("VehicleEvent", handleVehicleEvent);
 
     // Handle vehicle connection status changes
-    this.connection.on("VehicleConnectionStatusChanged", (status) => {
+    const handleConnectionStatus = (status) => {
       console.debug("[VehicleTracking SignalR] Connection status:", status?.vehicleId, status?.isOnline);
       this._notifyEvent("connectionStatus", status);
-    });
+    };
+
+    this.connection.on("VehicleConnectionStatusChanged", handleConnectionStatus);
+    this.connection.on("VehicleConnectionStatus", handleConnectionStatus);
 
     // Handle subscription confirmations
     this.connection.on("SubscriptionConfirmed", (confirmation) => {
       console.log("[VehicleTracking SignalR] Subscription confirmed:", confirmation);
       this._notifyEvent("subscriptionConfirmed", confirmation);
+    });
+
+    this.connection.on("UnsubscriptionConfirmed", (confirmation) => {
+      console.log("[VehicleTracking SignalR] Unsubscription confirmed:", confirmation);
+      this._notifyEvent("unsubscriptionConfirmed", confirmation);
     });
 
     // Handle errors
@@ -373,6 +392,67 @@ class VehicleTrackingSignalRService {
     return success;
   }
 
+  /**
+   * Switch subscription mode to all vehicles only.
+   */
+  async switchToAllVehiclesMode() {
+    let success = true;
+    const existingVehicleIds = [...this.subscribedVehicles];
+
+    if (existingVehicleIds.length > 0) {
+      success = (await this.unsubscribeFromVehicles(existingVehicleIds)) && success;
+    }
+
+    if (!this.subscribedToAll) {
+      success = (await this.subscribeToAllVehicles()) && success;
+    }
+
+    this._notifyEvent("subscriptionModeChanged", {
+      mode: "all-vehicles",
+      subscribedToAll: this.subscribedToAll,
+      subscribedVehicles: [...this.subscribedVehicles],
+      success,
+    });
+
+    return success;
+  }
+
+  /**
+   * Switch subscription mode to a single vehicle only.
+   * @param {number} vehicleId - Vehicle ID to keep subscribed.
+   */
+  async switchToVehicleMode(vehicleId) {
+    if (!vehicleId) {
+      return false;
+    }
+
+    let success = true;
+
+    if (this.subscribedToAll) {
+      success = (await this.unsubscribeFromAllVehicles()) && success;
+    }
+
+    const existingVehicleIds = [...this.subscribedVehicles];
+    const vehicleIdsToRemove = existingVehicleIds.filter((id) => id !== vehicleId);
+    if (vehicleIdsToRemove.length > 0) {
+      success = (await this.unsubscribeFromVehicles(vehicleIdsToRemove)) && success;
+    }
+
+    if (!this.subscribedVehicles.has(vehicleId)) {
+      success = (await this.subscribeToVehicles([vehicleId])) && success;
+    }
+
+    this._notifyEvent("subscriptionModeChanged", {
+      mode: "vehicle",
+      vehicleId,
+      subscribedToAll: this.subscribedToAll,
+      subscribedVehicles: [...this.subscribedVehicles],
+      success,
+    });
+
+    return success;
+  }
+
   // ============================================================
   // EVENT LISTENER METHODS
   // ============================================================
@@ -410,6 +490,8 @@ class VehicleTrackingSignalRService {
    * Notify all listeners of an event
    */
   _notifyEvent(event, data) {
+    this._recordDebugEvent(event, data);
+
     if (this.listeners.has(event)) {
       this.listeners.get(event).forEach(callback => {
         try {
@@ -429,6 +511,39 @@ class VehicleTrackingSignalRService {
   }
 
   /**
+   * Record compact debug events for browser-side diagnostics.
+   */
+  _recordDebugEvent(event, data) {
+    try {
+      const summary =
+        data && typeof data === "object"
+          ? {
+            vehicleId: data.vehicleId ?? data.VehicleId ?? null,
+            gpsGateUserId: data.gpsGateUserId ?? data.GpsGateUserId ?? null,
+            eventType: data.eventType ?? data.EventType ?? null,
+            isOnline: data.isOnline ?? data.IsOnline ?? null,
+            type: data.type ?? data.Type ?? null,
+            message: data.message ?? data.Message ?? null,
+            latitude: data.latitude ?? data.Latitude ?? null,
+            longitude: data.longitude ?? data.Longitude ?? null,
+          }
+          : data;
+
+      this.debugEvents.unshift({
+        event,
+        timestamp: new Date().toISOString(),
+        summary,
+      });
+
+      if (this.debugEvents.length > this.maxDebugEvents) {
+        this.debugEvents.length = this.maxDebugEvents;
+      }
+    } catch (error) {
+      console.warn("[VehicleTracking SignalR] Failed to record debug event:", error);
+    }
+  }
+
+  /**
    * Get current connection info
    */
   getConnectionInfo() {
@@ -439,11 +554,35 @@ class VehicleTrackingSignalRService {
       subscribedVehicles: [...this.subscribedVehicles],
       subscribedTags: [...this.subscribedTags],
       reconnectAttempts: this.reconnectAttempts,
+      transport: this.transportName,
     };
+  }
+
+  /**
+   * Get recent compact debug events.
+   */
+  getRecentEvents() {
+    return [...this.debugEvents];
+  }
+
+  /**
+   * Clear recent compact debug events.
+   */
+  clearRecentEvents() {
+    this.debugEvents = [];
   }
 }
 
 // Create singleton instance
 const vehicleTrackingSignalRService = new VehicleTrackingSignalRService();
+
+if (typeof window !== "undefined") {
+  window.__vehicleTrackingSignalR = {
+    getConnectionInfo: () => vehicleTrackingSignalRService.getConnectionInfo(),
+    getRecentEvents: () => vehicleTrackingSignalRService.getRecentEvents(),
+    clearRecentEvents: () => vehicleTrackingSignalRService.clearRecentEvents(),
+    service: vehicleTrackingSignalRService,
+  };
+}
 
 export default vehicleTrackingSignalRService;

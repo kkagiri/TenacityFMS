@@ -6,6 +6,8 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.Dashboard;
+using FMS.Application.Services.Dashboard;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Dashboard;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -136,15 +138,18 @@ namespace FMS.Application.Queries.Database.Dashboard
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<GetUserWidgetInstancesQueryHandler> _logger;
+        private readonly IWidgetInstanceDtoHydrationService _widgetInstanceDtoHydrationService;
 
         public GetUserWidgetInstancesQueryHandler(
             GpsdataContext context,
             IMapper mapper,
-            ILogger<GetUserWidgetInstancesQueryHandler> logger)
+            ILogger<GetUserWidgetInstancesQueryHandler> logger,
+            IWidgetInstanceDtoHydrationService widgetInstanceDtoHydrationService)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            _widgetInstanceDtoHydrationService = widgetInstanceDtoHydrationService;
         }
 
         public async Task<FMSResponseMessage<IEnumerable<DashboardWidgetInstanceDto>>> Handle(
@@ -160,14 +165,37 @@ namespace FMS.Application.Queries.Database.Dashboard
 
                 if (!string.IsNullOrEmpty(request.Category))
                 {
-                    query = query.Where(w => w.Template.Category == request.Category);
+                    query = query.Where(w => w.Category == request.Category);
                 }
 
                 var widgetInstances = await query
 
                     .ToListAsync(cancellationToken);
 
-                var dtos = _mapper.Map<IEnumerable<DashboardWidgetInstanceDto>>(widgetInstances);
+                Dictionary<string, string> sharedOwnerLookup = await BuildSharedOwnerLookupAsync(widgetInstances, cancellationToken);
+                Dictionary<int, int> sharedCountLookup = await BuildSharedCountLookupAsync(widgetInstances, cancellationToken);
+
+                var dtos = widgetInstances
+                    .Select(widgetInstance =>
+                    {
+                        DashboardWidgetInstanceDto dto = _widgetInstanceDtoHydrationService.Hydrate(
+                            widgetInstance,
+                            _mapper.Map<DashboardWidgetInstanceDto>(widgetInstance));
+
+                        if (!string.IsNullOrWhiteSpace(widgetInstance.SharedFromUserId) &&
+                            sharedOwnerLookup.TryGetValue(widgetInstance.SharedFromUserId, out string? sharedOwnerName))
+                        {
+                            dto.SharedFromUserName = sharedOwnerName;
+                        }
+
+                        if (sharedCountLookup.TryGetValue(widgetInstance.Id, out int sharedWithCount))
+                        {
+                            dto.SharedWithCount = sharedWithCount;
+                        }
+
+                        return dto;
+                    })
+                    .ToList();
 
                 return new FMSResponseMessage<IEnumerable<DashboardWidgetInstanceDto>>(
                     true, "Widget instances retrieved successfully", dtos);
@@ -178,6 +206,69 @@ namespace FMS.Application.Queries.Database.Dashboard
                 return new FMSResponseMessage<IEnumerable<DashboardWidgetInstanceDto>>(
                     false, ex.Message, null!);
             }
+        }
+
+        private async Task<Dictionary<string, string>> BuildSharedOwnerLookupAsync(
+            List<DashboardWidgetInstance> widgetInstances,
+            CancellationToken cancellationToken)
+        {
+            List<string> sharedOwnerIds = widgetInstances
+                .Where(widget => widget.IsShared && !string.IsNullOrWhiteSpace(widget.SharedFromUserId))
+                .Select(widget => widget.SharedFromUserId!)
+                .Distinct()
+                .ToList();
+
+            if (sharedOwnerIds.Count == 0)
+            {
+                return new Dictionary<string, string>();
+            }
+
+            List<User> users = await _context.Users
+                .AsNoTracking()
+                .Where(user => sharedOwnerIds.Contains(user.Id))
+                .ToListAsync(cancellationToken);
+
+            return users.ToDictionary(user => user.Id, BuildUserDisplayName);
+        }
+
+        private async Task<Dictionary<int, int>> BuildSharedCountLookupAsync(
+            List<DashboardWidgetInstance> widgetInstances,
+            CancellationToken cancellationToken)
+        {
+            List<int> originalWidgetIds = widgetInstances
+                .Where(widget => !widget.IsShared)
+                .Select(widget => widget.Id)
+                .Distinct()
+                .ToList();
+
+            if (originalWidgetIds.Count == 0)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            return await _context.DashboardWidgetInstances
+                .AsNoTracking()
+                .Where(widget =>
+                    widget.IsVisible &&
+                    widget.IsShared &&
+                    widget.SharedFromWidgetId.HasValue &&
+                    originalWidgetIds.Contains(widget.SharedFromWidgetId.Value))
+                .GroupBy(widget => widget.SharedFromWidgetId!.Value)
+                .Select(group => new { WidgetId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(group => group.WidgetId, group => group.Count, cancellationToken);
+        }
+
+        private static string BuildUserDisplayName(User user)
+        {
+            string fullName = string.Join(" ", new[] { user.FirstName, user.LastName }
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                return fullName;
+            }
+
+            return user.UserName ?? user.Email ?? user.Id;
         }
     }
 
@@ -191,15 +282,18 @@ namespace FMS.Application.Queries.Database.Dashboard
         private readonly GpsdataContext _context;
         private readonly IMapper _mapper;
         private readonly ILogger<GetWidgetInstanceQueryHandler> _logger;
+        private readonly IWidgetInstanceDtoHydrationService _widgetInstanceDtoHydrationService;
 
         public GetWidgetInstanceQueryHandler(
             GpsdataContext context,
             IMapper mapper,
-            ILogger<GetWidgetInstanceQueryHandler> logger)
+            ILogger<GetWidgetInstanceQueryHandler> logger,
+            IWidgetInstanceDtoHydrationService widgetInstanceDtoHydrationService)
         {
             _context = context;
             _mapper = mapper;
             _logger = logger;
+            _widgetInstanceDtoHydrationService = widgetInstanceDtoHydrationService;
         }
 
         public async Task<FMSResponseMessage<DashboardWidgetInstanceDto>> Handle(
@@ -220,7 +314,33 @@ namespace FMS.Application.Queries.Database.Dashboard
                         false, "Widget instance not found", null!);
                 }
 
-                var dto = _mapper.Map<DashboardWidgetInstanceDto>(widgetInstance);
+                var dto = _widgetInstanceDtoHydrationService.Hydrate(
+                    widgetInstance,
+                    _mapper.Map<DashboardWidgetInstanceDto>(widgetInstance));
+
+                if (!string.IsNullOrWhiteSpace(widgetInstance.SharedFromUserId))
+                {
+                    User? sharedOwner = await _context.Users
+                        .AsNoTracking()
+                        .Where(user => user.Id == widgetInstance.SharedFromUserId)
+                        .FirstOrDefaultAsync(cancellationToken);
+
+                    dto.SharedFromUserName = sharedOwner == null
+                        ? null
+                        : BuildUserDisplayName(sharedOwner);
+                }
+
+                if (!widgetInstance.IsShared)
+                {
+                    dto.SharedWithCount = await _context.DashboardWidgetInstances
+                        .AsNoTracking()
+                        .Where(sharedWidget =>
+                            sharedWidget.IsVisible &&
+                            sharedWidget.IsShared &&
+                            sharedWidget.SharedFromWidgetId == widgetInstance.Id)
+                        .CountAsync(cancellationToken);
+                }
+
                 return new FMSResponseMessage<DashboardWidgetInstanceDto>(
                     true, "Widget instance retrieved successfully", dto);
             }
@@ -231,6 +351,69 @@ namespace FMS.Application.Queries.Database.Dashboard
                 return new FMSResponseMessage<DashboardWidgetInstanceDto>(
                     false, ex.Message, null!);
             }
+        }
+
+        private async Task<Dictionary<string, string>> BuildSharedOwnerLookupAsync(
+            List<DashboardWidgetInstance> widgetInstances,
+            CancellationToken cancellationToken)
+        {
+            List<string> sharedOwnerIds = widgetInstances
+                .Where(widget => widget.IsShared && !string.IsNullOrWhiteSpace(widget.SharedFromUserId))
+                .Select(widget => widget.SharedFromUserId!)
+                .Distinct()
+                .ToList();
+
+            if (sharedOwnerIds.Count == 0)
+            {
+                return new Dictionary<string, string>();
+            }
+
+            List<User> users = await _context.Users
+                .AsNoTracking()
+                .Where(user => sharedOwnerIds.Contains(user.Id))
+                .ToListAsync(cancellationToken);
+
+            return users.ToDictionary(user => user.Id, BuildUserDisplayName);
+        }
+
+        private async Task<Dictionary<int, int>> BuildSharedCountLookupAsync(
+            List<DashboardWidgetInstance> widgetInstances,
+            CancellationToken cancellationToken)
+        {
+            List<int> originalWidgetIds = widgetInstances
+                .Where(widget => !widget.IsShared)
+                .Select(widget => widget.Id)
+                .Distinct()
+                .ToList();
+
+            if (originalWidgetIds.Count == 0)
+            {
+                return new Dictionary<int, int>();
+            }
+
+            return await _context.DashboardWidgetInstances
+                .AsNoTracking()
+                .Where(widget =>
+                    widget.IsVisible &&
+                    widget.IsShared &&
+                    widget.SharedFromWidgetId.HasValue &&
+                    originalWidgetIds.Contains(widget.SharedFromWidgetId.Value))
+                .GroupBy(widget => widget.SharedFromWidgetId!.Value)
+                .Select(group => new { WidgetId = group.Key, Count = group.Count() })
+                .ToDictionaryAsync(group => group.WidgetId, group => group.Count, cancellationToken);
+        }
+
+        private static string BuildUserDisplayName(User user)
+        {
+            string fullName = string.Join(" ", new[] { user.FirstName, user.LastName }
+                .Where(value => !string.IsNullOrWhiteSpace(value)));
+
+            if (!string.IsNullOrWhiteSpace(fullName))
+            {
+                return fullName;
+            }
+
+            return user.UserName ?? user.Email ?? user.Id;
         }
     }
 

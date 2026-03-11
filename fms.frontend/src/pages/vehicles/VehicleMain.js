@@ -1,3 +1,9 @@
+/**
+ * File: VehicleMain.js
+ * Purpose: Registers vehicle-module routes and maps them to feature pages.
+ * Dependencies: React Router, VehicleLayout, vehicle feature pages.
+ * Last Modified: 2026-03-10
+ */
 import React from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import { useLocation } from "react-router-dom";
@@ -34,6 +40,7 @@ import VehicleTransferReviewPage from "./transfers/VehicleTransferReviewPage";
 
 // Reports
 import VehicleReportsPage from "./reports/VehicleReportsPage";
+import VehicleTripsPage from "./trips/VehicleTripsPage";
 
 // Settings
 import VehicleSettingsPage from "./settings/VehicleSettingsPage";
@@ -49,6 +56,7 @@ const VehicleMain = () => {
         <Route path="dashboard" element={<VehicleDashboard />} />
         <Route path="fleet" element={<VehicleFleetPage />} />
         <Route path="tracking" element={<VehicleTrackingPage />} />
+        <Route path="trips" element={<VehicleTripsPage />} />
         <Route path="consumption" element={<VehicleConsumptionPage />} />
         <Route path="consumption-comparison" element={<VehicleConsumptionComparisonPage />} />
         <Route path="maintenance" element={<MaintenanceAlertsPage />} />

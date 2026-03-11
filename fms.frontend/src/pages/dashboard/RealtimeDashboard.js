@@ -5,7 +5,7 @@
  * while maintaining the new service architecture for data management.
  */
 
-import React, { useEffect, useCallback, useState } from 'react';
+import React, { useEffect, useCallback, useState, useRef } from 'react';
 import { useSelector } from 'react-redux';
 import notify from 'devextreme/ui/notify';
 
@@ -36,6 +36,9 @@ const RealtimeDashboard = () => {
   // Local state for modals and UI
   const [showWidgetModal, setShowWidgetModal] = useState(false); // legacy widget add (template style)
   const [widgetConfigOpen, setWidgetConfigOpen] = useState(false); // widget config modal
+  const [actionsMenuOpen, setActionsMenuOpen] = useState(false);
+  const [layoutSaveRequestVersion, setLayoutSaveRequestVersion] = useState(0);
+  const actionsMenuRef = useRef(null);
 
   // NOTE: serviceFactory has no global initialize lifecycle; services are lazy-instantiated on first get* call.
   // The previous call to serviceFactory.initialize() caused a runtime TypeError. Removed.
@@ -77,6 +80,35 @@ const RealtimeDashboard = () => {
     // CategoryGroupedWidgetRenderer has explicit Save Changes button; toggle just sets mode
     setIsEditMode(enabled);
   }, [setIsEditMode]);
+
+  const handleOpenWidgetManager = useCallback(() => {
+    setActionsMenuOpen(false);
+    setWidgetConfigOpen(true);
+  }, []);
+
+  const handleStartLayoutEdit = useCallback(() => {
+    setActionsMenuOpen(false);
+    handleEditModeToggle(true);
+  }, [handleEditModeToggle]);
+
+  const handleSaveLayout = useCallback(() => {
+    setLayoutSaveRequestVersion(previous => previous + 1);
+  }, []);
+
+  useEffect(() => {
+    if (!actionsMenuOpen) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (actionsMenuRef.current && !actionsMenuRef.current.contains(event.target)) {
+        setActionsMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    return () => document.removeEventListener('mousedown', handlePointerDown);
+  }, [actionsMenuOpen]);
 
   // (Removed legacy handleWidgetAdd - using header onWidgetAdd -> widgetConfigOpen)
 
@@ -149,24 +181,48 @@ const RealtimeDashboard = () => {
 
         {/* Header Controls - Right Side */}
         <div className="dashboard-header-controls">
-          <Button
-            icon="fa-solid fa-edit"
-            hint={isEditMode ? "Done Editing" : "Edit Layout"}
-            type={isEditMode ? "default" : "normal"}
-            text={isEditMode ? 'Done Editing' : 'Edit Layout'}
-            stylingMode="text"
-            onClick={() => handleEditModeToggle(!isEditMode)}
-            className="header-btn"
-          />
-          <Button
-            icon="fa-solid fa-plus"
-            hint="Add Widget"
-            text='Add Widget'
-            type="default"
-            stylingMode="text"
-            onClick={() => setWidgetConfigOpen(true)}
-            className="header-btn"
-          />
+          {isEditMode && (
+            <button
+              type="button"
+              className="dashboard-save-btn"
+              onClick={handleSaveLayout}
+            >
+              Save layout
+            </button>
+          )}
+
+          <div className="dashboard-actions-menu" ref={actionsMenuRef}>
+            <button
+              type="button"
+              className="dashboard-meatball-btn"
+              aria-label="Dashboard actions"
+              aria-expanded={actionsMenuOpen}
+              onClick={() => setActionsMenuOpen(previous => !previous)}
+            >
+              <i className="fa-solid fa-ellipsis-vertical" />
+            </button>
+
+            {actionsMenuOpen && (
+              <div className="dashboard-actions-menu__panel">
+                {!isEditMode && (
+                  <button
+                    type="button"
+                    className="dashboard-actions-menu__item"
+                    onClick={handleStartLayoutEdit}
+                  >
+                    Edit layout
+                  </button>
+                )}
+                <button
+                  type="button"
+                  className="dashboard-actions-menu__item"
+                  onClick={handleOpenWidgetManager}
+                >
+                  Edit widgets
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -180,6 +236,7 @@ const RealtimeDashboard = () => {
             errors={widgetErrors}
             widgetStaleness={widgetStaleness}
             isEditMode={isEditMode}
+            saveRequestVersion={layoutSaveRequestVersion}
             onEditModeComplete={(layoutData) => {
               console.log('[RealtimeDashboard] Category layout saved', layoutData);
               setIsEditMode(false);

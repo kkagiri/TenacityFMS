@@ -6,6 +6,17 @@ using System.Text.Json.Serialization;
 namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
 {
     /// <summary>
+    /// File: GPSGateRabbitMQMessages.cs
+    /// Purpose: Defines GPSGate RabbitMQ payload contracts and connection settings used by FMS integrations.
+    /// Dependencies: System.Text.Json serialization attributes
+    /// Last Modified: 2026-03-09
+    ///
+    /// Key Types:
+    /// - GPSGateTrackMessage: Represents live GPS position payloads.
+    /// - GPSGateEventMessage: Represents GPSGate rule/event notifications.
+    /// - GPSGateRabbitMQSettings: Stores RabbitMQ connection and throughput settings.
+    /// </summary>
+    /// <summary>
     /// Track message from GPSGate RabbitMQ
     /// Reference: https://support.gpsgate.com/hc/en-us/articles/360009458433-RabbitMQ-Integration
     ///
@@ -260,7 +271,7 @@ namespace FMS.Application.Communication.GPSGate.RabbitMQ.Models
         /// <summary>
         /// Prefetch count for consumer (number of unacked messages to buffer)
         /// </summary>
-        public ushort PrefetchCount { get; set; } = 10;
+        public ushort PrefetchCount { get; set; } = 50;
 
         /// <summary>
         /// Delay in seconds before attempting reconnection

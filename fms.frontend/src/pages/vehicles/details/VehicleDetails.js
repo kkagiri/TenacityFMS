@@ -24,6 +24,7 @@ import VehicleDocumentsList from "../documents/VehicleDocumentsList";
 import VehicleGPSInformation from "./components/VehicleGPSInformation";
 import VehicleFuelingRuleAssignment from "./components/VehicleFuelingRuleAssignment";
 import VehicleTransferHistory from "../transfers/VehicleTransferHistory";
+import VehicleTripHistory from "./components/VehicleTripHistory";
 
 // Import popup components
 import TagAssignmentForm from "../../../components/Tags/TagAssignmentForm/TagAssignmentForm";
@@ -359,6 +360,17 @@ const VehicleDetails = () => {
     );
   }, [vehicle, id, tabLoadingStates]);
 
+  const tripHistoryComponent = useMemo(() => {
+    if (!vehicle || tabLoadingStates[8]) return null;
+    return (
+      <VehicleTripHistory
+        key={`trips-${vehicle?.vehicleId}`}
+        vehicleId={id}
+        canRecompute={isAdmin}
+      />
+    );
+  }, [vehicle, id, tabLoadingStates, isAdmin]);
+
   // Memoize tab items with stable dependencies
   const tabItems = useMemo(() => {
     if (!vehicle) return [];
@@ -430,6 +442,13 @@ const VehicleDetails = () => {
           ? loadingSpinner("transfer history")
           : transferHistoryComponent,
       },
+      {
+        title: "Trip History",
+        icon: "fa-solid fa-route",
+        component: tabLoadingStates[8]
+          ? loadingSpinner("trip history")
+          : tripHistoryComponent,
+      },
     ];
   }, [
     vehicle,
@@ -441,6 +460,7 @@ const VehicleDetails = () => {
     documentsComponent,
     fuelingRulesComponent,
     transferHistoryComponent,
+    tripHistoryComponent,
     tabLoadingStates,
   ]);
 

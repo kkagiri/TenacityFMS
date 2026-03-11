@@ -2,8 +2,8 @@
  * File:          SiteFormPanel.js
  * Purpose:       Create / Edit form rendered inside a SlidePanel.
  *                Flat M365 sections matching UserDetailPanel edit mode.
- * Dependencies:  devextreme-react/select-box, SitePage.scss
- * Last Modified: 2026-02-26
+ * Dependencies:  react-redux, SiteGeofenceMapPopup, SitePage.scss
+ * Last Modified: 2026-03-09
  *
  * Props:
  * - mode          ("create" | "edit"):  Form mode
@@ -19,6 +19,7 @@
  * - onClose       (func):               Close the panel
  */
 import React, { useState, useEffect, useMemo } from "react";
+import { useSelector } from "react-redux";
 import SiteGeofenceMapPopup from "./SiteGeofenceMapPopup";
 
 const EMPTY_FORM = {
@@ -48,10 +49,24 @@ const SiteFormPanel = ({
     onUpdate,
     onClose,
 }) => {
+    const { siteStats, loadingStats } = useSelector((state) => state.site);
     const [formData, setFormData] = useState(EMPTY_FORM);
     const [nameError, setNameError] = useState("");
     const [geofenceError, setGeofenceError] = useState("");
     const [showGeofenceMap, setShowGeofenceMap] = useState(false);
+    const accessCount = loadingStats ? null : siteStats?.userCount;
+    const accessCountLabel =
+        typeof accessCount === "number"
+            ? accessCount.toLocaleString()
+            : loadingStats
+                ? "..."
+                : "-";
+    const accessImpactLabel =
+        typeof accessCount === "number"
+            ? `${accessCount.toLocaleString()} assigned user${accessCount === 1 ? "" : "s"}`
+            : loadingStats
+                ? "Checking assignments..."
+                : "Assignment information not available";
 
     // Populate form when editing
     useEffect(() => {
@@ -213,6 +228,25 @@ const SiteFormPanel = ({
                 </div>
             </div>
 
+            {!isCreate && (
+                <div className="m365-flat-section">
+                    <h3 className="m365-flat-section__title">Access Impact</h3>
+                    <p className="m365-site-intro">
+                        Review current user access before updating site information, GPSGate mapping, or automation settings.
+                    </p>
+                    <div className="m365-info-grid">
+                        <div className="m365-info-cell">
+                            <span className="m365-info-cell__label">Users with Access</span>
+                            <span className="m365-info-cell__value">{accessCountLabel}</span>
+                        </div>
+                        <div className="m365-info-cell">
+                            <span className="m365-info-cell__label">Current Assignment Scope</span>
+                            <span className="m365-info-cell__value">{accessImpactLabel}</span>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* ── GPSGate Tag Configuration ── */}
             <div className="m365-flat-section">
                 <h3 className="m365-flat-section__title">GPSGate Tag Configuration</h3>
@@ -269,7 +303,7 @@ const SiteFormPanel = ({
                                 <span className="m365-field__hint">
                                     Type: {formData.gpsGeofenceType || "-"} | Center:{" "}
                                     {formData.gpsGeofenceCenterLatitude != null &&
-                                    formData.gpsGeofenceCenterLongitude != null
+                                        formData.gpsGeofenceCenterLongitude != null
                                         ? `${Number(formData.gpsGeofenceCenterLatitude).toFixed(5)}, ${Number(formData.gpsGeofenceCenterLongitude).toFixed(5)}`
                                         : "Not available"}
                                 </span>

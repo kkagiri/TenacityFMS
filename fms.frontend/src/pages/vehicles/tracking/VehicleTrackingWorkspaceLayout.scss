@@ -1,0 +1,253 @@
+/**
+ * File: VehicleTrackingWorkspaceLayout.scss
+ * Purpose: Styles the configurable split workspace for the vehicle tracking grid and map panels
+ * Dependencies: VehicleTrackingWorkspaceLayout.js
+ * Last Modified: 2026-03-09
+ *
+ * Key Sections:
+ * - .vehicle-tracking-workspace__surface: Split panel container
+ * - .vehicle-tracking-workspace__pane: Draggable panes and headers
+ * - .vehicle-tracking-workspace__drop-zone: Drag indicators for layout placement
+ */
+
+.vehicle-tracking-workspace {
+  display: flex;
+  min-height: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  overflow: hidden;
+
+  &__surface {
+    position: relative;
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+
+    &--horizontal {
+      flex-direction: row;
+    }
+
+    &--vertical {
+      flex-direction: column;
+    }
+  }
+
+  &__pane {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 0%;
+    flex-direction: column;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  &__pane-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #f8fafc;
+    padding: 10px 12px;
+    cursor: grab;
+    user-select: none;
+
+    &:active {
+      cursor: grabbing;
+    }
+  }
+
+  &__pane-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: #0f172a;
+  }
+
+  &__pane-subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #64748b;
+  }
+
+  &__pane-drag-hint {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #64748b;
+    white-space: nowrap;
+  }
+
+  &__pane-body {
+    min-height: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
+    background: inherit;
+  }
+
+  &__resizer {
+    position: relative;
+    flex: 0 0 auto;
+    background: #e2e8f0;
+    transition: background-color 0.15s ease;
+    z-index: 2;
+
+    &:hover {
+      background: #93c5fd;
+    }
+
+    &--horizontal {
+      width: 8px;
+      cursor: col-resize;
+    }
+
+    &--vertical {
+      height: 8px;
+      cursor: row-resize;
+    }
+  }
+
+  &__resizer-handle {
+    position: absolute;
+    inset: 50% auto auto 50%;
+    transform: translate(-50%, -50%);
+    border-radius: 9999px;
+    background: rgba(30, 41, 59, 0.25);
+
+    .vehicle-tracking-workspace__resizer--horizontal & {
+      width: 3px;
+      height: 40px;
+    }
+
+    .vehicle-tracking-workspace__resizer--vertical & {
+      width: 40px;
+      height: 3px;
+    }
+  }
+
+  &__drop-overlay {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    grid-template-columns: minmax(72px, 0.2fr) 1fr minmax(72px, 0.2fr);
+    grid-template-rows: minmax(72px, 0.22fr) 1fr minmax(72px, 0.22fr);
+    grid-template-areas:
+      '. top .'
+      'left center right'
+      '. bottom .';
+    gap: 16px;
+    padding: 16px;
+    background: rgba(15, 23, 42, 0.12);
+    backdrop-filter: blur(1px);
+    z-index: 5;
+  }
+
+  &__drop-zone {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px dashed rgba(37, 99, 235, 0.45);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.78);
+    transition: transform 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+
+    &--left {
+      grid-area: left;
+    }
+
+    &--right {
+      grid-area: right;
+    }
+
+    &--top {
+      grid-area: top;
+    }
+
+    &--bottom {
+      grid-area: bottom;
+    }
+
+    &.is-active {
+      border-color: #2563eb;
+      background: rgba(219, 234, 254, 0.94);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.18);
+      transform: scale(1.02);
+    }
+  }
+
+  &__drop-zone-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 9999px;
+    background: #ffffff;
+    color: #1e3a8a;
+    padding: 8px 14px;
+    font-size: 12px;
+    font-weight: 700;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.12);
+    white-space: nowrap;
+  }
+}
+
+.vehicle-tracking-workspace--resizing {
+  user-select: none;
+}
+
+[data-theme="dark"] {
+  .vehicle-tracking-workspace {
+    &__pane {
+      background: #111827;
+    }
+
+    &__pane-header {
+      border-bottom-color: #374151;
+      background: #1f2937;
+    }
+
+    &__pane-title {
+      color: #f8fafc;
+    }
+
+    &__pane-subtitle,
+    &__pane-drag-hint {
+      color: #94a3b8;
+    }
+
+    &__resizer {
+      background: #374151;
+
+      &:hover {
+        background: #60a5fa;
+      }
+    }
+
+    &__resizer-handle {
+      background: rgba(226, 232, 240, 0.35);
+    }
+
+    &__drop-overlay {
+      background: rgba(2, 6, 23, 0.32);
+    }
+
+    &__drop-zone {
+      border-color: rgba(96, 165, 250, 0.5);
+      background: rgba(17, 24, 39, 0.82);
+
+      &.is-active {
+        border-color: #60a5fa;
+        background: rgba(30, 64, 175, 0.28);
+        box-shadow: 0 0 0 2px rgba(96, 165, 250, 0.18);
+      }
+    }
+
+    &__drop-zone-chip {
+      background: #0f172a;
+      color: #bfdbfe;
+      box-shadow: 0 8px 22px rgba(2, 6, 23, 0.28);
+    }
+  }
+}
