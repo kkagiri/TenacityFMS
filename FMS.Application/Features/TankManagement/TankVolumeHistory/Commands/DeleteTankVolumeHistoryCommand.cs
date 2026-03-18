@@ -193,6 +193,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 // Handle cascade deletion based on reference type
                 await HandleCascadeDeletionAsync(records, request.DeletedBy, cancellationToken);
 
+                // Persist cascade soft deletes immediately.
+                // Without this save, related entities like FuelRefill can remain visible
+                // when no downstream tank history rows exist to trigger a later save.
+                await _context.SaveChangesAsync(cancellationToken);
+
                 // Update tank volume history for affected tanks
                 foreach (int tankId in affectedTankIds)
                 {
@@ -467,6 +472,25 @@ namespace FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand
                 else
                 {
                     _logger.LogWarning("Fuel refill {FuelRefillId} not found or already deleted", referenceId);
+                }
+
+                Tankstock? linkedTankStock = await _context.Tankstocks
+                    .Where(ts => ts.EntryId == referenceId
+                        && ts.EntryType == VolumeChangeReasonEnum.Dispensing
+                        && !ts.IsDeleted)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (linkedTankStock != null)
+                {
+                    linkedTankStock.IsDeleted = true;
+                    linkedTankStock.DeletedAt = DateTime.UtcNow;
+                    linkedTankStock.DeletedBy = deletedBy;
+                    linkedTankStock.ActiveEntryKey = null;
+
+                    _logger.LogInformation(
+                        "Soft deleted linked tankstock dispensing entry {TankStockEntryId} for fuel refill {FuelRefillId}",
+                        linkedTankStock.EntryId,
+                        referenceId);
                 }
             }
             catch (Exception ex)

@@ -686,21 +686,6 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     };
                 }
 
-                // Fallback to legacy DeviceId
-                var vehicle = await _context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId && v.DeviceId.HasValue)
-                    .FirstOrDefaultAsync();
-
-                if (vehicle?.DeviceId != null)
-                {
-                    _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
-                    return new DeviceMappingInfo
-                    {
-                        VehicleId = vehicleId,
-                        ExternalDeviceId = vehicle.DeviceId.Value.ToString()
-                    };
-                }
-
                 return null;
             }
             finally

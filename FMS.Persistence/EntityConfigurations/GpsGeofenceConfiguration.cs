@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 
 namespace FMS.Persistence.EntityConfigurations
@@ -58,6 +59,12 @@ namespace FMS.Persistence.EntityConfigurations
             builder.Property(e => e.RadiusMeters)
                 .HasColumnName("radius_meters")
                 .HasColumnType("decimal(10, 2)");
+
+            builder.Property(e => e.Classification)
+                .HasColumnName("classification")
+                .HasColumnType("tinyint")
+                .HasDefaultValue(SiteClassification.Unknown)
+                .HasComment("Operational classification: 0=Unknown, 1=Parking, 2=Load, 3=Dump, 4=Fuel, 5=Workshop");
 
             builder.Property(e => e.IsActive)
                 .HasColumnName("is_active")

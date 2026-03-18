@@ -264,6 +264,25 @@ class VehicleTrackingSignalRService {
     this.connection.on("VehicleConnectionStatusChanged", handleConnectionStatus);
     this.connection.on("VehicleConnectionStatus", handleConnectionStatus);
 
+    const handleTripStarted = (event) => {
+      console.debug("[VehicleTracking SignalR] Trip started:", event?.vehicleId ?? event?.VehicleId);
+      this._notifyEvent("tripStarted", event);
+    };
+
+    const handleTripInProgress = (event) => {
+      console.debug("[VehicleTracking SignalR] Trip in progress:", event?.vehicleId ?? event?.VehicleId);
+      this._notifyEvent("tripInProgress", event);
+    };
+
+    const handleTripCompleted = (event) => {
+      console.debug("[VehicleTracking SignalR] Trip completed:", event?.vehicleId ?? event?.VehicleId);
+      this._notifyEvent("tripCompleted", event);
+    };
+
+    this.connection.on("TripStarted", handleTripStarted);
+    this.connection.on("TripInProgress", handleTripInProgress);
+    this.connection.on("TripCompleted", handleTripCompleted);
+
     // Handle subscription confirmations
     this.connection.on("SubscriptionConfirmed", (confirmation) => {
       console.log("[VehicleTracking SignalR] Subscription confirmed:", confirmation);
@@ -526,6 +545,8 @@ class VehicleTrackingSignalRService {
             message: data.message ?? data.Message ?? null,
             latitude: data.latitude ?? data.Latitude ?? null,
             longitude: data.longitude ?? data.Longitude ?? null,
+            vehicleTripGroupId: data.vehicleTripGroupId ?? data.VehicleTripGroupId ?? null,
+            vehicleTripId: data.vehicleTripId ?? data.VehicleTripId ?? null,
           }
           : data;
 

@@ -2,7 +2,7 @@
  * File: VehicleTripClusterDetectionService.cs
  * Purpose: Detects shuttle and tipper trips by extracting stops, clustering them, and converting cluster transitions into trip legs.
  * Dependencies: DbContext, IGPSService, trip stop DTOs, site geofences.
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  */
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,7 @@ using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SiteEntity = FMS.Domain.Entities.Site;
 using VehicleEntity = FMS.Domain.Entities.Vehicle;
 
@@ -24,24 +25,23 @@ namespace FMS.Application.Features.VehicleTrips.Services;
 
 public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionService
 {
-    private const decimal StopSpeedThresholdKph = 3m;
-    private const decimal MinimumStopDurationMinutes = 1.5m;
-    private const decimal MinimumTripDistanceKm = 0.50m;
-    private const decimal MinimumTripDurationMinutes = 2m;
-    private const double ClusterRadiusMeters = 150d;
-    private const int MaxTrackPoints = 5000;
-
     private readonly GpsdataContext _context;
     private readonly IGPSService _gpsService;
+    private readonly IVehicleTripGpsPreProcessor _gpsPreProcessor;
+    private readonly VehicleTripClusterDetectionOptions _options;
     private readonly ILogger<VehicleTripClusterDetectionService> _logger;
 
     public VehicleTripClusterDetectionService(
         GpsdataContext context,
         IGPSService gpsService,
+        IVehicleTripGpsPreProcessor gpsPreProcessor,
+        IOptions<VehicleTripClusterDetectionOptions> options,
         ILogger<VehicleTripClusterDetectionService> logger)
     {
         _context = context;
         _gpsService = gpsService;
+        _gpsPreProcessor = gpsPreProcessor;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -51,13 +51,18 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         DateTime toUtc,
         CancellationToken cancellationToken = default)
     {
-        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, MaxTrackPoints);
+        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, _options.MaxTrackPoints);
         if (!trackPointsResponse.IsSuccess)
         {
             throw new InvalidOperationException(trackPointsResponse.Message);
         }
 
-        var points = (trackPointsResponse.Data ?? new List<TrackPointDTO>())
+        var points = await _gpsPreProcessor.ProcessAsync(
+            vehicle.VehicleId,
+            trackPointsResponse.Data ?? new List<TrackPointDTO>(),
+            cancellationToken);
+
+        points = points
             .OrderBy(point => point.Timestamp)
             .ToList();
 
@@ -66,7 +71,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
             return new List<VehicleTripDetectionResultDTO>();
         }
 
-        var stops = ExtractStops(points);
+        var stops = ExtractStops(points, _options);
         if (stops.Count < 2)
         {
             return new List<VehicleTripDetectionResultDTO>();
@@ -79,7 +84,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
             .OrderBy(site => site.Name)
             .ToListAsync(cancellationToken);
 
-        var clusters = BuildClusters(stops, sites);
+        var clusters = BuildClusters(stops, sites, _options);
         if (clusters.Count < 2)
         {
             return new List<VehicleTripDetectionResultDTO>();
@@ -113,7 +118,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
 
             var durationMinutes = Convert.ToDecimal((destinationStop.StartTimeUtc - originStop.EndTimeUtc).TotalMinutes);
             var distanceKm = CalculateDistanceKm(points, startTrackIndex, endTrackIndex);
-            if (durationMinutes < MinimumTripDurationMinutes || distanceKm < MinimumTripDistanceKm)
+            if (durationMinutes < _options.MinimumTripDurationMinutes || distanceKm < _options.MinimumTripDistanceKm)
             {
                 continue;
             }
@@ -133,15 +138,212 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
                 DistanceKm = Math.Round(distanceKm, 2),
                 DurationMinutes = Math.Round(durationMinutes, 2),
                 MaxSpeedKph = CalculateMaxSpeed(points, startTrackIndex, endTrackIndex),
+                Status = VehicleTripStatus.Completed,
                 MovementProfile = vehicle.MovementProfile,
                 DetectionMode = "Cluster",
+                StartTrackInfoId = points[startTrackIndex].TrackInfoId,
+                EndTrackInfoId = points[endTrackIndex].TrackInfoId,
+                FuelAtDeparture = points[startTrackIndex].FuelLevel,
+                FuelAtArrival = points[endTrackIndex].FuelLevel,
+                FuelConsumed = points[startTrackIndex].FuelLevel.HasValue && points[endTrackIndex].FuelLevel.HasValue
+                        ? Math.Round(Math.Max(0m, points[startTrackIndex].FuelLevel.Value - points[endTrackIndex].FuelLevel.Value), 2)
+                        : null,
             });
+        }
+
+        var lastStop = stops.LastOrDefault();
+        var lastPoint = points[^1];
+        if (lastStop != null
+            && lastStop.ClusterId.HasValue
+            && lastStop.EndTrackIndex < points.Count - 1)
+        {
+            var startTrackIndex = Math.Max(0, lastStop.EndTrackIndex);
+            var endTrackIndex = points.Count - 1;
+            var durationMinutes = Convert.ToDecimal((lastPoint.Timestamp - lastStop.EndTimeUtc).TotalMinutes);
+            var distanceKm = CalculateDistanceKm(points, startTrackIndex, endTrackIndex);
+
+            if (durationMinutes >= _options.MinimumTripDurationMinutes && distanceKm >= _options.MinimumTripDistanceKm)
+            {
+                detectedTrips.Add(new VehicleTripDetectionResultDTO
+                {
+                    StartTimeUtc = lastStop.EndTimeUtc.ToUniversalTime(),
+                    EndTimeUtc = lastPoint.Timestamp.ToUniversalTime(),
+                    OriginSiteId = lastStop.SiteId,
+                    DestinationSiteId = null,
+                    OriginGeofenceId = lastStop.GeofenceId,
+                    DestinationGeofenceId = null,
+                    StartLatitude = lastStop.Latitude,
+                    StartLongitude = lastStop.Longitude,
+                    EndLatitude = lastPoint.Latitude,
+                    EndLongitude = lastPoint.Longitude,
+                    DistanceKm = Math.Round(distanceKm, 2),
+                    DurationMinutes = Math.Round(durationMinutes, 2),
+                    MaxSpeedKph = CalculateMaxSpeed(points, startTrackIndex, endTrackIndex),
+                    Status = VehicleTripStatus.InProgress,
+                    MovementProfile = vehicle.MovementProfile,
+                    DetectionMode = "Cluster",
+                    StartTrackInfoId = points[startTrackIndex].TrackInfoId,
+                    EndTrackInfoId = lastPoint.TrackInfoId,
+                    FuelAtDeparture = points[startTrackIndex].FuelLevel,
+                    FuelAtArrival = lastPoint.FuelLevel,
+                    FuelConsumed = points[startTrackIndex].FuelLevel.HasValue && lastPoint.FuelLevel.HasValue
+                        ? Math.Round(Math.Max(0m, points[startTrackIndex].FuelLevel.Value - lastPoint.FuelLevel.Value), 2)
+                        : null,
+                    GroupingType = VehicleTripGroupingType.SingleLeg,
+                });
+            }
         }
 
         return detectedTrips;
     }
 
-    private List<VehicleTripDetectedStopDTO> ExtractStops(IReadOnlyList<TrackPointDTO> points)
+    public Task<ClusterDetectionPreviewDTO> PreviewDetectionAsync(
+        VehicleEntity vehicle,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default)
+    {
+        return PreviewDetectionAsync(vehicle, fromUtc, toUtc, _options, cancellationToken);
+    }
+
+    public async Task<ClusterDetectionPreviewDTO> PreviewDetectionAsync(
+        VehicleEntity vehicle,
+        DateTime fromUtc,
+        DateTime toUtc,
+        VehicleTripClusterDetectionOptions overrideOptions,
+        CancellationToken cancellationToken = default)
+    {
+        var opts = overrideOptions ?? _options;
+
+        var preview = new ClusterDetectionPreviewDTO
+        {
+            VehicleId = vehicle.VehicleId,
+            VehicleName = vehicle.HyoungNo ?? $"Vehicle {vehicle.VehicleId}",
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            SettingsStopSpeedThresholdKph = opts.StopSpeedThresholdKph,
+            SettingsMinimumStopDurationMinutes = opts.MinimumStopDurationMinutes,
+            SettingsMinimumTripDistanceKm = opts.MinimumTripDistanceKm,
+            SettingsMinimumTripDurationMinutes = opts.MinimumTripDurationMinutes,
+            SettingsClusterRadiusMeters = opts.ClusterRadiusMeters,
+            SettingsMaxTrackPoints = opts.MaxTrackPoints,
+        };
+
+        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, opts.MaxTrackPoints);
+        if (!trackPointsResponse.IsSuccess)
+        {
+            return preview;
+        }
+
+        var points = await _gpsPreProcessor.ProcessAsync(
+            vehicle.VehicleId,
+            trackPointsResponse.Data ?? new List<TrackPointDTO>(),
+            cancellationToken);
+
+        points = points.OrderBy(point => point.Timestamp).ToList();
+        preview.TotalTrackPoints = points.Count;
+
+        // Lightweight projection for timeline / speed-profile visualisation
+        preview.TrackPoints = points.Select(p => new PreviewTrackPointDTO
+        {
+            Timestamp = p.Timestamp,
+            Latitude = p.Latitude,
+            Longitude = p.Longitude,
+            Speed = p.Speed,
+            Heading = p.Heading,
+            IgnitionStatus = p.IgnitionStatus,
+        }).ToList();
+
+        if (points.Count < 2)
+        {
+            return preview;
+        }
+
+        var stops = ExtractStops(points, opts);
+        preview.Stops = stops;
+        preview.StopsDetected = stops.Count;
+
+        if (stops.Count < 2)
+        {
+            return preview;
+        }
+
+        var sites = await _context.Sites
+            .AsNoTracking()
+            .Include(site => site.GpsGeofence)
+            .Where(site => site.IsActive && site.GpsGeofenceId != null && site.GpsGeofence != null)
+            .OrderBy(site => site.Name)
+            .ToListAsync(cancellationToken);
+
+        var clusters = BuildClusters(stops, sites, opts);
+        ApplyClusterClassification(clusters, stops);
+        preview.Clusters = clusters;
+        preview.ClustersFormed = clusters.Count;
+
+        if (clusters.Count < 2)
+        {
+            return preview;
+        }
+
+        var tripLegs = new List<VehicleTripDetectionResultDTO>();
+        for (var index = 0; index < stops.Count - 1; index++)
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+
+            var originStop = stops[index];
+            var destinationStop = stops[index + 1];
+            if (!originStop.ClusterId.HasValue || !destinationStop.ClusterId.HasValue)
+            {
+                continue;
+            }
+
+            if (originStop.ClusterId == destinationStop.ClusterId)
+            {
+                continue;
+            }
+
+            var startTrackIndex = Math.Max(0, originStop.EndTrackIndex);
+            var endTrackIndex = Math.Min(points.Count - 1, destinationStop.StartTrackIndex);
+            if (endTrackIndex <= startTrackIndex)
+            {
+                continue;
+            }
+
+            var durationMinutes = Convert.ToDecimal((destinationStop.StartTimeUtc - originStop.EndTimeUtc).TotalMinutes);
+            var distanceKm = CalculateDistanceKm(points, startTrackIndex, endTrackIndex);
+            if (durationMinutes < opts.MinimumTripDurationMinutes || distanceKm < opts.MinimumTripDistanceKm)
+            {
+                continue;
+            }
+
+            tripLegs.Add(new VehicleTripDetectionResultDTO
+            {
+                StartTimeUtc = originStop.EndTimeUtc.ToUniversalTime(),
+                EndTimeUtc = destinationStop.StartTimeUtc.ToUniversalTime(),
+                OriginSiteId = originStop.SiteId,
+                DestinationSiteId = destinationStop.SiteId,
+                OriginGeofenceId = originStop.GeofenceId,
+                DestinationGeofenceId = destinationStop.GeofenceId,
+                StartLatitude = originStop.Latitude,
+                StartLongitude = originStop.Longitude,
+                EndLatitude = destinationStop.Latitude,
+                EndLongitude = destinationStop.Longitude,
+                DistanceKm = Math.Round(distanceKm, 2),
+                DurationMinutes = Math.Round(durationMinutes, 2),
+                MaxSpeedKph = CalculateMaxSpeed(points, startTrackIndex, endTrackIndex),
+                Status = VehicleTripStatus.Completed,
+                MovementProfile = vehicle.MovementProfile,
+                DetectionMode = "Cluster",
+            });
+        }
+
+        preview.TripLegs = tripLegs;
+        preview.TripLegsDetected = tripLegs.Count;
+
+        return preview;
+    }
+
+    private List<VehicleTripDetectedStopDTO> ExtractStops(IReadOnlyList<TrackPointDTO> points, VehicleTripClusterDetectionOptions opts)
     {
         var stops = new List<VehicleTripDetectedStopDTO>();
         VehicleTripDetectedStopDTO? currentStop = null;
@@ -153,7 +355,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         {
             var point = points[index];
             var speed = point.Speed ?? 0m;
-            if (speed <= StopSpeedThresholdKph)
+            if (speed <= opts.StopSpeedThresholdKph)
             {
                 if (currentStop == null)
                 {
@@ -180,11 +382,11 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
                 continue;
             }
 
-            FinalizeStopIfEligible(stops, currentStop, latitudeSum, longitudeSum, pointCount);
+            FinalizeStopIfEligible(stops, currentStop, latitudeSum, longitudeSum, pointCount, opts);
             currentStop = null;
         }
 
-        FinalizeStopIfEligible(stops, currentStop, latitudeSum, longitudeSum, pointCount);
+        FinalizeStopIfEligible(stops, currentStop, latitudeSum, longitudeSum, pointCount, opts);
         return stops;
     }
 
@@ -193,7 +395,8 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         VehicleTripDetectedStopDTO? currentStop,
         decimal latitudeSum,
         decimal longitudeSum,
-        int pointCount)
+        int pointCount,
+        VehicleTripClusterDetectionOptions opts)
     {
         if (currentStop == null || pointCount <= 0)
         {
@@ -201,7 +404,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         }
 
         currentStop.DurationMinutes = Convert.ToDecimal((currentStop.EndTimeUtc - currentStop.StartTimeUtc).TotalMinutes);
-        if (currentStop.DurationMinutes < MinimumStopDurationMinutes)
+        if (currentStop.DurationMinutes < opts.MinimumStopDurationMinutes)
         {
             return;
         }
@@ -211,7 +414,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         stops.Add(currentStop);
     }
 
-    private List<VehicleTripStopClusterDTO> BuildClusters(IReadOnlyList<VehicleTripDetectedStopDTO> stops, IReadOnlyList<SiteEntity> sites)
+    private List<VehicleTripStopClusterDTO> BuildClusters(IReadOnlyList<VehicleTripDetectedStopDTO> stops, IReadOnlyList<SiteEntity> sites, VehicleTripClusterDetectionOptions opts)
     {
         var clusters = new List<VehicleTripStopClusterDTO>();
 
@@ -227,7 +430,7 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
                         (double)cluster.Latitude,
                         (double)cluster.Longitude)
                 })
-                .Where(result => result.DistanceMeters <= ClusterRadiusMeters)
+                .Where(result => result.DistanceMeters <= opts.ClusterRadiusMeters)
                 .OrderBy(result => result.DistanceMeters)
                 .FirstOrDefault();
 
@@ -282,26 +485,62 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
         IReadOnlyList<VehicleTripStopClusterDTO> clusters,
         IEnumerable<VehicleTripDetectedStopDTO> stops)
     {
-        var orderedClusters = clusters
-            .OrderByDescending(cluster => cluster.AverageDwellMinutes)
-            .ThenByDescending(cluster => cluster.VisitCount)
-            .ToList();
+        if (clusters.Count == 0) return;
 
-        for (var index = 0; index < orderedClusters.Count; index++)
+        var stopsList = stops as IList<VehicleTripDetectedStopDTO> ?? stops.ToList();
+
+        // Step 1: Parking = cluster with the highest average dwell (overnight / between shifts).
+        var parkingCluster = clusters
+            .OrderByDescending(c => c.AverageDwellMinutes)
+            .ThenByDescending(c => c.VisitCount)
+            .First();
+        parkingCluster.ClusterType = "Parking";
+
+        if (clusters.Count >= 2)
         {
-            var cluster = orderedClusters[index];
-            cluster.ClusterType = orderedClusters.Count switch
-            {
-                1 => "Load",
-                _ when index == 0 => "Load",
-                _ when index == orderedClusters.Count - 1 => "Dump",
-                _ => "Transit",
-            };
+            // Step 2: Shuttle pattern  Parking → [Load → Dump] ×N → Parking.
+            // Use temporal order: first non-parking cluster visited = Load,
+            // second distinct non-parking cluster visited = Dump.
+            var firstNonParking = stopsList
+                .Where(s => s.ClusterId.HasValue && s.ClusterId.Value != parkingCluster.ClusterId)
+                .OrderBy(s => s.StartTimeUtc)
+                .FirstOrDefault();
 
+            int? loadClusterId = firstNonParking?.ClusterId;
+            int? dumpClusterId = null;
+
+            if (loadClusterId.HasValue)
+            {
+                var secondDistinct = stopsList
+                    .Where(s => s.ClusterId.HasValue
+                        && s.ClusterId.Value != parkingCluster.ClusterId
+                        && s.ClusterId.Value != loadClusterId.Value)
+                    .OrderBy(s => s.StartTimeUtc)
+                    .FirstOrDefault();
+                dumpClusterId = secondDistinct?.ClusterId;
+            }
+
+            foreach (var cluster in clusters)
+            {
+                if (cluster.ClusterId == parkingCluster.ClusterId) continue;
+
+                if (cluster.ClusterId == loadClusterId)
+                    cluster.ClusterType = "Load";
+                else if (cluster.ClusterId == dumpClusterId)
+                    cluster.ClusterType = "Dump";
+                else
+                    cluster.ClusterType = "Transit";
+            }
+        }
+
+        // Step 3: Assign default labels where missing.
+        foreach (var cluster in clusters)
+        {
             if (string.IsNullOrWhiteSpace(cluster.Label))
             {
                 cluster.Label = cluster.ClusterType switch
                 {
+                    "Parking" => "Parking / Depot",
                     "Load" => "Load cluster",
                     "Dump" => "Dump cluster",
                     _ => $"Transit cluster {cluster.ClusterId}",
@@ -309,8 +548,9 @@ public class VehicleTripClusterDetectionService : IVehicleTripClusterDetectionSe
             }
         }
 
-        var clusterMap = clusters.ToDictionary(cluster => cluster.ClusterId);
-        foreach (var stop in stops)
+        // Step 4: Propagate cluster info to stops.
+        var clusterMap = clusters.ToDictionary(c => c.ClusterId);
+        foreach (var stop in stopsList)
         {
             if (!stop.ClusterId.HasValue || !clusterMap.TryGetValue(stop.ClusterId.Value, out var cluster))
             {

@@ -2,7 +2,7 @@
  * File: vehicleTrackingHelpers.js
  * Purpose: Centralizes vehicle tracking constants, normalization helpers, formatting, and map marker builders
  * Dependencies: browser localStorage, Google Maps runtime APIs
- * Last Modified: 2026-03-09
+ * Last Modified: 2026-03-11
  *
  * Key Exports:
  * - resolveInitialTrackingView(): Resolves the preferred tracking view from API and persisted state
@@ -22,7 +22,7 @@ export const defaultCenter = {
 };
 
 export const TRACKING_VIEW_STORAGE_KEY = 'fms_vehicle_tracking_selected_view';
-export const TRACKING_GRID_STATE_STORAGE_KEY = 'fms_vehicle_tracking_grid_state';
+export const TRACKING_GRID_STATE_STORAGE_KEY = 'fms_vehicle_tracking_grid_state_v2';
 export const DEFAULT_TRACKING_VIEW_NAME = 'Report Industrial Plot';
 export const SHOW_ALL_USERS_VIEW_NAMES = ['showallusers', 'show all users'];
 export const VEHICLE_MOVING_SPEED_THRESHOLD = 5;
@@ -42,6 +42,7 @@ const TRACKING_STATUS_SORT_ORDER = {
 };
 
 const normalizeViewName = (value) => (value || '').trim().toLowerCase();
+const ensureVehicle = (vehicle) => vehicle ?? {};
 
 export const readSavedTrackingViewPreference = () => {
   try {
@@ -106,7 +107,8 @@ const toNumberOrNull = (value) => {
 };
 
 const getAdditionalFieldValue = (vehicle = {}, candidateKeys = []) => {
-  const fields = vehicle.additionalFields;
+  const sourceVehicle = ensureVehicle(vehicle);
+  const fields = sourceVehicle.additionalFields;
   if (!fields || typeof fields !== 'object') {
     return null;
   }
@@ -127,41 +129,56 @@ const getAdditionalFieldValue = (vehicle = {}, candidateKeys = []) => {
   return null;
 };
 
-export const getVehicleSpeed = (vehicle = {}) => (
-  toNumberOrNull(vehicle.speed)
-  ?? toNumberOrNull(vehicle.speedKmh)
-  ?? toNumberOrNull(vehicle.groundSpeed)
-  ?? toNumberOrNull(vehicle.calculatedSpeed)
-  ?? 0
-);
+export const getVehicleSpeed = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
 
-export const getVehicleHeading = (vehicle = {}) => toNumberOrNull(vehicle.heading) ?? 0;
+  return (
+    toNumberOrNull(sourceVehicle.speed)
+    ?? toNumberOrNull(sourceVehicle.speedKmh)
+    ?? toNumberOrNull(sourceVehicle.groundSpeed)
+    ?? toNumberOrNull(sourceVehicle.calculatedSpeed)
+    ?? 0
+  );
+};
 
-export const getVehicleCode = (vehicle = {}) => (
-  vehicle.hyoungNo
-  || vehicle.numberPlate
-  || vehicle.plateNumber
-  || vehicle.name
-  || vehicle.vehicleName
-  || `Vehicle ${vehicle.id ?? ''}`.trim()
-);
+export const getVehicleHeading = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
+  return toNumberOrNull(sourceVehicle.heading) ?? 0;
+};
 
-export const getVehicleDriverName = (vehicle = {}) => (
-  vehicle.driverName
-  || vehicle.currentDriverName
-  || vehicle.assignedDriverName
-  || vehicle.driver
-  || getAdditionalFieldValue(vehicle, ['DriverName', 'driverName', 'Driver', 'CurrentDriver'])
-  || '—'
-);
+export const getVehicleCode = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
 
-export const getVehicleEngineHours = (vehicle = {}) => (
-  toNumberOrNull(vehicle.engineHours)
-  ?? toNumberOrNull(vehicle.engineHour)
-  ?? toNumberOrNull(vehicle.runHours)
-  ?? toNumberOrNull(getAdditionalFieldValue(vehicle, ['EngineHours', 'engineHours', 'EngineHour', 'RunHours']))
-  ?? null
-);
+  return sourceVehicle.hyoungNo
+    || sourceVehicle.numberPlate
+    || sourceVehicle.plateNumber
+    || sourceVehicle.name
+    || sourceVehicle.vehicleName
+    || `Vehicle ${sourceVehicle.id ?? ''}`.trim();
+};
+
+export const getVehicleDriverName = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  return sourceVehicle.driverName
+    || sourceVehicle.currentDriverName
+    || sourceVehicle.assignedDriverName
+    || sourceVehicle.driver
+    || getAdditionalFieldValue(sourceVehicle, ['DriverName', 'driverName', 'Driver', 'CurrentDriver'])
+    || '—';
+};
+
+export const getVehicleEngineHours = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  return (
+    toNumberOrNull(sourceVehicle.engineHours)
+    ?? toNumberOrNull(sourceVehicle.engineHour)
+    ?? toNumberOrNull(sourceVehicle.runHours)
+    ?? toNumberOrNull(getAdditionalFieldValue(sourceVehicle, ['EngineHours', 'engineHours', 'EngineHour', 'RunHours']))
+    ?? null
+  );
+};
 
 export const formatEngineHours = (value) => {
   if (value == null) {
@@ -173,15 +190,17 @@ export const formatEngineHours = (value) => {
 
 export const formatSpeedKmh = (value) => `${(value || 0).toFixed(1)} km/h`;
 
-export const getVehicleLastUpdated = (vehicle = {}) => (
-  vehicle.lastUpdated
-  || vehicle.serverTimestamp
-  || vehicle.gpsTimestamp
-  || vehicle.utc
-  || vehicle.UTC
-  || vehicle.lastTransport
-  || null
-);
+export const getVehicleLastUpdated = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  return sourceVehicle.lastUpdated
+    || sourceVehicle.serverTimestamp
+    || sourceVehicle.gpsTimestamp
+    || sourceVehicle.utc
+    || sourceVehicle.UTC
+    || sourceVehicle.lastTransport
+    || null;
+};
 
 export const formatTrackingTimestamp = (timestamp) => {
   if (!timestamp) {
@@ -191,24 +210,48 @@ export const formatTrackingTimestamp = (timestamp) => {
   return new Date(timestamp).toLocaleString();
 };
 
-export const getVehicleOnlineStatus = (vehicle = {}) => {
-  if (typeof vehicle.isOnline === 'boolean') {
-    return vehicle.isOnline;
+export const formatTrackingLastSeen = (timestamp) => {
+  if (!timestamp) {
+    return 'Never';
   }
 
-  return String(vehicle.deviceActivity || '').trim().length > 0;
+  const value = new Date(timestamp);
+  if (Number.isNaN(value.getTime())) {
+    return 'Never';
+  }
+
+  const now = new Date();
+  const isToday = value.getFullYear() === now.getFullYear()
+    && value.getMonth() === now.getMonth()
+    && value.getDate() === now.getDate();
+
+  return isToday
+    ? value.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+    : value.toLocaleDateString();
+};
+
+export const getVehicleOnlineStatus = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  if (typeof sourceVehicle.isOnline === 'boolean') {
+    return sourceVehicle.isOnline;
+  }
+
+  return String(sourceVehicle.deviceActivity || '').trim().length > 0;
 };
 
 export const getVehicleOperationalStatus = (vehicle = {}) => {
-  if (vehicle.operationalStatus) {
-    return vehicle.operationalStatus;
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  if (sourceVehicle.operationalStatus) {
+    return sourceVehicle.operationalStatus;
   }
 
-  if (vehicle.isMoving) {
+  if (sourceVehicle.isMoving) {
     return 'Moving';
   }
 
-  if (vehicle.isParked || vehicle.ignitionOn === false) {
+  if (sourceVehicle.isParked || sourceVehicle.ignitionOn === false) {
     return 'Parked';
   }
 
@@ -216,8 +259,9 @@ export const getVehicleOperationalStatus = (vehicle = {}) => {
 };
 
 export const getVehicleStatusSortValue = (vehicle = {}) => {
+  const sourceVehicle = ensureVehicle(vehicle);
   const status = getVehicleOperationalStatus(vehicle);
-  if (vehicle.isOnline === false) {
+  if (sourceVehicle.isOnline === false) {
     return TRACKING_STATUS_SORT_ORDER.Offline;
   }
 
@@ -248,37 +292,41 @@ export const getVehicleStatusTone = (vehicle = {}) => {
 };
 
 export const isVehicleMoving = (vehicle = {}) => {
-  if (typeof vehicle.isMoving === 'boolean') {
-    return vehicle.isMoving;
+  const sourceVehicle = ensureVehicle(vehicle);
+
+  if (typeof sourceVehicle.isMoving === 'boolean') {
+    return sourceVehicle.isMoving;
   }
 
-  return getVehicleSpeed(vehicle) > VEHICLE_MOVING_SPEED_THRESHOLD;
+  return getVehicleSpeed(sourceVehicle) > VEHICLE_MOVING_SPEED_THRESHOLD;
 };
 
 export const normalizeVehicle = (vehicle = {}) => {
-  const speed = getVehicleSpeed(vehicle);
-  const heading = getVehicleHeading(vehicle);
+  const sourceVehicle = ensureVehicle(vehicle);
+  const speed = getVehicleSpeed(sourceVehicle);
+  const heading = getVehicleHeading(sourceVehicle);
 
   return {
-    ...vehicle,
-    latitude: toNumberOrNull(vehicle.latitude),
-    longitude: toNumberOrNull(vehicle.longitude),
+    ...sourceVehicle,
+    latitude: toNumberOrNull(sourceVehicle.latitude),
+    longitude: toNumberOrNull(sourceVehicle.longitude),
     speed,
     heading,
-    lastUpdated: getVehicleLastUpdated(vehicle),
-    isOnline: getVehicleOnlineStatus(vehicle),
-    isMoving: isVehicleMoving({ ...vehicle, speed }),
-    isParked: Boolean(vehicle.isParked),
-    operationalStatus: getVehicleOperationalStatus(vehicle),
+    lastUpdated: getVehicleLastUpdated(sourceVehicle),
+    isOnline: getVehicleOnlineStatus(sourceVehicle),
+    isMoving: isVehicleMoving({ ...sourceVehicle, speed }),
+    isParked: Boolean(sourceVehicle.isParked),
+    operationalStatus: getVehicleOperationalStatus(sourceVehicle),
   };
 };
 
 export const getVehicleMarkerLabel = (vehicle = {}) => {
-  const rawLabel = vehicle.hyoungNo
-    || vehicle.numberPlate
-    || vehicle.plateNumber
-    || vehicle.name
-    || vehicle.vehicleName
+  const sourceVehicle = ensureVehicle(vehicle);
+  const rawLabel = sourceVehicle.hyoungNo
+    || sourceVehicle.numberPlate
+    || sourceVehicle.plateNumber
+    || sourceVehicle.name
+    || sourceVehicle.vehicleName
     || 'Vehicle';
 
   const text = String(rawLabel).trim();
@@ -332,20 +380,21 @@ export const buildClusterMarkerIcon = (count, isDarkTheme = false) => {
 };
 
 export const buildInfoWindowContent = (vehicle = {}, isDarkTheme = false) => {
-  const speed = getVehicleSpeed(vehicle);
-  const heading = getVehicleHeading(vehicle);
+  const sourceVehicle = ensureVehicle(vehicle);
+  const speed = getVehicleSpeed(sourceVehicle);
+  const heading = getVehicleHeading(sourceVehicle);
   const themeClass = isDarkTheme ? 'vehicle-tracking-info-window--dark' : 'vehicle-tracking-info-window--light';
 
   return `
     <div class="vehicle-tracking-info-window ${themeClass}">
-      <h4 class="vehicle-tracking-info-window__title">${vehicle.name || 'Unknown'}</h4>
-      ${vehicle.description ? `<p class="vehicle-tracking-info-window__description">${vehicle.description}</p>` : ''}
+      <h4 class="vehicle-tracking-info-window__title">${sourceVehicle.name || 'Unknown'}</h4>
+      ${sourceVehicle.description ? `<p class="vehicle-tracking-info-window__description">${sourceVehicle.description}</p>` : ''}
       <div class="vehicle-tracking-info-window__details">
-        <p><strong>Status:</strong> ${getVehicleOperationalStatus(vehicle)}</p>
+        <p><strong>Status:</strong> ${getVehicleOperationalStatus(sourceVehicle)}</p>
         <p><strong>Speed:</strong> ${speed.toFixed(1)} km/h</p>
         <p><strong>Heading:</strong> ${heading.toFixed(0)}°</p>
-        <p><strong>Updated:</strong> ${formatTrackingTimestamp(vehicle.lastUpdated)}</p>
-        ${vehicle.address ? `<p><strong>Location:</strong> ${vehicle.address}</p>` : ''}
+        <p><strong>Updated:</strong> ${formatTrackingTimestamp(sourceVehicle.lastUpdated)}</p>
+        ${sourceVehicle.address ? `<p><strong>Location:</strong> ${sourceVehicle.address}</p>` : ''}
       </div>
     </div>
   `;

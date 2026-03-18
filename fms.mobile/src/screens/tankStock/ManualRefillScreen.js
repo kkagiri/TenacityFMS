@@ -1,3 +1,14 @@
+/**
+ * File: ManualRefillScreen.js
+ * Purpose: Capture mobile manual refill entries and warn when the selected timestamp would affect later tank volume history.
+ * Dependencies: React Native, Redux Toolkit, CustomDateTimePicker, useFutureRecordsValidation
+ * Last Modified: 2026-03-13
+ *
+ * Key Functions:
+ * - ManualRefillScreen(): Collects manual refill data and coordinates submit flow
+ * - validateSelectedEntry(): Checks the selected tank and datetime against future tank volume history
+ * - handleSave(): Persists refill data after validation has been satisfied
+ */
 import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
@@ -23,6 +34,9 @@ import {
   clearRefillResult,
 } from "../../redux/slices/stockSlice";
 import ApiService from "../../services/apiService";
+import FutureRecordsNotice from "../../components/tankStock/FutureRecordsNotice";
+import { useFutureRecordsValidation } from "../../hooks/useFutureRecordsValidation";
+import { VolumeChangeReasons } from "../../services/tankStockFutureRecordsService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
@@ -65,6 +79,18 @@ const ManualRefillScreen = ({ navigation, route }) => {
   const [searchedDrivers, setSearchedDrivers] = useState([]);
   const [isSearchingVehicles, setIsSearchingVehicles] = useState(false);
   const [isSearchingDrivers, setIsSearchingDrivers] = useState(false);
+
+  const {
+    isValidating,
+    validationResult,
+    error: validationError,
+    showWarning,
+    canSubmit: canSubmitForm,
+    validateHistoricalEntry,
+    confirmProceed,
+    cancelProceed,
+    resetValidation,
+  } = useFutureRecordsValidation();
 
   // Theme color for manual refill
   const themeColor = "#f59e0b";
@@ -178,9 +204,26 @@ const ManualRefillScreen = ({ navigation, route }) => {
     return () => clearTimeout(timer);
   }, [driverSearch, searchDrivers]);
 
+  const validateSelectedEntry = useCallback(
+    async (tank = selectedTank, date = refillDate) => {
+      if (!tank?.id || !date) {
+        resetValidation();
+        return;
+      }
+
+      try {
+        await validateHistoricalEntry(tank.id, date, VolumeChangeReasons.DISPENSING);
+      } catch (error) {
+        console.warn("ManualRefillScreen validation error:", error);
+      }
+    },
+    [selectedTank, refillDate, resetValidation, validateHistoricalEntry]
+  );
+
   const handleTankSelect = (tank) => {
     setSelectedTank(tank);
     setShowTankModal(false);
+    validateSelectedEntry(tank, refillDate);
   };
 
   const handleVehicleSelect = (vehicle) => {
@@ -220,6 +263,14 @@ const ManualRefillScreen = ({ navigation, route }) => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
+
+    if (!canSubmitForm) {
+      Alert.alert(
+        "Validation Required",
+        "Please wait for validation to finish or resolve the ledger recalculation warning before saving."
+      );
+      return;
+    }
 
     const refillData = {
       vehicleId: selectedVehicle.id,
@@ -314,6 +365,14 @@ const ManualRefillScreen = ({ navigation, route }) => {
             <Icon name="chevron-down" size={16} color="#6b7280" />
           </TouchableOpacity>
         </View>
+
+        <FutureRecordsNotice
+          isValidating={isValidating}
+          validationResult={showWarning ? validationResult : null}
+          validationError={validationError}
+          onConfirm={confirmProceed}
+          onCancel={cancelProceed}
+        />
 
         {/* Tank Selection */}
         {renderSelectButton(
@@ -410,7 +469,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: themeColor }]}
             onPress={handleSave}
-            disabled={isCreatingRefill}
+            disabled={isCreatingRefill || isValidating || !canSubmitForm}
           >
             {isCreatingRefill ? (
               <ActivityIndicator size="small" color="white" />
@@ -649,6 +708,7 @@ const ManualRefillScreen = ({ navigation, route }) => {
         onConfirm={(date) => {
           setRefillDate(date);
           setShowDatePicker(false);
+          validateSelectedEntry(selectedTank, date);
         }}
         onCancel={() => setShowDatePicker(false)}
         themeColor={themeColor}

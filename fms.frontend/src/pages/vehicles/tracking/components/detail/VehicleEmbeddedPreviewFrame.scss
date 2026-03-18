@@ -1,0 +1,261 @@
+/*
+ * File: VehicleEmbeddedPreviewFrame.scss
+ * Purpose: Shared styling for embedded vehicle application previews — flat design matching the panel info-tab language.
+ * Dependencies: VehicleEmbeddedPreviewFrame.js
+ * Last Modified: 2026-03-13
+ */
+
+.vehicle-embedded-preview {
+  display: flex;
+  flex-direction: column;
+
+  /* Sections share the same flat border-bottom separator as the info tab */
+  &__toolbar,
+  &__filters,
+  &__stats,
+  &__body,
+  &__note {
+    background: #ffffff;
+    border-bottom: 1px solid #eceeed;
+  }
+
+  /* ── Toolbar (title + actions) ── */
+  &__toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 16px;
+  }
+
+  &__toolbar-copy {
+    min-width: 0;
+
+    h4 {
+      margin: 0;
+      font-size: 10px;
+      font-weight: 600;
+      color: #9aa09d;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      line-height: 1.2;
+    }
+
+    p {
+      display: none; /* suppress description in compact panel */
+    }
+  }
+
+  &__toolbar-actions,
+  &__filter-actions {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border: 1px solid #e2e5e2;
+    border-radius: 6px;
+    background: #ffffff;
+    color: #5a6360;
+    font-size: 11px;
+    font-weight: 500;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.15s;
+
+    i { font-size: 11px; }
+
+    &:hover {
+      background: #eceeed;
+      color: #111813;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+
+  &__action--primary {
+    background: #e8f3fc;
+    border-color: #bfdbf7;
+    color: #0078d4;
+
+    &:hover {
+      background: #d0eafc;
+      color: #005fa3;
+    }
+  }
+
+  /* ── Filter row ── */
+  &__filters {
+    display: flex;
+    align-items: flex-end;
+    gap: 10px;
+    padding: 6px 16px;
+    flex-wrap: wrap;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+
+    span {
+      color: #9aa09d;
+      font-size: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+  }
+
+  /* ── Summary stats strip ── */
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding: 0;
+  }
+
+  &__stat {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    padding: 6px 14px;
+    border-right: 1px solid #eceeed;
+
+    &:last-child { border-right: none; }
+  }
+
+  &__stat-label,
+  &__stat-hint {
+    color: #9aa09d;
+    font-size: 10px;
+    line-height: 1.2;
+  }
+
+  &__stat-value {
+    color: #111813;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'Consolas', 'Courier New', monospace;
+    line-height: 1.2;
+  }
+
+  /* ── Grid body ── */
+  &__body {
+    padding: 0;
+    border-bottom: none;
+  }
+
+  &__grid {
+    .dx-datagrid {
+      background: transparent;
+      font-size: 11px;
+    }
+
+    .dx-datagrid-headers {
+      border-bottom: 1px solid #eceeed;
+      background: #fafbfa;
+      font-size: 10px;
+      color: #9aa09d;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .dx-row > td {
+      padding-top: 6px;
+      padding-bottom: 6px;
+      vertical-align: middle;
+      font-size: 11px;
+      color: #111813;
+      border-bottom: 1px solid #f4f5f4;
+    }
+
+    .dx-datagrid-header-panel,
+    .dx-toolbar {
+      display: none !important;
+    }
+  }
+
+  /* ── Preview note ── */
+  &__note {
+    padding: 5px 14px;
+    color: #9aa09d;
+    font-size: 10px;
+    border-bottom: none;
+  }
+}
+
+/* ── Dark mode ── */
+html.dark,
+body.dark,
+[data-theme='dark'] {
+  .vehicle-embedded-preview {
+    &__toolbar,
+    &__filters,
+    &__stats,
+    &__body,
+    &__note {
+      background: #1e2322;
+      border-bottom-color: #2a302f;
+    }
+
+    &__toolbar-copy h4 { color: #6a7270; }
+    &__stat-value { color: #e8edec; }
+    &__stat-label,
+    &__stat-hint,
+    &__note { color: #6a7270; }
+
+    &__stat { border-right-color: #2a302f; }
+
+    &__action {
+      background: #1e2322;
+      border-color: #2a302f;
+      color: #8a9290;
+
+      &:hover {
+        background: #2a302f;
+        color: #e8edec;
+      }
+    }
+
+    &__action--primary {
+      background: rgba(0, 120, 212, 0.15);
+      border-color: rgba(0, 120, 212, 0.3);
+      color: #3b9fd8;
+
+      &:hover {
+        background: rgba(0, 120, 212, 0.25);
+        color: #3b9fd8;
+      }
+    }
+
+    &__grid {
+      .dx-datagrid,
+      .dx-datagrid-rowsview,
+      .dx-datagrid-content {
+        background: transparent;
+        color: #e8edec;
+      }
+
+      .dx-datagrid-headers {
+        background: #1a1f1e;
+        border-bottom-color: #2a302f;
+        color: #6a7270;
+      }
+
+      .dx-row > td {
+        color: #e8edec;
+        border-bottom-color: #2a302f;
+      }
+    }
+  }
+}

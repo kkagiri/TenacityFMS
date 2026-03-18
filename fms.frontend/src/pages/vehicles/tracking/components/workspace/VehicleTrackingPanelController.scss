@@ -1,0 +1,225 @@
+/**
+ * File: VehicleTrackingPanelController.scss
+ * Purpose: Styles the tracking panel controller floating window.
+ * Dependencies: VehicleTrackingPanelController.js
+ * Last Modified: 2026-03-17
+ */
+
+.vehicle-tracking-panel-controller {
+  position: fixed;
+  width: 320px;
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #e2e5e2;
+  border-radius: 14px;
+  box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18), 0 4px 14px rgba(15, 23, 42, 0.08);
+  transform: translateX(calc(100% + 32px));
+  opacity: 0;
+  overflow: hidden;
+  z-index: 1002;
+  transition: transform 0.24s ease, opacity 0.18s ease;
+
+  &--open {
+    transform: translateX(0);
+    opacity: 1;
+  }
+
+  &__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eceeed;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfb 100%);
+    cursor: move;
+  }
+
+  &__header-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__drag-handle {
+    width: 12px;
+    color: #9aa09d;
+    font-size: 13px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  &__icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e8f3fc;
+    color: #0078d4;
+    flex-shrink: 0;
+  }
+
+  &__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #111813;
+    line-height: 1.2;
+  }
+
+  &__subtitle {
+    margin-top: 2px;
+    font-size: 11px;
+    color: #5a6360;
+  }
+
+  &__close {
+    width: 30px;
+    height: 30px;
+    border: 1px solid #d2d8d4;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #44504a;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+
+    &:hover {
+      background: #f3f6f4;
+    }
+  }
+
+  &__body {
+    padding: 14px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  &__section {
+    border: 1px solid #eceeed;
+    border-radius: 12px;
+    background: #fbfbfb;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__section-title {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #5a6360;
+  }
+
+  &__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    border: 1px solid #e1e6e3;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px 12px;
+    cursor: pointer;
+
+    &:hover {
+      border-color: #bfd4c9;
+      background: #f8fbf9;
+    }
+
+    input {
+      width: 16px;
+      height: 16px;
+      accent-color: #0078d4;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+  }
+
+  &__select-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 52px;
+    border: 1px solid #e1e6e3;
+    border-radius: 10px;
+    background: #ffffff;
+    padding: 10px 12px;
+  }
+
+  &__select {
+    min-width: 116px;
+    height: 32px;
+    border: 1px solid #c8c6c4;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #201f1e;
+    font-size: 12px;
+    padding: 0 10px;
+
+    &:focus {
+      outline: none;
+      border-color: #0078d4;
+    }
+  }
+
+  &__toggle--disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  &__toggle-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+  }
+
+  &__toggle-icon {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    background: #eef5f1;
+    color: #2d6a4f;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  &__toggle-copy {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  &__toggle-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: #111813;
+  }
+
+  &__toggle-description {
+    font-size: 11px;
+    color: #5a6360;
+  }
+
+  &__helper {
+    font-size: 11px;
+    color: #5a6360;
+    padding: 2px 2px 0;
+  }
+}

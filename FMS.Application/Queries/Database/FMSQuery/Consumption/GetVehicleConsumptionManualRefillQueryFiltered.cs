@@ -1,3 +1,13 @@
+/**
+ * File: GetVehicleConsumptionManualRefillQueryFiltered.cs
+ * Purpose: Retrieves manual-refill consumption results with database-level filters for reporting.
+ * Dependencies: GpsdataContext, ManualDispenseConsumptionDTO, MediatR, EF Core
+ * Last Modified: 2026-03-11
+ *
+ * Key Components:
+ * - GetVehicleConsumptionManualRefillQueryFiltered: Filter contract for manual-refill consumption queries
+ * - GetVehicleConsumptionManualRefillQueryFilteredHandler: Executes filtered vehicle/fuel-refill aggregation
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -19,7 +29,8 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
         string? HyoungNo = null,
         int? VehicleId = null,
         int? SiteId = null,
-        int? DriverId = null
+        int? DriverId = null,
+        bool? AverageKmL = null
     ) : IRequest<List<ManualDispenseConsumptionDTO>>;
 
     public class GetVehicleConsumptionManualRefillQueryFilteredHandler : IRequestHandler<GetVehicleConsumptionManualRefillQueryFiltered, List<ManualDispenseConsumptionDTO>> {
@@ -40,6 +51,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                     .Include (v => v.VehicleType)
                     .Include (v => v.VehicleManufacturer)
                     .Include (v => v.VehicleModel)
+                    .Include (v => v.DefaultExptdAvg)
                     .Include (v => v.WorkingSite)
                     .AsQueryable ();
 
@@ -67,6 +79,11 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                 // Apply site filter
                 if (request.SiteId.HasValue && request.SiteId > 0) {
                     vehiclesQuery = vehiclesQuery.Where (v => v.WorkingSiteId == request.SiteId.Value);
+                }
+
+                // Apply average mode filter (true = km/L vehicles, false = L/hr equipment)
+                if (request.AverageKmL.HasValue) {
+                    vehiclesQuery = vehiclesQuery.Where (v => v.AverageKmL == request.AverageKmL.Value);
                 }
 
                 var vehicles = await vehiclesQuery.ToListAsync (cancellationToken);
@@ -123,6 +140,7 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                                     IsKmL = v.AverageKmL,
                                     RefillCount = vehicleRefills.Count,
                                     Consumption = consumption,
+                                        ExpectedAverage = v.DefaultExptdAvg?.ExpectedAverageValue ?? 0,
                                     VehicleInfo = $"{v.VehicleManufacturer?.Name ?? "Unknown"} {v.VehicleModel?.Name ?? "Unknown"}"
                             };
                         }
@@ -134,17 +152,17 @@ namespace FMS.Application.Queries.Database.FMSQuery.Consumption {
                 _logger.LogInformation (
                     "Filtered consumption query completed. Date range: {StartDate} to {EndDate}, " +
                     "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
-                    "SiteId={SiteId}, DriverId={DriverId}. Results: {ResultCount}",
+                    "SiteId={SiteId}, DriverId={DriverId}, AverageKmL={AverageKmL}. Results: {ResultCount}",
                     request.StartDate, request.EndDate, request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId,
-                    request.SiteId, request.DriverId, result.Count);
+                    request.SiteId, request.DriverId, request.AverageKmL, result.Count);
 
                 return result;
             } catch (Exception ex) {
                 _logger.LogError (ex,
                     "Error fetching filtered vehicle consumption data. " +
                     "Filters: VehicleType={VehicleType}, VehicleTypeId={VehicleTypeId}, HyoungNo={HyoungNo}, VehicleId={VehicleId}, " +
-                    "SiteId={SiteId}, DriverId={DriverId}",
-                    request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId, request.SiteId, request.DriverId);
+                    "SiteId={SiteId}, DriverId={DriverId}, AverageKmL={AverageKmL}",
+                    request.VehicleType, request.VehicleTypeId, request.HyoungNo, request.VehicleId, request.SiteId, request.DriverId, request.AverageKmL);
                 throw;
             }
         }

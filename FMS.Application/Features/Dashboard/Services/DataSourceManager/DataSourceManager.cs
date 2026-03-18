@@ -94,14 +94,29 @@ namespace FMS.Application.Services.Dashboard
                     return await GetEventAlertDataAsync(canonicalSource, request, "initial");
                 }
 
+                if (IsVehicleFleetDataSource(canonicalSource))
+                {
+                    return await GetVehicleFleetDataAsync(canonicalSource, request, "initial");
+                }
+
                 if (IsIssueTrackerDataSource(canonicalSource))
                 {
                     return await GetIssueTrackerDataAsync(canonicalSource, request, "initial");
                 }
 
+                if (IsPumpTransactionDataSource(canonicalSource))
+                {
+                    return await GetPumpTransactionDataAsync(canonicalSource, request, "initial");
+                }
+
                 if (IsAdminDataSource(canonicalSource))
                 {
                     return await GetAdminDataAsync(canonicalSource, request, "initial");
+                }
+
+                if (IsAnomalyDataSource(canonicalSource))
+                {
+                    return await GetAnomalyDataAsync(canonicalSource, request, "initial");
                 }
 
                 // Get base metric data (computed internally)
@@ -158,14 +173,29 @@ namespace FMS.Application.Services.Dashboard
                     return await GetEventAlertDataAsync(canonicalSource, request, "live");
                 }
 
+                if (IsVehicleFleetDataSource(canonicalSource))
+                {
+                    return await GetVehicleFleetDataAsync(canonicalSource, request, "live");
+                }
+
                 if (IsIssueTrackerDataSource(canonicalSource))
                 {
                     return await GetIssueTrackerDataAsync(canonicalSource, request, "live");
                 }
 
+                if (IsPumpTransactionDataSource(canonicalSource))
+                {
+                    return await GetPumpTransactionDataAsync(canonicalSource, request, "live");
+                }
+
                 if (IsAdminDataSource(canonicalSource))
                 {
                     return await GetAdminDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsAnomalyDataSource(canonicalSource))
+                {
+                    return await GetAnomalyDataAsync(canonicalSource, request, "live");
                 }
 
                 if (!IsLiveDataSource(canonicalSource))
@@ -233,14 +263,29 @@ namespace FMS.Application.Services.Dashboard
                     return await GetEventAlertDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
                 }
 
+                if (IsVehicleFleetDataSource(canonicalSource))
+                {
+                    return await GetVehicleFleetDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
+
                 if (IsIssueTrackerDataSource(canonicalSource))
                 {
                     return await GetIssueTrackerDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
                 }
 
+                if (IsPumpTransactionDataSource(canonicalSource))
+                {
+                    return await GetPumpTransactionDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
+
                 if (IsAdminDataSource(canonicalSource))
                 {
                     return await GetAdminDataAsync(canonicalSource, request, "aggregated", aggregationInterval);
+                }
+
+                if (IsAnomalyDataSource(canonicalSource))
+                {
+                    return await GetAnomalyDataAsync(canonicalSource, request, "aggregated");
                 }
 
                 // Map aggregationInterval to granularity for time-series service

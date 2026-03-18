@@ -2,8 +2,19 @@
  * File: consumptionByRefills.js
  * Purpose: Report source definition for Consumption by Refills analysis
  * Dependencies: None (pure config)
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-03-11
  */
+
+const averageKmLOptions = [
+    { id: true, name: 'KM/L Vehicles' },
+    { id: false, name: 'L/hr Equipment' },
+];
+
+const createYesterdayDate = () => {
+    const date = new Date();
+    date.setDate(date.getDate() - 1);
+    return date;
+};
 
 const consumptionByRefills = {
     id: 'consumption-by-refills',
@@ -15,7 +26,7 @@ const consumptionByRefills = {
     apiEndpoint: '/Consumption/manualRefillsFiltered',
     defaultTemplate: 'consumption-by-refills-report',
     supportedFormats: ['html', 'pdf', 'excel', 'csv'],
-    permission: '_Read_VehicleConsumption',
+    permission: '_Read_VehicleConsumptionReport',
     parameters: [
         {
             key: 'dateFrom',
@@ -23,11 +34,7 @@ const consumptionByRefills = {
             label: 'Date From',
             type: 'date',
             required: true,
-            defaultValue: () => {
-                const d = new Date();
-                d.setDate(d.getDate() - 30);
-                return d;
-            },
+            defaultValue: () => createYesterdayDate(),
         },
         {
             key: 'dateTo',
@@ -35,7 +42,7 @@ const consumptionByRefills = {
             label: 'Date To',
             type: 'date',
             required: true,
-            defaultValue: () => new Date(),
+            defaultValue: () => createYesterdayDate(),
         },
         {
             key: 'siteId',
@@ -70,6 +77,17 @@ const consumptionByRefills = {
             placeholder: 'All Vehicles',
             dependsOn: 'vehicleTypeId',
         },
+        {
+            key: 'averageKmL',
+            queryParam: 'averageKmL',
+            label: 'Consumption Mode',
+            type: 'select',
+            options: averageKmLOptions,
+            valueExpr: 'id',
+            displayExpr: 'name',
+            required: false,
+            placeholder: 'All Vehicles',
+        },
     ],
     defaultFilters: {
         dateFrom: null,
@@ -77,6 +95,7 @@ const consumptionByRefills = {
         siteId: null,
         vehicleTypeId: null,
         vehicleId: null,
+        averageKmL: null,
     },
 };
 

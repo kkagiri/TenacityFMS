@@ -123,16 +123,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         && m.ProviderConfiguration.IsEnabled)
                     .FirstOrDefaultAsync();
 
-                string? externalDeviceId = providerMapping?.ExternalDeviceId;
-
-                // Fallback to old DeviceId field if mapping not found
-                if (string.IsNullOrEmpty(externalDeviceId) && vehicle.DeviceId.HasValue)
-                {
-                    externalDeviceId = vehicle.DeviceId.Value.ToString();
-                }
+                var externalDeviceId = providerMapping?.ExternalDeviceId;
 
                 if (string.IsNullOrEmpty(externalDeviceId))
-                    return FMSResponse<ReverseGeocodeResultDTO>.Failed("Vehicle doesn't have a GPS device configured");
+                    return FMSResponse<ReverseGeocodeResultDTO>.Failed("Vehicle doesn't have an active GPS provider mapping configured");
 
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 

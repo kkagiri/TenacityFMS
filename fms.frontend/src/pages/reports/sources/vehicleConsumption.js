@@ -2,7 +2,7 @@
  * File: vehicleConsumption.js
  * Purpose: Report source definition for Vehicle Consumption reports
  * Dependencies: None (pure config)
- * Last Modified: 2026-02-09
+ * Last Modified: 2026-03-11
  */
 
 const vehicleConsumption = {
@@ -15,7 +15,7 @@ const vehicleConsumption = {
     apiEndpoint: '/Consumption/manualRefillsFiltered',
     defaultTemplate: 'vehicle-consumption-report',
     supportedFormats: ['html', 'pdf', 'excel', 'csv'],
-    permission: '_Read_VehicleConsumption',
+    permission: '_Read_VehicleConsumptionReport',
     parameters: [
         {
             key: 'dateFrom',

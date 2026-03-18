@@ -6,12 +6,14 @@ import UserPanel from "../user-panel/UserPanel";
 import NotificationCenter from "../notifications/NotificationCenter";
 import { AppDrawer } from "../app-drawer";
 import ThemeSelector from "./ThemeSelector";
+import useBrandingLogo from "./useBrandingLogo";
 import "./Header.scss";
 
 export default function Header({ menuToggleEnabled, title }) {
   const [isAppDrawerOpen, setIsAppDrawerOpen] = useState(false);
   const appButtonRef = useRef(null);
   const user = useSelector((state) => state.auth.user);
+  const brandingLogoSrc = useBrandingLogo();
 
   const toggleAppDrawer = (e) => {
     setIsAppDrawerOpen(!isAppDrawerOpen);
@@ -74,9 +76,13 @@ export default function Header({ menuToggleEnabled, title }) {
         <Item
           location={"before"}
           cssClass={"header-title"}
-          text={title}
           visible={!!title}
-        />
+        >
+          <div className="header-brand" aria-label={title}>
+            <img className="header-brand__logo" src={brandingLogoSrc} alt="Hyoung logo" />
+            <span className="header-brand__title">{title}</span>
+          </div>
+        </Item>
 
 
         {/* Theme selector — Light / Dark / System */}

@@ -40,6 +40,9 @@ namespace FMS.Application.Services.Dashboard
             Add(WidgetTypeDefinitions.DataSources.MAX_SPEED, CreateMaxSpeedMetadata());
             Add(WidgetTypeDefinitions.DataSources.AVG_SPEED, CreateAvgSpeedMetadata());
             Add(WidgetTypeDefinitions.DataSources.TANK_LEVEL, CreateTankLevelMetadata());
+            Add(PtsActiveFuelingSummaryDataSource, CreatePtsActiveFuelingSummaryMetadata());
+            Add(PtsActiveFuelingCurrentDataSource, CreatePtsActiveFuelingCurrentMetadata());
+            Add(PumpTransactionsRecentDataSource, CreatePumpTransactionsRecentMetadata());
 
             // M1 remaining categories
             Add(WidgetTypeDefinitions.DataSources.ALERT_SUMMARY, CreateAlertSummaryMetadata());
@@ -70,6 +73,32 @@ namespace FMS.Application.Services.Dashboard
             Add(WidgetTypeDefinitions.DataSources.USAGE_PATTERNS, CreateUsagePatternsMetadata());
             Add(WidgetTypeDefinitions.DataSources.COST_ANALYSIS, CreateCostAnalysisMetadata());
             Add(WidgetTypeDefinitions.DataSources.EXPECTED_CONSUMPTION, CreateExpectedConsumptionMetadata());
+            Add(FleetTotalGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Total GPS Vehicles",
+                "Total count of GPS-enabled vehicles currently tracked by the live fleet feed."));
+            Add(FleetOnlineGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Online GPS Vehicles",
+                "Count of GPS-enabled vehicles currently reporting online."));
+            Add(FleetMovingGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Moving Vehicles",
+                "Count of online GPS vehicles currently moving."));
+            Add(FleetParkedGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Parked Vehicles",
+                "Count of online GPS vehicles currently parked."));
+            Add(FleetStoppedGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Stopped Vehicles",
+                "Count of online GPS vehicles currently stopped but not parked."));
+            Add(FleetOfflineGpsDataSource, CreateFleetStatusMetricMetadata(
+                "Offline GPS Vehicles",
+                "Count of GPS-enabled vehicles currently offline."));
+            Add(TripDistanceDataSource, CreateTripDistanceMetadata());
+            Add(TripInTransitDataSource, CreateTripInTransitMetadata());
+            Add(VehiclesAtSiteDataSource, CreateVehiclesAtSiteMetadata());
+            Add(TripCountVsExpectedDataSource, CreateTripCountVsExpectedMetadata());
+            Add(TipperCycleCountDataSource, CreateTipperCycleCountMetadata());
+            Add(AverageTripDurationDataSource, CreateAverageTripDurationMetadata());
+            Add(VehicleAnomalyCountDataSource, CreateVehicleAnomalyCountMetadata());
+            Add(AnomalyReviewFeedDataSource, CreateAnomalyReviewFeedMetadata());
 
             foreach (var key in catalog.Keys.ToList())
             {

@@ -126,6 +126,30 @@ public class GeofenceController : ControllerBase
         return result.IsSuccess ? Ok(result) : BadRequest(result);
     }
 
+    /// <summary>
+    /// Update an existing GPSGate geofence and sync it into the local cache.
+    /// </summary>
+    [HttpPut("geofences/{id}")]
+    public async Task<IActionResult> UpdateGeofence(int id, [FromBody] CreateGeofenceRequestDTO request)
+    {
+        var result = await _mediator.Send(new UpdateGeofenceCommand { GeofenceId = id, Request = request });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
+    /// <summary>
+    /// Update the operational classification of a geofence (Parking, Load, Dump, Fuel, Workshop).
+    /// </summary>
+    [HttpPatch("geofences/{id}/classification")]
+    public async Task<IActionResult> UpdateGeofenceClassification(int id, [FromBody] UpdateGeofenceClassificationRequestDTO request)
+    {
+        var result = await _mediator.Send(new UpdateGeofenceClassificationCommand
+        {
+            LocalGeofenceId = id,
+            Classification = request.Classification
+        });
+        return result.IsSuccess ? Ok(result) : BadRequest(result);
+    }
+
     #endregion
 
     #region Async Sync Jobs

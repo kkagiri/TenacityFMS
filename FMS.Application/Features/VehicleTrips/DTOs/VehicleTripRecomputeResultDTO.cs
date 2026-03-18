@@ -16,5 +16,12 @@ public class VehicleTripRecomputeResultDTO
     public DateTime ToUtc { get; set; }
     public int GroupsCreated { get; set; }
     public int TripsCreated { get; set; }
+    public int CompletedTrips { get; set; }
+    public int InProgressTrips { get; set; }
+    public int RoundTripGroupsCreated { get; set; }
+    public int LoadCycleGroupsCreated { get; set; }
+    public int LowConfidenceTrips { get; set; }
+    public int TripsWithAnomalies { get; set; }
+    public decimal? TotalFuelConsumed { get; set; }
     public VehicleMovementProfile MovementProfile { get; set; }
 }

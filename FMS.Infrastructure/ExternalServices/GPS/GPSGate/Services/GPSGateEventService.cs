@@ -44,13 +44,22 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (vehicle == null)
                     return FMSResponse<List<GPSEventDTO>>.Failed("Vehicle not found");
 
-                if (!vehicle.DeviceId.HasValue)
-                    return FMSResponse<List<GPSEventDTO>>.Failed("Vehicle doesn't have a GPS device ID configured");
+                var providerMapping = await context.VehicleProviderMappings
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.VehicleId == vehicleId
+                        && m.IsActive
+                        && !string.IsNullOrWhiteSpace(m.ExternalDeviceId)
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .FirstOrDefaultAsync();
+
+                if (providerMapping == null)
+                    return FMSResponse<List<GPSEventDTO>>.Failed("Vehicle doesn't have an active GPS provider mapping configured");
 
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 
                 using var request = new HttpRequestMessage(HttpMethod.Get,
-                    $"{baseUrl}/applications/{applicationId}/events?UserId={vehicle.DeviceId}&From={from:o}&To={to:o}");
+                    $"{baseUrl}/applications/{applicationId}/events?UserId={providerMapping.ExternalDeviceId}&From={from:o}&To={to:o}");
                 request.Headers.Authorization = authHeader;
                 var response = await _httpClient.SendAsync(request);
 
@@ -104,14 +113,25 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
 
                 // Get vehicle mappings
                 await using var context = await _contextFactory.CreateDbContextAsync();
-                var vehicles = await context.Vehicles
-                    .Where(v => v.DeviceId.HasValue)
-                    .ToDictionaryAsync(v => v.DeviceId!.Value, v => v.HyoungNo ?? string.Empty);
+                var vehicles = await context.VehicleProviderMappings
+                    .AsNoTracking()
+                    .Include(m => m.ProviderConfiguration)
+                    .Where(m => m.IsActive
+                        && !string.IsNullOrWhiteSpace(m.ExternalDeviceId)
+                        && m.ProviderConfiguration.Name == "GPSGate"
+                        && m.ProviderConfiguration.IsEnabled)
+                    .Select(m => new { m.ExternalDeviceId, VehicleName = m.Vehicle.HyoungNo ?? string.Empty })
+                    .ToListAsync();
+
+                var vehicleNamesByExternalId = vehicles
+                    .Where(v => int.TryParse(v.ExternalDeviceId, out _))
+                    .GroupBy(v => int.Parse(v.ExternalDeviceId!))
+                    .ToDictionary(g => g.Key, g => g.First().VehicleName);
 
                 var events = gpsGateEvents?.Select(e =>
                 {
                     int userId = e.UserId;
-                    var vehicleName = vehicles.ContainsKey(userId) ? vehicles[userId] : "Unknown";
+                    var vehicleName = vehicleNamesByExternalId.ContainsKey(userId) ? vehicleNamesByExternalId[userId] : "Unknown";
                     return MapToEventDTO(e, vehicleName);
                 }).ToList() ?? new List<GPSEventDTO>();
 

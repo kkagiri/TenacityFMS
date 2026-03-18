@@ -165,7 +165,7 @@ const FuelRefillTable = ({ data = [], isLoading = false, onRefresh, sites = [], 
 
     try {
       setIsDeleting(true);
-      const response = await deleteFuelRefill(selectedRowForDelete.id);
+      const response = await deleteFuelRefill(selectedRowForDelete.id, deleteReason);
 
       if (response?.success || response?.isSuccess) {
         notify({

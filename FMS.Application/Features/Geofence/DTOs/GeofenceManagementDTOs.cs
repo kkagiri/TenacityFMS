@@ -17,6 +17,7 @@ public class GpsGeofenceDTO
     public decimal? CenterLatitude { get; set; }
     public decimal? CenterLongitude { get; set; }
     public decimal? RadiusMeters { get; set; }
+    public string Classification { get; set; } = "Unknown";
     public bool IsActive { get; set; } = true;
     public bool IsAssignedToSite { get; set; }
     public int? SiteId { get; set; }

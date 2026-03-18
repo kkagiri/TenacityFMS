@@ -69,6 +69,11 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         title: 'Trip Management',
         subtitle: 'Review persisted trip groups, routing patterns, and detection modes'
       };
+    } else if (pathname.includes('/geofencemanagement')) {
+      return {
+        title: 'Geofence Management',
+        subtitle: 'Define route, polygon, and circle boundaries for fleet validation and trip classification'
+      };
     } else if (pathname.includes('/consumption')) {
       return {
         title: 'Fuel Consumption',
@@ -131,19 +136,40 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const renderNavigationGroup = (items, groupKey) => {
     return items.map((item) => {
       const isActive = isActiveRoute(currentPath, item.path);
+      const hasChildren = Array.isArray(item.children) && item.children.length > 0;
       return (
-        <div
-          key={`${groupKey}-${item.id}`}
-          onClick={() => handleNavigation(item.path)}
-          className={`nav-item ${isActive ? 'active' : ''}`}
-          title={sidebarCollapsed ? item.title : ''}
-        >
-          <div className="nav-item-content">
-            <i className={item.icon}></i>
-            {!sidebarCollapsed && <span>{item.title}</span>}
+        <div key={`${groupKey}-${item.id}`} className={`nav-node ${isActive ? 'nav-node--active' : ''}`}>
+          <div
+            onClick={() => handleNavigation(item.path)}
+            className={`nav-item ${isActive ? 'active' : ''}`}
+            title={sidebarCollapsed ? item.title : ''}
+          >
+            <div className="nav-item-content">
+              <i className={item.icon}></i>
+              {!sidebarCollapsed && <span>{item.title}</span>}
+            </div>
+            {!sidebarCollapsed && item.badge && (
+              <span className="nav-badge">{item.badge}</span>
+            )}
           </div>
-          {!sidebarCollapsed && item.badge && (
-            <span className="nav-badge">{item.badge}</span>
+          {!sidebarCollapsed && hasChildren && (
+            <div className="nav-submenu">
+              {item.children.map((child) => {
+                const childActive = isActiveRoute(currentPath, child.path);
+                return (
+                  <div
+                    key={`${groupKey}-${item.id}-${child.id}`}
+                    onClick={() => handleNavigation(child.path)}
+                    className={`nav-subitem ${childActive ? 'active' : ''}`}
+                  >
+                    <div className="nav-subitem-content">
+                      <i className={child.icon}></i>
+                      <span>{child.title}</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           )}
         </div>
       );

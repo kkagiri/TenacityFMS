@@ -55,6 +55,7 @@ using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Features.VehicleTrips.Services;
+using FMS.Application.Features.VehicleTrips.Validators;
 using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand;
 using FMS.Application.Communication.Redis;
 using FMS.Application.Features.Vehicle.Services;
@@ -82,12 +83,13 @@ using FMS.Application.Features.LocationValidation.Extensions;
 using FMS.Application.Features.PTS.Extensions;
 using FMS.Application.PTSServices.PTSConfigService;
 using FMS.BackgroundServices.IssueTracker;
+using FMS.Application.Features.VehicleTrips.StateMachines;
 
 // DevExpress Reporting
 using DevExpress.AspNetCore;
 using DevExpress.AspNetCore.Reporting;
 using DevExpress.XtraReports.Web.Extensions;
-using FMS.WebClient.Report;
+using FMS.WebClient.Services.Reporting;
 
 namespace FMS.WebClient.Extensions;
 
@@ -494,6 +496,37 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.Geofence.Services.IGeofenceCacheSyncService, FMS.Application.Features.Geofence.Services.GeofenceCacheSyncService>();
         services.AddScoped<IVehicleTripGeofenceDetectionService, VehicleTripGeofenceDetectionService>();
         services.AddScoped<IVehicleTripClusterDetectionService, VehicleTripClusterDetectionService>();
+        services.AddScoped<IVehicleTripGroupingService, VehicleTripGroupingService>();
+        services.AddScoped<IVehicleTripConfidenceScoringService, VehicleTripConfidenceScoringService>();
+        services.Configure<VehicleTripPreProcessorOptions>(configuration.GetSection(VehicleTripPreProcessorOptions.SectionName));
+        services.Configure<VehicleTripGeofenceDetectionOptions>(configuration.GetSection(VehicleTripGeofenceDetectionOptions.SectionName));
+        services.Configure<VehicleTripClusterDetectionOptions>(configuration.GetSection(VehicleTripClusterDetectionOptions.SectionName));
+        services.Configure<VehicleTripGeofenceStateMachineOptions>(configuration.GetSection(VehicleTripGeofenceStateMachineOptions.SectionName));
+        services.Configure<VehicleTripClusterStateMachineOptions>(configuration.GetSection(VehicleTripClusterStateMachineOptions.SectionName));
+        services.AddScoped<IVehicleTripGpsPreProcessor, VehicleTripGpsPreProcessor>();
+        services.AddSingleton<VehicleTripGeofenceStateMachine>();
+        services.AddSingleton<VehicleTripClusterStateMachine>();
+        services.AddSingleton<IVehicleTripRealtimeDispatcher, VehicleTripRealtimeDispatcher>();
+        services.AddScoped<IVehicleTripFuelContextService, VehicleTripFuelContextService>();
+        services.AddScoped<IVehicleTripOrchestrationService, VehicleTripOrchestrationService>();
+        services.AddScoped<IVehicleTripReconciliationService, VehicleTripReconciliationService>();
+        services.AddScoped<IVehicleTripOverrideAuditService, VehicleTripOverrideAuditService>();
+        services.AddScoped<IVehicleTripManualOverrideValidationService, VehicleTripManualOverrideValidationService>();
+        services.AddScoped<IVehicleTripManualOverrideService, VehicleTripManualOverrideService>();
+        services.AddScoped<IVehicleTripSettingsService, VehicleTripSettingsService>();
+        services.AddScoped<IRecomputeVehicleTripsCommandValidator, RecomputeVehicleTripsCommandValidator>();
+        services.AddScoped<IGetVehicleTripsQueryValidator, GetVehicleTripsQueryValidator>();
+        services.AddScoped<IGetVehicleTripHistoryQueryValidator, GetVehicleTripHistoryQueryValidator>();
+        services.AddScoped<IGetVehicleTripDetailQueryValidator, GetVehicleTripDetailQueryValidator>();
+        services.AddScoped<IGetVehicleTripBreadcrumbsQueryValidator, GetVehicleTripBreadcrumbsQueryValidator>();
+        services.AddScoped<ISplitVehicleTripCommandValidator, SplitVehicleTripCommandValidator>();
+        services.AddScoped<IMergeVehicleTripsCommandValidator, MergeVehicleTripsCommandValidator>();
+        services.AddScoped<IReassignVehicleTripSiteCommandValidator, ReassignVehicleTripSiteCommandValidator>();
+        services.AddScoped<IAddVehicleTripCommandValidator, AddVehicleTripCommandValidator>();
+        services.AddScoped<IDeleteVehicleTripCommandValidator, DeleteVehicleTripCommandValidator>();
+        services.AddScoped<IAdjustVehicleTripTimesCommandValidator, AdjustVehicleTripTimesCommandValidator>();
+        services.AddScoped<IReconcileVehicleTripsCommandValidator, ReconcileVehicleTripsCommandValidator>();
+        services.AddScoped<IUpdateVehicleTripSettingsCommandValidator, UpdateVehicleTripSettingsCommandValidator>();
 
         // Configuration Services
         services.AddScoped<ISystemConfigurationService, SystemConfigurationService>();
@@ -562,6 +595,7 @@ public static class FmsServiceCollectionExtensions
         // GPSGate RabbitMQ Consumer - Real-time vehicle tracking via RabbitMQ → SignalR
         // Consumes GPS position updates from GPSGate and broadcasts to connected clients
         services.AddHostedService<FMS.BackgroundServices.VehicleTracking.GPSGateRabbitMQConsumerService>();
+        services.AddHostedService<FMS.BackgroundServices.VehicleTracking.VehicleTripReconciliationBackgroundService>();
 
         // Issue Tracker V2 Background Services (includes checker factory + checkers)
         services.AddIssueTrackerBackgroundServices();
@@ -708,8 +742,6 @@ public static class FmsServiceCollectionExtensions
                 { "FMSConnection", fmsConnectionString }
             });
 
-        // Configure report storage to use database
-        services.AddScoped<ReportStorageWebExtension, ReportStorageService>();
 
         // Add MVC with Views for DevExpress Reporting controllers
         // DevExpress controllers inherit from Controller (not ControllerBase) and need full MVC

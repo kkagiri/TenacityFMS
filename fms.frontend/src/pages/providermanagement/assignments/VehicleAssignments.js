@@ -192,7 +192,22 @@ const VehicleAssignments = () => {
         return;
       }
 
-      const result = await dispatch(bulkAssignVehiclesToProvider(vehicleIds, bulkProviderId));
+      const assignments = vehicles.map((v) => ({
+        vehicleId: v.vehicleId,
+        externalDeviceId: v.externalDeviceId,
+      }));
+
+      const missingExternalDeviceIds = assignments.filter((assignment) => !assignment.externalDeviceId);
+      if (missingExternalDeviceIds.length > 0) {
+        notify(
+          `${missingExternalDeviceIds.length} vehicles do not have an external device mapping. Map devices first before bulk provider assignment.`,
+          "warning",
+          3000
+        );
+        return;
+      }
+
+      const result = await dispatch(bulkAssignVehiclesToProvider(assignments, bulkProviderId));
 
       // Backend now returns 202 Accepted with jobId for async processing
       if (result.jobId) {

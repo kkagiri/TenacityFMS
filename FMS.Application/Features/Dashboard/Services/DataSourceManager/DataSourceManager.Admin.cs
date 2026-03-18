@@ -188,17 +188,29 @@ namespace FMS.Application.Services.Dashboard
                 notificationsQuery = notificationsQuery.Where(notification => notification.SiteId.HasValue && request.SiteIds.Contains(notification.SiteId.Value));
             }
 
-            var dailyRows = await notificationsQuery
+            var notificationRows = await notificationsQuery
                 .GroupBy(notification => new { notification.CreatedAt.Year, notification.CreatedAt.Month, notification.CreatedAt.Day })
                 .Select(group => new
                 {
-                    Timestamp = new DateTime(group.Key.Year, group.Key.Month, group.Key.Day, 0, 0, 0),
+                    group.Key.Year,
+                    group.Key.Month,
+                    group.Key.Day,
                     Sent = group.Sum(notification => notification.Recipients.Count()),
                     Delivered = group.Sum(notification => notification.Recipients.Count(recipient => recipient.DeliveryStatus == "Delivered" || recipient.DeliveryStatus == "Sent")),
                     Failed = group.Sum(notification => notification.Recipients.Count(recipient => recipient.DeliveryStatus == "Failed"))
                 })
-                .OrderBy(row => row.Timestamp)
                 .ToListAsync();
+
+            var dailyRows = notificationRows
+                .Select(row => new
+                {
+                    Timestamp = new DateTime(row.Year, row.Month, row.Day, 0, 0, 0),
+                    row.Sent,
+                    row.Delivered,
+                    row.Failed
+                })
+                .OrderBy(row => row.Timestamp)
+                .ToList();
 
             var totalSent = dailyRows.Sum(row => row.Sent);
             var totalDelivered = dailyRows.Sum(row => row.Delivered);
@@ -258,17 +270,29 @@ namespace FMS.Application.Services.Dashboard
                 query = query.Where(log => request.TankIds.Contains(log.TankId));
             }
 
-            var dailyRows = await query
+            var validationRows = await query
                 .GroupBy(log => new { log.ValidationTime.Year, log.ValidationTime.Month, log.ValidationTime.Day })
                 .Select(group => new
                 {
-                    Timestamp = new DateTime(group.Key.Year, group.Key.Month, group.Key.Day, 0, 0, 0),
+                    group.Key.Year,
+                    group.Key.Month,
+                    group.Key.Day,
                     Passed = group.Count(log => log.IsValid),
                     Failed = group.Count(log => !log.IsValid),
                     Bypassed = group.Count(log => log.WasBypassedDueToGPSFailure)
                 })
-                .OrderBy(row => row.Timestamp)
                 .ToListAsync();
+
+            var dailyRows = validationRows
+                .Select(row => new
+                {
+                    Timestamp = new DateTime(row.Year, row.Month, row.Day, 0, 0, 0),
+                    row.Passed,
+                    row.Failed,
+                    row.Bypassed
+                })
+                .OrderBy(row => row.Timestamp)
+                .ToList();
 
             var totalPassed = dailyRows.Sum(row => row.Passed);
             var totalFailed = dailyRows.Sum(row => row.Failed);

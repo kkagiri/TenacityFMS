@@ -19,7 +19,7 @@ const LEGACY_ROUTE_BY_SOURCE = {
   'consumption-by-refills': reportsRoutes.consumptionRefills,
 };
 
-const CORE_VEHICLE_REPORT_IDS = ['vehicle-consumption'];
+const CORE_VEHICLE_REPORT_IDS = ['vehicle-consumption', 'route-analysis'];
 
 const OPERATIONAL_EXPORTS = [
   {
@@ -57,15 +57,6 @@ const MISSING_REPORTS = [
     missingReason: 'Needs a backend aggregation endpoint and a report source definition.',
     fallbackRoute: '/vehicles/dashboard',
     fallbackLabel: 'Open Dashboard',
-  },
-  {
-    id: 'route-analysis-gap',
-    title: 'Route Analysis',
-    description:
-      'Tracking is available as a live operational view, but there is no report-ready route summary source in the reporting module.',
-    missingReason: 'Needs a historical trip or route reporting endpoint and template.',
-    fallbackRoute: '/vehicles/tracking',
-    fallbackLabel: 'Open Tracking',
   },
   {
     id: 'cost-analysis-gap',

@@ -4,7 +4,7 @@
  *          Orchestrates data fetching (via MediatR), PDF/Excel rendering (via JsReport),
  *          SignalR progress broadcasting, and optional email delivery.
  * Dependencies: MediatR, IJsReportService, IReportJobProgressService, IEmailService
- * Last Modified: 2026-02-24
+ * Last Modified: 2026-03-11
  *
  * Key Features:
  * - ConcurrentDictionary-based in-memory job store with auto-cleanup
@@ -526,6 +526,21 @@ namespace FMS.WebClient.Services
             var localStart = GetDateParam(request.Parameters, "startDate");
             var localEnd = GetDateParam(request.Parameters, "endDate");
 
+            if (!localStart.HasValue && !localEnd.HasValue)
+            {
+                var previousLocalDay = TimeZoneInfo.ConvertTimeFromUtc(DateTime.UtcNow, tz).Date.AddDays(-1);
+                localStart = previousLocalDay;
+                localEnd = previousLocalDay;
+            }
+            else if (localStart.HasValue && !localEnd.HasValue)
+            {
+                localEnd = localStart;
+            }
+            else if (!localStart.HasValue && localEnd.HasValue)
+            {
+                localStart = localEnd;
+            }
+
             // Convert local dates to UTC for DB query
             DateTime? utcStart = localStart.HasValue
                 ? TimeZoneInfo.ConvertTimeToUtc(
@@ -605,11 +620,14 @@ namespace FMS.WebClient.Services
             var siteIds = GetIntListParam(request.Parameters, "siteIds");
             var tankIds = GetIntListParam(request.Parameters, "tankIds");
             var vehicleIds = GetIntListParam(request.Parameters, "vehicleIds");
+            var startDate = GetDateParam(request.Parameters, "startDate")?.Date;
+            var endDateRaw = GetDateParam(request.Parameters, "endDate")?.Date;
+            var endDate = endDateRaw?.AddDays(1).AddTicks(-1);
 
             var query = new FMS.Application.Features.TankManagement.PumpTransaction.GetPumpTransactionQuery
             {
-                StartDate = GetDateParam(request.Parameters, "startDate"),
-                EndDate = GetDateParam(request.Parameters, "endDate"),
+                StartDate = startDate,
+                EndDate = endDate,
                 SiteIds = siteIds,
                 TankIds = tankIds,
                 VehicleIds = vehicleIds
@@ -625,30 +643,16 @@ namespace FMS.WebClient.Services
             var transactions = result.Data.ToList();
             if (job != null) job.RecordCount = transactions.Count;
 
-            return new
-            {
-                reportTitle = request.ReportTitle ?? "Pump Transaction Report",
-                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                generatedBy = "System (Background)",
-                dateFrom = GetDateParam(request.Parameters, "startDate")?.ToString("yyyy-MM-dd") ?? "All",
-                dateTo = GetDateParam(request.Parameters, "endDate")?.ToString("yyyy-MM-dd") ?? "All",
-                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-                summary = new
-                {
-                    totalTransactions = transactions.Count,
-                    totalVolume = transactions.Sum(t => t.Volume).ToString("N2"),
-                    totalAmount = transactions.Sum(t => t.Amount).ToString("N2"),
-                },
-                transactions = transactions.Select((t, i) => new
-                {
-                    rowNumber = i + 1,
-                    dateTime = t.DateTime.ToString("yyyy-MM-dd HH:mm"),
-                    vehicleName = t.VehicleName ?? "-",
-                    tankName = t.TankName ?? "-",
-                    volume = t.Volume.ToString("N2"),
-                    amount = t.Amount.ToString("N2"),
-                }).ToList()
-            };
+            return PumpTransactionReportDataBuilder.Build(
+                transactions,
+                request.ReportTitle,
+                startDate,
+                endDateRaw,
+                "System (Background)",
+                GetStringParam(request.Parameters, "siteName"),
+                GetStringParam(request.Parameters, "tankName"),
+                GetStringParam(request.Parameters, "vehicleName"),
+                GetStringParam(request.Parameters, "fuelGradeName"));
         }
 
 

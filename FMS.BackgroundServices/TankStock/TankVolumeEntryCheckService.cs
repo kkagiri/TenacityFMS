@@ -260,6 +260,7 @@ namespace FMS.BackgroundServices.TankStock
             // Get last entry date for context
             var lastEntryDate = await context.TankVolumeHistories
                 .Where(h => h.TankId == tank.Id
+                    && h.Timestamp < dayEnd
                     && (h.IsDeleted == null || h.IsDeleted == false))
                 .OrderByDescending(h => h.Timestamp)
                 .Select(h => (DateTime?)h.Timestamp)
@@ -295,16 +296,20 @@ namespace FMS.BackgroundServices.TankStock
                     SiteId = missing.SiteId,
                     TankId = missing.TankId,
                     Severity = "Medium",
-                    Message = BuildMessage(missing),
+                    Message = BuildInAppMessage(missing),
                     Data =
                     {
                         ["missingEntryType"] = missing.MissingEntryType,
+                        ["missingEntryLabel"] = FormatMissingEntryLabel(missing),
                         ["tankName"] = missing.TankName,
                         ["siteName"] = missing.SiteName,
                         ["checkDate"] = missing.CheckDate.ToString("yyyy-MM-dd"),
+                        ["checkDateDisplay"] = missing.CheckDate.ToString("dd MMM yyyy"),
                         ["lastEntryDate"] = missing.LastEntryDate?.ToString("yyyy-MM-dd") ?? "Never",
+                        ["lastEntryDateDisplay"] = missing.LastEntryDate?.ToString("dd MMM yyyy") ?? "No previous entry recorded",
                         ["missingOpeningStock"] = missing.MissingOpeningStock.ToString(),
-                        ["missingClosingStock"] = missing.MissingClosingStock.ToString()
+                        ["missingClosingStock"] = missing.MissingClosingStock.ToString(),
+                        ["emailBodyHtml"] = BuildEmailBodyHtml(missing)
                     }
                 };
 
@@ -329,23 +334,45 @@ namespace FMS.BackgroundServices.TankStock
         }
 
         /// <summary>
-        /// Builds a human-readable notification message for the missing entry.
+        /// Builds a concise in-app notification message for the missing entry.
         /// </summary>
-        private static string BuildMessage(MissingTankVolumeEntryDto missing)
+        private static string BuildInAppMessage(MissingTankVolumeEntryDto missing)
         {
-            var entryTypes = missing.MissingEntryType switch
+            return $"Missing {FormatMissingEntryLabel(missing)} entry for {missing.TankName} on {missing.CheckDate:dd MMM yyyy}.";
+        }
+
+        private static string BuildEmailBodyHtml(MissingTankVolumeEntryDto missing)
+        {
+            var missingEntryLabel = FormatMissingEntryLabel(missing);
+            var lastEntryDisplay = FormatLastEntryDisplay(missing);
+
+            return $"<div style=\"font-family:Segoe UI,Arial,sans-serif;color:#1f2937;line-height:1.5\">" +
+                   $"<p style=\"margin:0 0 12px 0;font-size:16px;font-weight:600;color:#b45309\">Missing {missingEntryLabel} tank stock entry</p>" +
+                   $"<table style=\"border-collapse:collapse;width:100%;max-width:640px;background:#ffffff;border:1px solid #e5e7eb\">" +
+                   $"<tr><td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb;width:180px\">Site</td><td style=\"padding:10px 12px;border:1px solid #e5e7eb\">{System.Net.WebUtility.HtmlEncode(missing.SiteName)}</td></tr>" +
+                   $"<tr><td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb\">Tank</td><td style=\"padding:10px 12px;border:1px solid #e5e7eb\">{System.Net.WebUtility.HtmlEncode(missing.TankName)}</td></tr>" +
+                   $"<tr><td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb\">Business date</td><td style=\"padding:10px 12px;border:1px solid #e5e7eb\">{missing.CheckDate:dd MMM yyyy}</td></tr>" +
+                   $"<tr><td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb\">Missing entry</td><td style=\"padding:10px 12px;border:1px solid #e5e7eb\">{System.Net.WebUtility.HtmlEncode(missingEntryLabel)}</td></tr>" +
+                   $"<tr><td style=\"padding:10px 12px;border:1px solid #e5e7eb;font-weight:600;background:#f9fafb\">Last recorded entry</td><td style=\"padding:10px 12px;border:1px solid #e5e7eb\">{System.Net.WebUtility.HtmlEncode(lastEntryDisplay)}</td></tr>" +
+                   $"</table>" +
+                   $"<p style=\"margin:12px 0 0 0;font-size:13px;color:#6b7280\">Please capture the missing tank stock entry to keep stock reconciliation accurate.</p>" +
+                   $"</div>";
+        }
+
+        private static string FormatMissingEntryLabel(MissingTankVolumeEntryDto missing)
+        {
+            return missing.MissingEntryType switch
             {
-                "Both" => "opening and closing stock",
-                "OpeningStock" => "opening stock",
-                "ClosingStock" => "closing stock",
-                _ => "stock"
+                "Both" => "opening and closing",
+                "OpeningStock" => "opening",
+                "ClosingStock" => "closing",
+                _ => "required"
             };
+        }
 
-            var lastEntry = missing.LastEntryDate.HasValue
-                ? $" Last entry was on {missing.LastEntryDate.Value:yyyy-MM-dd}."
-                : " No previous entries found.";
-
-            return $"No {entryTypes} entry submitted for {missing.TankName} at {missing.SiteName} on {missing.CheckDate:yyyy-MM-dd}.{lastEntry}";
+        private static string FormatLastEntryDisplay(MissingTankVolumeEntryDto missing)
+        {
+            return missing.LastEntryDate?.ToString("dd MMM yyyy") ?? "No previous entry recorded";
         }
     }
 }

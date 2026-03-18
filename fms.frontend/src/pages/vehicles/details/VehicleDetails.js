@@ -7,7 +7,7 @@
 
 import React, { useState, useEffect, useMemo, useCallback } from "react";
 
-import { useParams, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import Tabs from "devextreme-react/tabs";
 import Button from "devextreme-react/button";
@@ -45,8 +45,12 @@ import "./VehicleDetails.scss";
 
 const VehicleDetails = () => {
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
   const dispatch = useDispatch();
+  const requestedInitialTab = Number.isInteger(location.state?.initialTab)
+    ? location.state.initialTab
+    : 0;
 
   // Permissions (editing gated by permission)
   const { hasPermission } = usePermissions();
@@ -81,10 +85,30 @@ const VehicleDetails = () => {
     setGpsData(null);
     setTabDataLoaded({});
     setTabLoadingStates({
-      0: true,
+      [requestedInitialTab]: true,
     });
-    setActiveTab(0);
-  }, [id]);
+    setActiveTab(requestedInitialTab);
+  }, [id, requestedInitialTab]);
+
+  useEffect(() => {
+    if (!dataLoaded || requestedInitialTab === 0 || tabDataLoaded[requestedInitialTab]) {
+      return undefined;
+    }
+
+    const timer = setTimeout(() => {
+      setTabLoadingStates((prev) => ({
+        ...prev,
+        [requestedInitialTab]: false,
+      }));
+
+      setTabDataLoaded((prev) => ({
+        ...prev,
+        [requestedInitialTab]: true,
+      }));
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, [dataLoaded, requestedInitialTab, tabDataLoaded]);
 
   // Load vehicle data - Fixed dependencies and optimized
   useEffect(() => {
@@ -367,6 +391,7 @@ const VehicleDetails = () => {
         key={`trips-${vehicle?.vehicleId}`}
         vehicleId={id}
         canRecompute={isAdmin}
+        canManageTrips={isAdmin}
       />
     );
   }, [vehicle, id, tabLoadingStates, isAdmin]);

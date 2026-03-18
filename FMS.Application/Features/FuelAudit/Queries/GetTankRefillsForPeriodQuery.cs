@@ -139,11 +139,10 @@ namespace FMS.Application.Features.FuelAudit.Queries
                         // Get vehicle type info
                         var isKmL = vehicle?.AverageKmL ?? true; // Default to km/L if not set
 
-                        // Check for GPS via modern VehicleProviderMappings OR legacy fields
+                        // Check for GPS via modern VehicleProviderMappings or installed GPS flag
                         var vehicleId = g.Key;
                         var hasModernGps = vehiclesWithGps.Contains(vehicleId);
-                        var hasLegacyGps = (vehicle?.HasGPSInstalled == 1) || (vehicle?.DeviceId.HasValue == true);
-                        var hasGPS = hasModernGps || hasLegacyGps;
+                        var hasGPS = hasModernGps || (vehicle?.HasGPSInstalled == 1);
 
                         // Check for fuel sensor (only from modern mappings)
                         var hasFuelSensor = vehiclesWithFuelSensor.Contains(vehicleId);

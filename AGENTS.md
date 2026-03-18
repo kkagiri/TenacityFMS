@@ -717,23 +717,18 @@ documentation/
 
 ### 9. **Clean Architecture - CQRS Pattern & Class Organization**
 - **Backend MUST follow Command Query Responsibility Segregation**
-- **CRITICAL: ONE CLASS PER FILE - NO EXCEPTIONS**
+- **CRITICAL: Do not create extra files for small, tightly coupled types unless there is a clear maintenance benefit**
 - **Structure**: `FMS.Application/Features/{Domain}/`
   ```
   Features/
   ├── Vehicle/
   │   ├── Commands/
-  │   │   ├── CreateVehicleCommand.cs           (command only)
-  │   │   ├── CreateVehicleCommandHandler.cs    (handler only)
+  │   │   ├── CreateVehicleCommand.cs           (command + handler)
   │   │   ├── UpdateVehicleCommand.cs
-  │   │   ├── UpdateVehicleCommandHandler.cs
-  │   │   ├── DeleteVehicleCommand.cs
-  │   │   └── DeleteVehicleCommandHandler.cs
+  │   │   └── DeleteVehicleCommand.cs
   │   ├── Queries/
-  │   │   ├── GetVehicleQuery.cs                (query only)
-  │   │   ├── GetVehicleQueryHandler.cs         (handler only)
-  │   │   ├── GetVehiclesQuery.cs
-  │   │   └── GetVehiclesQueryHandler.cs
+  │   │   ├── GetVehicleQuery.cs                (query + handler)
+  │   │   └── GetVehiclesQuery.cs
   │   ├── DTOs/
   │   │   ├── VehicleDto.cs                     (one DTO per file)
   │   │   ├── VehicleDetailDto.cs
@@ -746,15 +741,15 @@ documentation/
   │       └── UpdateVehicleValidator.cs
   ```
 
-- **Class Separation Rules**:
-  - ❌ **NEVER put multiple classes in one file**
+- **File Grouping Rules**:
+  - ❌ **NEVER combine unrelated responsibilities in one file**
   - ❌ **NEVER put DTOs in service files**
   - ❌ **NEVER put classes in controller files** (controllers are classes themselves)
-  - ✅ Each command in its own file
-  - ✅ Each handler in its own file (even if small)
+  - ✅ Keep command and handler in the same file when they are tightly coupled
+  - ✅ Keep query and handler in the same file when they are tightly coupled
   - ✅ Each DTO in its own file in DTOs folder
-  - ✅ Each interface in its own file
-  - ✅ Each implementation in its own file
+  - ✅ Keep small validator interfaces with their implementation in the same file
+  - ✅ Split interfaces and implementations only where reuse, size, or readability justifies it
   - ✅ Services have dedicated Services folder
 
 - **Interface & Implementation Pattern**:
@@ -762,7 +757,7 @@ documentation/
   Features/
   ├── Vehicle/
   │   └── Services/
-  │       ├── IVehicleService.cs          (interface definition)
+  │       ├── IVehicleService.cs          (interface definition when separation is justified)
   │       ├── VehicleService.cs           (main implementation)
   │       ├── IVehicleValidationService.cs
   │       └── VehicleValidationService.cs
@@ -771,7 +766,8 @@ documentation/
 - **CQRS Rules**:
   - Commands = Write operations (Create, Update, Delete)
   - Queries = Read operations (Get, List, Search)
-  - Each command/query in separate file from handler
+  - Keep command with handler in one file unless the file becomes too large or hard to navigate
+  - Keep query with handler in one file unless the file becomes too large or hard to navigate
   - No mixing of read/write logic
 
 ---
@@ -811,22 +807,21 @@ documentation/         # Feature documentation all documentation goes here
 - **Always include validation checks**
 
 ### CQRS Implementation
-- **ONE CLASS PER FILE - STRICTLY ENFORCED**
-- Commands in separate file from CommandHandlers
-- Queries in separate file from QueryHandlers
+- Keep tightly coupled commands and handlers in the same file by default
+- Keep tightly coupled queries and handlers in the same file by default
+- Keep small validator interfaces with implementations in the same file by default
 - Use existing features in `FMS.Application/Features/{Domain}/` before creating new ones
 - **Check domain folder exists before creating files**
 
 **Example Structure:**
 ```csharp
-// File: CreateVehicleCommand.cs (command only)
+// File: CreateVehicleCommand.cs (command + handler)
 public record CreateVehicleCommand : IRequest<FMSResponse<VehicleDto>>
 {
     public string Name { get; init; }
     public string LicensePlate { get; init; }
 }
 
-// File: CreateVehicleCommandHandler.cs (handler only)
 public class CreateVehicleCommandHandler : IRequestHandler<CreateVehicleCommand, FMSResponse<VehicleDto>>
 {
     // Implementation here

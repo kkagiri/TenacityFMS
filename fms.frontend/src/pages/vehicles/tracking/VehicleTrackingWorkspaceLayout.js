@@ -13,29 +13,29 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import './VehicleTrackingWorkspaceLayout.scss';
 
 const WORKSPACE_LAYOUTS = {
-    vehicleLeft: {
+    primaryLeft: {
         direction: 'horizontal',
-        order: ['vehicle', 'map'],
-        label: 'Vehicle left',
+        order: ['primary', 'secondary'],
+        label: 'Primary left',
     },
-    mapLeft: {
+    secondaryLeft: {
         direction: 'horizontal',
-        order: ['map', 'vehicle'],
-        label: 'Map left',
+        order: ['secondary', 'primary'],
+        label: 'Secondary left',
     },
-    vehicleTop: {
+    primaryTop: {
         direction: 'vertical',
-        order: ['vehicle', 'map'],
-        label: 'Vehicle top',
+        order: ['primary', 'secondary'],
+        label: 'Primary top',
     },
-    mapTop: {
+    secondaryTop: {
         direction: 'vertical',
-        order: ['map', 'vehicle'],
-        label: 'Map top',
+        order: ['secondary', 'primary'],
+        label: 'Secondary top',
     },
 };
 
-const DEFAULT_LAYOUT_MODE = 'vehicleLeft';
+const DEFAULT_LAYOUT_MODE = 'primaryLeft';
 const DEFAULT_SPLIT_BY_AXIS = {
     horizontal: 38,
     vertical: 44,
@@ -78,13 +78,13 @@ const sanitizeWorkspacePreference = (preference) => ({
 const resolveLayoutModeForDropZone = (paneKey, dropZoneKey) => {
     switch (dropZoneKey) {
         case 'left':
-            return paneKey === 'vehicle' ? 'vehicleLeft' : 'mapLeft';
+            return paneKey === 'primary' ? 'primaryLeft' : 'secondaryLeft';
         case 'right':
-            return paneKey === 'vehicle' ? 'mapLeft' : 'vehicleLeft';
+            return paneKey === 'primary' ? 'secondaryLeft' : 'primaryLeft';
         case 'top':
-            return paneKey === 'vehicle' ? 'vehicleTop' : 'mapTop';
+            return paneKey === 'primary' ? 'primaryTop' : 'secondaryTop';
         case 'bottom':
-            return paneKey === 'vehicle' ? 'mapTop' : 'vehicleTop';
+            return paneKey === 'primary' ? 'secondaryTop' : 'primaryTop';
         default:
             return DEFAULT_LAYOUT_MODE;
     }
@@ -93,8 +93,8 @@ const resolveLayoutModeForDropZone = (paneKey, dropZoneKey) => {
 const VehicleTrackingWorkspaceLayout = ({
     initialPreference,
     onPreferenceChange,
-    vehiclePanel,
-    mapPanel,
+    paneAssignments,
+    paneDefinitions,
 }) => {
     const containerRef = useRef(null);
     const resizeStateRef = useRef(null);
@@ -109,6 +109,12 @@ const VehicleTrackingWorkspaceLayout = ({
     const activeLayout = useMemo(() => WORKSPACE_LAYOUTS[layoutMode] || WORKSPACE_LAYOUTS[DEFAULT_LAYOUT_MODE], [layoutMode]);
     const activeAxis = activeLayout.direction;
     const firstPaneSize = splitByAxis[activeAxis];
+    const orderedVisiblePanes = useMemo(() => {
+        const assignments = paneAssignments || { primary: 'vehicle', secondary: 'map' };
+        return activeLayout.order
+            .map((slotKey) => ({ slotKey, paneKey: assignments[slotKey] || null }))
+            .filter((item) => item.paneKey && paneDefinitions?.[item.paneKey]);
+    }, [activeLayout.order, paneAssignments, paneDefinitions]);
 
     useEffect(() => {
         layoutModeRef.current = layoutMode;
@@ -228,21 +234,17 @@ const VehicleTrackingWorkspaceLayout = ({
         setActiveDropZone(null);
     }, [commitPreferenceChange, draggedPaneKey]);
 
-    const renderPane = useCallback((paneKey, index) => {
-        const paneConfig = paneKey === 'vehicle'
-            ? {
-                title: 'Vehicle panel',
-                subtitle: 'Grid, filters, and vehicle actions',
-                content: vehiclePanel,
-            }
-            : {
-                title: 'Map panel',
-                subtitle: 'Live vehicle markers and location details',
-                content: mapPanel,
-            };
+    const renderPane = useCallback((pane, index, isSinglePane = false) => {
+        const paneConfig = paneDefinitions?.[pane.paneKey] || {
+            title: pane.paneKey,
+            subtitle: '',
+            content: null,
+        };
 
         const isFirstPane = index === 0;
-        const paneStyle = isFirstPane
+        const paneStyle = isSinglePane
+            ? { flex: '1 1 auto' }
+            : isFirstPane
             ? activeAxis === 'horizontal'
                 ? {
                     width: `${firstPaneSize}%`,
@@ -258,31 +260,29 @@ const VehicleTrackingWorkspaceLayout = ({
 
         return (
             <section
-                key={paneKey}
-                className={`vehicle-tracking-workspace__pane vehicle-tracking-workspace__pane--${paneKey}`}
+                key={pane.slotKey}
+                className={`vehicle-tracking-workspace__pane vehicle-tracking-workspace__pane--${pane.paneKey}`}
                 style={paneStyle}
             >
                 <header
                     className="vehicle-tracking-workspace__pane-header"
                     draggable
-                    onDragStart={() => handlePaneDragStart(paneKey)}
+                    onDragStart={() => handlePaneDragStart(pane.slotKey)}
                     onDragEnd={handlePaneDragEnd}
                 >
-                    <div>
-                        <div className="vehicle-tracking-workspace__pane-title">{paneConfig.title}</div>
-                        <div className="vehicle-tracking-workspace__pane-subtitle">{paneConfig.subtitle}</div>
-                    </div>
-                    <div className="vehicle-tracking-workspace__pane-drag-hint">
-                        <i className="fa-light fa-grip-dots-vertical"></i>
-                        <span>Drag to move</span>
-                    </div>
+                    {(paneConfig.title || paneConfig.subtitle) ? (
+                        <div>
+                            {paneConfig.title ? <div className="vehicle-tracking-workspace__pane-title">{paneConfig.title}</div> : null}
+                            {paneConfig.subtitle ? <div className="vehicle-tracking-workspace__pane-subtitle">{paneConfig.subtitle}</div> : null}
+                        </div>
+                    ) : <div />}
                 </header>
                 <div className="vehicle-tracking-workspace__pane-body">
                     {paneConfig.content}
                 </div>
             </section>
         );
-    }, [activeAxis, firstPaneSize, handlePaneDragEnd, handlePaneDragStart, mapPanel, vehiclePanel]);
+    }, [activeAxis, firstPaneSize, handlePaneDragEnd, handlePaneDragStart, paneDefinitions]);
 
     return (
         <div className="vehicle-tracking-workspace">
@@ -290,19 +290,35 @@ const VehicleTrackingWorkspaceLayout = ({
                 ref={containerRef}
                 className={`vehicle-tracking-workspace__surface vehicle-tracking-workspace__surface--${activeAxis}`}
             >
-                {renderPane(activeLayout.order[0], 0)}
-                <div
-                    className={`vehicle-tracking-workspace__resizer vehicle-tracking-workspace__resizer--${activeAxis}`}
-                    onMouseDown={handleResizeStart}
-                    role="separator"
-                    aria-orientation={activeAxis === 'horizontal' ? 'vertical' : 'horizontal'}
-                    aria-label="Resize tracking panels"
-                >
-                    <span className="vehicle-tracking-workspace__resizer-handle"></span>
-                </div>
-                {renderPane(activeLayout.order[1], 1)}
+                {orderedVisiblePanes.length === 0 ? (
+                    <section className="vehicle-tracking-workspace__pane" style={{ flex: '1 1 auto' }}>
+                        <div className="vehicle-tracking-workspace__pane-body tw-flex tw-h-full tw-items-center tw-justify-center tw-bg-white tw-text-center">
+                            <div className="tw-max-w-sm tw-px-6 tw-text-[#5a6360]">
+                                <i className="fa-light fa-panels-lean-right tw-mb-3 tw-text-3xl tw-text-[#9aa09d]"></i>
+                                <div className="tw-text-[15px] tw-font-semibold tw-text-[#111813]">No workspace panes enabled</div>
+                                <div className="tw-mt-1 tw-text-[13px]">Open the Panels controller and enable Vehicles or Map to continue.</div>
+                            </div>
+                        </div>
+                    </section>
+                ) : orderedVisiblePanes.length === 1 ? (
+                    renderPane(orderedVisiblePanes[0], 0, true)
+                ) : (
+                    <>
+                        {renderPane(orderedVisiblePanes[0], 0)}
+                        <div
+                            className={`vehicle-tracking-workspace__resizer vehicle-tracking-workspace__resizer--${activeAxis}`}
+                            onMouseDown={handleResizeStart}
+                            role="separator"
+                            aria-orientation={activeAxis === 'horizontal' ? 'vertical' : 'horizontal'}
+                            aria-label="Resize tracking panels"
+                        >
+                            <span className="vehicle-tracking-workspace__resizer-handle"></span>
+                        </div>
+                        {renderPane(orderedVisiblePanes[1], 1)}
+                    </>
+                )}
 
-                {draggedPaneKey && (
+                {draggedPaneKey && orderedVisiblePanes.length > 1 && (
                     <div className="vehicle-tracking-workspace__drop-overlay">
                         {DROP_ZONES.map((dropZone) => (
                             <div

@@ -1,9 +1,9 @@
 /**
  * File: ReportParameterForm.js
  * Purpose: Dynamic filter/parameter form that renders controls based on a report source's
- *          parameter schema. Supports date, lookup (TagBox multi-select), number, and text types.
- * Dependencies: React, DevExtreme (DateBox, TagBox, NumberBox, TextBox), Redux lookups
- * Last Modified: 2026-02-12
+ *          parameter schema. Supports date, lookup, select, number, and text parameter types.
+ * Dependencies: React, DevExtreme (DateBox, TagBox, SelectBox, NumberBox, TextBox), Redux lookups
+ * Last Modified: 2026-03-11
  *
  * Key Components:
  * - ReportParameterForm: Renders parameter controls from source definition
@@ -13,6 +13,7 @@ import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DateBox } from 'devextreme-react/date-box';
 import { TagBox } from 'devextreme-react/tag-box';
+import { SelectBox } from 'devextreme-react/select-box';
 import { NumberBox } from 'devextreme-react/number-box';
 import { TextBox } from 'devextreme-react/text-box';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
@@ -260,6 +261,22 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
 
                 case 'lookup': {
                     const data = getFilteredLookupData(param);
+
+                    if (param.multiSelect === false) {
+                        return (
+                            <SelectBox
+                                value={value !== undefined ? value : null}
+                                dataSource={data}
+                                valueExpr={param.valueExpr || 'id'}
+                                displayExpr={param.displayExpr || 'name'}
+                                onValueChanged={(e) => handleChange(param.key, e.value)}
+                                placeholder={param.placeholder || 'Select...'}
+                                showClearButton={!param.required}
+                                searchEnabled={true}
+                            />
+                        );
+                    }
+
                     return (
                         <TagBox
                             value={Array.isArray(value) ? value : (value !== null && value !== undefined ? [value] : [])}
@@ -276,6 +293,20 @@ const ReportParameterForm = ({ parameters = [], filters = {}, onFilterChange, ex
                         />
                     );
                 }
+
+                case 'select':
+                    return (
+                        <SelectBox
+                            value={value !== undefined ? value : null}
+                            dataSource={param.options || []}
+                            valueExpr={param.valueExpr || 'id'}
+                            displayExpr={param.displayExpr || 'name'}
+                            onValueChanged={(e) => handleChange(param.key, e.value)}
+                            placeholder={param.placeholder || 'Select...'}
+                            showClearButton={!param.required}
+                            searchEnabled={false}
+                        />
+                    );
 
                 case 'number':
                     return (

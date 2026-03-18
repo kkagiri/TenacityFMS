@@ -51,6 +51,11 @@ public interface IGPSGateGeofenceService
     Task<FMSResponse<GeofenceDTO>> CreateGeofenceAsync(CreateGeofenceRequestDTO request);
 
     /// <summary>
+    /// Update an existing geofence in GPSGate.
+    /// </summary>
+    Task<FMSResponse<GeofenceDTO>> UpdateGeofenceAsync(int geofenceId, CreateGeofenceRequestDTO request);
+
+    /// <summary>
     /// Delete a geofence in GPSGate.
     /// </summary>
     Task<FMSResponse<bool>> DeleteGeofenceAsync(int geofenceId);

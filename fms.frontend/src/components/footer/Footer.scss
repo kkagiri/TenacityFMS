@@ -1,9 +1,40 @@
+/**
+ * File: Footer.scss
+ * Purpose: Defines shared footer spacing and typography for the main application shell
+ * Dependencies: Footer.js, generated theme variables
+ * Last Modified: 2026-03-13
+ *
+ * Key Sections:
+ * - .footer: shared footer container sizing
+ * - direct child layout: tighter footer content rhythm
+ */
+
 @import "../../themes/generated/variables.base.scss";
 
 .footer {
   display: block;
   color: rgba($base-text-color, alpha($base-text-color) * 0.7);
-  border-top: 1px solid rgba(0, 0, 0, 0.1);
-  padding-top: 20px;
-  padding-bottom: 24px;
+  border-top: 1px solid rgba(0, 0, 0, 0.08);
+  padding-top: 8px;
+  padding-bottom: 10px;
+  font-size: 10px;
+  line-height: 1.35;
+
+  > div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  @media (max-width: 1280px) {
+    font-size: 9px;
+  }
+
+  @media (max-width: 768px) {
+    > div {
+      flex-wrap: wrap;
+    }
+  }
 }

@@ -55,17 +55,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         && m.ProviderConfiguration.IsEnabled)
                     .FirstOrDefaultAsync();
 
-                string? externalDeviceId = providerMapping?.ExternalDeviceId;
-
-                // Fallback to old DeviceId field if mapping not found (backward compatibility)
-                if (string.IsNullOrEmpty(externalDeviceId) && vehicle.DeviceId.HasValue)
-                {
-                    externalDeviceId = vehicle.DeviceId.Value.ToString();
-                    _logger.LogWarning("Vehicle {VehicleId} using legacy DeviceId. Please migrate to vehicle_provider_mappings.", vehicleId);
-                }
+                var externalDeviceId = providerMapping?.ExternalDeviceId;
 
                 if (string.IsNullOrEmpty(externalDeviceId))
-                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle doesn't have a GPS device configured. Please add a provider mapping.");
+                    return FMSResponse<VehicleGPSInformationDTO>.Failed("Vehicle doesn't have an active GPS provider mapping configured.");
 
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 
@@ -85,7 +78,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     VehicleName = vehicle.HyoungNo ?? string.Empty,
                     NumberPlate = vehicle.NumberPlate,
                     HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
-                    DeviceId = providerMapping != null ? int.TryParse(externalDeviceId, out var deviceIdInt) ? deviceIdInt : null : vehicle.DeviceId,
+                    DeviceId = ParseExternalDeviceId(externalDeviceId),
                     IsOnline = false,
                     SensorHealth = new SensorHealthDTO
                     {
@@ -209,16 +202,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         && m.ProviderConfiguration.IsEnabled)
                     .FirstOrDefaultAsync();
 
-                string? externalDeviceId = providerMapping?.ExternalDeviceId;
-
-                // Fallback to old DeviceId field if mapping not found (backward compatibility)
-                if (string.IsNullOrEmpty(externalDeviceId) && vehicle.DeviceId.HasValue)
-                {
-                    externalDeviceId = vehicle.DeviceId.Value.ToString();
-                }
+                var externalDeviceId = providerMapping?.ExternalDeviceId;
 
                 if (string.IsNullOrEmpty(externalDeviceId))
-                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have a GPS device configured");
+                    return FMSResponse<VehicleOdometerDTO>.Failed("Vehicle doesn't have an active GPS provider mapping configured");
 
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 
@@ -251,7 +238,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     LastUpdated = DateTime.TryParse(odometerData?.Timestamp, out var lastUpdate) ? lastUpdate : DateTime.UtcNow,
                     Unit = "km",
                     HasGPSInstalled = providerMapping != null || vehicle.HasGPSInstalled == 1,
-                    DeviceId = providerMapping != null ? int.TryParse(externalDeviceId, out var deviceIdInt) ? deviceIdInt : null : vehicle.DeviceId
+                    DeviceId = ParseExternalDeviceId(externalDeviceId)
                 };
 
                 return FMSResponse<VehicleOdometerDTO>.Success(odometerDto);
@@ -301,6 +288,11 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             return gpsInfo.IsSuccess
                 ? FMSResponse<bool?>.Success(gpsInfo.Data?.SensorHealth?.EngineStatus)
                 : FMSResponse<bool?>.Failed(gpsInfo.Message ?? "Failed to retrieve engine status");
+        }
+
+        private static int? ParseExternalDeviceId(string? externalDeviceId)
+        {
+            return int.TryParse(externalDeviceId, out var parsedDeviceId) ? parsedDeviceId : null;
         }
 
         private void ParseSensorVariables(List<GPSGateVariable> variables, SensorHealthDTO sensorHealth)

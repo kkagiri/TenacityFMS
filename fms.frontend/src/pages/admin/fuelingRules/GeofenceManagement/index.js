@@ -1,1 +1,1 @@
-export { default as GeofenceManagement } from "./GeofenceManagement";
+export { default as GeofenceManagement } from "../../../../components/geofenceManagement/GeofenceManagement";

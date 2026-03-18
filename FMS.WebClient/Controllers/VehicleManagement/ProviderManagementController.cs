@@ -633,6 +633,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 {
                     ProviderId = request.ProviderId,
                     VehicleIds = request.VehicleIds,
+                    Assignments = request.Assignments,
                     UserId = userId
                 };
 
@@ -649,8 +650,8 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                     Success = true,
                     Message = result.Message,
                     JobId = result.Data,
-                    VehicleCount = request.VehicleIds.Count,
-                    EstimatedSeconds = request.VehicleIds.Count * 0.5,
+                    VehicleCount = request.Assignments?.Count > 0 ? request.Assignments.Count : request.VehicleIds.Count,
+                    EstimatedSeconds = (request.Assignments?.Count > 0 ? request.Assignments.Count : request.VehicleIds.Count) * 0.5,
                     Timestamp = DateTime.UtcNow
                 });
             }
@@ -786,6 +787,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
                 {
                     VehicleId = request.VehicleId,
                     ProviderId = request.ProviderId,
+                    ExternalDeviceId = request.ExternalDeviceId,
                     UserId = userId
                 };
 
@@ -927,15 +929,7 @@ namespace FMS.WebClient.Controllers.VehicleManagement
     {
         public int VehicleId { get; set; }
         public int ProviderId { get; set; }
-    }
-
-    /// <summary>
-    /// Request model for bulk vehicle-provider assignment
-    /// </summary>
-    public class BulkVehicleProviderAssignmentRequest
-    {
-        public List<int> VehicleIds { get; set; } = [];
-        public int ProviderId { get; set; }
+        public string ExternalDeviceId { get; set; } = string.Empty;
     }
 
     /// <summary>

@@ -1,79 +1,172 @@
-.fuel-refill-delete-modal {
-  .dx-dialog {
-    // Dialog styling
-    .dx-dialog-message {
-      padding: 0;
-    }
+.fuel-refill-delete-panel {
+  --m365-error: #d13438;
+  --m365-error-hover: #a4262c;
+  --m365-text: #201f1e;
+  --m365-text-secondary: #605e5c;
+  --m365-border: #c8c6c4;
+  --m365-border-light: #edebe9;
+  --m365-bg-card: #ffffff;
+  --m365-bg-surface: #faf9f8;
+  --m365-bg-hover: #f3f2f1;
+
+  .fms-slide-panel__body {
+    background: var(--m365-bg-surface);
   }
 
-  // Warning box styling
-  .tw-p-3 {
-    &.tw-bg-red-50 {
-      background-color: #fef2f2;
-      border-color: #fecaca;
-
-      .fa-triangle-exclamation {
-        color: #dc2626;
-      }
-
-      .tw-text-red-800 {
-        color: #7f1d1d;
-      }
-
-      .tw-text-red-600 {
-        color: #991b1b;
-      }
-    }
+  &__content {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 20px 24px 24px;
   }
 
-  // Details box styling
-  .tw-bg-gray-50 {
-    background-color: #f9fafb;
-    border-color: #e5e7eb;
+  &__warning-card,
+  &__details-card,
+  &__field {
+    background: var(--m365-bg-card);
+    border: 1px solid var(--m365-border-light);
+    border-radius: 12px;
   }
 
-  // TextArea styling
-  .dx-textarea {
-    width: 100%;
+  &__warning-card {
+    display: flex;
+    gap: 14px;
+    padding: 18px;
+  }
 
-    .dx-texteditor-container {
-      border-color: #d1d5db;
-      border-radius: 0.375rem;
+  &__warning-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: #fde7e9;
+    color: var(--m365-error);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    flex-shrink: 0;
+  }
+
+  &__warning-title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__warning-text,
+  &__hint {
+    margin: 6px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--m365-text-secondary);
+  }
+
+  &__details-card {
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__detail-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  &__detail-label,
+  &__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+  }
+
+  &__detail-value {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--m365-text);
+    text-align: right;
+  }
+
+  &__field {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  &__required {
+    color: var(--m365-error);
+  }
+
+  &__editor {
+    .dx-texteditor {
+      border: 1px solid var(--m365-border);
+      border-radius: 4px;
+      background: #fff;
+      transition: border-color 0.15s, box-shadow 0.15s;
 
       &:hover {
-        border-color: #9ca3af;
+        border-color: var(--m365-text-secondary);
       }
 
-      &.dx-state-focused {
-        border-color: #3b82f6;
-        box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      &.dx-state-focused,
+      &.dx-state-active {
+        border-color: #0078d4;
+        box-shadow: 0 0 0 1px #0078d4;
       }
+    }
+
+    .dx-texteditor-input {
+      font-size: 13px;
+      color: var(--m365-text);
+      padding: 10px;
     }
   }
 
-  // Character counter
-  .tw-text-xs {
-    &.tw-text-gray-500 {
-      color: #6b7280;
-      margin-top: 0.25rem;
-    }
+  &__footer {
+    margin-top: auto;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
   }
 
-  // Button styling
-  .dx-button {
-    &.dx-state-disabled {
-      opacity: 0.5;
+  &__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 34px;
+    padding: 0 16px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s;
+
+    &:disabled {
+      opacity: 0.45;
       cursor: not-allowed;
     }
 
-    &.dx-button-danger {
-      background-color: #dc2626;
-      border-color: #dc2626;
-      color: #ffffff;
+    &--ghost {
+      background: #fff;
+      color: #323130;
+      border-color: var(--m365-border);
 
-      &:hover:not(.dx-state-disabled) {
-        background-color: #b91c1c;
-        border-color: #b91c1c;
+      &:hover:not(:disabled) {
+        background: var(--m365-bg-hover);
+      }
+    }
+
+    &--danger {
+      background: var(--m365-error);
+      color: #fff;
+
+      &:hover:not(:disabled) {
+        background: var(--m365-error-hover);
       }
     }
   }

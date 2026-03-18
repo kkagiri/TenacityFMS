@@ -309,11 +309,12 @@ export const fetchProviderMappings = (vehicleId = null) => async (dispatch) => {
  * Assign vehicle to provider
  * @param {number} vehicleId - Vehicle ID
  * @param {number} providerId - Provider ID
+ * @param {string} externalDeviceId - External device ID from provider mapping
  */
-export const assignVehicleToProvider = (vehicleId, providerId) => async (dispatch) => {
+export const assignVehicleToProvider = (vehicleId, providerId, externalDeviceId) => async (dispatch) => {
   dispatch({ type: ASSIGN_VEHICLE_TO_PROVIDER_REQUEST });
   try {
-    const response = await providerManagementService.assignVehicleToProvider(vehicleId, providerId);
+    const response = await providerManagementService.assignVehicleToProvider(vehicleId, providerId, externalDeviceId);
 
     if (response.success) {
       dispatch({
@@ -341,19 +342,19 @@ export const assignVehicleToProvider = (vehicleId, providerId) => async (dispatc
 
 /**
  * Bulk assign vehicles to provider
- * @param {number[]} vehicleIds - Array of vehicle IDs
+ * @param {{ vehicleId: number, externalDeviceId: string }[]} assignments - Per-vehicle external device mappings
  * @param {number} providerId - Provider ID
  */
-export const bulkAssignVehiclesToProvider = (vehicleIds, providerId) => async (dispatch) => {
+export const bulkAssignVehiclesToProvider = (assignments, providerId) => async (dispatch) => {
   dispatch({ type: BULK_ASSIGN_VEHICLES_TO_PROVIDER_REQUEST });
   try {
-    const response = await providerManagementService.bulkAssignVehiclesToProvider(vehicleIds, providerId);
+    const response = await providerManagementService.bulkAssignVehiclesToProvider(assignments, providerId);
 
     if (response.success !== false) {
       dispatch({
         type: BULK_ASSIGN_VEHICLES_TO_PROVIDER_SUCCESS,
         payload: {
-          vehicleIds,
+          vehicleIds: assignments.map((assignment) => assignment.vehicleId),
           providerId,
           jobId: response.jobId, // For async jobs
           successCount: response.successCount, // For sync completion (backward compat)
@@ -372,7 +373,7 @@ export const bulkAssignVehiclesToProvider = (vehicleIds, providerId) => async (d
       throw new Error(response.message || "Failed to bulk assign vehicles to provider");
     }
   } catch (error) {
-    console.error(`Error bulk assigning ${vehicleIds.length} vehicles to provider ${providerId}:`, error);
+    console.error(`Error bulk assigning ${assignments.length} vehicles to provider ${providerId}:`, error);
     const errorMessage = error.response?.data?.message || error.message || "Failed to bulk assign vehicles to provider";
     dispatch({
       type: BULK_ASSIGN_VEHICLES_TO_PROVIDER_FAILURE,

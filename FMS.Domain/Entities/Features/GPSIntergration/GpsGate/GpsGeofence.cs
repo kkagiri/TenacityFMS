@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using FMS.Domain.Entities;
 
 namespace FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 
@@ -50,6 +51,11 @@ public class GpsGeofence
     /// Radius in meters for circular geofences
     /// </summary>
     public int? RadiusMeters { get; set; }
+
+    /// <summary>
+    /// Operational classification of this geofence (Parking, Load, Dump, Fuel, Workshop).
+    /// </summary>
+    public SiteClassification Classification { get; set; } = SiteClassification.Unknown;
 
     /// <summary>
     /// Whether the geofence is active in GPSGate

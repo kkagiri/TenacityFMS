@@ -1,8 +1,8 @@
 /**
  * File: VehicleConsumptionHistory.js
  * Purpose: Render vehicle fuel consumption history with filtering and detail views.
- * Dependencies: react, react-redux, devextreme-react components, notify
- * Last Modified: 2025-10-26 - NUCLEAR OPTION: Imperative DataGrid Implementation
+ * Dependencies: react, react-redux, notify, HeaderStockFilters.scss
+ * Last Modified: 2026-03-13 - Replaced DevExtreme date filter with HSF-style date filter
  *
  * Key Functions/Components:
  * - VehicleConsumptionHistory: Main component managing filters, grid data, and details modal
@@ -14,15 +14,101 @@
 
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import { DateBox } from 'devextreme-react/date-box';
-import Button from 'devextreme-react/button';
 import notify from 'devextreme/ui/notify';
+import '../../../tankStock/shared/components/HeaderStockFilters.scss';
 
 import ImperativeDataGrid from '../../consumption/components/ImperativeDataGrid';
 import ConsumptionTrendChart from '../../consumption/components/ConsumptionTrendChart';
 import VehicleConsumptionHistoryDetails from '../../consumption/components/VehicleConsumptionHistoryDetails';
 import { fetchVehicleConsumptionHistory, clearVehicleConsumptionHistory } from '../../../../redux/actions/vehicleActions';
 
+// ── Date filter constants & helpers ───────────────────────────────────────────
+const QUICK_DATE_RANGES = [
+  { key: 'today', label: 'Today' },
+  { key: 'yesterday', label: 'Yesterday' },
+  { key: 'last7', label: 'Last 7D' },
+  { key: 'last30', label: 'Last 30D' },
+];
+
+const MONTH_NAMES = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+];
+const DAY_NAMES = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
+
+const toDateKey = (d) => {
+  const v = new Date(d);
+  return `${v.getFullYear()}-${String(v.getMonth() + 1).padStart(2, '0')}-${String(v.getDate()).padStart(2, '0')}`;
+};
+const toStartOfDay = (d) => { const v = new Date(d); v.setHours(0, 0, 0, 0); return v; };
+const toEndOfDay = (d) => { const v = new Date(d); v.setHours(23, 59, 59, 999); return v; };
+const fmtDate = (d) => {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+};
+
+// ── CalendarMonth sub-component ───────────────────────────────────────────────
+const CalendarMonth = ({
+  viewDate, fromDate, toDate,
+  onPickDay, onNav,
+  showLeftNav, showRightNav,
+  showFooter, pickStep, onCancel, onConfirm,
+}) => {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const firstDow = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const from = fromDate ? (() => { const v = new Date(fromDate); v.setHours(0, 0, 0, 0); return v; })() : null;
+  const to = toDate ? (() => { const v = new Date(toDate); v.setHours(0, 0, 0, 0); return v; })() : null;
+
+  const cells = [];
+  for (let i = 0; i < firstDow; i++) cells.push(null);
+  for (let d = 1; d <= daysInMonth; d++) cells.push(new Date(year, month, d));
+
+  const dayClass = (t) => {
+    if (!t) return 'hsf-cal-day hsf-cal-empty';
+    t = new Date(t); t.setHours(0, 0, 0, 0);
+    let cls = 'hsf-cal-day';
+    if (t.getTime() === today.getTime()) cls += ' today';
+    if (from && to && t.getTime() === from.getTime() && t.getTime() === to.getTime()) cls += ' selected';
+    else if (from && t.getTime() === from.getTime()) cls += ' range-start';
+    else if (to && t.getTime() === to.getTime()) cls += ' range-end';
+    else if (from && to && t > from && t < to) cls += ' in-range';
+    return cls;
+  };
+
+  return (
+    <div className="hsf-cal-month">
+      <div className="hsf-cal-month-header">
+        {showLeftNav
+          ? <button className="hsf-cal-nav" onClick={() => onNav(-1)} type="button"><i className="fa-light fa-chevron-left" /></button>
+          : <div style={{ width: 24 }} />}
+        <span className="hsf-cal-month-name">{MONTH_NAMES[month]} {year}</span>
+        {showRightNav
+          ? <button className="hsf-cal-nav" onClick={() => onNav(1)} type="button"><i className="fa-light fa-chevron-right" /></button>
+          : <div style={{ width: 24 }} />}
+      </div>
+      <div className="hsf-cal-grid">
+        {DAY_NAMES.map(d => <div key={d} className="hsf-cal-dow">{d}</div>)}
+        {cells.map((t, i) => (
+          <div key={i} className={dayClass(t)} onClick={t ? () => onPickDay(t.getFullYear(), t.getMonth(), t.getDate()) : undefined}>
+            {t ? t.getDate() : null}
+          </div>
+        ))}
+      </div>
+      {showFooter && (
+        <div className="hsf-cal-footer">
+          <span className="hsf-cal-step-hint">
+            {pickStep === 0 ? <>Pick <em>start</em> date</> : <>Pick <em>end</em> date</>}
+          </span>
+          <button className="hsf-btn hsf-btn-reset" style={{ fontSize: 11, padding: '4px 10px' }} onClick={onCancel} type="button">Cancel</button>
+          <button className="hsf-btn hsf-btn-apply" style={{ fontSize: 11, padding: '4px 12px' }} onClick={onConfirm} type="button">Apply</button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const VehicleConsumptionHistory = ({ vehicleId }) => {
   const dispatch = useDispatch();
@@ -57,8 +143,16 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
     }
   }, [vehicleId]);
 
-  const [dateFrom, setDateFrom] = useState(new Date(new Date().setDate(new Date().getDate() - 30)));
-  const [dateTo, setDateTo] = useState(new Date());
+  const [dateFrom, setDateFrom] = useState(() => toStartOfDay(new Date(new Date().setDate(new Date().getDate() - 29))));
+  const [dateTo, setDateTo] = useState(() => toEndOfDay(new Date()));
+  // HSF date filter state
+  const [calOpen, setCalOpen] = useState(false);
+  const [calViewLeft, setCalViewLeft] = useState(() => {
+    const d = new Date(); d.setDate(d.getDate() - 29);
+    return new Date(d.getFullYear(), d.getMonth(), 1);
+  });
+  const [pickStep, setPickStep] = useState(0);
+
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [detailsVisible, setDetailsVisible] = useState(false);
   const loadingRef = useRef(false);
@@ -181,6 +275,27 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
     },
     { dataField: 'remarks', caption: 'Remarks', width: 200 }
   ], []);
+
+  // ── HSF date filter computed values ─────────────────────────────────────────
+  const calViewRight = useMemo(
+    () => new Date(calViewLeft.getFullYear(), calViewLeft.getMonth() + 1, 1),
+    [calViewLeft]
+  );
+
+  const activeQuick = useMemo(() => {
+    if (!dateFrom || !dateTo) return '';
+    const todayKey = toDateKey(new Date());
+    const startKey = toDateKey(dateFrom);
+    const endKey = toDateKey(dateTo);
+    const yest = new Date(); yest.setDate(yest.getDate() - 1);
+    const l7 = new Date(); l7.setDate(l7.getDate() - 6);
+    const l30 = new Date(); l30.setDate(l30.getDate() - 29);
+    if (startKey === todayKey && endKey === todayKey) return 'today';
+    if (startKey === toDateKey(yest) && endKey === toDateKey(yest)) return 'yesterday';
+    if (startKey === toDateKey(l7) && endKey === todayKey) return 'last7';
+    if (startKey === toDateKey(l30) && endKey === todayKey) return 'last30';
+    return '';
+  }, [dateFrom, dateTo]);
 
   // Selected rows data (fallback to all rows when nothing explicitly selected)
   const selectedData = useMemo(() => {
@@ -357,6 +472,55 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [vehicleId, dispatch]);
 
+  // ── HSF date filter handlers ──────────────────────────────────────────────
+  const handleQuickDate = useCallback((key) => {
+    const base = new Date(); let s = new Date(base), e = new Date(base);
+    if (key === 'yesterday') { s.setDate(s.getDate() - 1); e.setDate(e.getDate() - 1); }
+    else if (key === 'last7') { s.setDate(s.getDate() - 6); }
+    else if (key === 'last30') { s.setDate(s.getDate() - 29); }
+    setDateFrom(toStartOfDay(s));
+    setDateTo(toEndOfDay(e));
+  }, []);
+
+  const handlePickDay = useCallback((y, m, d) => {
+    const clicked = new Date(y, m, d); clicked.setHours(0, 0, 0, 0);
+    if (pickStep === 0) {
+      setDateFrom(toStartOfDay(clicked));
+      setDateTo(toEndOfDay(clicked));
+      setPickStep(1);
+    } else {
+      if (clicked < toStartOfDay(dateFrom)) {
+        setDateFrom(toStartOfDay(clicked));
+        setDateTo(toEndOfDay(dateFrom));
+      } else {
+        setDateTo(toEndOfDay(clicked));
+      }
+      setPickStep(0);
+    }
+  }, [pickStep, dateFrom]);
+
+  const handleCalNav = useCallback((dir) => {
+    setCalViewLeft(prev => new Date(prev.getFullYear(), prev.getMonth() + dir, 1));
+  }, []);
+
+  const toggleCal = useCallback((e) => {
+    e.stopPropagation();
+    if (!calOpen) {
+      const d = dateFrom ? new Date(dateFrom) : new Date();
+      setCalViewLeft(new Date(d.getFullYear(), d.getMonth(), 1));
+      setPickStep(0);
+    }
+    setCalOpen(prev => !prev);
+  }, [calOpen, dateFrom]);
+
+  const handleResetFilter = useCallback(() => {
+    const base = new Date();
+    const s = new Date(base); s.setDate(s.getDate() - 29);
+    setDateFrom(toStartOfDay(s));
+    setDateTo(toEndOfDay(base));
+    setCalOpen(false);
+  }, []);
+
   const handleRefresh = useCallback(() => {
     if (debounceRef.current) {
       clearTimeout(debounceRef.current);
@@ -399,52 +563,92 @@ const VehicleConsumptionHistory = ({ vehicleId }) => {
 
   return (
     <div className="vehicle-consumption-history">
-      <div className="tw-mb-6">
-        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-4">
+      <div className="tw-mb-4">
+        <h3 className="tw-text-lg tw-font-semibold tw-text-gray-800 tw-mb-3">
           Fuel Consumption History
         </h3>
 
-        <div className="tw-flex tw-flex-col md:tw-flex-row md:tw-items-center tw-gap-4 tw-mb-4 tw-p-4 tw-bg-gray-50 tw-rounded-lg">
-          <div className="tw-flex tw-flex-col md:tw-flex-row md:tw-items-start tw-gap-4">
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <label className="tw-text-sm tw-font-medium tw-text-gray-700">From:</label>
-              <DateBox
-                value={dateFrom}
-                onValueChanged={(e) => setDateFrom(e.value)}
-                displayFormat="dd/MM/yyyy"
-                width="100%"
-              />
+        {/* HSF-style date filter */}
+        <div className="header-stock-filters">
+          {calOpen && (
+            <div className="hsf-overlay" onClick={() => setCalOpen(false)} />
+          )}
+          <div className="hsf-filter-bar" onClick={(e) => e.stopPropagation()}>
+
+            {/* Quick date pills */}
+            <div className="hsf-seg-pills">
+              {QUICK_DATE_RANGES.map((r) => (
+                <button
+                  key={r.key}
+                  type="button"
+                  className={`hsf-seg-pill${activeQuick === r.key ? ' active' : ''}`}
+                  onClick={() => handleQuickDate(r.key)}
+                >
+                  {r.label}
+                </button>
+              ))}
             </div>
-            <div className="tw-flex tw-items-center tw-gap-2">
-              <label className="tw-text-sm tw-font-medium tw-text-gray-700">To:</label>
-              <DateBox
-                value={dateTo}
-                onValueChanged={(e) => setDateTo(e.value)}
-                displayFormat="dd/MM/yyyy"
-                width="100%"
-              />
+
+            <div className="hsf-bar-divider" />
+
+            {/* Date range picker */}
+            <div className={`hsf-date-range-btn${calOpen ? ' open' : ''}`} onClick={toggleCal}>
+              <i className="fa-light fa-calendar hsf-date-icon" />
+              <span className="hsf-date-val">{fmtDate(dateFrom)}</span>
+              <span className="hsf-date-sep">→</span>
+              <span className="hsf-date-val">{fmtDate(dateTo)}</span>
+              <i className="fa-light fa-chevron-down hsf-select-caret" />
+
+              {calOpen && (
+                <div className="hsf-cal-dropdown" onClick={(e) => e.stopPropagation()}>
+                  <div className="hsf-cal-months-row">
+                    <CalendarMonth
+                      viewDate={calViewLeft}
+                      fromDate={dateFrom} toDate={dateTo}
+                      pickStep={pickStep}
+                      onPickDay={handlePickDay}
+                      onNav={handleCalNav}
+                      showLeftNav showRightNav={false}
+                      showFooter={false}
+                    />
+                    <div className="hsf-cal-separator" />
+                    <CalendarMonth
+                      viewDate={calViewRight}
+                      fromDate={dateFrom} toDate={dateTo}
+                      pickStep={pickStep}
+                      onPickDay={handlePickDay}
+                      onNav={handleCalNav}
+                      showLeftNav={false} showRightNav
+                      showFooter
+                      onCancel={() => setCalOpen(false)}
+                      onConfirm={() => setCalOpen(false)}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-          <div className="tw-flex tw-gap-2">
-            <Button
-              text="Apply Filter"
-              icon="fa-light fa-filter"
-              onClick={handleApplyFilter}
-              type="default"
-              stylingMode="outlined"
-              disabled={isLoading}
-            />
-            <Button
-              text="Refresh"
-              icon="fa-light fa-sync"
-              onClick={handleRefresh}
-              type="normal"
-              stylingMode="text"
-              disabled={isLoading}
-            />
+
+            <div className="hsf-bar-spacer" />
+
             {isLoading && (
-              <span className="tw-text-sm tw-text-gray-500 tw-ml-2">Loading…</span>
+              <span style={{ fontSize: 11, color: 'var(--hsf-text-muted)', fontFamily: 'var(--hsf-font-mono)' }}>Loading…</span>
             )}
+
+            <button className="hsf-btn hsf-btn-reset" type="button" onClick={handleRefresh} disabled={isLoading}>
+              <i className="fa-light fa-rotate-right" />
+              Refresh
+            </button>
+
+            <button className="hsf-btn hsf-btn-reset" type="button" onClick={handleResetFilter}>
+              <i className="fa-light fa-rotate-left" />
+              Reset
+            </button>
+
+            <button className="hsf-btn hsf-btn-apply" type="button" onClick={handleApplyFilter} disabled={isLoading}>
+              <i className="fa-light fa-filter" />
+              Apply
+            </button>
+
           </div>
         </div>
       </div>

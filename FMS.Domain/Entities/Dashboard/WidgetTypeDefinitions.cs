@@ -28,7 +28,9 @@ namespace FMS.Domain.Entities.Dashboard {
         /// Widget categories for better organization
         /// </summary>
         public static class Categories {
-            public const string FUEL_MANAGEMENT = "fuel_management"; // Fuel-related widgets
+            public const string TANKSTOCK_MONITORING = "tankstock_monitoring"; // Tank stock, reconciliation, and inventory widgets
+            public const string FUEL_OPERATION = "fuel_operation"; // Live fueling and transaction operation widgets
+            public const string FUEL_MANAGEMENT = "tankstock_monitoring"; // Backward-compatible alias for legacy fuel widgets
             public const string VEHICLE_PERFORMANCE = "vehicle_performance"; // Vehicle metrics
             public const string OPERATIONAL_METRICS = "operational_metrics"; // Operations data
             public const string FINANCIAL_ANALYSIS = "financial_analysis"; // Cost and revenue

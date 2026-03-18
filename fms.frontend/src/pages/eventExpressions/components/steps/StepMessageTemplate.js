@@ -206,6 +206,21 @@ const EVENT_TYPE_PLACEHOLDERS = {
     ],
 };
 
+const ALERT_TYPE_PLACEHOLDERS = {
+    NoTankStockEntry: [
+        { key: 'missingEntryType', label: 'Missing Entry Type', description: 'Raw missing entry type emitted by the event', sample: 'ClosingStock' },
+        { key: 'missingEntryLabel', label: 'Missing Entry Label', description: 'Human-readable missing entry label', sample: 'closing' },
+        { key: 'tankName', label: 'Tank Name', description: 'Affected tank name', sample: 'Tank 01 - Diesel' },
+        { key: 'siteName', label: 'Site Name', description: 'Affected site name', sample: 'Main Depot' },
+        { key: 'checkDate', label: 'Check Date', description: 'Business date in backend format', sample: '2026-02-19' },
+        { key: 'checkDateDisplay', label: 'Check Date Display', description: 'Business date in reader-friendly format', sample: '19 Feb 2026' },
+        { key: 'lastEntryDate', label: 'Last Entry Date', description: 'Previous entry date in backend format', sample: '2026-02-17' },
+        { key: 'lastEntryDateDisplay', label: 'Last Entry Display', description: 'Previous entry date in reader-friendly format', sample: '17 Feb 2026' },
+        { key: 'missingOpeningStock', label: 'Missing Opening Stock', description: 'Whether opening stock is missing', sample: 'False' },
+        { key: 'missingClosingStock', label: 'Missing Closing Stock', description: 'Whether closing stock is missing', sample: 'True' },
+    ],
+};
+
 // ─── Sample data for live preview (base fields) ───
 const BASE_SAMPLE_DATA = {
     ExpressionName: 'Sample Expression',
@@ -240,6 +255,7 @@ const StepMessageTemplate = ({
     const [showPreview, setShowPreview] = useState(false);
     const [insertTarget, setInsertTarget] = useState('body'); // 'body' | 'title'
     const htmlEditorRef = useRef(null);
+    const alertTypeKey = selectedTypeMetadata?.alertTypeKey || formData.eventType || null;
     // Track the last value written BY the editor so we can detect external changes
     // (quick-start templates, placeholder inserts in HTML mode) vs internal typing
     const lastEditorValueRef = useRef(formData.messageTemplate || '');
@@ -258,7 +274,10 @@ const StepMessageTemplate = ({
 
     // Resolve the event type for placeholder lookup
     const eventType = resolveEventType(selectedTypeMetadata);
-    const typeSpecificPlaceholders = EVENT_TYPE_PLACEHOLDERS[eventType] || [];
+    const typeSpecificPlaceholders = [
+        ...(EVENT_TYPE_PLACEHOLDERS[eventType] || []),
+        ...(ALERT_TYPE_PLACEHOLDERS[alertTypeKey] || [])
+    ];
 
     // ─── Build sample data for preview ───
     const sampleData = useMemo(() => {
@@ -616,6 +635,21 @@ const StepMessageTemplate = ({
                             <i className="fa-light fa-wand-magic-sparkles tw-mr-1 tw-text-purple-400" />
                             Quick-Start Templates
                         </h5>
+                        {alertTypeKey === 'NoTankStockEntry' && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onPolicyChange('titleTemplate', 'Missing {{missingEntryLabel}} entry | {{siteName}} | {{tankName}} | {{checkDateDisplay}}');
+                                    onFieldChange('messageTemplate',
+                                        '<p>Missing <strong>{{missingEntryLabel}}</strong> entry for <strong>{{tankName}}</strong> on <strong>{{checkDateDisplay}}</strong>.</p>'
+                                    );
+                                }}
+                                className="tw-text-left tw-w-full tw-p-2 tw-rounded tw-border tw-border-dashed tw-border-gray-300 tw-text-xs tw-text-gray-600 hover:tw-bg-amber-50 hover:tw-border-amber-300 tw-cursor-pointer tw-transition-colors tw-mb-2"
+                            >
+                                <i className="fa-light fa-calendar-circle-exclamation tw-mr-1 tw-text-amber-500" />
+                                No Tank Stock Entry — Short In-App Alert
+                            </button>
+                        )}
                         {eventType === 'TankStockDiscrepancy' && (
                             <button
                                 type="button"
@@ -730,7 +764,7 @@ const StepMessageTemplate = ({
                                 Select an event type to see quick-start templates.
                             </p>
                         )}
-                        {eventType && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && eventType !== 'InTankDelivery' && eventType !== 'ManualDelivery' && (
+                        {eventType && alertTypeKey !== 'NoTankStockEntry' && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && eventType !== 'InTankDelivery' && eventType !== 'ManualDelivery' && (
                             <button
                                 type="button"
                                 onClick={() => onFieldChange('messageTemplate',

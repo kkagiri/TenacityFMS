@@ -13,6 +13,7 @@
 using System.Security.Claims;
 using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Features.TankManagement.FuelRefill.Commands;
+using FMS.Application.Features.TankManagement.FuelRefill.DTOs;
 using FMS.Application.Queries.Database.FMSQuery.FuelRefillQueries;
 using FMS.Application.Queries.Database.FMSQuery.FuelRefilQueries;
 using FMS.WebClient.Attributes;
@@ -128,6 +129,39 @@ public class FuelRefillController : ControllerBase
         var fuelRefil = await _mediator.Send(new FuelRefillGetListQuery(take, skip, startDate, endDate, siteId));
         if (fuelRefil == null) return NoContent();
         return Ok(fuelRefil);
+    }
+
+    [HttpPut("{id}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelRefill.Edit)]
+    public async Task<IActionResult> UpdateFuelRefill(int id, [FromBody] FuelRefillCorrectionDto correctionData)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
+
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        correctionData.FuelBy = userId;
+
+        if (string.IsNullOrWhiteSpace(correctionData.CorrectionReason))
+        {
+            correctionData.CorrectionReason = "Manual fuel refill update";
+        }
+
+        var result = await _mediator.Send(new UpdateFuelRefillCommand(id, correctionData));
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.FuelRefill.Delete)]
+    public async Task<IActionResult> DeleteFuelRefill(int id, [FromQuery] string? deletionReason = null)
+    {
+        if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
+
+        var result = await _mediator.Send(new DeleteFuelRefillCommand(id, userId, deletionReason));
+        if (!result.Success) return BadRequest(result);
+        return Ok(result);
     }
 
 }

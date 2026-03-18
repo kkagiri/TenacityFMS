@@ -2,7 +2,7 @@
  * File: VehicleTrackingPage.scss
  * Purpose: Provides vehicle tracking page styling including the DataGrid sidebar and Google Maps info windows
  * Dependencies: VehicleTrackingPage.js, application theme context, Google Maps info window DOM
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  *
  * Key Sections:
  * - Ancestor overrides: remove dead space below the tracking page
@@ -11,6 +11,219 @@
  * - .vehicle-tracking-grid: Vehicle grid states and header styling
  * - .vehicle-tracking-info-window: Google Maps popup styling
  */
+
+.vehicle-tracking-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid #edebe9;
+  background: #faf9f8;
+  padding: 8px 12px;
+
+  &__section {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    min-width: 0;
+
+    &--selector {
+      flex: 0 1 280px;
+    }
+
+    &--summary {
+      flex: 1 1 auto;
+      justify-content: center;
+      flex-wrap: wrap;
+      gap: 6px 10px;
+    }
+
+    &--actions {
+      flex: 0 0 auto;
+      justify-content: flex-end;
+    }
+  }
+
+  &__field-group {
+    display: inline-flex;
+    min-width: 220px;
+    width: 100%;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  &__field-group--floating {
+    flex-basis: 240px;
+  }
+
+  &__select-wrap {
+    position: relative;
+  }
+
+  &__select {
+    width: 100%;
+    height: 32px;
+    padding: 0 34px 0 10px;
+    color: #201f1e;
+    font-size: 13px;
+    font-weight: 400;
+    background: #ffffff;
+    border: 1px solid #c8c6c4;
+    border-radius: 4px;
+    outline: none;
+    cursor: pointer;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+
+    &:hover {
+      border-color: #605e5c;
+    }
+
+    &:focus {
+      border-color: #0078d4;
+      box-shadow: 0 0 0 1px #0078d4;
+    }
+
+    &:disabled {
+      color: #a19f9d;
+      background: #f3f2f1;
+      cursor: not-allowed;
+    }
+  }
+
+  &__metric {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 32px;
+    padding: 0 10px;
+    color: #605e5c;
+    font-size: 12px;
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 9999px;
+
+    strong {
+      color: #201f1e;
+      font-weight: 600;
+    }
+  }
+
+  &__metric-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 9999px;
+    flex: 0 0 auto;
+
+    &--blue {
+      background: #0078d4;
+    }
+
+    &--green {
+      background: #107c10;
+    }
+
+    &--emerald {
+      background: #16a34a;
+    }
+
+    &--red {
+      background: #d13438;
+    }
+
+    &--orange {
+      background: #ca5010;
+    }
+
+    &--purple {
+      background: #6b21a8;
+    }
+  }
+
+  &__actions {
+    display: inline-flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+  }
+
+  &__action {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 32px;
+    padding: 0 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+
+    i {
+      font-size: 14px;
+    }
+
+    &--ghost {
+      color: #323130;
+      background: #ffffff;
+      border: 1px solid #c8c6c4;
+
+      &:hover {
+        background: #f3f2f1;
+        border-color: #605e5c;
+      }
+
+      &:focus-visible {
+        outline: 2px solid #0078d4;
+        outline-offset: 1px;
+      }
+    }
+  }
+
+  &__action-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #0078d4;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+}
+
+@media (max-width: 1024px) {
+  .vehicle-tracking-toolbar {
+    align-items: stretch;
+    justify-content: flex-start;
+
+    &__section {
+      width: 100%;
+
+      &--summary {
+        justify-content: flex-start;
+      }
+
+      &--actions {
+        justify-content: space-between;
+      }
+    }
+
+    &__actions {
+      justify-content: flex-start;
+    }
+  }
+}
 
 .vehicle-tracking-page {
   display: flex;
@@ -138,43 +351,9 @@
     height: 100% !important;
   }
 
-  .dx-toolbar {
-    background: #ffffff;
-    border-bottom: 1px solid #e5e7eb;
-    padding: 8px 12px;
-  }
-
   .dx-datagrid-header-panel,
-  .dx-toolbar-before,
-  .dx-toolbar-after,
-  .dx-toolbar-center {
-    background: #ffffff;
-  }
-
-  .dx-toolbar-items-container {
-    min-height: 42px;
-  }
-
-  .dx-datagrid-search-panel {
-    margin: 0;
-  }
-
-  .dx-datagrid-search-panel .dx-texteditor {
-    border: 1px solid #d1d5db;
-    border-radius: 8px;
-    background: #ffffff;
-    box-shadow: none;
-  }
-
-  .dx-datagrid-search-panel .dx-texteditor-input,
-  .dx-datagrid-search-panel .dx-placeholder,
-  .dx-datagrid-search-panel .dx-icon-search,
-  .dx-toolbar .dx-button .dx-icon {
-    color: #6b7280;
-  }
-
-  .dx-toolbar .dx-button {
-    border-radius: 8px;
+  .dx-toolbar {
+    display: none !important;
   }
 
   .dx-datagrid-headers {
@@ -414,44 +593,9 @@
       color: #f9fafb !important;
     }
 
-    .dx-toolbar {
-      background: #111827 !important;
-      border-bottom-color: #374151 !important;
-    }
-
     .dx-datagrid-header-panel,
-    .dx-toolbar-before,
-    .dx-toolbar-after,
-    .dx-toolbar-center,
-    .dx-datagrid-header-panel .dx-toolbar,
-    .dx-datagrid-header-panel .dx-toolbar-items-container {
-      background: #111827 !important;
-      border-color: #374151 !important;
-    }
-
-    .dx-datagrid-search-panel .dx-texteditor {
-      background: #1f2937 !important;
-      border-color: #4b5563 !important;
-      color: #f9fafb !important;
-    }
-
-    .dx-datagrid-search-panel .dx-texteditor-input,
-    .dx-datagrid-search-panel .dx-placeholder,
-    .dx-datagrid-search-panel .dx-icon-search,
-    .dx-toolbar .dx-button .dx-icon,
-    .dx-toolbar .dx-button .dx-button-text {
-      color: #d1d5db !important;
-    }
-
-    .dx-toolbar .dx-button {
-      background: #1f2937 !important;
-      border-color: #4b5563 !important;
-    }
-
-    .dx-toolbar .dx-button:hover,
-    .dx-toolbar .dx-button.dx-state-hover {
-      background: #374151 !important;
-      border-color: #60a5fa !important;
+    .dx-toolbar {
+      display: none !important;
     }
 
     .dx-datagrid-headers {

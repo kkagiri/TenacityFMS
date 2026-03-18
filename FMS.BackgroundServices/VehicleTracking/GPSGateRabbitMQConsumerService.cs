@@ -8,6 +8,9 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Communication.GPSGate.RabbitMQ.Models;
 using FMS.Application.Communication.SignalR;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Application.Features.VehicleTrips.StateMachines;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -42,6 +45,7 @@ namespace FMS.BackgroundServices.VehicleTracking
         private readonly ILogger<GPSGateRabbitMQConsumerService> _logger;
         private readonly IServiceScopeFactory _scopeFactory;
         private readonly IHubContext<VehicleTrackingHub> _hubContext;
+        private readonly IVehicleTripRealtimeDispatcher _tripDispatcher;
 
         private IConnection? _connection;
         private IModel? _channel;
@@ -68,11 +72,13 @@ namespace FMS.BackgroundServices.VehicleTracking
         public GPSGateRabbitMQConsumerService(
             ILogger<GPSGateRabbitMQConsumerService> logger,
             IServiceScopeFactory scopeFactory,
-            IHubContext<VehicleTrackingHub> hubContext)
+            IHubContext<VehicleTrackingHub> hubContext,
+            IVehicleTripRealtimeDispatcher tripDispatcher)
         {
             _logger = logger;
             _scopeFactory = scopeFactory;
             _hubContext = hubContext;
+            _tripDispatcher = tripDispatcher;
         }
 
         protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -422,6 +428,37 @@ namespace FMS.BackgroundServices.VehicleTracking
 
             ApplyMotionState(liveLocation);
 
+            // Feed GPS point into real-time trip detection pipeline
+            if (vehicleMapping.MovementProfile != VehicleMovementProfile.Undefined)
+            {
+                var tripPoint = new TrackPointDTO
+                {
+                    Latitude = (decimal)liveLocation.Latitude,
+                    Longitude = (decimal)liveLocation.Longitude,
+                    Altitude = liveLocation.Altitude.HasValue ? (decimal)liveLocation.Altitude.Value : null,
+                    Speed = (decimal)liveLocation.SpeedKmh,
+                    Heading = (decimal)liveLocation.Heading,
+                    Timestamp = liveLocation.GpsTimestamp,
+                    IsValid = liveLocation.IsValidGps,
+                    FuelLevel = liveLocation.FuelLevelPercent.HasValue ? (decimal)liveLocation.FuelLevelPercent.Value : null,
+                    IgnitionStatus = liveLocation.IgnitionOn,
+                };
+
+                _ = _tripDispatcher.ProcessGpsPointAsync(
+                    vehicleMapping.VehicleId,
+                    vehicleMapping.MovementProfile,
+                    tripPoint,
+                    stoppingToken);
+            }
+
+            if (!VehicleTrackingHub.HasActiveSubscribers())
+            {
+                _logger.LogDebug(
+                    "Skipping vehicle location broadcast for vehicle {VehicleId} because there are no active tracking subscribers",
+                    liveLocation.VehicleId);
+                return;
+            }
+
             // Broadcast via SignalR
             await _hubContext.BroadcastVehicleLocationAsync(liveLocation, _logger);
 
@@ -593,6 +630,14 @@ namespace FMS.BackgroundServices.VehicleTracking
                     ["Utc"] = message.Utc
                 }
             };
+
+            if (!VehicleTrackingHub.HasActiveSubscribers())
+            {
+                _logger.LogDebug(
+                    "Skipping vehicle event broadcast for vehicle {VehicleId} because there are no active tracking subscribers",
+                    eventNotification.VehicleId);
+                return;
+            }
 
             await _hubContext.BroadcastVehicleEventAsync(eventNotification, _logger);
 
@@ -789,7 +834,8 @@ namespace FMS.BackgroundServices.VehicleTracking
                         GpsGateUserId = m.ExternalDeviceId,
                         m.VehicleId,
                         m.Vehicle.NumberPlate,
-                        m.Vehicle.HyoungNo
+                        m.Vehicle.HyoungNo,
+                        m.Vehicle.MovementProfile
                     })
                     .ToListAsync(cancellationToken);
 
@@ -802,7 +848,8 @@ namespace FMS.BackgroundServices.VehicleTracking
                         {
                             VehicleId = mapping.VehicleId,
                             NumberPlate = mapping.NumberPlate,
-                            HyoungNo = mapping.HyoungNo
+                            HyoungNo = mapping.HyoungNo,
+                            MovementProfile = mapping.MovementProfile
                         };
                     }
                 }
@@ -823,6 +870,7 @@ namespace FMS.BackgroundServices.VehicleTracking
             public int VehicleId { get; set; }
             public string? NumberPlate { get; set; }
             public string? HyoungNo { get; set; }
+            public VehicleMovementProfile MovementProfile { get; set; }
         }
 
         private class VehicleMotionState

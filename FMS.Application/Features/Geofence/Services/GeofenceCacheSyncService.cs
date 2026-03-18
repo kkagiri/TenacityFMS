@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
@@ -51,6 +52,7 @@ public class GeofenceCacheSyncService : IGeofenceCacheSyncService
         entity.CenterLongitude = center?.Longitude;
         entity.RadiusMeters = geofence.Radius.HasValue ? (int?)Math.Round(geofence.Radius.Value) : null;
         entity.IsActive = geofence.IsActive;
+        // Preserve Classification — GPSGate doesn't have this field, it's FMS-local only
         entity.LastSyncedAt = DateTime.UtcNow;
         entity.UpdatedAt = DateTime.UtcNow;
 
@@ -228,6 +230,7 @@ public class GeofenceCacheSyncService : IGeofenceCacheSyncService
             CenterLatitude = entity.CenterLatitude,
             CenterLongitude = entity.CenterLongitude,
             RadiusMeters = entity.RadiusMeters,
+            Classification = entity.Classification.ToString(),
             IsActive = entity.IsActive,
             LastSyncedAt = entity.LastSyncedAt,
             CreatedAt = entity.CreatedAt,

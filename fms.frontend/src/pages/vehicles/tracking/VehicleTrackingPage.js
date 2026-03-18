@@ -2,7 +2,7 @@
  * File: VehicleTrackingPage.js
  * Purpose: Coordinates vehicle tracking state, preferences, filtering, and workspace composition for the tracking module
  * Dependencies: React, DevExtreme controls, axiosInstance, vehicleTrackingSignalRService, useVehicleTrackingMap
- * Last Modified: 2026-03-09
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - fetchTags(): Loads available GPS tracking tags and resolves the preferred starting view
@@ -12,27 +12,38 @@
  */
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { LoadPanel } from 'devextreme-react/load-panel';
-import { SelectBox } from 'devextreme-react/select-box';
-import { Button } from 'devextreme-react/button';
 import ArrayStore from 'devextreme/data/array_store';
 import DataSource from 'devextreme/data/data_source';
 import axiosInstance from '../../../api/axiosInstance';
 import notify from 'devextreme/ui/notify';
+import { useNavigate } from 'react-router-dom';
 import { useTheme } from '../../../contexts/themeContext';
-import vehicleTrackingSignalRService from '../../../signalR/vehicleTrackingSignalRService';
-import VehicleTrackingWorkspaceLayout from './VehicleTrackingWorkspaceLayout';
 import vehicleTrackingPreferencesService from './vehicleTrackingPreferencesService';
-import { VehicleTrackingMapPanel, VehicleTrackingSidebarPanel } from './components/VehicleTrackingPanels';
+import { VehicleTrackingMapPanel, VehicleTrackingSidebarPanel } from './components/workspace/VehicleTrackingPanels';
+import VehicleTrackingDetailPanelContent from './components/detail/VehicleTrackingDetailPanelContent';
+import VehicleTrackingGeofencePanel from './components/geofence/VehicleTrackingGeofencePanel';
+import VehicleTrackingGeofenceWorkspacePanel from './components/geofence/VehicleTrackingGeofenceWorkspacePanel';
+import VehicleTrackingTripPanel, { VehicleTrackingTripContent } from './components/trips/VehicleTrackingTripPanel';
+import VehicleTrackingDockLayout from './components/dock/VehicleTrackingDockLayout';
+import VehicleTrackingDashboardPanel from './components/dock/VehicleTrackingDashboardPanel';
 import useVehicleTrackingMap from './hooks/useVehicleTrackingMap';
+import useGeofencePreviewOverlay from './hooks/useGeofencePreviewOverlay';
 import useVehicleTrackingRealtime from './hooks/useVehicleTrackingRealtime';
+import useVehicleTrackingTrips from './hooks/useVehicleTrackingTrips';
+import { usePermissions } from '../../../hooks/usePermissions';
 import { ConnectionState } from '../../../signalR/vehicleTrackingSignalRService';
+import VehicleTripDetailPanel from '../trips/components/VehicleTripDetailPanel';
+import VehicleTripOverridePanel from '../trips/components/VehicleTripOverridePanel';
+import { reconcileVehicleTrips, recomputeVehicleTrips } from '../trips/services/vehicleTripService';
+import { vehicleRoutes } from '../utils/navigationHelper';
+import geofenceService from '../../../api/geofenceService';
+import GeofenceCreateForm from '../../../components/geofenceManagement/GeofenceCreateForm';
+import { resolvePolygonPath, resolveRoutePath } from '../../../utils/geofenceOverlayUtils';
 import {
   CITY_LEVEL_ZOOM,
-  DEFAULT_TRACKING_VIEW_NAME,
   FOCUSED_VEHICLE_ZOOM_LEVEL,
   REGION_LEVEL_ZOOM,
   STREET_LEVEL_ZOOM,
-  formatTrackingTimestamp,
   getVehicleCode,
   getVehicleDriverName,
   getVehicleEngineHours,
@@ -59,6 +70,48 @@ let tagsRequestCache = {
 const vehicleSnapshotRequestCache = new Map();
 
 const cloneVehicleCollection = (collection = []) => collection.map((item) => ({ ...item }));
+const normalizeTrackingTagId = (value) => (value == null || value === '' ? null : String(value));
+const emptyTrackingGeofenceShape = {
+  centerLatitude: null,
+  centerLongitude: null,
+  radiusMeters: null,
+  coordinates: [],
+};
+
+const buildShapeFromGeofence = (geofence) => {
+  if (!geofence) return emptyTrackingGeofenceShape;
+  const type = geofence.geofenceType || 'Circle';
+
+  if (type === 'Circle') {
+    return {
+      centerLatitude: geofence.centerLatitude ?? null,
+      centerLongitude: geofence.centerLongitude ?? null,
+      radiusMeters: geofence.radiusMeters ?? null,
+      coordinates: [],
+    };
+  }
+
+  const path = type === 'Polygon' ? resolvePolygonPath(geofence) : resolveRoutePath(geofence);
+  const coordinates = path.map((point, index) => ({
+    latitude: point.lat,
+    longitude: point.lng,
+    order: index,
+  }));
+
+  let centerLat = geofence.centerLatitude;
+  let centerLng = geofence.centerLongitude;
+  if ((centerLat == null || centerLng == null) && coordinates.length > 0) {
+    centerLat = coordinates.reduce((s, c) => s + c.latitude, 0) / coordinates.length;
+    centerLng = coordinates.reduce((s, c) => s + c.longitude, 0) / coordinates.length;
+  }
+
+  return {
+    centerLatitude: centerLat ?? null,
+    centerLongitude: centerLng ?? null,
+    radiusMeters: type === 'Route' ? (geofence.radiusMeters ?? 50) : null,
+    coordinates,
+  };
+};
 
 const fetchTrackingTagsSnapshot = async () => {
   if (tagsRequestCache.data && Date.now() < tagsRequestCache.expiresAt) {
@@ -142,8 +195,11 @@ const fetchVehiclesByTagSnapshot = async (tagId) => {
 };
 
 const VehicleTrackingPage = () => {
+  const navigate = useNavigate();
   const { resolvedTheme } = useTheme();
+  const { hasPermission } = usePermissions();
   const isDarkTheme = resolvedTheme === 'dark';
+  const canManageTrips = hasPermission('_Edit_Vehicle');
   const trackingGridRef = useRef(null);
   const trackingPreferencesSaveTimeoutRef = useRef(null);
   const lastVehicleFetchRef = useRef({ tagId: null, timestamp: 0 });
@@ -164,18 +220,42 @@ const VehicleTrackingPage = () => {
   });
   const [isTrackingPreferencesLoaded, setIsTrackingPreferencesLoaded] = useState(false);
   const [clusterFilteredVehicleIds, setClusterFilteredVehicleIds] = useState(null);
-  const [searchText, setSearchText] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [preferredVehicleZoomLevel, setPreferredVehicleZoomLevel] = useState(FOCUSED_VEHICLE_ZOOM_LEVEL);
   const [loading, setLoading] = useState(true);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
-  const [lastRefresh, setLastRefresh] = useState(null);
-  const [isDebugPopupVisible, setIsDebugPopupVisible] = useState(false);
-  const [debugConnectionInfo, setDebugConnectionInfo] = useState(() => vehicleTrackingSignalRService.getConnectionInfo());
-  const [debugEvents, setDebugEvents] = useState(() => vehicleTrackingSignalRService.getRecentEvents());
+  const [trackedVehicleIds, setTrackedVehicleIds] = useState([]);
+  const [, setLastRefresh] = useState(null);
+  const [isGeofencePanelOpen, setIsGeofencePanelOpen] = useState(false);
+  const [trackingGeofenceGroups, setTrackingGeofenceGroups] = useState([]);
+  const [trackingGeofences, setTrackingGeofences] = useState([]);
+  const [isTrackingGeofenceLoading, setIsTrackingGeofenceLoading] = useState(false);
+  const [isTrackingGeofenceSaving, setIsTrackingGeofenceSaving] = useState(false);
+  const [isTrackingGeofenceGroupSaving, setIsTrackingGeofenceGroupSaving] = useState(false);
+  const [trackingGeofenceType, setTrackingGeofenceType] = useState('Circle');
+  const [trackingGeofenceShape, setTrackingGeofenceShape] = useState(emptyTrackingGeofenceShape);
+  const [trackingGeofenceViewport, setTrackingGeofenceViewport] = useState(null);
+  const [previewGeofence, setPreviewGeofence] = useState(null);
+  const [previewColor, setPreviewColor] = useState(null);
+  const [editingGeofence, setEditingGeofence] = useState(null);
+  const [floatingPanels, setFloatingPanels] = useState({
+    trips: false,
+  });
+  const [selectedTrackingGeofenceGroup, setSelectedTrackingGeofenceGroup] = useState(null);
+  const [isTripPanelOpen, setIsTripPanelOpen] = useState(false);
+  const [selectedTripGroupId, setSelectedTripGroupId] = useState(null);
+  const [tripDetailForOverride, setTripDetailForOverride] = useState(null);
+  const [isTripOverridePanelOpen, setIsTripOverridePanelOpen] = useState(false);
+  const [isTripCommandBusy, setIsTripCommandBusy] = useState(false);
+  const {
+    inProgressTrips,
+    recentTrips,
+    lowConfidenceCount,
+    isLoading: isTripLoading,
+    lastUpdated: lastTripUpdated,
+    refreshTrips,
+  } = useVehicleTrackingTrips();
   const filteredVehicles = useMemo(() => {
-    const searchLower = searchText.trim().toLowerCase();
-
     return vehicles.filter((vehicle) => {
       const operationalStatus = getVehicleOperationalStatus(vehicle);
       const matchesStatus = statusFilter === 'all'
@@ -188,45 +268,61 @@ const VehicleTrackingPage = () => {
         return false;
       }
 
-      if (!searchLower) {
-        return true;
-      }
-
-      return [
-        vehicle.name,
-        vehicle.description,
-        vehicle.hyoungNo,
-        vehicle.numberPlate,
-        vehicle.plateNumber,
-        vehicle.address,
-        vehicle.siteName,
-        vehicle.id,
-        getVehicleDriverName(vehicle),
-        operationalStatus,
-      ].some((value) => value?.toString().toLowerCase().includes(searchLower));
+      return true;
     });
-  }, [searchText, statusFilter, vehicles]);
+  }, [statusFilter, vehicles]);
+
+  const handleVehicleActivate = useCallback((vehicle) => {
+    setSelectedVehicle(vehicle);
+  }, []);
+
+  const resetTrackingGeofenceDraft = useCallback((viewport = null) => {
+    setTrackingGeofenceType('Circle');
+    setTrackingGeofenceShape(emptyTrackingGeofenceShape);
+    setTrackingGeofenceViewport(viewport || null);
+  }, []);
+
+  const trackingGeofenceDrawing = useMemo(() => {
+    if (isGeofencePanelOpen) {
+      return {
+        enabled: true,
+        geofenceType: trackingGeofenceType,
+        shape: trackingGeofenceShape,
+        focusViewport: null,
+        onShapeChange: setTrackingGeofenceShape,
+      };
+    }
+
+    return null;
+  }, [isGeofencePanelOpen, trackingGeofenceShape, trackingGeofenceType]);
 
   const {
     clusterContextMenu,
     closeClusterContextMenu,
+    fitGeofenceOnMap,
     focusVehicleOnMap,
+    getViewportSnapshot,
     isMapLoaded,
     isMapLoading,
     mapContainerRef,
+    mapRef,
     mapSectionRef,
     resetMapBounds,
     scrollMapIntoView,
   } = useVehicleTrackingMap({
     filteredVehicles,
+    geofenceDrawing: trackingGeofenceDrawing,
+    onVehicleActivate: handleVehicleActivate,
     selectedVehicle,
     setSelectedVehicle,
     preferredVehicleZoomLevel,
     isDarkTheme,
   });
 
+  useGeofencePreviewOverlay(mapRef, previewGeofence, previewColor);
+
   const { connectionState } = useVehicleTrackingRealtime({
-    selectedVehicleId: selectedVehicle?.id || null,
+    trackedVehicleIds,
     setVehicles,
     setSelectedVehicle,
     setLastRefresh,
@@ -245,28 +341,6 @@ const VehicleTrackingPage = () => {
     closeClusterContextMenu();
   }, [closeClusterContextMenu]);
 
-  const handleWorkspacePreferenceChange = useCallback((workspaceLayout) => {
-    setTrackingPreferences((previous) => {
-      const previousLayout = previous?.workspaceLayout;
-      const nextHorizontal = workspaceLayout?.splitByAxis?.horizontal;
-      const nextVertical = workspaceLayout?.splitByAxis?.vertical;
-
-      if (
-        previousLayout?.layoutMode === workspaceLayout?.layoutMode
-        && previousLayout?.splitByAxis?.horizontal === nextHorizontal
-        && previousLayout?.splitByAxis?.vertical === nextVertical
-      ) {
-        return previous;
-      }
-
-      return {
-        ...(previous || {}),
-        selectedView: previous?.selectedView || null,
-        workspaceLayout,
-      };
-    });
-  }, []);
-
   const fetchTags = useCallback(async () => {
     try {
       const { preferences, shouldPersist } = await vehicleTrackingPreferencesService.loadPreferences();
@@ -278,7 +352,7 @@ const VehicleTrackingPage = () => {
 
       if (tagsData.length > 0) {
         const initialView = resolveInitialTrackingView(tagsData, preferences?.selectedView);
-        setSelectedTagId((previous) => previous || initialView?.id || tagsData[0].id);
+        setSelectedTagId((previous) => previous ?? normalizeTrackingTagId(initialView?.id ?? tagsData[0]?.id));
       }
 
       if (shouldPersist && preferences) {
@@ -295,25 +369,31 @@ const VehicleTrackingPage = () => {
   }, []);
 
   const fetchVehiclesByTag = useCallback(async (tagId, options = {}) => {
-    if (!tagId) {
+    const normalizedTagId = normalizeTrackingTagId(tagId);
+
+    if (normalizedTagId == null) {
       return;
     }
 
     const { force = false, silent = false } = options;
 
     const now = Date.now();
-    if (!force && lastVehicleFetchRef.current.tagId === tagId && now - lastVehicleFetchRef.current.timestamp < 1000) {
+    if (
+      !force
+      && normalizeTrackingTagId(lastVehicleFetchRef.current.tagId) === normalizedTagId
+      && now - lastVehicleFetchRef.current.timestamp < 1000
+    ) {
       return;
     }
 
-    lastVehicleFetchRef.current = { tagId, timestamp: now };
+    lastVehicleFetchRef.current = { tagId: normalizedTagId, timestamp: now };
 
     try {
       if (!silent) {
         setLoading(true);
       }
 
-      const vehicleData = await fetchVehiclesByTagSnapshot(tagId);
+      const vehicleData = await fetchVehiclesByTagSnapshot(normalizedTagId);
       setVehicles(vehicleData);
       clearClusterFilter();
       setLastRefresh(new Date());
@@ -332,11 +412,11 @@ const VehicleTrackingPage = () => {
   }, [fetchTags]);
 
   useEffect(() => {
-    if (!selectedTagId || !tags.length) {
+    if (normalizeTrackingTagId(selectedTagId) == null || !tags.length) {
       return;
     }
 
-    const selectedView = tags.find((tag) => tag.id === selectedTagId);
+    const selectedView = tags.find((tag) => normalizeTrackingTagId(tag.id) === normalizeTrackingTagId(selectedTagId));
     saveTrackingViewPreference(selectedView);
     setTrackingPreferences((previous) => {
       const nextSelectedView = selectedView
@@ -384,17 +464,26 @@ const VehicleTrackingPage = () => {
   }, [isTrackingPreferencesLoaded, trackingPreferences]);
 
   useEffect(() => {
-    if (!selectedTagId) {
+    if (normalizeTrackingTagId(selectedTagId) == null) {
       return;
+    }
+
+    const previousSnapshot = gridSnapshotRef.current;
+    const previousKeys = Array.from(previousSnapshot.keys());
+
+    if (previousKeys.length > 0) {
+      gridStoreRef.current.push(previousKeys.map((id) => ({ type: 'remove', key: id })));
     }
 
     // Clear previous view's selection so realtime re-subscribes to all vehicles
     setSelectedVehicle(null);
-    // Clear snapshot so the push-effect diffs against a clean baseline
+    // Clear snapshot/cache so the push-effect diffs against a clean baseline
     gridSnapshotRef.current = new Map();
+    gridRowCacheRef.current = new Map();
+    setVehicles([]);
 
     resetMapBounds();
-    fetchVehiclesByTag(selectedTagId);
+    fetchVehiclesByTag(selectedTagId, { force: true });
   }, [fetchVehiclesByTag, resetMapBounds, selectedTagId]);
 
   // On reconnect, merge API snapshot into existing state so unchanged vehicles
@@ -405,7 +494,7 @@ const VehicleTrackingPage = () => {
     previousRealtimeConnectionStateRef.current = connectionState;
 
     if (
-      !selectedTagId
+      normalizeTrackingTagId(selectedTagId) == null
       || connectionState !== ConnectionState.CONNECTED
       || !previousState
       || previousState === ConnectionState.CONNECTED
@@ -542,17 +631,447 @@ const VehicleTrackingPage = () => {
     }
   }, [gridVehicles]);
 
-  const handleRefresh = useCallback(() => {
-    if (!selectedTagId) {
+  const handleTrackingViewChange = useCallback((event) => {
+    setSelectedTagId(normalizeTrackingTagId(event.target.value));
+  }, []);
+
+  const handleOpenTripsPage = useCallback(() => {
+    navigate(vehicleRoutes.trips);
+  }, [navigate]);
+
+  const loadTrackingGeofenceContext = useCallback(async () => {
+    setIsTrackingGeofenceLoading(true);
+
+    try {
+      const [groups, geofences] = await Promise.all([
+        geofenceService.getGeofenceGroups(true),
+        geofenceService.getGeofences(),
+      ]);
+
+      setTrackingGeofenceGroups(Array.isArray(groups) ? groups : []);
+      setTrackingGeofences(Array.isArray(geofences) ? geofences : []);
+    } catch (error) {
+      console.error('Error loading tracking geofence context:', error);
+      notify(error?.message || 'Failed to load geofence setup', 'error', 3000);
+    } finally {
+      setIsTrackingGeofenceLoading(false);
+    }
+  }, []);
+
+  // Keep the selected group in sync when geofence context refreshes
+  useEffect(() => {
+    if (!selectedTrackingGeofenceGroup) return;
+    const refreshed = trackingGeofenceGroups.find((g) => g.id === selectedTrackingGeofenceGroup.id);
+    if (refreshed) {
+      setSelectedTrackingGeofenceGroup(refreshed);
+    }
+  }, [trackingGeofenceGroups]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useEffect(() => {
+    if (trackingGeofenceGroups.length > 0 || isTrackingGeofenceLoading) {
       return;
     }
 
-    fetchVehiclesByTag(selectedTagId);
-    notify('Refreshing vehicle locations...', 'info', 2000);
-  }, [fetchVehiclesByTag, selectedTagId]);
+    loadTrackingGeofenceContext();
+  }, [isTrackingGeofenceLoading, loadTrackingGeofenceContext, trackingGeofenceGroups.length]);
+
+  useEffect(() => {
+    if (selectedVehicle) {
+      return;
+    }
+  }, [selectedVehicle]);
+
+  const handleToggleFloatingPanel = useCallback((panelKey, isVisible) => {
+    if (panelKey === 'trips') {
+      setFloatingPanels((previous) => ({ ...previous, trips: isVisible }));
+      setIsTripPanelOpen(isVisible);
+    }
+  }, []);
+
+  const handleCloseGeofencePanel = useCallback(() => {
+    setIsGeofencePanelOpen(false);
+    setEditingGeofence(null);
+    resetTrackingGeofenceDraft(null);
+  }, [resetTrackingGeofenceDraft]);
+
+  const handleOpenCreateGeofencePanel = useCallback(() => {
+    setPreviewGeofence(null);
+    setPreviewColor(null);
+    setEditingGeofence(null);
+    resetTrackingGeofenceDraft(getViewportSnapshot?.() || null);
+    setIsGeofencePanelOpen(true);
+  }, [getViewportSnapshot, resetTrackingGeofenceDraft]);
+
+  const handleTrackingGroupClick = useCallback((group) => {
+    setSelectedTrackingGeofenceGroup(group);
+    setPreviewGeofence(null);
+    setPreviewColor(null);
+  }, []);
+
+  const handleEditTrackingGroup = useCallback(async (group) => {
+    const newName = window.prompt('Group name:', group.name);
+    if (newName == null || !newName.trim() || newName.trim() === group.name) return;
+
+    try {
+      setIsTrackingGeofenceGroupSaving(true);
+      const response = await geofenceService.updateGeofenceGroup(group.id, { ...group, name: newName.trim() });
+      if (response?.isSuccess) {
+        notify('Group updated', 'success', 3000);
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to update group', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to update group', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceGroupSaving(false);
+    }
+  }, [loadTrackingGeofenceContext]);
+
+  const handleDeleteTrackingGroup = useCallback(async (group) => {
+    if (!window.confirm(`Delete group "${group.name}"?`)) return;
+
+    try {
+      setIsTrackingGeofenceGroupSaving(true);
+      const response = await geofenceService.deleteGeofenceGroup(group.id);
+      if (response?.isSuccess) {
+        notify('Group deleted', 'success', 3000);
+        if (selectedTrackingGeofenceGroup?.id === group.id) {
+          setSelectedTrackingGeofenceGroup(null);
+        }
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to delete group', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to delete group', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceGroupSaving(false);
+    }
+  }, [loadTrackingGeofenceContext, selectedTrackingGeofenceGroup?.id]);
+
+  const handleToggleTrackingFueling = useCallback(async (group) => {
+    try {
+      setIsTrackingGeofenceGroupSaving(true);
+      const response = await geofenceService.updateGroupAllowedForFueling(group.id, !group.isAllowedForFueling);
+      if (response?.isSuccess) {
+        notify(`Fueling ${group.isAllowedForFueling ? 'disabled' : 'enabled'} for "${group.name}"`, 'success', 3000);
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to update fueling setting', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to update fueling setting', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceGroupSaving(false);
+    }
+  }, [loadTrackingGeofenceContext]);
+
+  const handleAddTrackingGroup = useCallback(async () => {
+    const name = window.prompt('New group name:');
+    if (!name?.trim()) return;
+
+    try {
+      setIsTrackingGeofenceGroupSaving(true);
+      const response = await geofenceService.createGeofenceGroup({ name: name.trim(), colour: '#3b82f6' });
+      if (response?.isSuccess) {
+        notify('Group created', 'success', 3000);
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to create group', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to create group', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceGroupSaving(false);
+    }
+  }, [loadTrackingGeofenceContext]);
+
+  const handleChangeTrackingClassification = useCallback(async (geofence, classification) => {
+    try {
+      setIsTrackingGeofenceSaving(true);
+      const response = await geofenceService.updateGeofenceClassification(geofence.id, classification || 'Unknown');
+      if (response?.isSuccess) {
+        notify(`Classification changed to ${classification}`, 'success', 3000);
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to update classification', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to update classification', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceSaving(false);
+    }
+  }, [loadTrackingGeofenceContext]);
+
+  const handleZoomTrackingGeofence = useCallback(async (geofence, group = null) => {
+    if (!geofence) {
+      return;
+    }
+
+    const color = group?.colour || selectedTrackingGeofenceGroup?.colour || '#15803d';
+
+    // If geometry data is missing, try fetching the full geofence detail
+    let enriched = geofence;
+    if (!geofence.geometryJson && geofence.geofenceType !== 'Circle') {
+      try {
+        const detail = await geofenceService.getGeofenceById(geofence.id);
+        if (detail?.geometryJson) {
+          enriched = { ...geofence, geometryJson: detail.geometryJson };
+          // Update the cached list so subsequent clicks don't need to refetch
+          setTrackingGeofences((prev) =>
+            prev.map((gf) => (gf.id === geofence.id ? enriched : gf))
+          );
+        }
+      } catch {
+        // Silently fall back to center-point placeholder
+      }
+    }
+
+    setPreviewGeofence(enriched);
+    setPreviewColor(color);
+    scrollMapIntoView?.();
+  }, [selectedTrackingGeofenceGroup?.colour, scrollMapIntoView]);
+
+  const handleDeleteTrackingGeofence = useCallback(async (geofence) => {
+    if (!window.confirm(`Delete geofence "${geofence.name}"?`)) return;
+
+    try {
+      setIsTrackingGeofenceSaving(true);
+      const response = await geofenceService.deleteGeofence(geofence.id);
+      if (response?.isSuccess) {
+        setPreviewGeofence((current) => (current && Number(current.id) === Number(geofence.id) ? null : current));
+        notify('Geofence deleted', 'success', 3000);
+        await loadTrackingGeofenceContext();
+      } else {
+        notify(response?.message || 'Failed to delete geofence', 'error', 4000);
+      }
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || 'Failed to delete geofence', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceSaving(false);
+    }
+  }, [loadTrackingGeofenceContext]);
+
+  const handleEditTrackingGeofence = useCallback(async (geofence) => {
+    if (!geofence) return;
+
+    try {
+      // Fetch full geofence data (includes geometry)
+      let fullGeofence = geofence;
+      if (!geofence.geometryJson && geofence.geofenceType !== 'Circle') {
+        const detail = await geofenceService.getGeofenceById(geofence.id);
+        if (detail) {
+          fullGeofence = { ...geofence, ...detail };
+        }
+      }
+
+      // Determine group membership from current groups data
+      const groupIds = trackingGeofenceGroups
+        .filter((g) => Array.isArray(g.geofences) && g.geofences.some((gf) => Number(gf.id) === Number(geofence.id)))
+        .map((g) => g.id);
+
+      const editData = { ...fullGeofence, groupIds };
+      const editShape = buildShapeFromGeofence(fullGeofence);
+      const editType = fullGeofence.geofenceType || 'Circle';
+
+      setEditingGeofence(editData);
+      setPreviewGeofence(null);
+      setPreviewColor(null);
+      setTrackingGeofenceType(editType);
+      setTrackingGeofenceShape(editShape);
+      setTrackingGeofenceViewport(getViewportSnapshot?.() || null);
+      setIsGeofencePanelOpen(true);
+    } catch (error) {
+      notify(error?.message || 'Failed to load geofence for editing', 'error', 4000);
+    }
+  }, [trackingGeofenceGroups, getViewportSnapshot]);
+
+  const handleCreateTrackingGeofence = useCallback(async (payload) => {
+    try {
+      setIsTrackingGeofenceSaving(true);
+      const response = await geofenceService.createGeofence(payload);
+
+      if (response?.isSuccess) {
+        notify(response.message || 'Geofence created successfully', 'success', 3000);
+        handleCloseGeofencePanel();
+        await loadTrackingGeofenceContext();
+        return;
+      }
+
+      notify(response?.message || 'Failed to create geofence', 'error', 4000);
+    } catch (error) {
+      console.error('Error creating tracking geofence:', error);
+      notify(error?.response?.data?.message || error?.message || 'Failed to create geofence', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceSaving(false);
+    }
+  }, [handleCloseGeofencePanel, loadTrackingGeofenceContext]);
+
+  const handleUpdateTrackingGeofence = useCallback(async (payload) => {
+    if (!editingGeofence) return;
+    try {
+      setIsTrackingGeofenceSaving(true);
+      const response = await geofenceService.updateGeofence(editingGeofence.id, payload);
+
+      if (response?.isSuccess) {
+        notify(response.message || 'Geofence updated successfully', 'success', 3000);
+        handleCloseGeofencePanel();
+        await loadTrackingGeofenceContext();
+        return;
+      }
+
+      notify(response?.message || 'Failed to update geofence', 'error', 4000);
+    } catch (error) {
+      console.error('Error updating tracking geofence:', error);
+      notify(error?.response?.data?.message || error?.message || 'Failed to update geofence', 'error', 4000);
+    } finally {
+      setIsTrackingGeofenceSaving(false);
+    }
+  }, [editingGeofence, handleCloseGeofencePanel, loadTrackingGeofenceContext]);
+
+  const handleCreateTrackingGeofenceGroup = useCallback(async (payload) => {
+    try {
+      setIsTrackingGeofenceGroupSaving(true);
+      const response = await geofenceService.createGeofenceGroup(payload);
+
+      if (response?.isSuccess) {
+        const refreshedGroups = await geofenceService.getGeofenceGroups(true);
+        setTrackingGeofenceGroups(Array.isArray(refreshedGroups) ? refreshedGroups : []);
+        notify(response.message || 'Geofence group created successfully', 'success', 3000);
+
+        const createdGroupId = response?.data?.id || response?.data?.groupId;
+        if (createdGroupId != null) {
+          return (Array.isArray(refreshedGroups) ? refreshedGroups : []).find((group) => Number(group.id) === Number(createdGroupId)) || null;
+        }
+
+        return (Array.isArray(refreshedGroups) ? refreshedGroups : []).find((group) => group.name === payload.name) || null;
+      }
+
+      notify(response?.message || 'Failed to create geofence group', 'error', 4000);
+      return null;
+    } catch (error) {
+      console.error('Error creating tracking geofence group:', error);
+      notify(error?.response?.data?.message || error?.message || 'Failed to create geofence group', 'error', 4000);
+      return null;
+    } finally {
+      setIsTrackingGeofenceGroupSaving(false);
+    }
+  }, []);
+
+  const handleTrackingGeofenceTypeChange = useCallback((value) => {
+    setTrackingGeofenceType(value);
+    // When entering edit mode, the initialData useEffect syncs the type.
+    // Skip resetting shape if the type matches the editing geofence so the
+    // existing overlay stays on the map for the user to adjust.
+    if (editingGeofence && value === (editingGeofence.geofenceType || 'Circle')) {
+      return;
+    }
+    setTrackingGeofenceShape({
+      ...emptyTrackingGeofenceShape,
+      radiusMeters: value === 'Route' ? 50 : null,
+    });
+  }, [editingGeofence]);
+
+  const handleTrackingGeofenceViewportChange = useCallback((viewport) => {
+    setTrackingGeofenceViewport(viewport || getViewportSnapshot?.() || null);
+  }, [getViewportSnapshot]);
+
+  const handleTrackingGeofenceShapePreviewChange = useCallback((partialShape) => {
+    setTrackingGeofenceShape((current) => ({
+      ...current,
+      ...partialShape,
+    }));
+  }, []);
+
+  const handleRecomputeTripPayload = useCallback(async (payload) => {
+    if (!canManageTrips) {
+      notify('Only admins can recompute trips', 'warning', 3000);
+      return;
+    }
+
+    try {
+      setIsTripCommandBusy(true);
+      const result = await recomputeVehicleTrips(payload);
+      notify(
+        `Recompute finished. ${result?.groupsCreated || 0} groups / ${result?.tripsCreated || 0} trips created.`,
+        'success',
+        4000,
+      );
+      await refreshTrips();
+    } catch (error) {
+      console.error('Error recomputing trip payload:', error);
+      notify(error.message || 'Trip recompute failed', 'error', 3000);
+    } finally {
+      setIsTripCommandBusy(false);
+    }
+  }, [canManageTrips, refreshTrips]);
+
+  const handleReconcileTripPayload = useCallback(async (payload) => {
+    if (!canManageTrips) {
+      notify('Only admins can reconcile trips', 'warning', 3000);
+      return;
+    }
+
+    try {
+      setIsTripCommandBusy(true);
+      const result = await reconcileVehicleTrips({
+        vehicleId: payload?.vehicleId,
+        fromUtc: payload?.fromUtc,
+        toUtc: payload?.toUtc,
+        previewOnly: false,
+      });
+      notify(
+        `Reconciliation finished. ${result?.groupsUpdated || 0} groups updated and ${result?.anomalyGroups || 0} anomalies reviewed.`,
+        'success',
+        4500,
+      );
+      await refreshTrips();
+    } catch (error) {
+      console.error('Error reconciling trip payload:', error);
+      notify(error.message || 'Trip reconciliation failed', 'error', 3000);
+    } finally {
+      setIsTripCommandBusy(false);
+    }
+  }, [canManageTrips, refreshTrips]);
+
+  const handleRecomputeSelectedVehicle = useCallback(async () => {
+    const activeVehicleId = selectedVehicle?.vehicleId || selectedVehicle?.id;
+    if (!activeVehicleId) {
+      notify('Select a vehicle first before recomputing trip history', 'warning', 3000);
+      return;
+    }
+
+    const now = new Date();
+    const fromUtc = new Date(now.getTime() - (24 * 60 * 60 * 1000)).toISOString();
+    await handleRecomputeTripPayload({
+      vehicleId: activeVehicleId,
+      fromUtc,
+      toUtc: now.toISOString(),
+    });
+  }, [handleRecomputeTripPayload, selectedVehicle]);
+
+  const handleToggleVehicleTracking = useCallback((vehicleId, shouldTrack) => {
+    if (!vehicleId) {
+      return;
+    }
+
+    setTrackedVehicleIds((previous) => {
+      const normalizedVehicleId = vehicleId;
+      const nextSet = new Set(previous);
+
+      if (shouldTrack) {
+        nextSet.add(normalizedVehicleId);
+      } else {
+        nextSet.delete(normalizedVehicleId);
+      }
+
+      return Array.from(nextSet);
+    });
+  }, []);
 
   const handleVehicleClick = useCallback((vehicle) => {
-    setSelectedVehicle(vehicle);
+    handleVehicleActivate(vehicle);
 
     if (!vehicle?.latitude || !vehicle?.longitude) {
       return;
@@ -566,7 +1085,7 @@ const VehicleTrackingPage = () => {
     } catch (error) {
       console.error('Error handling vehicle click:', error);
     }
-  }, [focusVehicleOnMap, preferredVehicleZoomLevel, scrollMapIntoView]);
+  }, [focusVehicleOnMap, handleVehicleActivate, preferredVehicleZoomLevel, scrollMapIntoView]);
 
   const handleTrackingGridContextMenuPreparing = useCallback((event) => {
     if (event.target === 'header') {
@@ -606,51 +1125,9 @@ const VehicleTrackingPage = () => {
     });
   }, [focusVehicleOnMap, scrollMapIntoView]);
 
-  const handleTrackingGridOptionChanged = useCallback((event) => {
-    if (event.fullName === 'searchPanel.text') {
-      setSearchText(event.value || '');
-    }
-  }, []);
-
   const handlePageContextMenu = useCallback((event) => {
     event.preventDefault();
   }, []);
-
-  const refreshDebugState = useCallback(() => {
-    setDebugConnectionInfo(vehicleTrackingSignalRService.getConnectionInfo());
-    setDebugEvents(vehicleTrackingSignalRService.getRecentEvents());
-  }, []);
-
-  useEffect(() => {
-    if (!isDebugPopupVisible) {
-      return undefined;
-    }
-
-    refreshDebugState();
-
-    const intervalId = window.setInterval(() => {
-      refreshDebugState();
-    }, 1000);
-
-    return () => window.clearInterval(intervalId);
-  }, [isDebugPopupVisible, refreshDebugState]);
-
-  const handleOpenDebugPopup = useCallback(() => {
-    refreshDebugState();
-    setIsDebugPopupVisible(true);
-  }, [refreshDebugState]);
-
-  const handleClearDebugEvents = useCallback(() => {
-    vehicleTrackingSignalRService.clearRecentEvents();
-    refreshDebugState();
-  }, [refreshDebugState]);
-
-  const trafficSummary = useMemo(() => ({
-    total: debugEvents.length,
-    locationUpdates: debugEvents.filter((event) => event.event === 'locationUpdate').length,
-    connectionStatuses: debugEvents.filter((event) => event.event === 'connectionStatus').length,
-    subscriptions: debugEvents.filter((event) => event.event === 'subscriptionConfirmed').length,
-  }), [debugEvents]);
 
   const renderStatusCell = useCallback((cell) => {
     const tone = getVehicleStatusTone(cell.data);
@@ -663,36 +1140,6 @@ const VehicleTrackingPage = () => {
       </div>
     );
   }, []);
-
-  const vehiclePanelContent = useMemo(() => (
-    <VehicleTrackingSidebarPanel
-      clusterFilteredVehicleIds={clusterFilteredVehicleIds}
-      clearClusterFilter={clearClusterFilter}
-      filteredVehiclesCount={filteredVehicles.length}
-      gridFilteredVehiclesCount={gridFilteredVehicles.length}
-      gridDataSource={gridDataSourceRef.current}
-      handleTrackingGridContextMenuPreparing={handleTrackingGridContextMenuPreparing}
-      handleTrackingGridOptionChanged={handleTrackingGridOptionChanged}
-      handleVehicleClick={handleVehicleClick}
-      loading={loading}
-      renderStatusCell={renderStatusCell}
-      searchText={searchText}
-      selectedVehicleId={selectedVehicle?.id ?? null}
-      trackingGridRef={trackingGridRef}
-    />
-  ), [
-    clearClusterFilter,
-    clusterFilteredVehicleIds,
-    filteredVehicles.length,
-    gridFilteredVehicles.length,
-    handleTrackingGridContextMenuPreparing,
-    handleTrackingGridOptionChanged,
-    handleVehicleClick,
-    loading,
-    renderStatusCell,
-    searchText,
-    selectedVehicle?.id,
-  ]);
 
   const mapPanelContent = useMemo(() => (
     <VehicleTrackingMapPanel
@@ -714,191 +1161,257 @@ const VehicleTrackingPage = () => {
     mapSectionRef,
   ]);
 
+  const dockPanelContentMap = useMemo(() => ({
+    map: mapPanelContent,
+    vehicles: (
+      <VehicleTrackingSidebarPanel
+        gridDataSource={gridDataSourceRef.current}
+        handleTrackingGridContextMenuPreparing={handleTrackingGridContextMenuPreparing}
+        handleToggleVehicleTracking={handleToggleVehicleTracking}
+        handleVehicleClick={handleVehicleClick}
+        loading={loading}
+        renderStatusCell={renderStatusCell}
+        selectedVehicleId={selectedVehicle?.id ?? null}
+        trackedVehicleIds={trackedVehicleIds}
+        trackingGridRef={trackingGridRef}
+      />
+    ),
+    geofence: (
+      <VehicleTrackingGeofenceWorkspacePanel
+        allGeofences={trackingGeofences}
+        groups={trackingGeofenceGroups}
+        loading={isTrackingGeofenceLoading}
+        onAddGeofence={handleOpenCreateGeofencePanel}
+        onAddGroup={handleAddTrackingGroup}
+        onChangeClassification={handleChangeTrackingClassification}
+        onDeleteGeofence={handleDeleteTrackingGeofence}
+        onDeleteGroup={handleDeleteTrackingGroup}
+        onEditGeofence={handleEditTrackingGeofence}
+        onEditGroup={handleEditTrackingGroup}
+        onGeofenceSelect={handleZoomTrackingGeofence}
+        onToggleFueling={handleToggleTrackingFueling}
+        selectedGroup={selectedTrackingGeofenceGroup}
+        setSelectedGroup={handleTrackingGroupClick}
+      />
+    ),
+    dashboard: (
+      <VehicleTrackingDashboardPanel
+        inProgressTripCount={inProgressTrips.length}
+        lowConfidenceCount={lowConfidenceCount}
+        stats={stats}
+      />
+    ),
+    trips: (
+      <VehicleTrackingTripContent
+        inProgressTrips={inProgressTrips}
+        recentTrips={recentTrips}
+        isLoading={isTripLoading}
+        lastUpdated={lastTripUpdated}
+        selectedVehicleId={selectedVehicle?.vehicleId || selectedVehicle?.id || null}
+        selectedVehicleLabel={selectedVehicle ? getVehicleCode(selectedVehicle) : null}
+        onOpenTripDetail={(vehicleTripGroupId) => setSelectedTripGroupId(vehicleTripGroupId)}
+        onRefresh={refreshTrips}
+      />
+    ),
+    detail: (
+      <div className="vehicle-tracking-panel vehicle-tracking-panel--docked vehicle-tracking-panel--open">
+        <VehicleTrackingDetailPanelContent
+          isDocked={true}
+          vehicleId={selectedVehicle?.vehicleId || selectedVehicle?.id || null}
+          vehicleSnapshot={selectedVehicle}
+        />
+      </div>
+    ),
+  }), [
+    handleAddTrackingGroup,
+    handleChangeTrackingClassification,
+    handleDeleteTrackingGeofence,
+    handleDeleteTrackingGroup,
+    handleEditTrackingGeofence,
+    handleEditTrackingGroup,
+    handleOpenCreateGeofencePanel,
+    handleToggleTrackingFueling,
+    handleToggleVehicleTracking,
+    handleTrackingGridContextMenuPreparing,
+    handleTrackingGroupClick,
+    handleVehicleClick,
+    inProgressTrips,
+    isTripLoading,
+    isTrackingGeofenceLoading,
+    lastTripUpdated,
+    loading,
+    lowConfidenceCount,
+    mapPanelContent,
+    recentTrips,
+    refreshTrips,
+    renderStatusCell,
+    selectedTrackingGeofenceGroup,
+    selectedVehicle,
+    selectedVehicle?.id,
+    selectedVehicle?.vehicleId,
+    stats,
+    trackedVehicleIds,
+    trackingGeofenceGroups,
+    trackingGeofences,
+  ]);
+
   return (
     <div
       className="vehicle-tracking-page tw-flex tw-h-full tw-min-h-0 tw-flex-col tw-overflow-hidden"
       onContextMenu={handlePageContextMenu}
     >
-      <LoadPanel visible={loading} />
+      <LoadPanel visible={loading || isTripCommandBusy} />
 
-      <div className="tw-flex tw-shrink-0 tw-items-center tw-justify-between tw-border-b tw-bg-white tw-px-4 tw-py-3">
-        <div className="tw-flex tw-items-center tw-gap-4">
-          <div>
-            <h2 className="tw-text-xl tw-font-bold tw-text-gray-800">
-              <i className="fa-light fa-satellite tw-mr-2"></i>
-              Vehicle Tracking
-            </h2>
-            <p className="tw-mt-1 tw-text-sm tw-text-gray-500">
-              Starts from {DEFAULT_TRACKING_VIEW_NAME} and remembers your last selected view.
-            </p>
+      <div className="vehicle-tracking-toolbar tw-shrink-0">
+        <div className="vehicle-tracking-toolbar__section vehicle-tracking-toolbar__section--selector">
+          <div className="vehicle-tracking-toolbar__field-group vehicle-tracking-toolbar__field-group--floating">
+            <div className="vehicle-tracking-toolbar__select-wrap">
+              <select
+                id="vehicle-tracking-view-selector"
+                className="vehicle-tracking-toolbar__select"
+                aria-label="Vehicle view"
+                value={selectedTagId == null ? '' : String(selectedTagId)}
+                onChange={handleTrackingViewChange}
+                disabled={tags.length === 0}
+              >
+                {tags.length === 0 ? (
+                  <option value="">Loading views...</option>
+                ) : (
+                  tags.map((tag) => (
+                    <option key={tag.id} value={String(tag.id)}>
+                      {tag.name}
+                    </option>
+                  ))
+                )}
+              </select>
+            </div>
           </div>
-          <SelectBox
-            dataSource={tags}
-            displayExpr="name"
-            valueExpr="id"
-            value={selectedTagId}
-            onValueChanged={(event) => setSelectedTagId(event.value)}
-            placeholder="Select View"
-            width={240}
-            showClearButton={false}
-          />
         </div>
 
-        <div className="tw-flex tw-items-center tw-gap-4">
-          {lastRefresh && (
-            <span className="tw-text-sm tw-text-gray-500">
-              Last update: {formatTrackingTimestamp(lastRefresh)}
-            </span>
+        <div className="vehicle-tracking-toolbar__section vehicle-tracking-toolbar__section--summary" aria-label="Fleet summary">
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--blue"></span>
+            <span>Total:</span>
+            <strong>{stats.total}</strong>
+          </div>
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--green"></span>
+            <span>Moving:</span>
+            <strong>{stats.moving}</strong>
+          </div>
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--emerald"></span>
+            <span>Online:</span>
+            <strong>{stats.online}</strong>
+          </div>
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--red"></span>
+            <span>Offline:</span>
+            <strong>{stats.offline}</strong>
+          </div>
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--orange"></span>
+            <span>In transit:</span>
+            <strong>{inProgressTrips.length}</strong>
+          </div>
+          <div className="vehicle-tracking-toolbar__metric">
+            <span className="vehicle-tracking-toolbar__metric-dot vehicle-tracking-toolbar__metric-dot--purple"></span>
+            <span>Low confidence:</span>
+            <strong>{lowConfidenceCount}</strong>
+          </div>
+        </div>
+
+        <div className="vehicle-tracking-toolbar__section vehicle-tracking-toolbar__section--actions" role="toolbar" aria-label="Tracking actions">
+          <div className="vehicle-tracking-toolbar__actions">
+            <button
+              type="button"
+              className="vehicle-tracking-toolbar__action vehicle-tracking-toolbar__action--ghost"
+              onClick={handleOpenTripsPage}
+            >
+              <i className="fa-light fa-route"></i>
+              <span>Trips</span>
+            </button>
+          </div>
+
+        </div>
+      </div>
+
+      <VehicleTrackingDockLayout panelContentMap={dockPanelContentMap} />
+
+      <VehicleTrackingGeofencePanel
+        open={isGeofencePanelOpen}
+        onClose={handleCloseGeofencePanel}
+        title={editingGeofence ? "Edit geofence" : "Create geofence"}
+      >
+        <div className="tw-bg-[#faf9f8] tw-p-4">
+          {isTrackingGeofenceLoading ? (
+            <div className="tw-rounded-lg tw-border tw-border-gray-200 tw-bg-white tw-p-6 tw-text-sm tw-text-gray-600">
+              Loading geofence setup...
+            </div>
+          ) : (
+            <GeofenceCreateForm
+              geofenceGroups={trackingGeofenceGroups}
+              geofences={trackingGeofences}
+              initialViewport={trackingGeofenceViewport || getViewportSnapshot?.() || null}
+              initialData={editingGeofence}
+              saving={isTrackingGeofenceSaving}
+              creatingGroup={isTrackingGeofenceGroupSaving}
+              compact={true}
+              hideMap={true}
+              externalShape={trackingGeofenceShape}
+              onCreateGroup={handleCreateTrackingGeofenceGroup}
+              onGeofenceTypeChange={handleTrackingGeofenceTypeChange}
+              onMapViewportChange={handleTrackingGeofenceViewportChange}
+              onShapePreviewChange={handleTrackingGeofenceShapePreviewChange}
+              onCancel={handleCloseGeofencePanel}
+              onSubmit={editingGeofence ? handleUpdateTrackingGeofence : handleCreateTrackingGeofence}
+            />
           )}
-          <Button
-            icon="fa-light fa-bug"
-            text="Live Debug"
-            type="normal"
-            stylingMode="outlined"
-            onClick={handleOpenDebugPopup}
-          />
-          <Button
-            icon="fa-light fa-refresh"
-            text="Refresh"
-            type="default"
-            stylingMode="outlined"
-            onClick={handleRefresh}
-          />
         </div>
-      </div>
+      </VehicleTrackingGeofencePanel>
 
-      <div className="tw-flex tw-shrink-0 tw-gap-6 tw-border-b tw-bg-gray-50 tw-px-4 tw-py-2">
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-truck tw-text-blue-500"></i>
-          <span className="tw-text-sm tw-font-medium">Total: {stats.total}</span>
-        </div>
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-location-arrow tw-text-green-500"></i>
-          <span className="tw-text-sm tw-font-medium">Moving: {stats.moving}</span>
-        </div>
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-wifi tw-text-green-500"></i>
-          <span className="tw-text-sm tw-font-medium">Online: {stats.online}</span>
-        </div>
-        <div className="tw-flex tw-items-center tw-gap-2">
-          <i className="fa-light fa-wifi-slash tw-text-red-500"></i>
-          <span className="tw-text-sm tw-font-medium">Offline: {stats.offline}</span>
-        </div>
-      </div>
-
-      <VehicleTrackingWorkspaceLayout
-        initialPreference={trackingPreferences?.workspaceLayout}
-        onPreferenceChange={handleWorkspacePreferenceChange}
-        vehiclePanel={vehiclePanelContent}
-        mapPanel={mapPanelContent}
+      <VehicleTrackingTripPanel
+        open={isTripPanelOpen}
+        onClose={() => {
+          setIsTripPanelOpen(false);
+          setFloatingPanels((previous) => ({
+            ...previous,
+            trips: false,
+          }));
+        }}
+        inProgressTrips={inProgressTrips}
+        recentTrips={recentTrips}
+        isLoading={isTripLoading}
+        lastUpdated={lastTripUpdated}
+        selectedVehicleId={selectedVehicle?.vehicleId || selectedVehicle?.id || null}
+        selectedVehicleLabel={selectedVehicle ? getVehicleCode(selectedVehicle) : null}
+        canRecompute={canManageTrips}
+        onOpenTripDetail={(vehicleTripGroupId) => setSelectedTripGroupId(vehicleTripGroupId)}
+        onOpenTripsPage={handleOpenTripsPage}
+        onRefresh={refreshTrips}
+        onRecomputeSelectedVehicle={handleRecomputeSelectedVehicle}
+        isTripActionLoading={isTripCommandBusy}
       />
 
-      {isDebugPopupVisible && (
-        <div className="vehicle-tracking-debug-popup tw-fixed tw-inset-0 tw-z-[1200] tw-flex tw-items-center tw-justify-center tw-bg-slate-900/40 tw-p-4">
-          <div className="vehicle-tracking-debug-popup__card tw-flex tw-h-full tw-max-h-[80vh] tw-w-full tw-max-w-4xl tw-flex-col tw-overflow-hidden tw-rounded-xl tw-border tw-bg-white tw-shadow-2xl">
-            <div className="vehicle-tracking-debug-popup__header tw-flex tw-items-start tw-justify-between tw-gap-4 tw-border-b tw-px-5 tw-py-4">
-              <div>
-                <h3 className="tw-text-lg tw-font-semibold tw-text-slate-900">
-                  <i className="fa-light fa-bug tw-mr-2"></i>
-                  Vehicle Tracking Live Debug
-                </h3>
-                <p className="tw-mt-1 tw-text-sm tw-text-slate-500">
-                  SignalR connection state and recent live traffic for this page.
-                </p>
-              </div>
-              <div className="tw-flex tw-items-center tw-gap-2">
-                <Button
-                  icon="fa-light fa-broom-wide"
-                  text="Clear Events"
-                  type="normal"
-                  stylingMode="outlined"
-                  onClick={handleClearDebugEvents}
-                />
-                <Button
-                  icon="fa-light fa-xmark"
-                  text="Close"
-                  type="normal"
-                  stylingMode="outlined"
-                  onClick={() => setIsDebugPopupVisible(false)}
-                />
-              </div>
-            </div>
+      <VehicleTripDetailPanel
+        open={selectedTripGroupId != null}
+        onClose={() => setSelectedTripGroupId(null)}
+        vehicleTripGroupId={selectedTripGroupId}
+        canManageTrips={canManageTrips}
+        onRecompute={handleRecomputeTripPayload}
+        onReconcile={handleReconcileTripPayload}
+        onRequestOverride={(detail) => {
+          setTripDetailForOverride(detail);
+          setIsTripOverridePanelOpen(true);
+        }}
+      />
 
-            <div className="vehicle-tracking-debug-popup__body tw-grid tw-min-h-0 tw-flex-1 tw-gap-4 tw-overflow-hidden tw-p-5 lg:tw-grid-cols-[320px_minmax(0,1fr)]">
-              <div className="vehicle-tracking-debug-popup__summary tw-space-y-4 tw-overflow-auto">
-                <div className="vehicle-tracking-debug-popup__section tw-rounded-lg tw-border tw-p-4">
-                  <div className="tw-mb-3 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-slate-500">Connection</div>
-                  <div className="tw-space-y-2 tw-text-sm">
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">State</span><strong>{debugConnectionInfo.state}</strong></div>
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">Connected</span><strong>{debugConnectionInfo.isConnected ? 'Yes' : 'No'}</strong></div>
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">Transport</span><strong>{debugConnectionInfo.transport || 'Unknown'}</strong></div>
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">Subscribed to all</span><strong>{debugConnectionInfo.subscribedToAll ? 'Yes' : 'No'}</strong></div>
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">Reconnect attempts</span><strong>{debugConnectionInfo.reconnectAttempts}</strong></div>
-                    <div className="tw-flex tw-justify-between"><span className="tw-text-slate-500">Selected vehicle</span><strong>{selectedVehicle?.id || '—'}</strong></div>
-                  </div>
-                </div>
-
-                <div className="vehicle-tracking-debug-popup__section tw-rounded-lg tw-border tw-p-4">
-                  <div className="tw-mb-3 tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-slate-500">Traffic Summary</div>
-                  <div className="tw-grid tw-grid-cols-2 tw-gap-3">
-                    <div className="vehicle-tracking-debug-popup__metric tw-rounded-md tw-bg-slate-50 tw-p-3">
-                      <div className="tw-text-xs tw-text-slate-500">Recent events</div>
-                      <div className="tw-text-lg tw-font-semibold tw-text-slate-900">{trafficSummary.total}</div>
-                    </div>
-                    <div className="vehicle-tracking-debug-popup__metric tw-rounded-md tw-bg-slate-50 tw-p-3">
-                      <div className="tw-text-xs tw-text-slate-500">Location updates</div>
-                      <div className="tw-text-lg tw-font-semibold tw-text-slate-900">{trafficSummary.locationUpdates}</div>
-                    </div>
-                    <div className="vehicle-tracking-debug-popup__metric tw-rounded-md tw-bg-slate-50 tw-p-3">
-                      <div className="tw-text-xs tw-text-slate-500">Status changes</div>
-                      <div className="tw-text-lg tw-font-semibold tw-text-slate-900">{trafficSummary.connectionStatuses}</div>
-                    </div>
-                    <div className="vehicle-tracking-debug-popup__metric tw-rounded-md tw-bg-slate-50 tw-p-3">
-                      <div className="tw-text-xs tw-text-slate-500">Subscriptions</div>
-                      <div className="tw-text-lg tw-font-semibold tw-text-slate-900">{trafficSummary.subscriptions}</div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <div className="vehicle-tracking-debug-popup__events tw-flex tw-min-h-0 tw-flex-col tw-overflow-hidden tw-rounded-lg tw-border">
-                <div className="tw-flex tw-items-center tw-justify-between tw-border-b tw-px-4 tw-py-3">
-                  <div className="tw-text-xs tw-font-semibold tw-uppercase tw-tracking-wide tw-text-slate-500">Recent SignalR Events</div>
-                  <div className="tw-text-xs tw-text-slate-400">Newest first</div>
-                </div>
-
-                <div className="tw-min-h-0 tw-flex-1 tw-overflow-auto tw-bg-slate-50">
-                  {debugEvents.length === 0 ? (
-                    <div className="tw-flex tw-h-full tw-items-center tw-justify-center tw-p-6 tw-text-sm tw-text-slate-500">
-                      No live events captured yet.
-                    </div>
-                  ) : (
-                    <div className="tw-space-y-3 tw-p-4">
-                      {debugEvents.map((event, index) => (
-                        <div key={`${event.timestamp}-${event.event}-${index}`} className="vehicle-tracking-debug-popup__event tw-rounded-lg tw-border tw-bg-white tw-p-3">
-                          <div className="tw-flex tw-items-center tw-justify-between tw-gap-3">
-                            <div className="tw-flex tw-items-center tw-gap-2">
-                              <span className="vehicle-tracking-debug-popup__badge tw-inline-flex tw-rounded-full tw-bg-blue-100 tw-px-2.5 tw-py-1 tw-text-xs tw-font-semibold tw-text-blue-700">
-                                {event.event}
-                              </span>
-                              <span className="tw-text-xs tw-text-slate-400">{formatTrackingTimestamp(event.timestamp)}</span>
-                            </div>
-                            {event.summary?.vehicleId && (
-                              <span className="tw-text-xs tw-font-medium tw-text-slate-500">Vehicle #{event.summary.vehicleId}</span>
-                            )}
-                          </div>
-
-                          <pre className="tw-mt-3 tw-overflow-x-auto tw-rounded-md tw-bg-slate-950 tw-p-3 tw-text-xs tw-leading-5 tw-text-slate-100">{JSON.stringify(event.summary, null, 2)}</pre>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <VehicleTripOverridePanel
+        open={isTripOverridePanelOpen}
+        onClose={() => setIsTripOverridePanelOpen(false)}
+        tripDetail={tripDetailForOverride}
+        onOverrideSuccess={refreshTrips}
+      />
     </div>
   );
 };

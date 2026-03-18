@@ -103,6 +103,61 @@
       }
 
       .nav-menu {
+        .nav-node {
+          .nav-submenu {
+            margin: 2px 8px 6px 34px;
+            padding-left: 12px;
+            border-left: 1px solid rgba(255, 255, 255, 0.16);
+
+            .nav-subitem {
+              display: flex;
+              align-items: center;
+              justify-content: space-between;
+              padding: 7px 10px;
+              margin: 2px 0;
+              border-radius: 4px;
+              cursor: pointer;
+              transition: background 0.12s;
+              color: rgba(255, 255, 255, 0.78);
+              white-space: nowrap;
+              overflow: hidden;
+
+              &:hover {
+                background: rgba(255, 255, 255, 0.1);
+                color: #fff;
+              }
+
+              &.active {
+                background: rgba(255, 255, 255, 0.16);
+                color: #fff;
+                font-weight: 600;
+              }
+
+              .nav-subitem-content {
+                display: flex;
+                align-items: center;
+                gap: 10px;
+                min-width: 0;
+
+                i {
+                  font-size: 13px;
+                  width: 14px;
+                  text-align: center;
+                  color: rgba(255, 255, 255, 0.85);
+                  flex-shrink: 0;
+                }
+
+                span {
+                  font-size: 12px;
+                  font-weight: 500;
+                  overflow: hidden;
+                  text-overflow: ellipsis;
+                }
+              }
+            }
+          }
+        }
+
         .nav-item {
           display: flex;
           align-items: center;
@@ -315,9 +370,15 @@
           padding: 0.25rem 1rem;
         }
 
-        .nav-menu .nav-item {
-          padding: 0.5rem 1rem;
-          margin: 0.125rem 0.5rem;
+        .nav-menu {
+          .nav-item {
+            padding: 0.5rem 1rem;
+            margin: 0.125rem 0.5rem;
+          }
+
+          .nav-node .nav-submenu {
+            margin: 2px 10px 6px 36px;
+          }
         }
       }
 

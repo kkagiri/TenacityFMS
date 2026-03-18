@@ -18,6 +18,7 @@ using FMS.Application.Features.Vehicle.Queries.VehicleDashboard;
 using FMS.Application.Queries.Database.FMSQuery.VehicleQuery;
 using FMS.WebClient.Attributes; // For RequirePermission attribute
 using FMS.Application.Common.Constants;
+using FMS.Domain.Entities;
 using FMS.WebClient.Controllers.Base;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -197,6 +198,9 @@ namespace FMS.WebClient.Controllers
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
 
+            var movementProfileErrors = ValidateMovementProfiles(new[] { vehicleDTO });
+            if (movementProfileErrors.Count > 0) return BadRequest(FMSResponse.ValidationFailed(movementProfileErrors));
+
             if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
             vehicleDTO.CreatedBy = userId;
@@ -214,6 +218,9 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> UpdateVehicle([FromBody] List<VehicleDTO> vehicleDTOs)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var movementProfileErrors = ValidateMovementProfiles(vehicleDTOs);
+            if (movementProfileErrors.Count > 0) return BadRequest(FMSResponse.ValidationFailed(movementProfileErrors));
 
             if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
 
@@ -256,6 +263,9 @@ namespace FMS.WebClient.Controllers
         public async Task<IActionResult> UpdateVehicle(int id, [FromBody] VehicleDTO vehicleDTO)
         {
             if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var movementProfileErrors = ValidateMovementProfiles(new[] { vehicleDTO });
+            if (movementProfileErrors.Count > 0) return BadRequest(FMSResponse.ValidationFailed(movementProfileErrors));
 
             // User ID for tracking who made the change
             if (!TryGetCurrentUserId(out var userId)) return BadRequest("Invalid User ID");
@@ -722,6 +732,27 @@ namespace FMS.WebClient.Controllers
             {
                 return StatusCode(500, new { message = "Error searching by Hyoung number", error = ex.Message });
             }
+        }
+
+        private static List<string> ValidateMovementProfiles(IEnumerable<VehicleDTO> vehicles)
+        {
+            var errors = new List<string>();
+
+            foreach (var vehicle in vehicles)
+            {
+                if (!Enum.IsDefined(typeof(VehicleMovementProfile), vehicle.MovementProfile))
+                {
+                    var vehicleLabel = vehicle.VehicleId > 0
+                        ? $"Vehicle {vehicle.VehicleId}"
+                        : string.IsNullOrWhiteSpace(vehicle.HyoungNo)
+                            ? "Vehicle"
+                            : $"Vehicle {vehicle.HyoungNo}";
+
+                    errors.Add($"{vehicleLabel} has an invalid MovementProfile value '{vehicle.MovementProfile}'.");
+                }
+            }
+
+            return errors;
         }
 
     }

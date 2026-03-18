@@ -1,3 +1,14 @@
+/**
+ * File: useFutureRecordsValidation.js
+ * Purpose: Centralize tank stock future-record validation state and submission gating for historical and back-timed entries.
+ * Dependencies: React hooks, tankStockFutureRecordsService
+ * Last Modified: 2026-03-13
+ *
+ * Key Functions:
+ * - validateHistoricalEntry(): Checks whether a selected tank entry timestamp conflicts with later ledger records
+ * - confirmProceed(): Marks a warning as acknowledged when policy allows the user to continue
+ * - resetValidation(): Clears warning and error state when the user changes key form inputs
+ */
 import { useState, useCallback } from 'react';
 import tankStockFutureRecordsService from '../services/tankStockFutureRecordsService';
 
@@ -17,12 +28,28 @@ export const useFutureRecordsValidation = () => {
    * Validates a historical entry against future records policy
    */
   const validateHistoricalEntry = useCallback(async (tankId, entryDate, entryType) => {
-    // Skip validation for current or future dates
     const entryDateObj = new Date(entryDate);
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const now = new Date();
 
-    if (entryDateObj >= today) {
+    if (Number.isNaN(entryDateObj.getTime())) {
+      setValidationState({
+        isValidating: false,
+        validationResult: null,
+        error: 'Invalid entry date selected',
+        userConfirmed: false,
+        showWarning: true
+      });
+
+      return {
+        canProceed: false,
+        needsValidation: false,
+        error: 'Invalid entry date selected'
+      };
+    }
+
+    // Skip validation only when the selected timestamp is now or in the future.
+    // Any earlier timestamp can affect later ledger rows, even within the same day.
+    if (entryDateObj >= now) {
       setValidationState({
         isValidating: false,
         validationResult: null,

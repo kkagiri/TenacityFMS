@@ -176,7 +176,9 @@ const WidgetSelectionModal = ({
   const mapCategoryToUICategory = (category) => {
     const categoryMap = {
       'admin': 'Admin',
-      'fuel_management': 'Operations',
+      'fuel_management': 'Tankstock Monitoring',
+      'tankstock_monitoring': 'Tankstock Monitoring',
+      'fuel_operation': 'Fuel Operation',
       'vehicle_performance': 'Analytics',
       'alerts_monitoring': 'Monitoring',
       'key_statistics': 'Analytics',
@@ -193,6 +195,8 @@ const WidgetSelectionModal = ({
     const iconMap = {
       'admin': 'fa-user-shield',
       'fuel_management': 'fa-gas-pump',
+      'tankstock_monitoring': 'fa-tank-water',
+      'fuel_operation': 'fa-gas-pump',
       'vehicle_performance': 'fa-car',
       'alerts_monitoring': 'fa-exclamation-triangle',
       'key_statistics': 'fa-chart-line',

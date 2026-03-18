@@ -98,6 +98,13 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasColumnName("gps_geofence_center_longitude")
                     .HasComment("Selected GPS geofence center longitude snapshot");
 
+                // Site Classification
+                builder.Property(e => e.Classification)
+                    .HasColumnType("TINYINT")
+                    .HasDefaultValue(SiteClassification.Unknown)
+                    .HasColumnName("classification")
+                    .HasComment("Operational classification: 0=Unknown, 1=Parking, 2=Load, 3=Dump, 4=Fuel, 5=Workshop");
+
                 builder.HasOne(d => d.GpsGeofence)
                     .WithMany()
                     .HasForeignKey(d => d.GpsGeofenceId)

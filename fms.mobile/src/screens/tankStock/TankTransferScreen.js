@@ -1,4 +1,15 @@
-import React, { useState, useEffect } from "react";
+/**
+ * File: TankTransferScreen.js
+ * Purpose: Capture mobile tank transfers and warn when the selected timestamp would rebalance later tank history rows.
+ * Dependencies: React Native, Redux Toolkit, CustomDateTimePicker, useFutureRecordsValidation
+ * Last Modified: 2026-03-13
+ *
+ * Key Functions:
+ * - TankTransferScreen(): Collects transfer details and coordinates submit flow
+ * - validateSelectedEntry(): Checks source and destination tank history after date or tank changes
+ * - handleSave(): Persists transfer data after validation requirements are met
+ */
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -23,6 +34,9 @@ import {
   createTankTransfer,
   clearTransferResult,
 } from "../../redux/slices/stockSlice";
+import FutureRecordsNotice from "../../components/tankStock/FutureRecordsNotice";
+import { useFutureRecordsValidation } from "../../hooks/useFutureRecordsValidation";
+import { VolumeChangeReasons } from "../../services/tankStockFutureRecordsService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
@@ -65,6 +79,18 @@ const TankTransferScreen = ({ navigation, route }) => {
 
   // Filtered tanks for destination
   const [destinationTanks, setDestinationTanks] = useState([]);
+
+  const {
+    isValidating,
+    validationResult,
+    error: validationError,
+    showWarning,
+    canSubmit: canSubmitForm,
+    validateHistoricalEntry,
+    confirmProceed,
+    cancelProceed,
+    resetValidation,
+  } = useFutureRecordsValidation();
 
   // Theme color for transfer
   const themeColor = "#8b5cf6";
@@ -141,29 +167,72 @@ const TankTransferScreen = ({ navigation, route }) => {
     }
   }, [transferType, defaultSite]);
 
+  const validateSelectedEntry = useCallback(
+    async (
+      source = sourceTank,
+      destination = destinationTank,
+      date = transferDate
+    ) => {
+      if (!source?.id || !date) {
+        resetValidation();
+        return;
+      }
+
+      try {
+        const sourceResult = await validateHistoricalEntry(
+          source.id,
+          date,
+          VolumeChangeReasons.TRANSFER_OUT
+        );
+
+        const shouldStopAfterSource =
+          !sourceResult?.canProceed ||
+          sourceResult?.needsUserConfirmation ||
+          sourceResult?.validationResult?.config?.showWarning;
+
+        if (shouldStopAfterSource || !destination?.id) {
+          return;
+        }
+
+        await validateHistoricalEntry(
+          destination.id,
+          date,
+          VolumeChangeReasons.TRANSFER_IN
+        );
+      } catch (error) {
+        console.warn("TankTransferScreen validation error:", error);
+      }
+    },
+    [sourceTank, destinationTank, transferDate, resetValidation, validateHistoricalEntry]
+  );
+
   const handleTransferTypeSelect = (type) => {
     setTransferType(type.id);
     setShowTransferTypeModal(false);
     // Reset selections
     setSourceTank(null);
     setDestinationTank(null);
+    resetValidation();
   };
 
   const handleSourceTankSelect = (tank) => {
     setSourceTank(tank);
     setShowSourceTankModal(false);
     setDestinationTank(null); // Reset destination when source changes
+    validateSelectedEntry(tank, null, transferDate);
   };
 
   const handleDestSiteSelect = (site) => {
     setDestinationSite(site);
     setShowDestSiteModal(false);
     setDestinationTank(null); // Reset destination tank when site changes
+    resetValidation();
   };
 
   const handleDestTankSelect = (tank) => {
     setDestinationTank(tank);
     setShowDestTankModal(false);
+    validateSelectedEntry(sourceTank, tank, transferDate);
   };
 
   const validateForm = () => {
@@ -193,6 +262,14 @@ const TankTransferScreen = ({ navigation, route }) => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
+
+    if (!canSubmitForm) {
+      Alert.alert(
+        "Validation Required",
+        "Please wait for validation to finish or resolve the ledger recalculation warning before saving."
+      );
+      return;
+    }
 
     const transferData = {
       sourceTankId: sourceTank.id,
@@ -274,6 +351,14 @@ const TankTransferScreen = ({ navigation, route }) => {
             <Icon name="chevron-down" size={16} color="#6b7280" />
           </TouchableOpacity>
         </View>
+
+        <FutureRecordsNotice
+          isValidating={isValidating}
+          validationResult={showWarning ? validationResult : null}
+          validationError={validationError}
+          onConfirm={confirmProceed}
+          onCancel={cancelProceed}
+        />
 
         {/* Source Section */}
         <View style={styles.sectionHeader}>
@@ -443,7 +528,7 @@ const TankTransferScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: themeColor }]}
             onPress={handleSave}
-            disabled={isCreatingTransfer}
+            disabled={isCreatingTransfer || isValidating || !canSubmitForm}
           >
             {isCreatingTransfer ? (
               <ActivityIndicator size="small" color="white" />
@@ -700,6 +785,7 @@ const TankTransferScreen = ({ navigation, route }) => {
         onConfirm={(date) => {
           setTransferDate(date);
           setShowDatePicker(false);
+          validateSelectedEntry(sourceTank, destinationTank, date);
         }}
         onCancel={() => setShowDatePicker(false)}
         themeColor={themeColor}

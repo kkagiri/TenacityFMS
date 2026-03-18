@@ -1,0 +1,49 @@
+/**
+ * File: VehicleTripsPage.scss
+ * Purpose: M365 Admin-Center tab bar styles for the vehicle trips page.
+ * Dependencies: None
+ * Last Modified: 2026-03-13
+ */
+
+.vehicle-trips-page {
+  .m365-tabs {
+    display: flex;
+    gap: 4px;
+    padding: 0 24px;
+    background: #fff;
+    border-bottom: 1px solid #edebe9;
+  }
+
+  .m365-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #605e5c;
+    background: none;
+    border: none;
+    cursor: pointer;
+
+    &:hover {
+      color: #201f1e;
+    }
+
+    &--active {
+      color: #0078d4;
+
+      &::after {
+        content: "";
+        position: absolute;
+        bottom: -1px;
+        left: 12px;
+        right: 12px;
+        height: 2px;
+        background: #0078d4;
+        border-radius: 2px 2px 0 0;
+      }
+    }
+  }
+}

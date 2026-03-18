@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Concurrent;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
@@ -222,7 +223,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                     IsOnline = validationStatus != GPSValidationStatus.InvalidAndStale &&
                               validationStatus != GPSValidationStatus.StalePositionBypassed, // Mark as offline if position is stale
                     HasGPSInstalled = true,
-                    DeviceId = vehicle.DeviceId, // Keep legacy field for backward compatibility
+                    DeviceId = ParseExternalDeviceId(providerMapping.ExternalDeviceId),
                     ExternalDeviceId = providerMapping.ExternalDeviceId,
 
                     // GPS Validation fields
@@ -391,7 +392,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 VehicleName = vehicle.HyoungNo ?? string.Empty,
                 NumberPlate = vehicle.NumberPlate,
                 HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                DeviceId = vehicle.DeviceId,
+                DeviceId = ParseExternalDeviceId(providerMapping?.ExternalDeviceId),
                 ExternalDeviceId = providerMapping?.ExternalDeviceId,
                 IsOnline = false,
                 LastUpdated = DateTime.UtcNow,
@@ -513,7 +514,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                             VehicleName = vehicle.HyoungNo ?? string.Empty,
                             NumberPlate = vehicle.NumberPlate,
                             HasGPSInstalled = vehicle.HasGPSInstalled == 1,
-                            DeviceId = vehicle.DeviceId,
+                            DeviceId = ParseExternalDeviceId(mapping?.ExternalDeviceId),
                             ExternalDeviceId = mapping?.ExternalDeviceId,
                             IsOnline = true,
                             Latitude = (decimal)position.Latitude,
@@ -554,8 +555,10 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 if (vehicle == null)
                     return FMSResponse<VehicleTrackHistoryDTO>.Failed("Vehicle not found");
 
-                if (!vehicle.DeviceId.HasValue)
-                    return FMSResponse<VehicleTrackHistoryDTO>.Failed("Vehicle doesn't have a GPS device ID configured");
+                var trackDeviceId = await ResolveTrackDeviceIdAsync(context, vehicleId);
+
+                if (!trackDeviceId.IsSuccess)
+                    return FMSResponse<VehicleTrackHistoryDTO>.Failed(trackDeviceId.ErrorMessage ?? "Vehicle doesn't have an active GPS provider mapping configured");
 
                 // Get track data from GPSGate
                 var trackPoints = await GetTrackPointsAsync(vehicleId, from, to, maxPoints);
@@ -597,43 +600,38 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             try
             {
                 await using var context = await _contextFactory.CreateDbContextAsync();
-                var vehicle = await context.Vehicles
-                    .Where(v => v.VehicleId == vehicleId)
-                    .FirstOrDefaultAsync();
+                var trackDeviceId = await ResolveTrackDeviceIdAsync(context, vehicleId);
 
-                if (vehicle == null)
-                    return FMSResponse<List<TrackPointDTO>>.Failed("Vehicle not found");
-
-                if (!vehicle.DeviceId.HasValue)
-                    return FMSResponse<List<TrackPointDTO>>.Failed("Vehicle doesn't have a GPS device ID configured");
+                if (!trackDeviceId.IsSuccess)
+                {
+                    return FMSResponse<List<TrackPointDTO>>.Failed(trackDeviceId.ErrorMessage ?? "Vehicle doesn't have an active GPS provider mapping configured");
+                }
 
                 var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
 
-                // Call GPSGate tracks API
-                var requestBody = new
-                {
-                    userIds = new[] { vehicle.DeviceId.Value },
-                    from = from.ToString("o"),
-                    to = to.ToString("o"),
-                    maxPoints = maxPoints
-                };
+                var requestUrl = $"{baseUrl}/applications/{applicationId}/users/{trackDeviceId.ExternalDeviceId}/tracks" +
+                                 $"?Date={from:yyyy-MM-dd}&From={from:HH:mm:ss}&Until={to:HH:mm:ss}&Filtered=true";
 
-                var jsonContent = JsonSerializer.Serialize(requestBody);
-                var content = new StringContent(jsonContent, System.Text.Encoding.UTF8, "application/json");
-
-                using var request = new HttpRequestMessage(HttpMethod.Post, $"{baseUrl}/applications/{applicationId}/tracks")
-                {
-                    Content = content
-                };
+                using var request = new HttpRequestMessage(HttpMethod.Get, requestUrl);
                 request.Headers.Authorization = authHeader;
 
                 var response = await _httpClient.SendAsync(request);
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    _logger.LogWarning("Failed to get track data for vehicle {VehicleId}. Status: {StatusCode}",
-                        vehicleId, response.StatusCode);
-                    return FMSResponse<List<TrackPointDTO>>.Failed("Failed to retrieve track data from GPS provider");
+                    var providerResponseBody = await response.Content.ReadAsStringAsync();
+                    var providerMessage = response.StatusCode == System.Net.HttpStatusCode.NotFound
+                        ? $"GPS provider track mapping '{trackDeviceId.ExternalDeviceId}' was not found for vehicle {vehicleId}. Verify VehicleProviderMapping.ExternalDeviceId."
+                        : $"Failed to retrieve track data from GPS provider. Status: {response.StatusCode}.";
+
+                    _logger.LogWarning(
+                        "Failed to get track data for vehicle {VehicleId}. GPS mapping {ExternalDeviceId}. Status: {StatusCode}. Body: {Body}",
+                        vehicleId,
+                        trackDeviceId.ExternalDeviceId,
+                        response.StatusCode,
+                        string.IsNullOrWhiteSpace(providerResponseBody) ? "<empty>" : providerResponseBody);
+
+                    return FMSResponse<List<TrackPointDTO>>.Failed(providerMessage);
                 }
 
                 var responseContent = await response.Content.ReadAsStringAsync();
@@ -654,7 +652,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                         Speed = track.Velocity?.GroundSpeed.HasValue == true ? (decimal?)track.Velocity.GroundSpeed.Value : null,
                         Heading = track.Velocity?.Heading.HasValue == true ? (decimal?)track.Velocity.Heading.Value : null,
                         Timestamp = !string.IsNullOrEmpty(track.UTC) ? DateTime.Parse(track.UTC) : DateTime.UtcNow,
-                        Odometer = null // GPSGate track doesn't include odometer in basic track
+                        Odometer = null, // GPSGate track doesn't include odometer in basic track
+                        IsValid = track.Valid,
+                        TrackInfoId = track.TrackInfoId > 0 ? track.TrackInfoId : null,
+                        FuelLevel = GetDecimalVariable(track.Variables, "fuel level", "fuellevel"),
+                        IgnitionStatus = GetBooleanVariable(track.Variables, "ignition", "ignitionstatus"),
+                        SatelliteCount = GetIntVariable(track.Variables, "satellitecount", "satellite count")
                     }).ToList();
                 }
 
@@ -665,6 +668,35 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 _logger.LogError(ex, "Error retrieving track points for vehicle {VehicleId}", vehicleId);
                 return FMSResponse<List<TrackPointDTO>>.Failed($"Error retrieving track points: {ex.Message}");
             }
+        }
+
+        private async Task<(bool IsSuccess, string ExternalDeviceId, string? ErrorMessage)> ResolveTrackDeviceIdAsync(GpsdataContext context, int vehicleId)
+        {
+            var providerMapping = await context.Set<VehicleProviderMappingEntity>()
+                .Include(mapping => mapping.ProviderConfiguration)
+                .Where(mapping => mapping.VehicleId == vehicleId
+                    && mapping.IsActive
+                    && !string.IsNullOrWhiteSpace(mapping.ExternalDeviceId)
+                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.IsEnabled)
+                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.Name == "GPSGate"))
+                .OrderByDescending(mapping => mapping.UpdatedAt)
+                .FirstOrDefaultAsync();
+
+            if (providerMapping != null)
+            {
+                if (!string.IsNullOrWhiteSpace(providerMapping.ExternalDeviceId))
+                {
+                    return (true, providerMapping.ExternalDeviceId, null);
+                }
+
+                _logger.LogError(
+                    "Invalid empty GPSGate ExternalDeviceId for vehicle {VehicleId}",
+                    vehicleId);
+
+                return (false, string.Empty, "Invalid GPS provider device ID format.");
+            }
+
+            return (false, string.Empty, "Vehicle doesn't have an active GPS provider mapping configured");
         }
 
         public async Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId)
@@ -755,6 +787,77 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         private double ToRadians(double degrees)
         {
             return degrees * (Math.PI / 180);
+        }
+
+        private static int? ParseExternalDeviceId(string? externalDeviceId)
+        {
+            return int.TryParse(externalDeviceId, out var parsedDeviceId) ? parsedDeviceId : null;
+        }
+
+        private static decimal? GetDecimalVariable(IEnumerable<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateVariable>? variables, params string[] candidateNames)
+        {
+            var value = GetVariableValue(variables, candidateNames);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return decimal.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue)
+                ? parsedValue
+                : null;
+        }
+
+        private static bool? GetBooleanVariable(IEnumerable<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateVariable>? variables, params string[] candidateNames)
+        {
+            var value = GetVariableValue(variables, candidateNames);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            if (bool.TryParse(value, out var parsedBoolean))
+            {
+                return parsedBoolean;
+            }
+
+            if (string.Equals(value, "1", StringComparison.OrdinalIgnoreCase))
+            {
+                return true;
+            }
+
+            if (string.Equals(value, "0", StringComparison.OrdinalIgnoreCase))
+            {
+                return false;
+            }
+
+            return null;
+        }
+
+        private static int? GetIntVariable(IEnumerable<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateVariable>? variables, params string[] candidateNames)
+        {
+            var value = GetVariableValue(variables, candidateNames);
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return int.TryParse(value, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue)
+                ? parsedValue
+                : null;
+        }
+
+        private static string? GetVariableValue(IEnumerable<FMS.Infrastructure.ExternalServices.GPS.GPSGate.GPSGateVariable>? variables, params string[] candidateNames)
+        {
+            if (variables == null)
+            {
+                return null;
+            }
+
+            var names = new HashSet<string>(candidateNames.Select(name => name.Trim().ToLowerInvariant()));
+            return variables
+                .FirstOrDefault(variable => !string.IsNullOrWhiteSpace(variable.Name)
+                    && names.Contains(variable.Name.Trim().ToLowerInvariant()))?
+                .Value;
         }
 
         private List<StopInfo> DetectStops(List<TrackPointDTO> points, double speedThreshold = 5.0, int minStopDurationMinutes = 5)

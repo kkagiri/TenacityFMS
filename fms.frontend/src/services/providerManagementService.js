@@ -153,37 +153,39 @@ class ProviderManagementService extends BaseService {
    * Assign a single vehicle to a provider
    * @param {number} vehicleId - Vehicle ID
    * @param {number} providerId - Provider ID
+   * @param {string} externalDeviceId - External device ID from provider mapping
    * @returns {Promise<{success: boolean, data: Object, message: string}>}
    */
-  async assignVehicleToProvider(vehicleId, providerId) {
-    if (!vehicleId || !providerId) {
+  async assignVehicleToProvider(vehicleId, providerId, externalDeviceId) {
+    if (!vehicleId || !providerId || !externalDeviceId) {
       return {
         success: false,
         data: null,
-        message: 'Vehicle ID and Provider ID are required',
-        errors: ['vehicleId and providerId are required']
+        message: 'Vehicle ID, Provider ID, and external device ID are required',
+        errors: ['vehicleId, providerId, and externalDeviceId are required']
       };
     }
 
     return this.post('mappings', {
       vehicleId,
-      providerId
+      providerId,
+      externalDeviceId
     });
   }
 
   /**
    * Bulk assign vehicles to a provider
-   * @param {number[]} vehicleIds - Array of vehicle IDs
+   * @param {{ vehicleId: number, externalDeviceId: string }[]} assignments - Per-vehicle external device mappings
    * @param {number} providerId - Provider ID
    * @returns {Promise<{success: boolean, data: Object, message: string}>}
    */
-  async bulkAssignVehiclesToProvider(vehicleIds, providerId) {
-    if (!vehicleIds || vehicleIds.length === 0) {
+  async bulkAssignVehiclesToProvider(assignments, providerId) {
+    if (!assignments || assignments.length === 0) {
       return {
         success: false,
         data: null,
-        message: 'At least one vehicle ID is required',
-        errors: ['vehicleIds array cannot be empty']
+        message: 'At least one vehicle assignment is required',
+        errors: ['assignments array cannot be empty']
       };
     }
 
@@ -197,8 +199,9 @@ class ProviderManagementService extends BaseService {
     }
 
     return this.post('mappings/bulk', {
-      vehicleIds,
-      providerId
+      vehicleIds: assignments.map((assignment) => assignment.vehicleId),
+      providerId,
+      assignments
     });
   }
 

@@ -1,0 +1,233 @@
+/**
+ * File: VehicleTrackingGeofencePanel.scss
+ * Purpose: Styles the tracking geofence panel as a floating right-side surface aligned with the tracking detail popup visual language.
+ * Dependencies: VehicleTrackingGeofencePanel.js.
+ * Last Modified: 2026-03-18
+ */
+
+.vehicle-tracking-geofence-panel {
+  position: fixed;
+  width: 460px;
+  --geofence-accent: #0078d4;
+  --geofence-accent-soft: #e8f3fc;
+  --geofence-border: #edebe9;
+  --geofence-border-strong: #c8c6c4;
+  --geofence-surface: #ffffff;
+  --geofence-surface-muted: #faf9f8;
+  --geofence-surface-hover: #f3f2f1;
+  --geofence-surface-active: #edebe9;
+  --geofence-heading: #111813;
+  --geofence-text: #201f1e;
+  --geofence-text-secondary: #605e5c;
+  --geofence-text-tertiary: #a19f9d;
+  --geofence-danger: #d13438;
+  display: flex;
+  flex-direction: column;
+  background: var(--geofence-surface);
+  border: 1px solid var(--geofence-border);
+  border-radius: 14px;
+  box-shadow: 0 32px 72px rgba(0, 0, 0, 0.24), 0 12px 28px rgba(0, 0, 0, 0.12), 0 2px 8px rgba(0, 0, 0, 0.08);
+  transform: translate3d(0, 10px, 0) scale(0.985);
+  transform-origin: top left;
+  opacity: 0;
+  overflow: hidden;
+  z-index: 1001;
+  transition: transform 0.14s ease-out, opacity 0.12s ease-out, box-shadow 0.12s ease-out;
+  user-select: none;
+  max-height: calc(100vh - 48px);
+
+  &--open {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.vehicle-tracking-geofence-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 56px;
+  padding: 10px 14px;
+  border-bottom: 1px solid var(--geofence-border);
+  background: var(--geofence-surface);
+  cursor: move;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.vehicle-tracking-geofence-panel__header-main {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.vehicle-tracking-geofence-panel__drag-handle {
+  width: 18px;
+  height: 28px;
+  border-radius: 8px;
+  color: var(--geofence-text-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  transition: color 0.12s ease, background-color 0.12s ease;
+
+  i {
+    font-size: 13px;
+  }
+
+  &:hover {
+    color: var(--geofence-text-secondary);
+    background: var(--geofence-surface-muted);
+  }
+}
+
+.vehicle-tracking-geofence-panel__icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--geofence-accent-soft);
+  color: var(--geofence-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+
+  i {
+    font-size: 15px;
+  }
+}
+
+.vehicle-tracking-geofence-panel__identity {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.vehicle-tracking-geofence-panel__title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--geofence-heading);
+  line-height: 1.25;
+}
+
+.vehicle-tracking-geofence-panel__subtitle {
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--geofence-text-secondary);
+  line-height: 1.35;
+}
+
+.vehicle-tracking-geofence-panel__header-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 0 0 auto;
+}
+
+.vehicle-tracking-geofence-panel__badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 24px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: var(--geofence-accent-soft);
+  color: var(--geofence-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.vehicle-tracking-geofence-panel__icon-btn {
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--geofence-border);
+  border-radius: 8px;
+  background: var(--geofence-surface);
+  color: var(--geofence-text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+
+  i {
+    font-size: 12px;
+  }
+
+  &:hover {
+    background: var(--geofence-surface-hover);
+    border-color: var(--geofence-border-strong);
+    color: var(--geofence-text);
+  }
+
+  &:active {
+    background: var(--geofence-surface-active);
+  }
+
+  &--close:hover {
+    background: #fef2f2;
+    border-color: #f3b3b5;
+    color: var(--geofence-danger);
+  }
+}
+
+.vehicle-tracking-geofence-panel__body {
+  flex: 0 1 auto;
+  min-height: 0;
+  overflow: auto;
+  background: var(--geofence-surface);
+  user-select: text;
+  scrollbar-width: thin;
+  scrollbar-color: #d2d0ce transparent;
+}
+
+.vehicle-tracking-geofence-panel__body .tw-bg-\[\#faf9f8\] {
+  padding: 14px !important;
+  background: #ffffff !important;
+}
+
+.vehicle-tracking-geofence-panel__body .tw-rounded-lg {
+  border-radius: 14px !important;
+}
+
+.vehicle-tracking-geofence-panel__body .tw-border-gray-200 {
+  border-color: #edebe9 !important;
+}
+
+.vehicle-tracking-geofence-panel__body ::-webkit-scrollbar {
+  width: 10px;
+}
+
+.vehicle-tracking-geofence-panel__body ::-webkit-scrollbar-thumb {
+  background: #d2d0ce;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background-clip: padding-box;
+}
+
+.vehicle-tracking-geofence-panel__body ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+@media (max-width: 768px) {
+  .vehicle-tracking-geofence-panel {
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 80px);
+  }
+}
+
+@media (max-width: 480px) {
+  .vehicle-tracking-geofence-panel {
+    width: 100vw;
+    max-height: calc(100vh - 64px);
+    border-radius: 14px;
+  }
+
+  .vehicle-tracking-geofence-panel__header {
+    padding: 10px 12px;
+  }
+}

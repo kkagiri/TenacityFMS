@@ -77,7 +77,9 @@ const getWidgetDisplayStyleLabel = (widgetType = '') => {
 
 const SYSTEM_CATEGORY_OPTIONS = [
   { id: 'admin', label: 'Admin' },
-  { id: 'fuel_management', label: 'Fuel Management' },
+  { id: 'tankstock_monitoring', label: 'Tankstock Monitoring' },
+  { id: 'fuel_operation', label: 'Fuel Operation' },
+  { id: 'trip_management', label: 'Trip Management' },
   { id: 'vehicle_performance', label: 'Vehicle Performance' },
   { id: 'operational_metrics', label: 'Operational Metrics' },
   { id: 'financial_analysis', label: 'Financial Analysis' },
@@ -86,8 +88,10 @@ const SYSTEM_CATEGORY_OPTIONS = [
 ];
 
 const CATEGORY_ALIAS_MAP = {
+  fuel_management: 'tankstock_monitoring',
   key_statistics: 'operational_metrics',
   performance_metrics: 'vehicle_performance',
+  trip_analytics: 'trip_management',
   system_status: 'alerts_monitoring',
   reporting: 'financial_analysis',
   configuration: 'custom_analytics',
@@ -323,7 +327,9 @@ export default function WidgetForm({
         admin: ['BIG_STAT_CARD', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
         key_statistics: ['BIG_STAT_CARD', 'ticker'],
         performance_metrics: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED'],
-        fuel_management: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'CHART_PIE_DISTRIBUTION', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
+        tankstock_monitoring: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'CHART_PIE_DISTRIBUTION', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
+        fuel_operation: ['BIG_STAT_CARD', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST', 'ticker'],
+        trip_management: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
         vehicle_performance: ['BIG_STAT_CARD', 'CHART_LINE_TREND', 'CHART_BAR_COMPARISON', 'DATA_TABLE_DETAILED', 'PROGRESS_LIST'],
         alerts_monitoring: ['ALERT_NOTIFICATION', 'DATA_TABLE_DETAILED', 'BIG_STAT_CARD'],
         system_status: ['BIG_STAT_CARD', 'ALERT_NOTIFICATION', 'PROGRESS_LIST'],

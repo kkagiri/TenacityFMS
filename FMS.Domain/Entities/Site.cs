@@ -70,6 +70,12 @@ public partial class Site
     /// </summary>
     public decimal? GpsGeofenceCenterLongitude { get; set; }
 
+    /// <summary>
+    /// Operational classification of this site (Parking, Load, Dump, Fuel, Workshop).
+    /// Used for geofence-based trip detection labelling.
+    /// </summary>
+    public SiteClassification Classification { get; set; } = SiteClassification.Unknown;
+
     public virtual ICollection<StockReport> StockReports { get; set; } = new List<StockReport>();
 
     public virtual ICollection<FuelingRule> FuelingRules { get; set; } = new List<FuelingRule>();

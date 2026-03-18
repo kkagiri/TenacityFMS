@@ -1,8 +1,13 @@
 /**
- * RealtimeDashboard - Integrated with existing widget system
+ * File: RealtimeDashboard.js
+ * Purpose: Hosts the real-time dashboard shell, edit actions, and widget grouping controls.
+ * Dependencies: React, Redux, DevExtreme, realtime dashboard hook, dashboard modal components
+ * Last Modified: 2026-03-11
  *
- * Uses the existing DashboardWidgetInstance, EnhancedWidgetRenderer, and modal components
- * while maintaining the new service architecture for data management.
+ * Key Functions:
+ * - handleEditModeToggle(): Enables or exits dashboard layout edit mode.
+ * - handleSaveLayout(): Triggers layout persistence for widget arrangement changes.
+ * - handleDashboardLayoutSettingsChange(): Persists grouping preferences for the dashboard view.
  */
 
 import React, { useEffect, useCallback, useState, useRef } from 'react';
@@ -19,6 +24,7 @@ import CustomWidgetDialog from '../../components/dashboard/ModalPopup/CustomWidg
 import WidgetConfigModal from '../../components/dashboard/ModalPopup/WidgetConfigModal';
 import Button from 'devextreme-react/button';
 import CategoryGroupedWidgetRenderer from '../../components/dashboard/CategoryGroupedWidgetRenderer';
+import { GROUP_BY_OPTIONS } from '../../components/dashboard/CategoryGroupedWidgetRenderer.utils';
 
 // Styles
 import './RealtimeDashboard.scss';
@@ -48,12 +54,14 @@ const RealtimeDashboard = () => {
     widgetInstances,
     instancesLoading,
     isEditMode,
+    layoutSettings,
     widgetData,
     widgetErrors,
     widgetLoadingStates,
     widgetStaleness,
     loadWidgetInstances,
     setIsEditMode,
+    handleLayoutSettingsChange,
     canViewWidget
   } = useRealtimeDashboard({
     enableRealtime: true,
@@ -94,6 +102,19 @@ const RealtimeDashboard = () => {
   const handleSaveLayout = useCallback(() => {
     setLayoutSaveRequestVersion(previous => previous + 1);
   }, []);
+
+  const handleDashboardLayoutSettingsChange = useCallback((nextSettings) => {
+    handleLayoutSettingsChange({
+      ...(layoutSettings || {}),
+      ...nextSettings,
+      groupOrders: {
+        ...(layoutSettings?.groupOrders || {}),
+        ...(nextSettings?.groupOrders || {})
+      }
+    });
+  }, [handleLayoutSettingsChange, layoutSettings]);
+
+  const activeGroupBy = layoutSettings?.widgetGrouping || 'category';
 
   useEffect(() => {
     if (!actionsMenuOpen) {
@@ -181,6 +202,24 @@ const RealtimeDashboard = () => {
 
         {/* Header Controls - Right Side */}
         <div className="dashboard-header-controls">
+          <div className="dashboard-grouping-control">
+            <label htmlFor="dashboard-group-by" className="dashboard-grouping-control__label">
+              Group by
+            </label>
+            <select
+              id="dashboard-group-by"
+              className="dashboard-grouping-control__select"
+              value={activeGroupBy}
+              onChange={(event) => handleDashboardLayoutSettingsChange({ widgetGrouping: event.target.value })}
+            >
+              {GROUP_BY_OPTIONS.map(option => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
+            </select>
+          </div>
+
           {isEditMode && (
             <button
               type="button"
@@ -236,6 +275,9 @@ const RealtimeDashboard = () => {
             errors={widgetErrors}
             widgetStaleness={widgetStaleness}
             isEditMode={isEditMode}
+            groupBy={activeGroupBy}
+            layoutSettings={layoutSettings}
+            onLayoutSettingsChange={handleDashboardLayoutSettingsChange}
             saveRequestVersion={layoutSaveRequestVersion}
             onEditModeComplete={(layoutData) => {
               console.log('[RealtimeDashboard] Category layout saved', layoutData);

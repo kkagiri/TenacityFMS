@@ -1,0 +1,696 @@
+﻿/*
+ * File: VehicleTrackingDetailPopup.scss
+ * Purpose: Bottom-centre slide-up vehicle tracking panel \u2014 HTML sample design.
+ * Dependencies: vehicle-tracking-panel component markup
+ * Last Modified: 2026-03-13
+ */
+
+/* â”€â”€ Panel overlay (click-to-dismiss, transparent) â”€â”€ */
+.vehicle-tracking-panel__overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 1000;
+  background: transparent;
+}
+
+/* â”€â”€ Main panel shell â”€â”€ */
+.vehicle-tracking-panel {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  width: min(1080px, calc(100% - 32px));
+  min-width: 420px;
+  min-height: 260px;
+  max-width: calc(100% - 32px);
+  max-height: calc(100% - 24px);
+  transform: translateX(120%);
+  opacity: 0;
+  background: #ffffff;
+  border: 1px solid #e2e5e2;
+  border-radius: 12px;
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.14), 0 2px 8px rgba(0, 0, 0, 0.06);
+  z-index: 1001;
+  overflow: hidden;
+  transition: transform 0.35s cubic-bezier(0.25, 0.8, 0.25, 1), opacity 0.2s;
+  display: flex;
+  flex-direction: column;
+
+  &--open {
+    transform: translateX(-50%);
+    opacity: 1;
+  }
+}
+
+.vehicle-tracking-panel--docked {
+  position: relative;
+  inset: auto;
+  left: auto;
+  bottom: auto;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  transform: none;
+  opacity: 1;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
+}
+
+.vehicle-tracking-panel__content {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.vehicle-tracking-panel--docked .vehicle-tracking-panel__resize-handle {
+  display: none;
+}
+
+/* â”€â”€ Header â”€â”€ */
+.vehicle-tracking-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 12px 6px;
+  border-bottom: 1px solid #eceeed;
+  background: #fafbfa;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.vehicle-tracking-panel__header--draggable {
+  cursor: grab;
+
+  &:active {
+    cursor: grabbing;
+  }
+}
+
+.vehicle-tracking-panel__resize-handle {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: nwse-resize;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 2px;
+  z-index: 2;
+
+  span {
+    display: block;
+    width: 2px;
+    border-radius: 999px;
+    background: #b7bfbc;
+    transform: rotate(45deg);
+    transform-origin: bottom center;
+
+    &:nth-child(1) {
+      height: 7px;
+      margin-bottom: 1px;
+    }
+
+    &:nth-child(2) {
+      height: 10px;
+    }
+
+    &:nth-child(3) {
+      height: 13px;
+      margin-right: 1px;
+    }
+  }
+
+  &:hover span {
+    background: #0078d4;
+  }
+}
+
+.vehicle-tracking-panel__vehicle-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  background: #e8f3fc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  color: #0078d4;
+  font-size: 12px;
+}
+
+.vehicle-tracking-panel__identity {
+  min-width: 0;
+  flex: 1;
+}
+
+.vehicle-tracking-panel__vehicle-id {
+  font-size: 13px;
+  font-weight: 600;
+  color: #111813;
+  font-family: 'Consolas', 'Courier New', monospace;
+  line-height: 1.2;
+}
+
+.vehicle-tracking-panel__vehicle-name {
+  font-size: 11px;
+  color: #5a6360;
+  margin-top: 1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vehicle-tracking-panel__status-badge {
+  padding: 2px 8px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+
+  &--moving,
+  &--online,
+  &--running {
+    background: #e8f3fc;
+    color: #0078d4;
+  }
+
+  &--idle,
+  &--parked,
+  &--warning {
+    background: #fef3e2;
+    color: #d97706;
+  }
+
+  &--offline,
+  &--inactive {
+    background: #f3f4f6;
+    color: #6b7280;
+  }
+
+  &--stopped,
+  &--critical,
+  &--danger {
+    background: #fef2f2;
+    color: #dc2626;
+  }
+}
+
+.vehicle-tracking-panel__header-right {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.vehicle-tracking-panel__icon-btn {
+  width: 24px;
+  height: 24px;
+  background: none;
+  border: 1px solid #e2e5e2;
+  border-radius: 5px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #5a6360;
+  transition: all 0.15s;
+  font-family: inherit;
+
+  i { font-size: 11px; }
+
+  &:hover {
+    background: #eceeed;
+    color: #111813;
+  }
+
+  &--close:hover {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
+  }
+}
+
+/* â”€â”€ Address bar â”€â”€ */
+.vehicle-tracking-panel__address {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  background: #f7f9f7;
+  border-bottom: 1px solid #eceeed;
+  font-size: 11px;
+  color: #5a6360;
+  flex-shrink: 0;
+
+  > i {
+    font-size: 11px;
+    flex-shrink: 0;
+    color: #ef4444;
+  }
+}
+
+.vehicle-tracking-panel__address-text {
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.vehicle-tracking-panel__address-time {
+  margin-left: auto;
+  font-family: 'Consolas', 'Courier New', monospace;
+  font-size: 11px;
+  color: #9aa09d;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+/* ── Date bar (shared range for data tabs) ── */
+.vehicle-tracking-panel__date-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 14px;
+  background: #f7f9f7;
+  border-bottom: 1px solid #eceeed;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+
+.vehicle-tracking-panel__date-bar .vehicle-tracking-panel__date-field:first-of-type {
+  margin-left: auto;
+}
+
+.vehicle-tracking-panel__date-bar-icon {
+  color: #ef4444;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
+.vehicle-tracking-panel__date-field {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  span {
+    font-size: 11px;
+    color: #9aa09d;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    white-space: nowrap;
+  }
+}
+
+.vehicle-tracking-panel__date-sep {
+  color: #9aa09d;
+  font-size: 12px;
+  padding: 0 2px;
+  flex-shrink: 0;
+}
+
+.vehicle-tracking-panel__date-apply {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 1px solid #bfdbf7;
+  border-radius: 6px;
+  background: #e8f3fc;
+  color: #0078d4;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+
+  i { font-size: 11px; }
+
+  &:hover { background: #d0eafc; }
+}
+
+.vehicle-tracking-panel__date-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 1px solid #e2e5e2;
+  border-radius: 6px;
+  background: none;
+  color: #5a6360;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+
+  i { font-size: 11px; }
+
+  &:hover {
+    background: #eceeed;
+    color: #111813;
+  }
+}
+/* â”€â”€ 6-cell data strip â”€â”€ */
+.vehicle-tracking-panel__data-strip {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  border-bottom: 1px solid #eceeed;
+  flex-shrink: 0;
+}
+
+.vehicle-tracking-panel__data-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-right: 1px solid #eceeed;
+
+  &:last-child { border-right: none; }
+}
+
+.vehicle-tracking-panel__data-icon {
+  flex-shrink: 0;
+
+  i {
+    font-size: 14px;
+    color: #0078d4;
+    display: block;
+  }
+}
+
+.vehicle-tracking-panel__data-label {
+  font-size: 11px;
+  color: #9aa09d;
+  line-height: 1.2;
+}
+
+.vehicle-tracking-panel__data-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111813;
+  margin-top: 2px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  line-height: 1.2;
+
+  &--green { color: #1a9e5a; }
+  &--orange { color: #d97706; }
+  &--blue { color: #0078d4; }
+}
+
+/* â”€â”€ Tab strip â”€â”€ */
+.vehicle-tracking-panel__tabs {
+  display: flex;
+  padding: 0 10px;
+  border-bottom: 1px solid #eceeed;
+  background: #fafbfa;
+  flex-shrink: 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+
+  &::-webkit-scrollbar { display: none; }
+}
+
+.vehicle-tracking-panel__tab {
+  padding: 8px 14px;
+  font-size: 12px;
+  color: #9aa09d;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: color 0.15s;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+
+  i { font-size: 11px; }
+
+  &:hover { color: #111813; }
+
+  &--active {
+    color: #0078d4;
+    border-bottom-color: #0078d4;
+    font-weight: 500;
+  }
+}
+
+/* â”€â”€ Tab body â”€â”€ */
+.vehicle-tracking-panel__tab-body {
+  overflow-y: auto;
+  max-height: 240px;
+  flex: 1 1 auto;
+  min-height: 0;
+}
+
+.vehicle-tracking-panel__tab-scroll {
+  min-height: 100%;
+  height: 100%;
+  overflow: auto;
+}
+
+/* â”€â”€ Vehicle Info tab â€” 3-column grid â”€â”€ */
+.vehicle-tracking-panel__info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.vehicle-tracking-panel__info-section {
+  padding: 10px 16px;
+  border-right: 1px solid #eceeed;
+
+  &:last-child { border-right: none; }
+}
+
+.vehicle-tracking-panel__info-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #9aa09d;
+  margin-bottom: 8px;
+}
+
+.vehicle-tracking-panel__info-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 5px 12px;
+}
+
+.vehicle-tracking-panel__info-field {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.vehicle-tracking-panel__info-field-label {
+  font-size: 11px;
+  color: #9aa09d;
+  line-height: 1.3;
+}
+
+.vehicle-tracking-panel__info-field-value {
+  font-size: 12px;
+  font-weight: 500;
+  color: #111813;
+
+  &--mono { font-family: 'Consolas', 'Courier New', monospace; }
+}
+
+/* â”€â”€ Sensor 3Ã—3 grid â”€â”€ */
+.vehicle-tracking-panel__sensor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 5px;
+}
+
+.vehicle-tracking-panel__sensor-card {
+  background: #eceeed;
+  border-radius: 6px;
+  padding: 6px 8px;
+}
+
+.vehicle-tracking-panel__sensor-label {
+  font-size: 11px;
+  color: #9aa09d;
+  line-height: 1.2;
+}
+
+.vehicle-tracking-panel__sensor-value {
+  font-size: 13px;
+  font-weight: 500;
+  color: #111813;
+  margin-top: 2px;
+  font-family: 'Consolas', 'Courier New', monospace;
+  line-height: 1.2;
+
+  &--green { color: #1a9e5a; }
+  &--orange { color: #d97706; }
+}
+
+
+/* â”€â”€ Loading / empty states â”€â”€ */
+.vehicle-tracking-panel__loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px 16px;
+  color: #9aa09d;
+  font-size: 13px;
+}
+
+.vehicle-tracking-panel__empty {
+  padding: 24px;
+  text-align: center;
+  color: #9aa09d;
+  font-size: 12px;
+}
+
+/* â”€â”€ Dark mode â”€â”€ */
+html.dark,
+body.dark,
+[data-theme='dark'] {
+  .vehicle-tracking-panel {
+    background: #1e2322;
+    border-color: #2a302f;
+    box-shadow: 0 8px 40px rgba(0, 0, 0, 0.45);
+  }
+
+  .vehicle-tracking-panel__date-bar {
+    background: #1a1f1e;
+    border-color: #2a302f;
+  }
+
+  .vehicle-tracking-panel__date-bar-icon { color: #ef4444; }
+
+  .vehicle-tracking-panel__date-field span,
+  .vehicle-tracking-panel__date-sep { color: #6a7270; }
+
+  .vehicle-tracking-panel__date-apply {
+    background: rgba(0, 120, 212, 0.18);
+    border-color: rgba(0, 120, 212, 0.35);
+    color: #3b9fd8;
+
+    &:hover { background: rgba(0, 120, 212, 0.28); }
+  }
+
+  .vehicle-tracking-panel__date-reset {
+    border-color: #2a302f;
+    color: #8a9290;
+
+    &:hover { background: #2a302f; color: #e8edec; }
+  }
+
+  .vehicle-tracking-panel__header,
+  .vehicle-tracking-panel__address,
+  .vehicle-tracking-panel__tabs {
+    background: #1a1f1e;
+    border-color: #2a302f;
+  }
+
+  .vehicle-tracking-panel__vehicle-id,
+  .vehicle-tracking-panel__info-field-value,
+  .vehicle-tracking-panel__sensor-value,
+  .vehicle-tracking-panel__data-value {
+    color: #e8edec;
+  }
+
+  .vehicle-tracking-panel__vehicle-name,
+  .vehicle-tracking-panel__address-text,
+  .vehicle-tracking-panel__data-label,
+  .vehicle-tracking-panel__info-field-label,
+  .vehicle-tracking-panel__sensor-label,
+  .vehicle-tracking-panel__info-section-title,
+  .vehicle-tracking-panel__address-time {
+    color: #8a9290;
+  }
+
+  .vehicle-tracking-panel__icon-btn {
+    border-color: #2a302f;
+    color: #8a9290;
+
+    &:hover {
+      background: #2a302f;
+      color: #e8edec;
+    }
+  }
+
+  .vehicle-tracking-panel__data-strip,
+  .vehicle-tracking-panel__data-cell,
+  .vehicle-tracking-panel__info-section,
+  .vehicle-tracking-panel__tab-body {
+    border-color: #2a302f;
+  }
+
+  .vehicle-tracking-panel__sensor-card {
+    background: #2a302f;
+  }
+
+  .vehicle-tracking-panel__tab {
+    color: #6a7270;
+
+    &:hover { color: #e8edec; }
+    &--active { color: #3b9fd8; border-bottom-color: #3b9fd8; }
+  }
+
+  .vehicle-tracking-panel__action-btn {
+    color: #6a7270;
+
+    &:hover {
+      background: rgba(0, 120, 212, 0.15);
+      color: #3b9fd8;
+    }
+  }
+
+  .vehicle-tracking-panel__loading,
+  .vehicle-tracking-panel__empty {
+    color: #6a7270;
+  }
+}
+
+/* â”€â”€ Mobile (â‰¤ 768px) â”€â”€ */
+@media (max-width: 768px) {
+  .vehicle-tracking-panel {
+    width: calc(100vw - 16px);
+    min-width: auto;
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
+    bottom: 8px;
+  }
+
+  .vehicle-tracking-panel__data-strip {
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .vehicle-tracking-panel__info-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* â”€â”€ Very small (â‰¤ 480px) â”€â”€ */
+@media (max-width: 480px) {
+  .vehicle-tracking-panel {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 100vh;
+    bottom: 0;
+    border-radius: 12px 12px 0 0;
+  }
+
+  .vehicle-tracking-panel__data-strip {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}

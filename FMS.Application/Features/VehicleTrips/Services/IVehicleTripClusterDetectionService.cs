@@ -20,4 +20,17 @@ public interface IVehicleTripClusterDetectionService
         DateTime fromUtc,
         DateTime toUtc,
         CancellationToken cancellationToken = default);
+
+    Task<ClusterDetectionPreviewDTO> PreviewDetectionAsync(
+        VehicleEntity vehicle,
+        DateTime fromUtc,
+        DateTime toUtc,
+        CancellationToken cancellationToken = default);
+
+    Task<ClusterDetectionPreviewDTO> PreviewDetectionAsync(
+        VehicleEntity vehicle,
+        DateTime fromUtc,
+        DateTime toUtc,
+        VehicleTripClusterDetectionOptions overrideOptions,
+        CancellationToken cancellationToken = default);
 }

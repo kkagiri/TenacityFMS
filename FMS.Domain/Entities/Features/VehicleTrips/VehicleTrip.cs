@@ -2,7 +2,7 @@
  * File: VehicleTrip.cs
  * Purpose: Stores an individual detected trip leg for a vehicle.
  * Dependencies: Vehicle, Site, VehicleTripGroup.
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  */
 using System;
 
@@ -30,8 +30,27 @@ public class VehicleTrip
     public decimal DistanceKm { get; set; }
     public decimal DurationMinutes { get; set; }
     public decimal? MaxSpeedKph { get; set; }
+    public int Status { get; set; } = 2;
     public VehicleMovementProfile MovementProfile { get; set; } = VehicleMovementProfile.Geofence;
     public string DetectionMode { get; set; } = "Geofence";
+    public int? StartTrackInfoId { get; set; }
+    public int? EndTrackInfoId { get; set; }
+    public decimal? FuelAtDeparture { get; set; }
+    public decimal? FuelAtArrival { get; set; }
+    public decimal? FuelConsumed { get; set; }
+    public decimal ConfidenceScore { get; set; } = 1.00m;
+    public string ConfidenceBand { get; set; } = "High";
+    public int AnomalyFlags { get; set; }
+    public int ReconciliationStatus { get; set; }
+    public bool IsLowConfidence { get; set; }
+    public int? ProjectPlanId { get; set; }
+    public int? WorkShiftId { get; set; }
+    public int? PlannedHaulRouteId { get; set; }
+    public int? PlannedOriginZoneId { get; set; }
+    public int? PlannedDestinationZoneId { get; set; }
+    public string? PlanningMatchStatus { get; set; }
+    public bool? IsOutOfBounds { get; set; }
+    public bool? IsProductiveMovement { get; set; }
     public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
 
     public virtual VehicleTripGroup VehicleTripGroup { get; set; } = null!;

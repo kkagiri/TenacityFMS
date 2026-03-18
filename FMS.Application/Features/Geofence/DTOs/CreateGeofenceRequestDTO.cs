@@ -31,4 +31,10 @@ public class CreateGeofenceRequestDTO
     public List<GeofenceShapeCoordinateDTO> Coordinates { get; set; } = new();
 
     public List<int> GroupIds { get; set; } = new();
+
+    /// <summary>
+    /// Operational classification: Unknown, Parking, Load, Dump, Fuel, Workshop.
+    /// </summary>
+    [RegularExpression("Unknown|Parking|Load|Dump|Fuel|Workshop")]
+    public string? Classification { get; set; }
 }

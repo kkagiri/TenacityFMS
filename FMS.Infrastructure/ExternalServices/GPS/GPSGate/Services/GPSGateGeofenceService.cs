@@ -373,6 +373,44 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
             }
         }
 
+        public async Task<FMSResponse<GeofenceDTO>> UpdateGeofenceAsync(int geofenceId, CreateGeofenceRequestDTO request)
+        {
+            try
+            {
+                var (baseUrl, applicationId, authHeader) = await _configurationProvider.GetProviderSettingsAsync();
+                var payload = BuildGeofencePayload(request);
+
+                using var httpRequest = new HttpRequestMessage(HttpMethod.Put,
+                    $"{baseUrl}/applications/{applicationId}/geofences/{geofenceId}")
+                {
+                    Content = JsonContent.Create(payload, options: _jsonOptions)
+                };
+
+                httpRequest.Headers.Authorization = authHeader;
+                var response = await _httpClient.SendAsync(httpRequest);
+
+                if (!response.IsSuccessStatusCode)
+                {
+                    var errorContent = await response.Content.ReadAsStringAsync();
+                    _logger.LogWarning("Failed to update geofence {GeofenceId}. Status: {StatusCode}. Response: {Response}", geofenceId, response.StatusCode, errorContent);
+                    return FMSResponse<GeofenceDTO>.Failed("Failed to update geofence in GPSGate.");
+                }
+
+                var geofenceResult = await GetGeofenceByIdAsync(geofenceId);
+                if (geofenceResult.IsSuccess && geofenceResult.Data != null)
+                {
+                    return geofenceResult;
+                }
+
+                return FMSResponse<GeofenceDTO>.Success(BuildFallbackGeofence(request, geofenceId), "Geofence updated successfully.");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error updating geofence {GeofenceId}", geofenceId);
+                return FMSResponse<GeofenceDTO>.Failed($"Error updating geofence: {ex.Message}");
+            }
+        }
+
         #region Geofence Group Operations
 
         public async Task<FMSResponse<List<GeofenceGroupDTO>>> GetGeofenceGroupsAsync()

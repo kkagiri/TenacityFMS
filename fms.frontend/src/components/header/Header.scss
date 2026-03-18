@@ -1,20 +1,28 @@
+/**
+ * File: Header.scss
+ * Purpose: Controls the global application header sizing, toolbar spacing, and icon hit areas
+ * Dependencies: Header.js, DevExtreme toolbar, ThemeSelector, NotificationCenter, UserPanel
+ * Last Modified: 2026-03-13
+ *
+ * Key Sections:
+ * - .header-component: shell height and elevation
+ * - .dx-toolbar.header-toolbar: shared toolbar rhythm
+ * - .header-brand: Hyoung logo and title block
+ */
+
 @use "./../../variables.scss" as *;
 
 .header-component {
   flex: 0 0 auto;
   z-index: 10020;
   box-shadow: 0 4px 8px var(--fms-shadow-color, rgba(0, 0, 0, 0.05)), 0 0 4px var(--fms-shadow-color, rgba(0, 0, 0, 0.15));
-  padding: 12px 0; // Add vertical padding for height
+  padding: 5px 0;
   background-color: var(--fms-header-bg, #ffffff) !important;
   width: 100%;
-  overflow: visible; // Ensure content doesn't get cut off
-  min-height: 60px; // Set minimum height for header
-
-  // Firefox-specific positioning fixes
+  overflow: visible;
+  min-height: 50px;
   position: relative;
   display: flex;
-
-  // Force hardware acceleration for better positioning
   -webkit-transform: translateZ(0);
   -moz-transform: translateZ(0);
   transform: translateZ(0);
@@ -25,112 +33,100 @@
   z-index: 10030;
 }
 
-.dx-toolbar.header-toolbar
-{
-  padding-right: var(--content-padding);
-  min-height: 56px; // Increased toolbar height
+.dx-toolbar.header-toolbar {
+  padding-left: 4px;
+  padding-right: 12px;
+  min-height: 48px;
   background-color: var(--fms-header-bg, #ffffff) !important;
-
-  // Firefox-specific toolbar fixes
   position: relative;
   display: flex;
   width: 100%;
   height: auto;
-
-  // Ensure proper layout in Firefox
   -moz-box-sizing: border-box;
   box-sizing: border-box;
 
   .global-search-box {
     padding-right: 11px;
   }
-  .dx-toolbar-item.menu-button {
-    width: var(--side-panel-min-width);
-    text-align: center;
-    padding: 0;
-  }
 
-  // Ensure proper spacing and icon visibility for user panel
-  .dx-toolbar-item.user-panel-item {
-    margin-right: 24px; // Increased margin to create space from edge
+  .dx-toolbar-item.header-title {
+    flex: 1 1 auto;
+    min-width: 180px;
 
     .dx-item-content {
       display: flex;
       align-items: center;
-      height: 100%;
-      min-height: 56px; // Match toolbar height
-    }
-  }
-
-  // Fix title truncation by ensuring it has enough space
-  .dx-toolbar-item.header-title {
-    flex: 1 1 auto; // Allow it to grow and take available space
-    min-width: 200px; // Minimum width to prevent extreme truncation
-    max-width: none; // Remove any max-width restrictions
-
-    .dx-item-content {
+      min-height: 48px;
       white-space: nowrap;
-      overflow: visible; // Don't hide overflow
-      text-overflow: unset; // Remove ellipsis
-      width: auto;
+      overflow: visible;
+      text-overflow: unset;
       max-width: none;
     }
   }
-}
 
-
-// Cursor - Added styling for Hyoung FMS title
-.hyoung-fms-title .dx-item-content {
-  padding: 0 8px; // Reduced padding
-  margin: 0;
-  display: flex;
-  align-items: center;
-  height: 100%;
+  .dx-toolbar-item.user-panel-item,
+  .dx-toolbar-item.notification-item,
+  .dx-toolbar-item.theme-selector-item,
+  .dx-toolbar-item.app-grid-button {
+    .dx-item-content {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 48px;
+    }
+  }
 }
 
 .header-title .dx-item-content {
   padding: 0;
   margin: 0;
-  margin-left: 8px; // Reduced to align better with app drawer button
-  white-space: nowrap;
-  overflow: visible;
-  text-overflow: unset;
-  font-weight: 600; // Make title more prominent
-  font-size: 18px; // Increased from 16px
+  margin-left: 2px;
+  font-size: 16px;
+  font-weight: 600;
   color: var(--base-text-color, #333);
-  display: flex;
+  line-height: 48px;
+}
+
+.header-brand {
+  display: inline-flex;
   align-items: center;
-  height: 100%;
-  line-height: 56px; // Match toolbar height for vertical centering
+  gap: 8px;
+  min-width: 0;
+}
+
+.header-brand__logo {
+  width: 22px;
+  height: 22px;
+  object-fit: contain;
+  flex: 0 0 auto;
+}
+
+.header-brand__title {
+  display: inline-flex;
+  align-items: center;
+  color: var(--base-text-color, #333);
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
 .notification-item {
   z-index: 1050;
-  margin-right: 8px; // Reduced to match other items
+  margin-right: 4px;
   position: relative;
 
   .dx-item-content {
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 56px; // Match toolbar height
-
-    // Firefox-specific positioning fixes
+    min-width: 44px;
+    padding: 0 4px;
     position: relative;
-    width: auto;
-    min-width: 40px;
   }
 
   .notification-wrapper {
-    height: 40px;
-    width: 40px;
+    height: 36px;
+    width: 36px;
+    padding: 6px;
     display: flex;
     align-items: center;
     justify-content: center;
-
-    // Firefox-specific fixes
-    position: relative;
     -moz-box-sizing: border-box;
     box-sizing: border-box;
   }
@@ -141,21 +137,20 @@
     justify-content: center;
     height: 100%;
     width: 100%;
-
-    // Firefox positioning fixes
     position: relative;
   }
 }
 
-// Cursor - Updated user panel styling for icon-only button
 .user-panel-item {
   z-index: 5;
-  margin-right: 20px; // Increased margin from window edge
+  margin-right: 8px;
 
   .dx-item-content {
     height: 100%;
     display: flex;
     align-items: center;
+    min-height: 48px;
+    padding: 0 4px;
   }
 
   .user-button {
@@ -164,7 +159,6 @@
     align-items: center;
     justify-content: center;
 
-    // Ensure FontAwesome icon is visible and styled
     &.dx-button .dx-button-content {
       display: flex;
       align-items: center;
@@ -174,10 +168,9 @@
         font-size: 16px;
         color: var(--base-text-color, #333);
         font-family: "Font Awesome 6 Pro";
-        font-weight: 300; // Light weight for fa-light
+        font-weight: 300;
       }
 
-      // Fallback for FontAwesome classes
       i[class*="fa-"] {
         font-size: 16px;
         color: var(--base-text-color, #333);
@@ -192,21 +185,19 @@
 
 .dx-theme-generic {
   .dx-toolbar {
-    padding: 8px 0; // Add vertical padding
-    min-height: 56px; // Set minimum height
+    padding: 4px 0;
+    min-height: 48px;
   }
 
   .user-button > .dx-button-content {
     padding: 3px;
 
-    // Ensure FontAwesome icon displays properly in generic theme
     .dx-icon {
       display: inline-block !important;
       visibility: visible !important;
     }
   }
 
-  // Additional styling for user button
   .user-panel-item .user-button {
     .dx-button-content {
       width: 100%;
@@ -218,7 +209,6 @@
   }
 }
 
-// App Grid Icon Styles
 .app-grid-button {
   .dx-item-content {
     display: flex;
@@ -226,7 +216,7 @@
     justify-content: center;
     padding: 0;
     height: 100%;
-    min-height: 56px; // Match toolbar height for alignment
+    min-height: 48px;
   }
 }
 
@@ -234,9 +224,9 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 8px;
-  width: 40px;
-  height: 40px;
+  padding: 6px;
+  width: 36px;
+  height: 36px;
 }
 
 .grid-dots {
@@ -257,63 +247,45 @@
   }
 }
 
-// Enhanced button styling for better touch/click response
-.grid-icon-button {
-  &.dx-button {
-    min-width: 40px !important;
-    min-height: 40px !important;
-    border-radius: 8px !important;
-    padding: 0 !important;
+.grid-icon-button.dx-button,
+.grid-icon-button.native-button {
+  min-width: 36px !important;
+  min-height: 36px !important;
+  border-radius: 8px !important;
+  padding: 0 !important;
+  visibility: visible !important;
+  display: flex !important;
+  align-items: center;
+  justify-content: center;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
+  background: none;
+  border: none;
+  outline: none;
 
-    .dx-button-content {
-      display: flex !important;
-      align-items: center !important;
-      justify-content: center !important;
-      width: 100% !important;
-      height: 100% !important;
-      padding: 0 !important;
+  &:hover {
+    background-color: rgba(0, 120, 212, 0.1) !important;
+
+    .grid-dots span {
+      background-color: #0078d4;
     }
+  }
 
-    &:hover {
-      background-color: rgba(0, 120, 212, 0.1) !important;
+  &:active,
+  &:focus {
+    background-color: rgba(0, 120, 212, 0.2) !important;
+    outline: none !important;
 
-      .grid-dots span {
-        background-color: #0078d4;
-      }
-    }
-
-    &:active,
-    &:focus {
-      background-color: rgba(0, 120, 212, 0.2) !important;
-      outline: none !important;
-
-      .grid-dots span {
-        background-color: #106ebe;
-      }
+    .grid-dots span {
+      background-color: #106ebe;
     }
   }
 }
 
-// Browser-specific button fixes
-.grid-icon-button.dx-button {
-  // Force visibility in Chrome and Firefox
-  visibility: visible !important;
-  display: block !important;
-
-  // Webkit-specific fixes
-  -webkit-appearance: none;
-  appearance: none;
-  -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
-
-  // Firefox-specific fixes
-  -moz-appearance: none;
-
-  // Ensure button is clickable
-  pointer-events: auto !important;
-  cursor: pointer !important;
-}
-
-// App Button Wrapper
 .app-button-wrapper {
   display: flex;
   align-items: center;
@@ -321,57 +293,11 @@
   width: 100%;
   height: 100%;
   position: relative;
-
-  // Ensure touch targets are adequate for mobile
   min-width: 44px;
   min-height: 44px;
+  padding: 0 2px;
 
-  // Native button styling for Firefox compatibility
   .native-button {
-    background: none;
-    border: none;
-    cursor: pointer;
-    outline: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    min-height: 40px;
-    border-radius: 8px;
-    padding: 0;
-    transition: background-color 0.2s ease;
-
-    // Force visibility and clickability in all browsers
-    visibility: visible !important;
-    pointer-events: auto !important;
-
-    // Browser-specific appearance resets
-    -webkit-appearance: none;
-    -moz-appearance: none;
-    appearance: none;
-
-    // Touch feedback
-    -webkit-tap-highlight-color: rgba(0, 120, 212, 0.1);
-
-    &:hover {
-      background-color: rgba(0, 120, 212, 0.1);
-
-      .grid-dots span {
-        background-color: #0078d4;
-      }
-    }
-
-    &:active,
-    &:focus {
-      background-color: rgba(0, 120, 212, 0.2);
-      outline: none;
-
-      .grid-dots span {
-        background-color: #106ebe;
-      }
-    }
-
-    // Firefox-specific fixes
     &::-moz-focus-inner {
       border: 0;
       padding: 0;
@@ -379,21 +305,32 @@
   }
 }
 
-// Responsive header title handling
 @media (max-width: 768px) {
-  .dx-toolbar.header-toolbar .dx-toolbar-item.header-title {
-    min-width: 150px; // Smaller minimum on mobile
+  .dx-toolbar.header-toolbar {
+    padding-right: 8px;
+
+    .dx-toolbar-item.header-title {
+      min-width: 140px;
+    }
   }
 
   .header-title .dx-item-content {
-    font-size: 16px; // Slightly smaller on mobile
-    margin-left: 8px; // Consistent margin on mobile
+    font-size: 15px;
+  }
+
+  .header-brand {
+    gap: 6px;
+  }
+
+  .header-brand__logo {
+    width: 20px;
+    height: 20px;
   }
 }
 
 @media (min-width: 1200px) {
   .dx-toolbar.header-toolbar .dx-toolbar-item.header-title {
-    min-width: 300px; // Larger minimum on wide screens
+    min-width: 260px;
   }
 }
 

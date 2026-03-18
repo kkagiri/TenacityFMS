@@ -6,6 +6,7 @@ using FMS.Application.Common;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.Geofence.DTOs;
 using FMS.Application.Features.Geofence.Services;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +54,22 @@ public class CreateGeofenceCommandHandler : IRequestHandler<CreateGeofenceComman
         }
 
         var localGeofence = await _cacheSyncService.UpsertGeofenceAsync(createResult.Data, cancellationToken);
+
+        // Set classification on the local entity (GPSGate doesn't have this concept)
+        if (!string.IsNullOrWhiteSpace(request.Request.Classification)
+            && Enum.TryParse<SiteClassification>(request.Request.Classification, true, out var classification)
+            && classification != SiteClassification.Unknown)
+        {
+            var entity = await _context.GpsGeofences
+                .FirstOrDefaultAsync(x => x.Id == localGeofence.Id, cancellationToken);
+            if (entity != null)
+            {
+                entity.Classification = classification;
+                entity.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync(cancellationToken);
+                localGeofence.Classification = classification.ToString();
+            }
+        }
 
         if (request.Request.GroupIds.Count > 0)
         {

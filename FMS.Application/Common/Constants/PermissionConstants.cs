@@ -54,6 +54,9 @@ namespace FMS.Application.Common.Constants
             /// <summary>Vehicle Module (Id: 14)</summary>
             public const string VehicleModule = "Vehicle Module";
 
+            /// <summary>VehicleTrips module (new child under Vehicle Module)</summary>
+            public const string VehicleTrips = "VehicleTrips";
+
             /// <summary>Employee Module (Id: 18)</summary>
             public const string EmployeeModule = "Employee Module";
 
@@ -534,6 +537,16 @@ namespace FMS.Application.Common.Constants
         {
             public const string Read = "_Read_VehicleHealth";
             public const string Manage = "_Manage_VehicleHealth";
+        }
+
+        /// <summary>
+        /// [NEW] Vehicle trips permissions.
+        /// Requires DB migration before use.
+        /// </summary>
+        public static class VehicleTrips
+        {
+            public const string Read = "_Read_VehicleTrips";
+            public const string Edit = "_Edit_VehicleTrips";
         }
 
         /// <summary>

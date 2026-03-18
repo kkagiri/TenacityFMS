@@ -253,17 +253,35 @@ export default function Content() {
             display: "flex",
             justifyContent: "space-between",
             alignItems: "center",
+            gap: "12px",
+            flexWrap: "nowrap",
           }}
         >
-          <div>
+          <div
+            style={{
+              flex: 1,
+              minWidth: 0,
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+            }}
+          >
             Copyright 2011-{new Date().getFullYear()} {appInfo.title} Inc.
             <span style={{ marginLeft: '10px', color: '#888' }}>v{appInfo.version}</span>
-            <br />
-            Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
-            trademarks are property of Hyoung EA Co. Ltd.
+            <span style={{ marginLeft: '12px' }}>
+              Develop by Kevin.kagiri@hyoung.co.ke. All trademarks or registered
+              trademarks are property of Hyoung EA Co. Ltd.
+            </span>
           </div>
           {/* SignalR Connection Status Indicator */}
-          <div style={{ fontSize: "0.8em", opacity: 0.8 }}>
+          <div
+            style={{
+              fontSize: "0.8em",
+              opacity: 0.8,
+              whiteSpace: "nowrap",
+              flexShrink: 0,
+            }}
+          >
             {signalRState.isDashboardConnected && (
               <span style={{ color: "#4caf50", marginRight: "10px" }}>
                 ● Dashboard

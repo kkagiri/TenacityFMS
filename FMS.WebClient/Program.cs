@@ -80,6 +80,10 @@ public class Program
             .AddFmsAuthentication(builder.Configuration)
             .AddFmsDatabase(builder.Configuration, builder.Environment);
 
+        // REMOVED: System B — VehicleTripRealtimeRefreshBackgroundService (batch-recomputes ALL vehicles every 5 min; too expensive).
+        // Use POST /api/v1/vehicletrips/recompute/batch for on-demand batch recomputation instead.
+        // builder.Services.AddHostedService<FMS.BackgroundServices.VehicleTracking.VehicleTripRealtimeRefreshBackgroundService>();
+
         // Port 7009 availability check (skip when hosted under IIS where HTTP.sys already owns the port)
         var isIIS = IsRunningUnderIIS();
         if (isIIS)

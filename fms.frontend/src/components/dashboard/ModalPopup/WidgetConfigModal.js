@@ -108,17 +108,22 @@ export default function WidgetConfigModal({
 
   // Constants - Updated for enhanced widgets
   const metricOptions = [
-    // Fuel Management Metrics
-    { id: 'fuel_dispensed', label: 'Fuel Dispensed', category: 'fuel_management' },
-    { id: 'fuel_used_gps', label: 'Fuel Used (GPS)', category: 'fuel_management' },
-    { id: 'fuel_lost_gps', label: 'Fuel Lost (GPS)', category: 'fuel_management' },
-    { id: 'flowmeter_fuel_used', label: 'Fuel Used (Flow Meter)', category: 'fuel_management' },
-    { id: 'flowmeter_fuel_lost', label: 'Fuel Lost (Flow Meter)', category: 'fuel_management' },
-    { id: 'transactions_count', label: 'Transaction Count', category: 'fuel_management' },
-    { id: 'average_fuel_per_transaction', label: 'Average Fuel per Transaction', category: 'fuel_management' },
-    { id: 'peak_hours', label: 'Peak Hours', category: 'fuel_management' },
-    { id: 'site_efficiency', label: 'Site Efficiency', category: 'fuel_management' },
-    { id: 'tank_levels', label: 'Tank Levels', category: 'fuel_management' },
+    // Tankstock Monitoring Metrics
+    { id: 'fuel_dispensed', label: 'Fuel Dispensed', category: 'tankstock_monitoring' },
+    { id: 'fuel_used_gps', label: 'Fuel Used (GPS)', category: 'tankstock_monitoring' },
+    { id: 'fuel_lost_gps', label: 'Fuel Lost (GPS)', category: 'tankstock_monitoring' },
+    { id: 'flowmeter_fuel_used', label: 'Fuel Used (Flow Meter)', category: 'tankstock_monitoring' },
+    { id: 'flowmeter_fuel_lost', label: 'Fuel Lost (Flow Meter)', category: 'tankstock_monitoring' },
+    { id: 'site_efficiency', label: 'Site Efficiency', category: 'tankstock_monitoring' },
+    { id: 'tank_levels', label: 'Tank Levels', category: 'tankstock_monitoring' },
+
+    // Fuel Operation Metrics
+    { id: 'pts_active_fueling_summary', label: 'PTS Fueling Now', category: 'fuel_operation' },
+    { id: 'pts_active_fueling_current', label: 'Active Fueling PTS', category: 'fuel_operation' },
+    { id: 'pump_transactions_recent', label: 'Recent Pump Transactions', category: 'fuel_operation' },
+    { id: 'transactions_count', label: 'Transaction Count', category: 'fuel_operation' },
+    { id: 'average_fuel_per_transaction', label: 'Average Fuel per Transaction', category: 'fuel_operation' },
+    { id: 'peak_hours', label: 'Peak Hours', category: 'fuel_operation' },
 
     // Vehicle Performance Metrics
     { id: 'engine_hours', label: 'Engine Hours', category: 'vehicle_performance' },
@@ -183,12 +188,13 @@ export default function WidgetConfigModal({
     const parsedFilters = parsedConfig.filters || {};
     const templateId = widget.templateId || widget.template?.id || null;
     const template = getTemplateById(templateId) || widget.template || null;
+    const normalizeLegacyCategory = (category) => category === 'fuel_management' ? 'tankstock_monitoring' : category;
 
     return {
       ...createDefaultWidgetState(),
       customName: widget.customName || widget.template?.displayName || '',
       templateId,
-      category: widget.category || parsedConfig.category || parsedSettings.originalCategory || template?.category || '',
+      category: normalizeLegacyCategory(widget.category || parsedConfig.category || parsedSettings.originalCategory || template?.category || ''),
       settings: parsedSettings,
       filters: parsedFilters,
       visualizationType:
@@ -447,7 +453,7 @@ export default function WidgetConfigModal({
     }
 
     // For enhanced widgets, check if metric is required based on category
-    const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
+    const requiresMetric = ['admin', 'tankstock_monitoring', 'fuel_operation', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
     if (requiresMetric && !newWidget.metric) {
       return false;
     }
@@ -569,7 +575,7 @@ export default function WidgetConfigModal({
     }
 
     // Check if metric is required for this category
-    const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
+    const requiresMetric = ['admin', 'tankstock_monitoring', 'fuel_operation', 'vehicle_performance', 'alerts_monitoring'].includes(newWidget.category);
     if (requiresMetric && !newWidget.metric) {
       notify('Please select a data source first', 'warning', 3000);
       return;

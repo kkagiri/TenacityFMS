@@ -60,11 +60,11 @@
 
 .content-block {
   margin-top: auto;
-  padding: 0 10px 10px 10px; // Remove top padding, keep sides and bottom
+  padding: 0 10px 4px 10px; // Keep footer compact without clipping its border
 
   // Mobile optimization - remove side padding
   @media (max-width: 768px) {
-    padding: 0 0 10px 0;
+    padding: 0 0 4px 0;
   }
 }
 

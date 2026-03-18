@@ -49,6 +49,7 @@ import consumptionSummaryReducer from "./consumptionSummaryReducer";
 import expectedFuelAverageReducer from "../slices/expectedFuelAverageSlice";
 import locationValidationReducer from "../slices/locationValidationSlice";
 import eventExpressionReducer from "../slices/eventExpressionSlice";
+import vehicleTripsReducer from "../slices/vehicleTripsSlice";
 
 const rootReducer = combineReducers({
   auth: authReducer,
@@ -102,6 +103,7 @@ const rootReducer = combineReducers({
   expectedFuelAverage: expectedFuelAverageReducer,
   locationValidation: locationValidationReducer,
   eventExpressions: eventExpressionReducer,
+  vehicleTrips: vehicleTripsReducer,
 });
 
 export default rootReducer;

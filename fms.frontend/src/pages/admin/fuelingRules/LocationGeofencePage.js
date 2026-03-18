@@ -2,7 +2,7 @@
  * File: LocationGeofencePage.js
  * Purpose: Combined view for Location Rules and Geofence management.
  * Dependencies: LocationRulesSettings, GeofenceManagement, react-router-dom
- * Last Modified: 2026-03-05
+ * Last Modified: 2026-03-13
  *
  * Key Components:
  * - LocationGeofencePage: Two-section page with location rules and geofence definitions.
@@ -10,7 +10,7 @@
 import React, { useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import LocationRulesSettings from "../../../components/Tags/TagRuleManagement/LocationRulesSettings";
-import { GeofenceManagement } from "./GeofenceManagement";
+import { GeofenceManagement } from "../../../components/geofenceManagement";
 import SlidePanel from "../../../components/ui/SlidePanel";
 
 const SECTIONS = [
@@ -127,7 +127,12 @@ const LocationGeofencePage = () => {
                         onActionStateChange={setLocationActions}
                     />
                 )}
-                {activeSection === "geofence" && <GeofenceManagement />}
+                {activeSection === "geofence" && (
+                    <GeofenceManagement
+                        title="Geofence Management"
+                        description="Manage shared geofences for fueling validation and vehicle-trip classification from a reusable fleet-map workbench."
+                    />
+                )}
             </div>
 
             <SlidePanel

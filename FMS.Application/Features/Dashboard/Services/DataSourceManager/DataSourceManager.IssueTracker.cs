@@ -366,8 +366,11 @@ namespace FMS.Application.Services.Dashboard
 
             var granularity = ResolveIssueTrendGranularity(aggregationInterval, request.Granularity);
 
-            List<(DateTime timestamp, decimal value)> series = granularity == "hour"
-                ? await query
+            List<(DateTime timestamp, decimal value)> series;
+
+            if (granularity == "hour")
+            {
+                var groupedRows = await query
                     .GroupBy(i => new
                     {
                         Year = (i.OpenDate ?? i.LastModfield).Value.Year,
@@ -377,14 +380,24 @@ namespace FMS.Application.Services.Dashboard
                     })
                     .Select(g => new
                     {
-                        Timestamp = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, g.Key.Hour, 0, 0),
+                        g.Key.Year,
+                        g.Key.Month,
+                        g.Key.Day,
+                        g.Key.Hour,
                         Value = g.Count()
                     })
-                    .OrderBy(g => g.Timestamp)
                     .AsNoTracking()
-                    .Select(g => new ValueTuple<DateTime, decimal>(g.Timestamp, g.Value))
-                    .ToListAsync()
-                : await query
+                    .ToListAsync();
+
+                series = groupedRows
+                    .Select(g => (new DateTime(g.Year, g.Month, g.Day, g.Hour, 0, 0), (decimal)g.Value))
+                    .OrderBy(point => point.Item1)
+                    .Select(point => (timestamp: point.Item1, value: point.Item2))
+                    .ToList();
+            }
+            else
+            {
+                var groupedRows = await query
                     .GroupBy(i => new
                     {
                         Year = (i.OpenDate ?? i.LastModfield).Value.Year,
@@ -393,13 +406,20 @@ namespace FMS.Application.Services.Dashboard
                     })
                     .Select(g => new
                     {
-                        Timestamp = new DateTime(g.Key.Year, g.Key.Month, g.Key.Day, 0, 0, 0),
+                        g.Key.Year,
+                        g.Key.Month,
+                        g.Key.Day,
                         Value = g.Count()
                     })
-                    .OrderBy(g => g.Timestamp)
                     .AsNoTracking()
-                    .Select(g => new ValueTuple<DateTime, decimal>(g.Timestamp, g.Value))
                     .ToListAsync();
+
+                series = groupedRows
+                    .Select(g => (new DateTime(g.Year, g.Month, g.Day, 0, 0, 0), (decimal)g.Value))
+                    .OrderBy(point => point.Item1)
+                    .Select(point => (timestamp: point.Item1, value: point.Item2))
+                    .ToList();
+            }
 
             var total = series.Sum(point => point.value);
             var latest = series.LastOrDefault().value;

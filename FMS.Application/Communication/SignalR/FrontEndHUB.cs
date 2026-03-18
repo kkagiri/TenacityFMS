@@ -1,3 +1,14 @@
+/**
+ * File: FrontEndHUB.cs
+ * Purpose: Broadcasts business-facing realtime events and tracks active frontend hub connections.
+ * Dependencies: IMediator, ConnectionMonitor, SignalR Hub, ILogger
+ * Last Modified: 2026-03-11
+ *
+ * Key Functions:
+ * - OnConnectedAsync(): Registers active business hub connections for admin metrics.
+ * - OnDisconnectedAsync(): Removes business hub connections from admin metrics.
+ * - BroadcastFuelImportProgress(): Sends fuel import progress updates to connected clients.
+ */
 using System;
 using System.Collections.Concurrent;
 using System.Linq;
@@ -25,14 +36,41 @@ namespace FMS.Application.Communication.SignalR
     public class FrontEndHub : Hub
     {
         private readonly IMediator _mediator;
+        private readonly ConnectionMonitor _connectionMonitor;
         private readonly ILogger<FrontEndHub> _logger;
 
         public FrontEndHub(
             IMediator mediator,
+            ConnectionMonitor connectionMonitor,
             ILogger<FrontEndHub> logger)
         {
             _mediator = mediator;
+            _connectionMonitor = connectionMonitor;
             _logger = logger;
+        }
+
+        public override async Task OnConnectedAsync()
+        {
+            _connectionMonitor.AddConnection(Context.ConnectionId);
+            _logger.LogInformation("Frontend client connected: {ConnectionId}", Context.ConnectionId);
+
+            await base.OnConnectedAsync();
+        }
+
+        public override async Task OnDisconnectedAsync(Exception? exception)
+        {
+            _connectionMonitor.RemoveConnection(Context.ConnectionId);
+
+            if (exception != null)
+            {
+                _logger.LogWarning(exception, "Frontend client disconnected with error: {ConnectionId}", Context.ConnectionId);
+            }
+            else
+            {
+                _logger.LogInformation("Frontend client disconnected: {ConnectionId}", Context.ConnectionId);
+            }
+
+            await base.OnDisconnectedAsync(exception);
         }
 
 

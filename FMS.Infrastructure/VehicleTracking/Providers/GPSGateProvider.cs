@@ -470,10 +470,15 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                         "Vehicle not found or doesn't have GPS installed");
                 }
 
-                if (!vehicle.DeviceId.HasValue)
+                var mapping = await context.VehicleProviderMappings
+                    .Where(m => m.VehicleId == vehicleId && m.IsActive && !string.IsNullOrWhiteSpace(m.ExternalDeviceId))
+                    .Include(m => m.ProviderConfiguration)
+                    .FirstOrDefaultAsync();
+
+                if (mapping == null || string.IsNullOrWhiteSpace(mapping.ExternalDeviceId))
                 {
                     return FMSResponse<List<VehicleHistoryPoint>>.Failed(
-                        "Vehicle doesn't have a GPS device ID configured");
+                        "Vehicle doesn't have an active GPS provider mapping configured");
                 }
 
                 // Format dates for GPSGate API (yyyy-MM-dd format)
@@ -482,7 +487,7 @@ namespace FMS.Infrastructure.VehicleTracking.Providers
                 var toTime = to.ToString("HH:mm:ss");
 
                 // Get tracks from GPSGate API
-                var url = $"{_baseUrl}/applications/{_applicationId}/users/{vehicle.DeviceId}/tracks" +
+                var url = $"{_baseUrl}/applications/{_applicationId}/users/{mapping.ExternalDeviceId}/tracks" +
                          $"?Date={formattedDate}&From={fromTime}&Until={toTime}&Filtered=true";
 
                 var response = await _httpClient.GetAsync(url);

@@ -23,6 +23,8 @@ import tankVolumeHistory from './tankVolumeHistory';
 import consumptionByRefills from './consumptionByRefills';
 import issueTracker from './issueTracker';
 import transactionHistorySummary from './transactionHistorySummary';
+import routeAnalysis from './routeAnalysis';
+import liveTripOperations from './liveTripOperations';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -56,6 +58,8 @@ const builtInSources = [
     consumptionByRefills,
     issueTracker,
     transactionHistorySummary,
+    routeAnalysis,
+    liveTripOperations,
 ];
 
 builtInSources.forEach((source) => {

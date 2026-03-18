@@ -408,6 +408,7 @@ namespace FMS.Application.Features.EventEngine.Engine
             EventExpression expression,
             Dictionary<string, string> templateVars)
         {
+            var customEmailBodyHtml = fmsEvent.GetCustomEmailBodyHtml();
             var reportMeta = fmsEvent.GetReportAttachmentMetadata();
             if (reportMeta != null && IsAttachReportEnabled(expression))
             {
@@ -419,6 +420,7 @@ namespace FMS.Application.Features.EventEngine.Engine
                     expressionName = expression.Name,
                     severity = fmsEvent.Severity,
                     templateVariables = templateVars,
+                    EmailBodyHtml = customEmailBodyHtml,
                     reportAttachment = new
                     {
                         reportType = reportMeta.ReportType,
@@ -439,7 +441,8 @@ namespace FMS.Application.Features.EventEngine.Engine
                 expressionId = expression.Id,
                 expressionName = expression.Name,
                 severity = fmsEvent.Severity,
-                templateVariables = templateVars
+                templateVariables = templateVars,
+                EmailBodyHtml = customEmailBodyHtml
             };
         }
 

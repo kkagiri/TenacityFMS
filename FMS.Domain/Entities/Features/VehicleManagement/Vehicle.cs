@@ -58,6 +58,10 @@ public partial class Vehicle
 
     public string? NumberPlate { get; set; }
 
+
+    /// <summary>
+    /// Indicates whether the vehicle's average fuel consumption is calculated in kilometers per liter (km/L) or liters per hour (L/h).
+    /// </summary>
     public bool AverageKmL { get; set; }
 
     public decimal? FuelTankCapacity { get; set; }

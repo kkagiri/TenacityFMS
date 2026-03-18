@@ -10,6 +10,13 @@ namespace FMS.Application.Features.VehicleTracking.DTOs
     {
         public int ProviderId { get; set; }
         public List<int> VehicleIds { get; set; } = new();
+        public List<VehicleProviderAssignmentItemDTO> Assignments { get; set; } = new();
+    }
+
+    public class VehicleProviderAssignmentItemDTO
+    {
+        public int VehicleId { get; set; }
+        public string ExternalDeviceId { get; set; } = string.Empty;
     }
 
     /// <summary>

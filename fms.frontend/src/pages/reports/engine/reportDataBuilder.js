@@ -2,11 +2,14 @@
  * File: reportDataBuilder.js
  * Purpose: Normalize source API responses into template-ready JSReport payloads.
  * Dependencies: None
- * Last Modified: 2026-02-12
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - buildJsReportPayload(): Builds a unified payload for JSReport templates.
  */
+
+import mapVehicleTripAnalysis from './vehicleTripAnalysisReportBuilder';
+import mapLiveTripOperations from './liveTripOperationsReportBuilder';
 
 const numberOrZero = (value) => {
     const n = Number(value);
@@ -210,6 +213,126 @@ const buildDateAliases = (queryParams, container) => {
     return aliases;
 };
 
+const parseAverageKmLFilter = (value) => {
+    if (value === true || value === false) {
+        return value;
+    }
+
+    if (value === null || value === undefined || value === '') {
+        return null;
+    }
+
+    const normalized = String(value).trim().toLowerCase();
+    if (['true', '1', 'yes'].includes(normalized)) {
+        return true;
+    }
+
+    if (['false', '0', 'no'].includes(normalized)) {
+        return false;
+    }
+
+    return null;
+};
+
+const resolveConsumptionMode = (rawRecords, averageKmLFilter) => {
+    const requestedMode = parseAverageKmLFilter(averageKmLFilter);
+    if (requestedMode === true) {
+        return 'km';
+    }
+
+    if (requestedMode === false) {
+        return 'hr';
+    }
+
+    if (!rawRecords.length) {
+        return 'mixed';
+    }
+
+    const modes = rawRecords.map((record) => Boolean(getValue(record, ['isKmL', 'isKmPerLiter', 'averageKmL'])));
+    if (modes.every(Boolean)) {
+        return 'km';
+    }
+
+    if (modes.every((mode) => !mode)) {
+        return 'hr';
+    }
+
+    return 'mixed';
+};
+
+const buildConsumptionLabelMetadata = (rawRecords, averageKmLFilter) => {
+    const mode = resolveConsumptionMode(rawRecords, averageKmLFilter);
+
+    switch (mode) {
+        case 'km':
+            return {
+                distanceHeader: 'Distance (km)',
+                consumptionHeader: 'km/L',
+                distanceSummaryLabel: 'Total Distance',
+                avgConsumptionLabel: 'Avg km/L',
+                consumptionModeLabel: 'KM/L Vehicles',
+                distanceUnit: 'km',
+                consumptionUnit: 'km/L',
+            };
+        case 'hr':
+            return {
+                distanceHeader: 'Engine Hours (hr)',
+                consumptionHeader: 'L/hr',
+                distanceSummaryLabel: 'Total Engine Hours',
+                avgConsumptionLabel: 'Avg L/hr',
+                consumptionModeLabel: 'L/hr Equipment',
+                distanceUnit: 'hr',
+                consumptionUnit: 'L/hr',
+            };
+        default:
+            return {
+                distanceHeader: 'Distance / Engine Hours',
+                consumptionHeader: 'Consumption',
+                distanceSummaryLabel: 'Total Distance / Engine Hours',
+                avgConsumptionLabel: 'Avg Consumption',
+                consumptionModeLabel: 'All Vehicles',
+                distanceUnit: '',
+                consumptionUnit: '',
+            };
+    }
+};
+
+const buildConsumptionSummaryMetrics = (rawRecords) => {
+    const normalizedRows = rawRecords.map((record) => {
+        const distanceOrHours = numberOrZero(getValue(record, ['distanceOrEngineHours', 'distance', 'totalDistance']));
+        const consumption = numberOrZero(getValue(record, ['consumption', 'avgConsumption']));
+        const isKmL = Boolean(getValue(record, ['isKmL', 'isKmPerLiter', 'averageKmL']));
+
+        return {
+            distanceOrHours,
+            consumption,
+            isKmL,
+            hasPositiveDistanceOrHours: distanceOrHours > 0,
+        };
+    });
+
+    const validKmRows = normalizedRows.filter((row) => row.isKmL && row.hasPositiveDistanceOrHours);
+    const validHrRows = normalizedRows.filter((row) => !row.isKmL && row.hasPositiveDistanceOrHours);
+
+    const totalDistanceKm = sumBy(validKmRows, (row) => row.distanceOrHours);
+    const totalEngineHours = sumBy(validHrRows, (row) => row.distanceOrHours);
+    const avgConsumptionKmL = validKmRows.length > 0
+        ? averageBy(validKmRows, (row) => row.consumption)
+        : 0;
+    const avgConsumptionLHr = validHrRows.length > 0
+        ? averageBy(validHrRows, (row) => row.consumption)
+        : 0;
+
+    return {
+        totalDistanceKm,
+        totalEngineHours,
+        avgConsumptionKmL,
+        avgConsumptionLHr,
+        validKmVehicleCount: validKmRows.length,
+        validHrVehicleCount: validHrRows.length,
+    };
+};
+
 const mapDefaultRecords = (rawRecords) => {
     return rawRecords.map((record, index) => ({
         rowNumber: index + 1,
@@ -278,12 +401,16 @@ const mapFuelRefill = (rawRecords) => {
     };
 };
 
-const mapVehicleConsumption = (rawRecords) => {
+const mapVehicleConsumption = (rawRecords, queryParams = {}) => {
+    const labels = buildConsumptionLabelMetadata(rawRecords, queryParams?.averageKmL);
     const mapped = rawRecords.map((record, index) => {
         const volumeValue = numberOrZero(getValue(record, ['totalFuelAmount', 'volume', 'totalVolume']));
         const distanceValue = numberOrZero(getValue(record, ['distanceOrEngineHours', 'distance', 'totalDistance']));
         const consumptionValue = numberOrZero(getValue(record, ['consumption', 'avgConsumption']));
         const costValue = numberOrZero(getValue(record, ['cost', 'totalCost']));
+        const isKmL = Boolean(getValue(record, ['isKmL', 'isKmPerLiter', 'averageKmL']));
+        const distanceUnit = isKmL ? 'km' : 'hr';
+        const consumptionUnit = isKmL ? 'km/L' : 'L/hr';
 
         return {
             rowNumber: index + 1,
@@ -296,26 +423,50 @@ const mapVehicleConsumption = (rawRecords) => {
             totalVolume: formatNumber(volumeValue),
             distance: formatNumber(distanceValue),
             totalDistance: formatNumber(distanceValue),
+            distanceDisplay: `${formatNumber(distanceValue)} ${distanceUnit}`,
             consumption: formatNumber(consumptionValue),
+            consumptionDisplay: `${formatNumber(consumptionValue)} ${consumptionUnit}`,
+            distanceUnit,
+            consumptionUnit,
+            isKmL,
             cost: formatNumber(costValue),
         };
     });
 
     const totalVolume = sumBy(rawRecords, (r) => getValue(r, ['totalFuelAmount', 'volume', 'totalVolume']));
-    const totalDistance = sumBy(rawRecords, (r) => getValue(r, ['distanceOrEngineHours', 'distance', 'totalDistance']));
     const totalCost = sumBy(rawRecords, (r) => getValue(r, ['cost', 'totalCost']));
+    const totalDistance = sumBy(rawRecords, (r) => getValue(r, ['distanceOrEngineHours', 'distance', 'totalDistance']));
     const avgConsumption = averageBy(rawRecords, (r) => getValue(r, ['consumption', 'avgConsumption']));
+    const summaryMetrics = buildConsumptionSummaryMetrics(rawRecords);
 
     return {
+        ...labels,
         records: mapped,
         summary: {
             totalRecords: mapped.length,
             totalVehicles: mapped.length,
             totalVolume: formatNumber(totalVolume),
             totalFuel: formatNumber(totalVolume),
+            totalFuelDisplay: `${formatNumber(totalVolume)} L`,
             totalDistance: formatNumber(totalDistance),
+            totalDistanceDisplay: labels.distanceUnit
+                ? `${formatNumber(totalDistance)} ${labels.distanceUnit}`
+                : formatNumber(totalDistance),
+            totalDistanceKm: formatNumber(summaryMetrics.totalDistanceKm),
+            totalDistanceKmDisplay: `${formatNumber(summaryMetrics.totalDistanceKm)} km`,
+            totalEngineHours: formatNumber(summaryMetrics.totalEngineHours),
+            totalEngineHoursDisplay: `${formatNumber(summaryMetrics.totalEngineHours)} hr`,
             totalCost: formatNumber(totalCost),
             avgConsumption: formatNumber(avgConsumption),
+            avgConsumptionDisplay: labels.consumptionUnit
+                ? `${formatNumber(avgConsumption)} ${labels.consumptionUnit}`
+                : formatNumber(avgConsumption),
+            avgConsumptionKmL: formatNumber(summaryMetrics.avgConsumptionKmL),
+            avgConsumptionKmLDisplay: `${formatNumber(summaryMetrics.avgConsumptionKmL)} km/L`,
+            avgConsumptionLHr: formatNumber(summaryMetrics.avgConsumptionLHr),
+            avgConsumptionLHrDisplay: `${formatNumber(summaryMetrics.avgConsumptionLHr)} L/hr`,
+            validKmVehicleCount: summaryMetrics.validKmVehicleCount,
+            validHrVehicleCount: summaryMetrics.validHrVehicleCount,
         },
     };
 };
@@ -1439,9 +1590,9 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
         case 'fuel-refill':
             return mapFuelRefill(rawRecords);
         case 'vehicle-consumption':
-            return mapVehicleConsumption(rawRecords);
+            return mapVehicleConsumption(rawRecords, queryParams);
         case 'consumption-by-refills':
-            return mapVehicleConsumption(rawRecords);
+            return mapVehicleConsumption(rawRecords, queryParams);
         case 'delivery':
             return mapDelivery(rawRecords);
         case 'device-offline':
@@ -1454,6 +1605,10 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
             return mapIssueTracker(rawRecords, container, queryParams);
         case 'transaction-history-summary':
             return mapTransactionHistorySummary(rawRecords);
+        case 'route-analysis':
+            return mapVehicleTripAnalysis(rawRecords, queryParams);
+        case 'live-trip-operations':
+            return mapLiveTripOperations(container || rawRecords, container, queryParams);
         default:
             return {
                 records: mapDefaultRecords(rawRecords),

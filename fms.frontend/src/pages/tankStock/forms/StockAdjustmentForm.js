@@ -1,3 +1,14 @@
+/**
+ * File: StockAdjustmentForm.js
+ * Purpose: Capture manual tank stock adjustments and warn when the selected timestamp would rebalance later tank ledger entries.
+ * Dependencies: React, Redux Toolkit, DevExtreme components, useStockManagement, useFutureRecordsValidation
+ * Last Modified: 2026-03-13
+ *
+ * Key Functions:
+ * - StockAdjustmentForm: Handles tank stock adjustment data entry and submission
+ * - handleVolumeChange(): Synchronizes form state, volume deltas, and future-record validation
+ * - validateForm(): Enforces required fields and capacity constraints before submit
+ */
 import React, { useState, useCallback, useMemo, useEffect } from 'react';
 import { useSelector } from 'react-redux';
 import { SelectBox } from 'devextreme-react/select-box';
@@ -126,7 +137,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
 
         // Validate historical entry for tank change
         if (value && formData.adjustmentDate) {
-          validateHistoricalEntry(value, formData.adjustmentDate, VolumeChangeReasons.STOCK_ADJUSTMENT).catch(err => {
+          validateHistoricalEntry(value, formData.adjustmentDate, VolumeChangeReasons.ADJUSTMENT).catch(err => {
             console.warn("Validation error:", err);
           });
         }
@@ -137,7 +148,7 @@ const StockAdjustmentForm = ({ onSubmit, onCancel, isVisible, initialData }) => 
 
         // Validate historical entry for date change
         if (value && formData.tankId) {
-          validateHistoricalEntry(formData.tankId, value, VolumeChangeReasons.STOCK_ADJUSTMENT).catch(err => {
+          validateHistoricalEntry(formData.tankId, value, VolumeChangeReasons.ADJUSTMENT).catch(err => {
             console.warn("Validation error:", err);
           });
         }

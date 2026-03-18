@@ -1,0 +1,653 @@
+/**
+ * File: VehicleTrackingDockLayout.scss
+ * Purpose: Styles the FlexLayout MDI docking system and menu bar with Fluent design tokens
+ * Dependencies: flexlayout-react/style/light.css (base), VehicleTrackingDockLayout.js, VehicleTrackingMenuBar.js
+ * Last Modified: 2026-03-17
+ *
+ * Key Sections:
+ * - .vt-menubar: IDE-style horizontal menu bar
+ * - .vt-dock-container: Full-height dock system container
+ * - FlexLayout overrides: Fluent-themed tab sets, splitters, borders
+ */
+
+/* ========================================================================
+   Menu Bar
+   ======================================================================== */
+
+.vt-menubar {
+  display: flex;
+  align-items: center;
+  height: 32px;
+  min-height: 32px;
+  border-bottom: 1px solid #edebe9;
+  background: #f3f2f1;
+  padding: 0 4px;
+  user-select: none;
+
+  &__menu-item {
+    position: relative;
+  }
+
+  &__menu-trigger {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border: none;
+    border-radius: 3px;
+    background: transparent;
+    color: #323130;
+    font-size: 12px;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background-color 0.1s ease;
+
+    &:hover {
+      background: #e1dfdd;
+    }
+
+    &--active {
+      background: #e1dfdd;
+      color: #201f1e;
+      font-weight: 500;
+    }
+  }
+
+  &__dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    z-index: 1000;
+    min-width: 220px;
+    border: 1px solid #e1dfdd;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.06);
+    padding: 4px 0;
+    animation: vt-menubar-fade-in 0.12s ease-out;
+  }
+
+  &__dropdown-item {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    width: 100%;
+    height: 32px;
+    padding: 0 8px;
+    border: none;
+    background: transparent;
+    color: #323130;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.08s ease;
+
+    &:hover {
+      background: #f3f2f1;
+    }
+
+    &--disabled {
+      color: #a19f9d;
+      cursor: default;
+
+      &:hover {
+        background: transparent;
+      }
+    }
+
+    &--submenu {
+      cursor: default;
+    }
+  }
+
+  &__dropdown-item-check {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    flex: 0 0 20px;
+    font-size: 10px;
+    color: #0078d4;
+  }
+
+  &__dropdown-item-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    flex: 0 0 20px;
+    font-size: 13px;
+    color: #605e5c;
+  }
+
+  &__dropdown-item-label {
+    flex: 1 1 auto;
+    padding: 0 4px;
+  }
+
+  &__dropdown-item-shortcut {
+    flex: 0 0 auto;
+    color: #a19f9d;
+    font-size: 11px;
+    margin-left: 12px;
+  }
+
+  &__dropdown-item-arrow {
+    flex: 0 0 auto;
+    font-size: 10px;
+    color: #a19f9d;
+    margin-left: 8px;
+  }
+
+  &__dropdown-separator {
+    height: 1px;
+    margin: 4px 8px;
+    background: #edebe9;
+  }
+
+  &__submenu {
+    position: relative;
+  }
+
+  &__submenu-dropdown {
+    position: absolute;
+    top: -4px;
+    left: 100%;
+    z-index: 1001;
+    min-width: 200px;
+    border: 1px solid #e1dfdd;
+    border-radius: 6px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.06);
+    padding: 4px 0;
+    animation: vt-menubar-fade-in 0.12s ease-out;
+  }
+}
+
+@keyframes vt-menubar-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ========================================================================
+   Dock Container
+   ======================================================================== */
+
+.vt-dock-container {
+  position: relative;
+}
+
+.vt-dock-layout {
+  position: relative;
+
+  .flexlayout__layout {
+    position: absolute;
+    inset: 0;
+  }
+}
+
+.vt-dock-panel-content {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  background: #ffffff;
+
+  > * {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+  }
+
+  &--empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #faf9f8;
+  }
+}
+
+.vt-dock-tab-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+
+  &__icon {
+    font-size: 12px;
+    color: #605e5c;
+  }
+}
+
+/* ========================================================================
+   FlexLayout Fluent Theme Overrides
+   ======================================================================== */
+
+.flexlayout__layout {
+  --color-text: #323130;
+  --color-background: #ffffff;
+  --color-tabset-background: #f3f2f1;
+  --color-border-background: #faf9f8;
+  --color-splitter: #edebe9;
+  --color-splitter-hover: #c8c6c4;
+  --color-splitter-drag: #0078d4;
+  --color-drag-rect-border: #0078d4;
+  --color-drag-rect-background: rgba(0, 120, 212, 0.08);
+  --color-drag-rect: #201f1e;
+  --color-tab-selected: #ffffff;
+  --color-tab-selected-background: #ffffff;
+  --color-tab-unselected: #605e5c;
+  --color-tab-unselected-background: transparent;
+  --color-tab-textbox: #323130;
+  --color-tab-textbox-background: #ffffff;
+  --color-border-tab-selected: #ffffff;
+  --color-border-tab-selected-background: #0078d4;
+  --color-border-tab-unselected: #605e5c;
+  --color-border-tab-unselected-background: transparent;
+  --color-overflow: #605e5c;
+  --color-icon: #605e5c;
+  --color-tabset-header-background: #faf9f8;
+  --color-tabset-header: #201f1e;
+  --color-edge-marker: #0078d4;
+  --font-size: 12px;
+  --font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+
+  background-color: #edebe9;
+}
+
+/* Tabset header strip */
+.flexlayout__tabset_header {
+  background: #faf9f8;
+  border-bottom: 1px solid #edebe9;
+  font-weight: 600;
+  font-size: 12px;
+  color: #201f1e;
+  padding: 0 4px;
+}
+
+/* Tab strip at the top of each tabset */
+.flexlayout__tabset_tabbar_outer {
+  background: #f3f2f1;
+  border-bottom: 1px solid #edebe9;
+}
+
+.flexlayout__tabset_tabbar_inner {
+  padding: 0 2px;
+}
+
+.flexlayout__tabset-selected {
+  background: #ffffff;
+}
+
+/* Individual tabs */
+.flexlayout__tab_button {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 12px;
+  font-weight: 400;
+  padding: 4px 12px;
+  border-radius: 4px 4px 0 0;
+  margin: 2px 1px 0;
+  color: #605e5c;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    background: #e1dfdd;
+    color: #323130;
+  }
+
+  &--selected {
+    background: #ffffff;
+    color: #201f1e;
+    font-weight: 500;
+    border-bottom: 2px solid #0078d4;
+
+    &:hover {
+      background: #ffffff;
+    }
+  }
+
+  &--unselected {
+    background: transparent;
+  }
+}
+
+/* Close button on tabs */
+.flexlayout__tab_button_trailing {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-left: 4px;
+  font-size: 10px;
+  color: #a19f9d;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    background: #c8c6c4;
+    color: #323130;
+  }
+}
+
+/* Per-tab dropdown (∨) button — sits next to the X close button */
+.vt-tab-dropdown-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  margin-left: 4px;
+  font-size: 9px;
+  color: #a19f9d;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    background: #c8c6c4;
+    color: #323130;
+  }
+}
+
+/* Splitters */
+.flexlayout__splitter {
+  background: #edebe9;
+  transition: background-color 0.15s ease;
+
+  &:hover {
+    background: #c8c6c4;
+  }
+
+  &_drag {
+    background: #0078d4;
+  }
+}
+
+/* Maximize button */
+.flexlayout__tabset_header_button_overflow,
+.flexlayout__tab_toolbar_button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  color: #605e5c;
+  transition: background-color 0.1s ease;
+
+  &:hover {
+    background: #e1dfdd;
+    color: #323130;
+  }
+}
+
+/* Border panels (minimised panels along edges) */
+.flexlayout__border {
+  background: #faf9f8;
+  border-color: #edebe9;
+}
+
+.flexlayout__border_tab_button {
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 11px;
+  font-weight: 400;
+  padding: 4px 10px;
+  color: #605e5c;
+  border-radius: 3px;
+  margin: 2px;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  &:hover {
+    background: #e1dfdd;
+    color: #323130;
+  }
+
+  &--selected {
+    background: #ffffff;
+    color: #0078d4;
+    font-weight: 500;
+    border-left: 2px solid #0078d4;
+  }
+}
+
+.flexlayout__border_inner {
+  padding: 2px;
+}
+
+/* Drag outlines */
+.flexlayout__outline_rect {
+  border: 2px solid #0078d4;
+  border-radius: 4px;
+  background: rgba(0, 120, 212, 0.06);
+}
+
+.flexlayout__edge_rect {
+  border: 2px solid #0078d4;
+  border-radius: 4px;
+  background: rgba(0, 120, 212, 0.1);
+}
+
+/* Tab content area */
+.flexlayout__tab {
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* Floating window */
+.flexlayout__floating_window_tab {
+  background: #ffffff;
+}
+
+/* Floating window content inside popout browser window */
+.flexlayout__floating_window_content {
+  width: 100%;
+  height: 100%;
+}
+
+/* Popout tab placeholder (shown in main window when a tab is popped out) */
+.flexlayout__tab_floating {
+  background: #faf9f8;
+  border: 2px dashed #c8c6c4;
+  border-radius: 6px;
+  color: #605e5c;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+  font-size: 13px;
+}
+
+.flexlayout__tab_floating_inner {
+  text-align: center;
+
+  div {
+    margin-bottom: 4px;
+  }
+}
+
+/* Popout button in tabset toolbar (built-in FlexLayout button) */
+.flexlayout__tab_toolbar_button-float {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #605e5c;
+  cursor: pointer;
+  transition: background-color 0.1s ease, color 0.1s ease;
+
+  svg {
+    width: 14px;
+    height: 14px;
+  }
+
+  &:hover {
+    background: #e1dfdd;
+    color: #323130;
+  }
+}
+
+/* Tabset toolbar area (maximize / overflow buttons) */
+.flexlayout__tabset_header_content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Tab overflow button */
+.flexlayout__tab_button_overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 3px;
+  color: #605e5c;
+  cursor: pointer;
+
+  &:hover {
+    background: #e1dfdd;
+  }
+}
+
+/* Popup menu (overflow and context) */
+.flexlayout__popup_menu {
+  border: 1px solid #e1dfdd;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+  padding: 4px 0;
+  font-size: 12px;
+}
+
+.flexlayout__popup_menu_item {
+  padding: 6px 12px;
+  color: #323130;
+  cursor: pointer;
+  transition: background-color 0.08s ease;
+
+  &:hover {
+    background: #f3f2f1;
+  }
+}
+
+/* Minimised tab at the bottom (border) footer bar appearance */
+.flexlayout__border_bottom {
+  border-top: 1px solid #edebe9;
+  background: #f3f2f1;
+  min-height: 32px;
+}
+
+.flexlayout__border_left {
+  border-right: 1px solid #edebe9;
+  background: #f3f2f1;
+  min-width: 32px;
+}
+
+.flexlayout__border_right {
+  border-left: 1px solid #edebe9;
+  background: #f3f2f1;
+  min-width: 32px;
+}
+
+/* ========================================================================
+   Tabset Header Buttons (minimize –)
+   ======================================================================== */
+
+/* Ensure toolbar uses flex so CSS order works */
+.flexlayout__tab_toolbar {
+  display: flex;
+  align-items: center;
+}
+
+.vt-tabset-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 3px;
+  background: transparent;
+  color: #605e5c;
+  font-size: 10px;
+  cursor: pointer;
+  margin-left: 1px;
+  transition: background-color 0.1s ease, color 0.1s ease;
+  flex: 0 0 auto;
+
+  &:hover {
+    background: #e1dfdd;
+    color: #323130;
+  }
+
+  &:active {
+    background: #d2d0ce;
+  }
+
+  /* Minimize (–) is always rightmost */
+  &--minimize {
+    order: 200;
+  }
+}
+
+/* ========================================================================
+   Tabset Context Dropdown (appears on ∨ click)
+   ======================================================================== */
+
+.vt-tabset-dropdown-portal {
+  pointer-events: auto;
+}
+
+.vt-tabset-dropdown {
+  min-width: 180px;
+  border: 1px solid #e1dfdd;
+  border-radius: 6px;
+  background: #ffffff;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.06);
+  padding: 4px 0;
+  animation: vt-menubar-fade-in 0.12s ease-out;
+
+  &__item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+    height: 32px;
+    padding: 0 12px;
+    border: none;
+    background: transparent;
+    color: #323130;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', sans-serif;
+    font-size: 12px;
+    cursor: pointer;
+    text-align: left;
+    transition: background-color 0.08s ease;
+
+    &:hover {
+      background: #f3f2f1;
+    }
+  }
+
+  &__icon {
+    width: 16px;
+    text-align: center;
+    font-size: 12px;
+    color: #605e5c;
+  }
+
+  &__separator {
+    height: 1px;
+    margin: 4px 8px;
+    background: #edebe9;
+  }
+}

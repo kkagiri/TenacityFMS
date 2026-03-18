@@ -4,6 +4,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Domain.Entities;
+using FMS.Domain.Entities.enums;
 using FMS.Application.Features.TankManagement.FuelRefill.DTOs;
 using FMS.Persistence.DataAccess;
 using MediatR;
@@ -43,7 +45,7 @@ public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCo
         {
             // 1. Validate the original record exists
             var originalFuelRefill = await _context.FuelRefills.FindAsync(new object[] { request.OriginalFuelRefillId }, cancellationToken);
-            if (originalFuelRefill == null)
+            if (originalFuelRefill == null || originalFuelRefill.IsDeleted)
             {
                 return new FMSResponseMessage(false, $"Original fuel refill with ID {request.OriginalFuelRefillId} not found");
             }
@@ -61,6 +63,51 @@ public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCo
             if (originalTankVolumeHistory == null)
             {
                 return new FMSResponseMessage(false, $"Associated tank volume history for fuel refill {request.OriginalFuelRefillId} not found");
+            }
+
+            decimal originalFuelRefillAmount = originalFuelRefill.ManualFuelrefillAmount ?? 0m;
+            decimal originalTankVolumeHistoryAmount = Math.Abs(originalTankVolumeHistory.VolumeChange ?? 0m);
+            decimal requestedAmount = request.CorrectionData.ManualFuelrefillAmount;
+
+            bool amountChanged = !AmountsMatch(originalFuelRefillAmount, requestedAmount)
+                || !AmountsMatch(originalTankVolumeHistoryAmount, requestedAmount);
+
+            bool stockImpactChanged = amountChanged
+                || originalFuelRefill.TankId != request.CorrectionData.TankId
+                || originalFuelRefill.SiteId != request.CorrectionData.SiteId
+                || !DatesMatch(originalFuelRefill.Date, request.CorrectionData.Date);
+
+            if (!stockImpactChanged)
+            {
+                originalFuelRefill.VehicleId = request.CorrectionData.VehicleId;
+                originalFuelRefill.PreviousMeterReading = request.CorrectionData.PreviousMeterReading;
+                originalFuelRefill.CurrentMeterReading = request.CorrectionData.CurrentMeterReading;
+                originalFuelRefill.DriverId = request.CorrectionData.DriverId;
+                originalFuelRefill.TagId = request.CorrectionData.TagId;
+                originalFuelRefill.Comment = request.CorrectionData.Comment;
+                originalFuelRefill.PumpTranscationId = request.CorrectionData.PumpTranscationId;
+                originalFuelRefill.DateModified = DateTime.UtcNow;
+                originalFuelRefill.ModifiedBy = request.CorrectionData.FuelBy;
+                originalFuelRefill.IsModified = 1;
+
+                Tankstock? linkedTankStock = await _context.Tankstocks
+                    .FirstOrDefaultAsync(ts => ts.EntryId == request.OriginalFuelRefillId
+                        && ts.EntryType == VolumeChangeReasonEnum.Dispensing
+                        && !ts.IsDeleted,
+                        cancellationToken);
+
+                if (linkedTankStock != null)
+                {
+                    linkedTankStock.Comment = request.CorrectionData.Comment ?? linkedTankStock.Comment;
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+
+                _logger.LogInformation(
+                    "Updated non-stock-impacting fields for fuel refill {FuelRefillId} without tank volume history recalculation.",
+                    request.OriginalFuelRefillId);
+
+                return new FMSResponseMessage(true, "Fuel refill updated successfully without stock recalculation.");
             }
 
             // 3. Soft delete the original tank volume history record with validation
@@ -114,5 +161,20 @@ public class UpdateFuelRefillCommandHandler : IRequestHandler<UpdateFuelRefillCo
             _logger.LogError(ex, "Error processing fuel refill correction for ID {FuelRefillId}", request.OriginalFuelRefillId);
             return new FMSResponseMessage(false, $"Error processing fuel refill correction: {ex.Message}");
         }
+    }
+
+    private static bool AmountsMatch(decimal left, decimal right)
+    {
+        return Math.Abs(left - right) < 0.0001m;
+    }
+
+    private static bool DatesMatch(DateTime? left, DateTime right)
+    {
+        if (!left.HasValue)
+        {
+            return false;
+        }
+
+        return left.Value.ToUniversalTime() == right.ToUniversalTime();
     }
 }

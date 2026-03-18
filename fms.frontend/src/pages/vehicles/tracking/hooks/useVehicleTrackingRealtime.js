@@ -4,7 +4,7 @@
  *          and merges them into the current vehicle list. Connection lifecycle is owned by
  *          SignalRConnectionManager (route-based); this hook only subscribes and listens.
  * Dependencies: React hooks, vehicleTrackingSignalRService, vehicleTrackingHelpers
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - useVehicleTrackingRealtime(): Subscribes to live location and connection updates for the active tracking view
@@ -14,7 +14,7 @@ import vehicleTrackingSignalRService, { ConnectionState } from '../../../../sign
 import { getVehicleHeading, getVehicleSpeed, isVehicleMoving } from '../utils/vehicleTrackingHelpers';
 
 export default function useVehicleTrackingRealtime({
-    selectedVehicleId,
+    trackedVehicleIds,
     setVehicles,
     setSelectedVehicle,
     setLastRefresh,
@@ -214,30 +214,49 @@ export default function useVehicleTrackingRealtime({
         };
     }, [setLastRefresh, setSelectedVehicle, setVehicles]);
 
-    // ── Effect 2: Switch between all-vehicles and vehicle-{id} subscriptions ──
-    // Default state uses all-vehicles so the page can show a live fleet overview.
-    // Once a vehicle is selected, we switch to vehicle-{id} only. This reduces
-    // SignalR traffic and lets the selected vehicle stay live while focused.
+    // ── Effect 2: Keep live updates only for explicitly tracked vehicles ──
+    // When no vehicles are tracked, we unsubscribe from all live vehicle streams
+    // so the grid remains stable and does not keep changing underneath the user.
     useEffect(() => {
         if (connectionState !== ConnectionState.CONNECTED) {
             return undefined;
         }
 
         let isDisposed = false;
+        const normalizedTrackedVehicleIds = Array.from(new Set((trackedVehicleIds || []).filter(Boolean)));
 
         const syncSubscription = async () => {
             try {
-                if (selectedVehicleId) {
-                    const subscribed = await vehicleTrackingSignalRService.switchToVehicleMode(selectedVehicleId);
-                    if (subscribed && !isDisposed) {
-                        console.log(`[VehicleTracking] Subscribed to vehicle-${selectedVehicleId} live updates`);
+                if (vehicleTrackingSignalRService.subscribedToAll) {
+                    await vehicleTrackingSignalRService.unsubscribeFromAllVehicles();
+                }
+
+                if (normalizedTrackedVehicleIds.length === 0) {
+                    const subscribedVehicleIds = [...vehicleTrackingSignalRService.subscribedVehicles];
+                    if (subscribedVehicleIds.length > 0) {
+                        await vehicleTrackingSignalRService.unsubscribeFromVehicles(subscribedVehicleIds);
+                    }
+
+                    if (!isDisposed) {
+                        console.log('[VehicleTracking] Live vehicle subscriptions paused until a tracked vehicle is selected');
                     }
                     return;
                 }
 
-                const subscribed = await vehicleTrackingSignalRService.switchToAllVehiclesMode();
-                if (subscribed && !isDisposed) {
-                    console.log('[VehicleTracking] Subscribed to all-vehicles live updates');
+                const existingVehicleIds = [...vehicleTrackingSignalRService.subscribedVehicles];
+                const vehicleIdsToRemove = existingVehicleIds.filter((id) => !normalizedTrackedVehicleIds.includes(id));
+                const vehicleIdsToAdd = normalizedTrackedVehicleIds.filter((id) => !vehicleTrackingSignalRService.subscribedVehicles.has(id));
+
+                if (vehicleIdsToRemove.length > 0) {
+                    await vehicleTrackingSignalRService.unsubscribeFromVehicles(vehicleIdsToRemove);
+                }
+
+                if (vehicleIdsToAdd.length > 0) {
+                    await vehicleTrackingSignalRService.subscribeToVehicles(vehicleIdsToAdd);
+                }
+
+                if (!isDisposed) {
+                    console.log(`[VehicleTracking] Tracking ${normalizedTrackedVehicleIds.length} vehicle(s) for live updates`);
                 }
             } catch (error) {
                 if (!isDisposed) {
@@ -251,7 +270,7 @@ export default function useVehicleTrackingRealtime({
         return () => {
             isDisposed = true;
         };
-    }, [connectionState, selectedVehicleId]);
+    }, [connectionState, trackedVehicleIds]);
 
     return {
         connectionState,

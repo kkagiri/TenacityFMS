@@ -3,7 +3,7 @@
  * Purpose: Fetches data via MediatR and builds template-ready payloads for all report types.
  *          Used by ScheduledReportDeliveryService to generate attachments for scheduled reports.
  * Dependencies: IMediator, GpsdataContext, MediatR queries for each report source
- * Last Modified: 2026-02-14
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - FetchAndBuildAsync: Dispatches to the appropriate MediatR query and shapes data for jsReport template
@@ -16,10 +16,13 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.VehicleTrips.DTOs;
+using FMS.Application.Features.VehicleTrips.Queries;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
 using FMS.Application.Features.TankManagement.PumpTransaction;
+using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
 using Microsoft.EntityFrameworkCore;
@@ -53,6 +56,7 @@ namespace FMS.Application.Features.Notification.Services
             "device-offline",
             "pts-device",
             "issue-tracker",
+            "live-trip-operations",
         };
 
         public ScheduledReportPayloadBuilder(
@@ -123,13 +127,14 @@ namespace FMS.Application.Features.Notification.Services
                 return sourceId.ToLowerInvariant() switch
                 {
                     "fuel-refill" => await BuildFuelRefillPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
-                    "vehicle-consumption" => await BuildVehicleConsumptionPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
-                    "consumption-by-refills" => await BuildVehicleConsumptionPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "vehicle-consumption" => await BuildVehicleConsumptionPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken, false),
+                    "consumption-by-refills" => await BuildVehicleConsumptionPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken, true),
                     "delivery" => await BuildDeliveryPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "pump-transaction" => await BuildPumpTransactionPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "device-offline" => await BuildDeviceOfflinePayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "pts-device" => await BuildPtsDevicePayload(metadata, reportTitle, cancellationToken),
                     "issue-tracker" => await BuildIssueTrackerPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "live-trip-operations" => await BuildLiveTripOperationsPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     _ => null,
                 };
             }
@@ -189,18 +194,62 @@ namespace FMS.Application.Features.Notification.Services
         private async Task<object?> BuildVehicleConsumptionPayload(
             JObject metadata, DateTime startUtc, DateTime endUtc,
             DateTime startLocal, DateTime endLocal, string reportTitle,
-            CancellationToken ct)
+            CancellationToken ct,
+            bool isConsumptionByRefills)
         {
+            var averageKmL = GetBoolParam(metadata, "averageKmL");
             var query = new Application.Queries.Database.FMSQuery.Consumption.GetVehicleConsumptionManualRefillQueryFiltered(
                 StartDate: startUtc,
                 EndDate: endUtc,
-                SiteId: GetIntParam(metadata, "siteId"));
+                SiteId: GetIntParam(metadata, "siteId"),
+                VehicleTypeId: GetIntParam(metadata, "vehicleTypeId"),
+                VehicleId: GetIntParam(metadata, "vehicleId"),
+                AverageKmL: averageKmL);
+
+            var (distanceHeader, consumptionHeader, distanceSummaryLabel, avgConsumptionLabel, consumptionModeLabel, distanceUnit, consumptionUnit) =
+                BuildConsumptionLabels(averageKmL, null);
 
             var records = await _mediator.Send(query, ct);
             if (records == null || records.Count == 0)
             {
-                return BuildEmptyPayload(reportTitle, startLocal, endLocal, "Vehicle Consumption Report");
+                var emptyTitle = isConsumptionByRefills ? "Consumption by Refills Report" : "Vehicle Consumption Report";
+                return BuildConsumptionPayload(
+                    string.IsNullOrWhiteSpace(reportTitle) ? emptyTitle : reportTitle,
+                    startLocal,
+                    endLocal,
+                    Array.Empty<object>(),
+                    new
+                    {
+                        totalRecords = 0,
+                        totalVehicles = 0,
+                        totalVolume = "0.00",
+                        totalFuel = "0.00",
+                        totalFuelDisplay = "0.00 L",
+                        avgExpectedAverage = "0.00",
+                        avgExpectedAverageDisplay = consumptionUnit == string.Empty ? "0.00" : $"0.00 {consumptionUnit}",
+                        totalDistanceKm = "0.00",
+                        totalDistanceKmDisplay = "0.00 km",
+                        totalEngineHours = "0.00",
+                        totalEngineHoursDisplay = "0.00 hr",
+                        totalDistance = "0.00",
+                        totalDistanceDisplay = distanceUnit == string.Empty ? "0.00" : $"0.00 {distanceUnit}",
+                        totalCost = "0.00",
+                        avgConsumption = "0.00",
+                        avgConsumptionDisplay = consumptionUnit == string.Empty ? "0.00" : $"0.00 {consumptionUnit}",
+                        avgConsumptionKmL = "0.00",
+                        avgConsumptionKmLDisplay = "0.00 km/L",
+                        avgConsumptionLHr = "0.00",
+                        avgConsumptionLHrDisplay = "0.00 L/hr",
+                    },
+                    distanceHeader,
+                    consumptionHeader,
+                    distanceSummaryLabel,
+                    avgConsumptionLabel,
+                    consumptionModeLabel);
             }
+
+            (distanceHeader, consumptionHeader, distanceSummaryLabel, avgConsumptionLabel, consumptionModeLabel, distanceUnit, consumptionUnit) =
+                BuildConsumptionLabels(averageKmL, records.Select(r => r.IsKmL));
 
             var mapped = records.Select((r, i) => new
             {
@@ -214,24 +263,60 @@ namespace FMS.Application.Features.Notification.Services
                 totalVolume = Fmt(r.TotalFuelAmount),
                 distance = Fmt(r.DistanceOrEngineHours),
                 totalDistance = Fmt(r.DistanceOrEngineHours),
+                distanceDisplay = $"{Fmt(r.DistanceOrEngineHours)} {(r.IsKmL ? "km" : "hr")}",
                 consumption = Fmt(r.Consumption),
+                consumptionDisplay = $"{Fmt(r.Consumption)} {(r.IsKmL ? "km/L" : "L/hr")}",
+                expectedAverage = Fmt(r.ExpectedAverage),
+                expectedAverageDisplay = r.ExpectedAverage > 0
+                    ? $"{Fmt(r.ExpectedAverage)} {(r.IsKmL ? "km/L" : "L/hr")}"
+                    : "-",
+                distanceUnit = r.IsKmL ? "km" : "hr",
+                consumptionUnit = r.IsKmL ? "km/L" : "L/hr",
+                isKmL = r.IsKmL,
                 cost = "0.00",
             }).ToList();
 
             var totalVolume = records.Sum(r => r.TotalFuelAmount);
             var totalDistance = records.Sum(r => r.DistanceOrEngineHours);
             var avgConsumption = records.Count > 0 ? records.Average(r => r.Consumption) : 0m;
+            var validDistanceRows = records.Where(r => r.DistanceOrEngineHours > 0).ToList();
+            var validKmRows = validDistanceRows.Where(r => r.IsKmL).ToList();
+            var validHrRows = validDistanceRows.Where(r => !r.IsKmL).ToList();
+            var totalDistanceKm = validKmRows.Sum(r => r.DistanceOrEngineHours);
+            var totalEngineHours = validHrRows.Sum(r => r.DistanceOrEngineHours);
+            var avgConsumptionKmL = validKmRows.Count > 0 ? validKmRows.Average(r => r.Consumption) : 0m;
+            var avgConsumptionLHr = validHrRows.Count > 0 ? validHrRows.Average(r => r.Consumption) : 0m;
+            var validExpectedRows = records.Where(r => r.ExpectedAverage > 0).ToList();
+            var avgExpectedAverage = validExpectedRows.Count > 0 ? validExpectedRows.Average(r => r.ExpectedAverage) : 0m;
 
-            return BuildPayload(reportTitle, startLocal, endLocal, mapped, new
+            return BuildConsumptionPayload(reportTitle, startLocal, endLocal, mapped, new
             {
                 totalRecords = mapped.Count,
                 totalVehicles = mapped.Count,
                 totalVolume = Fmt(totalVolume),
                 totalFuel = Fmt(totalVolume),
+                totalFuelDisplay = $"{Fmt(totalVolume)} L",
+                avgExpectedAverage = Fmt(avgExpectedAverage),
+                avgExpectedAverageDisplay = consumptionUnit == string.Empty ? Fmt(avgExpectedAverage) : $"{Fmt(avgExpectedAverage)} {consumptionUnit}",
+                totalDistanceKm = Fmt(totalDistanceKm),
+                totalDistanceKmDisplay = $"{Fmt(totalDistanceKm)} km",
+                totalEngineHours = Fmt(totalEngineHours),
+                totalEngineHoursDisplay = $"{Fmt(totalEngineHours)} hr",
                 totalDistance = Fmt(totalDistance),
+                totalDistanceDisplay = distanceUnit == string.Empty ? Fmt(totalDistance) : $"{Fmt(totalDistance)} {distanceUnit}",
                 totalCost = "0.00",
                 avgConsumption = Fmt(avgConsumption),
-            });
+                avgConsumptionDisplay = consumptionUnit == string.Empty ? Fmt(avgConsumption) : $"{Fmt(avgConsumption)} {consumptionUnit}",
+                avgConsumptionKmL = Fmt(avgConsumptionKmL),
+                avgConsumptionKmLDisplay = $"{Fmt(avgConsumptionKmL)} km/L",
+                avgConsumptionLHr = Fmt(avgConsumptionLHr),
+                avgConsumptionLHrDisplay = $"{Fmt(avgConsumptionLHr)} L/hr",
+            },
+            distanceHeader,
+            consumptionHeader,
+            distanceSummaryLabel,
+            avgConsumptionLabel,
+            consumptionModeLabel);
         }
 
         // ─── Delivery ───────────────────────────────────────────────────────────────
@@ -517,6 +602,32 @@ namespace FMS.Application.Features.Notification.Services
             });
         }
 
+        // ─── Live Trip Operations ─────────────────────────────────────────────────
+
+        private async Task<object?> BuildLiveTripOperationsPayload(
+            JObject metadata, DateTime startUtc, DateTime endUtc,
+            DateTime startLocal, DateTime endLocal, string reportTitle,
+            CancellationToken ct)
+        {
+            var query = new GetVehicleTripLiveOperationsReportQuery
+            {
+                VehicleId = GetIntParam(metadata, "vehicleId"),
+                SiteId = GetIntParam(metadata, "siteId"),
+                StartDate = startUtc,
+                EndDate = endUtc,
+                IdleThresholdMinutes = GetIntParam(metadata, "idleThresholdMinutes") ?? 15,
+            };
+
+            var result = await _mediator.Send(query, ct);
+            if (!result.IsSuccess || result.Data == null)
+            {
+                _logger.LogWarning("Live trip operations query failed for scheduled report: {Msg}", result.Message);
+                return BuildEmptyLiveTripOperationsPayload(reportTitle, startLocal, endLocal, query.IdleThresholdMinutes);
+            }
+
+            return BuildLiveTripOperationsPayload(result.Data, reportTitle, startLocal, endLocal);
+        }
+
         // ─── Helpers ────────────────────────────────────────────────────────────────
 
         private static object BuildPayload(
@@ -544,6 +655,41 @@ namespace FMS.Application.Features.Notification.Services
             };
         }
 
+        private static object BuildConsumptionPayload(
+            string reportTitle,
+            DateTime startLocal,
+            DateTime endLocal,
+            object records,
+            object summary,
+            string distanceHeader,
+            string consumptionHeader,
+            string distanceSummaryLabel,
+            string avgConsumptionLabel,
+            string consumptionModeLabel)
+        {
+            return new
+            {
+                reportTitle,
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "System (Scheduled)",
+                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                dateFrom = startLocal.ToString("yyyy-MM-dd"),
+                dateTo = endLocal.ToString("yyyy-MM-dd"),
+                startDate = startLocal.ToString("yyyy-MM-dd"),
+                endDate = endLocal.ToString("yyyy-MM-dd"),
+                distanceHeader,
+                consumptionHeader,
+                distanceSummaryLabel,
+                avgConsumptionLabel,
+                consumptionModeLabel,
+                records,
+                data = records,
+                items = records,
+                transactions = records,
+                summary,
+            };
+        }
+
         private static object BuildEmptyPayload(
             string reportTitle,
             DateTime startLocal,
@@ -556,10 +702,259 @@ namespace FMS.Application.Features.Notification.Services
                 new { totalRecords = 0 });
         }
 
+        private static object BuildEmptyLiveTripOperationsPayload(
+            string reportTitle,
+            DateTime startLocal,
+            DateTime endLocal,
+            int idleThresholdMinutes)
+        {
+            return new
+            {
+                reportTitle = string.IsNullOrWhiteSpace(reportTitle) ? "Live Trip Operations Report" : reportTitle,
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "System (Scheduled)",
+                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                dateFrom = startLocal.ToString("yyyy-MM-dd"),
+                dateTo = endLocal.ToString("yyyy-MM-dd"),
+                startDate = startLocal.ToString("yyyy-MM-dd"),
+                endDate = endLocal.ToString("yyyy-MM-dd"),
+                idleThresholdMinutes,
+                travelingVehicles = Array.Empty<object>(),
+                activeTrips = Array.Empty<object>(),
+                tripCounts = Array.Empty<object>(),
+                tipperCycles = Array.Empty<object>(),
+                idleOutsideWorkZones = Array.Empty<object>(),
+                records = Array.Empty<object>(),
+                data = Array.Empty<object>(),
+                items = Array.Empty<object>(),
+                transactions = Array.Empty<object>(),
+                summary = new
+                {
+                    vehiclesCurrentlyTravelingCount = 0,
+                    activeTripsInProgressCount = 0,
+                    vehiclesWithTripCountsCount = 0,
+                    liveTipperCycleVehicleCount = 0,
+                    vehiclesIdleOutsideWorkZonesCount = 0,
+                    totalTripGroups = 0,
+                    totalTripLegs = 0,
+                    totalActiveDistanceDisplay = "0.00 km",
+                    totalActiveDurationDisplay = "0.0 min",
+                },
+            };
+        }
+
+        private static object BuildLiveTripOperationsPayload(
+            VehicleTripLiveOperationsReportDTO payload,
+            string reportTitle,
+            DateTime startLocal,
+            DateTime endLocal)
+        {
+            var travelingVehicles = payload.VehiclesCurrentlyTraveling
+                .Select((item, index) => new
+                {
+                    rowNumber = index + 1,
+                    vehicleLabel = item.VehicleLabel,
+                    numberPlate = item.NumberPlate ?? "-",
+                    movementProfileLabel = FormatMovementProfile(item.MovementProfile),
+                    detectionMode = item.DetectionMode,
+                    originDisplayName = item.OriginDisplayName,
+                    destinationDisplayName = item.DestinationDisplayName,
+                    startedAtLocal = FormatDateTime(item.StartedAtUtc),
+                    lastUpdatedAtLocal = FormatDateTime(item.LastUpdatedAtUtc),
+                    durationDisplay = $"{Fmt(item.DurationMinutes)} min",
+                    distanceDisplay = $"{Fmt(item.DistanceKm)} km",
+                    confidenceBand = item.ConfidenceBand,
+                })
+                .ToList();
+
+            var activeTrips = payload.ActiveTripsInProgress
+                .Select((item, index) => new
+                {
+                    rowNumber = index + 1,
+                    vehicleLabel = item.VehicleLabel,
+                    movementProfileLabel = FormatMovementProfile(item.MovementProfile),
+                    routeLabel = $"{item.OriginDisplayName} → {item.DestinationDisplayName}",
+                    startedAtLocal = FormatDateTime(item.StartedAtUtc),
+                    lastUpdatedAtLocal = FormatDateTime(item.LastUpdatedAtUtc),
+                    durationDisplay = $"{Fmt(item.DurationMinutes)} min",
+                    distanceDisplay = $"{Fmt(item.DistanceKm)} km",
+                    fuelConsumedDisplay = item.FuelConsumed.HasValue ? $"{Fmt(item.FuelConsumed)} L" : "N/A",
+                    confidenceBand = item.ConfidenceBand,
+                    anomalyFlagsLabel = FormatAnomalyFlags(item.AnomalyFlags),
+                    outOfBoundsLabel = item.IsOutOfBounds == true ? "Yes" : "No",
+                })
+                .ToList();
+
+            var tripCounts = payload.TripCountsPerVehicle
+                .Select((item, index) => new
+                {
+                    rowNumber = index + 1,
+                    vehicleLabel = item.VehicleLabel,
+                    tripGroupCount = item.TripGroupCount,
+                    tripLegCount = item.TripLegCount,
+                    activeTripCount = item.ActiveTripCount,
+                    loadCycleCount = item.LoadCycleCount,
+                    roundTripCount = item.RoundTripCount,
+                    totalDistanceDisplay = $"{Fmt(item.TotalDistanceKm)} km",
+                })
+                .ToList();
+
+            var tipperCycles = payload.LiveTipperCycleCounts
+                .Select((item, index) => new
+                {
+                    rowNumber = index + 1,
+                    vehicleLabel = item.VehicleLabel,
+                    totalCycleCount = item.TotalCycleCount,
+                    completedCycleCount = item.CompletedCycleCount,
+                    activeCycleCount = item.ActiveCycleCount,
+                    totalDistanceDisplay = $"{Fmt(item.TotalDistanceKm)} km",
+                    lastCycleStartedAtLocal = item.LastCycleStartedAtUtc.HasValue ? FormatDateTime(item.LastCycleStartedAtUtc.Value) : "-",
+                })
+                .ToList();
+
+            var idleOutsideWorkZones = payload.VehiclesIdleOutsideWorkZones
+                .Select((item, index) => new
+                {
+                    rowNumber = index + 1,
+                    vehicleLabel = item.VehicleLabel,
+                    locationDisplayName = item.LocationDisplayName,
+                    startedAtLocal = FormatDateTime(item.StartedAtUtc),
+                    lastUpdatedAtLocal = FormatDateTime(item.LastUpdatedAtUtc),
+                    idleMinutesDisplay = $"{Fmt(item.IdleMinutes)} min",
+                    flagSource = item.OffSiteIdleSuspected ? "Off-site idle anomaly" : "Out-of-bounds flag",
+                    anomalyFlagsLabel = FormatAnomalyFlags(item.AnomalyFlags),
+                })
+                .ToList();
+
+            return new
+            {
+                reportTitle = string.IsNullOrWhiteSpace(reportTitle) ? "Live Trip Operations Report" : reportTitle,
+                generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
+                generatedBy = "System (Scheduled)",
+                reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
+                dateFrom = startLocal.ToString("yyyy-MM-dd"),
+                dateTo = endLocal.ToString("yyyy-MM-dd"),
+                startDate = startLocal.ToString("yyyy-MM-dd"),
+                endDate = endLocal.ToString("yyyy-MM-dd"),
+                idleThresholdMinutes = payload.IdleThresholdMinutes,
+                travelingVehicles,
+                activeTrips,
+                tripCounts,
+                tipperCycles,
+                idleOutsideWorkZones,
+                records = activeTrips,
+                data = activeTrips,
+                items = activeTrips,
+                transactions = activeTrips,
+                summary = new
+                {
+                    vehiclesCurrentlyTravelingCount = payload.Summary.VehiclesCurrentlyTravelingCount,
+                    activeTripsInProgressCount = payload.Summary.ActiveTripsInProgressCount,
+                    vehiclesWithTripCountsCount = payload.Summary.VehiclesWithTripCountsCount,
+                    liveTipperCycleVehicleCount = payload.Summary.LiveTipperCycleVehicleCount,
+                    vehiclesIdleOutsideWorkZonesCount = payload.Summary.VehiclesIdleOutsideWorkZonesCount,
+                    totalTripGroups = payload.Summary.TotalTripGroups,
+                    totalTripLegs = payload.Summary.TotalTripLegs,
+                    totalActiveDistanceDisplay = $"{Fmt(payload.Summary.TotalActiveDistanceKm)} km",
+                    totalActiveDurationDisplay = $"{Fmt(payload.Summary.TotalActiveDurationMinutes)} min",
+                },
+            };
+        }
+
         private static int? GetIntParam(JObject metadata, string key)
         {
             var value = metadata.Value<int?>(key);
             return value.HasValue && value.Value > 0 ? value : null;
+        }
+
+        private static bool? GetBoolParam(JObject metadata, string key)
+        {
+            if (!metadata.TryGetValue(key, StringComparison.OrdinalIgnoreCase, out var token) || token == null)
+            {
+                return null;
+            }
+
+            if (token.Type == JTokenType.Boolean)
+            {
+                return token.Value<bool>();
+            }
+
+            if (bool.TryParse(token.ToString(), out var parsed))
+            {
+                return parsed;
+            }
+
+            if (int.TryParse(token.ToString(), out var numeric))
+            {
+                return numeric != 0;
+            }
+
+            return null;
+        }
+
+        private static (string DistanceHeader, string ConsumptionHeader, string DistanceSummaryLabel, string AvgConsumptionLabel, string ConsumptionModeLabel, string DistanceUnit, string ConsumptionUnit)
+            BuildConsumptionLabels(bool? requestedAverageKmL, IEnumerable<bool>? rowModes)
+        {
+            var resolvedMode = requestedAverageKmL switch
+            {
+                true => "km",
+                false => "hr",
+                null => ResolveConsumptionMode(rowModes),
+            };
+
+            return resolvedMode switch
+            {
+                "km" => (
+                    "Distance (km)",
+                    "km/L",
+                    "Total Distance",
+                    "Avg km/L",
+                    "KM/L Vehicles",
+                    "km",
+                    "km/L"),
+                "hr" => (
+                    "Engine Hours (hr)",
+                    "L/hr",
+                    "Total Engine Hours",
+                    "Avg L/hr",
+                    "L/hr Equipment",
+                    "hr",
+                    "L/hr"),
+                _ => (
+                    "Distance / Engine Hours",
+                    "Consumption",
+                    "Total Distance / Engine Hours",
+                    "Avg Consumption",
+                    "All Vehicles",
+                    string.Empty,
+                    string.Empty),
+            };
+        }
+
+        private static string ResolveConsumptionMode(IEnumerable<bool>? rowModes)
+        {
+            if (rowModes == null)
+            {
+                return "mixed";
+            }
+
+            var modes = rowModes.ToList();
+            if (modes.Count == 0)
+            {
+                return "mixed";
+            }
+
+            if (modes.All(mode => mode))
+            {
+                return "km";
+            }
+
+            if (modes.All(mode => !mode))
+            {
+                return "hr";
+            }
+
+            return "mixed";
         }
 
         private static List<int> ParseIntList(JToken? token)
@@ -630,6 +1025,7 @@ namespace FMS.Application.Features.Notification.Services
                 "device-offline-report" => "device-offline",
                 "pts-device-status-report" => "pts-device",
                 "issue-tracker-report" => "issue-tracker",
+                "live-trip-operations-report" => "live-trip-operations",
                 _ => null,
             };
         }
@@ -646,8 +1042,43 @@ namespace FMS.Application.Features.Notification.Services
                 "ptsdeviceoffline" or "deviceoffline" or "device-offline" => "device-offline",
                 "ptsdevice" or "ptsdevicestatus" or "pts-device" => "pts-device",
                 "issuetracker" or "issue-tracker" => "issue-tracker",
+                "livetripoperations" or "live-trip-operations" => "live-trip-operations",
                 _ => null,
             };
+        }
+
+        private static string FormatMovementProfile(VehicleMovementProfile movementProfile)
+        {
+            return movementProfile switch
+            {
+                VehicleMovementProfile.Cluster => "Cluster",
+                VehicleMovementProfile.Geofence => "Geofence",
+                _ => movementProfile.ToString(),
+            };
+        }
+
+        private static string FormatAnomalyFlags(VehicleTripAnomalyType anomalyFlags)
+        {
+            if (anomalyFlags == VehicleTripAnomalyType.None)
+            {
+                return "None";
+            }
+
+            var labels = new List<string>();
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.LowConfidence)) labels.Add("Low Confidence");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.UnknownOriginOrDestination)) labels.Add("Unknown Origin / Destination");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.GpsGapSuspected)) labels.Add("GPS Gap Suspected");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.OffSiteIdleSuspected)) labels.Add("Off-Site Idle Suspected");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.UnmatchedReturn)) labels.Add("Unmatched Return");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.MissingFuelData)) labels.Add("Missing Fuel Data");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.NegativeFuelConsumption)) labels.Add("Negative Fuel Consumption");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.UnrealisticSpeed)) labels.Add("Unrealistic Speed");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.AsymmetricCycle)) labels.Add("Asymmetric Cycle");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.NoReturnToOrigin)) labels.Add("No Return To Origin");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.WeakFuelData)) labels.Add("Weak Fuel Data");
+            if (anomalyFlags.HasFlag(VehicleTripAnomalyType.SuspiciousFuelRate)) labels.Add("Suspicious Fuel Rate");
+
+            return labels.Count == 0 ? "None" : string.Join(", ", labels);
         }
     }
 }

@@ -13,8 +13,9 @@
  */
 
 import React, { useState } from 'react';
-import { Popup, Button, TextArea, LoadPanel } from 'devextreme-react';
+import { TextArea, LoadPanel } from 'devextreme-react';
 import notify from 'devextreme/ui/notify';
+import SlidePanel from '../../../../components/ui/SlidePanel';
 import './FuelRefillDeleteModal.scss';
 
 const FuelRefillDeleteModal = ({ fuelRefill, isLoading = false, onClose, onConfirm }) => {
@@ -43,92 +44,90 @@ const FuelRefillDeleteModal = ({ fuelRefill, isLoading = false, onClose, onConfi
   };
 
   return (
-    <Popup
-      visible={true}
-      onHiding={onClose}
+    <SlidePanel
+      open={true}
+      onClose={onClose}
       title="Delete Fuel Refill"
-      maxWidth={500}
-      showCloseButton={true}
-      showTitle={true}
+      width={520}
+      panelClassName="fuel-refill-delete-panel"
     >
       <LoadPanel visible={isLoading} />
 
-      <div className="tw-p-4">
-        {/* Warning message */}
-        <div className="tw-mb-4 tw-p-3 tw-bg-red-50 tw-border tw-border-red-200 tw-rounded-lg">
-          <div className="tw-flex tw-items-start tw-gap-2">
-            <i className="fa-light fa-triangle-exclamation tw-text-red-600 tw-text-lg tw-flex-shrink-0"></i>
-            <div>
-              <p className="tw-text-sm tw-font-medium tw-text-red-800">
-                Are you sure you want to delete this fuel refill record?
-              </p>
-              <p className="tw-text-xs tw-text-red-600 tw-mt-1">
-                This action cannot be undone. You must provide a reason for the deletion.
-              </p>
-            </div>
+      <div className="fuel-refill-delete-panel__content">
+        <div className="fuel-refill-delete-panel__warning-card">
+          <div className="fuel-refill-delete-panel__warning-icon">
+            <i className="fa-light fa-triangle-exclamation"></i>
+          </div>
+          <div>
+            <p className="fuel-refill-delete-panel__warning-title">
+              Delete this fuel refill?
+            </p>
+            <p className="fuel-refill-delete-panel__warning-text">
+              This follows the transaction workflow and may recalculate tank stock, tank volume history, and linked
+              dispensing records.
+            </p>
           </div>
         </div>
 
-        {/* Fuel refill details */}
-        <div className="tw-mb-4 tw-p-3 tw-bg-gray-50 tw-rounded-lg tw-space-y-2">
-          <div className="tw-flex tw-justify-between">
-            <span className="tw-text-sm tw-text-gray-600">ID:</span>
-            <span className="tw-text-sm tw-font-medium tw-text-gray-900">{fuelRefill.id}</span>
+        <div className="fuel-refill-delete-panel__details-card">
+          <div className="fuel-refill-delete-panel__detail-row">
+            <span className="fuel-refill-delete-panel__detail-label">Refill ID</span>
+            <span className="fuel-refill-delete-panel__detail-value">{fuelRefill.id}</span>
           </div>
-          <div className="tw-flex tw-justify-between">
-            <span className="tw-text-sm tw-text-gray-600">Vehicle ID:</span>
-            <span className="tw-text-sm tw-font-medium tw-text-gray-900">{fuelRefill.vehicleId}</span>
+          <div className="fuel-refill-delete-panel__detail-row">
+            <span className="fuel-refill-delete-panel__detail-label">Vehicle ID</span>
+            <span className="fuel-refill-delete-panel__detail-value">{fuelRefill.vehicleId}</span>
           </div>
-          <div className="tw-flex tw-justify-between">
-            <span className="tw-text-sm tw-text-gray-600">Date:</span>
-            <span className="tw-text-sm tw-font-medium tw-text-gray-900">
-              {formatDate(fuelRefill.date)}
-            </span>
+          <div className="fuel-refill-delete-panel__detail-row">
+            <span className="fuel-refill-delete-panel__detail-label">Date</span>
+            <span className="fuel-refill-delete-panel__detail-value">{formatDate(fuelRefill.date)}</span>
           </div>
-          <div className="tw-flex tw-justify-between">
-            <span className="tw-text-sm tw-text-gray-600">Amount:</span>
-            <span className="tw-text-sm tw-font-medium tw-text-gray-900">
+          <div className="fuel-refill-delete-panel__detail-row">
+            <span className="fuel-refill-delete-panel__detail-label">Amount</span>
+            <span className="fuel-refill-delete-panel__detail-value">
               {fuelRefill.manualFuelrefillAmount?.toFixed(2) || 0} L
             </span>
           </div>
         </div>
 
-        {/* Delete reason */}
-        <div className="tw-mb-4">
-          <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-2">
-            Reason for Deletion <span className="tw-text-red-500">*</span>
+        <div className="fuel-refill-delete-panel__field">
+          <label className="fuel-refill-delete-panel__label">
+            Reason for Deletion <span className="fuel-refill-delete-panel__required">*</span>
           </label>
           <TextArea
             value={deleteReason}
             onValueChanged={(e) => setDeleteReason(e.value)}
             placeholder="Please explain why this record is being deleted"
-            height={100}
+            height={120}
             maxLength={500}
+            className="fuel-refill-delete-panel__editor"
           />
-          <p className="tw-text-xs tw-text-gray-500 tw-mt-1">
+          <p className="fuel-refill-delete-panel__hint">
             {deleteReason.length}/500 characters
           </p>
         </div>
-      </div>
 
-      {/* Footer */}
-      <div className="tw-flex tw-justify-end tw-gap-3 tw-p-4 tw-border-t tw-border-gray-200">
-        <Button
-          text="Cancel"
-          onClick={onClose}
-          type="default"
-          stylingMode="outlined"
-          disabled={isLoading}
-        />
-        <Button
-          text="Delete"
-          onClick={handleConfirm}
-          type="danger"
-          stylingMode="contained"
-          disabled={isLoading || deleteReason.trim().length === 0}
-        />
+        <div className="fuel-refill-delete-panel__footer">
+          <button
+            type="button"
+            className="fuel-refill-delete-panel__button fuel-refill-delete-panel__button--ghost"
+            onClick={onClose}
+            disabled={isLoading}
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            className="fuel-refill-delete-panel__button fuel-refill-delete-panel__button--danger"
+            onClick={handleConfirm}
+            disabled={isLoading || deleteReason.trim().length === 0}
+          >
+            <i className="fa-light fa-trash"></i>
+            Delete refill
+          </button>
+        </div>
       </div>
-    </Popup>
+    </SlidePanel>
   );
 };
 

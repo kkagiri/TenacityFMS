@@ -283,6 +283,7 @@ const VehicleEditForm = ({
         isCompanyVehicle: vehicle.isCompanyVehicle || false,
         isActive: vehicle.isActive || true,
         gpsgategeneratedId: vehicle.gpsgategeneratedId || false,
+        movementProfile: vehicle.movementProfile ?? 1,
       });
     }
   }, [vehicle]);

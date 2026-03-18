@@ -100,5 +100,10 @@ namespace FMS.Application.Features.EventEngine.Events
             vars["OpenedAt"] = OpenedAt?.ToString("yyyy-MM-dd HH:mm:ss") ?? "";
             return vars;
         }
+
+        public override string? GetCustomEmailBodyHtml()
+        {
+            return string.IsNullOrWhiteSpace(EmailBodyHtml) ? null : EmailBodyHtml;
+        }
     }
 }

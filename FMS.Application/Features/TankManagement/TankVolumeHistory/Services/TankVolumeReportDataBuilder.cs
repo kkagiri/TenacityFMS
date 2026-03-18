@@ -3,7 +3,7 @@
  * Purpose: Shared implementation that shapes TankVolumeHistoryDTO records into template-ready payloads.
  *          Extracted from ReportJobManager so both on-demand and scheduled report paths produce identical output.
  * Dependencies: TankVolumeHistoryDTO, VolumeChangeReasonEnum, Newtonsoft.Json (JToken)
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - BuildTankVolumeHistoryPayload: Full report with sparklines, consumption trends, variance
@@ -68,9 +68,13 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
             if (records == null || records.Count == 0)
                 return BuildEmptyHistoryPayload(context.ReportTitle, createdBy, dateFromText, dateToText);
 
+            var normalizedRecords = NormalizeToBusinessWindow(records);
+            if (normalizedRecords.Count == 0)
+                normalizedRecords = records.ToList();
+
             // ── Global summary aggregates ──────────────────────────────────────
             decimal globalDelivery = 0m, globalDispensed = 0m, globalTransfer = 0m;
-            foreach (var r in records)
+            foreach (var r in normalizedRecords)
             {
                 var code = (int)r.ChangeReason;
                 var vol = Math.Abs(r.VolumeChange ?? 0m);
@@ -81,7 +85,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
             var netBalanceChange = globalDelivery + globalTransfer - globalDispensed;
 
             // ── Group by TankId (sorted by TankName) ───────────────────────────
-            var tankGroups = records
+            var tankGroups = normalizedRecords
                 .Where(r => r.TankId.HasValue)
                 .GroupBy(r => r.TankId!.Value)
                 .OrderBy(g => ResolveTankName(g.First(), g.Key, context.TankNameLookup))
@@ -237,7 +241,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
             }
 
             // ── Site-level aggregates ──────────────────────────────────────────
-            var recordsList = records.ToList();
+            var recordsList = normalizedRecords.ToList();
             var siteGroupsPayload = siteMap
                 .OrderBy(kv => kv.Key)
                 .Select(kv =>
@@ -388,7 +392,7 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
                 reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
                 summary = new
                 {
-                    totalTransactions = records.Count,
+                    totalTransactions = normalizedRecords.Count,
                     totalDispensed = globalDispensed.ToString("N2"),
                     totalTransfer = globalTransfer.ToString("N2"),
                     totalDelivery = globalDelivery.ToString("N2"),
@@ -421,6 +425,41 @@ namespace FMS.Application.Features.TankManagement.TankVolumeHistory.Services
             };
 
             return JToken.FromObject(payload);
+        }
+
+        private static List<TankVolumeHistoryDTO> NormalizeToBusinessWindow(
+            IReadOnlyCollection<TankVolumeHistoryDTO> records)
+        {
+            var normalized = new List<TankVolumeHistoryDTO>();
+
+            foreach (var tankGroup in records
+                .Where(r => r.TankId.HasValue)
+                .GroupBy(r => r.TankId!.Value))
+            {
+                var ordered = tankGroup
+                    .OrderBy(r => r.Timestamp)
+                    .ThenBy(r => r.Id)
+                    .ToList();
+
+                if (ordered.Count == 0)
+                {
+                    continue;
+                }
+
+                var firstOpeningIndex = ordered.FindIndex(r => r.ChangeReason == VolumeChangeReasonEnum.OpeningStock);
+                var lastClosingIndex = ordered.FindLastIndex(r => r.ChangeReason == VolumeChangeReasonEnum.ClosingStock);
+
+                var startIndex = firstOpeningIndex >= 0 ? firstOpeningIndex : 0;
+                var endIndex = lastClosingIndex >= startIndex ? lastClosingIndex : ordered.Count - 1;
+
+                normalized.AddRange(ordered.Skip(startIndex).Take(endIndex - startIndex + 1));
+            }
+
+            return normalized
+                .OrderBy(r => r.Timestamp)
+                .ThenBy(r => r.TankId)
+                .ThenBy(r => r.Id)
+                .ToList();
         }
 
         // ====================================================================

@@ -1,4 +1,9 @@
-/* Realtime Dashboard (vanilla CSS version without Tailwind @apply) */
+/*
+ * File: RealtimeDashboard.scss
+ * Purpose: Styles the real-time dashboard shell, header actions, and responsive controls.
+ * Dependencies: RealtimeDashboard.js, dashboard header controls
+ * Last Modified: 2026-03-11
+ */
 
 .realtime-dashboard-container {
   min-height: 100vh;
@@ -143,6 +148,46 @@
     align-items: center;
     gap: 8px;
 
+    .dashboard-grouping-control {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      &__label {
+        color: #605e5c;
+        font-size: 12px;
+        font-weight: 600;
+        white-space: nowrap;
+      }
+
+      &__select {
+        height: 32px;
+        min-width: 140px;
+        padding: 0 32px 0 10px;
+        border: 1px solid #c8c6c4;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #201f1e;
+        font-size: 13px;
+        outline: none;
+        cursor: pointer;
+        appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' fill='none' stroke='%23605e5c' stroke-width='1.5' stroke-linecap='round'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 10px center;
+        transition: border-color 0.15s ease, box-shadow 0.15s ease;
+
+        &:hover {
+          border-color: #605e5c;
+        }
+
+        &:focus {
+          border-color: #0078d4;
+          box-shadow: 0 0 0 1px #0078d4;
+        }
+      }
+    }
+
     .header-btn {
       white-space: nowrap;
     }
@@ -270,9 +315,22 @@
 
     .dashboard-header-controls {
       gap: 4px;
+      flex-wrap: wrap;
 
       .header-btn {
         font-size: 0.875rem;
+      }
+
+      .dashboard-grouping-control {
+        gap: 6px;
+
+        &__label {
+          display: none;
+        }
+
+        &__select {
+          min-width: 120px;
+        }
       }
 
       .dashboard-actions-menu__panel {
@@ -315,6 +373,15 @@
       flex: 1;
       justify-content: flex-end;
       gap: 4px;
+
+      .dashboard-grouping-control {
+        max-width: 100%;
+
+        &__select {
+          min-width: 110px;
+          width: 110px;
+        }
+      }
 
       .header-btn {
         font-size: 0.75rem;

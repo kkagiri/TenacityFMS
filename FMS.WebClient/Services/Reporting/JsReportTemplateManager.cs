@@ -2,7 +2,7 @@
  * File: JsReportTemplateManager.cs
  * Purpose: Manages jsreport HTML template files — path resolution, read, write, delete, and seeding defaults.
  * Dependencies: JsReportHtmlTemplates, ILogger, System.IO
- * Last Modified: 2026-02-18
+ * Last Modified: 2026-03-11
  *
  * Key Functions:
  * - GetWritableTemplatesPath: Resolves a writable directory for storing templates
@@ -174,15 +174,17 @@ namespace FMS.WebClient.Services.Reporting
         {
             var templates = new Dictionary<string, Func<string>>
             {
-                ["pump-transaction-report"]       = JsReportHtmlTemplates.PumpTransaction,
-                ["vehicle-consumption-report"]    = JsReportHtmlTemplates.VehicleConsumption,
-                ["fuel-refill-report"]            = JsReportHtmlTemplates.FuelRefill,
-                ["fuel-delivery-report"]          = JsReportHtmlTemplates.FuelDelivery,
-                ["device-offline-report"]         = JsReportHtmlTemplates.DeviceOffline,
-                ["pts-device-status-report"]      = JsReportHtmlTemplates.PtsDeviceStatus,
-                ["tank-volume-history-report"]    = JsReportHtmlTemplates.TankVolumeHistory,
-                ["issue-tracker-report"]          = JsReportHtmlTemplates.IssueTracker,
+                ["pump-transaction-report"] = JsReportHtmlTemplates.PumpTransaction,
+                ["vehicle-consumption-report"] = JsReportHtmlTemplates.VehicleConsumption,
+                ["fuel-refill-report"] = JsReportHtmlTemplates.FuelRefill,
+                ["fuel-delivery-report"] = JsReportHtmlTemplates.FuelDelivery,
+                ["device-offline-report"] = JsReportHtmlTemplates.DeviceOffline,
+                ["pts-device-status-report"] = JsReportHtmlTemplates.PtsDeviceStatus,
+                ["tank-volume-history-report"] = JsReportHtmlTemplates.TankVolumeHistory,
+                ["issue-tracker-report"] = JsReportHtmlTemplates.IssueTracker,
                 ["consumption-by-refills-report"] = JsReportHtmlTemplates.ConsumptionByRefills,
+                ["vehicle-trip-analysis-report"] = VehicleTripAnalysisHtmlTemplate.Get,
+                ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
             };
 
             foreach (var (name, generator) in templates)

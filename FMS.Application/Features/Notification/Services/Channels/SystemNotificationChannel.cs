@@ -25,15 +25,17 @@ namespace FMS.Application.Features.Notification.Services.Channels
         {
             try
             {
+                var plainMessage = StripHtml(notification.Message);
+
                 await _signalR.SendUserNotificationAsync(
                     recipient.UserId,
                     SystemConstants.Notifications.SystemNotificationType,
-                    notification.Message,
+                    plainMessage,
                     new
                     {
                         id = notification.NotificationId,
                         title = notification.Title,
-                        message = notification.Message,
+                        message = plainMessage,
                         type = notification.Type.ToLower(),
                         priority = notification.Priority,
                         // Ensure timestamp is in ISO 8601 UTC format with 'Z' suffix
@@ -48,6 +50,19 @@ namespace FMS.Application.Features.Notification.Services.Channels
                 _logger.LogError(ex, "System channel send failed for {UserId}", recipient.UserId);
                 return false;
             }
+        }
+
+        private static string StripHtml(string? html)
+        {
+            if (string.IsNullOrWhiteSpace(html)) return string.Empty;
+            var text = System.Text.RegularExpressions.Regex.Replace(html, "<[^>]+>", " ");
+            text = text.Replace("&amp;", "&")
+                       .Replace("&lt;", "<")
+                       .Replace("&gt;", ">")
+                       .Replace("&nbsp;", " ")
+                       .Replace("&quot;", "\"");
+            text = System.Text.RegularExpressions.Regex.Replace(text, @"\s{2,}", " ");
+            return text.Trim();
         }
     }
 }

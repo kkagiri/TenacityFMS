@@ -35,7 +35,11 @@ const tankVolumeHistory = {
             label: 'Date To',
             type: 'date',
             required: true,
-            defaultValue: () => new Date(),
+            defaultValue: () => {
+                const d = new Date();
+                d.setDate(d.getDate() - 1);
+                return d;
+            },
         },
         {
             key: 'siteId',

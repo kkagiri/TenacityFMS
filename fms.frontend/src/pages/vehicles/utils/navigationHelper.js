@@ -8,7 +8,10 @@
 export const vehicleRoutes = {
   dashboard: '/vehicles',
   fleet: '/vehicles/fleet',
+  geofenceManagement: '/vehicles/geofencemanagement',
   trips: '/vehicles/trips',
+  tripSettings: '/vehicles/trips/settings',
+  tripClusterPreview: '/vehicles/trips/cluster-preview',
   maintenance: '/vehicles/maintenance',
   consumption: '/vehicles/consumption',
   consumptionComparison: '/vehicles/consumption-comparison',
@@ -36,6 +39,11 @@ export const isActiveRoute = (currentPath, targetPath) => {
   if (targetPath === '/vehicles') {
     return currentPath === '/vehicles' || currentPath === '/vehicles/';
   }
+
+  if (targetPath === vehicleRoutes.trips) {
+    return currentPath === vehicleRoutes.trips || currentPath.startsWith(`${vehicleRoutes.trips}/`);
+  }
+
   return currentPath.startsWith(targetPath);
 };
 
@@ -63,6 +71,13 @@ export const navigationGroups = {
       icon: 'fa-light fa-location-dot',
       path: vehicleRoutes.tracking,
       badge: 'Live',
+    },
+    {
+      id: 'geofence-management',
+      title: 'Geofence Management',
+      icon: 'fa-light fa-map-location-dot',
+      path: vehicleRoutes.geofenceManagement,
+      description: 'Manage fleet geofences, fueling route validation, and trip classification boundaries'
     }
   ],
   operations: [
@@ -72,7 +87,23 @@ export const navigationGroups = {
       icon: 'fa-light fa-route',
       path: vehicleRoutes.trips,
       badge: 'New',
-      description: 'Review persisted trip groups and detection modes'
+      description: 'Review persisted trip groups and detection modes',
+      children: [
+        {
+          id: 'trip-settings',
+          title: 'Trip Settings',
+          icon: 'fa-light fa-sliders',
+          path: vehicleRoutes.tripSettings,
+          description: 'Control realtime trip execution settings'
+        },
+        {
+          id: 'trip-cluster-preview',
+          title: 'Cluster Preview',
+          icon: 'fa-light fa-chart-scatter-bubble',
+          path: vehicleRoutes.tripClusterPreview,
+          description: 'Preview cluster detection with timeline and speed analytics'
+        }
+      ]
     },
     {
       id: 'consumption',

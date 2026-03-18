@@ -20,6 +20,7 @@ import LoadIndicator from 'devextreme-react/load-indicator';
 import { TabPanel, Item } from 'devextreme-react/tab-panel';
 import DataGrid, { Column, Scrolling, Paging } from 'devextreme-react/data-grid';
 import '../vehicles.scss';
+import VehicleTripDashboardSection from './VehicleTripDashboardSection';
 
 // Actions
 import {
@@ -486,6 +487,8 @@ const VehicleDashboard = () => {
 
       {/* Dashboard Metrics */}
       <DashboardMetrics />
+
+      <VehicleTripDashboardSection />
 
       {/* Main Content */}
       <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6 tw-mb-6">

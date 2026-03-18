@@ -27,6 +27,7 @@ import { IsolatedForm } from "../../../components/common/SignalRIsolation";
 // Future records validation imports
 import { useFutureRecordsValidation } from "../../../hooks/useFutureRecordsValidation";
 import FutureRecordsWarning from "../../../components/tank-stock/FutureRecordsWarning";
+import { VolumeChangeReasons } from "../../../services/tankStockFutureRecordsService";
 import { useTankStockFormData } from "../shared/context/TankStockFormContext";
 
 const TankTransferForm = ({
@@ -142,15 +143,57 @@ const TankTransferForm = ({
 
   // Future records validation hook
   const {
+    isValidating,
     validationResult,
     error: validationError,
     showWarning,
-    canSubmit,
+    canSubmit: canSubmitForm,
     validateHistoricalEntry,
     confirmProceed,
     cancelProceed,
     resetValidation,
   } = useFutureRecordsValidation();
+
+  const validateTransferEntry = useCallback(
+    async (
+      sourceTankId = formData.sourceTankId,
+      destinationTankId = formData.destinationTankId,
+      entryDate = formData.date
+    ) => {
+      if (!sourceTankId || !entryDate) {
+        resetValidation();
+        return;
+      }
+
+      const sourceResult = await validateHistoricalEntry(
+        sourceTankId,
+        entryDate,
+        VolumeChangeReasons.TRANSFER_OUT
+      );
+
+      const shouldStopAfterSource =
+        !sourceResult?.canProceed ||
+        sourceResult?.needsUserConfirmation ||
+        sourceResult?.validationResult?.config?.showWarning;
+
+      if (shouldStopAfterSource || !destinationTankId) {
+        return;
+      }
+
+      await validateHistoricalEntry(
+        destinationTankId,
+        entryDate,
+        VolumeChangeReasons.TRANSFER_IN
+      );
+    },
+    [
+      formData.sourceTankId,
+      formData.destinationTankId,
+      formData.date,
+      resetValidation,
+      validateHistoricalEntry,
+    ]
+  );
 
   useEffect(() => {
     const sitesReady = sitesAvailable.length > 0;
@@ -349,7 +392,7 @@ const TankTransferForm = ({
         };
 
         if (tankId && updatedData.date) {
-          validateHistoricalEntry(tankId, updatedData.date, "TransferOut");
+          validateTransferEntry(tankId, null, updatedData.date);
         } else {
           resetValidation();
         }
@@ -378,7 +421,7 @@ const TankTransferForm = ({
       });
     },
     [
-      validateHistoricalEntry,
+      validateTransferEntry,
       resetValidation,
       findTankById,
       filteredSourceTanks,
@@ -395,11 +438,15 @@ const TankTransferForm = ({
 
     // Clear validation errors for this field
     setValidationErrors((prev) => ({ ...prev, destinationTankId: null }));
-  }, []);
+
+    validateTransferEntry(formData.sourceTankId, tankId, formData.date);
+  }, [formData.sourceTankId, formData.date, validateTransferEntry]);
 
   const handleDateChange = useCallback(
     (e) => {
       const newDate = e.value;
+      updateDate(newDate);
+
       setFormData((prevData) => {
         const updatedData = {
           ...prevData,
@@ -407,17 +454,21 @@ const TankTransferForm = ({
         };
 
         if (newDate && updatedData.sourceTankId) {
-          validateHistoricalEntry(
+          validateTransferEntry(
             updatedData.sourceTankId,
+            updatedData.destinationTankId,
             newDate,
-            "TransferOut"
           );
+        } else {
+          resetValidation();
         }
 
         return updatedData;
       });
+
+      setValidationErrors((prev) => ({ ...prev, date: null }));
     },
-    [validateHistoricalEntry]
+    [resetValidation, updateDate, validateTransferEntry]
   );
 
   const handleAmountChange = useCallback((e) => {
@@ -509,7 +560,7 @@ const TankTransferForm = ({
     }
 
     // Check if submission is allowed based on future records validation
-    if (!canSubmit) {
+    if (!canSubmitForm) {
       showNotification(
         "Unable to submit due to future records policy. Please check the warnings above.",
         "error",
@@ -557,7 +608,7 @@ const TankTransferForm = ({
     dispatch,
     onSubmit,
     onCancel,
-    canSubmit,
+    canSubmitForm,
     resetValidation,
     showNotification,
   ]);
@@ -831,7 +882,8 @@ const TankTransferForm = ({
 
         {/* Historical Entry Information Notice */}
         {formData.date &&
-          formData.fromTankId &&
+          formData.sourceTankId &&
+          !isValidating &&
           !showWarning &&
           !validationError &&
           showHistoricalNotice &&
@@ -890,6 +942,17 @@ const TankTransferForm = ({
           </div>
         )}
 
+        {isValidating && (
+          <div className="m365-info-banner">
+            <LoadIndicator width={"20px"} height={"20px"} visible={true} />
+            <div className="m365-info-banner__content">
+              <span className="m365-info-banner__text">
+                Validating historical entry...
+              </span>
+            </div>
+          </div>
+        )}
+
         {/* Information Notice */}
         {showInfoNotice && (
           <div className="m365-info-banner">
@@ -926,7 +989,7 @@ const TankTransferForm = ({
         <button
           className="m365-btn m365-btn--primary"
           onClick={handleSubmit}
-          disabled={isSubmitting || !canSubmit}
+          disabled={isSubmitting || isValidating || !canSubmitForm}
           type="button"
         >
           {isSubmitting ? (

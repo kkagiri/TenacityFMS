@@ -2,7 +2,7 @@
  * File: ConsumptionController.cs
  * Purpose: Handles fuel consumption retrieval and fuel import processing workflows.
  * Dependencies: MediatR, AutoMapper, SignalR, configuration/logging services, JWT claims.
- * Last Modified: 2026-02-04
+ * Last Modified: 2026-03-11
  *
  * Key Actions:
  * - GetManualConsumptionFiltered(): Returns filtered manual refill consumption data.
@@ -122,7 +122,8 @@ namespace FMS.WebClient.Controllers
             [FromQuery] string? hyoungNo = null,
             [FromQuery] int? vehicleId = null,
             [FromQuery] int? siteId = null,
-            [FromQuery] int? driverId = null)
+            [FromQuery] int? driverId = null,
+            [FromQuery] bool? averageKmL = null)
         {
 
             var _startDate = DateTime.ParseExact(startDate, "yyyy-MM-dd", CultureInfo.InvariantCulture);
@@ -144,7 +145,8 @@ namespace FMS.WebClient.Controllers
                     hyoungNo,
                     vehicleId,
                     siteId,
-                    driverId
+                    driverId,
+                    averageKmL
                 );
 
                 var results = await _mediator.Send(query);

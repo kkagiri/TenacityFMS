@@ -1,4 +1,15 @@
-import React, { useState, useEffect } from "react";
+/**
+ * File: TankDeliveryScreen.js
+ * Purpose: Capture mobile tank delivery entries and surface ledger recalculation warnings for historical timestamps.
+ * Dependencies: React Native, Redux Toolkit, CustomDateTimePicker, useFutureRecordsValidation
+ * Last Modified: 2026-03-13
+ *
+ * Key Functions:
+ * - TankDeliveryScreen(): Collects delivery details and coordinates submit flow
+ * - validateSelectedEntry(): Checks whether the selected delivery time affects later volume history records
+ * - handleSave(): Persists delivery data after validation requirements are met
+ */
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -23,6 +34,9 @@ import {
   clearDeliveryResult,
   fetchSuppliers,
 } from "../../redux/slices/stockSlice";
+import FutureRecordsNotice from "../../components/tankStock/FutureRecordsNotice";
+import { useFutureRecordsValidation } from "../../hooks/useFutureRecordsValidation";
+import { VolumeChangeReasons } from "../../services/tankStockFutureRecordsService";
 
 const STORAGE_KEYS = {
   DEFAULT_SITE: "fms_default_site",
@@ -59,6 +73,18 @@ const TankDeliveryScreen = ({ navigation, route }) => {
   const [deliveryTemperature, setDeliveryTemperature] = useState("");
   const [deliveryDensity, setDeliveryDensity] = useState("");
   const [deliveryMass, setDeliveryMass] = useState("");
+
+  const {
+    isValidating,
+    validationResult,
+    error: validationError,
+    showWarning,
+    canSubmit: canSubmitForm,
+    validateHistoricalEntry,
+    confirmProceed,
+    cancelProceed,
+    resetValidation,
+  } = useFutureRecordsValidation();
 
   // Theme color for delivery
   const themeColor = "#10b981";
@@ -102,9 +128,26 @@ const TankDeliveryScreen = ({ navigation, route }) => {
     }
   }, [deliveryResult, dispatch, navigation]);
 
+  const validateSelectedEntry = useCallback(
+    async (tank = selectedTank, date = deliveryDate) => {
+      if (!tank?.id || !date) {
+        resetValidation();
+        return;
+      }
+
+      try {
+        await validateHistoricalEntry(tank.id, date, VolumeChangeReasons.DELIVERY);
+      } catch (error) {
+        console.warn("TankDeliveryScreen validation error:", error);
+      }
+    },
+    [selectedTank, deliveryDate, resetValidation, validateHistoricalEntry]
+  );
+
   const handleTankSelect = (tank) => {
     setSelectedTank(tank);
     setShowTankModal(false);
+    validateSelectedEntry(tank, deliveryDate);
   };
 
   const handleSupplierSelect = (supplier) => {
@@ -131,6 +174,14 @@ const TankDeliveryScreen = ({ navigation, route }) => {
 
   const handleSave = async () => {
     if (!validateForm()) return;
+
+    if (!canSubmitForm) {
+      Alert.alert(
+        "Validation Required",
+        "Please wait for validation to finish or resolve the ledger recalculation warning before saving."
+      );
+      return;
+    }
 
     const deliveryData = {
       tankId: selectedTank.id,
@@ -250,6 +301,14 @@ const TankDeliveryScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
+        <FutureRecordsNotice
+          isValidating={isValidating}
+          validationResult={showWarning ? validationResult : null}
+          validationError={validationError}
+          onConfirm={confirmProceed}
+          onCancel={cancelProceed}
+        />
+
         {/* Tank Selection */}
         {renderSelectButton(
           "Tank *",
@@ -350,7 +409,7 @@ const TankDeliveryScreen = ({ navigation, route }) => {
           <TouchableOpacity
             style={[styles.saveButton, { backgroundColor: themeColor }]}
             onPress={handleSave}
-            disabled={isCreatingDelivery}
+            disabled={isCreatingDelivery || isValidating || !canSubmitForm}
           >
             {isCreatingDelivery ? (
               <ActivityIndicator size="small" color="white" />
@@ -505,6 +564,7 @@ const TankDeliveryScreen = ({ navigation, route }) => {
         onConfirm={(date) => {
           setDeliveryDate(date);
           setShowDatePicker(false);
+          validateSelectedEntry(selectedTank, date);
         }}
         onCancel={() => setShowDatePicker(false)}
         themeColor={themeColor}

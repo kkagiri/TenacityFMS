@@ -59,13 +59,19 @@ export default function CustomWidgetDialog({
     key_statistics: [
       { id: 'ticker', label: 'Ticker', description: 'Simple numeric display with trend' }
     ],
-    fuel_management: [
+    tankstock_monitoring: [
       { id: 'BIG_STAT_CARD', label: 'Big Statistics Card', description: 'Large card with main value and sub-metrics' },
       { id: 'CHART_LINE_TREND', label: 'Line Chart', description: 'Time series trend chart' },
       { id: 'CHART_BAR_COMPARISON', label: 'Bar Chart', description: 'Comparative bar chart' },
       { id: 'CHART_PIE_DISTRIBUTION', label: 'Pie Chart', description: 'Distribution pie chart' },
       { id: 'DATA_TABLE_DETAILED', label: 'Data Table', description: 'Detailed data table with pagination' },
       { id: 'PROGRESS_LIST', label: 'Progress List', description: 'Progress bars with percentages' }
+    ],
+    fuel_operation: [
+      { id: 'BIG_STAT_CARD', label: 'Big Statistics Card', description: 'Live fueling activity summary card' },
+      { id: 'DATA_TABLE_DETAILED', label: 'Data Table', description: 'Active fueling or recent transaction table' },
+      { id: 'PROGRESS_LIST', label: 'Progress List', description: 'Operational fueling list view' },
+      { id: 'ticker', label: 'Ticker', description: 'Compact fueling summary ticker' }
     ],
     vehicle_performance: [
       { id: 'BIG_STAT_CARD', label: 'Big Statistics Card', description: 'Large card with main value and sub-metrics' },
@@ -110,7 +116,8 @@ export default function CustomWidgetDialog({
   // Category options
   const categoryOptions = [
     { id: 'admin', label: 'Admin' },
-    { id: 'fuel_management', label: 'Fuel Management' },
+    { id: 'tankstock_monitoring', label: 'Tankstock Monitoring' },
+    { id: 'fuel_operation', label: 'Fuel Operation' },
     { id: 'vehicle_performance', label: 'Vehicle Performance' },
     { id: 'alerts_monitoring', label: 'Alerts & Monitoring' },
     { id: 'key_statistics', label: 'Key Statistics' },
@@ -159,7 +166,7 @@ export default function CustomWidgetDialog({
         return widgetConfig.customName.trim();
       case 4:
         // Data source is optional for some categories
-        const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
+        const requiresMetric = ['admin', 'tankstock_monitoring', 'fuel_operation', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
         return !requiresMetric || widgetConfig.metric;
       default:
         return false;
@@ -268,7 +275,7 @@ export default function CustomWidgetDialog({
         );
 
       case 4:
-        const requiresMetric = ['admin', 'fuel_management', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
+        const requiresMetric = ['admin', 'tankstock_monitoring', 'fuel_operation', 'vehicle_performance', 'alerts_monitoring'].includes(widgetConfig.category);
         return (
           <div className="tw-space-y-4">
             <p className="tw-text-gray-600 tw-text-sm">

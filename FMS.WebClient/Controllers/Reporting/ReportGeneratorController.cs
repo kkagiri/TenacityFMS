@@ -492,11 +492,14 @@ namespace FMS.WebClient.Controllers.Reporting
                 var fuelGradeIds = NormalizeIdFilter(request.FuelGradeId);
                 var employeeIds = NormalizeIdFilter(request.EmployeeId);
 
+                var startDate = request.DateFrom?.Date;
+                var endDate = request.DateTo?.Date.AddDays(1).AddTicks(-1);
+
                 // Fetch pump transactions using existing query
                 var query = new GetPumpTransactionQuery
                 {
-                    StartDate = request.DateFrom,
-                    EndDate = request.DateTo,
+                    StartDate = startDate,
+                    EndDate = endDate,
                     SiteIds = siteIds,
                     TankIds = tankIds,
                     VehicleIds = vehicleIds
@@ -525,75 +528,16 @@ namespace FMS.WebClient.Controllers.Reporting
                         .ToList();
                 }
 
-                // Build report data
-                var reportData = new
-                {
-                    reportTitle = request.ReportTitle ?? "Pump Transaction Report",
-                    generatedAt = DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"),
-                    generatedBy = User.Identity?.Name ?? "System",
-                    dateFrom = request.DateFrom?.ToString("yyyy-MM-dd") ?? "All",
-                    dateTo = request.DateTo?.ToString("yyyy-MM-dd") ?? "All",
-                    reportId = $"RPT-{DateTime.Now:yyyyMMdd-HHmmss}",
-
-                    filters = new
-                    {
-                        siteName = BuildFilterLabel(request.SiteName, siteIds, "Site"),
-                        tankName = BuildFilterLabel(request.TankName, tankIds, "Tank"),
-                        vehicleName = BuildFilterLabel(request.VehicleName, vehicleIds, "Vehicle"),
-                        fuelGrade = BuildFilterLabel(request.FuelGradeName, fuelGradeIds, "Fuel Grade")
-                    },
-
-                    summary = new
-                    {
-                        totalTransactions = transactions.Count,
-                        totalVolume = transactions.Sum(t => t.Volume).ToString("N2"),
-                        totalAmount = transactions.Sum(t => t.Amount).ToString("N2"),
-                        uniqueVehicles = transactions.Where(t => t.VehicleId.HasValue)
-                            .Select(t => t.VehicleId).Distinct().Count(),
-                        avgVolumePerTransaction = transactions.Count > 0
-                            ? (transactions.Sum(t => t.Volume) / transactions.Count).ToString("N2")
-                            : "0.00",
-                        currency = "$"
-                    },
-
-                    transactions = transactions.Select((t, index) => new
-                    {
-                        rowNumber = index + 1,
-                        dateTime = t.DateTime.ToString("yyyy-MM-dd HH:mm"),
-                        dateTimeStart = t.DateTimeStart.ToString("yyyy-MM-dd HH:mm"),
-                        ptsName = t.PtsName ?? "-",
-                        pump = t.Pump,
-                        nozzle = t.Nozzle,
-                        transaction = t.Transaction.ToString(),
-                        vehicleName = t.VehicleName ?? "-",
-                        vehicleNumberPlate = t.VehicleNumberPlate ?? "",
-                        tankName = t.TankName ?? "-",
-                        destinationTankName = t.DestinationTankName ?? "",
-                        isTransferMode = t.IsTransferMode,
-                        fuelGradeName = t.FuelGradeName ?? "-",
-                        volume = t.Volume.ToString("N2"),
-                        price = (t.Price ?? 0).ToString("N2"),
-                        amount = t.Amount.ToString("N2"),
-                        odometer = t.Odometer?.ToString("N0"),
-                        employeeName = t.UserName ?? "-",
-                        userName = t.UserName ?? "",
-                        tag = t.Tag ?? ""
-                    }).ToList(),
-
-                    // Group by fuel grade for breakdown
-                    fuelGradeBreakdown = transactions
-                        .GroupBy(t => t.FuelGradeName ?? "Unknown")
-                        .Select(g => new
-                        {
-                            fuelGradeName = g.Key,
-                            transactionCount = g.Count(),
-                            totalVolume = g.Sum(t => t.Volume).ToString("N2"),
-                            totalAmount = g.Sum(t => t.Amount).ToString("N2"),
-                            percentage = transactions.Sum(t => t.Volume) > 0
-                                ? (g.Sum(t => t.Volume) / transactions.Sum(t => t.Volume) * 100).ToString("N1")
-                                : "0"
-                        }).ToList()
-                };
+                var reportData = PumpTransactionReportDataBuilder.Build(
+                    transactions,
+                    request.ReportTitle,
+                    request.DateFrom?.Date,
+                    request.DateTo?.Date,
+                    User.Identity?.Name ?? "System",
+                    BuildFilterLabel(request.SiteName, siteIds, "Site"),
+                    BuildFilterLabel(request.TankName, tankIds, "Tank"),
+                    BuildFilterLabel(request.VehicleName, vehicleIds, "Vehicle"),
+                    BuildFilterLabel(request.FuelGradeName, fuelGradeIds, "Fuel Grade"));
 
                 // Render based on requested format
                 if (request.Format?.ToLower() == "excel")

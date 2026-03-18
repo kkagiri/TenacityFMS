@@ -2,7 +2,7 @@
  * File: VehicleTripGroupConfiguration.cs
  * Purpose: Maps persisted vehicle trip group summaries to the database schema.
  * Dependencies: EF Core, VehicleTripGroup entity.
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  */
 using FMS.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -61,6 +61,11 @@ public class VehicleTripGroupConfiguration : EntityTypeConfiguration<VehicleTrip
             .HasColumnType("decimal(10,2)")
             .HasColumnName("TotalDurationMinutes");
 
+        builder.Property(e => e.Status)
+            .HasColumnType("tinyint(4)")
+            .HasDefaultValue(2)
+            .HasColumnName("Status");
+
         builder.Property(e => e.MovementProfile)
             .HasColumnType("tinyint(4)")
             .HasColumnName("MovementProfile")
@@ -69,6 +74,67 @@ public class VehicleTripGroupConfiguration : EntityTypeConfiguration<VehicleTrip
         builder.Property(e => e.DetectionMode)
             .HasMaxLength(50)
             .HasColumnName("DetectionMode");
+
+        builder.Property(e => e.TotalFuelConsumed)
+            .HasColumnType("decimal(10,2)")
+            .HasColumnName("TotalFuelConsumed");
+
+        builder.Property(e => e.GroupingType)
+            .HasColumnType("tinyint(4)")
+            .HasDefaultValue(1)
+            .HasColumnName("GroupingType");
+
+        builder.Property(e => e.ConfidenceScore)
+            .HasColumnType("decimal(5,2)")
+            .HasDefaultValue(1.00m)
+            .HasColumnName("ConfidenceScore");
+
+        builder.Property(e => e.ConfidenceBand)
+            .HasMaxLength(20)
+            .HasDefaultValue("High")
+            .HasColumnName("ConfidenceBand");
+
+        builder.Property(e => e.AnomalyFlags)
+            .HasColumnType("int(11)")
+            .HasDefaultValue(0)
+            .HasColumnName("AnomalyFlags");
+
+        builder.Property(e => e.ReconciliationStatus)
+            .HasColumnType("tinyint(4)")
+            .HasDefaultValue(0)
+            .HasColumnName("ReconciliationStatus");
+
+        builder.Property(e => e.ProjectPlanId)
+            .HasColumnType("int(11)")
+            .HasColumnName("ProjectPlanId");
+
+        builder.Property(e => e.WorkShiftId)
+            .HasColumnType("int(11)")
+            .HasColumnName("WorkShiftId");
+
+        builder.Property(e => e.PlannedHaulRouteId)
+            .HasColumnType("int(11)")
+            .HasColumnName("PlannedHaulRouteId");
+
+        builder.Property(e => e.PlannedOriginZoneId)
+            .HasColumnType("int(11)")
+            .HasColumnName("PlannedOriginZoneId");
+
+        builder.Property(e => e.PlannedDestinationZoneId)
+            .HasColumnType("int(11)")
+            .HasColumnName("PlannedDestinationZoneId");
+
+        builder.Property(e => e.PlanningMatchStatus)
+            .HasMaxLength(50)
+            .HasColumnName("PlanningMatchStatus");
+
+        builder.Property(e => e.IsOutOfBounds)
+            .HasColumnType("bit(1)")
+            .HasColumnName("IsOutOfBounds");
+
+        builder.Property(e => e.IsProductiveMovement)
+            .HasColumnType("bit(1)")
+            .HasColumnName("IsProductiveMovement");
 
         builder.Property(e => e.CreatedAtUtc)
             .HasColumnType("datetime")

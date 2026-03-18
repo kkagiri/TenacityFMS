@@ -111,6 +111,10 @@ Before suggesting architecture changes, follow this domain folder discovery prot
 
 I need to create files in Features/TaskManagement/ but this domain folder doesn't exist.
 
+ - in create command and queries . place them in Commands/ and Queries/ subfolders
+
+ do not put command and command handler in a seperate file. put them in the same file. same for query and query handler.
+
 Proposed structure:
 FMS.Application/Features/TaskManagement/
 ├── Commands/
@@ -179,14 +183,16 @@ Every file **MUST** have a documentation header at the top:
 
 ---
 
-### 1.9 Clean Architecture — CQRS & One Class Per File
+### 1.9 Clean Architecture — CQRS With Pragmatic File Grouping
 
-> ⚠️ **CRITICAL: ONE CLASS PER FILE — NO EXCEPTIONS**
+> ⚠️ **CRITICAL: DO NOT SPLIT SMALL, TIGHTLY COUPLED TYPES INTO EXTRA FILES WITHOUT A CLEAR BENEFIT**
 
 **CQRS rules:**
 - Commands = Write operations (Create, Update, Delete)
 - Queries = Read operations (Get, List, Search)
-- Each command/query in a separate file from its handler
+- Keep command with command handler in the same file when they are tightly coupled
+- Keep query with query handler in the same file when they are tightly coupled
+- Keep small validator interfaces with their validator implementation in the same file
 - No mixing of read/write logic
 
 **Required folder structure for every domain:**
@@ -195,12 +201,9 @@ Every file **MUST** have a documentation header at the top:
 FMS.Application/Features/Vehicle/
 ├── Commands/
 │   ├── CreateVehicleCommand.cs
-│   ├── CreateVehicleCommandHandler.cs
-│   ├── UpdateVehicleCommand.cs
-│   └── UpdateVehicleCommandHandler.cs
+│   └── UpdateVehicleCommand.cs
 ├── Queries/
-│   ├── GetVehicleQuery.cs
-│   └── GetVehicleQueryHandler.cs
+│   └── GetVehicleQuery.cs
 ├── DTOs/
 │   ├── VehicleDto.cs
 │   └── CreateVehicleDto.cs
@@ -211,17 +214,17 @@ FMS.Application/Features/Vehicle/
     └── CreateVehicleValidator.cs
 ```
 
-**Class separation rules:**
+**File grouping rules:**
 
 ```
-❌  NEVER put multiple classes in one file
+❌  NEVER combine unrelated responsibilities in one file
 ❌  NEVER put DTOs in service files
 ❌  NEVER put classes in controller files
-✅  Each command in its own file
-✅  Each handler in its own file (even if small)
+✅  Put each command and its handler in one file unless the file becomes large or hard to navigate
+✅  Put each query and its handler in one file unless the file becomes large or hard to navigate
 ✅  Each DTO in its own file in DTOs folder
-✅  Each interface in its own file
-✅  Each implementation in its own file
+✅  Keep small validator interfaces with their implementation in one file
+✅  Split interfaces and implementations only when reuse, size, or readability justifies it
 ```
 
 ---
@@ -316,14 +319,13 @@ CREATE TABLE vehicles (
 ### CQRS Code Examples
 
 ```csharp
-// File: CreateVehicleCommand.cs  (command only)
+// File: CreateVehicleCommand.cs  (command + handler)
 public record CreateVehicleCommand : IRequest<FMSResponse<VehicleDto>>
 {
     public string Name         { get; init; }
     public string LicensePlate { get; init; }
 }
 
-// File: CreateVehicleCommandHandler.cs  (handler only)
 public class CreateVehicleCommandHandler
     : IRequestHandler<CreateVehicleCommand, FMSResponse<VehicleDto>>
 {
@@ -337,7 +339,7 @@ public class VehicleDto
     public string Name { get; set; }
 }
 
-// File: IVehicleService.cs  (interface only)
+// File: IVehicleService.cs  (interface only when separation is justified)
 public interface IVehicleService
 {
     Task<FMSResponse<VehicleDto>> GetVehicleAsync(Guid id);
@@ -938,10 +940,10 @@ Complete this checklist before submitting any code change.
 
 - [ ] Checked existing files/features for similar functionality
 - [ ] Verified domain folder exists in `Features/{Domain}/` — asked user if missing
-- [ ] Ensured one class per file (no multiple classes)
+- [ ] Kept tightly coupled commands, queries, handlers, and small validator interfaces in the same file unless splitting was clearly justified
 - [ ] DTOs are in `Features/{Domain}/DTOs/` only
 - [ ] Services are in `Features/{Domain}/Services/` only
-- [ ] Interfaces and implementations are in separate files
+- [ ] Avoided unnecessary file splitting; only separated interfaces and implementations where reuse, size, or readability required it
 - [ ] File is under 600 lines (or properly split)
 - [ ] File has documentation header
 
@@ -949,7 +951,7 @@ Complete this checklist before submitting any code change.
 
 - [ ] Used proper response types (`FMSResponse`)
 - [ ] Included validation
-- [ ] Followed CQRS pattern with separate Command/Handler files
+- [ ] Followed CQRS pattern without unnecessary command/query handler file splitting
 - [ ] Did **NOT** modify Domain layer
 - [ ] MySQL syntax is MySQL 5.5/5.6 compatible (no `CURRENT_TIMESTAMP`, no `JSON` type)
 - [ ] System config key has a database entry in `systemconfigurations` table

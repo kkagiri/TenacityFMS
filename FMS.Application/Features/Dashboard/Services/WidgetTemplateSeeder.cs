@@ -233,7 +233,7 @@ namespace FMS.Application.Services.Dashboard
                             Name = "fuel_dispense_today",
                             DisplayName = "Fuel Dispense Today",
                             Description = "Shows total fuel dispensed today from pumps or manual refill",
-                            Category = "fuel_management",
+                            Category = "tankstock_monitoring",
                             DataSource = "fuel_dispensed",
                             ConfigurationJson = JsonConvert.SerializeObject (new {
                             defaultMode = "daily_aggregated",
@@ -261,7 +261,7 @@ namespace FMS.Application.Services.Dashboard
                             Name = "fuel_dispense_trend_chart",
                             DisplayName = "Fuel Dispense Trend",
                             Description = "Line chart showing fuel dispensed trend over time",
-                            Category = "fuel_management",
+                            Category = "tankstock_monitoring",
                             DataSource = "fuel_dispensed",
                             ConfigurationJson = JsonConvert.SerializeObject (new {
                             chartType = "line",
@@ -290,7 +290,7 @@ namespace FMS.Application.Services.Dashboard
                             Name = "fuel_dispense_by_site",
                             DisplayName = "Fuel Dispense by Site",
                             Description = "Bar chart comparing fuel dispensed across sites",
-                            Category = "fuel_management",
+                            Category = "tankstock_monitoring",
                             DataSource = "fuel_dispensed",
                             ConfigurationJson = JsonConvert.SerializeObject (new {
                             chartType = "bar",
@@ -438,7 +438,7 @@ namespace FMS.Application.Services.Dashboard
                             Name = "tank_levels_table",
                             DisplayName = "Tank Levels",
                             Description = "Table showing current fuel tank levels",
-                            Category = "fuel_management",
+                            Category = "tankstock_monitoring",
                             DataSource = "tank_levels",
                             ConfigurationJson = JsonConvert.SerializeObject (new {
                             columns = new [] {
@@ -481,6 +481,14 @@ namespace FMS.Application.Services.Dashboard
             templates.AddRange(GetEventAndIssueTemplates(
                 string.Join(",", Permissions.Dashboard.View, Permissions.EventExpression.Read),
                 string.Join(",", Permissions.Dashboard.View, Permissions.IssueTracker.Read)));
+
+            templates.AddRange(GetPumpTransactionTemplates(dashboardFuelPermission));
+
+            templates.AddRange(GetVehicleFleetTemplates(dashboardVehiclePermission));
+            templates.AddRange(GetVehicleTripTemplates(dashboardVehiclePermission));
+
+            var dashboardEventPermission = string.Join(",", Permissions.Dashboard.View, Permissions.EventExpression.Read);
+            templates.AddRange(GetAnomalyTemplates(dashboardEventPermission));
 
             templates.AddRange(GetAdminTemplates(
                 dashboardAdminUsersPermission,

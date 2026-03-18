@@ -253,6 +253,24 @@ namespace FMS.Application.Communication.SignalR
             await base.OnDisconnectedAsync(exception);
         }
 
+        /// <summary>
+        /// Returns true when at least one client is actively subscribed to vehicle tracking updates.
+        /// </summary>
+        public static bool HasActiveSubscribers()
+        {
+            if (!_allVehiclesSubscriptions.IsEmpty)
+            {
+                return true;
+            }
+
+            if (_connectionSubscriptions.Any(entry => entry.Value.Count > 0))
+            {
+                return true;
+            }
+
+            return _tagSubscriptions.Any(entry => entry.Value.Count > 0);
+        }
+
         #endregion
     }
 

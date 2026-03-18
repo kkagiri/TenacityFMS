@@ -225,33 +225,52 @@ namespace FMS.Application.Services.Configuration
         {
             try
             {
-                SystemConfigurationEntity? existingConfig = await _context.SystemConfigurations
-                    .FirstOrDefaultAsync(c => c.ConfigurationKey == key, cancellationToken);
+                for (var attempt = 1; attempt <= 3; attempt++)
+                {
+                    SystemConfigurationEntity? existingConfig = await _context.SystemConfigurations
+                        .FirstOrDefaultAsync(c => c.ConfigurationKey == key, cancellationToken);
 
-                if (existingConfig != null)
-                {
-                    existingConfig.ConfigurationValue = value;
-                    existingConfig.UpdatedAt = DateTime.UtcNow;
-                }
-                else
-                {
-                    _context.SystemConfigurations.Add(new SystemConfigurationEntity
+                    if (existingConfig != null)
                     {
-                        ConfigurationKey = key,
-                        ConfigurationValue = value,
-                        CreatedAt = DateTime.UtcNow,
-                        UpdatedAt = DateTime.UtcNow,
-                        IsActive = true
-                    });
+                        existingConfig.ConfigurationValue = value;
+                        existingConfig.UpdatedAt = DateTime.UtcNow;
+                    }
+                    else
+                    {
+                        _context.SystemConfigurations.Add(new SystemConfigurationEntity
+                        {
+                            ConfigurationKey = key,
+                            ConfigurationValue = value,
+                            CreatedAt = DateTime.UtcNow,
+                            UpdatedAt = DateTime.UtcNow,
+                            IsActive = true
+                        });
+                    }
+
+                    try
+                    {
+                        int result = await _context.SaveChangesAsync(cancellationToken);
+
+                        // Clear cache for this configuration key
+                        _cache.Remove($"SystemConfig_{key}");
+
+                        _logger.LogInformation("Updated system configuration {Key} = {Value}", key, value);
+                        return result > 0;
+                    }
+                    catch (DbUpdateException ex) when (IsDuplicateConfigurationKeyViolation(ex) && attempt < 3)
+                    {
+                        _logger.LogWarning(
+                            ex,
+                            "Concurrent configuration insert detected for {Key} on attempt {Attempt}. Reloading and retrying.",
+                            key,
+                            attempt);
+
+                        _context.ChangeTracker.Clear();
+                    }
                 }
 
-                int result = await _context.SaveChangesAsync(cancellationToken);
-
-                // Clear cache for this configuration key
-                _cache.Remove($"SystemConfig_{key}");
-
-                _logger.LogInformation("Updated system configuration {Key} = {Value}", key, value);
-                return result > 0;
+                _logger.LogWarning("System configuration update for {Key} exhausted retries after duplicate-key conflicts.", key);
+                return false;
             }
             catch (Exception ex)
             {
@@ -304,6 +323,13 @@ namespace FMS.Application.Services.Configuration
         #endregion
 
         #region Private Helper Methods
+        private static bool IsDuplicateConfigurationKeyViolation(DbUpdateException exception)
+        {
+            var message = exception.InnerException?.Message ?? exception.Message;
+            return message.Contains("Duplicate entry", StringComparison.OrdinalIgnoreCase)
+                && message.Contains("IX_SystemConfigurations_ConfigurationKey", StringComparison.OrdinalIgnoreCase);
+        }
+
         /// <summary>
         /// Gets configuration value with priority: Database > Settings > Default
         /// </summary>

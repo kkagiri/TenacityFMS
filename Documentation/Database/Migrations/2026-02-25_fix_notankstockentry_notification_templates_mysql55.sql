@@ -7,8 +7,9 @@
 -- 2) event_expressions.Id = 3 used generic MessageTemplate ('You have not enter any data')
 --
 -- Result after patch:
--- - Title uses available variables from SystemEvent: {{SubType}}, {{Severity}}
--- - Message includes tank/site/date/last-entry context from event Data/template variables
+-- - Title includes entry type, site, tank, and business date
+-- - In-app/system message stays concise for notification trays and SignalR toasts
+-- - Email can carry fuller context via EmailBodyHtml stored in notification Data
 
 USE gpsdata;
 
@@ -28,8 +29,8 @@ WHERE Id = 3;
 -- ==========================================
 UPDATE notification_policy
 SET
-    TitleTemplate = 'Alert: {{SubType}} - {{Severity}}',
-    MessageTemplate = 'No {{missingEntryType}} entry submitted for {{tankName}} at {{siteName}} on {{checkDate}}. Last entry: {{lastEntryDate}}.',
+    TitleTemplate = 'Missing {{missingEntryLabel}} entry | {{siteName}} | {{tankName}} | {{checkDateDisplay}}',
+    MessageTemplate = 'Missing {{missingEntryLabel}} entry for {{tankName}} on {{checkDateDisplay}}.',
     ModifiedAt = UTC_TIMESTAMP(),
     ModifiedBy = CreatedBy
 WHERE Id = 8;
@@ -39,7 +40,7 @@ WHERE Id = 8;
 -- ==========================================
 UPDATE event_expressions
 SET
-    MessageTemplate = 'No {{missingEntryType}} entry submitted for {{tankName}} at {{siteName}} on {{checkDate}}. Last entry: {{lastEntryDate}}.',
+    MessageTemplate = 'Missing {{missingEntryLabel}} entry for {{tankName}} on {{checkDateDisplay}}.',
     ModifiedAt = UTC_TIMESTAMP(),
     ModifiedBy = CreatedBy
 WHERE Id = 3;

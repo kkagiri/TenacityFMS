@@ -2,7 +2,7 @@
  * File: VehicleTripGeofenceDetectionService.cs
  * Purpose: Detects vehicle trips by evaluating GPS track points against cached site geofences.
  * Dependencies: DbContext, IGPSService, site/geofence entities.
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-11
  */
 using System;
 using System.Collections.Generic;
@@ -17,6 +17,7 @@ using FMS.Domain.Entities.Features.GPSIntergration.GpsGate;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Options;
 using SiteEntity = FMS.Domain.Entities.Site;
 using VehicleEntity = FMS.Domain.Entities.Vehicle;
 
@@ -24,21 +25,23 @@ namespace FMS.Application.Features.VehicleTrips.Services;
 
 public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetectionService
 {
-    private const decimal MinimumTripDistanceKm = 0.50m;
-    private const decimal MinimumTripDurationMinutes = 2m;
-    private const int MaxTrackPoints = 5000;
-
     private readonly GpsdataContext _context;
     private readonly IGPSService _gpsService;
+    private readonly IVehicleTripGpsPreProcessor _gpsPreProcessor;
+    private readonly VehicleTripGeofenceDetectionOptions _options;
     private readonly ILogger<VehicleTripGeofenceDetectionService> _logger;
 
     public VehicleTripGeofenceDetectionService(
         GpsdataContext context,
         IGPSService gpsService,
+        IVehicleTripGpsPreProcessor gpsPreProcessor,
+        IOptions<VehicleTripGeofenceDetectionOptions> options,
         ILogger<VehicleTripGeofenceDetectionService> logger)
     {
         _context = context;
         _gpsService = gpsService;
+        _gpsPreProcessor = gpsPreProcessor;
+        _options = options.Value;
         _logger = logger;
     }
 
@@ -60,13 +63,18 @@ public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetection
             return new List<VehicleTripDetectionResultDTO>();
         }
 
-        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, MaxTrackPoints);
+        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, _options.MaxTrackPoints);
         if (!trackPointsResponse.IsSuccess)
         {
             throw new InvalidOperationException(trackPointsResponse.Message);
         }
 
-        var points = (trackPointsResponse.Data ?? new List<TrackPointDTO>())
+        var points = await _gpsPreProcessor.ProcessAsync(
+            vehicle.VehicleId,
+            trackPointsResponse.Data ?? new List<TrackPointDTO>(),
+            cancellationToken);
+
+        points = points
             .OrderBy(p => p.Timestamp)
             .ToList();
 
@@ -84,7 +92,9 @@ public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetection
         {
             cancellationToken.ThrowIfCancellationRequested();
             var point = points[index];
-            var resolvedSite = ResolveContainingSite(point, sites);
+            var resolvedSite = point.ContainingSiteId.HasValue
+                ? sites.FirstOrDefault(site => site.Id == point.ContainingSiteId.Value)
+                : ResolveContainingSite(point, sites);
 
             if (resolvedSite == null)
             {
@@ -117,7 +127,7 @@ public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetection
             var durationMinutes = Convert.ToDecimal((point.Timestamp - lastPointInsideOrigin.Timestamp).TotalMinutes);
             var distanceKm = CalculateDistanceKm(points, departureIndex, index);
 
-            if (distanceKm >= MinimumTripDistanceKm && durationMinutes >= MinimumTripDurationMinutes)
+            if (distanceKm >= _options.MinimumTripDistanceKm && durationMinutes >= _options.MinimumTripDurationMinutes)
             {
                 detectedTrips.Add(new VehicleTripDetectionResultDTO
                 {
@@ -134,8 +144,16 @@ public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetection
                     DistanceKm = Math.Round(distanceKm, 2),
                     DurationMinutes = Math.Round(durationMinutes, 2),
                     MaxSpeedKph = CalculateMaxSpeed(points, departureIndex, index),
+                    Status = VehicleTripStatus.Completed,
                     MovementProfile = vehicle.MovementProfile,
                     DetectionMode = "Geofence",
+                    StartTrackInfoId = lastPointInsideOrigin.TrackInfoId,
+                    EndTrackInfoId = point.TrackInfoId,
+                    FuelAtDeparture = lastPointInsideOrigin.FuelLevel,
+                    FuelAtArrival = point.FuelLevel,
+                    FuelConsumed = lastPointInsideOrigin.FuelLevel.HasValue && point.FuelLevel.HasValue
+                        ? Math.Round(Math.Max(0m, lastPointInsideOrigin.FuelLevel.Value - point.FuelLevel.Value), 2)
+                        : null,
                 });
             }
 
@@ -144,7 +162,144 @@ public class VehicleTripGeofenceDetectionService : IVehicleTripGeofenceDetection
             departureIndex = index;
         }
 
+        var lastPoint = points[^1];
+        var lastResolvedSite = lastPoint.ContainingSiteId.HasValue
+            ? sites.FirstOrDefault(site => site.Id == lastPoint.ContainingSiteId.Value)
+            : ResolveContainingSite(lastPoint, sites);
+
+        if (currentOriginSite != null
+            && lastPointInsideOrigin != null
+            && departureIndex >= 0
+            && (lastResolvedSite == null || lastResolvedSite.Id != currentOriginSite.Id))
+        {
+            var durationMinutes = Convert.ToDecimal((lastPoint.Timestamp - lastPointInsideOrigin.Timestamp).TotalMinutes);
+            var distanceKm = CalculateDistanceKm(points, departureIndex, points.Count - 1);
+
+            if (distanceKm >= _options.MinimumTripDistanceKm && durationMinutes >= _options.MinimumTripDurationMinutes)
+            {
+                detectedTrips.Add(new VehicleTripDetectionResultDTO
+                {
+                    StartTimeUtc = lastPointInsideOrigin.Timestamp.ToUniversalTime(),
+                    EndTimeUtc = lastPoint.Timestamp.ToUniversalTime(),
+                    OriginSiteId = currentOriginSite.Id,
+                    DestinationSiteId = lastResolvedSite?.Id,
+                    OriginGeofenceId = currentOriginSite.GpsGeofenceId,
+                    DestinationGeofenceId = lastResolvedSite?.GpsGeofenceId,
+                    StartLatitude = lastPointInsideOrigin.Latitude,
+                    StartLongitude = lastPointInsideOrigin.Longitude,
+                    EndLatitude = lastPoint.Latitude,
+                    EndLongitude = lastPoint.Longitude,
+                    DistanceKm = Math.Round(distanceKm, 2),
+                    DurationMinutes = Math.Round(durationMinutes, 2),
+                    MaxSpeedKph = CalculateMaxSpeed(points, departureIndex, points.Count - 1),
+                    Status = VehicleTripStatus.InProgress,
+                    MovementProfile = vehicle.MovementProfile,
+                    DetectionMode = "Geofence",
+                    StartTrackInfoId = lastPointInsideOrigin.TrackInfoId,
+                    EndTrackInfoId = lastPoint.TrackInfoId,
+                    FuelAtDeparture = lastPointInsideOrigin.FuelLevel,
+                    FuelAtArrival = lastPoint.FuelLevel,
+                    FuelConsumed = lastPointInsideOrigin.FuelLevel.HasValue && lastPoint.FuelLevel.HasValue
+                        ? Math.Round(Math.Max(0m, lastPointInsideOrigin.FuelLevel.Value - lastPoint.FuelLevel.Value), 2)
+                        : null,
+                    GroupingType = VehicleTripGroupingType.SingleLeg,
+                });
+            }
+        }
+
         return detectedTrips;
+    }
+
+    public async Task<GeofenceDetectionPreviewDTO> PreviewDetectionAsync(
+        VehicleEntity vehicle,
+        DateTime fromUtc,
+        DateTime toUtc,
+        VehicleTripGeofenceDetectionOptions? overrideOptions = null,
+        int? geofenceGroupId = null,
+        CancellationToken cancellationToken = default)
+    {
+        var opts = overrideOptions ?? _options;
+
+        var preview = new GeofenceDetectionPreviewDTO
+        {
+            VehicleId = vehicle.VehicleId,
+            VehicleName = vehicle.HyoungNo ?? $"Vehicle {vehicle.VehicleId}",
+            FromUtc = fromUtc,
+            ToUtc = toUtc,
+            SettingsMinimumTripDistanceKm = opts.MinimumTripDistanceKm,
+            SettingsMinimumTripDurationMinutes = opts.MinimumTripDurationMinutes,
+            SettingsMaxTrackPoints = opts.MaxTrackPoints,
+        };
+
+        // Optionally restrict to geofences in a specific group
+        HashSet<int>? allowedGeofenceIds = null;
+        if (geofenceGroupId.HasValue)
+        {
+            allowedGeofenceIds = (await _context.Set<GpsGeofenceGroupMember>()
+                .AsNoTracking()
+                .Where(m => m.GroupId == geofenceGroupId.Value)
+                .Select(m => m.GeofenceId)
+                .ToListAsync(cancellationToken))
+                .ToHashSet();
+        }
+
+        var sitesQuery = _context.Sites
+            .AsNoTracking()
+            .Include(s => s.GpsGeofence)
+            .Where(s => s.IsActive && s.GpsGeofenceId != null && s.GpsGeofence != null);
+
+        if (allowedGeofenceIds != null)
+        {
+            sitesQuery = sitesQuery.Where(s => allowedGeofenceIds.Contains(s.GpsGeofenceId!.Value));
+        }
+
+        var sites = await sitesQuery
+            .OrderBy(s => s.Name)
+            .ToListAsync(cancellationToken);
+
+        preview.SiteGeofences = sites
+            .Where(s => s.GpsGeofence != null)
+            .Select(s => new SiteGeofenceDTO
+            {
+                SiteId = s.Id,
+                Label = s.Name ?? $"Site {s.Id}",
+                Classification = s.GpsGeofence!.Classification != Domain.Entities.SiteClassification.Unknown
+                    ? s.GpsGeofence.Classification.ToString()
+                    : s.Classification.ToString(),
+                GpsGeofenceId = s.GpsGeofenceId,
+                GeofenceType = s.GpsGeofence.GeofenceType.ToString(),
+                GeometryJson = s.GpsGeofence.GeometryJson,
+                CenterLatitude = s.GpsGeofence.CenterLatitude,
+                CenterLongitude = s.GpsGeofence.CenterLongitude,
+                RadiusMeters = s.GpsGeofence.RadiusMeters,
+            })
+            .ToList();
+
+        var trackPointsResponse = await _gpsService.GetTrackPointsAsync(vehicle.VehicleId, fromUtc, toUtc, opts.MaxTrackPoints);
+        if (!trackPointsResponse.IsSuccess)
+        {
+            return preview;
+        }
+
+        var points = await _gpsPreProcessor.ProcessAsync(
+            vehicle.VehicleId,
+            trackPointsResponse.Data ?? new List<TrackPointDTO>(),
+            cancellationToken);
+
+        points = points.OrderBy(p => p.Timestamp).ToList();
+        preview.TotalTrackPoints = points.Count;
+
+        preview.TrackPoints = points.Select(p => new PreviewTrackPointDTO
+        {
+            Timestamp = p.Timestamp,
+            Latitude = p.Latitude,
+            Longitude = p.Longitude,
+            Speed = p.Speed,
+            Heading = p.Heading,
+            IgnitionStatus = p.IgnitionStatus,
+        }).ToList();
+
+        return preview;
     }
 
     private SiteEntity? ResolveContainingSite(TrackPointDTO point, IEnumerable<SiteEntity> sites)

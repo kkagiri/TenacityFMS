@@ -2,7 +2,7 @@
  * File: JsReportHtmlTemplates.cs
  * Purpose: Default Handlebars/HTML report templates embedded as static strings.
  * Dependencies: None
- * Last Modified: 2026-02-18
+ * Last Modified: 2026-03-11
  *
  * Each public static method returns the full HTML template for one report type.
  * Templates use Handlebars syntax ({{field}}, {{#each}}, {{#if}}) compatible
@@ -18,10 +18,7 @@ namespace FMS.WebClient.Services.Reporting
     {
         // â”€â”€â”€ Entry Points (called from JsReportTemplateManager) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
-        public static string PumpTransaction() => BuildGenericTemplate(
-            "Pump Transaction Report", "#0078D4",
-            PumpTransactionSummary(), PumpTransactionTable(),
-            "No transactions found for the selected criteria.");
+        public static string PumpTransaction() => PumpTransactionHtmlTemplate.Get();
         public static string VehicleConsumption() => BuildGenericTemplate(
             "Vehicle Consumption Report", "#4776E6",
             VehicleConsumptionSummary(), VehicleConsumptionTable(),
@@ -56,10 +53,7 @@ namespace FMS.WebClient.Services.Reporting
             IssueTrackerSummary(), IssueTrackerTable(),
             "No issue tracker data found for the selected criteria.");
 
-        public static string ConsumptionByRefills() => BuildGenericTemplate(
-            "Consumption by Refills Report", "#20c997",
-            ConsumptionByRefillsSummary(), ConsumptionByRefillsTable(),
-            "No consumption data found for the selected criteria.");
+        public static string ConsumptionByRefills() => ConsumptionByRefillsHtmlTemplate.Get();
 
         // â”€â”€â”€ Generic Template Builder â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

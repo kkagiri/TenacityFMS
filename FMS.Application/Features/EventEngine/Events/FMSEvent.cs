@@ -90,6 +90,13 @@ namespace FMS.Application.Features.EventEngine.Events
         public virtual ReportAttachmentMetadata? GetReportAttachmentMetadata() => null;
 
         /// <summary>
+        /// Returns a channel-specific HTML body for email delivery.
+        /// Override when email needs richer content than the in-app/plain-text message.
+        /// Returns null by default so email falls back to the normal template flow.
+        /// </summary>
+        public virtual string? GetCustomEmailBodyHtml() => null;
+
+        /// <summary>
         /// Build template variables for notification message rendering.
         /// Keys become {{placeholders}} in notification title/message templates.
         /// Override in subclasses to add typed properties.
