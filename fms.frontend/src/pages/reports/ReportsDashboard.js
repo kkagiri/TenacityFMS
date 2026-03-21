@@ -13,6 +13,7 @@ import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAllReportSources, getCategories, getReportSourcesByCategory } from './sources';
 import { reportsRoutes } from './utils/navigationHelper';
+import ModuleDashboard from '../../components/dashboard/ModuleDashboard';
 import './ReportsDashboard.scss';
 
 const ReportsDashboard = () => {
@@ -83,6 +84,16 @@ const ReportsDashboard = () => {
             <p className="stat-description">Track execution history & errors</p>
           </div>
         </div>
+      </div>
+
+      {/* Standardized Widget Dashboard */}
+      <div style={{ marginBottom: 24 }}>
+        <ModuleDashboard
+          moduleId="reports"
+          title="Reports Analytics"
+          icon="fa-solid fa-chart-pie"
+          subtitle="Widget-based report analytics — execution stats and trends"
+        />
       </div>
 
       {/* Report Source Catalog by Category */}

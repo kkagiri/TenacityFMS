@@ -1,13 +1,16 @@
 /**
  * File: VehicleDashboard.js
  * Purpose: Fleet dashboard view for vehicle KPIs, trends, and quick navigation actions.
- * Dependencies: Redux vehicleDashboard actions, DevExtreme chart/grid components, React Router.
- * Last Modified: 2026-02-25
+ * Dependencies: Redux vehicleDashboard actions, DevExtreme chart/grid components, React Router, ModuleDashboard.
+ * Last Modified: 2026-03-20
  *
  * Key Functions:
  * - loadDashboardData(): Loads all dashboard sections.
  * - navigateToFleet(): Opens fleet list.
  * - navigateToVehicleDetails(): Opens selected vehicle details page.
+ *
+ * Enhancement: Integrates ModuleDashboard for standardized widget-based dashboard
+ * experience alongside existing custom fleet-specific components.
  */
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
@@ -21,6 +24,7 @@ import { TabPanel, Item } from 'devextreme-react/tab-panel';
 import DataGrid, { Column, Scrolling, Paging } from 'devextreme-react/data-grid';
 import '../vehicles.scss';
 import VehicleTripDashboardSection from './VehicleTripDashboardSection';
+import ModuleDashboard from '../../../components/dashboard/ModuleDashboard';
 
 // Actions
 import {
@@ -485,7 +489,18 @@ const VehicleDashboard = () => {
         </div>
       </div>
 
-      {/* Dashboard Metrics */}
+      {/* Standardized Widget Dashboard */}
+      <div className="tw-mb-8">
+        <ModuleDashboard
+          moduleId="vehicle"
+          title="Vehicle Fleet Dashboard"
+          icon="fa-solid fa-truck"
+          subtitle="Widget-based fleet analytics — add, resize, and rearrange widgets"
+          enableRealtime={true}
+        />
+      </div>
+
+      {/* Legacy Dashboard Metrics */}
       <DashboardMetrics />
 
       <VehicleTripDashboardSection />
