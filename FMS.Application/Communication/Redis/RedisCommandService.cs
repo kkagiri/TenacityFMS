@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using System.Diagnostics;
 using FMS.Application.Common.Commands;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.Logging;
@@ -201,6 +202,7 @@ namespace FMS.Application.Communication.Redis
                 try
                 {
                     await _publisher.PublishAsync(_commandChannel, message).ConfigureAwait(false);
+                    var stopwatch = Stopwatch.StartNew();
 
                     // Use proper timeout mechanism with command timeout, not retry delay
                     using (var timeoutCts = new CancellationTokenSource(effectiveTimeout))
@@ -210,9 +212,10 @@ namespace FMS.Application.Communication.Redis
                         if (completedTask == tcs.Task)
                         {
                             var response = await tcs.Task;
+                            stopwatch.Stop();
                             _logger.LogInformation("Received response for {CommandType} (correlation: {CorrelationId}) in {ElapsedMs}ms",
                                 command.CommandType, command.CorrelationId,
-                                (DateTime.UtcNow - DateTime.UtcNow.AddSeconds(-effectiveTimeout.TotalSeconds)).TotalMilliseconds);
+                                    stopwatch.Elapsed.TotalMilliseconds);
                             return response;
                         }
                         else

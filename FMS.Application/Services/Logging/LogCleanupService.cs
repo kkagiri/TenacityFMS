@@ -206,6 +206,12 @@ namespace FMS.Application.Services.Logging
                         var fileInfo = new FileInfo(file);
                         var lastWriteTime = fileInfo.LastWriteTime;
 
+                        // Some rotated logs can be marked read-only; clear it before delete.
+                        if ((fileInfo.Attributes & FileAttributes.ReadOnly) == FileAttributes.ReadOnly)
+                        {
+                            fileInfo.Attributes &= ~FileAttributes.ReadOnly;
+                        }
+
                         File.Delete(file);
                         deletedCount++;
 
@@ -215,6 +221,10 @@ namespace FMS.Application.Services.Logging
                     catch (IOException ioEx)
                     {
                         _logger.LogWarning(ioEx, "Could not delete log file (file may be in use): {FileName}", file);
+                    }
+                    catch (UnauthorizedAccessException uaEx)
+                    {
+                        _logger.LogWarning(uaEx, "Access denied when deleting log file. Skipping: {FileName}", file);
                     }
                     catch (Exception ex)
                     {
