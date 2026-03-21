@@ -1,0 +1,345 @@
+/**
+ * File: ModuleDashboard.scss
+ * Purpose: Styles for the reusable ModuleDashboard component.
+ * Matches the M365 Fluent Design tokens used across the FMS application.
+ * Last Modified: 2026-03-20
+ */
+
+// Fluent Design tokens
+$color-primary: #0078d4;
+$color-primary-hover: #106ebe;
+$color-text-primary: #323130;
+$color-text-secondary: #605e5c;
+$color-text-disabled: #a19f9d;
+$color-surface: #ffffff;
+$color-background: #f3f2f1;
+$color-border: #edebe9;
+$color-border-hover: #c8c6c4;
+$shadow-4: 0 1.6px 3.6px 0 rgba(0, 0, 0, 0.132), 0 0.3px 0.9px 0 rgba(0, 0, 0, 0.108);
+$shadow-8: 0 3.2px 7.2px 0 rgba(0, 0, 0, 0.132), 0 0.6px 1.8px 0 rgba(0, 0, 0, 0.108);
+$radius: 4px;
+$font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-serif;
+
+.module-dashboard-container {
+  min-height: 100%;
+  background: $color-background;
+  font-family: $font-family;
+  padding: 0;
+}
+
+// ===========================
+// HEADER
+// ===========================
+.module-dashboard-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 20px 24px 16px;
+  background: $color-surface;
+  border-bottom: 1px solid $color-border;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.module-dashboard-header__left {
+  flex: 1;
+  min-width: 200px;
+}
+
+.module-dashboard-header__right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.module-dashboard-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  font-weight: 600;
+  color: $color-text-primary;
+  margin: 0;
+  line-height: 1.3;
+
+  i {
+    color: $color-primary;
+    font-size: 22px;
+  }
+}
+
+.module-dashboard-title-text {
+  // Inherits from parent
+}
+
+.module-dashboard-subtitle {
+  font-size: 13px;
+  color: $color-text-secondary;
+  margin: 4px 0 0;
+  line-height: 1.4;
+}
+
+// ===========================
+// HEADER ACTIONS
+// ===========================
+.module-dashboard-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// ===========================
+// GROUPING CONTROL
+// ===========================
+.module-dashboard-grouping-control {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &__label {
+    font-size: 13px;
+    color: $color-text-secondary;
+    white-space: nowrap;
+  }
+
+  &__select {
+    height: 32px;
+    padding: 0 28px 0 8px;
+    font-size: 13px;
+    font-family: $font-family;
+    color: $color-text-primary;
+    background: $color-surface;
+    border: 1px solid $color-border;
+    border-radius: $radius;
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M6 8.825L1.175 4 2.238 2.938 6 6.7l3.763-3.763L10.825 4z' fill='%23605e5c'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 8px center;
+    transition: border-color 0.15s;
+
+    &:hover {
+      border-color: $color-border-hover;
+    }
+
+    &:focus {
+      outline: none;
+      border-color: $color-primary;
+      box-shadow: 0 0 0 1px $color-primary;
+    }
+  }
+}
+
+// ===========================
+// SAVE BUTTON
+// ===========================
+.module-dashboard-save-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 32px;
+  padding: 0 16px;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: $font-family;
+  color: #fff;
+  background: $color-primary;
+  border: none;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: background-color 0.15s;
+
+  &:hover {
+    background: $color-primary-hover;
+  }
+}
+
+// ===========================
+// ACTIONS MENU
+// ===========================
+.module-dashboard-actions-menu {
+  position: relative;
+}
+
+.module-dashboard-meatball-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  font-size: 16px;
+  color: $color-text-secondary;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: $radius;
+  cursor: pointer;
+  transition: all 0.15s;
+
+  &:hover {
+    background: $color-background;
+    border-color: $color-border;
+  }
+}
+
+.module-dashboard-actions-menu__panel {
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 100;
+  min-width: 180px;
+  margin-top: 4px;
+  padding: 4px 0;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius;
+  box-shadow: $shadow-8;
+}
+
+.module-dashboard-actions-menu__item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-family: $font-family;
+  color: $color-text-primary;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  transition: background-color 0.1s;
+
+  i {
+    width: 16px;
+    text-align: center;
+    color: $color-text-secondary;
+  }
+
+  &:hover {
+    background: $color-background;
+  }
+}
+
+// ===========================
+// CUSTOM SECTIONS
+// ===========================
+.module-dashboard-custom-sections-above,
+.module-dashboard-custom-sections-below {
+  padding: 0 24px;
+  margin: 16px 0 0;
+}
+
+// ===========================
+// WIDGETS SECTION
+// ===========================
+.module-dashboard-widgets-section {
+  padding: 16px 24px 24px;
+}
+
+// ===========================
+// EMPTY STATE
+// ===========================
+.module-dashboard-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 48px 24px;
+  background: $color-surface;
+  border: 1px solid $color-border;
+  border-radius: $radius;
+  text-align: center;
+
+  &__icon {
+    font-size: 48px;
+    color: $color-text-disabled;
+    margin-bottom: 16px;
+  }
+
+  &__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: $color-text-primary;
+    margin: 0 0 8px;
+  }
+
+  &__text {
+    font-size: 14px;
+    color: $color-text-secondary;
+    margin: 0 0 20px;
+    max-width: 400px;
+  }
+
+  &__spinner {
+    width: 40px;
+    height: 40px;
+    border: 3px solid $color-border;
+    border-top-color: $color-primary;
+    border-radius: 50%;
+    animation: module-dashboard-spin 0.8s linear infinite;
+    margin-bottom: 16px;
+  }
+}
+
+// ===========================
+// LOADING OVERLAY
+// ===========================
+.module-dashboard-loading-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+
+  &__content {
+    text-align: center;
+
+    p {
+      font-size: 14px;
+      color: $color-text-secondary;
+      margin: 0;
+    }
+  }
+
+  &__spinner {
+    width: 48px;
+    height: 48px;
+    border: 3px solid $color-border;
+    border-top-color: $color-primary;
+    border-radius: 50%;
+    animation: module-dashboard-spin 0.8s linear infinite;
+    margin: 0 auto 16px;
+  }
+}
+
+@keyframes module-dashboard-spin {
+  to { transform: rotate(360deg); }
+}
+
+// ===========================
+// RESPONSIVE
+// ===========================
+@media (max-width: 768px) {
+  .module-dashboard-header {
+    padding: 16px;
+  }
+
+  .module-dashboard-widgets-section {
+    padding: 12px 16px 16px;
+  }
+
+  .module-dashboard-custom-sections-above,
+  .module-dashboard-custom-sections-below {
+    padding: 0 16px;
+  }
+
+  .module-dashboard-title {
+    font-size: 17px;
+
+    i { font-size: 18px; }
+  }
+}

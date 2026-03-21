@@ -14,6 +14,7 @@ import TankHistoryPanel from '../../tank/components/TankHistoryPanel';
 import TankFormPanel from '../../tank/components/TankFormPanel';
 import PTSDeviceLinkPanel from '../../tank/components/PTSDeviceLinkPanel';
 import { LorryTanker, StationaryTank } from './TankComponents';
+import ModuleDashboard from '../../../components/dashboard/ModuleDashboard';
 import './EnhancedTankStockDashboard.scss';
 
 /* ── Level → fill colour (Critical=red, Low=orange, Normal=blue, Full=green) */
@@ -386,6 +387,17 @@ const EnhancedTankStockDashboard = () => {
             <i className={`fa-light fa-rotate-right ${refreshing ? 'fms-spin' : ''}`} /> Refresh
           </button>
         </div>
+      </div>
+
+      {/* Standardized Widget Dashboard */}
+      <div className="fms-module-dashboard-section" style={{ marginBottom: 24 }}>
+        <ModuleDashboard
+          moduleId="tank_stock"
+          title="Tank Stock Dashboard"
+          icon="fa-solid fa-gas-pump"
+          subtitle="Widget-based tank analytics — add, resize, and rearrange widgets"
+          enableRealtime={true}
+        />
       </div>
 
       {/* ── KPI Stat Cards ── */}

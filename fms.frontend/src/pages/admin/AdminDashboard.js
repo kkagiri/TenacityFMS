@@ -1,6 +1,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getAdminRoute } from './utils/navigationHelper';
+import ModuleDashboard from '../../components/dashboard/ModuleDashboard';
 import './AdminDashboard.scss';
 
 const AdminDashboard = () => {
@@ -108,6 +109,16 @@ const AdminDashboard = () => {
         <p className="admin-dashboard__subtitle">
           Manage system configuration, users, and access control
         </p>
+      </div>
+
+      {/* Standardized Widget Dashboard */}
+      <div style={{ marginBottom: 24 }}>
+        <ModuleDashboard
+          moduleId="admin"
+          title="Administration Dashboard"
+          icon="fa-solid fa-gear"
+          subtitle="Widget-based system analytics — users, services, and health monitoring"
+        />
       </div>
 
       <div className="admin-dashboard__grid">

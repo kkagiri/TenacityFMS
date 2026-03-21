@@ -100,6 +100,21 @@ namespace FMS.Application.Services.Dashboard
             Add(VehicleAnomalyCountDataSource, CreateVehicleAnomalyCountMetadata());
             Add(AnomalyReviewFeedDataSource, CreateAnomalyReviewFeedMetadata());
 
+            // Employee module data sources
+            Add(EmployeeOverviewDataSource, CreateEmployeeOverviewMetadata());
+            Add(EmployeeSiteDistributionDataSource, CreateEmployeeSiteDistributionMetadata());
+            Add(EmployeeTopAssignmentsDataSource, CreateEmployeeTopAssignmentsMetadata());
+            Add(EmployeeRecentUpdatesDataSource, CreateEmployeeRecentUpdatesMetadata());
+
+            // Reports module data sources
+            Add(ReportExecutionStatsDataSource, CreateReportExecutionStatsMetadata());
+            Add(ReportExecutionHistoryDataSource, CreateReportExecutionHistoryMetadata());
+            Add(ReportFormatUsageDataSource, CreateReportFormatUsageMetadata());
+
+            // Tank stock additional data sources
+            Add(TankStockOverviewDataSource, CreateTankStockOverviewMetadata());
+            Add(TankCriticalCountDataSource, CreateTankCriticalCountMetadata());
+
             foreach (var key in catalog.Keys.ToList())
             {
                 catalog[key] = NormalizeMetadataEntry(catalog[key]);
@@ -1468,6 +1483,342 @@ namespace FMS.Application.Services.Dashboard
                     ["topK"] = 10
                 },
                 Category = "admin",
+                RefreshIntervalSeconds = 60
+            };
+        }
+
+        // ===== Employee Module Metadata =====
+        private static DataSourceMetadata CreateEmployeeOverviewMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Employee Overview",
+                Unit = "employees",
+                SupportedUnits = new List<string> { "employees", "count" },
+                Description = "Employee counts including total, active, terminated, and assignment status",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "historical_snapshot",
+                RecommendedUnits = new List<string> { "employees" },
+                CompatibleWidgetTypes = new List<string> { "BIG_STAT_CARD", "DATA_TABLE_DETAILED", "PROGRESS_LIST" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none", "site" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "historical_snapshot",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "employees",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "employee_operations",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateEmployeeSiteDistributionMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Employee Site Distribution",
+                Unit = "employees",
+                SupportedUnits = new List<string> { "employees" },
+                Description = "Employee distribution across sites",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "historical_snapshot",
+                RecommendedUnits = new List<string> { "employees" },
+                CompatibleWidgetTypes = new List<string> { "CHART_BAR_COMPARISON", "CHART_PIE_DISTRIBUTION", "DATA_TABLE_DETAILED", "PROGRESS_LIST" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none", "site" },
+                DefaultGroupBy = "site",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "historical_snapshot",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "employees",
+                    ["groupBy"] = "site",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "employee_operations",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateEmployeeTopAssignmentsMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Top Vehicle Assignments",
+                Unit = "assignments",
+                SupportedUnits = new List<string> { "assignments" },
+                Description = "Employees with the most vehicle assignments",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "historical_snapshot",
+                RecommendedUnits = new List<string> { "assignments" },
+                CompatibleWidgetTypes = new List<string> { "DATA_TABLE_DETAILED", "CHART_BAR_COMPARISON", "PROGRESS_LIST" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "historical_snapshot",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "assignments",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "employee_operations",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateEmployeeRecentUpdatesMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Recently Updated Employees",
+                Unit = "employees",
+                SupportedUnits = new List<string> { "employees" },
+                Description = "Most recently modified employee records",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "historical_snapshot",
+                RecommendedUnits = new List<string> { "employees" },
+                CompatibleWidgetTypes = new List<string> { "DATA_TABLE_DETAILED" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "historical_snapshot",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "employees",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "employee_operations",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        // ===== Reports Module Metadata =====
+        private static DataSourceMetadata CreateReportExecutionStatsMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Report Execution Stats",
+                Unit = "executions",
+                SupportedUnits = new List<string> { "executions" },
+                Description = "Report execution statistics including success rate and average duration",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated" },
+                SupportedAggregations = new List<string> { "count", "avg" },
+                SupportedGranularities = new List<string> { "day", "week" },
+                DefaultGranularity = "day",
+                DefaultMode = "daily_aggregated",
+                RecommendedUnits = new List<string> { "executions" },
+                CompatibleWidgetTypes = new List<string> { "BIG_STAT_CARD", "CHART_BAR_COMPARISON", "DATA_TABLE_DETAILED" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "daily_aggregated",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "last_7_days",
+                    ["unit"] = "executions",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "reporting",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateReportExecutionHistoryMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Report Execution History",
+                Unit = "executions",
+                SupportedUnits = new List<string> { "executions" },
+                Description = "Detailed report execution history with user, format, and duration",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "historical_snapshot",
+                RecommendedUnits = new List<string> { "executions" },
+                CompatibleWidgetTypes = new List<string> { "DATA_TABLE_DETAILED" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "historical_snapshot",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "last_7_days",
+                    ["unit"] = "executions",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 50
+                },
+                Category = "reporting",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        private static DataSourceMetadata CreateReportFormatUsageMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Report Format Usage",
+                Unit = "executions",
+                SupportedUnits = new List<string> { "executions", "percent" },
+                Description = "Distribution of report export formats (HTML, PDF, Excel, CSV)",
+                SupportsLiveData = false,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "historical_snapshot", "daily_aggregated" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day", "week" },
+                DefaultGranularity = "day",
+                DefaultMode = "daily_aggregated",
+                RecommendedUnits = new List<string> { "executions" },
+                CompatibleWidgetTypes = new List<string> { "CHART_PIE_DISTRIBUTION", "CHART_BAR_COMPARISON", "BIG_STAT_CARD" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "daily_aggregated",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "last_7_days",
+                    ["unit"] = "executions",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = "reporting",
+                RefreshIntervalSeconds = 300
+            };
+        }
+
+        // ===== Tank Stock Additional Metadata =====
+        private static DataSourceMetadata CreateTankStockOverviewMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Tank Stock Overview",
+                Unit = "liters",
+                SupportedUnits = new List<string> { "liters", "percent" },
+                Description = "Total tank stock levels including total capacity, current stock, and fill percentage",
+                SupportsLiveData = true,
+                SupportsHistoricalData = true,
+                SupportedModes = new List<string> { "live", "historical_snapshot" },
+                SupportedAggregations = new List<string> { "sum", "avg" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "live",
+                RecommendedUnits = new List<string> { "liters", "percent" },
+                CompatibleWidgetTypes = new List<string> { "BIG_STAT_CARD", "PROGRESS_LIST", "DATA_TABLE_DETAILED" },
+                RequiresSiteFilter = true,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none", "site" },
+                DefaultGroupBy = "site",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "live",
+                    ["aggregation"] = "sum",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "liters",
+                    ["groupBy"] = "site",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = WidgetTypeDefinitions.Categories.FUEL_MANAGEMENT,
+                RefreshIntervalSeconds = 60
+            };
+        }
+
+        private static DataSourceMetadata CreateTankCriticalCountMetadata()
+        {
+            return new DataSourceMetadata
+            {
+                DisplayName = "Critical Tank Count",
+                Unit = "tanks",
+                SupportedUnits = new List<string> { "tanks", "count" },
+                Description = "Count of tanks below critical threshold (20%)",
+                SupportsLiveData = true,
+                SupportsHistoricalData = false,
+                SupportedModes = new List<string> { "live" },
+                SupportedAggregations = new List<string> { "count" },
+                SupportedGranularities = new List<string> { "day" },
+                DefaultGranularity = "day",
+                DefaultMode = "live",
+                RecommendedUnits = new List<string> { "tanks" },
+                CompatibleWidgetTypes = new List<string> { "BIG_STAT_CARD", "ALERT_NOTIFICATION" },
+                RequiresSiteFilter = false,
+                RequiresVehicleFilter = false,
+                SupportedGroupBy = new List<string> { "none" },
+                DefaultGroupBy = "none",
+                DefaultConfiguration = new Dictionary<string, object>
+                {
+                    ["mode"] = "live",
+                    ["aggregation"] = "count",
+                    ["granularity"] = "day",
+                    ["datePreset"] = "today",
+                    ["unit"] = "tanks",
+                    ["groupBy"] = "none",
+                    ["includeTotal"] = true,
+                    ["topK"] = 10
+                },
+                Category = WidgetTypeDefinitions.Categories.FUEL_MANAGEMENT,
                 RefreshIntervalSeconds = 60
             };
         }

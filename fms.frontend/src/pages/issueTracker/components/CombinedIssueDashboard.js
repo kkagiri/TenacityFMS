@@ -23,6 +23,7 @@ import DashboardFilterSection from './DashboardFilterSection';
 import DashboardStatCards from './DashboardStatCards';
 import DashboardCharts from './DashboardCharts';
 import DashboardIssueGrid from './DashboardIssueGrid';
+import ModuleDashboard from '../../../components/dashboard/ModuleDashboard';
 import './CombinedIssueDashboard.scss';
 
 /**
@@ -454,6 +455,16 @@ const CombinedIssueDashboard = () => {
                 onFilterChange={handleFilterChange}
                 onClearFilters={handleClearFilters}
             />
+
+            {/* Standardized Widget Dashboard */}
+            <div className=”fms-dashboard-section” style={{ marginBottom: 24 }}>
+                <ModuleDashboard
+                    moduleId=”issue_tracker”
+                    title=”Issue Tracker Dashboard”
+                    icon=”fa-solid fa-bug”
+                    subtitle=”Widget-based issue analytics — add, resize, and rearrange widgets”
+                />
+            </div>
 
             {/* â”€â”€ Stat Cards (all sections) â”€â”€ */}
             <DashboardStatCards

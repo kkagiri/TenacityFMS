@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { fetchEmployees } from "../../../redux/actions/employeeActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
+import ModuleDashboard from '../../../components/dashboard/ModuleDashboard';
 
 /* ══════════════════════════════════════════════
    PAGINATED TABLE
@@ -382,6 +383,16 @@ const EmployeeDashboard = () => {
             <i className="fa-light fa-chart-column" style={{ fontSize: 14 }} /> Consumption History
           </button>
         </div>
+      </div>
+
+      {/* Standardized Widget Dashboard */}
+      <div style={{ marginBottom: 24 }}>
+        <ModuleDashboard
+          moduleId="employee"
+          title="Employee Operations"
+          icon="fa-solid fa-users"
+          subtitle="Widget-based employee analytics — add, resize, and rearrange widgets"
+        />
       </div>
 
       {/* ── Content Area ── */}
