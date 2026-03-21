@@ -1,5 +1,17 @@
 # Tank Management Feature Documentation
 
+> Status: Active working documentation is maintained in Markdown files under this folder.
+> Legacy HTML export files were removed during documentation cleanup on 2026-03-20.
+>
+> Current maintained documents:
+> - `TankManagement.md` - main functional overview
+> - `V2/implementation/PRD.md` - current V2 planning and requirements
+> - `V2/implementation/TASKS.md` - current V2 task tracking
+> - `PumpTransaction/` - Pump Transaction focused notes and enhancements
+> - `TankVolumeData/` - tank volume correction and diagnostic material
+> - `TankVolumeHistory/` - tank volume history references
+> - `TankVolumeHistoryMissingEntryNotification/` - missing-entry notification documentation
+
 ## 1. User Flow
 
 The Tank Management feature allows users to manage all aspects of fuel tanks, including their creation, monitoring, and the various transactions that affect their stock levels. The primary user flows are:

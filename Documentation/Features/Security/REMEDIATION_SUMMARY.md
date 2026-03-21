@@ -1,6 +1,22 @@
 # Security Remediation Summary
 ## Hyoung.FMS Repository - Session: 2025-11-05
 
+> **Current Status Update — 2026-03-20**
+>
+> This document started as the 2025-11-05 remediation record. Since then, the repository has also completed the main backend permission-hardening work documented under [Documentation/Features/Security/PermissionStandardization/V1/implementation/TASKLIST.md](PermissionStandardization/V1/implementation/TASKLIST.md).
+>
+> **Verified in code/repo:**
+> - Repository guardrails were added for future secret protection (`.gitignore`, example config files, pre-commit hooks).
+> - Backend permission hardening Phases 1-3 were implemented.
+> - Runtime authorization is database-driven through `RequirePermission` + `PermissionAuthorizationService`.
+> - Frontend/mobile clients fetch current-user permissions from `GET /api/v1/Permission/me`.
+>
+> **Still operational or unverified from source control:**
+> - Credential rotation on live systems
+> - Environment variable rollout on servers
+> - Git history cleanup for old secret exposure
+> - Execution of Permission Standardization SQL scripts against the live database
+
 ---
 
 ## ✅ Actions Completed
@@ -8,8 +24,8 @@
 ### 1. Security Audit Conducted
 **Status**: ✅ Complete
 **Files Created**:
-- `Documentation/Security/SECURITY_AUDIT_REPORT.md` - Comprehensive audit report
-- `Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md` - 24-hour action plan
+- `Documentation/Features/Security/SECURITY_AUDIT_REPORT.md` - Comprehensive audit report
+- `Documentation/Features/Security/IMMEDIATE_ACTION_CHECKLIST.md` - 24-hour action plan
 
 **Findings**:
 - 🔴 CRITICAL: Database root password exposed (`Niwewenamimi1000`)
@@ -121,9 +137,9 @@
 **Files Created**:
 ```
 ✓ SECURITY_SETUP_GUIDE.md - Complete setup instructions
-✓ Documentation/Security/SECURITY_AUDIT_REPORT.md - Full audit
-✓ Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md - Action plan
-✓ Documentation/Security/REMEDIATION_SUMMARY.md - This file
+✓ Documentation/Features/Security/SECURITY_AUDIT_REPORT.md - Full audit
+✓ Documentation/Features/Security/IMMEDIATE_ACTION_CHECKLIST.md - Action plan
+✓ Documentation/Features/Security/REMEDIATION_SUMMARY.md - This file
 ```
 
 **Documentation Covers**:
@@ -320,7 +336,7 @@ If anything breaks, see IMMEDIATE_ACTION_CHECKLIST.md for troubleshooting.
 ## 🎯 Next Steps for Different Roles
 
 ### For System Administrator (IMMEDIATE)
-1. **Read**: `Documentation/Security/IMMEDIATE_ACTION_CHECKLIST.md`
+1. **Read**: `Documentation/Features/Security/IMMEDIATE_ACTION_CHECKLIST.md`
 2. **Execute**: Change all exposed passwords (MySQL, email, API keys)
 3. **Configure**: Set up environment variables on production server
 4. **Restart**: IIS and all FMS services
@@ -335,7 +351,7 @@ If anything breaks, see IMMEDIATE_ACTION_CHECKLIST.md for troubleshooting.
 5. **Never**: Commit actual config files with credentials
 
 ### For DevOps/CI-CD Team (Week 2)
-1. **Read**: `Documentation/Security/SECURITY_AUDIT_REPORT.md` - CI/CD section
+1. **Read**: `Documentation/Features/Security/SECURITY_AUDIT_REPORT.md` - CI/CD section
 2. **Implement**: GitHub Secrets for sensitive values
 3. **Add**: Gitleaks secret scanning to pipeline
 4. **Add**: Dependency vulnerability scanning
@@ -352,13 +368,15 @@ If anything breaks, see IMMEDIATE_ACTION_CHECKLIST.md for troubleshooting.
 
 ## 📚 Documentation Reference
 
-All security documentation is located in `Documentation/Security/`:
+All security documentation is located in `Documentation/Features/Security/`:
 
 | Document | Purpose | Audience |
 |----------|---------|----------|
 | `SECURITY_AUDIT_REPORT.md` | Complete audit findings and recommendations | All |
 | `IMMEDIATE_ACTION_CHECKLIST.md` | 24-hour action plan | Sys Admin |
 | `REMEDIATION_SUMMARY.md` | What was done (this file) | All |
+| `README.md` | Current security status and document index | All |
+| `PermissionStandardization/V1/implementation/TASKLIST.md` | Permission hardening implementation status | Dev/Ops |
 | `SECURITY_SETUP_GUIDE.md` | Developer and production setup | Dev/Ops |
 
 Root level documentation:
@@ -445,6 +463,6 @@ https://github.com/Hyoung-EA/Hyoung.FMS/security/dependabot
 
 **Report Generated**: 2025-11-05
 **Session ID**: claude/security-vulnerability-audit-011CUpENAgPpbZFdvudPaWeb
-**Status**: Phase 1-2 Complete, Phase 3 URGENT
+**Status**: Repository guardrails complete; backend permission hardening Phases 1-3 complete; operational remediation items require separate verification
 
 **Remember**: The exposed credentials are still in git history and accessible to anyone with repository access. Changing passwords is CRITICAL and must be done immediately!
