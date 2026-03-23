@@ -35,6 +35,9 @@ namespace FMS.Application.Communication.Redis
         // Extended timeout for configuration commands (device may take longer to respond)
         private readonly TimeSpan _configurationCommandTimeout = TimeSpan.FromSeconds(30);
 
+        // Extended timeout for probe calibration commands (device reads physical probe data in batches)
+        private readonly TimeSpan _probeCalibrationTimeout = TimeSpan.FromSeconds(30);
+
         // Commands that require extended timeout
         private static readonly HashSet<string> _extendedTimeoutCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -42,6 +45,23 @@ namespace FMS.Application.Communication.Redis
             "SetRemoteServerConfiguration",
             "PumpCloseTransaction",
             "GetRemoteServerConfiguration"
+        };
+
+        // Probe calibration commands that need extended timeout (device reads physical probe data)
+        private static readonly HashSet<string> _probeCalibrationCommands = new HashSet<string>(StringComparer.OrdinalIgnoreCase)
+        {
+            "ProbeGetTankCalibrationChartTotalRecordsNumber",
+            "ProbeGetTankCalibrationChartRecordsList",
+            "ProbeGetTankAutomaticCalibrationChartTotalRecordsNumber",
+            "ProbeGetTankAutomaticCalibrationChartRecordsList",
+            "ProbeGetTankIntervalVolumeChartTotalRecordsNumber",
+            "ProbeGetTankIntervalVolumeChartRecordsList",
+            "ProbeGetTankVolumeForHeight",
+            "ProbeSetTankCalibrationChartRecordsList",
+            "ProbeAddTankCalibrationChartRecordToList",
+            "ProbeEditTankCalibrationChartRecordInList",
+            "ProbeDeleteTankCalibrationChartRecordFromList",
+            "ProbeGenerateTankAutomaticCalibrationChart"
         };
 
         // Track processed correlation IDs to prevent duplicate processing (keep for 5 minutes)
@@ -188,9 +208,10 @@ namespace FMS.Application.Communication.Redis
             var effectiveTimeout = command.CommandType switch
             {
                 "PumpAuthorize" => _pumpAuthorizeTimeout,
-                "PumpCloseTransaction" => _pumpCloseTimeout, // ADD THIS
+                "PumpCloseTransaction" => _pumpCloseTimeout,
                 var cmd when cmd.StartsWith("SetRemoteServerConfiguration") ||
                        cmd.StartsWith("GetRemoteServerConfiguration") => _configurationCommandTimeout,
+                var cmd when _probeCalibrationCommands.Contains(cmd) => _probeCalibrationTimeout,
                 _ => _commandTimeout
             };
 

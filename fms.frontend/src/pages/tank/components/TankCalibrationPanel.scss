@@ -2,7 +2,7 @@
  * File:          TankCalibrationPanel.scss
  * Purpose:       Styles the dedicated tank calibration slide panel and manual chart editor.
  * Dependencies:  Existing M365 button and badge utility classes
- * Last Modified: 2026-03-23
+ * Last Modified: 2026-03-24
  *
  * Key Sections:
  * - Header and toolbar layout
@@ -17,14 +17,12 @@
   min-height: 100%;
 
   &__header,
-  &__toolbar,
   &__summary-grid,
   &__content-grid,
   &__editor-grid,
   &__detail-meta,
   &__binding,
-  &__actions,
-  &__chart-switcher {
+  &__actions {
     display: flex;
     gap: 12px;
     flex-wrap: wrap;
@@ -68,8 +66,55 @@
     justify-content: space-between;
   }
 
-  &__toolbar {
+  &__tab-bar {
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+    background: #ffffff;
+    border: 1px solid #d9e2ec;
+    border-radius: 16px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+    padding: 0 20px 0 0;
+    overflow: hidden;
+  }
+
+  .m365-tabs {
+    display: flex;
+    gap: 0;
+    padding: 0 8px;
+  }
+
+  .m365-tab {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 14px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #605e5c;
+    background: none;
+    border: none;
+    border-bottom: 2px solid transparent;
+    cursor: pointer;
+    transition: color 0.15s;
+    white-space: nowrap;
+
+    &:hover {
+      color: #201f1e;
+    }
+
+    &--active {
+      color: #0078d4;
+      font-weight: 600;
+      border-bottom-color: #0078d4;
+    }
+
+    i {
+      font-size: 14px;
+    }
   }
 
   &__summary-grid,
@@ -378,7 +423,7 @@
 @media (max-width: 768px) {
   .m365-tank-calibration {
     &__header,
-    &__toolbar,
+    &__tab-bar,
     &__section-heading,
     &__editor-header {
       flex-direction: column;

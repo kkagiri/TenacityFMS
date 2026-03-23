@@ -37,7 +37,7 @@ public class Packet
     public string? SetRequestType { get; set; } = string.Empty;
 
     [JsonPropertyName("Data")]
-    public JObject? Data { get; set; }
+    public JToken? Data { get; set; }
 
     [JsonPropertyName("Error")]
     [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]

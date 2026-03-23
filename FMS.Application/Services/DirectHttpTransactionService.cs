@@ -336,7 +336,7 @@ namespace FMS.Application.Services
             };
         }
 
-        private Pumptransaction ParseTransactionFromResponse(JObject data)
+        private Pumptransaction ParseTransactionFromResponse(JToken data)
         {
             if (data == null) return null;
 
@@ -359,7 +359,7 @@ namespace FMS.Application.Services
             };
         }
 
-        private object ParseStatusFromResponse(JObject data)
+        private object ParseStatusFromResponse(JToken data)
         {
             if (data == null) return null;
 

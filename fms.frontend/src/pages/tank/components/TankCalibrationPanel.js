@@ -2,12 +2,12 @@
  * File:          TankCalibrationPanel.js
  * Purpose:       Dedicated slide panel for tank calibration sync, local history, and manual chart edits.
  * Dependencies:  devextreme-react DataGrid/NumberBox, ptsConfigService, notify
- * Last Modified: 2026-03-23
+ * Last Modified: 2026-03-24
  *
  * Props:
  * - tank (object): Selected tank with linked PTS metadata.
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   DataGrid,
   Column,
@@ -58,6 +58,7 @@ const TankCalibrationPanel = ({ tank }) => {
   const [variances, setVariances] = useState([]);
   const [loadingHealth, setLoadingHealth] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const graphSectionRef = useRef(null);
 
   const hasPtsBinding = Boolean(tank?.ptsId && tank?.probeNumber);
   const isManualChart = chartType === "manual";
@@ -66,6 +67,8 @@ const TankCalibrationPanel = ({ tank }) => {
     () => CHART_TYPES.find((item) => item.id === chartType) || CHART_TYPES[0],
     [chartType]
   );
+
+  const canViewGraph = (currentSnapshot?.records?.length || 0) > 1;
 
   const historyTotalPages = useMemo(
     () => Math.max(1, Math.ceil(historyTotalCount / historyPageSize)),
@@ -135,6 +138,7 @@ const TankCalibrationPanel = ({ tank }) => {
         return;
       }
 
+      console.error("[TankCalibration] loadCurrentSnapshot failed:", message, error);
       applyCurrentSnapshot(null);
       notify(message, "error", 4000);
     } finally {
@@ -261,10 +265,13 @@ const TankCalibrationPanel = ({ tank }) => {
   };
 
   const handleSync = async () => {
-    await runMutation(
+    const result = await runMutation(
       () => ptsConfigService.syncTankCalibrationSnapshot(tank.id, { chartType, source: "manual-sync" }),
       `${activeChartMeta.label} synced from PTS.`
     );
+    if (result?.data) {
+      applyCurrentSnapshot(result.data);
+    }
   };
 
   const handleGenerateAutomatic = async () => {
@@ -345,6 +352,15 @@ const TankCalibrationPanel = ({ tank }) => {
     }
   };
 
+  const handleViewGraph = () => {
+    if (!canViewGraph) {
+      notify("Sync or load at least two calibration rows to view the graph.", "warning", 3000);
+      return;
+    }
+
+    graphSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   if (!tank) {
     return null;
   }
@@ -375,13 +391,13 @@ const TankCalibrationPanel = ({ tank }) => {
 
       {hasPtsBinding && (
         <>
-          <div className="m365-tank-calibration__toolbar">
-            <div className="m365-tank-calibration__chart-switcher">
+          <div className="m365-tank-calibration__tab-bar">
+            <div className="m365-tabs">
               {CHART_TYPES.map((item) => (
                 <button
                   key={item.id}
                   type="button"
-                  className={`m365-btn ${chartType === item.id ? "m365-btn--primary" : "m365-btn--ghost"}`}
+                  className={`m365-tab${chartType === item.id ? " m365-tab--active" : ""}`}
                   onClick={() => setChartType(item.id)}
                 >
                   <i className={item.icon}></i>
@@ -393,6 +409,10 @@ const TankCalibrationPanel = ({ tank }) => {
             <div className="m365-tank-calibration__actions">
               <button type="button" className="m365-btn m365-btn--ghost" onClick={() => setHelpOpen(true)} title="Calibration Help">
                 <i className="fa-light fa-circle-question"></i>
+              </button>
+              <button type="button" className="m365-btn m365-btn--ghost" onClick={handleViewGraph}>
+                <i className="fa-light fa-chart-line"></i>
+                View Graph
               </button>
               <button type="button" className="m365-btn m365-btn--ghost" onClick={handleSync} disabled={submitting}>
                 <i className="fa-light fa-arrows-rotate"></i>
@@ -631,8 +651,8 @@ const TankCalibrationPanel = ({ tank }) => {
             </div>
           )}
 
-          {(currentSnapshot?.records?.length || 0) > 1 && (
-            <div className="m365-tank-calibration__panel-card">
+          {canViewGraph && (
+            <div ref={graphSectionRef} className="m365-tank-calibration__panel-card">
               <div className="m365-tank-calibration__section-heading">
                 <h3><i className="fa-light fa-chart-line"></i> Calibration Curve</h3>
                 <span>Height (mm) vs Volume</span>

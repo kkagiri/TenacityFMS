@@ -520,7 +520,8 @@ const ptsConfigService = {
     try {
       const response = await axiosInstance.post(
         `v1/tanks/${tankId}/calibration/sync`,
-        payload
+        payload,
+        { timeout: 120000 }
       );
       return response.data;
     } catch (error) {
@@ -532,7 +533,9 @@ const ptsConfigService = {
   generateTankCalibrationAutomaticChart: async (tankId) => {
     try {
       const response = await axiosInstance.post(
-        `v1/tanks/${tankId}/calibration/generate-automatic`
+        `v1/tanks/${tankId}/calibration/generate-automatic`,
+        null,
+        { timeout: 120000 }
       );
       return response.data;
     } catch (error) {
@@ -545,7 +548,8 @@ const ptsConfigService = {
     try {
       const response = await axiosInstance.post(
         `v1/tanks/${tankId}/calibration/manual/set`,
-        { records }
+        { records },
+        { timeout: 120000 }
       );
       return response.data;
     } catch (error) {
@@ -558,7 +562,8 @@ const ptsConfigService = {
     try {
       const response = await axiosInstance.post(
         `v1/tanks/${tankId}/calibration/manual/record`,
-        record
+        record,
+        { timeout: 60000 }
       );
       return response.data;
     } catch (error) {
@@ -571,7 +576,8 @@ const ptsConfigService = {
     try {
       const response = await axiosInstance.put(
         `v1/tanks/${tankId}/calibration/manual/record`,
-        record
+        record,
+        { timeout: 60000 }
       );
       return response.data;
     } catch (error) {
@@ -583,7 +589,8 @@ const ptsConfigService = {
   deleteTankManualCalibrationRecord: async (tankId, height) => {
     try {
       const response = await axiosInstance.delete(
-        `v1/tanks/${tankId}/calibration/manual/record/${height}`
+        `v1/tanks/${tankId}/calibration/manual/record/${height}`,
+        { timeout: 60000 }
       );
       return response.data;
     } catch (error) {
