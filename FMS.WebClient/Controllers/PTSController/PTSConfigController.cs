@@ -1,8 +1,21 @@
 //Cursor
+/**
+ * File: PTSConfigController.cs
+ * Purpose: Exposes authenticated API endpoints for PTS configuration and calibration operations.
+ * Dependencies: IPTSConfigService, FMSResponse, ASP.NET Core MVC, authorization attributes
+ * Last Modified: 2026-03-23
+ *
+ * Key Actions:
+ * - GetRemoteServerConfiguration: Reads transport configuration for a PTS device.
+ * - GetTankCalibrationChartRecords: Returns probe calibration chart rows from the device.
+ * - GenerateTankAutomaticCalibrationChart: Starts automatic calibration chart generation on the device.
+ */
 using System;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.PTS.DTOs;
 using FMS.Application.PTSServices.PTSConfigService;
+using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon.Responses;
 using MediatR;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -308,6 +321,246 @@ namespace FMS.WebClient.Controllers.PTSController
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error setting Pump Nozzles Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/calibration-chart/total-records")]
+        public async Task<ActionResult<FMSResponse<ProbeChartTotalRecordsResponse>>> GetTankCalibrationChartTotalRecords(string deviceId, int probeNumber)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankCalibrationChartTotalRecordsNumberAsync(deviceId, probeNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank calibration chart total records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeChartTotalRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/calibration-chart/records")]
+        public async Task<ActionResult<FMSResponse<ProbeTankChartRecordsResponse>>> GetTankCalibrationChartRecords(string deviceId, int probeNumber, [FromQuery] int? startNumber = null, [FromQuery] int? totalNumber = null)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankCalibrationChartRecordsAsync(deviceId, probeNumber, startNumber, totalNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank calibration chart records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeTankChartRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/interval-volume-chart/total-records")]
+        public async Task<ActionResult<FMSResponse<ProbeChartTotalRecordsResponse>>> GetTankIntervalVolumeChartTotalRecords(string deviceId, int probeNumber)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankIntervalVolumeChartTotalRecordsNumberAsync(deviceId, probeNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank interval volume chart total records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeChartTotalRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/interval-volume-chart/records")]
+        public async Task<ActionResult<FMSResponse<ProbeTankIntervalVolumeChartRecordsResponse>>> GetTankIntervalVolumeChartRecords(string deviceId, int probeNumber, [FromQuery] int? startNumber = null, [FromQuery] int? totalNumber = null)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankIntervalVolumeChartRecordsAsync(deviceId, probeNumber, startNumber, totalNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank interval volume chart records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeTankIntervalVolumeChartRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/automatic-calibration-chart/total-records")]
+        public async Task<ActionResult<FMSResponse<ProbeChartTotalRecordsResponse>>> GetTankAutomaticCalibrationChartTotalRecords(string deviceId, int probeNumber)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankAutomaticCalibrationChartTotalRecordsNumberAsync(deviceId, probeNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank automatic calibration chart total records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeChartTotalRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/automatic-calibration-chart/records")]
+        public async Task<ActionResult<FMSResponse<ProbeTankChartRecordsResponse>>> GetTankAutomaticCalibrationChartRecords(string deviceId, int probeNumber, [FromQuery] int? startNumber = null, [FromQuery] int? totalNumber = null)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankAutomaticCalibrationChartRecordsAsync(deviceId, probeNumber, startNumber, totalNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank automatic calibration chart records for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeTankChartRecordsResponse>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpGet("probes/{probeNumber:int}/volume-for-height/{height:int}")]
+        public async Task<ActionResult<FMSResponse<ProbeTankVolumeForHeight>>> GetTankVolumeForHeight(string deviceId, int probeNumber, int height)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GetTankVolumeForHeightAsync(deviceId, probeNumber, height);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting tank volume for height for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<ProbeTankVolumeForHeight>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpPost("probes/{probeNumber:int}/automatic-calibration-chart/generate")]
+        public async Task<ActionResult<FMSResponse<bool>>> GenerateTankAutomaticCalibrationChart(string deviceId, int probeNumber)
+        {
+            try
+            {
+                var result = await _ptsConfigService.GenerateTankAutomaticCalibrationChartAsync(deviceId, probeNumber);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error generating automatic calibration chart for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpPost("probes/{probeNumber:int}/calibration-chart/set")]
+        public async Task<ActionResult<FMSResponse<bool>>> SetTankCalibrationChartRecords(string deviceId, int probeNumber, [FromBody] ProbeTankCalibrationRecordListRequestDto request)
+        {
+            try
+            {
+                var result = await _ptsConfigService.SetTankCalibrationChartRecordsAsync(deviceId, probeNumber, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error replacing tank calibration chart for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpPost("probes/{probeNumber:int}/calibration-chart/record")]
+        public async Task<ActionResult<FMSResponse<bool>>> AddTankCalibrationChartRecord(string deviceId, int probeNumber, [FromBody] ProbeTankCalibrationRecordWriteDto request)
+        {
+            try
+            {
+                var result = await _ptsConfigService.AddTankCalibrationChartRecordAsync(deviceId, probeNumber, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error adding tank calibration chart record for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpPut("probes/{probeNumber:int}/calibration-chart/record")]
+        public async Task<ActionResult<FMSResponse<bool>>> EditTankCalibrationChartRecord(string deviceId, int probeNumber, [FromBody] ProbeTankCalibrationRecordWriteDto request)
+        {
+            try
+            {
+                var result = await _ptsConfigService.EditTankCalibrationChartRecordAsync(deviceId, probeNumber, request);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error editing tank calibration chart record for device {DeviceId}, probe {ProbeNumber}", deviceId, probeNumber);
+                return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
+            }
+        }
+
+        [HttpDelete("probes/{probeNumber:int}/calibration-chart/record/{height:int}")]
+        public async Task<ActionResult<FMSResponse<bool>>> DeleteTankCalibrationChartRecord(string deviceId, int probeNumber, int height)
+        {
+            try
+            {
+                var result = await _ptsConfigService.DeleteTankCalibrationChartRecordAsync(deviceId, probeNumber, height);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error deleting tank calibration chart record for device {DeviceId}, probe {ProbeNumber}, height {Height}", deviceId, probeNumber, height);
                 return StatusCode(500, FMSResponse<bool>.Failed("Internal server error"));
             }
         }

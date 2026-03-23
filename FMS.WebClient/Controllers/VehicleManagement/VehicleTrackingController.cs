@@ -535,5 +535,65 @@ namespace FMS.WebClient.Controllers
                 return StatusCode(500, new { Success = false, Message = "Internal server error" });
             }
         }
+
+        /// <summary>
+        /// Get track history for a vehicle within a date range.
+        /// Returns aggregated statistics (total distance, duration, stops, etc.) plus track points.
+        /// </summary>
+        [HttpGet("{vehicleId}/track-history")]
+        public async Task<IActionResult> GetTrackHistory(int vehicleId, [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int maxPoints = 5000)
+        {
+            try
+            {
+                if (from > to)
+                {
+                    return BadRequest(FMSResponse<object>.ValidationFailed(new List<string> { "'from' date must be before 'to' date." }));
+                }
+
+                var result = await _gpsService.GetTrackHistoryAsync(vehicleId, from, to, maxPoints);
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting track history for vehicle {VehicleId}", vehicleId);
+                return StatusCode(500, FMSResponse<object>.SystemError("Error retrieving track history"));
+            }
+        }
+
+        /// <summary>
+        /// Get individual track points for a vehicle within a date range.
+        /// Returns detailed GPS data including speed, fuel, ignition, heading etc.
+        /// </summary>
+        [HttpGet("{vehicleId}/track-points")]
+        public async Task<IActionResult> GetTrackPoints(int vehicleId, [FromQuery] DateTime from, [FromQuery] DateTime to, [FromQuery] int maxPoints = 5000)
+        {
+            try
+            {
+                if (from > to)
+                {
+                    return BadRequest(FMSResponse<object>.ValidationFailed(new List<string> { "'from' date must be before 'to' date." }));
+                }
+
+                var result = await _gpsService.GetTrackPointsAsync(vehicleId, from, to, maxPoints);
+
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting track points for vehicle {VehicleId}", vehicleId);
+                return StatusCode(500, FMSResponse<object>.SystemError("Error retrieving track points"));
+            }
+        }
     }
 }

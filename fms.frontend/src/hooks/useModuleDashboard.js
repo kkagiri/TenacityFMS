@@ -12,7 +12,13 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRealtimeDashboard } from './useRealtimeDashboard';
 import serviceFactory from '../services/core/ServiceFactory';
-import { MODULE_DEFAULT_WIDGETS, MODULE_CATEGORY_MAP } from '../config/moduleDefaultWidgets';
+import {
+  MODULE_DEFAULT_WIDGETS,
+  buildModuleWidgetSignature,
+  getModuleScopeCategories,
+  isModuleScopedMatch,
+  normalizeDashboardDataSourceId
+} from '../config/moduleDefaultWidgets';
 
 /**
  * Hook providing module-scoped dashboard state by wrapping useRealtimeDashboard
@@ -34,10 +40,11 @@ export function useModuleDashboard({
   const [seeding, setSeeding] = useState(false);
   const [seedError, setSeedError] = useState(null);
   const seededRef = useRef(false);
+  const migratedRef = useRef(false);
 
   // Get categories that belong to this module
   const moduleCategories = useMemo(
-    () => MODULE_CATEGORY_MAP[moduleId] || [moduleId],
+    () => getModuleScopeCategories(moduleId),
     [moduleId]
   );
 
@@ -51,6 +58,8 @@ export function useModuleDashboard({
   const {
     widgetInstances: allWidgets,
     instancesLoading,
+    hasLoadedInstances,
+    widgetInstancesLoadSucceeded,
     widgetData,
     widgetErrors,
     widgetLoadingStates,
@@ -67,14 +76,57 @@ export function useModuleDashboard({
   const moduleWidgets = useMemo(() => {
     if (!allWidgets || !allWidgets.length) return [];
     return allWidgets.filter(widget => {
-      const category = (widget.category || '').toLowerCase();
-      const dataSource = (widget.dataSource || widget.settings?.dataSource || '').toLowerCase();
-      return moduleCategories.some(cat => {
-        const catLower = cat.toLowerCase();
-        return category === catLower || category.startsWith(catLower) || dataSource.startsWith(catLower);
+      return isModuleScopedMatch({
+        moduleCategories,
+        candidates: [
+          widget.category,
+          widget.template?.category,
+          widget.dataSource,
+          widget.settings?.dataSource,
+          widget.template?.dataSource
+        ]
       });
     });
   }, [allWidgets, moduleCategories]);
+
+  const dedupedModuleWidgets = useMemo(() => {
+    const defaults = MODULE_DEFAULT_WIDGETS[moduleId] || [];
+    const defaultSignatures = new Set(defaults.map(widget => buildModuleWidgetSignature({
+      ...widget,
+      customName: widget.name || widget.customName,
+      visualizationType: widget.visualizationType || widget.widgetType,
+      dataSource: normalizeDashboardDataSourceId(widget.dataSource),
+      settings: {
+        ...(widget.settings || {}),
+        dataSource: normalizeDashboardDataSourceId(widget.dataSource)
+      },
+      filters: widget.filters || {}
+    })));
+
+    const seenDefaultSignatures = new Set();
+
+    return moduleWidgets.filter(widget => {
+      const signature = buildModuleWidgetSignature({
+        ...widget,
+        customName: widget.customName || widget.template?.displayName,
+        visualizationType: widget.widgetType || widget.visualizationType || widget.template?.widgetType,
+        dataSource: normalizeDashboardDataSourceId(widget.dataSource || widget.settings?.dataSource || widget.template?.dataSource),
+        settings: widget.settings || {},
+        filters: widget.filters || {}
+      });
+
+      if (!defaultSignatures.has(signature)) {
+        return true;
+      }
+
+      if (seenDefaultSignatures.has(signature)) {
+        return false;
+      }
+
+      seenDefaultSignatures.add(signature);
+      return true;
+    });
+  }, [moduleId, moduleWidgets]);
 
   // Auto-seed default widgets when module has none
   const seedDefaultWidgets = useCallback(async () => {
@@ -90,16 +142,44 @@ export function useModuleDashboard({
 
     try {
       const dashboardSvc = serviceFactory.getDashboardService();
+      const existingSignatures = new Set(moduleWidgets.map(widget => buildModuleWidgetSignature({
+        ...widget,
+        customName: widget.customName || widget.template?.displayName,
+        visualizationType: widget.widgetType || widget.visualizationType || widget.template?.widgetType,
+        dataSource: normalizeDashboardDataSourceId(widget.dataSource || widget.settings?.dataSource || widget.template?.dataSource),
+        settings: widget.settings || {},
+        filters: widget.filters || {}
+      })));
+
       for (const widgetConfig of defaults) {
-        await dashboardSvc.createWidgetInstance({
+        const normalizedDataSource = normalizeDashboardDataSourceId(widgetConfig.dataSource);
+        const normalizedPayload = {
           ...widgetConfig,
           customName: widgetConfig.name || widgetConfig.customName,
-          widgetType: widgetConfig.widgetType,
+          visualizationType: widgetConfig.visualizationType || widgetConfig.widgetType,
           category: widgetConfig.category,
-          dataSource: widgetConfig.dataSource,
-          settings: widgetConfig.settings || {},
+          dataSource: normalizedDataSource,
+          settings: {
+            ...(widgetConfig.settings || {}),
+            dataSource: normalizedDataSource
+          },
           filters: widgetConfig.filters || {}
+        };
+        const signature = buildModuleWidgetSignature(normalizedPayload);
+
+        if (existingSignatures.has(signature)) {
+          continue;
+        }
+
+        const response = await dashboardSvc.createWidgetInstance({
+          ...normalizedPayload
         });
+
+        if (!response?.success) {
+          throw new Error(response?.message || `Failed to create default widget: ${widgetConfig.name || widgetConfig.customName || widgetConfig.dataSource}`);
+        }
+
+        existingSignatures.add(signature);
       }
       // Reload after seeding
       await loadWidgetInstances();
@@ -109,15 +189,105 @@ export function useModuleDashboard({
     } finally {
       setSeeding(false);
     }
-  }, [moduleId, autoSeedDefaults, loadWidgetInstances]);
+  }, [moduleId, autoSeedDefaults, loadWidgetInstances, moduleWidgets]);
 
   // Trigger seeding when widgets are loaded and module has none
   useEffect(() => {
-    if (instancesLoading || seededRef.current) return;
-    if (moduleWidgets.length === 0 && allWidgets && allWidgets.length >= 0) {
+    if (instancesLoading || seededRef.current || !hasLoadedInstances || !widgetInstancesLoadSucceeded) return;
+    if (moduleWidgets.length === 0) {
       seedDefaultWidgets();
     }
-  }, [instancesLoading, moduleWidgets.length, allWidgets, seedDefaultWidgets]);
+  }, [instancesLoading, hasLoadedInstances, moduleWidgets.length, seedDefaultWidgets, widgetInstancesLoadSucceeded]);
+
+  useEffect(() => {
+    if (instancesLoading || migratedRef.current || moduleWidgets.length === 0) {
+      return;
+    }
+
+    const migrateWidgets = async () => {
+      const dashboardSvc = serviceFactory.getDashboardService();
+      const pendingUpdates = [];
+
+      if (moduleId === 'tank_stock') {
+        moduleWidgets.forEach(widget => {
+          const widgetName = String(widget.customName || widget.template?.displayName || '').trim().toLowerCase();
+          const widgetType = String(widget.widgetType || widget.visualizationType || widget.template?.widgetType || '').trim().toUpperCase();
+          const normalizedDataSource = normalizeDashboardDataSourceId(widget.dataSource || widget.settings?.dataSource || widget.template?.dataSource);
+          const currentSettings = { ...(widget.settings || {}) };
+
+          if (widgetName === 'tank levels overview' && widgetType === 'BIG_STAT_CARD' && normalizedDataSource === 'tank_level') {
+            pendingUpdates.push({
+              id: widget.id,
+              payload: {
+                customName: widget.customName || 'Tank Levels Overview',
+                visualizationType: 'BIG_STAT_CARD',
+                category: widget.category || widget.template?.category || 'tankstock_monitoring',
+                dataSource: 'tankstock_overview',
+                settings: {
+                  ...currentSettings,
+                  mode: 'live',
+                  datePreset: 'today',
+                  dataSource: 'tankstock_overview',
+                  unit: 'percent',
+                  variant: 'fill_percentage',
+                  showTrend: false,
+                  icon: currentSettings.icon || 'fa-gas-pump',
+                  color: currentSettings.color || '#0078d4'
+                },
+                filters: widget.filters || {}
+              }
+            });
+            return;
+          }
+
+          const shouldNormalizeLivePreset =
+            widgetType === 'BIG_STAT_CARD' || widgetType === 'DATA_TABLE_DETAILED';
+          const isTankStockLiveDefault = [
+            'active fueling',
+            'tank levels table',
+            'recent pump transactions'
+          ].includes(widgetName);
+
+          if (isTankStockLiveDefault && shouldNormalizeLivePreset && currentSettings.mode === 'live' && (!currentSettings.datePreset || currentSettings.datePreset === 'yesterday')) {
+            pendingUpdates.push({
+              id: widget.id,
+              payload: {
+                customName: widget.customName || widget.template?.displayName || '',
+                visualizationType: widgetType,
+                category: widget.category || widget.template?.category || 'tankstock_monitoring',
+                dataSource: normalizedDataSource,
+                settings: {
+                  ...currentSettings,
+                  dataSource: normalizedDataSource,
+                  datePreset: 'today'
+                },
+                filters: widget.filters || {}
+              }
+            });
+          }
+        });
+      }
+
+      migratedRef.current = true;
+
+      if (pendingUpdates.length === 0) {
+        return;
+      }
+
+      for (const update of pendingUpdates) {
+        const response = await dashboardSvc.updateWidgetInstance(update.id, update.payload);
+        if (!response?.success) {
+          throw new Error(response?.message || `Failed to migrate widget ${update.id}`);
+        }
+      }
+
+      await loadWidgetInstances();
+    };
+
+    migrateWidgets().catch(error => {
+      console.error(`[useModuleDashboard] Error migrating widgets for ${moduleId}:`, error);
+    });
+  }, [instancesLoading, loadWidgetInstances, moduleId, moduleWidgets]);
 
   // Module-scoped layout settings
   const moduleLayoutKey = `module_${moduleId}`;
@@ -139,8 +309,8 @@ export function useModuleDashboard({
 
   // Viewable module widgets
   const viewableWidgets = useMemo(
-    () => moduleWidgets.filter(w => canViewWidget(w)),
-    [moduleWidgets, canViewWidget]
+    () => dedupedModuleWidgets.filter(w => canViewWidget(w)),
+    [dedupedModuleWidgets, canViewWidget]
   );
 
   return {

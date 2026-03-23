@@ -42,6 +42,8 @@ export const useRealtimeDashboard = (options = {}) => {
   // Widget instances and data
   const [widgetInstances, setWidgetInstances] = useState([]);
   const [instancesLoading, setInstancesLoading] = useState(false);
+  const [hasLoadedInstances, setHasLoadedInstances] = useState(false);
+  const [widgetInstancesLoadSucceeded, setWidgetInstancesLoadSucceeded] = useState(false);
   const [widgetData, setWidgetData] = useState({});
   const [widgetErrors, setWidgetErrors] = useState({});
   const [widgetLoadingStates, setWidgetLoadingStates] = useState({});
@@ -80,11 +82,14 @@ export const useRealtimeDashboard = (options = {}) => {
   const loadWidgetInstances = useCallback(async () => {
     try {
       setInstancesLoading(true);
+      setWidgetInstancesLoadSucceeded(false);
+      dashboardService.clearCache?.();
       const result = await dashboardService.getWidgetInstances();
 
       if (result.success && result.data) {
         setWidgetInstances(result.data);
         widgetInstancesRef.current = result.data;
+        setWidgetInstancesLoadSucceeded(true);
 
         // Initialize loading states
         const loadingStates = {};
@@ -130,10 +135,14 @@ export const useRealtimeDashboard = (options = {}) => {
 
         setWidgetConfig(syncedConfig);
         console.log('Widget instances loaded and synced:', result.data);
+      } else {
+        setWidgetInstances([]);
+        widgetInstancesRef.current = [];
       }
     } catch (error) {
       console.error('Error loading widget instances:', error);
     } finally {
+      setHasLoadedInstances(true);
       setInstancesLoading(false);
     }
   }, [dashboardService]);
@@ -623,6 +632,8 @@ export const useRealtimeDashboard = (options = {}) => {
     // State
     widgetInstances,
     instancesLoading,
+    hasLoadedInstances,
+    widgetInstancesLoadSucceeded,
     widgetData,
     widgetErrors,
     widgetLoadingStates,

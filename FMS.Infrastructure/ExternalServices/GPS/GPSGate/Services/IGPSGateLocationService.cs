@@ -22,16 +22,6 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         Task<FMSResponse<List<VehicleLocationDTO>>> GetAllVehicleLocationsAsync(bool onlineOnly = false, bool gpsEnabledOnly = true);
 
         /// <summary>
-        /// Get historical track data for a vehicle
-        /// </summary>
-        Task<FMSResponse<VehicleTrackHistoryDTO>> GetTrackHistoryAsync(int vehicleId, DateTime from, DateTime to, int maxPoints = 1000);
-
-        /// <summary>
-        /// Get track points for a vehicle within a time range
-        /// </summary>
-        Task<FMSResponse<List<TrackPointDTO>>> GetTrackPointsAsync(int vehicleId, DateTime from, DateTime to, int maxPoints = 1000);
-
-        /// <summary>
         /// Check if a vehicle is currently online
         /// </summary>
         Task<FMSResponse<bool>> IsVehicleOnlineAsync(int vehicleId);

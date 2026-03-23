@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Common;
+using FMS.Application.Features.Vehicle.DTOs;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -38,6 +40,16 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         Task<List<GPSGateTrack>?> FetchDayTracksAsync(
             string externalDeviceId,
             DateTime date,
+            CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets detailed track points for a vehicle within a time range using the tracks endpoint.
+        /// </summary>
+        Task<FMSResponse<List<TrackPointDTO>>> GetTrackPointsAsync(
+            int vehicleId,
+            DateTime from,
+            DateTime to,
+            int maxPoints = 1000,
             CancellationToken cancellationToken = default);
 
         /// <summary>

@@ -30,6 +30,7 @@ namespace FMS.Application.Features.EventEngine.Expressions
             // Register built-in evaluators
             Register(new ThresholdEvaluator());
             Register(new TankLevelEvaluator());
+            Register(new FuelingExpectedAverageEvaluator());
             Register(new DeviceOfflineEvaluator());
             Register(new TankClosingStockEvaluator());
             Register(new SensorVarianceEvaluator());

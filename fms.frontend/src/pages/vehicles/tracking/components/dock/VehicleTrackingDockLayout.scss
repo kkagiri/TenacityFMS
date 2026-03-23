@@ -17,12 +17,25 @@
 .vt-menubar {
   display: flex;
   align-items: center;
-  height: 32px;
-  min-height: 32px;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 44px;
   border-bottom: 1px solid #edebe9;
-  background: #f3f2f1;
-  padding: 0 4px;
+  background: #ffffff;
+  padding: 6px 8px;
   user-select: none;
+
+  &__primary,
+  &__secondary {
+    display: inline-flex;
+    align-items: center;
+    min-width: 0;
+  }
+
+  &__secondary {
+    flex: 0 0 auto;
+    justify-content: flex-end;
+  }
 
   &__menu-item {
     position: relative;
@@ -161,6 +174,20 @@
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14), 0 1px 4px rgba(0, 0, 0, 0.06);
     padding: 4px 0;
     animation: vt-menubar-fade-in 0.12s ease-out;
+  }
+}
+
+@media (max-width: 1024px) {
+  .vt-menubar {
+    min-height: 44px;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    padding: 6px 8px;
+
+    &__secondary {
+      flex: 0 0 auto;
+      justify-content: flex-end;
+    }
   }
 }
 

@@ -21,6 +21,7 @@ import './WidgetForm.scss';
 import {
   getRecommendedMode
 } from '../../../utils/widgetModeCompatibility';
+import { getModuleScopeCategories, isModuleScopedMatch } from '../../../config/moduleDefaultWidgets';
 
 const WIDGET_TYPE_DEFINITIONS = {
   BIG_STAT_CARD: {
@@ -104,6 +105,8 @@ export default function WidgetForm({
   newWidget,
   setNewWidget,
   widgetTemplates,
+  moduleId = null,
+  moduleCategories: explicitModuleCategories = [],
   templatesLoading,
   templatesError,
   sites,
@@ -130,6 +133,11 @@ export default function WidgetForm({
   const [catalog, setCatalog] = useState({ items: [], categories: [], widgetCompatibility: {} });
   const [selectedTemplateCategory, setSelectedTemplateCategory] = useState('');
 
+  const moduleCategories = useMemo(
+    () => getModuleScopeCategories(moduleId, explicitModuleCategories),
+    [explicitModuleCategories, moduleId]
+  );
+
   const selectedTemplate = useMemo(() => {
     if (!newWidget.templateId) return null;
     const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];
@@ -139,17 +147,31 @@ export default function WidgetForm({
   const isTemplateWidget = useMemo(() => Boolean(newWidget.templateId && !isCustomWidget), [isCustomWidget, newWidget.templateId]);
 
   const categoryOptions = useMemo(() => {
-    const rawCategories = catalog.categories?.length
+    const catalogCategories = catalog.categories?.length
       ? catalog.categories.map(({ category }) => normalizeCategoryId(category))
       : SYSTEM_CATEGORY_OPTIONS.map(({ id }) => id);
 
-    return [...new Set(rawCategories)]
+    const templateCategories = (Array.isArray(widgetTemplates) ? widgetTemplates : [])
+      .map(template => normalizeCategoryId(template?.category || ''))
+      .filter(Boolean);
+
+    const rawCategories = [...catalogCategories, ...templateCategories, normalizeCategoryId(newWidget.category || '')]
+      .filter(Boolean);
+
+    const scopedCategories = moduleCategories.length > 0
+      ? rawCategories.filter(category => isModuleScopedMatch({
+        moduleCategories,
+        candidates: [category]
+      }))
+      : rawCategories;
+
+    return [...new Set(scopedCategories)]
       .map(category => ({
         id: category,
         label: SYSTEM_CATEGORY_OPTIONS.find(option => option.id === category)?.label || formatCategoryLabel(category)
       }))
       .sort((left, right) => left.label.localeCompare(right.label));
-  }, [catalog.categories]);
+  }, [catalog.categories, moduleCategories, newWidget.category, widgetTemplates]);
 
   const categoryLabelLookup = useMemo(() => categoryOptions.reduce((lookup, option) => {
     lookup[option.id] = option.label;
@@ -173,10 +195,19 @@ export default function WidgetForm({
       return 'custom_analytics';
     }
 
+    const normalizedTemplateCategory = normalizeCategoryId(template.category);
+
+    if (moduleCategories.length > 0 && isModuleScopedMatch({
+      moduleCategories,
+      candidates: [template.category, normalizedTemplateCategory]
+    })) {
+      return normalizedTemplateCategory || 'custom_analytics';
+    }
+
     return dataSourceCategoryLookup[template.dataSource]
-      || normalizeCategoryId(template.category)
+      || normalizedTemplateCategory
       || 'custom_analytics';
-  }, [dataSourceCategoryLookup]);
+  }, [dataSourceCategoryLookup, moduleCategories]);
 
   const templateSelectItems = useMemo(() => {
     const templatesArray = Array.isArray(widgetTemplates) ? widgetTemplates : [];

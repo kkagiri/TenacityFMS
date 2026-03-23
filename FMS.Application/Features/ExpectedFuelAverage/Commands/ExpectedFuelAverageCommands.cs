@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -9,6 +10,7 @@ using FMS.Application.Features.ExpectedFuelAverage.DTOs;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -27,15 +29,18 @@ public class CreateExpectedFuelAverageTemplateCommandHandler
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CreateExpectedFuelAverageTemplateCommandHandler> _logger;
 
     public CreateExpectedFuelAverageTemplateCommandHandler(
         GpsdataContext context,
         IMapper mapper,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<CreateExpectedFuelAverageTemplateCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -76,6 +81,14 @@ public class CreateExpectedFuelAverageTemplateCommandHandler
                 return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed(
                     "A template with the same criteria already exists");
 
+            // Validate date range
+            if (dto.EffectiveFrom.HasValue && dto.EffectiveTo.HasValue && dto.EffectiveFrom.Value >= dto.EffectiveTo.Value)
+                return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed("EffectiveFrom must be before EffectiveTo");
+
+            // Resolve authenticated user
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? dto.CreatedBy ?? "system";
+
             // Generate template name if not provided
             var templateName = dto.Name;
             if (string.IsNullOrWhiteSpace(templateName))
@@ -105,7 +118,7 @@ public class CreateExpectedFuelAverageTemplateCommandHandler
                 EffectiveFrom = dto.EffectiveFrom,
                 EffectiveTo = dto.EffectiveTo,
                 CreatedAt = DateTime.UtcNow,
-                CreatedBy = dto.CreatedBy
+                CreatedBy = userId
             };
 
             _context.ExpectedFuelAverageTemplates.Add(template);
@@ -141,49 +154,70 @@ public class CreateExpectedFuelAverageTemplateCommandHandler
     {
         var parts = new List<string>();
 
-        // Vehicle Type
-        var vehicleType = await _context.Vehicletypes.FindAsync(new object[] { dto.VehicleTypeId }, cancellationToken);
-        parts.Add(vehicleType?.Abbvr ?? vehicleType?.Name ?? $"Type{dto.VehicleTypeId}");
+        // Vehicle Type (required)
+        var vehicleTypeName = await _context.Vehicletypes
+            .Where(v => v.Id == dto.VehicleTypeId)
+            .Select(v => v.Abbvr ?? v.Name ?? "Type" + dto.VehicleTypeId)
+            .FirstOrDefaultAsync(cancellationToken);
+        if (!string.IsNullOrWhiteSpace(vehicleTypeName)) parts.Add(vehicleTypeName);
 
         // Manufacturer
         if (dto.VehicleManufacturerId.HasValue)
         {
-            var manufacturer = await _context.Vehiclemanufacturers.FindAsync(new object[] { dto.VehicleManufacturerId.Value }, cancellationToken);
-            if (manufacturer != null) parts.Add(manufacturer.Name ?? "");
+            var name = await _context.Vehiclemanufacturers
+                .Where(m => m.Id == dto.VehicleManufacturerId.Value)
+                .Select(m => m.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
 
         // Model
         if (dto.VehicleModelId.HasValue)
         {
-            var model = await _context.Vehiclemodels.FindAsync(new object[] { dto.VehicleModelId.Value }, cancellationToken);
-            if (model != null) parts.Add(model.Name ?? "");
+            var name = await _context.Vehiclemodels
+                .Where(m => m.Id == dto.VehicleModelId.Value)
+                .Select(m => m.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
 
         // Route or Site
         if (dto.FuelRouteId.HasValue)
         {
-            var route = await _context.FuelRoutes.FindAsync(new object[] { dto.FuelRouteId.Value }, cancellationToken);
-            if (route != null) parts.Add(route.Name);
+            var name = await _context.FuelRoutes
+                .Where(r => r.Id == dto.FuelRouteId.Value)
+                .Select(r => r.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
         else if (dto.SiteId.HasValue)
         {
-            var site = await _context.Sites.FindAsync(new object[] { dto.SiteId.Value }, cancellationToken);
-            if (site != null) parts.Add(site.Name);
+            var name = await _context.Sites
+                .Where(s => s.Id == dto.SiteId.Value)
+                .Select(s => s.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
 
         // Load or Usage Intensity
         if (dto.LoadClassificationId.HasValue)
         {
-            var load = await _context.LoadClassifications.FindAsync(new object[] { dto.LoadClassificationId.Value }, cancellationToken);
-            if (load != null) parts.Add(load.Name);
+            var name = await _context.LoadClassifications
+                .Where(l => l.Id == dto.LoadClassificationId.Value)
+                .Select(l => l.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
         else if (dto.UsageIntensityId.HasValue)
         {
-            var intensity = await _context.UsageIntensities.FindAsync(new object[] { dto.UsageIntensityId.Value }, cancellationToken);
-            if (intensity != null) parts.Add(intensity.Name);
+            var name = await _context.UsageIntensities
+                .Where(i => i.Id == dto.UsageIntensityId.Value)
+                .Select(i => i.Name)
+                .FirstOrDefaultAsync(cancellationToken);
+            if (!string.IsNullOrWhiteSpace(name)) parts.Add(name);
         }
 
-        return string.Join(" ", parts.Where(p => !string.IsNullOrWhiteSpace(p)));
+        return string.Join(" ", parts);
     }
 }
 
@@ -198,15 +232,18 @@ public class UpdateExpectedFuelAverageTemplateCommandHandler
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<UpdateExpectedFuelAverageTemplateCommandHandler> _logger;
 
     public UpdateExpectedFuelAverageTemplateCommandHandler(
         GpsdataContext context,
         IMapper mapper,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<UpdateExpectedFuelAverageTemplateCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -231,6 +268,39 @@ public class UpdateExpectedFuelAverageTemplateCommandHandler
 
             var dto = request.TemplateDTO;
 
+            // Validate required fields
+            if (dto.VehicleTypeId <= 0)
+                return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed("Vehicle type is required");
+
+            if (dto.ExpectedValue <= 0)
+                return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed("Expected value must be greater than 0");
+
+            // Validate date range
+            if (dto.EffectiveFrom.HasValue && dto.EffectiveTo.HasValue && dto.EffectiveFrom.Value >= dto.EffectiveTo.Value)
+                return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed("EffectiveFrom must be before EffectiveTo");
+
+            // Check for duplicate template with same criteria (excluding current)
+            var duplicateExists = await _context.ExpectedFuelAverageTemplates
+                .AnyAsync(t =>
+                    t.Id != request.Id &&
+                    t.VehicleTypeId == dto.VehicleTypeId &&
+                    t.VehicleManufacturerId == dto.VehicleManufacturerId &&
+                    t.VehicleModelId == dto.VehicleModelId &&
+                    t.SiteId == dto.SiteId &&
+                    t.FuelRouteId == dto.FuelRouteId &&
+                    t.LoadClassificationId == dto.LoadClassificationId &&
+                    t.UsageIntensityId == dto.UsageIntensityId &&
+                    t.IsActive,
+                    cancellationToken);
+
+            if (duplicateExists)
+                return FMSResponse<ExpectedFuelAverageTemplateDTO>.Failed(
+                    "A template with the same criteria already exists");
+
+            // Resolve authenticated user
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? dto.CreatedBy ?? "system";
+
             // Update fields
             template.Name = dto.Name ?? template.Name;
             template.Description = dto.Description;
@@ -252,7 +322,7 @@ public class UpdateExpectedFuelAverageTemplateCommandHandler
             template.EffectiveFrom = dto.EffectiveFrom;
             template.EffectiveTo = dto.EffectiveTo;
             template.ModifiedAt = DateTime.UtcNow;
-            template.ModifiedBy = dto.CreatedBy;
+            template.ModifiedBy = userId;
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -345,15 +415,18 @@ public class AssignExpectedAverageToVehicleCommandHandler
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<AssignExpectedAverageToVehicleCommandHandler> _logger;
 
     public AssignExpectedAverageToVehicleCommandHandler(
         GpsdataContext context,
         IMapper mapper,
+        IHttpContextAccessor httpContextAccessor,
         ILogger<AssignExpectedAverageToVehicleCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -376,6 +449,10 @@ public class AssignExpectedAverageToVehicleCommandHandler
             if (!templateExists)
                 return FMSResponse<VehicleExpectedAverageAssignmentDTO>.Failed("Template not found or inactive");
 
+            // Resolve authenticated user
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value
+                         ?? "system";
+
             // Check if assignment already exists
             var existingAssignment = await _context.VehicleExpectedAverageAssignments
                 .FirstOrDefaultAsync(a =>
@@ -392,7 +469,7 @@ public class AssignExpectedAverageToVehicleCommandHandler
                 existingAssignment.Notes = dto.Notes;
                 existingAssignment.IsActive = dto.IsActive;
                 existingAssignment.ModifiedAt = DateTime.UtcNow;
-                existingAssignment.ModifiedBy = dto.Notes; // Could be a user ID passed through
+                existingAssignment.ModifiedBy = userId;
             }
             else
             {
@@ -407,7 +484,7 @@ public class AssignExpectedAverageToVehicleCommandHandler
                     Notes = dto.Notes,
                     IsActive = dto.IsActive,
                     CreatedAt = DateTime.UtcNow,
-                    CreatedBy = dto.Notes
+                    CreatedBy = userId
                 };
                 _context.VehicleExpectedAverageAssignments.Add(existingAssignment);
             }

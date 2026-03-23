@@ -1,12 +1,18 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Globalization;
 using System.Linq;
 using System.Net.Http;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Common;
+using FMS.Application.Features.Vehicle.DTOs;
+using FMS.Domain.Entities.VehicleTracking;
 using FMS.Infrastructure.VehicleTracking.Models.GPSGate;
+using FMS.Persistence.DataAccess;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
 namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
@@ -17,6 +23,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
     /// </summary>
     public class GPSGateTracksService : IGPSGateTracksService
     {
+        private readonly IDbContextFactory<GpsdataContext> _contextFactory;
         private readonly HttpClient _httpClient;
         private readonly IGPSGateConfigurationProvider _configurationProvider;
         private readonly ILogger<GPSGateTracksService> _logger;
@@ -28,10 +35,12 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
         };
 
         public GPSGateTracksService(
+            IDbContextFactory<GpsdataContext> contextFactory,
             HttpClient httpClient,
             IGPSGateConfigurationProvider configurationProvider,
             ILogger<GPSGateTracksService> logger)
         {
+            _contextFactory = contextFactory ?? throw new ArgumentNullException(nameof(contextFactory));
             _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
             _configurationProvider = configurationProvider ?? throw new ArgumentNullException(nameof(configurationProvider));
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
@@ -242,5 +251,152 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate.Services
                 return null;
             }
         }
+
+        /// <inheritdoc />
+        public async Task<FMSResponse<List<TrackPointDTO>>> GetTrackPointsAsync(
+            int vehicleId,
+            DateTime from,
+            DateTime to,
+            int maxPoints = 1000,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                await using var context = await _contextFactory.CreateDbContextAsync(cancellationToken);
+                var trackDeviceId = await ResolveTrackDeviceIdAsync(context, vehicleId, cancellationToken);
+
+                if (!trackDeviceId.IsSuccess)
+                {
+                    return FMSResponse<List<TrackPointDTO>>.Failed(trackDeviceId.ErrorMessage ?? "Vehicle doesn't have an active GPS provider mapping configured");
+                }
+
+                var allTracks = new List<GPSGateTrack>();
+                var currentDay = from.Date;
+                var lastDay = to.Date;
+
+                while (currentDay <= lastDay)
+                {
+                    var dayStart = currentDay == from.Date ? from.TimeOfDay : TimeSpan.Zero;
+                    var dayEnd = currentDay == lastDay ? to.TimeOfDay : new TimeSpan(23, 59, 59);
+
+                    var dayTracks = await FetchTracksAsync(
+                        trackDeviceId.ExternalDeviceId,
+                        currentDay,
+                        dayStart.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture),
+                        dayEnd.ToString(@"hh\:mm\:ss", CultureInfo.InvariantCulture),
+                        cancellationToken);
+
+                    if (dayTracks != null && dayTracks.Any())
+                    {
+                        allTracks.AddRange(dayTracks);
+                    }
+
+                    currentDay = currentDay.AddDays(1);
+                }
+
+                if (allTracks.Count == 0)
+                {
+                    return FMSResponse<List<TrackPointDTO>>.Success(new List<TrackPointDTO>());
+                }
+
+                var trackPoints = allTracks.Select(track => new TrackPointDTO
+                {
+                    Latitude = (decimal)(track.Position?.Latitude ?? 0.0),
+                    Longitude = (decimal)(track.Position?.Longitude ?? 0.0),
+                    Altitude = track.Position?.Altitude.HasValue == true ? (decimal?)track.Position.Altitude.Value : null,
+                    Speed = track.Velocity?.GroundSpeed.HasValue == true ? (decimal?)track.Velocity.GroundSpeed.Value : null,
+                    Heading = track.Velocity?.Heading.HasValue == true ? (decimal?)track.Velocity.Heading.Value : null,
+                    Timestamp = !string.IsNullOrEmpty(track.UTC) ? DateTime.Parse(track.UTC, CultureInfo.InvariantCulture) : DateTime.UtcNow,
+                    Odometer = null,
+                    IsValid = track.Valid,
+                    TrackInfoId = track.TrackInfoId > 0 ? track.TrackInfoId : null,
+                    FuelLevel = ExtractFuelLevel(track),
+                    IgnitionStatus = ExtractIgnitionStatus(track),
+                    SatelliteCount = ExtractIntegerVariable(track, "satellitecount", "satellite count")
+                })
+                .OrderBy(point => point.Timestamp)
+                .ToList();
+
+                for (int index = 0; index < trackPoints.Count; index++)
+                {
+                    if (index == 0)
+                    {
+                        trackPoints[index].DistanceFromPreviousKm = 0;
+                        trackPoints[index].TimeDeltaSeconds = 0;
+                    }
+                    else
+                    {
+                        trackPoints[index].DistanceFromPreviousKm = CalculateDistance(
+                            (double)trackPoints[index - 1].Latitude,
+                            (double)trackPoints[index - 1].Longitude,
+                            (double)trackPoints[index].Latitude,
+                            (double)trackPoints[index].Longitude);
+                        trackPoints[index].TimeDeltaSeconds = (int)(trackPoints[index].Timestamp - trackPoints[index - 1].Timestamp).TotalSeconds;
+                    }
+                }
+
+                return FMSResponse<List<TrackPointDTO>>.Success(trackPoints);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving track points for vehicle {VehicleId}", vehicleId);
+                return FMSResponse<List<TrackPointDTO>>.Failed($"Error retrieving track points: {ex.Message}");
+            }
+        }
+
+        private async Task<(bool IsSuccess, string ExternalDeviceId, string? ErrorMessage)> ResolveTrackDeviceIdAsync(
+            GpsdataContext context,
+            int vehicleId,
+            CancellationToken cancellationToken)
+        {
+            var providerMapping = await context.Set<VehicleProviderMappingEntity>()
+                .Include(mapping => mapping.ProviderConfiguration)
+                .Where(mapping => mapping.VehicleId == vehicleId
+                    && mapping.IsActive
+                    && !string.IsNullOrWhiteSpace(mapping.ExternalDeviceId)
+                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.IsEnabled)
+                    && (mapping.ProviderConfiguration == null || mapping.ProviderConfiguration.Name == "GPSGate"))
+                .OrderByDescending(mapping => mapping.UpdatedAt)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            if (providerMapping != null)
+            {
+                return (true, providerMapping.ExternalDeviceId!, null);
+            }
+
+            return (false, string.Empty, "Vehicle doesn't have an active GPS provider mapping configured");
+        }
+
+        private static int? ExtractIntegerVariable(GPSGateTrack track, params string[] candidateNames)
+        {
+            if (track?.Variables == null || !track.Variables.Any())
+            {
+                return null;
+            }
+
+            var names = new HashSet<string>(candidateNames.Select(name => name.Trim().ToLowerInvariant()));
+            var rawValue = track.Variables
+                .FirstOrDefault(variable => !string.IsNullOrWhiteSpace(variable.Name)
+                    && names.Contains(variable.Name.Trim().ToLowerInvariant()))?
+                .Value;
+
+            return int.TryParse(rawValue, NumberStyles.Any, CultureInfo.InvariantCulture, out var parsedValue)
+                ? parsedValue
+                : null;
+        }
+
+        private static decimal CalculateDistance(double lat1, double lon1, double lat2, double lon2)
+        {
+            const double earthRadiusKm = 6371;
+            var deltaLat = ToRadians(lat2 - lat1);
+            var deltaLon = ToRadians(lon2 - lon1);
+            var a = Math.Sin(deltaLat / 2) * Math.Sin(deltaLat / 2)
+                + Math.Cos(ToRadians(lat1)) * Math.Cos(ToRadians(lat2))
+                * Math.Sin(deltaLon / 2) * Math.Sin(deltaLon / 2);
+            var c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+            return (decimal)(earthRadiusKm * c);
+        }
+
+        private static double ToRadians(double degrees) => degrees * (Math.PI / 180);
     }
 }

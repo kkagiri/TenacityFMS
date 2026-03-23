@@ -122,6 +122,8 @@ const EnhancedWidgetRenderer = memo(({
         type: widget.widgetType || widget.templateType || template.widgetType || config.type || config.visualizationType || 'unknown',
         dataSource: widget.dataSource || template.dataSource || config.dataSource,
         category: widget.category || template.category || config.category || category,
+        settings: widget.settings || config.settings || {},
+        filters: widget.filters || config.filters || {},
         mode: config.mode || 'cumulative',
         timeRange: config.timeRange || 'yesterday',
         refreshInterval: config.refreshInterval || 30000,
@@ -486,8 +488,14 @@ const EnhancedWidgetRenderer = memo(({
 
     // Map BIG_STAT_CARD envelope data into BigStatCardWidget-friendly shape (if not already normalized)
     if (WidgetComponent === BigStatCardWidget && componentData && typeof componentData === 'object') {
-      const value = componentData.value ?? componentData.mainValue?.value ?? componentData.data?.value;
-      const unit = componentData.unit ?? componentData.mainValue?.unit ?? componentData.data?.unit;
+      const variant = widgetConfig.settings?.variant || widget.settings?.variant;
+      const summary = componentData.summary || componentData.data?.summary;
+      const value = variant === 'fill_percentage' && summary?.fillPercentage !== undefined
+        ? summary.fillPercentage
+        : (componentData.value ?? componentData.mainValue?.value ?? componentData.data?.value);
+      const unit = variant === 'fill_percentage' && summary?.fillPercentage !== undefined
+        ? 'percent'
+        : (componentData.unit ?? componentData.mainValue?.unit ?? componentData.data?.unit);
       const lastUpdated = componentData.lastUpdated ?? componentData.data?.lastUpdated;
       const previousValue = componentData.previousValue ?? componentData.data?.previousValue;
       const trend = componentData.trend || componentData.data?.trend || undefined;

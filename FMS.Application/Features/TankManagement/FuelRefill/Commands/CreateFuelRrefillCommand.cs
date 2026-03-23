@@ -1,3 +1,12 @@
+/**
+ * File: CreateFuelRrefillCommand.cs
+ * Purpose: Creates a manual fuel refill, validates tank chronology and stock,
+ *          updates tank volume history, and runs post-save vehicle alert checks.
+ * Dependencies: GpsdataContext, TankVolumeHistoryIntegrationService,
+ *               TankStockFutureRecordsService, ExpectedFuelAverageAlertService
+ * Last Modified: 2026-03-23
+ */
+
 using System;
 using System.Linq;
 using System.Threading;
@@ -6,6 +15,7 @@ using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.CommonInterface;
+using FMS.Application.Features.ExpectedFuelAverage.Services;
 using FMS.Application.Features.FMS.FuelRefil;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Services.TankStock;
@@ -31,6 +41,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
         private readonly IVehicleSiteAutoAssignmentService? _siteAutoAssignmentService;
         private readonly IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
         private readonly IGPSGateDriverNameService? _driverNameService;
+        private readonly IExpectedFuelAverageAlertService _expectedFuelAverageAlertService;
 
         public CreateFuelRrefillCommandCommandHandler(
             GpsdataContext context,
@@ -38,6 +49,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             IMapper mapper,
             TankVolumeHistoryIntegrationService tankVolumeHistoryService,
             TankStockFutureRecordsService futureRecordsService,
+            IExpectedFuelAverageAlertService expectedFuelAverageAlertService,
             IVehicleSiteAutoAssignmentService? siteAutoAssignmentService = null,
             IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null,
             IGPSGateDriverNameService? driverNameService = null)
@@ -47,6 +59,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
+            _expectedFuelAverageAlertService = expectedFuelAverageAlertService;
             _siteAutoAssignmentService = siteAutoAssignmentService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
             _driverNameService = driverNameService;
@@ -364,6 +377,12 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
 
                 // Update GPSGate DriverName custom field if driver is specified and entry is within 5 days
                 await UpdateGpsGateDriverNameAsync(fuelRefilDto.VehicleId, fuelRefilDto.DriverId, entryDate, cancellationToken);
+
+                // Check whether this refill breached the vehicle's configured expected fuel average.
+                await _expectedFuelAverageAlertService.CheckManualFuelRefillAsync(
+                    fuelRefil,
+                    fuelByUser?.UserName,
+                    cancellationToken);
 
                 // Map to DTO to avoid serializing navigation properties (which causes massive response size)
                 var resultDto = _mapper.Map<FuelRefilDTO>(fuelRefil);

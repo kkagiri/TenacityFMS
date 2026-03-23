@@ -57,6 +57,7 @@ const ModuleDashboard = ({
   // Module dashboard hook
   const {
     moduleWidgets,
+    moduleCategories,
     widgetData,
     widgetErrors,
     widgetLoadingStates,
@@ -283,6 +284,9 @@ const ModuleDashboard = ({
       {widgetConfigOpen && (
         <WidgetConfigModal
           open={widgetConfigOpen}
+          moduleId={moduleId}
+          moduleCategories={moduleCategories}
+          scopeTitle={title}
           onClose={() => setWidgetConfigOpen(false)}
           onWidgetAdded={handleWidgetMutation}
           onWidgetUpdated={handleWidgetMutation}

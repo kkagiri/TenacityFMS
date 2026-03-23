@@ -573,8 +573,6 @@ const ManualRefillForm = ({
             }}
             elementAttr={{ class: "datebox-full-width-popup" }}
             isValid={hasAttemptedSubmit ? !validationErrors.date : true}
-            validationError={validationErrors.date ? { message: validationErrors.date } : null}
-            validationMessageMode="always"
           />
           {hasAttemptedSubmit && validationErrors.date && (
             <span className="m365-field__error">{validationErrors.date}</span>
@@ -599,10 +597,6 @@ const ManualRefillForm = ({
                     : "No sites available"
               }
               isValid={hasAttemptedSubmit ? !validationErrors.siteId : true}
-              validationError={
-                validationErrors.siteId ? { message: validationErrors.siteId } : null
-              }
-              validationMessageMode="always"
               maxHeight={250}
               searchEnabled={true}
               dropDownOptions={{ container: "body" }}
@@ -630,10 +624,6 @@ const ManualRefillForm = ({
               }
               disabled={!formData.siteId || combinedLoading}
               isValid={hasAttemptedSubmit ? !validationErrors.tankId : true}
-              validationError={
-                validationErrors.tankId ? { message: validationErrors.tankId } : null
-              }
-              validationMessageMode="always"
               maxHeight={250}
               searchEnabled={true}
               dropDownOptions={{
@@ -657,10 +647,6 @@ const ManualRefillForm = ({
               placeholder="Type to search vehicle"
               width="100%"
               isValid={hasAttemptedSubmit ? !validationErrors.vehicleId : true}
-              validationError={
-                validationErrors.vehicleId ? { message: validationErrors.vehicleId } : null
-              }
-              validationMessageMode="always"
             />
             {hasAttemptedSubmit && validationErrors.vehicleId && (
               <span className="m365-field__error">{validationErrors.vehicleId}</span>
@@ -674,10 +660,6 @@ const ManualRefillForm = ({
               placeholder="Type to search driver"
               width="100%"
               isValid={hasAttemptedSubmit ? !validationErrors.driverId : true}
-              validationError={
-                validationErrors.driverId ? { message: validationErrors.driverId } : null
-              }
-              validationMessageMode="always"
               activeOnly={true}
               siteId={formData.siteId}
             />
@@ -708,14 +690,6 @@ const ManualRefillForm = ({
                   !validationErrors.meterReadingDifference
                   : true
               }
-              validationError={
-                validationErrors.currentMeterReading
-                  ? { message: validationErrors.currentMeterReading }
-                  : validationErrors.meterReadingDifference
-                    ? { message: validationErrors.meterReadingDifference }
-                    : null
-              }
-              validationMessageMode="always"
             />
             {hasAttemptedSubmit && validationErrors.currentMeterReading && (
               <span className="m365-field__error">{validationErrors.currentMeterReading}</span>
@@ -735,12 +709,6 @@ const ManualRefillForm = ({
                 format: "#,##0.00",
               })}
               isValid={hasAttemptedSubmit ? !validationErrors.meterReadingDifference : true}
-              validationError={
-                validationErrors.meterReadingDifference
-                  ? { message: validationErrors.meterReadingDifference }
-                  : null
-              }
-              validationMessageMode="always"
             />
             {hasAttemptedSubmit && validationErrors.meterReadingDifference && (
               <span className="m365-field__error">{validationErrors.meterReadingDifference}</span>
@@ -763,12 +731,6 @@ const ManualRefillForm = ({
               format: "#,##0.00",
             })}
             isValid={hasAttemptedSubmit ? !validationErrors.manualFuelrefillAmount : true}
-            validationError={
-              validationErrors.manualFuelrefillAmount
-                ? { message: validationErrors.manualFuelrefillAmount }
-                : null
-            }
-            validationMessageMode="always"
           />
           {hasAttemptedSubmit && validationErrors.manualFuelrefillAmount && (
             <span className="m365-field__error">{validationErrors.manualFuelrefillAmount}</span>

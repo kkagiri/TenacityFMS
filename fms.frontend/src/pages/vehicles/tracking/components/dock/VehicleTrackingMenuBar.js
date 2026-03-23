@@ -101,6 +101,7 @@ const SubMenu = ({ children, icon, label }) => {
 
 const VehicleTrackingMenuBar = ({
     activeWorkspace,
+    children,
     onAddPanel,
     onResetLayout,
     onSelectWorkspace,
@@ -135,40 +136,43 @@ const VehicleTrackingMenuBar = ({
 
     return (
         <div className="vt-menubar" role="menubar">
-            <MenuDropdown
-                label="Window"
-                isOpen={openMenu === 'window'}
-                onToggle={() => toggleMenu('window')}
-                onClose={closeMenus}
-            >
-                {Object.entries(PANEL_REGISTRY).map(([panelId, panel]) => (
-                    <MenuItem
-                        key={panelId}
-                        label={panel.label}
-                        icon={panel.icon}
-                        checked={openPanelIdSet.has(panelId)}
-                        onClick={() => handleAddPanel(panelId)}
-                    />
-                ))}
-                <MenuSeparator />
-                <SubMenu label="Workspace" icon="fa-light fa-grid-2">
-                    {Object.entries(WORKSPACE_PRESETS).map(([presetKey, preset]) => (
+            <div className="vt-menubar__primary">
+                <MenuDropdown
+                    label="Window"
+                    isOpen={openMenu === 'window'}
+                    onToggle={() => toggleMenu('window')}
+                    onClose={closeMenus}
+                >
+                    {Object.entries(PANEL_REGISTRY).map(([panelId, panel]) => (
                         <MenuItem
-                            key={presetKey}
-                            label={preset.label}
-                            icon={preset.icon}
-                            checked={activeWorkspace === presetKey}
-                            onClick={() => handleSelectWorkspace(presetKey)}
+                            key={panelId}
+                            label={panel.label}
+                            icon={panel.icon}
+                            checked={openPanelIdSet.has(panelId)}
+                            onClick={() => handleAddPanel(panelId)}
                         />
                     ))}
-                </SubMenu>
-                <MenuSeparator />
-                <MenuItem
-                    label="Reset Layout"
-                    icon="fa-light fa-arrows-rotate"
-                    onClick={handleResetLayout}
-                />
-            </MenuDropdown>
+                    <MenuSeparator />
+                    <SubMenu label="Workspace" icon="fa-light fa-grid-2">
+                        {Object.entries(WORKSPACE_PRESETS).map(([presetKey, preset]) => (
+                            <MenuItem
+                                key={presetKey}
+                                label={preset.label}
+                                icon={preset.icon}
+                                checked={activeWorkspace === presetKey}
+                                onClick={() => handleSelectWorkspace(presetKey)}
+                            />
+                        ))}
+                    </SubMenu>
+                    <MenuSeparator />
+                    <MenuItem
+                        label="Reset Layout"
+                        icon="fa-light fa-arrows-rotate"
+                        onClick={handleResetLayout}
+                    />
+                </MenuDropdown>
+            </div>
+            {children ? <div className="vt-menubar__secondary">{children}</div> : null}
         </div>
     );
 };

@@ -1,3 +1,14 @@
+/**
+ * File: VehicleSearchableSelector.js
+ * Purpose: Provide vehicle autocomplete selection with a portal-based dropdown that works inside dialogs and forms.
+ * Dependencies: React, ReactDOM, vehicleSearchActions, axiosInstance
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - performSearch(): queries backend vehicle search and normalizes dropdown state
+ * - handleVehicleSelect(): applies the selected vehicle and notifies parent forms
+ * - updateDropdownPosition(): aligns the portal dropdown with the input field
+ */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { quickSearchVehicles } from '../../redux/actions/vehicleSearchActions';
@@ -39,14 +50,16 @@ const VehicleSearchableSelector = ({
     if (!term || term.length < 2) {
       setVehicles([]);
       setShowDropdown(false);
+      setIsLoading(false);
       return;
     }
 
-    console.log('Performing vehicle search for:', term);
     setIsLoading(true);
+    setShowDropdown(true);
+
     try {
       const result = await quickSearchVehicles(term, 50);
-      console.log('Vehicle search result:', result);
+
       if (result.success) {
         setVehicles(result.data || []);
         setShowDropdown(true);
@@ -64,7 +77,6 @@ const VehicleSearchableSelector = ({
   }, []);
 
   const handleSearchTermChange = useCallback((inputValue) => {
-    console.log('Vehicle search term changed:', inputValue);
     setSearchTerm(inputValue);
 
     // Show dropdown immediately when user starts typing (2+ chars)
@@ -309,91 +321,79 @@ const VehicleSearchableSelector = ({
       {showDropdown && ReactDOM.createPortal(
         <div
           ref={dropdownRef}
-          className="dx-overlay-wrapper dx-selectbox-popup-wrapper searchable-selector"
+          className="searchable-selector searchable-selector__dropdown"
           style={{
             position: 'fixed',
-            zIndex: 10005,
+            zIndex: 110003,
             top: dropdownPos.top,
             left: dropdownPos.left,
             width: dropdownPos.width,
           }}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="dx-overlay-content dx-popup-content dx-selectbox-popup">
-            <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
-              <div className="dx-scrollable-wrapper">
-                <div className="dx-scrollable-container">
-                  <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
-                    <div className="dx-list dx-widget">
-                      {vehicles.length > 0 ? (
-                        vehicles.map((vehicle, index) => (
-                          <div
-                            key={vehicle.vehicleId}
-                            className="dx-list-item"
-                            onClick={() => handleVehicleSelect(vehicle)}
-                            onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
-                            onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
-                            style={{
-                              cursor: 'pointer',
-                              borderBottom: index !== vehicles.length - 1 ? '1px solid #e6e6e6' : 'none'
-                            }}
-                          >
-                            <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                <div style={{ flex: 1 }}>
-                                  <div style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '12px',
-                                    fontSize: '14px',
-                                    lineHeight: '1.3'
-                                  }}>
-                                    <span style={{ fontWeight: '600', color: '#337ab7' }}>
-                                      {vehicle.hyoungNo}
-                                    </span>
-                                    <span style={{ color: '#666' }}>
-                                      {vehicle.vehicleName || vehicle.numberPlate}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
-                                  {vehicle.siteName}
-                                </div>
+          <div className="searchable-selector__dropdown-content">
+            <div className="searchable-selector__dropdown-scroll">
+              <div className="dx-list dx-widget">
+                {vehicles.length > 0 ? (
+                  vehicles.map((vehicle, index) => (
+                    <div
+                      key={vehicle.vehicleId}
+                      className="dx-list-item"
+                      onClick={() => handleVehicleSelect(vehicle)}
+                      onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
+                      onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
+                      style={{
+                        cursor: 'pointer',
+                        borderBottom: index !== vehicles.length - 1 ? '1px solid #e6e6e6' : 'none'
+                      }}
+                    >
+                      <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '12px',
+                              fontSize: '14px',
+                              lineHeight: '1.3'
+                            }}>
+                              <span style={{ fontWeight: '600', color: '#337ab7' }}>
+                                {vehicle.hyoungNo}
+                              </span>
+                              <span style={{ color: '#666' }}>
+                                {vehicle.vehicleName || vehicle.numberPlate}
+                              </span>
+                            </div>
+                          </div>
+                          <div style={{ fontSize: '12px', color: '#999', textAlign: 'right', marginLeft: '16px' }}>
+                            {vehicle.siteName}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="dx-list-item">
+                    <div className="dx-list-item-content searchable-selector__empty-state">
+                      {isLoading ? (
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                          <div className="dx-loadindicator dx-widget dx-loadindicator-16">
+                            <div className="dx-loadindicator-wrapper">
+                              <div className="dx-loadindicator-content">
+                                <div className="dx-loadindicator-icon"></div>
                               </div>
                             </div>
                           </div>
-                        ))
-                      ) : (
-                        <div className="dx-list-item">
-                          <div className="dx-list-item-content" style={{
-                            padding: '12px',
-                            textAlign: 'center',
-                            color: '#666',
-                            fontStyle: 'italic',
-                            fontSize: '13px'
-                          }}>
-                            {isLoading ? (
-                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                                <div className="dx-loadindicator dx-widget dx-loadindicator-16">
-                                  <div className="dx-loadindicator-wrapper">
-                                    <div className="dx-loadindicator-content">
-                                      <div className="dx-loadindicator-icon"></div>
-                                    </div>
-                                  </div>
-                                </div>
-                                <span>Searching vehicles...</span>
-                              </div>
-                            ) : searchTerm.length < 2 ? (
-                              'Type at least 2 characters to search'
-                            ) : (
-                              'No vehicles found matching your search'
-                            )}
-                          </div>
+                          <span>Searching vehicles...</span>
                         </div>
+                      ) : searchTerm.length < 2 ? (
+                        'Type at least 2 characters to search'
+                      ) : (
+                        'No vehicles found matching your search'
                       )}
                     </div>
                   </div>
-                </div>
+                )}
               </div>
             </div>
           </div>

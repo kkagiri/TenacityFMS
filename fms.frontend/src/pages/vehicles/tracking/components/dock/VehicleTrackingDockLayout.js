@@ -7,7 +7,7 @@
  * Key Components:
  * - VehicleTrackingDockLayout(): Renders the FlexLayout dock manager with panel factory, tab rendering, and workspace persistence
  */
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Layout, Model, Actions, DockLocation } from 'flexlayout-react';
 import 'flexlayout-react/style/light.css';
@@ -35,8 +35,14 @@ const PANEL_CONTEXT_ACTIONS = {
     trips: [
         { id: 'refresh-trips', label: 'Refresh Trips', icon: 'fa-light fa-arrows-rotate' },
     ],
+    tracks: [
+        { id: 'open-track-drawing-playground', label: 'Track Drawing Playground', icon: 'fa-light fa-sliders' },
+    ],
     vehicles: [
         { id: 'export-list', label: 'Export List', icon: 'fa-light fa-file-export' },
+    ],
+    trackpoints: [
+        { id: 'open-track-drawing-playground', label: 'Track Drawing Playground', icon: 'fa-light fa-sliders' },
     ],
 };
 
@@ -98,7 +104,7 @@ const TabDropdown = ({ tabNode, model, onClose, onContextAction }) => {
     );
 };
 
-const VehicleTrackingDockLayout = ({ panelContentMap }) => {
+const VehicleTrackingDockLayout = forwardRef(({ menuBarContent = null, panelContentMap, onPanelContextAction }, ref) => {
     const layoutRef = useRef(null);
     const saveTimeoutRef = useRef(null);
     const [activeWorkspace, setActiveWorkspace] = useState(() => loadWorkspaceName());
@@ -246,6 +252,10 @@ const VehicleTrackingDockLayout = ({ panelContentMap }) => {
         }
     }, [model]);
 
+    useImperativeHandle(ref, () => ({
+        focusPanel: handleAddPanel,
+    }), [handleAddPanel]);
+
     const handleMinimizeTabset = useCallback((tabsetNode) => {
         if (!model) return;
         const children = tabsetNode.getChildren();
@@ -343,7 +353,9 @@ const VehicleTrackingDockLayout = ({ panelContentMap }) => {
                 onResetLayout={handleResetLayout}
                 onSelectWorkspace={handleSelectWorkspace}
                 openPanelIds={openPanelIds}
-            />
+            >
+                {menuBarContent}
+            </VehicleTrackingMenuBar>
             <div className="vt-dock-layout tw-flex-1 tw-min-h-0 tw-overflow-hidden">
                 <Layout
                     ref={layoutRef}
@@ -369,8 +381,7 @@ const VehicleTrackingDockLayout = ({ panelContentMap }) => {
                         model={model}
                         onClose={closeTabDropdown}
                         onContextAction={(actionId, panelType) => {
-                            // Extensible: handle contextual panel actions here
-                            console.log('[VehicleTrackingDock] Context action:', actionId, 'panel:', panelType);
+                            onPanelContextAction?.(actionId, panelType);
                         }}
                     />
                 </div>,
@@ -378,6 +389,8 @@ const VehicleTrackingDockLayout = ({ panelContentMap }) => {
             )}
         </div>
     );
-};
+});
+
+VehicleTrackingDockLayout.displayName = 'VehicleTrackingDockLayout';
 
 export default VehicleTrackingDockLayout;

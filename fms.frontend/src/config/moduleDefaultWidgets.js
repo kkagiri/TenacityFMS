@@ -32,6 +32,90 @@ export const MODULE_CATEGORY_MAP = {
   events: ['alerts_monitoring', 'active_event', 'events_']
 };
 
+const CATEGORY_ALIAS_MAP = {
+  fuel_management: 'tankstock_monitoring',
+  key_statistics: 'operational_metrics',
+  performance_metrics: 'vehicle_performance',
+  trip_analytics: 'trip_management',
+  system_status: 'alerts_monitoring',
+  reporting: 'financial_analysis',
+  configuration: 'custom_analytics',
+  general: 'custom_analytics'
+};
+
+const DATA_SOURCE_ALIAS_MAP = {
+  tank_levels: 'tank_level',
+  fuel_dispense: 'fuel_dispensed',
+  tankstockoverview: 'tankstock_overview'
+};
+
+const normalizeScopeValue = (value = '') => {
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  return CATEGORY_ALIAS_MAP[normalizedValue] || normalizedValue;
+};
+
+export const getModuleScopeCategories = (moduleId, explicitCategories = []) => {
+  if (Array.isArray(explicitCategories) && explicitCategories.length > 0) {
+    return explicitCategories;
+  }
+
+  if (!moduleId) {
+    return [];
+  }
+
+  return MODULE_CATEGORY_MAP[moduleId] || [moduleId];
+};
+
+export const matchesModuleScopeValue = (candidate, scopeCategories = []) => {
+  const normalizedCandidate = normalizeScopeValue(candidate);
+
+  if (!normalizedCandidate) {
+    return false;
+  }
+
+  return scopeCategories.some(scopeCategory => {
+    const normalizedScopeCategory = normalizeScopeValue(scopeCategory);
+
+    if (!normalizedScopeCategory) {
+      return false;
+    }
+
+    return normalizedCandidate === normalizedScopeCategory
+      || normalizedCandidate.startsWith(normalizedScopeCategory);
+  });
+};
+
+export const normalizeDashboardDataSourceId = (value = '') => {
+  const normalizedValue = String(value || '').trim().toLowerCase();
+  return DATA_SOURCE_ALIAS_MAP[normalizedValue] || normalizedValue;
+};
+
+export const buildModuleWidgetSignature = (widgetLike = {}) => {
+  const settings = widgetLike.settings || {};
+  const customName = widgetLike.customName || widgetLike.name || '';
+  const visualizationType = widgetLike.visualizationType || widgetLike.widgetType || '';
+  const category = String(widgetLike.category || '').trim().toLowerCase();
+  const dataSource = normalizeDashboardDataSourceId(widgetLike.dataSource || settings.dataSource || '');
+
+  return JSON.stringify({
+    customName: String(customName).trim().toLowerCase(),
+    visualizationType: String(visualizationType).trim().toUpperCase(),
+    category,
+    dataSource,
+    variant: String(settings.variant || '').trim().toLowerCase()
+  });
+};
+
+export const isModuleScopedMatch = ({ moduleId, moduleCategories = [], candidates = [] } = {}) => {
+  const scopeCategories = getModuleScopeCategories(moduleId, moduleCategories);
+
+  if (scopeCategories.length === 0) {
+    return true;
+  }
+
+  return candidates.some(candidate => matchesModuleScopeValue(candidate, scopeCategories));
+};
+
 // ===========================
 // VEHICLE MODULE DEFAULTS
 // ===========================
@@ -180,8 +264,8 @@ const tankStockDefaults = [
     name: 'Tank Levels Overview',
     widgetType: 'BIG_STAT_CARD',
     category: 'tankstock_monitoring',
-    dataSource: 'tank_level',
-    settings: { mode: 'live', unit: 'percent', showTrend: true, icon: 'fa-gas-pump', color: '#0078d4' },
+    dataSource: 'tankstock_overview',
+    settings: { mode: 'live', datePreset: 'today', unit: 'percent', variant: 'fill_percentage', showTrend: false, icon: 'fa-gas-pump', color: '#0078d4' },
     size: 'small'
   },
   {
@@ -197,7 +281,7 @@ const tankStockDefaults = [
     widgetType: 'BIG_STAT_CARD',
     category: 'tankstock_monitoring',
     dataSource: 'pts_active_fueling_summary',
-    settings: { mode: 'live', unit: 'count', showTrend: false, icon: 'fa-gas-pump', color: '#ca5010' },
+    settings: { mode: 'live', datePreset: 'today', unit: 'count', showTrend: false, icon: 'fa-gas-pump', color: '#ca5010' },
     size: 'small'
   },
   {
@@ -220,8 +304,8 @@ const tankStockDefaults = [
     name: 'Tank Levels Table',
     widgetType: 'DATA_TABLE_DETAILED',
     category: 'tankstock_monitoring',
-    dataSource: 'tank_levels',
-    settings: { mode: 'live' },
+    dataSource: 'tank_level',
+    settings: { mode: 'live', datePreset: 'today' },
     size: 'full'
   },
   {
@@ -229,7 +313,7 @@ const tankStockDefaults = [
     widgetType: 'DATA_TABLE_DETAILED',
     category: 'tankstock_monitoring',
     dataSource: 'pump_transactions_recent',
-    settings: { mode: 'live' },
+    settings: { mode: 'live', datePreset: 'today' },
     size: 'full'
   }
 ];

@@ -24,6 +24,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
     /// </summary>
     public class GPSGateService : IGPSService
     {
+        private readonly IGPSGateTracksService _tracksService;
+        private readonly IGPSGateTrackInfoService _trackInfoService;
         private readonly IGPSGateLocationService _locationService;
         private readonly IGPSGateSensorService _sensorService;
         private readonly FMS.Application.CommonInterface.IGPSGateGeofenceService _geofenceService;
@@ -33,6 +35,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
 
         public GPSGateService(
             IGPSGateLocationService locationService,
+            IGPSGateTracksService tracksService,
+            IGPSGateTrackInfoService trackInfoService,
             IGPSGateSensorService sensorService,
             FMS.Application.CommonInterface.IGPSGateGeofenceService geofenceService,
             IGPSGateEventService eventService,
@@ -40,6 +44,8 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
             ILogger<GPSGateService> logger)
         {
             _locationService = locationService ?? throw new ArgumentNullException(nameof(locationService));
+            _tracksService = tracksService ?? throw new ArgumentNullException(nameof(tracksService));
+            _trackInfoService = trackInfoService ?? throw new ArgumentNullException(nameof(trackInfoService));
             _sensorService = sensorService ?? throw new ArgumentNullException(nameof(sensorService));
             _geofenceService = geofenceService ?? throw new ArgumentNullException(nameof(geofenceService));
             _eventService = eventService ?? throw new ArgumentNullException(nameof(eventService));
@@ -178,7 +184,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         {
             try
             {
-                return await _locationService.GetTrackHistoryAsync(vehicleId, from, to, maxPoints);
+                return await _trackInfoService.GetTrackHistoryAsync(vehicleId, from, to, maxPoints);
             }
             catch (Exception ex)
             {
@@ -195,7 +201,7 @@ namespace FMS.Infrastructure.ExternalServices.GPS.GPSGate
         {
             try
             {
-                return await _locationService.GetTrackPointsAsync(vehicleId, from, to, maxPoints);
+                return await _tracksService.GetTrackPointsAsync(vehicleId, from, to, maxPoints);
             }
             catch (Exception ex)
             {

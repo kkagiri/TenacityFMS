@@ -57,6 +57,27 @@ export const PANEL_REGISTRY = {
         component: 'dashboard',
         enableClose: true,
     },
+    tracks: {
+        id: 'tracks',
+        label: 'Tracks',
+        icon: 'fa-light fa-road',
+        component: 'tracks',
+        enableClose: true,
+    },
+    trackpoints: {
+        id: 'trackpoints',
+        label: 'Track Points',
+        icon: 'fa-light fa-location-dot',
+        component: 'trackpoints',
+        enableClose: true,
+    },
+    trackgraph: {
+        id: 'trackgraph',
+        label: 'Track Graph',
+        icon: 'fa-light fa-chart-line',
+        component: 'trackgraph',
+        enableClose: true,
+    },
 };
 
 /**
@@ -342,6 +363,71 @@ export const WORKSPACE_PRESETS = {
                                 name: 'Trips',
                                 component: 'trips',
                                 enableClose: true,
+                            },
+                        ],
+                    },
+                ],
+            },
+        }),
+    },
+    trackAnalysis: {
+        label: 'Track Analysis',
+        icon: 'fa-light fa-road',
+        description: 'Map left, Tracks + TrackPoints right, Graph at bottom',
+        create: () => ({
+            global: createDefaultLayoutJson().global,
+            borders: [
+                { type: 'border', location: 'bottom', size: 200, children: [], barSize: 32 },
+                { type: 'border', location: 'left', size: 200, children: [], barSize: 32 },
+                { type: 'border', location: 'right', size: 200, children: [], barSize: 32 },
+            ],
+            layout: {
+                type: 'row',
+                weight: 100,
+                children: [
+                    {
+                        type: 'tabset',
+                        weight: 50,
+                        id: 'tabset-map',
+                        children: [
+                            { type: 'tab', id: 'map', name: 'Map', component: 'map', enableClose: false },
+                        ],
+                    },
+                    {
+                        type: 'column',
+                        weight: 50,
+                        children: [
+                            {
+                                type: 'row',
+                                weight: 50,
+                                children: [
+                                    {
+                                        type: 'tabset',
+                                        weight: 40,
+                                        id: 'tabset-tracks',
+                                        children: [
+                                            { type: 'tab', id: 'tracks', name: 'Tracks', component: 'tracks', enableClose: true },
+                                            { type: 'tab', id: 'vehicles', name: 'Vehicles', component: 'vehicles', enableClose: true },
+                                        ],
+                                    },
+                                    {
+                                        type: 'tabset',
+                                        weight: 60,
+                                        id: 'tabset-trackpoints',
+                                        children: [
+                                            { type: 'tab', id: 'trackpoints', name: 'Track Points', component: 'trackpoints', enableClose: true },
+                                        ],
+                                    },
+                                ],
+                            },
+                            {
+                                type: 'tabset',
+                                weight: 50,
+                                id: 'tabset-graph',
+                                children: [
+                                    { type: 'tab', id: 'trackgraph', name: 'Track Graph', component: 'trackgraph', enableClose: true },
+                                    { type: 'tab', id: 'dashboard', name: 'Dashboard', component: 'dashboard', enableClose: true },
+                                ],
                             },
                         ],
                     },

@@ -976,6 +976,11 @@ export default function useVehicleTrackingMap({
     };
   }, []);
 
+  const panToCoordinate = useCallback((lat, lng) => {
+    if (!mapRef.current || !window.google?.maps) return;
+    mapRef.current.panTo(new window.google.maps.LatLng(lat, lng));
+  }, []);
+
   return {
     mapRef,
     mapSectionRef,
@@ -986,6 +991,7 @@ export default function useVehicleTrackingMap({
     closeClusterContextMenu,
     focusVehicleOnMap,
     fitGeofenceOnMap,
+    panToCoordinate,
     scrollMapIntoView,
     resetMapBounds,
     getViewportSnapshot,

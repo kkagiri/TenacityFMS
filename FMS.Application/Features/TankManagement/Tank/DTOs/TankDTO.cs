@@ -106,5 +106,29 @@ namespace FMS.Application.Features.FMS.Tank
 
         [JsonIgnore]
         public string? SiteName { get; set; }
+
+        // =====================================================
+        // Calibration Summary (populated by tank monitoring)
+        // =====================================================
+
+        /// <summary>
+        /// Whether the tank has at least one locally synced calibration chart.
+        /// </summary>
+        public bool HasCalibrationData { get; set; }
+
+        /// <summary>
+        /// Number of records in the most recent manual calibration chart snapshot.
+        /// </summary>
+        public int CalibrationRecordCount { get; set; }
+
+        /// <summary>
+        /// Date/time of the latest calibration chart sync (manual, automatic, or interval-volume).
+        /// </summary>
+        public DateTime? CalibrationLastSyncUtc { get; set; }
+
+        /// <summary>
+        /// Overall quality indicator based on dispensed-vs-measured variance analysis: Good / Acceptable / Poor / Insufficient.
+        /// </summary>
+        public string? CalibrationOverallQuality { get; set; }
     }
 }

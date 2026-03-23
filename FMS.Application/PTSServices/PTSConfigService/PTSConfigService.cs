@@ -1,10 +1,23 @@
+/**
+ * File: PTSConfigService.cs
+ * Purpose: Implements PTS configuration and calibration operations over the command-execution pipeline.
+ * Dependencies: ICommandExecutor, FMSResponse, Newtonsoft.Json.Linq, PTS DTOs
+ * Last Modified: 2026-03-23
+ *
+ * Key Methods:
+ * - GetRemoteServerConfigurationAsync: Reads remote communication settings from a PTS device.
+ * - GetTankCalibrationChartRecordsAsync: Reads manual calibration chart records from a probe.
+ * - GenerateTankAutomaticCalibrationChartAsync: Triggers automatic calibration chart generation on the controller.
+ */
 using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.Common;
 using FMS.Application.Common;
+using FMS.Application.Features.PTS.DTOs;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PTSConfigService;
+using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon.Responses;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json.Linq;
@@ -479,6 +492,379 @@ namespace FMS.Application.PTSServices.PTSConfigService
             {
                 _logger.LogError(ex, "Error setting Pump Nozzles Configuration for device {DeviceId}", ptsDeviceId);
                 return FMSResponse<bool>.Failed("Internal server error while setting Pump Nozzles Configuration");
+            }
+        }
+
+        public Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankCalibrationChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeChartTotalRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeChartTotalRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankCalibrationChartTotalRecordsNumber",
+                BuildProbeCommandData(probeNumber),
+                "tank calibration chart total records");
+        }
+
+        public Task<FMSResponse<ProbeTankChartRecordsResponse>> GetTankCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null)
+        {
+            var validationErrors = ValidateProbeRequest(probeNumber, startNumber, totalNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeTankChartRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeTankChartRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankCalibrationChartRecordsList",
+                BuildProbeCommandData(probeNumber, startNumber, totalNumber),
+                "tank calibration chart records");
+        }
+
+        public Task<FMSResponse<ProbeTankVolumeForHeight>> GetTankVolumeForHeightAsync(string ptsDeviceId, int probeNumber, int height)
+        {
+            var validationErrors = ValidateProbeRequest(probeNumber, height: height);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeTankVolumeForHeight>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeTankVolumeForHeight>(
+                ptsDeviceId,
+                "ProbeGetTankVolumeForHeight",
+                BuildProbeCommandData(probeNumber, height: height),
+                "tank volume for height");
+        }
+
+        public Task<FMSResponse<bool>> GenerateTankAutomaticCalibrationChartAsync(string ptsDeviceId, int probeNumber)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<bool>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeConfirmationCommandAsync(
+                ptsDeviceId,
+                "ProbeGenerateTankAutomaticCalibrationChart",
+                BuildProbeCommandData(probeNumber),
+                "automatic calibration chart generation");
+        }
+
+        public Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankIntervalVolumeChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeChartTotalRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeChartTotalRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankIntervalVolumeChartTotalRecordsNumber",
+                BuildProbeCommandData(probeNumber),
+                "tank interval volume chart total records");
+        }
+
+        public Task<FMSResponse<ProbeTankIntervalVolumeChartRecordsResponse>> GetTankIntervalVolumeChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null)
+        {
+            var validationErrors = ValidateProbeRequest(probeNumber, startNumber, totalNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeTankIntervalVolumeChartRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeTankIntervalVolumeChartRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankIntervalVolumeChartRecordsList",
+                BuildProbeCommandData(probeNumber, startNumber, totalNumber),
+                "tank interval volume chart records");
+        }
+
+        public Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankAutomaticCalibrationChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeChartTotalRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeChartTotalRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankAutomaticCalibrationChartTotalRecordsNumber",
+                BuildProbeCommandData(probeNumber),
+                "tank automatic calibration chart total records");
+        }
+
+        public Task<FMSResponse<ProbeTankChartRecordsResponse>> GetTankAutomaticCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null)
+        {
+            var validationErrors = ValidateProbeRequest(probeNumber, startNumber, totalNumber);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<ProbeTankChartRecordsResponse>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeDataCommandAsync<ProbeTankChartRecordsResponse>(
+                ptsDeviceId,
+                "ProbeGetTankAutomaticCalibrationChartRecordsList",
+                BuildProbeCommandData(probeNumber, startNumber, totalNumber),
+                "tank automatic calibration chart records");
+        }
+
+        public Task<FMSResponse<bool>> SetTankCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordListRequestDto request)
+        {
+            var validationErrors = ValidateCalibrationRecordListRequest(probeNumber, request);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<bool>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeConfirmationCommandAsync(
+                ptsDeviceId,
+                "ProbeSetTankCalibrationChartRecordsList",
+                BuildProbeChartRecordsCommandData(probeNumber, request.Records),
+                "tank calibration chart replace");
+        }
+
+        public Task<FMSResponse<bool>> AddTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordWriteDto request)
+        {
+            var validationErrors = ValidateCalibrationRecordRequest(probeNumber, request);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<bool>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeConfirmationCommandAsync(
+                ptsDeviceId,
+                "ProbeAddTankCalibrationChartRecordToList",
+                BuildProbeChartRecordCommandData(probeNumber, request.Height, request.Volume),
+                "tank calibration chart add record");
+        }
+
+        public Task<FMSResponse<bool>> EditTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordWriteDto request)
+        {
+            var validationErrors = ValidateCalibrationRecordRequest(probeNumber, request);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<bool>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeConfirmationCommandAsync(
+                ptsDeviceId,
+                "ProbeEditTankCalibrationChartRecordInList",
+                BuildProbeChartRecordCommandData(probeNumber, request.Height, request.Volume),
+                "tank calibration chart edit record");
+        }
+
+        public Task<FMSResponse<bool>> DeleteTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, int height)
+        {
+            var validationErrors = ValidateProbeRequest(probeNumber, height: height);
+            if (validationErrors.Count > 0)
+            {
+                return Task.FromResult(FMSResponse<bool>.ValidationFailed(validationErrors));
+            }
+
+            return ExecuteProbeConfirmationCommandAsync(
+                ptsDeviceId,
+                "ProbeDeleteTankCalibrationChartRecordFromList",
+                BuildProbeChartDeleteCommandData(probeNumber, height),
+                "tank calibration chart delete record");
+        }
+
+        private async Task<FMSResponse<TResponse>> ExecuteProbeDataCommandAsync<TResponse>(string ptsDeviceId, string commandType, object commandData, string operationName)
+            where TResponse : class
+        {
+            try
+            {
+                _logger.LogInformation("Requesting {OperationName} from PTS device {DeviceId}", operationName, ptsDeviceId);
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, commandType, commandData);
+
+                if (!result.Success || result.CommandData == null)
+                {
+                    _logger.LogWarning("Failed to get {OperationName} from PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        operationName, ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<TResponse>.Failed(result.Message ?? $"Failed to retrieve {operationName} from device.");
+                }
+
+                var commandToken = result.CommandData as JToken ?? JToken.FromObject(result.CommandData);
+                var responseToken = commandToken.Type == JTokenType.Array ? commandToken.First : commandToken;
+                var response = responseToken?.ToObject<TResponse>();
+
+                if (response == null)
+                {
+                    _logger.LogError("Failed to parse {OperationName} response from PTS device {DeviceId}. Data: {CommandData}",
+                        operationName, ptsDeviceId, result.CommandData);
+                    return FMSResponse<TResponse>.Failed($"Failed to parse {operationName} response from device");
+                }
+
+                return FMSResponse<TResponse>.Success(response, $"{operationName} retrieved successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while getting {OperationName} for device {DeviceId}", operationName, ptsDeviceId);
+                return FMSResponse<TResponse>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting {OperationName} for device {DeviceId}", operationName, ptsDeviceId);
+                return FMSResponse<TResponse>.Failed($"Internal server error while getting {operationName}");
+            }
+        }
+
+        private async Task<FMSResponse<bool>> ExecuteProbeConfirmationCommandAsync(string ptsDeviceId, string commandType, object commandData, string operationName)
+        {
+            try
+            {
+                _logger.LogInformation("Executing {OperationName} on PTS device {DeviceId}", operationName, ptsDeviceId);
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, commandType, commandData);
+
+                if (!result.Success)
+                {
+                    _logger.LogWarning("Failed to execute {OperationName} on PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        operationName, ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<bool>.Failed(result.Message ?? $"Failed to execute {operationName} on device.");
+                }
+
+                return FMSResponse<bool>.Success(true, $"{operationName} executed successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while executing {OperationName} for device {DeviceId}", operationName, ptsDeviceId);
+                return FMSResponse<bool>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error executing {OperationName} for device {DeviceId}", operationName, ptsDeviceId);
+                return FMSResponse<bool>.Failed($"Internal server error while executing {operationName}");
+            }
+        }
+
+        private static JObject BuildProbeCommandData(int probeNumber, int? startNumber = null, int? totalNumber = null, int? height = null)
+        {
+            var commandData = new JObject
+            {
+                ["Probe"] = probeNumber
+            };
+
+            if (startNumber.HasValue)
+            {
+                commandData["StartNumber"] = startNumber.Value;
+            }
+
+            if (totalNumber.HasValue)
+            {
+                commandData["TotalNumber"] = totalNumber.Value;
+            }
+
+            if (height.HasValue)
+            {
+                commandData["Height"] = height.Value;
+            }
+
+            return commandData;
+        }
+
+        private static JObject BuildProbeChartRecordsCommandData(int probeNumber, System.Collections.Generic.IEnumerable<ProbeTankCalibrationRecordWriteDto> records)
+        {
+            var commandData = BuildProbeCommandData(probeNumber);
+            commandData["Records"] = JArray.FromObject(records);
+            return commandData;
+        }
+
+        private static JObject BuildProbeChartRecordCommandData(int probeNumber, int height, int volume)
+        {
+            var commandData = BuildProbeCommandData(probeNumber, height: height);
+            commandData["Volume"] = volume;
+            return commandData;
+        }
+
+        private static JObject BuildProbeChartDeleteCommandData(int probeNumber, int height)
+        {
+            return BuildProbeCommandData(probeNumber, height: height);
+        }
+
+        private static List<string> ValidateProbeRequest(int probeNumber, int? startNumber = null, int? totalNumber = null, int? height = null)
+        {
+            var errors = ValidateProbeNumber(probeNumber);
+
+            if (startNumber.HasValue && startNumber.Value < 1)
+            {
+                errors.Add("Start number must be greater than or equal to 1.");
+            }
+
+            if (totalNumber.HasValue && (totalNumber.Value < 1 || totalNumber.Value > 100))
+            {
+                errors.Add("Total number must be between 1 and 100.");
+            }
+
+            if (height.HasValue && height.Value < 0)
+            {
+                errors.Add("Height must be greater than or equal to 0.");
+            }
+
+            return errors;
+        }
+
+        private static List<string> ValidateProbeNumber(int probeNumber)
+        {
+            var errors = new List<string>();
+            if (probeNumber < 1 || probeNumber > 20)
+            {
+                errors.Add("Probe number must be between 1 and 20.");
+            }
+
+            return errors;
+        }
+
+        private static List<string> ValidateCalibrationRecordListRequest(int probeNumber, ProbeTankCalibrationRecordListRequestDto request)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            if (request?.Records == null || request.Records.Count == 0)
+            {
+                validationErrors.Add("At least one calibration chart record is required.");
+                return validationErrors;
+            }
+
+            if (request.Records.Count > 100)
+            {
+                validationErrors.Add("A maximum of 100 calibration chart records can be sent in a single replace request.");
+            }
+
+            foreach (var record in request.Records)
+            {
+                ValidateCalibrationRecord(record, validationErrors);
+            }
+
+            return validationErrors;
+        }
+
+        private static List<string> ValidateCalibrationRecordRequest(int probeNumber, ProbeTankCalibrationRecordWriteDto request)
+        {
+            var validationErrors = ValidateProbeNumber(probeNumber);
+            ValidateCalibrationRecord(request, validationErrors);
+            return validationErrors;
+        }
+
+        private static void ValidateCalibrationRecord(ProbeTankCalibrationRecordWriteDto? record, System.Collections.Generic.ICollection<string> validationErrors)
+        {
+            if (record == null)
+            {
+                validationErrors.Add("Calibration chart record payload is required.");
+                return;
+            }
+
+            if (record.Height <= 0)
+            {
+                validationErrors.Add("Height must be greater than 0.");
+            }
+
+            if (record.Volume < 0)
+            {
+                validationErrors.Add("Volume cannot be negative.");
             }
         }
     }

@@ -1,0 +1,65 @@
+/**
+ * File: VehicleTrackingGraphPanel.scss
+ * Purpose: Styles for the Track Graph panel toolbar and variable toggle buttons
+ * Last Modified: 2026-03-21
+ */
+
+.vt-graph-panel {
+    &__toolbar {
+        background: #faf9f8;
+        flex-shrink: 0;
+    }
+
+    &__var-btn {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        height: 24px;
+        padding: 0 8px;
+        border: 1px solid #e1dfdd;
+        border-radius: 12px;
+        background: #ffffff;
+        color: #605e5c;
+        font-size: 11px;
+        cursor: pointer;
+        transition: all 0.15s ease;
+        white-space: nowrap;
+
+        &:hover {
+            background: #f3f2f1;
+        }
+
+        &--active {
+            background: #f0f6ff;
+            font-weight: 600;
+        }
+    }
+
+    &__var-dot {
+        display: inline-block;
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    &__day-filter {
+        height: 24px;
+        padding: 0 6px;
+        border: 1px solid #e1dfdd;
+        border-radius: 4px;
+        background: #ffffff;
+        color: #323130;
+        font-size: 11px;
+        cursor: pointer;
+        outline: none;
+
+        &:hover {
+            border-color: #c8c6c4;
+        }
+
+        &:focus {
+            border-color: #0078d4;
+        }
+    }
+}

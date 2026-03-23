@@ -1,3 +1,14 @@
+/**
+ * File: EmployeeSearchableSelector.js
+ * Purpose: Provide employee autocomplete selection with add-new support and a portal-based dropdown for form usage.
+ * Dependencies: React, ReactDOM, DevExtreme Popup/TextBox/SelectBox, axiosInstance
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - performSearch(): queries employee search and updates dropdown state
+ * - handleEmployeeSelect(): applies the selected employee and notifies parent forms
+ * - handleSaveNewEmployee(): creates an employee inline when search returns no match
+ */
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import { Popup, ToolbarItem } from 'devextreme-react/popup';
@@ -54,11 +65,13 @@ const EmployeeSearchableSelector = ({
     if (!term || term.length < 2) {
       setEmployees([]);
       setShowDropdown(false);
+      setIsLoading(false);
       return;
     }
 
-    console.log('Performing employee search for:', term);
     setIsLoading(true);
+    setShowDropdown(true);
+
     try {
       // Search ALL employees without site filtering
       const response = await axiosInstance.get('/employee/search', {
@@ -70,7 +83,6 @@ const EmployeeSearchableSelector = ({
         }
       });
 
-      console.log('Employee search response:', response.data);
       const ok = response.data?.success || response.data?.isSuccess || response.data?.IsSuccess;
       const list = response.data?.data || response.data?.Data || [];
 
@@ -91,8 +103,15 @@ const EmployeeSearchableSelector = ({
   }, [activeOnly]); // siteId removed - we don't filter by site
 
   const handleSearchTermChange = useCallback((inputValue) => {
-    console.log('Employee search term changed:', inputValue);
     setSearchTerm(inputValue);
+
+    if (inputValue && inputValue.length >= 2) {
+      setShowDropdown(true);
+      setIsLoading(true);
+    } else {
+      setShowDropdown(false);
+      setIsLoading(false);
+    }
 
     if (searchTimeoutRef.current) {
       clearTimeout(searchTimeoutRef.current);
@@ -392,99 +411,87 @@ const EmployeeSearchableSelector = ({
       {showDropdown && ReactDOM.createPortal(
         <div
           ref={dropdownRef}
-          className="dx-overlay-wrapper dx-selectbox-popup-wrapper searchable-selector"
+          className="searchable-selector searchable-selector__dropdown"
           style={{
             position: 'fixed',
-            zIndex: 10005,
+            zIndex: 110003,
             top: dropdownPos.top,
             left: dropdownPos.left,
             width: dropdownPos.width,
           }}
           onMouseDown={(e) => e.preventDefault()}
         >
-          <div className="dx-overlay-content dx-popup-content dx-selectbox-popup">
-            <div className="dx-scrollable dx-scrollable-vertical dx-scrollable-simulated">
-              <div className="dx-scrollable-wrapper">
-                <div className="dx-scrollable-container">
-                  <div className="dx-scrollable-content" style={{ maxHeight: '250px', minHeight: '150px', overflowY: 'auto' }}>
-                    <div className="dx-list dx-widget">
-                      {employees.length > 0 ? (
-                        employees.map((employee, index) => (
-                          <div
-                            key={employee.id}
-                            className="dx-list-item"
-                            onClick={() => handleEmployeeSelect(employee)}
-                            onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
-                            onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
-                            style={{
-                              cursor: 'pointer',
-                              borderBottom: index !== employees.length - 1 ? '1px solid #e6e6e6' : 'none'
-                            }}
-                          >
-                            <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
-                              <div style={{ display: 'flex', alignItems: 'center' }}>
-                                <div style={{
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  gap: '12px',
-                                  fontSize: '14px',
-                                  lineHeight: '1.3'
-                                }}>
-                                  <span style={{ fontWeight: '600', color: '#337ab7' }}>
-                                    {employee.fullName}
-                                  </span>
-                                  {employee.employeeWorkNo && (
-                                    <span style={{ color: '#666', fontSize: '13px' }}>
-                                      ({employee.employeeWorkNo})
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
+          <div className="searchable-selector__dropdown-content">
+            <div className="searchable-selector__dropdown-scroll">
+              <div className="dx-list dx-widget">
+                {employees.length > 0 ? (
+                  employees.map((employee, index) => (
+                    <div
+                      key={employee.id}
+                      className="dx-list-item"
+                      onClick={() => handleEmployeeSelect(employee)}
+                      onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
+                      onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
+                      style={{
+                        cursor: 'pointer',
+                        borderBottom: index !== employees.length - 1 ? '1px solid #e6e6e6' : 'none'
+                      }}
+                    >
+                      <div className="dx-list-item-content" style={{ padding: '12px 16px', minHeight: '50px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <div style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '12px',
+                            fontSize: '14px',
+                            lineHeight: '1.3'
+                          }}>
+                            <span style={{ fontWeight: '600', color: '#337ab7' }}>
+                              {employee.fullName}
+                            </span>
+                            {employee.employeeWorkNo && (
+                              <span style={{ color: '#666', fontSize: '13px' }}>
+                                ({employee.employeeWorkNo})
+                              </span>
+                            )}
                           </div>
-                        ))
-                      ) : (
-                        <>
-                          <div className="dx-list-item">
-                            <div className="dx-list-item-content" style={{
-                              padding: '12px',
-                              textAlign: 'center',
-                              color: '#666',
-                              fontStyle: 'italic',
-                              fontSize: '13px'
-                            }}>
-                              {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search employees' : 'No employees found'}
-                            </div>
-                          </div>
-                          {searchTerm.length >= 2 && !isLoading && (
-                            <div className="dx-list-item"
-                              style={{
-                                borderTop: '1px solid #e6e6e6',
-                                cursor: 'pointer'
-                              }}
-                              onClick={handleAddNewEmployee}
-                              onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
-                              onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
-                            >
-                              <div className="dx-list-item-content" style={{
-                                padding: '12px 16px',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                color: '#337ab7',
-                                fontSize: '14px',
-                                fontWeight: '500'
-                              }}>
-                                <i className="fa-light fa-plus-circle" style={{ fontSize: '16px' }}></i>
-                                <span>Add New Employee</span>
-                              </div>
-                            </div>
-                          )}
-                        </>
-                      )}
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
+                  ))
+                ) : (
+                  <>
+                    <div className="dx-list-item">
+                      <div className="dx-list-item-content searchable-selector__empty-state">
+                        {isLoading ? 'Searching...' : searchTerm.length < 2 ? 'Type to search employees' : 'No employees found'}
+                      </div>
+                    </div>
+                    {searchTerm.length >= 2 && !isLoading && (
+                      <div className="dx-list-item"
+                        style={{
+                          borderTop: '1px solid #e6e6e6',
+                          cursor: 'pointer'
+                        }}
+                        onClick={handleAddNewEmployee}
+                        onMouseEnter={(e) => e.currentTarget.classList.add('dx-state-hover')}
+                        onMouseLeave={(e) => e.currentTarget.classList.remove('dx-state-hover')}
+                      >
+                        <div className="dx-list-item-content" style={{
+                          padding: '12px 16px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '8px',
+                          color: '#337ab7',
+                          fontSize: '14px',
+                          fontWeight: '500'
+                        }}>
+                          <i className="fa-light fa-plus-circle" style={{ fontSize: '16px' }}></i>
+                          <span>Add New Employee</span>
+                        </div>
+                      </div>
+                    )}
+                  </>
+                )}
               </div>
             </div>
           </div>

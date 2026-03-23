@@ -1,0 +1,392 @@
+/**
+ * File:          TankCalibrationPanel.scss
+ * Purpose:       Styles the dedicated tank calibration slide panel and manual chart editor.
+ * Dependencies:  Existing M365 button and badge utility classes
+ * Last Modified: 2026-03-23
+ *
+ * Key Sections:
+ * - Header and toolbar layout
+ * - Manual editor card and draft grid
+ * - Snapshot and history panel cards
+ */
+
+.m365-tank-calibration {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  min-height: 100%;
+
+  &__header,
+  &__toolbar,
+  &__summary-grid,
+  &__content-grid,
+  &__editor-grid,
+  &__detail-meta,
+  &__binding,
+  &__actions,
+  &__chart-switcher {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  &__header,
+  &__panel-card,
+  &__editor-card,
+  &__empty,
+  &__summary-card {
+    background: #ffffff;
+    border: 1px solid #d9e2ec;
+    border-radius: 16px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, 0.06);
+  }
+
+  &__header,
+  &__panel-card,
+  &__editor-card,
+  &__empty {
+    padding: 20px;
+  }
+
+  &__title {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 0;
+    font-size: 24px;
+    color: #12304a;
+  }
+
+  &__subtitle {
+    margin: 8px 0 0;
+    color: #53657a;
+    font-size: 14px;
+  }
+
+  &__header {
+    justify-content: space-between;
+  }
+
+  &__toolbar {
+    justify-content: space-between;
+  }
+
+  &__summary-grid,
+  &__content-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  &__summary-card {
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__summary-label,
+  &__detail-notes,
+  &__section-heading span,
+  &__summary-meta {
+    color: #607286;
+    font-size: 13px;
+  }
+
+  &__summary-value {
+    color: #12304a;
+    font-size: 24px;
+  }
+
+  &__section-heading,
+  &__editor-header {
+    display: flex;
+    justify-content: space-between;
+    gap: 12px;
+    align-items: flex-start;
+    margin-bottom: 14px;
+  }
+
+  &__section-heading h3,
+  &__editor-header h3,
+  &__section-heading h4 {
+    margin: 0;
+    color: #12304a;
+  }
+
+  &__editor-header p {
+    margin: 6px 0 0;
+    color: #607286;
+    font-size: 13px;
+    max-width: 680px;
+  }
+
+  &__editor-split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    align-items: start;
+  }
+
+  &__editor-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  &__editor-btn-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__btn-group-label {
+    color: #607286;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__editor-buttons {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .m365-btn--sm {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+    gap: 4px;
+
+    i {
+      font-size: 12px;
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+  }
+
+  &__field label {
+    color: #12304a;
+    font-size: 13px;
+    font-weight: 600;
+  }
+
+  &__history-pager,
+  &__history-pager-actions,
+  &__history-pager-info {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  &__history-pager {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid #e3eaf2;
+  }
+
+  &__history-pager-actions label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: #607286;
+    font-size: 13px;
+  }
+
+  &__history-pager-actions select {
+    border: 1px solid #c7d4e2;
+    border-radius: 8px;
+    padding: 6px 10px;
+    background: #fff;
+  }
+
+  &__draft-grid {
+    min-width: 0;
+  }
+
+  &__empty {
+    color: #607286;
+    font-size: 14px;
+  }
+
+  &__health-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+  }
+
+  &__health-card {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px;
+    background: #f7f9fc;
+    border: 1px solid #e3eaf2;
+    border-radius: 12px;
+  }
+
+  &__health-label {
+    color: #607286;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  &__health-value {
+    color: #12304a;
+    font-size: 20px;
+  }
+
+  &__health-meta {
+    color: #607286;
+    font-size: 12px;
+  }
+
+  &__recommendation {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 12px;
+    color: #9a3412;
+    font-size: 13px;
+
+    > i {
+      font-size: 18px;
+      margin-top: 2px;
+      flex-shrink: 0;
+    }
+
+    strong {
+      display: block;
+      margin-bottom: 4px;
+    }
+
+    p {
+      margin: 0;
+      color: #c2410c;
+    }
+  }
+
+  &__variance-section {
+    margin-top: 8px;
+  }
+
+  // ── Help Panel Content ──
+  &__help {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px 24px;
+  }
+
+  &__help-section {
+    padding: 14px 0;
+    border-bottom: 1px solid #e3eaf2;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    h4 {
+      margin: 0 0 10px;
+      color: #12304a;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      i {
+        color: #0078d4;
+        font-size: 15px;
+      }
+    }
+
+    h5 {
+      margin: 12px 0 6px;
+      color: #53657a;
+      font-size: 12px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+    }
+
+    p {
+      margin: 0 0 4px;
+      color: #53657a;
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    dl {
+      margin: 0;
+    }
+
+    dt {
+      color: #12304a;
+      font-size: 13px;
+      font-weight: 600;
+      margin-top: 8px;
+
+      .m365-badge {
+        margin-left: 6px;
+        font-weight: 400;
+        font-size: 11px;
+      }
+    }
+
+    dd {
+      margin: 2px 0 0;
+      color: #53657a;
+      font-size: 13px;
+      line-height: 1.55;
+    }
+
+    ul {
+      margin: 6px 0 0;
+      padding-left: 18px;
+      list-style: none;
+
+      li {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 4px;
+        color: #53657a;
+        font-size: 13px;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .m365-tank-calibration {
+    &__header,
+    &__toolbar,
+    &__section-heading,
+    &__editor-header {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    &__editor-split {
+      grid-template-columns: 1fr;
+    }
+  }
+}

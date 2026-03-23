@@ -556,6 +556,12 @@ public static class FmsServiceCollectionExtensions
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
+        services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ITankCalibrationStorageService,
+            FMS.Application.Features.TankManagement.TankCalibration.Services.TankCalibrationStorageService>();
+        services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ITankCalibrationValidator,
+            FMS.Application.Features.TankManagement.TankCalibration.Services.TankCalibrationValidator>();
+        services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationAnalysisService,
+            FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationAnalysisService>();
         services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
         services.AddScoped<TankStockReconciliationService>(); // Tank Stock reconciliation service
 
@@ -624,6 +630,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
         services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
+        services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
         // Alert Configuration Service — cached, typed access to configurable alert thresholds
         services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();
         // IWidgetFactoryService and WidgetFactoryCoordinator now registered via AddDashboardWidgetServices()

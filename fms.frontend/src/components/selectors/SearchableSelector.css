@@ -1,3 +1,10 @@
+/*
+ * File: SearchableSelector.css
+ * Purpose: Shared styling for custom vehicle and employee searchable selector dropdowns.
+ * Dependencies: DevExtreme base theme classes
+ * Last Modified: 2026-03-23
+ */
+
 /* DevExtreme SearchableSelector Styles - SCOPED TO AVOID GLOBAL CONFLICTS */
 
 /* ONLY target searchable selectors - DO NOT affect other DevExtreme components */
@@ -21,6 +28,32 @@
   border-radius: 4px !important;
   margin-top: 2px !important;
   background: #fff !important;
+}
+
+.searchable-selector__dropdown {
+  pointer-events: auto;
+}
+
+.searchable-selector__dropdown-content {
+  background: #fff;
+  border: 1px solid #d7dde5;
+  border-radius: 8px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.16);
+  overflow: hidden;
+}
+
+.searchable-selector__dropdown-scroll {
+  max-height: 250px;
+  min-height: 150px;
+  overflow-y: auto;
+}
+
+.searchable-selector__empty-state {
+  padding: 12px;
+  text-align: center;
+  color: #666;
+  font-style: italic;
+  font-size: 13px;
 }
 
 /* Ensure dropdown list fills full width - no left gap */

@@ -119,6 +119,21 @@ namespace FMS.Application.Services.Dashboard
                     return await GetAnomalyDataAsync(canonicalSource, request, "initial");
                 }
 
+                if (IsEmployeeDataSource(canonicalSource))
+                {
+                    return await GetEmployeeDataAsync(canonicalSource, request, "initial");
+                }
+
+                if (IsReportDataSource(canonicalSource))
+                {
+                    return await GetReportDataAsync(canonicalSource, request, "initial");
+                }
+
+                if (IsTankStockSummaryDataSource(canonicalSource))
+                {
+                    return await GetTankStockSummaryDataAsync(canonicalSource, request, "initial");
+                }
+
                 // Get base metric data (computed internally)
                 var metricResponse = await _metricService.ComputeMetricAsync(request);
 
@@ -196,6 +211,21 @@ namespace FMS.Application.Services.Dashboard
                 if (IsAnomalyDataSource(canonicalSource))
                 {
                     return await GetAnomalyDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsEmployeeDataSource(canonicalSource))
+                {
+                    return await GetEmployeeDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsReportDataSource(canonicalSource))
+                {
+                    return await GetReportDataAsync(canonicalSource, request, "live");
+                }
+
+                if (IsTankStockSummaryDataSource(canonicalSource))
+                {
+                    return await GetTankStockSummaryDataAsync(canonicalSource, request, "live");
                 }
 
                 if (!IsLiveDataSource(canonicalSource))
@@ -286,6 +316,21 @@ namespace FMS.Application.Services.Dashboard
                 if (IsAnomalyDataSource(canonicalSource))
                 {
                     return await GetAnomalyDataAsync(canonicalSource, request, "aggregated");
+                }
+
+                if (IsEmployeeDataSource(canonicalSource))
+                {
+                    return await GetEmployeeDataAsync(canonicalSource, request, "aggregated");
+                }
+
+                if (IsReportDataSource(canonicalSource))
+                {
+                    return await GetReportDataAsync(canonicalSource, request, "aggregated");
+                }
+
+                if (IsTankStockSummaryDataSource(canonicalSource))
+                {
+                    return await GetTankStockSummaryDataAsync(canonicalSource, request, "aggregated");
                 }
 
                 // Map aggregationInterval to granularity for time-series service

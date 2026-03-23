@@ -201,6 +201,46 @@ class VehicleGPSTrackingService {
   }
 
   /**
+   * Get track history for a vehicle within a date range
+   * @param {number} vehicleId - Vehicle ID
+   * @param {string|Date} from - Start date/time
+   * @param {string|Date} to - End date/time
+   * @param {number} maxPoints - Maximum number of track points
+   * @returns {Promise} Track history with aggregated stats
+   */
+  async getTrackHistory(vehicleId, from, to, maxPoints = 5000) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${vehicleId}/track-history`, {
+        params: { from: new Date(from).toISOString(), to: new Date(to).toISOString(), maxPoints },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching track history:', error);
+      throw this.handleError(error, `Failed to get track history for vehicle ${vehicleId}`);
+    }
+  }
+
+  /**
+   * Get individual track points for a vehicle within a date range
+   * @param {number} vehicleId - Vehicle ID
+   * @param {string|Date} from - Start date/time
+   * @param {string|Date} to - End date/time
+   * @param {number} maxPoints - Maximum number of points
+   * @returns {Promise} List of track points with GPS data
+   */
+  async getTrackPoints(vehicleId, from, to, maxPoints = 5000) {
+    try {
+      const response = await axiosInstance.get(`${this.baseURL}/${vehicleId}/track-points`, {
+        params: { from: new Date(from).toISOString(), to: new Date(to).toISOString(), maxPoints },
+      });
+      return response.data;
+    } catch (error) {
+      console.error('Error fetching track points:', error);
+      throw this.handleError(error, `Failed to get track points for vehicle ${vehicleId}`);
+    }
+  }
+
+  /**
    * Convert degrees to radians
    * @param {number} degrees - Degrees
    * @returns {number} Radians

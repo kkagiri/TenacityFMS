@@ -4,14 +4,15 @@
  *                inline detail/site-summary, and SlidePanels for form/history/PTS link
  * Dependencies:  useTankData, SlidePanel, TankCommandBar, TankTreeList,
  *                TankDetailPanel, TankSiteSummary, TankEmptyState,
- *                TankFormPanel, TankHistoryPanel, PTSDeviceLinkPanel, M365PageHeader
- * Last Modified: 2026-02-26
+ *                TankFormPanel, TankHistoryPanel, TankCalibrationPanel,
+ *                PTSDeviceLinkPanel, M365PageHeader
+ * Last Modified: 2026-03-23
  *
  * Key Sections:
  * - M365PageHeader:   Title, count, command bar
  * - TankTreeList:     Left sidebar — sites + tanks tree
  * - Content Area:     TankDetailPanel | TankSiteSummary | TankEmptyState
- * - SlidePanels:      Form (create/edit), History, PTS Device Link — all width 1000
+ * - SlidePanels:      Form, History, PTS Device Link
  */
 import React, { useState, useCallback, useMemo } from "react";
 import { LoadPanel } from "devextreme-react/load-panel";
@@ -30,6 +31,7 @@ import TankSiteSummary from "./components/TankSiteSummary";
 import TankEmptyState from "./components/TankEmptyState";
 import TankFormPanel from "./components/TankFormPanel";
 import TankHistoryPanel from "./components/TankHistoryPanel";
+import TankCalibrationPanel from "./components/TankCalibrationPanel";
 import PTSDeviceLinkPanel from "./components/PTSDeviceLinkPanel";
 
 // Hook
@@ -60,6 +62,7 @@ const TankPage = () => {
     const [formOpen, setFormOpen] = useState(false);
     const [formMode, setFormMode] = useState("create");
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [calibrationOpen, setCalibrationOpen] = useState(false);
     const [ptsLinkOpen, setPtsLinkOpen] = useState(false);
     const [actionLoading, setActionLoading] = useState(false);
 
@@ -78,6 +81,14 @@ const TankPage = () => {
     const onHistory = useCallback(() => {
         if (selectedTank) setHistoryOpen(true);
     }, [selectedTank]);
+
+    const onCalibration = useCallback(() => {
+        if (selectedTank) setCalibrationOpen(true);
+    }, [selectedTank]);
+
+    const onCloseCalibration = useCallback(() => {
+        setCalibrationOpen(false);
+    }, []);
 
     const onLinkPTS = useCallback(() => {
         if (selectedTank) setPtsLinkOpen(true);
@@ -162,6 +173,7 @@ const TankPage = () => {
                     onAdd={onAdd}
                     onEdit={onEdit}
                     onHistory={onHistory}
+                    onCalibration={onCalibration}
                     onLinkPTS={onLinkPTS}
                     onUnassign={onUnassign}
                     onDelete={onDelete}
@@ -169,73 +181,96 @@ const TankPage = () => {
                 />
             </M365PageHeader>
 
-            {/* ── Stats Row ── */}
-            <div className="m365-stats-row">
-                <div className="m365-stat-item">
-                    <span className="m365-stat-item__value">
-                        {Array.isArray(tanks) ? tanks.length : 0}
-                    </span>
-                    <span className="m365-stat-item__label">Total tanks</span>
-                </div>
-                <div className="m365-stat-item">
-                    <span className="m365-stat-item__value">{ptsLinkedCount}</span>
-                    <span className="m365-stat-item__label">PTS linked</span>
-                </div>
-                <div className="m365-stat-item">
-                    <span
-                        className="m365-stat-item__value"
-                        style={criticalCount > 0 ? { color: "var(--m365-error)" } : undefined}
-                    >
-                        {criticalCount}
-                    </span>
-                    <span className="m365-stat-item__label">Critical (&lt;20%)</span>
-                </div>
-            </div>
+            {calibrationOpen && selectedTank ? (
+                <div className="m365-tank-page__calibration-shell">
+                    <div className="m365-tank-page__calibration-toolbar">
+                        <button
+                            type="button"
+                            className="m365-btn m365-btn--ghost"
+                            onClick={onCloseCalibration}
+                        >
+                            <i className="fa-light fa-arrow-left"></i>
+                            Back To Tank Details
+                        </button>
+                        <div className="m365-tank-page__calibration-context">
+                            <span className="m365-badge m365-badge--info">{selectedTank.name}</span>
+                            <span className="m365-badge m365-badge--neutral">Calibration Workspace</span>
+                        </div>
+                    </div>
 
-            {/* ── Body: tree + content ── */}
-            <div className="m365-tank-body">
-                {/* ── Tree Sidebar ── */}
-                <div className="m365-tank-sidebar">
-                    <TankTreeList
-                        dataSource={treeData}
-                        onSelect={handleSelectItem}
-                        loading={loading}
-                    />
+                    <TankCalibrationPanel tank={selectedTank} />
                 </div>
+            ) : (
+                <>
+                    {/* ── Stats Row ── */}
+                    <div className="m365-stats-row">
+                        <div className="m365-stat-item">
+                            <span className="m365-stat-item__value">
+                                {Array.isArray(tanks) ? tanks.length : 0}
+                            </span>
+                            <span className="m365-stat-item__label">Total tanks</span>
+                        </div>
+                        <div className="m365-stat-item">
+                            <span className="m365-stat-item__value">{ptsLinkedCount}</span>
+                            <span className="m365-stat-item__label">PTS linked</span>
+                        </div>
+                        <div className="m365-stat-item">
+                            <span
+                                className="m365-stat-item__value"
+                                style={criticalCount > 0 ? { color: "var(--m365-error)" } : undefined}
+                            >
+                                {criticalCount}
+                            </span>
+                            <span className="m365-stat-item__label">Critical (&lt;20%)</span>
+                        </div>
+                    </div>
 
-                {/* ── Content Area ── */}
-                <div className="m365-tank-content">
-                    {selectedTank ? (
-                        <TankDetailPanel
-                            tank={selectedTank}
-                            liveStatus={selectedTankLiveStatus}
-                            connectionStatus={selectedTankConnection}
-                            onEdit={onEdit}
-                            onHistory={onHistory}
-                            onLinkPTS={onLinkPTS}
-                        />
-                    ) : selectedSite ? (
-                        <TankSiteSummary
-                            site={selectedSite}
-                            siteSummary={
-                                siteSummary
-                                    ? {
-                                        totalVolume: siteSummary.totalCapacity,
-                                        totalStock: siteSummary.totalCurrentStock,
-                                        fillPct: siteSummary.avgFillPercentage,
-                                        tankCount: siteSummary.tankCount,
-                                        gradeBreakdown: [],
+                    {/* ── Body: tree + content ── */}
+                    <div className="m365-tank-body">
+                        {/* ── Tree Sidebar ── */}
+                        <div className="m365-tank-sidebar">
+                            <TankTreeList
+                                dataSource={treeData}
+                                onSelect={handleSelectItem}
+                                loading={loading}
+                            />
+                        </div>
+
+                        {/* ── Content Area ── */}
+                        <div className="m365-tank-content">
+                            {selectedTank ? (
+                                <TankDetailPanel
+                                    tank={selectedTank}
+                                    liveStatus={selectedTankLiveStatus}
+                                    connectionStatus={selectedTankConnection}
+                                    onEdit={onEdit}
+                                    onHistory={onHistory}
+                                    onLinkPTS={onLinkPTS}
+                                />
+                            ) : selectedSite ? (
+                                <TankSiteSummary
+                                    site={selectedSite}
+                                    siteSummary={
+                                        siteSummary
+                                            ? {
+                                                totalVolume: siteSummary.totalCapacity,
+                                                totalStock: siteSummary.totalCurrentStock,
+                                                fillPct: siteSummary.avgFillPercentage,
+                                                tankCount: siteSummary.tankCount,
+                                                gradeBreakdown: [],
+                                            }
+                                            : null
                                     }
-                                    : null
-                            }
-                            tanks={siteTanks}
-                            onSelectTank={(tank) => handleSelectItem({ type: "tank", tankData: tank })}
-                        />
-                    ) : (
-                        <TankEmptyState />
-                    )}
-                </div>
-            </div>
+                                    tanks={siteTanks}
+                                    onSelectTank={(tank) => handleSelectItem({ type: "tank", tankData: tank })}
+                                />
+                            ) : (
+                                <TankEmptyState />
+                            )}
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* ── Form SlidePanel ── */}
             <SlidePanel

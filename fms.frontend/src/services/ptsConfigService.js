@@ -13,6 +13,10 @@
  * - GET  /api/v1/pts/{deviceId}/config/datetime
  * - GET  /api/v1/pts/{deviceId}/config/pumps
  * - GET  /api/v1/pts/{deviceId}/config/diagnostics
+ * - GET  /api/v1/pts/{deviceId}/config/probes/{probeNumber}/calibration-chart/*
+ * - GET  /api/v1/pts/{deviceId}/config/probes/{probeNumber}/interval-volume-chart/*
+ * - GET  /api/v1/pts/{deviceId}/config/probes/{probeNumber}/automatic-calibration-chart/*
+ * - POST /api/v1/pts/{deviceId}/config/probes/{probeNumber}/automatic-calibration-chart/generate
  *
  * @version 1.0.0
  */
@@ -356,6 +360,259 @@ const ptsConfigService = {
       return response.data;
     } catch (error) {
       console.error("Error setting pump nozzles configuration:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationChartTotalRecords: async (deviceId, probeNumber) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/calibration-chart/total-records`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank calibration chart total records:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationChartRecords: async (
+    deviceId,
+    probeNumber,
+    startNumber,
+    totalNumber
+  ) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/calibration-chart/records`,
+        { params: { startNumber, totalNumber } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank calibration chart records:", error);
+      throw error;
+    }
+  },
+
+  getTankIntervalVolumeChartTotalRecords: async (deviceId, probeNumber) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/interval-volume-chart/total-records`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank interval volume chart total records:", error);
+      throw error;
+    }
+  },
+
+  getTankIntervalVolumeChartRecords: async (
+    deviceId,
+    probeNumber,
+    startNumber,
+    totalNumber
+  ) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/interval-volume-chart/records`,
+        { params: { startNumber, totalNumber } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank interval volume chart records:", error);
+      throw error;
+    }
+  },
+
+  getTankAutomaticCalibrationChartTotalRecords: async (deviceId, probeNumber) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/automatic-calibration-chart/total-records`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank automatic calibration chart total records:", error);
+      throw error;
+    }
+  },
+
+  getTankAutomaticCalibrationChartRecords: async (
+    deviceId,
+    probeNumber,
+    startNumber,
+    totalNumber
+  ) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/automatic-calibration-chart/records`,
+        { params: { startNumber, totalNumber } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank automatic calibration chart records:", error);
+      throw error;
+    }
+  },
+
+  getTankVolumeForHeight: async (deviceId, probeNumber, height) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/volume-for-height/${height}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank volume for height:", error);
+      throw error;
+    }
+  },
+
+  generateTankAutomaticCalibrationChart: async (deviceId, probeNumber) => {
+    try {
+      const response = await axiosInstance.post(
+        `${BASE_URL}/${deviceId}/config/probes/${probeNumber}/automatic-calibration-chart/generate`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error generating tank automatic calibration chart:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationCurrentSnapshot: async (tankId, chartType) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/current`,
+        { params: { chartType } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank calibration current snapshot:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationHistory: async (tankId, chartType, pageNumber = 1, pageSize = 20) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/history`,
+        { params: { chartType, pageNumber, pageSize } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank calibration history:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationSnapshotById: async (tankId, snapshotId) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/history/${snapshotId}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tank calibration snapshot by id:", error);
+      throw error;
+    }
+  },
+
+  syncTankCalibrationSnapshot: async (tankId, payload) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/sync`,
+        payload
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error syncing tank calibration snapshot:", error);
+      throw error;
+    }
+  },
+
+  generateTankCalibrationAutomaticChart: async (tankId) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/generate-automatic`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error generating automatic tank calibration chart:", error);
+      throw error;
+    }
+  },
+
+  setTankManualCalibrationChart: async (tankId, records) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/manual/set`,
+        { records }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error setting manual tank calibration chart:", error);
+      throw error;
+    }
+  },
+
+  addTankManualCalibrationRecord: async (tankId, record) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/manual/record`,
+        record
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error adding manual tank calibration record:", error);
+      throw error;
+    }
+  },
+
+  editTankManualCalibrationRecord: async (tankId, record) => {
+    try {
+      const response = await axiosInstance.put(
+        `v1/tanks/${tankId}/calibration/manual/record`,
+        record
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error editing manual tank calibration record:", error);
+      throw error;
+    }
+  },
+
+  deleteTankManualCalibrationRecord: async (tankId, height) => {
+    try {
+      const response = await axiosInstance.delete(
+        `v1/tanks/${tankId}/calibration/manual/record/${height}`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error deleting manual tank calibration record:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationHealth: async (tankId) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/health`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching tank calibration health:", error);
+      throw error;
+    }
+  },
+
+  getTankCalibrationVariances: async (tankId, maxDeliveries = 20) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/variances`,
+        { params: { maxDeliveries } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching tank calibration variances:", error);
       throw error;
     }
   },

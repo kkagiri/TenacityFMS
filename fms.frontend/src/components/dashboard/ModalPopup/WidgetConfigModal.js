@@ -25,6 +25,11 @@ import { fetchSiteList } from '../../../redux/actions/siteActions';
 import WidgetForm from './WidgetForm';
 import WidgetList from './WidgetList';
 import WidgetVisibilityModal from './WidgetVisibilityModal';
+import {
+  getModuleScopeCategories,
+  isModuleScopedMatch,
+  normalizeDashboardDataSourceId
+} from '../../../config/moduleDefaultWidgets';
 
 import './WidgetConfigModal.css';
 import './WidgetVisibilityModal.css';
@@ -32,6 +37,9 @@ import './WidgetVisibilityModal.css';
 export default function WidgetConfigModal({
   open,
   onClose,
+  moduleId = null,
+  moduleCategories: explicitModuleCategories = [],
+  scopeTitle = '',
   onWidgetAdded,
   onWidgetUpdated,
   onWidgetDeleted,
@@ -106,6 +114,13 @@ export default function WidgetConfigModal({
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState(null);
 
+  const moduleCategories = useMemo(
+    () => getModuleScopeCategories(moduleId, explicitModuleCategories),
+    [explicitModuleCategories, moduleId]
+  );
+
+  const isModuleScoped = moduleCategories.length > 0;
+
   // Constants - Updated for enhanced widgets
   const metricOptions = [
     // Tankstock Monitoring Metrics
@@ -115,7 +130,7 @@ export default function WidgetConfigModal({
     { id: 'flowmeter_fuel_used', label: 'Fuel Used (Flow Meter)', category: 'tankstock_monitoring' },
     { id: 'flowmeter_fuel_lost', label: 'Fuel Lost (Flow Meter)', category: 'tankstock_monitoring' },
     { id: 'site_efficiency', label: 'Site Efficiency', category: 'tankstock_monitoring' },
-    { id: 'tank_levels', label: 'Tank Levels', category: 'tankstock_monitoring' },
+    { id: 'tank_level', label: 'Tank Levels', category: 'tankstock_monitoring' },
 
     // Fuel Operation Metrics
     { id: 'pts_active_fueling_summary', label: 'PTS Fueling Now', category: 'fuel_operation' },
@@ -204,10 +219,13 @@ export default function WidgetConfigModal({
         template?.widgetType ||
         '',
       metric:
-        widget.dataSource ||
-        parsedConfig.dataSource ||
-        parsedSettings.dataSource ||
-        template?.dataSource ||
+        normalizeDashboardDataSourceId(
+          widget.dataSource ||
+          parsedConfig.dataSource ||
+          parsedSettings.dataSource ||
+          template?.dataSource ||
+          ''
+        ) ||
         '',
       mode: parsedSettings.mode || parsedConfig.mode || 'cumulative',
       datePreset: parsedSettings.datePreset || parsedConfig.datePreset || 'yesterday',
@@ -240,9 +258,9 @@ export default function WidgetConfigModal({
     const resolvedCategory = isCustomWidget
       ? widgetState.category
       : (template?.category || widgetState.category || '');
-    const resolvedDataSource = isCustomWidget
+    const resolvedDataSource = normalizeDashboardDataSourceId(isCustomWidget
       ? (widgetState.metric || widgetState.settings?.dataSource || '')
-      : (template?.dataSource || widgetState.metric || widgetState.settings?.dataSource || '');
+      : (template?.dataSource || widgetState.metric || widgetState.settings?.dataSource || ''));
 
     const settings = {
       ...(widgetState.settings || {}),
@@ -343,6 +361,26 @@ export default function WidgetConfigModal({
       aggregationType: payload.settings?.aggregation || 'SUM'
     };
   }, [buildCanonicalWidgetPayload, getTemplateById]);
+
+  const isWidgetPayloadInScope = useCallback((widgetPayload, widgetState = null) => {
+    if (!isModuleScoped) {
+      return true;
+    }
+
+    const template = getTemplateById(widgetPayload?.templateId);
+
+    return isModuleScopedMatch({
+      moduleCategories,
+      candidates: [
+        widgetPayload?.settings?.originalCategory,
+        widgetState?.category,
+        template?.category,
+        widgetPayload?.settings?.dataSource,
+        widgetState?.metric,
+        template?.dataSource
+      ]
+    });
+  }, [getTemplateById, isModuleScoped, moduleCategories]);
 
   const resetWidgetForm = useCallback(() => {
     setNewWidget(createDefaultWidgetState());
@@ -472,11 +510,45 @@ export default function WidgetConfigModal({
   }, [newWidget.customName, newWidget.templateId, newWidget.category, newWidget.visualizationType, newWidget.metric, newWidget.defaultValue, newWidget.unit, newWidget.settings]);
 
   // Calculate categories from widgets
+  const scopedWidgetTemplates = useMemo(() => {
+    if (!isModuleScoped) {
+      return widgetTemplates;
+    }
+
+    return widgetTemplates.filter(template => isModuleScopedMatch({
+      moduleCategories,
+      candidates: [template.category, template.dataSource]
+    }));
+  }, [isModuleScoped, moduleCategories, widgetTemplates]);
+
+  const scopedWidgets = useMemo(() => {
+    if (!isModuleScoped) {
+      return widgets;
+    }
+
+    return widgets.filter(widget => isModuleScopedMatch({
+      moduleCategories,
+      candidates: [
+        widget.template?.category,
+        widget.category,
+        widget.template?.dataSource,
+        widget.dataSource,
+        widget.settings?.dataSource
+      ]
+    }));
+  }, [isModuleScoped, moduleCategories, widgets]);
+
   const categories = useMemo(() => {
     const set = new Set();
-    widgets.forEach(w => set.add(w.template?.category || w.category || 'uncategorized'));
+    scopedWidgets.forEach(w => set.add(w.template?.category || w.category || 'uncategorized'));
     return Array.from(set).sort();
-  }, [widgets]);
+  }, [scopedWidgets]);
+
+  useEffect(() => {
+    if (activeCategory !== 'all' && !categories.includes(activeCategory)) {
+      setActiveCategory('all');
+    }
+  }, [activeCategory, categories]);
 
   // Event handlers
   const handleSave = async () => {
@@ -492,15 +564,24 @@ export default function WidgetConfigModal({
         : null;
       const widgetPayload = buildCanonicalWidgetPayload(newWidget, { fallbackTemplateId: editingTemplateId });
 
+      if (!isWidgetPayloadInScope(widgetPayload, newWidget)) {
+        notify('This widget does not belong to the current module dashboard.', 'error', 4000);
+        return;
+      }
+
       let result;
       if (formMode === 'edit' && editingWidget?.id) {
         result = await dashboardService.updateWidgetInstance(editingWidget.id, widgetPayload);
         notify('Widget updated successfully', 'success', 3000);
-        if (onWidgetUpdated) onWidgetUpdated(result);
+        if (onWidgetUpdated) {
+          await onWidgetUpdated(result);
+        }
       } else {
         result = await dashboardService.createWidgetInstance(widgetPayload);
         notify('Widget created successfully', 'success', 3000);
-        if (onWidgetAdded) onWidgetAdded(result);
+        if (onWidgetAdded) {
+          await onWidgetAdded(result);
+        }
       }
 
       // Reset form
@@ -541,7 +622,9 @@ export default function WidgetConfigModal({
       await dashboardService.deleteWidgetInstance(widgetId);
       notify('Widget deleted successfully', 'success', 3000);
       await loadWidgets();
-      if (onWidgetDeleted) onWidgetDeleted(widgetId);
+      if (onWidgetDeleted) {
+        await onWidgetDeleted(widgetId);
+      }
     } catch (error) {
       console.error('Error deleting widget:', error);
       notify('Failed to delete widget', 'error', 3000);
@@ -662,7 +745,9 @@ export default function WidgetConfigModal({
             <WidgetForm
               newWidget={newWidget}
               setNewWidget={setNewWidget}
-              widgetTemplates={widgetTemplates}
+              widgetTemplates={scopedWidgetTemplates}
+              moduleId={moduleId}
+              moduleCategories={moduleCategories}
               templatesLoading={templatesLoading}
               templatesError={templatesError}
               sites={sites}
@@ -718,7 +803,11 @@ export default function WidgetConfigModal({
           <div className="tw-flex tw-flex-col sm:tw-flex-row sm:tw-items-start sm:tw-justify-between tw-gap-3">
             <div className="tw-space-y-1">
               <div className="tw-text-sm tw-font-semibold tw-text-gray-900">Manage dashboard widgets</div>
-              <div className="tw-text-xs tw-text-gray-500">Shared widgets appear together with your own widgets and are marked in the list.</div>
+              <div className="tw-text-xs tw-text-gray-500">
+                {isModuleScoped
+                  ? `Only widgets for ${scopeTitle || moduleId} are shown here.`
+                  : 'Shared widgets appear together with your own widgets and are marked in the list.'}
+              </div>
             </div>
 
             <button
@@ -746,7 +835,7 @@ export default function WidgetConfigModal({
                 }`}
               onClick={() => setActiveCategory('all')}
             >
-              {`All (${widgets.length})`}
+              {`All (${scopedWidgets.length})`}
             </button>
             {categories.map(cat => (
               <button
@@ -758,7 +847,7 @@ export default function WidgetConfigModal({
                   }`}
                 onClick={() => setActiveCategory(cat)}
               >
-                {`${cat.replace(/_/g, ' ')} (${widgets.filter(w => (w.template?.category || w.category) === cat).length})`}
+                {`${cat.replace(/_/g, ' ')} (${scopedWidgets.filter(w => (w.template?.category || w.category) === cat).length})`}
               </button>
             ))}
           </div>
@@ -771,7 +860,7 @@ export default function WidgetConfigModal({
 
         <div className="tw-flex-1 tw-overflow-y-auto tw-p-4 sm:tw-p-6">
           <WidgetList
-            widgets={widgets}
+            widgets={scopedWidgets}
             loading={widgetsLoading}
             error={widgetsError}
             onEditWidget={handleEditWidget}

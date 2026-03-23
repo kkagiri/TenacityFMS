@@ -14,6 +14,7 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public DateTime FromDate { get; set; }
         public DateTime ToDate { get; set; }
         public List<TrackPointDTO> TrackPoints { get; set; } = new();
+        public List<DailyTrackSummaryDTO> DailySummaries { get; set; } = new();
         public decimal TotalDistance { get; set; } // in kilometers
         public TimeSpan TotalDuration { get; set; }
         public decimal AverageSpeed { get; set; }
@@ -30,5 +31,14 @@ namespace FMS.Application.Features.Vehicle.DTOs
         public DateTime StartTime { get; set; }
         public DateTime EndTime { get; set; }
         public TimeSpan Duration { get; set; }
+    }
+
+    public class DailyTrackSummaryDTO
+    {
+        public string Date { get; set; } = string.Empty;
+        public DateTime? StartTime { get; set; }
+        public DateTime? StopTime { get; set; }
+        public decimal DistanceKm { get; set; }
+        public int PointCount { get; set; }
     }
 }

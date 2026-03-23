@@ -1,0 +1,23 @@
+/**
+ * File: VehicleTrackingTracksPanel.scss
+ * Purpose: Styles for the Tracks panel header and layout
+ * Last Modified: 2026-03-21
+ */
+
+.vt-tracks-panel {
+    &__header {
+        background: #faf9f8;
+        flex-shrink: 0;
+
+        .dx-datebox {
+            .dx-texteditor-input {
+                font-size: 12px;
+                padding: 2px 6px;
+            }
+        }
+
+        .dx-button {
+            font-size: 12px;
+        }
+    }
+}

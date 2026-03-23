@@ -1,14 +1,15 @@
 /**
  * File:          TankCommandBar.js
- * Purpose:       M365-style command bar with Add, Edit, History, Link PTS, Unassign, Delete, Refresh.
+ * Purpose:       M365-style command bar with Add, Edit, History, Calibration, Link PTS, Unassign, Delete, Refresh.
  * Dependencies:  m365-shared.scss
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-23
  *
  * Props:
  * - selectedTank (object|null): Currently selected tank (null disables most actions)
  * - onAdd        (func): Open create form
  * - onEdit       (func): Open edit form
  * - onHistory    (func): Open volume history panel
+ * - onCalibration(func): Open calibration panel
  * - onLinkPTS    (func): Open PTS device link panel
  * - onUnassign   (func): Unassign tank from site
  * - onDelete     (func): Delete selected tank
@@ -21,6 +22,7 @@ const TankCommandBar = ({
   onAdd,
   onEdit,
   onHistory,
+  onCalibration,
   onLinkPTS,
   onUnassign,
   onDelete,
@@ -53,6 +55,14 @@ const TankCommandBar = ({
     >
       <i className="fa-light fa-clock-rotate-left"></i>
       History
+    </button>
+    <button
+      className="m365-btn m365-btn--ghost"
+      onClick={onCalibration}
+      disabled={!selectedTank}
+    >
+      <i className="fa-light fa-flask-vial"></i>
+      Calibration
     </button>
     <button
       className="m365-btn m365-btn--ghost"

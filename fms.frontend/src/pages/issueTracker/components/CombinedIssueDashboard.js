@@ -457,12 +457,12 @@ const CombinedIssueDashboard = () => {
             />
 
             {/* Standardized Widget Dashboard */}
-            <div className=”fms-dashboard-section” style={{ marginBottom: 24 }}>
+            <div className="fms-dashboard-section" style={{ marginBottom: 24 }}>
                 <ModuleDashboard
-                    moduleId=”issue_tracker”
-                    title=”Issue Tracker Dashboard”
-                    icon=”fa-solid fa-bug”
-                    subtitle=”Widget-based issue analytics — add, resize, and rearrange widgets”
+                    moduleId="issue_tracker"
+                    title="Issue Tracker Dashboard"
+                    icon="fa-solid fa-bug"
+                    subtitle="Widget-based issue analytics — add, resize, and rearrange widgets"
                 />
             </div>
 
@@ -471,11 +471,11 @@ const CombinedIssueDashboard = () => {
                 stats={stats}
                 formatTime={formatTime}
                 onPriorityFilter={handlePriorityFilter}
-                onStatusFilter={handleStatusFilter}                onOverdueFilter={handleOverdueFilter}
+                onStatusFilter={handleStatusFilter} onOverdueFilter={handleOverdueFilter}
                 onUnassignedFilter={handleUnassignedFilter}
                 onResolvedTodayFilter={handleResolvedTodayFilter}
                 onClearQuickFilters={handleClearQuickFilters}
-                onTabSwitch={setSelectedTab}            />
+                onTabSwitch={setSelectedTab} />
 
             {/* â”€â”€ Charts â”€â”€ */}
             <DashboardCharts dashboardData={dashboardData} allIssues={normalizedAllIssues} />

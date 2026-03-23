@@ -1,6 +1,19 @@
 //Cursor
+/**
+ * File: IPTSConfigService.cs
+ * Purpose: Declares the application service contract for retrieving and updating PTS configuration and calibration data.
+ * Dependencies: FMSResponse, PTS DTOs, PTS response models
+ * Last Modified: 2026-03-23
+ *
+ * Key Methods:
+ * - GetRemoteServerConfigurationAsync: Reads remote server transport configuration from a PTS device.
+ * - GetTankCalibrationChartRecordsAsync: Reads calibration chart records for a configured probe.
+ * - GenerateTankAutomaticCalibrationChartAsync: Triggers automatic calibration chart generation on the PTS device.
+ */
 using FMS.Application.Common;
 using FMS.Application.Features.PTS;
+using FMS.Application.Features.PTS.DTOs;
+using FMS.Domain.Entities.PTS;
 using FMS.Domain.PTSCommon.Responses; // Assuming a namespace for response DTOs
 using System.Threading.Tasks;
 
@@ -56,5 +69,18 @@ namespace FMS.Application.PTSServices.PTSConfigService
         /// Based on protocol 67. SetPumpNozzlesConfiguration
         /// </summary>
         Task<FMSResponse<bool>> SetPumpNozzlesConfigurationAsync(string ptsDeviceId, SetPumpNozzlesConfigurationRequest request);
+
+        Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankCalibrationChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber);
+        Task<FMSResponse<ProbeTankChartRecordsResponse>> GetTankCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null);
+        Task<FMSResponse<ProbeTankVolumeForHeight>> GetTankVolumeForHeightAsync(string ptsDeviceId, int probeNumber, int height);
+        Task<FMSResponse<bool>> GenerateTankAutomaticCalibrationChartAsync(string ptsDeviceId, int probeNumber);
+        Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankIntervalVolumeChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber);
+        Task<FMSResponse<ProbeTankIntervalVolumeChartRecordsResponse>> GetTankIntervalVolumeChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null);
+        Task<FMSResponse<ProbeChartTotalRecordsResponse>> GetTankAutomaticCalibrationChartTotalRecordsNumberAsync(string ptsDeviceId, int probeNumber);
+        Task<FMSResponse<ProbeTankChartRecordsResponse>> GetTankAutomaticCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, int? startNumber = null, int? totalNumber = null);
+        Task<FMSResponse<bool>> SetTankCalibrationChartRecordsAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordListRequestDto request);
+        Task<FMSResponse<bool>> AddTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordWriteDto request);
+        Task<FMSResponse<bool>> EditTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, ProbeTankCalibrationRecordWriteDto request);
+        Task<FMSResponse<bool>> DeleteTankCalibrationChartRecordAsync(string ptsDeviceId, int probeNumber, int height);
     }
 }

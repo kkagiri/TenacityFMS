@@ -402,6 +402,7 @@ public class GetMatchingTemplatesForVehicleQueryHandler
             return FMSResponse<List<ExpectedFuelAverageTemplateDTO>>.NotFound("Vehicle not found");
 
         // Find matching templates with progressive specificity
+        var now = DateTime.UtcNow;
         var templates = await _context.ExpectedFuelAverageTemplates
             .Include(t => t.VehicleType)
             .Include(t => t.VehicleManufacturer)
@@ -411,6 +412,12 @@ public class GetMatchingTemplatesForVehicleQueryHandler
             .Include(t => t.LoadClassification)
             .Include(t => t.UsageIntensity)
             .Where(t => t.IsActive && t.VehicleTypeId == vehicle.VehicleTypeId)
+            .Where(t =>
+                // Exclude templates not yet effective
+                !t.EffectiveFrom.HasValue || t.EffectiveFrom.Value <= now)
+            .Where(t =>
+                // Exclude expired templates
+                !t.EffectiveTo.HasValue || t.EffectiveTo.Value >= now)
             .Where(t =>
                 // Match manufacturer (or null for any manufacturer)
                 t.VehicleManufacturerId == null || t.VehicleManufacturerId == vehicle.VehicleManufacturerId)

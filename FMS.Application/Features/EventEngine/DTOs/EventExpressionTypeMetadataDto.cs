@@ -336,6 +336,28 @@ namespace FMS.Application.Features.EventEngine.DTOs
                     DefaultSeverity = "Low",
                     DefaultCooldownMinutes = 15
                 },
+                new()
+                {
+                    AlertTypeKey = FuelingExpectedAverageEvent.EventTypeName,
+                    EventType = FuelingExpectedAverageEvent.EventTypeName,
+                    DisplayName = "Fueling Above Expected Average",
+                    Description = "Triggers after manual or pump fueling when the vehicle performs worse than its assigned expected fuel average benchmark",
+                    Category = "Fuel Delivery",
+                    CategoryIcon = "fa-light fa-truck-ramp-box",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("minVariancePercent", "Minimum Variance (%)", "number", false, "10"),
+                        new("minFuelVolume", "Minimum Fuel Volume (Liters)", "number", false, "20"),
+                        new("sourceFilter", "Fueling Source", "select", false, null,
+                            new[] { "ManualRefill", "PumpTransaction" }),
+                        new("measurementModeFilter", "Measurement Mode", "select", false, null,
+                            new[] { "KmPerLiter", "LitersPerHour" }),
+                        new("vehicleIdFilter", "Vehicle ID", "number", false, null)
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "TankId" },
+                    DefaultSeverity = "High",
+                    DefaultCooldownMinutes = 30
+                },
 
                 // ═══════════════════════════════════════════════════
                 // Group: GPS & Vehicle — Tag Monitoring

@@ -1,10 +1,19 @@
-//Cursor: New service for handling transaction completion based on connection type
+/**
+ * File: TransactionCompletionService.cs
+ * Purpose: Completes PTS transactions, persists them to the database, clears
+ *          runtime tracking state, and runs post-completion business checks.
+ * Dependencies: Redis trackers, pump service, GpsdataContext,
+ *               ExpectedFuelAverageAlertService
+ * Last Modified: 2026-03-23
+ */
+
 using System;
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Communication;
+using FMS.Application.Features.ExpectedFuelAverage.Services;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.PTSServices.PumpService;
 using FMS.Application.Services;
@@ -41,6 +50,7 @@ namespace FMS.Application.Services
         private readonly Features.Vehicle.Services.IGPSService? _gpsService;
         private readonly ISystemConfigurationService? _systemConfigService;
         private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
+        private readonly IExpectedFuelAverageAlertService _expectedFuelAverageAlertService;
 
         public TransactionCompletionService(
             DeviceConnectionTracker deviceConnectionTracker,
@@ -51,6 +61,7 @@ namespace FMS.Application.Services
             IMediator mediator,
             GpsdataContext context,
             ILogger<TransactionCompletionService> logger,
+            IExpectedFuelAverageAlertService expectedFuelAverageAlertService,
             Features.Vehicle.Services.IGPSService? gpsService = null,
             ISystemConfigurationService? systemConfigService = null,
             Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
@@ -63,6 +74,7 @@ namespace FMS.Application.Services
             _mediator = mediator;
             _context = context;
             _logger = logger;
+            _expectedFuelAverageAlertService = expectedFuelAverageAlertService;
             _gpsService = gpsService;
             _systemConfigService = systemConfigService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
@@ -677,6 +689,9 @@ namespace FMS.Application.Services
 
                     // Check if vehicle GPS is offline and create alert if needed
                     await CheckVehicleGpsOfflineAsync(transactionData);
+
+                    // Check whether this fueling breached the vehicle's configured expected fuel average.
+                    await _expectedFuelAverageAlertService.CheckPumpTransactionAsync(transactionData, "PTS System");
                 }
                 else
                 {

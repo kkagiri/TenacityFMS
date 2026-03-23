@@ -1,0 +1,17 @@
+/**
+ * File: VehicleTrackingTrackPointsPanel.scss
+ * Purpose: Styles for the Track Points panel
+ * Last Modified: 2026-03-21
+ */
+
+.vt-trackpoints-panel {
+    &__header {
+        background: #faf9f8;
+        flex-shrink: 0;
+    }
+
+    &__summary {
+        min-width: 0;
+        white-space: nowrap;
+    }
+}

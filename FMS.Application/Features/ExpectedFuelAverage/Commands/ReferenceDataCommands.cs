@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -9,6 +10,7 @@ using FMS.Application.Features.ExpectedFuelAverage.DTOs;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
 using MediatR;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -25,12 +27,14 @@ public class CreateFuelRouteCommandHandler : IRequestHandler<CreateFuelRouteComm
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CreateFuelRouteCommandHandler> _logger;
 
-    public CreateFuelRouteCommandHandler(GpsdataContext context, IMapper mapper, ILogger<CreateFuelRouteCommandHandler> logger)
+    public CreateFuelRouteCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<CreateFuelRouteCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -57,6 +61,8 @@ public class CreateFuelRouteCommandHandler : IRequestHandler<CreateFuelRouteComm
             if (exists)
                 return FMSResponse<FuelRouteDTO>.Failed("A route with this name or from/to locations already exists");
 
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+
             var route = new FuelRoute
             {
                 Name = request.RouteDTO.Name,
@@ -68,7 +74,8 @@ public class CreateFuelRouteCommandHandler : IRequestHandler<CreateFuelRouteComm
                 RouteType = request.RouteDTO.RouteType,
                 SiteId = request.RouteDTO.SiteId,
                 IsActive = request.RouteDTO.IsActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = userId
             };
 
             _context.FuelRoutes.Add(route);
@@ -96,12 +103,14 @@ public class UpdateFuelRouteCommandHandler : IRequestHandler<UpdateFuelRouteComm
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<UpdateFuelRouteCommandHandler> _logger;
 
-    public UpdateFuelRouteCommandHandler(GpsdataContext context, IMapper mapper, ILogger<UpdateFuelRouteCommandHandler> logger)
+    public UpdateFuelRouteCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<UpdateFuelRouteCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -113,6 +122,18 @@ public class UpdateFuelRouteCommandHandler : IRequestHandler<UpdateFuelRouteComm
             if (route == null)
                 return FMSResponse<FuelRouteDTO>.NotFound("Fuel route not found");
 
+            // Check for duplicate name or from/to locations (excluding current route)
+            var duplicateExists = await _context.FuelRoutes.AnyAsync(r =>
+                r.Id != request.Id &&
+                (r.Name == request.RouteDTO.Name ||
+                 (r.FromLocation == request.RouteDTO.FromLocation && r.ToLocation == request.RouteDTO.ToLocation)),
+                cancellationToken);
+
+            if (duplicateExists)
+                return FMSResponse<FuelRouteDTO>.Failed("A route with this name or from/to locations already exists");
+
+            var userId = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system";
+
             route.Name = request.RouteDTO.Name;
             route.Description = request.RouteDTO.Description;
             route.FromLocation = request.RouteDTO.FromLocation;
@@ -123,6 +144,7 @@ public class UpdateFuelRouteCommandHandler : IRequestHandler<UpdateFuelRouteComm
             route.SiteId = request.RouteDTO.SiteId;
             route.IsActive = request.RouteDTO.IsActive;
             route.ModifiedAt = DateTime.UtcNow;
+            route.ModifiedBy = userId;
 
             await _context.SaveChangesAsync(cancellationToken);
 
@@ -201,12 +223,14 @@ public class CreateLoadClassificationCommandHandler : IRequestHandler<CreateLoad
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CreateLoadClassificationCommandHandler> _logger;
 
-    public CreateLoadClassificationCommandHandler(GpsdataContext context, IMapper mapper, ILogger<CreateLoadClassificationCommandHandler> logger)
+    public CreateLoadClassificationCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<CreateLoadClassificationCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -229,7 +253,8 @@ public class CreateLoadClassificationCommandHandler : IRequestHandler<CreateLoad
                 MaxWeightTonnes = request.ClassificationDTO.MaxWeightTonnes,
                 SortOrder = request.ClassificationDTO.SortOrder,
                 IsActive = request.ClassificationDTO.IsActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system"
             };
 
             _context.LoadClassifications.Add(classification);
@@ -257,12 +282,14 @@ public class UpdateLoadClassificationCommandHandler : IRequestHandler<UpdateLoad
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<UpdateLoadClassificationCommandHandler> _logger;
 
-    public UpdateLoadClassificationCommandHandler(GpsdataContext context, IMapper mapper, ILogger<UpdateLoadClassificationCommandHandler> logger)
+    public UpdateLoadClassificationCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<UpdateLoadClassificationCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -355,12 +382,14 @@ public class CreateUsageIntensityCommandHandler : IRequestHandler<CreateUsageInt
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<CreateUsageIntensityCommandHandler> _logger;
 
-    public CreateUsageIntensityCommandHandler(GpsdataContext context, IMapper mapper, ILogger<CreateUsageIntensityCommandHandler> logger)
+    public CreateUsageIntensityCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<CreateUsageIntensityCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
@@ -382,7 +411,8 @@ public class CreateUsageIntensityCommandHandler : IRequestHandler<CreateUsageInt
                 TypicalHoursPerDay = request.IntensityDTO.TypicalHoursPerDay,
                 SortOrder = request.IntensityDTO.SortOrder,
                 IsActive = request.IntensityDTO.IsActive,
-                CreatedAt = DateTime.UtcNow
+                CreatedAt = DateTime.UtcNow,
+                CreatedBy = _httpContextAccessor.HttpContext?.User?.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? "system"
             };
 
             _context.UsageIntensities.Add(intensity);
@@ -410,12 +440,14 @@ public class UpdateUsageIntensityCommandHandler : IRequestHandler<UpdateUsageInt
 {
     private readonly GpsdataContext _context;
     private readonly IMapper _mapper;
+    private readonly IHttpContextAccessor _httpContextAccessor;
     private readonly ILogger<UpdateUsageIntensityCommandHandler> _logger;
 
-    public UpdateUsageIntensityCommandHandler(GpsdataContext context, IMapper mapper, ILogger<UpdateUsageIntensityCommandHandler> logger)
+    public UpdateUsageIntensityCommandHandler(GpsdataContext context, IMapper mapper, IHttpContextAccessor httpContextAccessor, ILogger<UpdateUsageIntensityCommandHandler> logger)
     {
         _context = context;
         _mapper = mapper;
+        _httpContextAccessor = httpContextAccessor;
         _logger = logger;
     }
 
