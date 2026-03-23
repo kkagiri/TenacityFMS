@@ -523,6 +523,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<FMS.Application.Features.EventEngine.Expressions.ExpressionCooldownService>();
             services.AddScoped<FMS.Application.Features.EventEngine.Engine.IEventExpressionEngine, FMS.Application.Features.EventEngine.Engine.EventExpressionEngine>();
             services.AddScoped<FMS.Application.Features.EventEngine.Engine.EventLogService>();
+            services.AddScoped<FMS.Application.Features.ExpectedFuelAverage.Services.IExpectedFuelAverageAlertService, FMS.Application.Features.ExpectedFuelAverage.Services.ExpectedFuelAverageAlertService>();
 
             // Register additional missing services from WebClient
             services.AddScoped<FMS.Application.Features.Notification.Services.AlertConfiguration.IAlertConfigurationService, FMS.Application.Features.Notification.Services.AlertConfiguration.AlertConfigurationService>();

@@ -50,7 +50,7 @@ namespace FMS.Application.Services
         private readonly Features.Vehicle.Services.IGPSService? _gpsService;
         private readonly ISystemConfigurationService? _systemConfigService;
         private readonly Features.Vehicle.Services.IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
-        private readonly IExpectedFuelAverageAlertService _expectedFuelAverageAlertService;
+        private readonly IExpectedFuelAverageAlertService? _expectedFuelAverageAlertService;
 
         public TransactionCompletionService(
             DeviceConnectionTracker deviceConnectionTracker,
@@ -61,8 +61,8 @@ namespace FMS.Application.Services
             IMediator mediator,
             GpsdataContext context,
             ILogger<TransactionCompletionService> logger,
-            IExpectedFuelAverageAlertService expectedFuelAverageAlertService,
             Features.Vehicle.Services.IGPSService? gpsService = null,
+            IExpectedFuelAverageAlertService? expectedFuelAverageAlertService = null,
             ISystemConfigurationService? systemConfigService = null,
             Features.Vehicle.Services.IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null)
         {
@@ -691,7 +691,8 @@ namespace FMS.Application.Services
                     await CheckVehicleGpsOfflineAsync(transactionData);
 
                     // Check whether this fueling breached the vehicle's configured expected fuel average.
-                    await _expectedFuelAverageAlertService.CheckPumpTransactionAsync(transactionData, "PTS System");
+                    if (_expectedFuelAverageAlertService != null)
+                        await _expectedFuelAverageAlertService.CheckPumpTransactionAsync(transactionData, "PTS System");
                 }
                 else
                 {
