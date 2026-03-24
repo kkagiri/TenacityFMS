@@ -1,3 +1,14 @@
+/**
+ * File: PTSDeviceConnection.cs
+ * Purpose: Manages a single live WebSocket session to a PTS device, including request/response correlation.
+ * Dependencies: System.Net.WebSockets, Newtonsoft.Json, MediatR, DeviceConnectionTracker
+ * Last Modified: 2026-03-24
+ *
+ * Key Functions:
+ * - StartAsync(): Starts the receive loop for a connected PTS device.
+ * - SendPTSMessageAsync(): Sends a correlated command and awaits the device response.
+ * - HealthCheckAsync(): Verifies the connection is still open and not being disposed.
+ */
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -745,7 +756,7 @@ namespace FMS.Application.Communication.webSocket
 
             _logger.LogInformation("Received successful response for correlation ID {CorrelationId} from device {DeviceId}",
                 correlationId, _deviceId);
-            return tcs.Task.Result;
+            return await tcs.Task;
 
         }
 
@@ -802,7 +813,25 @@ namespace FMS.Application.Communication.webSocket
         {
             try
             {
-                return true;
+                if (Interlocked.CompareExchange(ref _isDisposed, 0, 0) == 1)
+                {
+                    _logger.LogDebug("Health check failed for device {DeviceId}: connection is disposed", _deviceId);
+                    return false;
+                }
+
+                if (_cancellationTokenSource?.IsCancellationRequested == true)
+                {
+                    _logger.LogDebug("Health check failed for device {DeviceId}: cancellation requested", _deviceId);
+                    return false;
+                }
+
+                var isOpen = _webSocket.State == WebSocketState.Open;
+                if (!isOpen)
+                {
+                    _logger.LogDebug("Health check failed for device {DeviceId}: WebSocket state is {State}", _deviceId, _webSocket.State);
+                }
+
+                return isOpen;
             }
             catch (Exception ex)
             {
