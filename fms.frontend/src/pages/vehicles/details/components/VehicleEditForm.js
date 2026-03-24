@@ -21,6 +21,7 @@ import Form, {
 } from "devextreme-react/form";
 import { SelectBox, TextBox, NumberBox, CheckBox } from "devextreme-react";
 import Button from "devextreme-react/button";
+import notify from "devextreme/ui/notify";
 import "./VehicleEditForm.scss";
 
 // import Actions
@@ -31,6 +32,7 @@ import { fetchVehicleManufacturers } from "../../../../redux/actions/vehicleManu
 import { fetchSiteList } from "../../../../redux/actions/siteActions";
 import { fetchEmployees } from "../../../../redux/actions/employeeActions";
 import { fetchExpectedAvg } from "../../../../redux/actions/expectedAvgActions";
+import EmployeeQuickAddSelect from "../../shared/EmployeeQuickAddSelect";
 
 const MOVEMENT_PROFILE_OPTIONS = [
   { id: 0, name: "Undefined" },
@@ -67,15 +69,20 @@ const VehicleEditForm = ({
         hyoungNo: vehicle.hyoungNo || "",
         numberPlate: vehicle.numberPlate || "",
         yom: vehicle.yom || "",
-        vehicleTypeId: vehicle.vehicleTypeId || null,
-        vehicleModelId: vehicle.vehicleModelId || null,
-        vehicleManufacturerId: vehicle.vehicleManufacturerId || null,
-        workingSiteId: vehicle.workingSiteId || null,
-        defaultEmployeeId: vehicle.defaultEmployeeId || null,
-        defaultExptdAvgid: vehicle.defaultExptdAvgid || null,
+        vehicleTypeId: vehicle.vehicleTypeId ?? vehicle.VehicleTypeId ?? vehicle.vehicleType?.id ?? null,
+        vehicleModelId: vehicle.vehicleModelId ?? vehicle.VehicleModelId ?? vehicle.vehicleModel?.id ?? null,
+        vehicleManufacturerId:
+          vehicle.vehicleManufacturerId ??
+          vehicle.VehicleManufacturerId ??
+          vehicle.vehicleManufacturer?.id ??
+          null,
+        workingSiteId: vehicle.workingSiteId ?? vehicle.WorkingSiteId ?? vehicle.workingSite?.id ?? null,
+        defaultEmployeeId:
+          vehicle.defaultEmployeeId ?? vehicle.DefaultEmployeeId ?? vehicle.defaultDriver?.id ?? null,
+        defaultExptdAvgid: vehicle.defaultExptdAvgid ?? vehicle.DefaultExptdAvgid ?? null,
         fuelTankCapacity: vehicle.fuelTankCapacity || null,
         isFullTankPolicy: vehicle.IsFullTankPolicy || false,
-        passenger: vehicle.passenger || "",
+        passenger: vehicle.passenger ?? vehicle.Passenger ?? "",
         currentPhysicalReading: vehicle.currentPhysicalReading || "",
         excessWorkingHrCost: vehicle.excessWorkingHrCost || 0,
         averageKmL: vehicle.averageKmL || false,
@@ -166,6 +173,16 @@ const VehicleEditForm = ({
     if (e && e.preventDefault) {
       e.preventDefault();
     }
+
+    if (
+      formData?.fuelTankCapacity === null ||
+      formData?.fuelTankCapacity === undefined ||
+      formData?.fuelTankCapacity === ""
+    ) {
+      notify("Fuel tank capacity is required", "error", 3000);
+      return;
+    }
+
     if (onSave) {
       onSave(formData);
       setIsEditingInternal(false); // Close edit mode after save
@@ -267,15 +284,20 @@ const VehicleEditForm = ({
         hyoungNo: vehicle.hyoungNo || "",
         numberPlate: vehicle.numberPlate || "",
         yom: vehicle.yom || "",
-        vehicleTypeId: vehicle.vehicleTypeId || null,
-        vehicleModelId: vehicle.vehicleModelId || null,
-        vehicleManufacturerId: vehicle.vehicleManufacturerId || null,
-        workingSiteId: vehicle.workingSiteId || null,
-        defaultEmployeeId: vehicle.defaultEmployeeId || null,
-        defaultExptdAvgid: vehicle.defaultExptdAvgid || null,
+        vehicleTypeId: vehicle.vehicleTypeId ?? vehicle.VehicleTypeId ?? vehicle.vehicleType?.id ?? null,
+        vehicleModelId: vehicle.vehicleModelId ?? vehicle.VehicleModelId ?? vehicle.vehicleModel?.id ?? null,
+        vehicleManufacturerId:
+          vehicle.vehicleManufacturerId ??
+          vehicle.VehicleManufacturerId ??
+          vehicle.vehicleManufacturer?.id ??
+          null,
+        workingSiteId: vehicle.workingSiteId ?? vehicle.WorkingSiteId ?? vehicle.workingSite?.id ?? null,
+        defaultEmployeeId:
+          vehicle.defaultEmployeeId ?? vehicle.DefaultEmployeeId ?? vehicle.defaultDriver?.id ?? null,
+        defaultExptdAvgid: vehicle.defaultExptdAvgid ?? vehicle.DefaultExptdAvgid ?? null,
         fuelTankCapacity: vehicle.fuelTankCapacity || null,
         isFullTankPolicy: vehicle.isFullTankPolicy || false,
-        passenger: vehicle.passenger || "",
+        passenger: vehicle.passenger ?? vehicle.Passenger ?? "",
         currentPhysicalReading: vehicle.currentPhysicalReading || "",
         excessWorkingHrCost: vehicle.excessWorkingHrCost || 0,
         averageKmL: vehicle.averageKmL || false,
@@ -436,7 +458,7 @@ const VehicleEditForm = ({
 
             <SimpleItem
               dataField="fuelTankCapacity"
-              caption="Full Tank Capacity"
+              caption="Fuel Tank Capacity (L)"
               editorOptions={{
                 placeholder: "Enter Fuel tank capacity",
                 onValueChanged: (e) =>
@@ -444,7 +466,9 @@ const VehicleEditForm = ({
                 readOnly: isFormDisabled,
                 stylingMode: isFormDisabled ? "outlined" : "outlined",
               }}
-            />
+            >
+              <RequiredRule message="Fuel tank capacity is required" />
+            </SimpleItem>
             <SimpleItem
               dataField="isFullTankPolicy"
               caption="Full Tank Policy"
@@ -512,9 +536,9 @@ const VehicleEditForm = ({
 
             <SimpleItem
               dataField="passenger"
-              caption="Passenger Capacity"
+              caption="Passenger"
               editorOptions={{
-                placeholder: "Enter passenger capacity",
+                placeholder: "Enter passenger",
                 onValueChanged: (e) => handleFieldChange("passenger", e.value),
                 readOnly: isFormDisabled,
                 stylingMode: isFormDisabled ? "outlined" : "outlined",
@@ -543,17 +567,21 @@ const VehicleEditForm = ({
             <SimpleItem
               dataField="defaultEmployeeId"
               caption="Default Employee"
-              editorType="dxSelectBox"
-              editorOptions={{
-                dataSource: employees,
-                valueExpr: "id",
-                displayExpr: "fullName",
-                placeholder: "Select default employee",
-                onValueChanged: (e) =>
-                  handleFieldChange("defaultEmployeeId", e.value),
-                readOnly: isFormDisabled,
-                stylingMode: isFormDisabled ? "outlined" : "outlined",
-              }}
+              render={() => (
+                <EmployeeQuickAddSelect
+                  employees={employees}
+                  value={formData.defaultEmployeeId}
+                  onValueChanged={(value) =>
+                    handleFieldChange("defaultEmployeeId", value)
+                  }
+                  onEmployeesChange={setEmployees}
+                  sites={sites}
+                  placeholder="Select default employee"
+                  disabled={isFormDisabled}
+                  readOnly={isFormDisabled}
+                  showHint={false}
+                />
+              )}
             />
 
             <SimpleItem

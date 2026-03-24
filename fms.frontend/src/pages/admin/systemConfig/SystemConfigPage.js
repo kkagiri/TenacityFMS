@@ -46,6 +46,9 @@ import SystemConfigViewPanel from "./components/SystemConfigViewPanel";
 import SystemConfigFilters from "./components/SystemConfigFilters";
 import SystemConfigBulkActions from "./components/SystemConfigBulkActions";
 import SystemConfigImport from "./components/SystemConfigImport";
+import CalibrationLearningConfigSection, {
+  CALIBRATION_LEARNING_CONFIG_DEFINITIONS,
+} from "./components/CalibrationLearningConfigSection";
 
 const SystemConfigPage = () => {
   const dispatch = useDispatch();
@@ -213,6 +216,62 @@ const SystemConfigPage = () => {
     [dispatch]
   );
 
+  const handleFilterToCalibration = useCallback(() => {
+    setShowFilters(true);
+    dispatch(
+      setSystemConfigurationFilter({
+        ...filters,
+        category: "Calibration",
+      })
+    );
+  }, [dispatch, filters]);
+
+  const handleInitializeCalibrationConfigs = useCallback(async () => {
+    const existingKeys = new Set(
+      (Array.isArray(configurations) ? configurations : [])
+        .map((item) => item?.configurationKey)
+        .filter(Boolean)
+    );
+
+    const missingDefinitions = CALIBRATION_LEARNING_CONFIG_DEFINITIONS.filter(
+      (definition) => !existingKeys.has(definition.configurationKey)
+    );
+
+    if (missingDefinitions.length === 0) {
+      notify("Calibration learning settings are already initialized.", "info", 3000);
+      return;
+    }
+
+    try {
+      for (const definition of missingDefinitions) {
+        await dispatch(
+          createSystemConfiguration({
+            configurationKey: definition.configurationKey,
+            configurationValue: definition.defaultValue,
+            description: definition.description,
+            dataType: definition.dataType,
+            category: definition.category,
+            isActive: true,
+            isEditable: true,
+            validationPattern: definition.validationPattern || "",
+            defaultValue: definition.defaultValue,
+            minValue: definition.minValue ?? null,
+            maxValue: definition.maxValue ?? null,
+          })
+        );
+      }
+
+      notify(
+        `Initialized ${missingDefinitions.length} calibration learning configuration${missingDefinitions.length === 1 ? "" : "s"}.`,
+        "success",
+        3500
+      );
+      handleRefresh();
+    } catch (error) {
+      notify("Failed to initialize calibration learning settings.", "error", 4000);
+    }
+  }, [configurations, dispatch, handleRefresh]);
+
   const handleSelectionChanged = useCallback((e) => {
     // Filter out category nodes from selection (only allow config items to be selected)
     const configKeys = e.selectedRowKeys.filter(
@@ -373,6 +432,15 @@ const SystemConfigPage = () => {
   return (
     <ScrollView className="">
       <div className=" content content-block system-config-page">
+        <CalibrationLearningConfigSection
+          configurations={configurations}
+          loading={loading}
+          saving={saving}
+          onEdit={handleEdit}
+          onInitializeMissing={handleInitializeCalibrationConfigs}
+          onFilterToCalibration={handleFilterToCalibration}
+        />
+
         {/* Filters Panel */}
         {showFilters && (
           <div className="tw-mb-6 tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">

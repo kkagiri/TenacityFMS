@@ -1,3 +1,13 @@
+/**
+ * File: PTSDeviceEditForm.js
+ * Purpose: Embedded PTS device settings form with stable edit/read transitions.
+ * Dependencies: devextreme-react/form, devextreme-react/button, ptsDeviceActions, siteActions.
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - buildFormData(): Normalizes API device flags into checkbox-friendly booleans.
+ * - buildSavePayload(): Converts form booleans back into API payload values.
+ */
 import React from "react";
 import { Form, SimpleItem, GroupItem, Label } from "devextreme-react/form";
 import { Button } from "devextreme-react/button";
@@ -7,10 +17,66 @@ import { updatePTSDevice } from "../../../../redux/actions/ptsActions/ptsDeviceA
 import { fetchSiteList } from "../../../../redux/actions/siteActions";
 import "./PTSDeviceEditForm.scss";
 
-/**
- * PTSDeviceEditForm - Edit device settings
- * Similar to PTSDeviceForm but embedded in detail page
- */
+const BOOLEAN_FIELDS = [
+  "isActive",
+  "isAuthenticated",
+  "webSocketCapable",
+  "allowedForDirectCommands",
+  "autoAssignUserMasterTag",
+  "enableLocationValidation",
+  "requireVehicleProximity",
+  "requireMobileAppProximity",
+  "bypassOnGPSFailure",
+];
+
+const RELATION_FIELDS = [
+  "configuration",
+  "intankdeliveries",
+  "ptsDevicePendingCommands",
+  "pumptransactions",
+  "tanks",
+  "deviceConnections",
+  "siteNavigation",
+  "notifications",
+  "notificationPolicies",
+];
+
+const cloneValue = (value) => JSON.parse(JSON.stringify(value || {}));
+
+const toBooleanFlag = (value) => value === true || value === 1;
+
+const buildFormData = (device) => {
+  const source = cloneValue(device);
+
+  BOOLEAN_FIELDS.forEach((field) => {
+    source[field] = toBooleanFlag(source[field]);
+  });
+
+  return {
+    ...source,
+    portNumber: source.portNumber ?? null,
+    site: source.site ?? null,
+    vehicleProximityRadius: source.vehicleProximityRadius ?? 100,
+    mobileAppProximityRadius: source.mobileAppProximityRadius ?? 50,
+    minimumGPSAccuracy: source.minimumGPSAccuracy ?? 20,
+    proximityGracePeriodMeters: source.proximityGracePeriodMeters ?? 10,
+  };
+};
+
+const buildSavePayload = (formData) => {
+  const payload = cloneValue(formData);
+
+  BOOLEAN_FIELDS.forEach((field) => {
+    payload[field] = payload[field] ? 1 : 0;
+  });
+
+  RELATION_FIELDS.forEach((field) => {
+    delete payload[field];
+  });
+
+  return payload;
+};
+
 const PTSDeviceEditForm = ({ device, onSave }) => {
   const dispatch = useDispatch();
   const { sites } = useSelector((state) => state.site);
@@ -18,10 +84,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   // Ensure sites array is available for the SelectBox
   const sitesDataSource = Array.isArray(sites) ? sites : [];
 
-  // Deep clone the device to avoid mutating Redux state
-  const [formData, setFormData] = React.useState(() =>
-    device ? JSON.parse(JSON.stringify(device)) : {}
-  );
+  const [formData, setFormData] = React.useState(() => buildFormData(device));
   const [saving, setSaving] = React.useState(false);
   const [isEditing, setIsEditing] = React.useState(false);
 
@@ -31,30 +94,14 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   }, [dispatch]);
 
   React.useEffect(() => {
-    // Deep clone when device prop changes to avoid Redux state mutation
-    if (device) {
-      setFormData(JSON.parse(JSON.stringify(device)));
+    if (device && !isEditing) {
+      setFormData(buildFormData(device));
     }
-  }, [device]);
+  }, [device, isEditing]);
 
   const handleFieldChange = (e) => {
     const dataField = e.dataField;
-    let value = e.value;
-
-    // Convert boolean checkboxes to sbyte (0 or 1)
-    if (
-      dataField === "isActive" ||
-      dataField === "isAuthenticated" ||
-      dataField === "webSocketCapable" ||
-      dataField === "allowedForDirectCommands" ||
-      dataField === "autoAssignUserMasterTag" ||
-      dataField === "enableLocationValidation" ||
-      dataField === "requireVehicleProximity" ||
-      dataField === "requireMobileAppProximity" ||
-      dataField === "bypassOnGPSFailure"
-    ) {
-      value = value ? 1 : 0;
-    }
+    const value = e.value;
 
     setFormData((prev) => ({
       ...prev,
@@ -65,42 +112,18 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Convert boolean fields to sbyte (0 or 1) before sending to API
-      const booleanFields = [
-        "isActive",
-        "isAuthenticated",
-        "webSocketCapable",
-        "allowedForDirectCommands",
-        "autoAssignUserMasterTag",
-        "enableLocationValidation",
-        "requireVehicleProximity",
-        "requireMobileAppProximity",
-        "bypassOnGPSFailure",
-      ];
+      const dataToSend = buildSavePayload(formData);
+      const result = await dispatch(updatePTSDevice(device.ptsid, dataToSend));
+      const savedDevice = result?.data || dataToSend;
 
-      const dataToSend = { ...formData };
-      booleanFields.forEach((field) => {
-        if (dataToSend[field] === true) {
-          dataToSend[field] = 1;
-        } else if (dataToSend[field] === false) {
-          dataToSend[field] = 0;
-        }
-      });
+      setFormData(buildFormData(savedDevice));
+      setIsEditing(false);
 
-      // Remove navigation properties that shouldn't be sent
-      delete dataToSend.configuration;
-      delete dataToSend.intankdeliveries;
-      delete dataToSend.ptsDevicePendingCommands;
-      delete dataToSend.pumptransactions;
-      delete dataToSend.tanks;
-      delete dataToSend.deviceConnections;
-      delete dataToSend.siteNavigation;
-      delete dataToSend.notifications;
-      delete dataToSend.notificationPolicies;
+      if (onSave) {
+        await Promise.resolve(onSave(savedDevice));
+      }
 
-      await dispatch(updatePTSDevice(device.ptsid, dataToSend));
       notify("Device settings updated successfully", "success", 3000);
-      if (onSave) onSave();
     } catch (error) {
       notify(`Error updating device: ${error.message}`, "error", 3000);
     } finally {
@@ -109,9 +132,8 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
   };
 
   const handleReset = () => {
-    // Deep clone to avoid Redux state mutation
     if (device) {
-      setFormData(JSON.parse(JSON.stringify(device)));
+      setFormData(buildFormData(device));
     }
     setIsEditing(false);
     notify("Changes discarded", "info", 2000);
@@ -209,14 +231,17 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
           <Label text="Authentication Type" />
         </SimpleItem>
 
-        <GroupItem colSpan={2}>
-          <GroupItem colCount={4}>
+        <GroupItem
+          colSpan={2}
+          caption="Connection & Access"
+          cssClass="pts-device-edit-form__section pts-device-edit-form__section--toggles"
+        >
+          <GroupItem colCount={2}>
             <SimpleItem
               dataField="isActive"
               editorType="dxCheckBox"
               editorOptions={{
-                text: "Is Active",
-                value: formData.isActive === 1,
+                text: "Device Active",
               }}
             />
 
@@ -225,7 +250,6 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               editorType="dxCheckBox"
               editorOptions={{
                 text: "Is Authenticated",
-                value: formData.isAuthenticated === 1,
               }}
             />
 
@@ -234,7 +258,6 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               editorType="dxCheckBox"
               editorOptions={{
                 text: "WebSocket Capable",
-                value: formData.webSocketCapable === 1,
               }}
             />
 
@@ -242,8 +265,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               dataField="allowedForDirectCommands"
               editorType="dxCheckBox"
               editorOptions={{
-                text: "Direct Commands",
-                value: formData.allowedForDirectCommands === 1,
+                text: "Allow Direct Commands",
               }}
             />
           </GroupItem>
@@ -253,20 +275,21 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
             editorType="dxCheckBox"
             editorOptions={{
               text: "Auto-assign User Master Tag",
-              value: formData.autoAssignUserMasterTag === 1,
             }}
           />
         </GroupItem>
 
-        {/* Location Validation Settings */}
-        <GroupItem colSpan={2} caption="Location Validation Settings">
+        <GroupItem
+          colSpan={2}
+          caption="Location Validation"
+          cssClass="pts-device-edit-form__section pts-device-edit-form__section--toggles"
+        >
           <GroupItem colCount={2}>
             <SimpleItem
               dataField="enableLocationValidation"
               editorType="dxCheckBox"
               editorOptions={{
                 text: "Enable Location Validation",
-                value: formData.enableLocationValidation === 1,
               }}
             />
 
@@ -275,7 +298,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               editorType="dxCheckBox"
               editorOptions={{
                 text: "Bypass on GPS Failure",
-                value: formData.bypassOnGPSFailure === 1,
+                disabled: !formData.enableLocationValidation,
               }}
             />
           </GroupItem>
@@ -286,7 +309,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               editorType="dxCheckBox"
               editorOptions={{
                 text: "Require Vehicle Proximity",
-                value: formData.requireVehicleProximity === 1,
+                disabled: !formData.enableLocationValidation,
               }}
             />
 
@@ -298,6 +321,9 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
                 max: 1000,
                 showSpinButtons: true,
                 format: "#0 meters",
+                disabled:
+                  !formData.enableLocationValidation ||
+                  !formData.requireVehicleProximity,
               }}
             >
               <Label text="Vehicle Proximity Radius (m)" />
@@ -310,7 +336,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
               editorType="dxCheckBox"
               editorOptions={{
                 text: "Require Mobile App Proximity",
-                value: formData.requireMobileAppProximity === 1,
+                disabled: !formData.enableLocationValidation,
               }}
             />
 
@@ -322,6 +348,9 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
                 max: 500,
                 showSpinButtons: true,
                 format: "#0 meters",
+                disabled:
+                  !formData.enableLocationValidation ||
+                  !formData.requireMobileAppProximity,
               }}
             >
               <Label text="Mobile App Proximity Radius (m)" />
@@ -338,6 +367,7 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
                 showSpinButtons: true,
                 format: "#0 meters",
                 placeholder: "Default: 20m",
+                disabled: !formData.enableLocationValidation,
               }}
             >
               <Label text="Minimum GPS Accuracy (m)" />
@@ -352,33 +382,32 @@ const PTSDeviceEditForm = ({ device, onSave }) => {
                 showSpinButtons: true,
                 format: "#0 meters",
                 placeholder: "Default: 10m",
+                disabled: !formData.enableLocationValidation,
               }}
             >
               <Label text="Grace Period Tolerance (m)" />
             </SimpleItem>
           </GroupItem>
         </GroupItem>
-
-        <GroupItem colSpan={2}>
-          {isEditing && (
-            <div className="form-actions">
-              <Button
-                text="Cancel"
-                type="normal"
-                onClick={handleReset}
-                disabled={saving}
-              />
-              <Button
-                text="Save Changes"
-                type="success"
-                onClick={handleSave}
-                disabled={saving}
-                icon={saving ? "refresh" : "save"}
-              />
-            </div>
-          )}
-        </GroupItem>
       </Form>
+
+      {isEditing && (
+        <div className="form-actions">
+          <Button
+            text="Cancel"
+            type="normal"
+            onClick={handleReset}
+            disabled={saving}
+          />
+          <Button
+            text="Save Changes"
+            type="success"
+            onClick={handleSave}
+            disabled={saving}
+            icon={saving ? "refresh" : "save"}
+          />
+        </div>
+      )}
     </div>
   );
 };

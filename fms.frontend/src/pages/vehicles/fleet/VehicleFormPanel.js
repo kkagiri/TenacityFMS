@@ -27,6 +27,7 @@ import { fetchVehicleManufacturers } from "../../../redux/actions/vehicleManufac
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchEmployees } from "../../../redux/actions/employeeActions";
 import { fetchExpectedAvg } from "../../../redux/actions/expectedAvgActions";
+import EmployeeQuickAddSelect from "../shared/EmployeeQuickAddSelect";
 
 const MOVEMENT_PROFILE_OPTIONS = [
     { id: 0, name: "Undefined" },
@@ -39,16 +40,21 @@ const buildFormData = (v) => ({
     hyoungNo: v?.hyoungNo || "",
     numberPlate: v?.numberPlate || "",
     yom: v?.yom || "",
-    vehicleTypeId: v?.vehicleTypeId || null,
-    vehicleModelId: v?.vehicleModelId || null,
-    vehicleManufacturerId: v?.vehicleManufacturerId || null,
-    workingSiteId: v?.workingSiteId || null,
-    defaultEmployeeId: v?.defaultEmployeeId || null,
-    defaultExptdAvgid: v?.defaultExptdAvgid || null,
+    vehicleTypeId: v?.vehicleTypeId ?? v?.VehicleTypeId ?? v?.vehicleType?.id ?? null,
+    vehicleModelId: v?.vehicleModelId ?? v?.VehicleModelId ?? v?.vehicleModel?.id ?? null,
+    vehicleManufacturerId:
+        v?.vehicleManufacturerId ??
+        v?.VehicleManufacturerId ??
+        v?.vehicleManufacturer?.id ??
+        null,
+    workingSiteId: v?.workingSiteId ?? v?.WorkingSiteId ?? v?.workingSite?.id ?? null,
+    defaultEmployeeId:
+        v?.defaultEmployeeId ?? v?.DefaultEmployeeId ?? v?.defaultDriver?.id ?? null,
+    defaultExptdAvgid: v?.defaultExptdAvgid ?? v?.DefaultExptdAvgid ?? null,
     fuelTankCapacity: v?.fuelTankCapacity || null,
     capacity: v?.capacity || "",
     isFullTankPolicy: v?.isFullTankPolicy || v?.IsFullTankPolicy || false,
-    passenger: v?.passenger || "",
+    passenger: v?.passenger ?? v?.Passenger ?? "",
     currentPhysicalReading: v?.currentPhysicalReading || "",
     excessWorkingHrCost: v?.excessWorkingHrCost || 0,
     averageKmL: v?.averageKmL || false,
@@ -299,6 +305,13 @@ const VehicleFormPanel = ({
     const validate = () => {
         const e = {};
         if (!form.hyoungNo?.trim()) e.hyoungNo = "Hyoung No is required";
+        if (
+            form.fuelTankCapacity === null ||
+            form.fuelTankCapacity === undefined ||
+            form.fuelTankCapacity === ""
+        ) {
+            e.fuelTankCapacity = "Fuel tank capacity is required";
+        }
         setErrors(e);
         return Object.keys(e).length === 0;
     };
@@ -370,10 +383,19 @@ const VehicleFormPanel = ({
 
                             {/* Full Tank Capacity */}
                             <div>
-                                <label className="m365-field__label">Fuel Tank Capacity (L)</label>
+                                <label className="m365-field__label">
+                                    Fuel Tank Capacity (L)
+                                    <span
+                                        className="m365-info-tooltip"
+                                        data-tip="This value hard-limits fueling so transactions cannot exceed the configured tank capacity."
+                                        style={{ marginLeft: 6 }}
+                                    >
+                                        <i className="fa-light fa-circle-info" />
+                                    </span>
+                                </label>
                                 <input
                                     type="number"
-                                    className="m365-input"
+                                    className={`m365-input${errors.fuelTankCapacity ? " m365-input--error" : ""}`}
                                     placeholder="Enter capacity"
                                     value={form.fuelTankCapacity ?? ""}
                                     onChange={(e) =>
@@ -381,6 +403,9 @@ const VehicleFormPanel = ({
                                     }
                                     min={0}
                                 />
+                                {errors.fuelTankCapacity && (
+                                    <span className="m365-field__error">{errors.fuelTankCapacity}</span>
+                                )}
                             </div>
                         </div>
                     </div>
@@ -448,12 +473,12 @@ const VehicleFormPanel = ({
                                 />
                             </div>
 
-                            {/* Passenger Capacity */}
+                            {/* Passenger */}
                             <div>
-                                <label className="m365-field__label">Passenger Capacity</label>
+                                <label className="m365-field__label">Passenger</label>
                                 <input
                                     className="m365-input"
-                                    placeholder="Enter passenger capacity"
+                                    placeholder="Enter passenger"
                                     value={form.passenger}
                                     onChange={(e) => set("passenger", e.target.value)}
                                 />
@@ -495,17 +520,13 @@ const VehicleFormPanel = ({
                             {/* Default Employee */}
                             <div>
                                 <label className="m365-field__label">Default Employee</label>
-                                <SelectBox
-                                    dataSource={employees}
+                                <EmployeeQuickAddSelect
+                                    employees={employees}
                                     value={form.defaultEmployeeId}
-                                    valueExpr="id"
-                                    displayExpr="fullName"
-                                    onValueChanged={(e) => set("defaultEmployeeId", e.value)}
+                                    onValueChanged={(value) => set("defaultEmployeeId", value)}
+                                    onEmployeesChange={setEmployees}
+                                    sites={sites}
                                     placeholder="Select default employee"
-                                    searchEnabled
-                                    showClearButton
-                                    height={34}
-                                    stylingMode="outlined"
                                 />
                             </div>
                         </div>

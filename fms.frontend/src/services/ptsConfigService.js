@@ -168,6 +168,25 @@ const ptsConfigService = {
   },
 
   /**
+   * Get the tanks configuration from a PTS device.
+   * Based on protocol 69. GetTanksConfiguration.
+   *
+   * @param {string} deviceId - The PTS device ID
+   * @returns {Promise<{isSuccess: boolean, data: {tanks: Array}, message: string}>}
+   */
+  getTanksConfiguration: async (deviceId) => {
+    try {
+      const response = await axiosInstance.get(
+        `${BASE_URL}/${deviceId}/config/tanks`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error getting tanks configuration:", error);
+      throw error;
+    }
+  },
+
+  /**
    * Get comprehensive diagnostics from a PTS device
    *
    * @param {string} deviceId - The PTS device ID
@@ -620,6 +639,73 @@ const ptsConfigService = {
       return response.data;
     } catch (error) {
       console.error("Error fetching tank calibration variances:", error);
+      throw error;
+    }
+  },
+
+  extractCalibrationLearningData: async (tankId, payload) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/learning/extract`,
+        payload,
+        { timeout: 120000 }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error extracting calibration learning data:", error);
+      throw error;
+    }
+  },
+
+  getCalibrationLearningCoverage: async (tankId) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/learning/coverage`
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching calibration learning coverage:", error);
+      throw error;
+    }
+  },
+
+  generateLearnedCalibrationChart: async (tankId) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/learning/generate`,
+        null,
+        { timeout: 120000 }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error generating learned calibration chart:", error);
+      throw error;
+    }
+  },
+
+  seedCalibrationLearning: async (tankId, snapshotId) => {
+    try {
+      const response = await axiosInstance.post(
+        `v1/tanks/${tankId}/calibration/learning/seed/${snapshotId}`,
+        null,
+        { timeout: 120000 }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error seeding calibration learning:", error);
+      throw error;
+    }
+  },
+
+  compareCalibrationLearningCharts: async (tankId, params = {}) => {
+    try {
+      const response = await axiosInstance.get(
+        `v1/tanks/${tankId}/calibration/learning/compare`,
+        { params }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error comparing calibration learning charts:", error);
       throw error;
     }
   },

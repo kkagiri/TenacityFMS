@@ -1,3 +1,9 @@
+/**
+ * File: PTSDeviceEditForm.scss
+ * Purpose: Layout and state styling for the embedded PTS device settings form.
+ * Dependencies: DevExtreme form markup, M365 button styles.
+ * Last Modified: 2026-03-23
+ */
 .pts-device-edit-form {
   .form-header {
     margin-bottom: 20px;
@@ -26,6 +32,46 @@
     }
   }
 
+  &__section {
+    margin-top: 6px;
+    padding: 18px;
+    border: 1px solid var(--m365-border-light, #edebe9);
+    border-radius: 12px;
+    background: linear-gradient(180deg, #ffffff 0%, #fbfbfa 100%);
+
+    .dx-form-group-caption {
+      margin-bottom: 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--m365-text, #201f1e);
+      letter-spacing: 0.01em;
+    }
+
+    .dx-field-item {
+      padding-bottom: 12px;
+    }
+  }
+
+  &__section--toggles {
+    .dx-checkbox {
+      min-height: 44px;
+      padding: 10px 12px;
+      border: 1px solid var(--m365-border-light, #edebe9);
+      border-radius: 10px;
+      background: #ffffff;
+    }
+
+    .dx-checkbox-text {
+      font-size: 13px;
+      color: var(--m365-text, #201f1e);
+    }
+
+    .dx-state-disabled.dx-checkbox {
+      background: var(--m365-bg-surface, #faf9f8);
+      opacity: 0.75;
+    }
+  }
+
   .form-actions {
     display: flex;
     justify-content: flex-end;
@@ -45,6 +91,21 @@
     &.dx-texteditor {
       border-color: transparent;
       background: var(--m365-bg-surface, #faf9f8);
+    }
+  }
+
+  @media (max-width: 768px) {
+    .form-header__row {
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .form-actions {
+      justify-content: stretch;
+
+      .dx-button {
+        flex: 1 1 0;
+      }
     }
   }
 }

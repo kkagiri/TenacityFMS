@@ -220,6 +220,68 @@ namespace FMS.Application.Services.Configuration
         }
         #endregion
 
+        #region FMS Learned Calibration Configuration
+        public async Task<bool> GetCalibrationLearningEnabledAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_LEARNING_ENABLED_KEY,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_LEARNING_ENABLED,
+                cancellationToken);
+        }
+
+        public async Task<int> GetCalibrationHeightIntervalMmAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_HEIGHT_INTERVAL_MM_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_HEIGHT_INTERVAL_MM,
+                cancellationToken);
+        }
+
+        public async Task<int> GetCalibrationMinObservationsPerIntervalAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_MIN_OBSERVATIONS_PER_INTERVAL_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_MIN_OBSERVATIONS_PER_INTERVAL,
+                cancellationToken);
+        }
+
+        public async Task<int> GetCalibrationStabilityWindowMinutesAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_STABILITY_WINDOW_MINUTES_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_STABILITY_WINDOW_MINUTES,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetCalibrationMaxHeightVarianceMmAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_MAX_HEIGHT_VARIANCE_MM_KEY,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_MAX_HEIGHT_VARIANCE_MM,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetCalibrationMinVolumeChangeLitresAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_MIN_VOLUME_CHANGE_LITRES_KEY,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_MIN_VOLUME_CHANGE_LITRES,
+                cancellationToken);
+        }
+
+        public async Task<int> GetCalibrationBackgroundTriggerThresholdAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_CALIBRATION_BACKGROUND_TRIGGER_THRESHOLD_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_CALIBRATION_BACKGROUND_TRIGGER_THRESHOLD,
+                cancellationToken);
+        }
+        #endregion
+
         #region Configuration Management
         public async Task<bool> UpdateConfigurationAsync(string key, string value, CancellationToken cancellationToken = default)
         {
@@ -582,6 +644,75 @@ namespace FMS.Application.Services.Configuration
                 SystemConfigurationConstants.DB_CONFIG_ITD_ALERT_AUTO_RESOLVE_MINUTES_KEY,
                 0,
                 SystemConfigurationConstants.DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdMinHeightChangeMmAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_MIN_HEIGHT_CHANGE_MM_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_MIN_HEIGHT_CHANGE_MM,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdMaxTempChangePerMinuteAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_MAX_TEMP_CHANGE_PER_MINUTE_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_MAX_TEMP_CHANGE_PER_MINUTE,
+                cancellationToken);
+        }
+        #endregion
+
+        #region Server-Side Delivery Detection Configuration
+        public async Task<bool> GetItdServerDetectionEnabledAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetBoolConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_ENABLED_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_ENABLED,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdServerDetectionNoiseBandLitersAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_NOISE_BAND_LITERS_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_NOISE_BAND_LITERS,
+                cancellationToken);
+        }
+
+        public async Task<decimal> GetItdServerDetectionMinRiseThresholdLitersAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetDecimalConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_MIN_RISE_THRESHOLD_LITERS_KEY,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_MIN_RISE_THRESHOLD_LITERS,
+                cancellationToken);
+        }
+
+        public async Task<int> GetItdServerDetectionStableReadingsRequiredAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_STABLE_READINGS_REQUIRED_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_STABLE_READINGS_REQUIRED,
+                cancellationToken);
+        }
+
+        public async Task<int> GetItdServerDetectionMaxDurationMinutesAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_MAX_DURATION_MINUTES_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_MAX_DURATION_MINUTES,
+                cancellationToken);
+        }
+
+        public async Task<int> GetItdServerDetectionDuplicateWindowMinutesAsync(CancellationToken cancellationToken = default)
+        {
+            return await GetConfigurationValueAsync(
+                SystemConfigurationConstants.DB_CONFIG_ITD_SERVER_DETECTION_DUPLICATE_WINDOW_MINUTES_KEY,
+                0,
+                SystemConfigurationConstants.DEFAULT_ITD_SERVER_DETECTION_DUPLICATE_WINDOW_MINUTES,
                 cancellationToken);
         }
         #endregion

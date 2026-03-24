@@ -131,9 +131,22 @@ const TankPage = () => {
     }, []);
 
     /* ── PTS link callbacks ── */
-    const onPTSLinked = useCallback(() => {
-        handleRefresh();
-    }, [handleRefresh]);
+    const onPTSLinked = useCallback(async (updatedTank = null) => {
+        const selectedTankId = updatedTank?.id || selectedTank?.id;
+
+        if (updatedTank) {
+            setSelectedTank(updatedTank);
+        }
+
+        const result = await handleRefresh();
+
+        if (selectedTankId && result?.success && Array.isArray(result.data)) {
+            const fresh = result.data.find((tankItem) => tankItem.id === selectedTankId);
+            if (fresh) {
+                setSelectedTank(fresh);
+            }
+        }
+    }, [handleRefresh, selectedTank, setSelectedTank]);
 
     /* ── Stats ── */
     const criticalCount = useMemo(
@@ -194,7 +207,7 @@ const TankPage = () => {
                         </button>
                         <div className="m365-tank-page__calibration-context">
                             <span className="m365-badge m365-badge--info">{selectedTank.name}</span>
-                            <span className="m365-badge m365-badge--neutral">Calibration Workspace</span>
+                            <span className="m365-badge m365-badge--neutral">PTS Calibration Workspace</span>
                         </div>
                     </div>
 

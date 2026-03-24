@@ -77,6 +77,8 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                     ? (decimal)Math.Abs(delivery.AbsoluteProductVolume.Value)
                     : 0m;
 
+                // === Plausibility checks to filter false positives from PTS probe noise ===
+
                 // Check minimum volume threshold
                 var minThreshold = await _configService.GetItdMinVolumeThresholdAsync(cancellationToken);
                 if (absoluteVolume < minThreshold)
@@ -88,6 +90,49 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
                     delivery.Status = "BelowThreshold";
                     await _context.SaveChangesAsync(cancellationToken);
                     return FMSResponse.SuccessResponse("Delivery below threshold - no alert created");
+                }
+
+                // Check minimum height change — small height delta (e.g. 5mm) is sensor noise, not a real delivery
+                var minHeightChangeMm = await _configService.GetItdMinHeightChangeMmAsync(cancellationToken);
+                var heightChange = (delivery.StartProductHeight.HasValue && delivery.EndProductHeight.HasValue)
+                    ? (decimal)Math.Abs(delivery.EndProductHeight.Value - delivery.StartProductHeight.Value)
+                    : (delivery.AbsoluteProductHeight.HasValue ? (decimal)Math.Abs(delivery.AbsoluteProductHeight.Value) : 0m);
+
+                if (heightChange > 0 && heightChange < minHeightChangeMm)
+                {
+                    _logger.LogInformation(
+                        "ITD DeliveryId {DeliveryId} rejected: height change {HeightMm}mm < minimum {MinMm}mm (sensor noise).",
+                        delivery.DeliveryId, heightChange, minHeightChangeMm);
+
+                    delivery.Status = "Rejected";
+                    await _context.SaveChangesAsync(cancellationToken);
+                    return FMSResponse.SuccessResponse($"Delivery rejected - height change {heightChange:F1}mm below {minHeightChangeMm}mm minimum");
+                }
+
+                // Check temperature plausibility — impossible temp change rate indicates probe anomaly
+                var maxTempChangePerMin = await _configService.GetItdMaxTempChangePerMinuteAsync(cancellationToken);
+                if (delivery.StartTemperature.HasValue && delivery.EndTemperature.HasValue
+                    && delivery.StartDateTime.HasValue && delivery.EndDateTime.HasValue)
+                {
+                    var durationMinutes = (decimal)(delivery.EndDateTime.Value - delivery.StartDateTime.Value).TotalMinutes;
+                    if (durationMinutes > 0)
+                    {
+                        var tempChange = (decimal)Math.Abs(delivery.EndTemperature.Value - delivery.StartTemperature.Value);
+                        var tempChangeRate = tempChange / durationMinutes;
+
+                        if (tempChangeRate > maxTempChangePerMin)
+                        {
+                            _logger.LogWarning(
+                                "ITD DeliveryId {DeliveryId} rejected: temperature change rate {Rate:F1}°C/min exceeds max {Max}°C/min " +
+                                "(Start={StartTemp}°C, End={EndTemp}°C, Duration={DurMin:F1}min). Probe anomaly suspected.",
+                                delivery.DeliveryId, tempChangeRate, maxTempChangePerMin,
+                                delivery.StartTemperature.Value, delivery.EndTemperature.Value, durationMinutes);
+
+                            delivery.Status = "Rejected";
+                            await _context.SaveChangesAsync(cancellationToken);
+                            return FMSResponse.SuccessResponse($"Delivery rejected - temperature change rate {tempChangeRate:F1}°C/min exceeds plausible limit");
+                        }
+                    }
                 }
 
                 // 1. Create alert/notification

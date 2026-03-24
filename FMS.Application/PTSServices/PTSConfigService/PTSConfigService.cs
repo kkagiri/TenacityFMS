@@ -188,10 +188,41 @@ namespace FMS.Application.PTSServices.PTSConfigService
             throw new NotImplementedException();
         }
 
-        public Task<FMSResponse<TanksConfigurationResponse>> GetTanksConfigurationAsync(string ptsDeviceId)
+        public async Task<FMSResponse<TanksConfigurationResponse>> GetTanksConfigurationAsync(string ptsDeviceId)
         {
-            _logger.LogWarning("GetTanksConfigurationAsync is not yet implemented.");
-            throw new NotImplementedException();
+            try
+            {
+                _logger.LogInformation("Requesting Tanks Configuration from PTS device {DeviceId}", ptsDeviceId);
+                var result = await _commandExecutor.ExecuteCommandAsync(ptsDeviceId, "GetTanksConfiguration", null);
+
+                if (!result.Success || result.CommandData == null)
+                {
+                    _logger.LogWarning("Failed to get Tanks Configuration from PTS device {DeviceId}. Error: {ErrorMessage}, Code: {ErrorCode}",
+                        ptsDeviceId, result.Message, result.Code);
+                    return FMSResponse<TanksConfigurationResponse>.Failed(result.Message ?? "Failed to retrieve Tanks Configuration from device.");
+                }
+
+                var data = JObject.FromObject(result.CommandData);
+                var tanksConfigResponse = data.ToObject<TanksConfigurationResponse>();
+
+                if (tanksConfigResponse == null)
+                {
+                    _logger.LogError("Failed to parse Tanks Configuration response from PTS device {DeviceId}. Data: {CommandData}", ptsDeviceId, result.CommandData);
+                    return FMSResponse<TanksConfigurationResponse>.Failed("Failed to parse Tanks Configuration response from device");
+                }
+
+                return FMSResponse<TanksConfigurationResponse>.Success(tanksConfigResponse, "Tanks Configuration retrieved successfully");
+            }
+            catch (PTSDeviceException ex)
+            {
+                _logger.LogError(ex, "PTS Device Error while getting Tanks Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<TanksConfigurationResponse>.Failed(ex.Message);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Tanks Configuration for device {DeviceId}", ptsDeviceId);
+                return FMSResponse<TanksConfigurationResponse>.Failed("Internal server error while getting Tanks Configuration");
+            }
         }
 
         /// <summary>

@@ -39,6 +39,7 @@ import { fetchTags } from "../../../redux/actions/tagActions";
 import { fetchVehicleTypes } from "../../../redux/actions/vehicleTypeActions";
 import { fetchVehicleManufacturers } from "../../../redux/actions/vehicleManufacturerActions";
 import { fetchVehicleModels } from "../../../redux/actions/vehicleModelActions";
+import { fetchSiteList } from "../../../redux/actions/siteActions";
 import axiosInstance from "../../../api/axiosInstance";
 import { usePermissions } from "../../../hooks/usePermissions";
 
@@ -77,6 +78,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
     const vehicleTypes = useSelector((state) => state.vehicleType.vehicleTypes);
     const vehicleManufacturers = useSelector((state) => state.vehicleManufacturer.manufacturers);
     const vehicleModels = useSelector((state) => state.vehicleModel.vehicleModels);
+    const sites = useSelector((state) => state.site?.sites || []);
 
     useEffect(() => {
         if (!open) return;
@@ -90,7 +92,10 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
         if (!Array.isArray(vehicleModels) || vehicleModels.length === 0) {
             dispatch(fetchVehicleModels());
         }
-    }, [open, dispatch, vehicleTypes, vehicleManufacturers, vehicleModels]);
+        if (!Array.isArray(sites) || sites.length === 0) {
+            dispatch(fetchSiteList());
+        }
+    }, [open, dispatch, vehicleTypes, vehicleManufacturers, vehicleModels, sites]);
 
     // ── State ──────────────────────────────────────────────────────────────
     const [vehicle, setVehicle] = useState(null);
@@ -237,6 +242,23 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
             ) || emptyDisplay
         );
     }, [vehicle, vehicleModels]);
+
+    const workingSiteDisplay = useMemo(() => {
+        const direct =
+            vehicle?.workingSite?.name ||
+            vehicle?.workingSite?.siteName ||
+            (typeof vehicle?.workingSite === "string" ? vehicle?.workingSite : "") ||
+            vehicle?.workingSiteName ||
+            vehicle?.WorkingSiteName;
+        if (direct) return direct;
+        return (
+            resolveLookupName(
+                sites,
+                vehicle?.workingSiteId ?? vehicle?.WorkingSiteId ?? vehicle?.workingSite?.id,
+                ["name", "siteName"]
+            ) || "Not Assigned"
+        );
+    }, [vehicle, sites]);
 
     const vehicleYearDisplay =
         vehicle?.yom ??
@@ -451,7 +473,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                     <div className="m365-info-cell">
                         <span className="m365-info-cell__label">Working Site</span>
                         <span className="m365-info-cell__value">
-                            {vehicle?.workingSite?.name || "Not Assigned"}
+                            {workingSiteDisplay}
                         </span>
                     </div>
                     <div className="m365-info-cell">
@@ -507,7 +529,15 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                 <h3 className="m365-flat-section__title">Settings</h3>
                 <div className="m365-info-grid">
                     <div className="m365-info-cell">
-                        <span className="m365-info-cell__label">Fuel Tank Capacity</span>
+                        <span className="m365-info-cell__label">
+                            Fuel Tank Capacity
+                            <span
+                                className="m365-info-tooltip"
+                                data-tip="This value hard-limits fueling so transactions cannot exceed the configured tank capacity."
+                            >
+                                <i className="fa-light fa-circle-info" />
+                            </span>
+                        </span>
                         <span className="m365-info-cell__value">
                             {vehicle?.fuelTankCapacity
                                 ? `${vehicle.fuelTankCapacity} L`
@@ -547,9 +577,7 @@ const VehicleDetailPanel = ({ open, onClose, vehicleId, onVehicleUpdated }) => {
                         </span>
                     </div>
                     <div className="m365-info-cell">
-                        <span className="m365-info-cell__label">
-                            Passenger Capacity
-                        </span>
+                        <span className="m365-info-cell__label">Passenger</span>
                         <span className="m365-info-cell__value">
                             {vehicle?.passenger || "—"}
                         </span>

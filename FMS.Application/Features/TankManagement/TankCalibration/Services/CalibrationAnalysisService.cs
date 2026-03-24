@@ -15,6 +15,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Features.TankManagement.TankCalibration.DTOs;
+using FMS.Application.PTSServices.PTSConfigService;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
@@ -44,6 +45,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
     {
         private readonly GpsdataContext _context;
         private readonly ITankCalibrationStorageService _storageService;
+        private readonly IPTSConfigService _ptsConfigService;
         private readonly ILogger<CalibrationAnalysisService> _logger;
 
         /// <summary>Minimum dispensed volume (litres) for a delivery to be considered meaningful for analysis.</summary>
@@ -55,10 +57,12 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
         public CalibrationAnalysisService(
             GpsdataContext context,
             ITankCalibrationStorageService storageService,
+            IPTSConfigService ptsConfigService,
             ILogger<CalibrationAnalysisService> logger)
         {
             _context = context;
             _storageService = storageService;
+            _ptsConfigService = ptsConfigService;
             _logger = logger;
         }
 
@@ -148,20 +152,26 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
             CancellationToken cancellationToken = default)
         {
             // Get tank name
-            var tankName = await _context.Tanks
+            var tankInfo = await _context.Tanks
                 .AsNoTracking()
                 .Where(t => t.Id == tankId)
-                .Select(t => t.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? string.Empty;
+                .Select(t => new
+                {
+                    t.Name,
+                    t.PtsId,
+                    t.PtsTankId,
+                    t.ProbeNumber
+                })
+                .FirstOrDefaultAsync(cancellationToken);
 
             var summary = new CalibrationHealthSummaryDto
             {
                 TankId = tankId,
-                TankName = tankName
+                TankName = tankInfo?.Name ?? string.Empty
             };
 
             // ----- Sync Status -----
-            await PopulateSyncStatusAsync(summary, tankId, cancellationToken);
+            await PopulateSyncStatusAsync(summary, tankId, tankInfo?.PtsId, tankInfo?.PtsTankId, tankInfo?.ProbeNumber, cancellationToken);
 
             // ----- Variance Analysis -----
             var variances = await GetVariancesAsync(tankId, DefaultHealthWindowSize, cancellationToken);
@@ -170,7 +180,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
             return summary;
         }
 
-        private async Task PopulateSyncStatusAsync(CalibrationHealthSummaryDto summary, int tankId, CancellationToken ct)
+        private async Task PopulateSyncStatusAsync(CalibrationHealthSummaryDto summary, int tankId, string? ptsDeviceId, int? ptsTankId, int? probeNumber, CancellationToken ct)
         {
             DateTime? latestSync = null;
             string? latestSource = null;
@@ -213,6 +223,71 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
 
             summary.LastSyncUtc = latestSync;
             summary.LastSyncSource = latestSource;
+
+            await PopulateAutomaticCalibrationConfigurationAsync(summary, ptsDeviceId, ptsTankId, probeNumber, ct);
+        }
+
+        private async Task PopulateAutomaticCalibrationConfigurationAsync(
+            CalibrationHealthSummaryDto summary,
+            string? ptsDeviceId,
+            int? ptsTankId,
+            int? probeNumber,
+            CancellationToken cancellationToken)
+        {
+            var effectivePtsTankId = ptsTankId ?? probeNumber;
+            var usedProbeFallback = !ptsTankId.HasValue && probeNumber.HasValue;
+
+            if (string.IsNullOrWhiteSpace(ptsDeviceId))
+            {
+                summary.AutomaticCalibrationConfigurationMessage = "Tank is not linked to a PTS device.";
+                return;
+            }
+
+            if (!effectivePtsTankId.HasValue)
+            {
+                summary.AutomaticCalibrationConfigurationMessage = "PTS tank configuration mapping is missing for this tank.";
+                return;
+            }
+
+            try
+            {
+                var configResult = await _ptsConfigService.GetTanksConfigurationAsync(ptsDeviceId);
+                if (!configResult.IsSuccess || configResult.Data?.Tanks == null)
+                {
+                    summary.AutomaticCalibrationConfigurationMessage = configResult.Message ?? "Unable to read PTS tank configuration.";
+                    return;
+                }
+
+                var tankConfig = configResult.Data.Tanks.FirstOrDefault(t => t.Id == effectivePtsTankId.Value);
+                if (tankConfig == null)
+                {
+                    summary.AutomaticCalibrationConfigurationMessage = $"PTS tank configuration {effectivePtsTankId.Value} was not found on the device.";
+                    return;
+                }
+
+                summary.AutomaticCalibrationEnabled = tankConfig.AutomaticCalibrationEnabled;
+                summary.AutomaticCalibrationReadyForGeneration = tankConfig.AutomaticCalibrationReadyForGeneration;
+                summary.AutomaticCalibrationConfigurationMessage = !tankConfig.AutomaticCalibrationEnabled
+                    ? usedProbeFallback
+                        ? "Automatic calibration is disabled in PTS tank configuration. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                        : "Automatic calibration is disabled in PTS tank configuration."
+                    : tankConfig.AutomaticCalibrationReadyForGeneration
+                        ? usedProbeFallback
+                            ? "Automatic calibration is enabled and ready for generation. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                            : "Automatic calibration is enabled and ready for generation."
+                        : usedProbeFallback
+                            ? "Automatic calibration is enabled, but the controller is not ready for generation yet. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                            : "Automatic calibration is enabled, but the controller is not ready for generation yet.";
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Failed to evaluate automatic calibration configuration for TankId {TankId}, Device {DeviceId}, PtsTankId {PtsTankId}",
+                    summary.TankId,
+                    ptsDeviceId,
+                    effectivePtsTankId);
+                summary.AutomaticCalibrationConfigurationMessage = "Unable to read automatic calibration status from PTS configuration.";
+            }
         }
 
         private static void PopulateVarianceAnalysis(CalibrationHealthSummaryDto summary, IReadOnlyList<CalibrationVarianceDto> variances)

@@ -132,6 +132,43 @@ namespace FMS.Application.Services.Configuration
         Task<int> GetPtsOfflineThresholdSecondsAsync(CancellationToken cancellationToken = default);
         #endregion
 
+        #region FMS Learned Calibration Configuration
+        /// <summary>
+        /// Gets whether FMS learned calibration is enabled.
+        /// </summary>
+        Task<bool> GetCalibrationLearningEnabledAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets learned-calibration height bucket size in millimetres.
+        /// </summary>
+        Task<int> GetCalibrationHeightIntervalMmAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the minimum observation count required before a learned-calibration interval is usable.
+        /// </summary>
+        Task<int> GetCalibrationMinObservationsPerIntervalAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the stable-reading window, in minutes, required before or after an event.
+        /// </summary>
+        Task<int> GetCalibrationStabilityWindowMinutesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the maximum allowed probe fluctuation, in millimetres, within the stability window.
+        /// </summary>
+        Task<decimal> GetCalibrationMaxHeightVarianceMmAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the minimum volume change, in litres, that is considered usable for learned calibration.
+        /// </summary>
+        Task<decimal> GetCalibrationMinVolumeChangeLitresAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the number of new data points required before a background recalculation notification should fire.
+        /// </summary>
+        Task<int> GetCalibrationBackgroundTriggerThresholdAsync(CancellationToken cancellationToken = default);
+        #endregion
+
         #region Configuration Management
         /// <summary>
         /// Updates a system configuration value in the database
@@ -272,6 +309,48 @@ namespace FMS.Application.Services.Configuration
         /// Gets auto-resolve minutes for ITD alerts (0 = no auto-resolve)
         /// </summary>
         Task<int> GetItdAlertAutoResolveMinutesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets minimum product height change (mm) to consider a valid delivery
+        /// </summary>
+        Task<decimal> GetItdMinHeightChangeMmAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets maximum plausible temperature change rate (°C per minute)
+        /// </summary>
+        Task<decimal> GetItdMaxTempChangePerMinuteAsync(CancellationToken cancellationToken = default);
+        #endregion
+
+        #region Server-Side Delivery Detection Configuration
+        /// <summary>
+        /// Gets whether server-side delivery detection from UploadStatus probe readings is enabled
+        /// </summary>
+        Task<bool> GetItdServerDetectionEnabledAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the volume noise band in liters (changes within this band are ignored)
+        /// </summary>
+        Task<decimal> GetItdServerDetectionNoiseBandLitersAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the minimum cumulative volume rise (liters) to qualify as a delivery
+        /// </summary>
+        Task<decimal> GetItdServerDetectionMinRiseThresholdLitersAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the number of consecutive stable readings required to confirm delivery
+        /// </summary>
+        Task<int> GetItdServerDetectionStableReadingsRequiredAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the maximum duration in minutes before the detection state machine resets
+        /// </summary>
+        Task<int> GetItdServerDetectionMaxDurationMinutesAsync(CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Gets the duplicate check window in minutes for overlapping firmware ITDs
+        /// </summary>
+        Task<int> GetItdServerDetectionDuplicateWindowMinutesAsync(CancellationToken cancellationToken = default);
         #endregion
 
         #region Tank Measurement Configuration

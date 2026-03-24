@@ -315,6 +315,7 @@ namespace FMS.WebClient.Controllers
                     validatedOnline,
                     unknownOnline,
                     offlineRegistered,
+                    totalConnectedDevices = onlineDevices.Count,
                     totalOnline = onlineDevices.Count,
                     webSocketDevicesCount = summary.WebSocketConnections.Count,
                     httpDevicesCount = summary.HttpConnections.Count
@@ -364,6 +365,7 @@ namespace FMS.WebClient.Controllers
                         validatedOnline,
                         unknownOnline,
                         offlineRegistered,
+                        totalConnectedDevices = onlineDevices.Count,
                         totalOnline = onlineDevices.Count,
                         webSocketDevicesCount = summary.WebSocketConnections.Count,
                         httpDevicesCount = summary.HttpConnections.Count,

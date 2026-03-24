@@ -1,0 +1,260 @@
+/**
+ * File:          TankCalibrationLearnedTab.scss
+ * Purpose:       Styles the FMS learned calibration workflow card set and coverage map.
+ * Dependencies:  M365 buttons, badges, and field utility classes
+ * Last Modified: 2026-03-24
+ */
+
+.m365-tank-calibration-learned {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  color: #201f1e;
+
+  &__hero,
+  &__card {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    box-shadow: none;
+    padding: 16px;
+  }
+
+  &__hero,
+  &__kpi-row,
+  &__hero-badges,
+  &__actions,
+  &__compare-actions,
+  &__compare-toolbar,
+  &__checkbox-row,
+  &__summary-row,
+  &__section-heading {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    justify-content: space-between;
+    flex-wrap: wrap;
+  }
+
+  &__title {
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #201f1e;
+    font-size: 16px;
+  }
+
+  &__subtitle {
+    margin: 8px 0 0;
+    color: #605e5c;
+    font-size: 13px;
+  }
+
+  &__grid,
+  &__form-grid,
+  &__kpi-row {
+    display: grid;
+    gap: 16px;
+  }
+
+  &__grid {
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  }
+
+  &__form-grid {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    margin-bottom: 12px;
+  }
+
+  &__kpi-row {
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  }
+
+  &__kpi-card {
+    background: #faf9f8;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+
+    strong {
+      font-size: 18px;
+      font-weight: 600;
+      color: #201f1e;
+    }
+  }
+
+  &__kpi-label {
+    color: #605e5c;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+  }
+
+  &__action-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+  }
+
+  &__action-label {
+    color: #605e5c;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__section-heading h4 {
+    margin: 0;
+    color: #201f1e;
+    font-size: 16px;
+    font-weight: 600;
+  }
+
+  &__section-heading span,
+  &__summary-row,
+  .m365-field__hint {
+    color: #605e5c;
+    font-size: 13px;
+  }
+
+  .m365-field__hint {
+    margin: 8px 0 0;
+  }
+
+  &__coverage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 10px;
+  }
+
+  &__coverage-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 10px 12px;
+    border-radius: 4px;
+    border: 1px solid #edebe9;
+    background: #faf9f8;
+    font-size: 12px;
+    color: #605e5c;
+
+    strong {
+      color: #201f1e;
+    }
+
+    &--ready {
+      border-color: #107c10;
+      background: #dff6dd;
+    }
+
+    &--sparse {
+      border-color: #ca5010;
+      background: #fff4ce;
+    }
+
+    &--empty {
+      border-color: #edebe9;
+      background: #faf9f8;
+    }
+  }
+
+  &__compare-toolbar > div {
+    min-width: 220px;
+  }
+
+  &__compare-actions {
+    justify-content: flex-end;
+    align-items: flex-end;
+  }
+
+  &__threshold-field {
+    min-width: 150px;
+  }
+
+  &__empty-state {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px;
+    background: #faf9f8;
+    border: 1px dashed #c8c6c4;
+    border-radius: 8px;
+
+    h5 {
+      margin: 0 0 4px;
+      font-size: 14px;
+      color: #201f1e;
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: #605e5c;
+    }
+  }
+
+  &__empty-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #deecf9;
+    color: #0078d4;
+    flex: 0 0 auto;
+  }
+
+  &__data-grid {
+    .dx-header-row > td {
+      background: #faf9f8;
+      color: #201f1e;
+      font-weight: 600;
+      border-top: 1px solid #edebe9;
+      border-bottom: 1px solid #edebe9;
+    }
+
+    .dx-row > td {
+      vertical-align: middle;
+    }
+  }
+
+  &__comparison-row--highlight > td {
+    background: #fff4ce !important;
+  }
+
+  .dx-datagrid {
+    margin-top: 12px;
+  }
+
+  .dx-datagrid-headers,
+  .dx-row {
+    font-size: 13px;
+  }
+
+  @media (max-width: 768px) {
+    &__hero,
+    &__compare-toolbar,
+    &__compare-actions,
+    &__checkbox-row {
+      align-items: stretch;
+    }
+
+    &__actions .m365-btn,
+    &__compare-actions .m365-btn,
+    &__compare-toolbar .m365-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    &__empty-state {
+      align-items: flex-start;
+    }
+  }
+}

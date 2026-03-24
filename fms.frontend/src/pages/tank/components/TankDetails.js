@@ -107,7 +107,7 @@ const TankDetails = ({ tank, liveStatus, connectionStatus }) => {
   );
 
   const SectionCard = ({ title, icon, children }) => (
-    <div className="tw-bg-white tw-border tw-border-slate-200 tw-rounded-lg tw-shadow-sm hover:tw-shadow tw-transition-shadow">
+    <div className="tw-bg-white tw-rounded-lg tw-shadow-sm hover:tw-shadow tw-transition-shadow">
       <div className="tw-px-4 tw-py-3 tw-border-b tw-border-slate-100 tw-bg-slate-50/50 tw-rounded-t-lg">
         <h3 className="tw-font-semibold tw-text-slate-700 tw-flex tw-items-center tw-text-sm tw-uppercase tw-tracking-wide">
           <i className={`${icon} tw-mr-2 tw-text-slate-500`}></i>

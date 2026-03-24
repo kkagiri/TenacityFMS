@@ -242,7 +242,8 @@ public class CommandExecutor : ICommandExecutor
     private PTSMessage ConvertRedisResponseToPTSMessage(RedisPTSCommandResponse redisResponse)
     {
         // Create a single Packet that indicates success/failure
-        var error = redisResponse.Status.Equals("Error", StringComparison.OrdinalIgnoreCase);
+        var status = redisResponse.Status?.Trim();
+        var error = !string.Equals(status, "Success", StringComparison.OrdinalIgnoreCase);
 
         JObject dataJson = null;
         int packetId = 0;
@@ -293,7 +294,7 @@ public class CommandExecutor : ICommandExecutor
             Error = error,
             Message = redisResponse.Message,
             Data = actualPacketData, // Use the extracted packet data, not the entire message
-            Code = error ? 500 : 0 // Add appropriate error code
+            Code = error ? 500 : 0 // Treat any non-success Redis/device status as a command failure
         };
 
         _logger.LogDebug("Converted Redis response to PTS packet: Id={PacketId}, Type={Type}, Error={Error}, Message={Message}, HasData={HasData}",

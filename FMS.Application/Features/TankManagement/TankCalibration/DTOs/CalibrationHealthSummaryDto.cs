@@ -35,6 +35,15 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.DTOs
         /// <summary>Record count in the latest automatic chart snapshot.</summary>
         public int AutomaticChartRecordCount { get; set; }
 
+        /// <summary>Whether automatic calibration is enabled in the linked PTS tank configuration.</summary>
+        public bool? AutomaticCalibrationEnabled { get; set; }
+
+        /// <summary>Whether the linked PTS tank reports readiness to generate automatic calibration.</summary>
+        public bool? AutomaticCalibrationReadyForGeneration { get; set; }
+
+        /// <summary>Human-readable status for automatic calibration configuration checks.</summary>
+        public string? AutomaticCalibrationConfigurationMessage { get; set; }
+
         /// <summary>Whether an interval-volume chart snapshot exists locally.</summary>
         public bool HasIntervalVolumeChart { get; set; }
 

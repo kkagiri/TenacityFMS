@@ -312,12 +312,59 @@ namespace FMS.Application.Configuration
         public const string DB_CONFIG_PTS_OFFLINE_THRESHOLD_SECONDS_KEY = "PTS.OfflineReport.ThresholdSeconds";
         #endregion
 
+        #region FMS Learned Calibration Configuration Keys
+        /// <summary>
+        /// Global toggle for FMS-side learned calibration.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_LEARNING_ENABLED_KEY = "Calibration.LearningEnabled";
+
+        /// <summary>
+        /// Height bucket size, in millimetres, used to group learned calibration observations.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_HEIGHT_INTERVAL_MM_KEY = "Calibration.HeightIntervalMm";
+
+        /// <summary>
+        /// Minimum observations required before a height interval is considered usable.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_MIN_OBSERVATIONS_PER_INTERVAL_KEY = "Calibration.MinObservationsPerInterval";
+
+        /// <summary>
+        /// Stable-reading window, in minutes, required before/after an event.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_STABILITY_WINDOW_MINUTES_KEY = "Calibration.StabilityWindowMinutes";
+
+        /// <summary>
+        /// Maximum allowed probe fluctuation, in millimetres, within a stability window.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_MAX_HEIGHT_VARIANCE_MM_KEY = "Calibration.MaxHeightVarianceMm";
+
+        /// <summary>
+        /// Minimum usable volume change, in litres, for learned calibration extraction.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_MIN_VOLUME_CHANGE_LITRES_KEY = "Calibration.MinVolumeChangeLitres";
+
+        /// <summary>
+        /// Number of new learned-calibration data points required before background notification is raised.
+        /// </summary>
+        public const string DB_CONFIG_CALIBRATION_BACKGROUND_TRIGGER_THRESHOLD_KEY = "Calibration.BackgroundTriggerThreshold";
+        #endregion
+
         #region PTS Offline Report Default Values
         /// <summary>
         /// Default minimum offline duration threshold in seconds (60 = 1 minute)
         /// Offline periods shorter than this are not counted in reports
         /// </summary>
         public const int DEFAULT_PTS_OFFLINE_THRESHOLD_SECONDS = 60;
+        #endregion
+
+        #region FMS Learned Calibration Default Values
+        public const bool DEFAULT_CALIBRATION_LEARNING_ENABLED = false;
+        public const int DEFAULT_CALIBRATION_HEIGHT_INTERVAL_MM = 50;
+        public const int DEFAULT_CALIBRATION_MIN_OBSERVATIONS_PER_INTERVAL = 5;
+        public const int DEFAULT_CALIBRATION_STABILITY_WINDOW_MINUTES = 5;
+        public const decimal DEFAULT_CALIBRATION_MAX_HEIGHT_VARIANCE_MM = 2.0m;
+        public const decimal DEFAULT_CALIBRATION_MIN_VOLUME_CHANGE_LITRES = 10.0m;
+        public const int DEFAULT_CALIBRATION_BACKGROUND_TRIGGER_THRESHOLD = 10;
         #endregion
 
         #region Issue Monitoring Default Values
@@ -387,6 +434,16 @@ namespace FMS.Application.Configuration
         /// Auto-resolve alert after N minutes (0 = no auto-resolve)
         /// </summary>
         public const string DB_CONFIG_ITD_ALERT_AUTO_RESOLVE_MINUTES_KEY = "ITD.AutoDetection.AlertAutoResolveMinutes";
+
+        /// <summary>
+        /// Minimum product height change in mm to consider a valid delivery (filters sensor noise)
+        /// </summary>
+        public const string DB_CONFIG_ITD_MIN_HEIGHT_CHANGE_MM_KEY = "ITD.AutoDetection.MinHeightChangeMm";
+
+        /// <summary>
+        /// Maximum plausible temperature change rate in °C per minute (flags sensor anomalies)
+        /// </summary>
+        public const string DB_CONFIG_ITD_MAX_TEMP_CHANGE_PER_MINUTE_KEY = "ITD.AutoDetection.MaxTempChangePerMinute";
         #endregion
 
         #region In-Tank Delivery Auto-Detection Default Values
@@ -398,6 +455,8 @@ namespace FMS.Application.Configuration
         public const int DEFAULT_ITD_MATCH_TIME_WINDOW_HOURS = 24;
         public const string DEFAULT_ITD_ALERT_PRIORITY = "Medium";
         public const int DEFAULT_ITD_ALERT_AUTO_RESOLVE_MINUTES = 0; // No auto-resolve
+        public const decimal DEFAULT_ITD_MIN_HEIGHT_CHANGE_MM = 20.0m; // mm - below this is sensor noise
+        public const decimal DEFAULT_ITD_MAX_TEMP_CHANGE_PER_MINUTE = 2.0m; // °C/min - above this is implausible
         #endregion
 
         #region Fuel Auto-Import Configuration Keys
@@ -414,6 +473,47 @@ namespace FMS.Application.Configuration
 
         #region Fuel Auto-Import Default Values
         public const bool DEFAULT_FUEL_AUTO_IMPORT_ENABLED = true;
+        #endregion
+
+        #region Server-Side Delivery Detection Configuration Keys
+        /// <summary>
+        /// Master switch to enable/disable server-side delivery detection from UploadStatus probe readings
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_ENABLED_KEY = "ITD.ServerDetection.Enabled";
+
+        /// <summary>
+        /// Volume noise band in liters — volume changes within this band are ignored as probe noise
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_NOISE_BAND_LITERS_KEY = "ITD.ServerDetection.NoiseBandLiters";
+
+        /// <summary>
+        /// Minimum cumulative volume rise (liters) from baseline before transitioning from RISING to STABILIZING
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_MIN_RISE_THRESHOLD_LITERS_KEY = "ITD.ServerDetection.MinRiseThresholdLiters";
+
+        /// <summary>
+        /// Number of consecutive readings within noise band required during STABILIZING to confirm delivery
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_STABLE_READINGS_REQUIRED_KEY = "ITD.ServerDetection.StableReadingsRequired";
+
+        /// <summary>
+        /// Maximum duration in minutes for a delivery event before the state machine resets (safety timeout)
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_MAX_DURATION_MINUTES_KEY = "ITD.ServerDetection.MaxDurationMinutes";
+
+        /// <summary>
+        /// Time window in minutes to check for duplicate firmware-detected ITD (same tank, overlapping time)
+        /// </summary>
+        public const string DB_CONFIG_ITD_SERVER_DETECTION_DUPLICATE_WINDOW_MINUTES_KEY = "ITD.ServerDetection.DuplicateWindowMinutes";
+        #endregion
+
+        #region Server-Side Delivery Detection Default Values
+        public const bool DEFAULT_ITD_SERVER_DETECTION_ENABLED = false; // Off by default until validated
+        public const decimal DEFAULT_ITD_SERVER_DETECTION_NOISE_BAND_LITERS = 10.0m;
+        public const decimal DEFAULT_ITD_SERVER_DETECTION_MIN_RISE_THRESHOLD_LITERS = 50.0m;
+        public const int DEFAULT_ITD_SERVER_DETECTION_STABLE_READINGS_REQUIRED = 5;
+        public const int DEFAULT_ITD_SERVER_DETECTION_MAX_DURATION_MINUTES = 120;
+        public const int DEFAULT_ITD_SERVER_DETECTION_DUPLICATE_WINDOW_MINUTES = 10;
         #endregion
 
         #region Tank Measurement Configuration Keys

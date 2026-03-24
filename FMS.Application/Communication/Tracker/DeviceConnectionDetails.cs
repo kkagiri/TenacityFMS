@@ -1,3 +1,9 @@
+/**
+ * File: DeviceConnectionDetails.cs
+ * Purpose: Represents combined runtime connection details for a single PTS device.
+ * Dependencies: DeviceConnectionTracker, connection summary models
+ * Last Modified: 2026-03-23
+ */
 using FMS.Application.Communication.Tracker.Common;
 using System;
 using System.Linq;
@@ -18,7 +24,7 @@ namespace FMS.Application.Communication.Tracker
         public ConnectionMode CurrentConnectionMode { get; set; }
         // Helper method to determine if the device is currently connected
         public bool isConnected => WebSocketStatus == ConnectionStatus.Connected || WebSocketStatus == ConnectionStatus.Active ||
-                                (LastHttpPoll.HasValue && DateTime.UtcNow - LastHttpPoll.Value < TimeSpan.FromMinutes(5));
+                    (LastActivity.HasValue && DateTime.UtcNow - LastActivity.Value <= TimeSpan.FromSeconds(DeviceConnectionTracker.DeviceOnlineTtlSeconds));
 
         // Helper method to get the last activity timestamp
         public DateTime? LastActivity => new[]
@@ -53,7 +59,7 @@ namespace FMS.Application.Communication.Tracker
         public static ConnectionMode DetermineConnectionMode(WebSocketConnectionInfo? wsInfo, HttpConnectionInfo? httpInfo)
         {
             // First, let's establish time thresholds for recent activity
-            var recentActivityThreshold = TimeSpan.FromMinutes(5);
+            var recentActivityThreshold = TimeSpan.FromSeconds(DeviceConnectionTracker.DeviceOnlineTtlSeconds);
             var now = DateTime.UtcNow;
 
             // Check if we have an active WebSocket connection

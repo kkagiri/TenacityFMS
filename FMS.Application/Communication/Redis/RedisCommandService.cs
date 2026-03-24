@@ -44,7 +44,8 @@ namespace FMS.Application.Communication.Redis
             "PumpAuthorize",
             "SetRemoteServerConfiguration",
             "PumpCloseTransaction",
-            "GetRemoteServerConfiguration"
+            "GetRemoteServerConfiguration",
+            "GetTanksConfiguration"
         };
 
         // Probe calibration commands that need extended timeout (device reads physical probe data)

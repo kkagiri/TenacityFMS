@@ -650,10 +650,88 @@ class ApiService {
   }
 
   /**
+   * Get GPS tracking tags (vehicle groups from GPS provider)
+   * @returns {Promise<Array>} List of tags
+   */
+  async getTrackingTags() {
+    try {
+      const response = await this.api.get("/v1/vehicletracking/tags");
+      return response.data?.data || response.data?.Data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch tracking tags");
+    }
+  }
+
+  /**
+   * Get vehicles by tag ID with positions
+   * @param {number} tagId - Tag ID
+   * @param {number} fromIndex - Start index
+   * @param {number} pageSize - Page size
+   * @returns {Promise<Array>} Vehicles with positions
+   */
+  async getVehiclesByTag(tagId, fromIndex = 0, pageSize = 50) {
+    try {
+      const response = await this.api.get(
+        `/v1/vehicletracking/tags/${tagId}/vehicles`,
+        { params: { fromIndex, pageSize } }
+      );
+      return response.data?.data || response.data?.Data || response.data || [];
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch vehicles by tag");
+    }
+  }
+
+  /**
    * Get GPS information for a vehicle
    * @param {number} vehicleId - Vehicle ID
    * @returns {Promise<Object>} GPS data including location, speed, etc.
    */
+  /**
+   * Get GPS vehicles tracking summary (total, online, offline, moving, parked)
+   * @returns {Promise<Object>} Summary counts
+   */
+  async getVehicleTrackingSummary() {
+    try {
+      const response = await this.api.get("/v1/vehicletracking/summary");
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch tracking summary");
+    }
+  }
+
+  /**
+   * Get all vehicle locations for tracking
+   * @param {boolean} onlineOnly - Filter to online vehicles only
+   * @param {boolean} gpsEnabledOnly - Filter to GPS-enabled vehicles only
+   * @returns {Promise<Array>} Vehicle locations
+   */
+  async getVehicleLocations(onlineOnly = false, gpsEnabledOnly = true) {
+    try {
+      const response = await this.api.get("/v1/vehicletracking/locations", {
+        params: { onlineOnly, gpsEnabledOnly },
+      });
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch vehicle locations");
+    }
+  }
+
+  /**
+   * Get single vehicle live location
+   * @param {number} vehicleId - Vehicle ID
+   * @returns {Promise<Object>} Vehicle location data
+   */
+  async getVehicleLocation(vehicleId) {
+    try {
+      const response = await this.api.get(
+        `/v1/vehicletracking/${vehicleId}/location`
+      );
+      return response.data;
+    } catch (error) {
+      throw this.handleError(error, "Failed to fetch vehicle location");
+    }
+  }
+
   async getVehicleGPSInfo(vehicleId) {
     try {
       const response = await this.api.get(

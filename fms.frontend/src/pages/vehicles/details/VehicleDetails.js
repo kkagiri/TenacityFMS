@@ -38,6 +38,8 @@ import {
 } from "../../../redux/actions/vehicleActions";
 import { fetchTags } from "../../../redux/actions/tagActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
+import { fetchVehicleManufacturers } from "../../../redux/actions/vehicleManufacturerActions";
+import { fetchVehicleModels } from "../../../redux/actions/vehicleModelActions";
 import axiosInstance from "../../../api/axiosInstance";
 import { usePermissions } from "../../../hooks/usePermissions";
 
@@ -60,6 +62,8 @@ const VehicleDetails = () => {
   const vehicles = useSelector((state) => state.vehicle.vehicles);
   const tags = useSelector((state) => state.tag.tags);
   const sites = useSelector((state) => state.site.sites); // Used in SiteAssignmentForm component
+  const vehicleManufacturers = useSelector((state) => state.vehicleManufacturer?.manufacturers || []);
+  const vehicleModels = useSelector((state) => state.vehicleModel?.vehicleModels || []);
   // No longer used but will be needed when site form is implemented
 
   // Local state
@@ -77,6 +81,64 @@ const VehicleDetails = () => {
   const [tabDataLoaded, setTabDataLoaded] = useState({}); // Track which tabs have loaded their data
   const [dataLoaded, setDataLoaded] = useState(false); // Track if vehicle data is loaded
   const [isSaving, setIsSaving] = useState(false); // Track save operation
+
+  const resolveLookupName = useCallback((list, id, nameKeys = ["name"]) => {
+    const numericId = Number(id);
+    if (!Number.isFinite(numericId)) return "";
+
+    const match = (Array.isArray(list) ? list : []).find((item) =>
+      ["id", "Id", "siteId", "vehicleModelId", "vehicleManufacturerId"].some(
+        (key) => Number(item?.[key]) === numericId
+      )
+    );
+
+    if (!match) return "";
+    const keys = Array.isArray(nameKeys) ? nameKeys : [nameKeys];
+    const resolvedKey = keys.find((key) => typeof match?.[key] === "string" && match[key].trim());
+    return resolvedKey ? match[resolvedKey] : "";
+  }, []);
+
+  const vehicleManufacturerDisplay = useMemo(() => {
+    return (
+      vehicle?.vehicleManufacturer?.name ||
+      vehicle?.vehicleManufacturerName ||
+      vehicle?.VehicleManufacturerName ||
+      resolveLookupName(
+        vehicleManufacturers,
+        vehicle?.vehicleManufacturerId ?? vehicle?.VehicleManufacturerId ?? vehicle?.vehicleManufacturer?.id,
+        ["name", "vehicleManufacturerName"]
+      ) ||
+      ""
+    );
+  }, [vehicle, vehicleManufacturers, resolveLookupName]);
+
+  const vehicleModelDisplay = useMemo(() => {
+    return (
+      vehicle?.vehicleModel?.name ||
+      vehicle?.vehicleModelName ||
+      vehicle?.VehicleModelName ||
+      resolveLookupName(
+        vehicleModels,
+        vehicle?.vehicleModelId ?? vehicle?.VehicleModelId ?? vehicle?.vehicleModel?.id,
+        ["name", "vehicleModelName"]
+      ) ||
+      ""
+    );
+  }, [vehicle, vehicleModels, resolveLookupName]);
+
+  const workingSiteDisplay = useMemo(() => {
+    return (
+      vehicle?.workingSite?.name ||
+      vehicle?.workingSiteName ||
+      vehicle?.WorkingSiteName ||
+      resolveLookupName(
+        sites,
+        vehicle?.workingSiteId ?? vehicle?.WorkingSiteId ?? vehicle?.workingSite?.id,
+        ["name", "siteName"]
+      ) ||
+      "Not Assigned"
+    );
+  }, [vehicle, sites, resolveLookupName]);
 
   // Reset component state when vehicle ID changes
   useEffect(() => {
@@ -130,7 +192,12 @@ const VehicleDetails = () => {
         setVehicle(vehicleData);
 
         // Ensure supporting data is loaded
-        await Promise.all([dispatch(fetchTags()), dispatch(fetchSiteList())]);
+        await Promise.all([
+          dispatch(fetchTags()),
+          dispatch(fetchSiteList()),
+          dispatch(fetchVehicleManufacturers()),
+          dispatch(fetchVehicleModels()),
+        ]);
 
         // Load GPS data for fuel level if vehicle has GPS installed
         if (vehicleData.hasGPSInstalled) {
@@ -559,7 +626,7 @@ const VehicleDetails = () => {
                 {vehicle.hyoungNo} - {vehicle.numberPlate}
               </h1>
               <p className="tw-text-sm md:tw-text-base tw-text-gray-600">
-                {vehicle.vehicleManufacturer?.name} {vehicle.vehicleModel?.name}
+                {[vehicleManufacturerDisplay, vehicleModelDisplay].filter(Boolean).join(" ")}
               </p>
               {/* Display current location address if available - clickable to go to GPS tab */}
               {gpsData?.address && (
@@ -656,7 +723,7 @@ const VehicleDetails = () => {
                   Working Site
                 </div>
                 <div className="vehicle-details__metric-value">
-                  {vehicle.workingSite?.name || "Not Assigned"}
+                  {workingSiteDisplay}
                 </div>
               </div>
             </div>

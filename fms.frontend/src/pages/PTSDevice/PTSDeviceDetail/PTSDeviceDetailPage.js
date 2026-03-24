@@ -22,12 +22,50 @@ import PTSDeviceEditForm from "./components/PTSDeviceEditForm";
 import PTSDeviceConfiguration from "./components/PTSDeviceConfiguration";
 import "./PTSDeviceDetailPage.scss";
 
+const LIVE_STATUS_TTL_MS = 5000;
+
+const isLiveConnectionOnline = (connectionStatus, now) => {
+  if (!connectionStatus?.lastActivity) {
+    return false;
+  }
+
+  const lastActivityMs = new Date(connectionStatus.lastActivity).getTime();
+  if (Number.isNaN(lastActivityMs)) {
+    return false;
+  }
+
+  return now - lastActivityMs <= LIVE_STATUS_TTL_MS
+    && String(connectionStatus.status || "").toLowerCase() !== "disconnected";
+};
+
 const TABS = [
-  { key: "live", label: "Live Info", icon: "fa-light fa-signal-stream" },
+  { key: "liveinfo", label: "Live Info", icon: "fa-light fa-signal-stream" },
   { key: "terminal", label: "Terminal", icon: "fa-light fa-terminal" },
-  { key: "settings", label: "Device Settings", icon: "fa-light fa-gear" },
-  { key: "config", label: "Configuration", icon: "fa-light fa-sliders" },
+  { key: "devicesettings", label: "Device Settings", icon: "fa-light fa-gear" },
+  { key: "configuration", label: "Configuration", icon: "fa-light fa-sliders" },
 ];
+
+const TAB_ROUTE_ALIASES = {
+  live: "liveinfo",
+  liveinfo: "liveinfo",
+  terminal: "terminal",
+  settings: "devicesettings",
+  devicesettings: "devicesettings",
+  config: "configuration",
+  configuration: "configuration",
+};
+
+const DEFAULT_TAB_KEY = TABS[0].key;
+
+const getCanonicalTabKey = (tabPath) => {
+  const routeSegment = (tabPath || "").split("/")[0]?.toLowerCase();
+  return TAB_ROUTE_ALIASES[routeSegment] || DEFAULT_TAB_KEY;
+};
+
+const getTabIndex = (tabKey) => {
+  const index = TABS.findIndex((tab) => tab.key === tabKey);
+  return index === -1 ? 0 : index;
+};
 
 /* ─── FluentStat — large summary tile (detail page) ─── */
 const FluentStat = ({ label, value, color = "blue", icon }) => {
@@ -53,7 +91,7 @@ const FluentStat = ({ label, value, color = "blue", icon }) => {
 };
 
 const PTSDeviceDetailPage = () => {
-  const { deviceid } = useParams();
+  const { deviceid, "*": tabPath = "" } = useParams();
   const navigate = useNavigate();
   const dispatch = useDispatch();
 
@@ -64,18 +102,46 @@ const PTSDeviceDetailPage = () => {
   const [dataLoaded, setDataLoaded] = useState(false);
   const [tabLoadingStates, setTabLoadingStates] = useState({ 0: true });
   const [tabDataLoaded, setTabDataLoaded] = useState({});
+  const [statusTick, setStatusTick] = useState(() => Date.now());
 
   const currentDevice = useSelector((state) => state.ptsDevice?.currentDevice);
   const realtimeStatus = useSelector((state) => state.realtimeStatus);
+  const connectionStatuses = useSelector((state) => state.deviceConnections?.connectionStatuses || {});
+  const activeTabKey = useMemo(() => getCanonicalTabKey(tabPath), [tabPath]);
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setStatusTick(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   // Reset when device ID changes
   useEffect(() => {
     setDataLoaded(false);
     setDevice(null);
+    setLiveData(null);
     setTabDataLoaded({});
-    setTabLoadingStates({ 0: true });
+    setTabLoadingStates({});
     setActiveTab(0);
   }, [deviceid]);
+
+  useEffect(() => {
+    const nextTabIndex = getTabIndex(activeTabKey);
+    setActiveTab(nextTabIndex);
+  }, [activeTabKey]);
+
+  useEffect(() => {
+    if (!deviceid) {
+      return;
+    }
+
+    const currentSegment = (tabPath || "").split("/")[0]?.toLowerCase() || "";
+    if (currentSegment !== activeTabKey) {
+      navigate(`/admin/ptsdevice/${deviceid}/${activeTabKey}`, { replace: true });
+    }
+  }, [activeTabKey, deviceid, navigate, tabPath]);
 
   // Load device data
   useEffect(() => {
@@ -90,8 +156,6 @@ const PTSDeviceDetailPage = () => {
         }
         await dispatch(getPTSDeviceById(deviceid));
         setDataLoaded(true);
-        setTabLoadingStates((p) => ({ ...p, 0: false }));
-        setTabDataLoaded((p) => ({ ...p, 0: true }));
       } catch (error) {
         notify(`Failed to load device: ${error.message}`, "error", 3000);
         navigate("/admin/ptsdevice");
@@ -103,6 +167,41 @@ const PTSDeviceDetailPage = () => {
   }, [deviceid, dispatch, navigate, dataLoaded]);
 
   useEffect(() => { if (currentDevice) setDevice(currentDevice); }, [currentDevice]);
+
+  const resolvedDevice = useMemo(() => {
+    if (!device) {
+      return null;
+    }
+
+    const liveConnection = connectionStatuses[device.ptsid || device.id];
+    const liveOnline = isLiveConnectionOnline(liveConnection, statusTick);
+    const lastActivity = liveConnection?.lastActivity || device.lastActivity || null;
+
+    return {
+      ...device,
+      connectionStatus: liveOnline ? (liveConnection?.status || "Active") : "Disconnected",
+      connectionType: liveOnline
+        ? (liveConnection?.connectionType || device.communicationType || ((device.webSocketCapable === 1 || device.webSocketCapable === true) ? "WebSocket" : "HTTP"))
+        : (device.communicationType || ((device.webSocketCapable === 1 || device.webSocketCapable === true) ? "WebSocket" : "HTTP")),
+      lastActivity,
+      ipaddress: liveConnection?.ipAddress || device.ipaddress,
+    };
+  }, [connectionStatuses, device, statusTick]);
+
+  useEffect(() => {
+    if (!device || tabDataLoaded[activeTab]) {
+      return;
+    }
+
+    setTabLoadingStates((prev) => ({ ...prev, [activeTab]: true }));
+
+    const timerId = setTimeout(() => {
+      setTabLoadingStates((prev) => ({ ...prev, [activeTab]: false }));
+      setTabDataLoaded((prev) => ({ ...prev, [activeTab]: true }));
+    }, 250);
+
+    return () => clearTimeout(timerId);
+  }, [activeTab, device, tabDataLoaded]);
 
   // SignalR subscriptions — only on Live Info tab
   useEffect(() => {
@@ -152,21 +251,19 @@ const PTSDeviceDetailPage = () => {
 
   // Tab change with lazy loading
   const handleTabClick = useCallback((idx) => {
-    setActiveTab(idx);
-    if (!tabDataLoaded[idx]) {
-      setTabLoadingStates((p) => ({ ...p, [idx]: true }));
-      setTimeout(() => {
-        setTabLoadingStates((p) => ({ ...p, [idx]: false }));
-        setTabDataLoaded((p) => ({ ...p, [idx]: true }));
-      }, 500);
+    const nextTabKey = TABS[idx]?.key;
+
+    if (!nextTabKey || nextTabKey === activeTabKey) {
+      return;
     }
-  }, [tabDataLoaded]);
+
+    navigate(`/admin/ptsdevice/${deviceid}/${nextTabKey}`);
+  }, [activeTabKey, deviceid, navigate]);
 
   const handleBackToList = useCallback(() => navigate("/admin/ptsdevice"), [navigate]);
 
-  const handleDeviceSave = useCallback(() => {
-    dispatch(getPTSDeviceById(deviceid));
-    notify("Device settings updated successfully", "success", 3000);
+  const handleDeviceSave = useCallback(async () => {
+    await dispatch(getPTSDeviceById(deviceid));
   }, [dispatch, deviceid]);
 
   const handleDeleteDevice = useCallback(async () => {
@@ -186,32 +283,38 @@ const PTSDeviceDetailPage = () => {
   }, [dispatch, deviceid, device, navigate]);
 
   const isWebSocketConnected = useMemo(() => {
-    return device?.webSocketCapable === 1 && device?.connectionStatus === "Connected";
-  }, [device?.webSocketCapable, device?.connectionStatus]);
+    if (!resolvedDevice) {
+      return false;
+    }
+
+    const liveConnection = connectionStatuses[resolvedDevice.ptsid || resolvedDevice.id];
+    return (resolvedDevice.webSocketCapable === 1 || resolvedDevice.webSocketCapable === true)
+      && isLiveConnectionOnline(liveConnection, statusTick);
+  }, [connectionStatuses, resolvedDevice, statusTick]);
 
   // ── Metric items (for FluentStat tiles) ──
   const metrics = useMemo(() => {
-    if (!device) return [];
+    if (!resolvedDevice) return [];
     return [
       {
         label: "Connection", value: isWebSocketConnected ? "Connected" : "Disconnected",
         color: isWebSocketConnected ? "green" : "red",
         icon: isWebSocketConnected ? "fa-light fa-circle-check" : "fa-light fa-circle-xmark"
       },
-      { label: "IP Address", value: device.ipaddress || "N/A", color: "blue", icon: "fa-light fa-network-wired" },
+      { label: "IP Address", value: resolvedDevice.ipaddress || "N/A", color: "blue", icon: "fa-light fa-network-wired" },
       {
-        label: "Status", value: device.isActive ? "Active" : "Inactive",
-        color: device.isActive ? "green" : "red",
+        label: "Status", value: isWebSocketConnected ? "Online" : "Offline",
+        color: isWebSocketConnected ? "green" : "red",
         icon: "fa-light fa-circle-dot"
       },
-      { label: "Port", value: device.port || device.portNumber || "N/A", color: "gray", icon: "fa-light fa-plug" },
+      { label: "Port", value: resolvedDevice.port || resolvedDevice.portNumber || "N/A", color: "gray", icon: "fa-light fa-plug" },
       {
-        label: "Last Activity", value: device.lastActivity ? new Date(device.lastActivity).toLocaleString() : "N/A",
+        label: "Last Activity", value: resolvedDevice.lastActivity ? new Date(resolvedDevice.lastActivity).toLocaleString() : "N/A",
         color: "orange", icon: "fa-light fa-clock"
       },
-      { label: "Communication", value: device.communicationType || "Unknown", color: "blue", icon: "fa-light fa-satellite-dish" },
+      { label: "Communication", value: resolvedDevice.connectionType || resolvedDevice.communicationType || "Unknown", color: "blue", icon: "fa-light fa-satellite-dish" },
     ];
-  }, [device, isWebSocketConnected]);
+  }, [resolvedDevice, isWebSocketConnected]);
 
   // ── Loading spinner ──
   const loadingSpinner = (title) => (
@@ -223,23 +326,23 @@ const PTSDeviceDetailPage = () => {
 
   // ── Tab content ──
   const renderTabContent = () => {
-    if (!device) return null;
+    if (!resolvedDevice) return null;
     switch (activeTab) {
       case 0:
         return tabLoadingStates[0] ? loadingSpinner("live information") : (
-          <PTSDeviceLiveInfo key={`live-${device.ptsid}`} device={device} liveData={liveData} isConnected={isWebSocketConnected} />
+          <PTSDeviceLiveInfo key={`live-${resolvedDevice.ptsid}`} device={resolvedDevice} liveData={liveData} isConnected={isWebSocketConnected} />
         );
       case 1:
         return tabLoadingStates[1] ? loadingSpinner("terminal") : (
-          <PTSDeviceTerminal key={`term-${device.ptsid}`} device={device} isConnected={isWebSocketConnected} />
+          <PTSDeviceTerminal key={`term-${resolvedDevice.ptsid}`} device={resolvedDevice} isConnected={isWebSocketConnected} />
         );
       case 2:
         return tabLoadingStates[2] ? loadingSpinner("device settings") : (
-          <PTSDeviceEditForm key={`edit-${device.ptsid}`} device={device} onSave={handleDeviceSave} />
+          <PTSDeviceEditForm key={`edit-${resolvedDevice.ptsid}`} device={resolvedDevice} onSave={handleDeviceSave} />
         );
       case 3:
         return tabLoadingStates[3] ? loadingSpinner("configuration") : (
-          <PTSDeviceConfiguration key={`cfg-${device.ptsid}`} device={device} isConnected={isWebSocketConnected} />
+          <PTSDeviceConfiguration key={`cfg-${resolvedDevice.ptsid}`} device={resolvedDevice} isConnected={isWebSocketConnected} />
         );
       default:
         return null;
@@ -257,7 +360,7 @@ const PTSDeviceDetailPage = () => {
   }
 
   // ── Not found state ──
-  if (!device) {
+  if (!resolvedDevice) {
     return (
       <div className="m365-detail-empty">
         <i className="fa-light fa-exclamation-triangle"></i>
@@ -280,17 +383,17 @@ const PTSDeviceDetailPage = () => {
             <span>PTS Devices</span>
           </button>
           <div className="m365-detail-header__subtitle">
-            ID: {device.ptsid} &middot; {device.siteNavigation?.name || "Unknown Site"}
+            ID: {resolvedDevice.ptsid} &middot; {resolvedDevice.siteNavigation?.name || "Unknown Site"}
           </div>
         </div>
         <div className="m365-detail-header__title-row">
           <div className="m365-detail-header__info">
-            <h1 className="m365-detail-header__title">{device.ptsName || device.ptsid}</h1>
+            <h1 className="m365-detail-header__title">{resolvedDevice.ptsName || resolvedDevice.ptsid}</h1>
           </div>
           <div className="m365-detail-header__actions">
             <button
               className="m365-btn m365-btn--text"
-              onClick={() => navigate(`/fueling/${device.ptsid}`)}
+              onClick={() => navigate(`/fueling/${resolvedDevice.ptsid}`)}
             >
               <i className="fa-light fa-gas-pump"></i> Start Fueling
             </button>
@@ -311,14 +414,14 @@ const PTSDeviceDetailPage = () => {
       </div>
 
       {/* ── Connected Tanks ── */}
-      {device.tanks && device.tanks.length > 0 && (
+      {resolvedDevice.tanks && resolvedDevice.tanks.length > 0 && (
         <div className="m365-detail-tanks">
           <h3 className="m365-detail-tanks__heading">
             <i className="fa-light fa-database"></i>
-            Connected Tanks ({device.tanks.length})
+            Connected Tanks ({resolvedDevice.tanks.length})
           </h3>
           <div className="m365-detail-tanks__grid">
-            {device.tanks.map((tank) => (
+            {resolvedDevice.tanks.map((tank) => (
               <div key={tank.id} className="m365-tank-card">
                 <div className="m365-tank-card__header">
                   <i className="fa-light fa-oil-can"></i>

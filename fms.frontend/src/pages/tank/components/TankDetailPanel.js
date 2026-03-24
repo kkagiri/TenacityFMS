@@ -191,7 +191,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
       } catch (error) {
         if (active) {
           setCalibrationError(
-            error?.response?.data?.message || error?.message || "Failed to load calibration data"
+            error?.response?.data?.message || error?.message || "Failed to load PTS calibration data"
           );
           setCalibrationData(null);
         }
@@ -244,7 +244,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
       });
     } catch (error) {
       setCalibrationError(
-        error?.response?.data?.message || error?.message || "Failed to refresh calibration data"
+        error?.response?.data?.message || error?.message || "Failed to refresh PTS calibration data"
       );
     } finally {
       setCalibrationLoading(false);
@@ -263,13 +263,13 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
       );
 
       if (!result?.isSuccess) {
-        throw new Error(result?.message || "Failed to generate automatic calibration chart");
+        throw new Error(result?.message || "Failed to generate PTS automatic calibration chart");
       }
 
       await handleRefreshCalibration();
     } catch (error) {
       setCalibrationError(
-        error?.response?.data?.message || error?.message || "Failed to generate automatic calibration chart"
+        error?.response?.data?.message || error?.message || "Failed to generate PTS automatic calibration chart"
       );
     } finally {
       setCalibrationGenerating(false);
@@ -446,6 +446,10 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
               <span className="m365-info-cell__value">{tank.probeNumber || "Not Set"}</span>
             </div>
             <div className="m365-info-cell">
+              <span className="m365-info-cell__label">Mapped PTS Tank</span>
+              <span className="m365-info-cell__value">{tank.ptsTankId || "Not Set"}</span>
+            </div>
+            <div className="m365-info-cell">
               <span className="m365-info-cell__label">Auto Stock Updates</span>
               <span className="m365-info-cell__value">{enabledBadge(tank.usePtsProbeReadings)}</span>
             </div>
@@ -488,15 +492,15 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
           </div>
         </div>
 
-        {/* ── Calibration ── */}
+        {/* ── PTS Calibration ── */}
         <div className="m365-flat-section">
           <h3 className="m365-flat-section__title">
-            <i className="fa-light fa-ruler-combined" /> Calibration
+            <i className="fa-light fa-ruler-combined" /> PTS Calibration
           </h3>
 
           {!tank.ptsId || !linkedProbeNumber ? (
             <div className="m365-tank-detail__calibration-empty">
-              Link a PTS device and mapped probe to inspect calibration charts.
+              Link a PTS device and mapped probe to inspect PTS calibration charts. Current PTS tank mapping: {tank.ptsTankId || "Not Set"}.
             </div>
           ) : (
             <>
@@ -517,7 +521,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                   disabled={calibrationLoading || calibrationGenerating}
                 >
                   <i className={`fa-light ${calibrationGenerating ? "fa-spinner fa-spin" : "fa-wand-magic-sparkles"}`} />
-                  {calibrationGenerating ? "Generating..." : "Generate Auto Chart"}
+                  {calibrationGenerating ? "Generating..." : "Generate PTS Auto Chart"}
                 </button>
               </div>
 
@@ -527,9 +531,9 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
 
               <div className="m365-info-grid">
                 {[
-                  { label: "Manual Chart", total: calibrationData?.manualTotal ?? 0 },
-                  { label: "Interval Volume", total: calibrationData?.intervalTotal ?? 0 },
-                  { label: "Automatic Chart", total: calibrationData?.automaticTotal ?? 0 },
+                  { label: "PTS Manual Chart", total: calibrationData?.manualTotal ?? 0 },
+                  { label: "PTS Interval Volume", total: calibrationData?.intervalTotal ?? 0 },
+                  { label: "PTS Automatic Chart", total: calibrationData?.automaticTotal ?? 0 },
                 ].map((item) => {
                   const badge = getCalibrationBadge(item.total);
                   return (
@@ -553,7 +557,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                 {calibrationData?.health && (
                   <>
                     <div className="m365-info-cell">
-                      <span className="m365-info-cell__label">Calibration Quality</span>
+                      <span className="m365-info-cell__label">PTS Calibration Quality</span>
                       <span className="m365-info-cell__value">
                         {(() => {
                           const qb = getHealthQualityBadge(calibrationData.health.overallQuality);
@@ -577,7 +581,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                 <div className="m365-tank-detail__calibration-warning">
                   <i className="fa-light fa-triangle-exclamation"></i>
                   <span>
-                    <strong>Recalibration recommended</strong>
+                    <strong>PTS recalibration recommended</strong>
                     {calibrationData.health.recommendationNotes && (
                       <> — {calibrationData.health.recommendationNotes}</>
                     )}
@@ -587,7 +591,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
 
               <div className="m365-tank-detail__calibration-previews">
                 <div className="m365-tank-detail__calibration-card">
-                  <div className="m365-tank-detail__calibration-card-title">Manual Chart Preview</div>
+                  <div className="m365-tank-detail__calibration-card-title">PTS Manual Chart Preview</div>
                   {calibrationLoading ? (
                     <div className="m365-tank-detail__calibration-muted">Loading...</div>
                   ) : calibrationData?.manualRecords?.length ? (
@@ -598,12 +602,12 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                       </div>
                     ))
                   ) : (
-                    <div className="m365-tank-detail__calibration-muted">No manual calibration rows found.</div>
+                    <div className="m365-tank-detail__calibration-muted">No PTS manual calibration rows found.</div>
                   )}
                 </div>
 
                 <div className="m365-tank-detail__calibration-card">
-                  <div className="m365-tank-detail__calibration-card-title">Interval Volume Preview</div>
+                  <div className="m365-tank-detail__calibration-card-title">PTS Interval Volume Preview</div>
                   {calibrationLoading ? (
                     <div className="m365-tank-detail__calibration-muted">Loading...</div>
                   ) : calibrationData?.intervalRecords?.length ? (
@@ -615,12 +619,12 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                       </div>
                     ))
                   ) : (
-                    <div className="m365-tank-detail__calibration-muted">No interval-volume rows found.</div>
+                    <div className="m365-tank-detail__calibration-muted">No PTS interval-volume rows found.</div>
                   )}
                 </div>
 
                 <div className="m365-tank-detail__calibration-card">
-                  <div className="m365-tank-detail__calibration-card-title">Automatic Chart Preview</div>
+                  <div className="m365-tank-detail__calibration-card-title">PTS Automatic Chart Preview</div>
                   {calibrationLoading ? (
                     <div className="m365-tank-detail__calibration-muted">Loading...</div>
                   ) : calibrationData?.automaticRecords?.length ? (
@@ -631,7 +635,7 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                       </div>
                     ))
                   ) : (
-                    <div className="m365-tank-detail__calibration-muted">No automatic calibration rows found.</div>
+                    <div className="m365-tank-detail__calibration-muted">No PTS automatic calibration rows found.</div>
                   )}
                 </div>
               </div>

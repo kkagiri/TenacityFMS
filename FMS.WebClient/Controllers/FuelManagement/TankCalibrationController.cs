@@ -20,8 +20,9 @@ using FMS.Application.Features.TankManagement.TankCalibration;
 using FMS.Application.Features.TankManagement.TankCalibration.Commands;
 using FMS.Application.Features.TankManagement.TankCalibration.DTOs;
 using FMS.Application.Features.TankManagement.TankCalibration.Queries;
-using FMS.Application.PTSServices.PTSConfigService;
 using FMS.Application.Features.TankManagement.TankCalibration.Services;
+using FMS.Application.PTSServices.PTSConfigService;
+using FMS.Domain.PTSCommon.Responses;
 using FMS.Persistence.DataAccess;
 using FMS.WebClient.Attributes;
 using MediatR;
@@ -42,6 +43,7 @@ namespace FMS.WebClient.Controllers.FuelManagement
     {
         private readonly GpsdataContext _context;
         private readonly IMediator _mediator;
+        private readonly ICalibrationLearningService _learningService;
         private readonly IPTSConfigService _ptsConfigService;
         private readonly ITankCalibrationValidator _validator;
         private readonly ILogger<TankCalibrationController> _logger;
@@ -49,12 +51,14 @@ namespace FMS.WebClient.Controllers.FuelManagement
         public TankCalibrationController(
             GpsdataContext context,
             IMediator mediator,
+            ICalibrationLearningService learningService,
             IPTSConfigService ptsConfigService,
             ITankCalibrationValidator validator,
             ILogger<TankCalibrationController> logger)
         {
             _context = context;
             _mediator = mediator;
+            _learningService = learningService;
             _ptsConfigService = ptsConfigService;
             _validator = validator;
             _logger = logger;
@@ -131,6 +135,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 return BadRequest(result);
             }
 
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. ChartType={ChartType}, Source={Source}.",
+                "SyncSnapshot", GetCurrentActor(), tankId, chartType, source);
+
             return Ok(result);
         }
 
@@ -142,6 +150,17 @@ namespace FMS.WebClient.Controllers.FuelManagement
             if (bindingResult.ErrorResult != null)
             {
                 return bindingResult.ErrorResult;
+            }
+
+            var configurationStatus = await GetAutomaticCalibrationStatusAsync(bindingResult);
+            if (configurationStatus.IsVerified && !configurationStatus.IsEnabled)
+            {
+                return BadRequest(FMSResponse<TankCalibrationSnapshotDto>.Failed(configurationStatus.Message));
+            }
+
+            if (configurationStatus.IsVerified && !configurationStatus.IsReadyForGeneration)
+            {
+                return BadRequest(FMSResponse<TankCalibrationSnapshotDto>.Failed(configurationStatus.Message));
             }
 
             var generateResult = await _ptsConfigService.GenerateTankAutomaticCalibrationChartAsync(bindingResult.PtsDeviceId!, bindingResult.ProbeNumber!.Value);
@@ -164,6 +183,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
             {
                 return BadRequest(result);
             }
+
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. Automatic chart generated from PTS controller.",
+                "GenerateAutomaticChart", GetCurrentActor(), tankId);
 
             return Ok(result);
         }
@@ -190,6 +213,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 return BadRequest(deviceResult);
             }
 
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. RecordCount={RecordCount}.",
+                "SetManualChart", GetCurrentActor(), tankId, request.Records?.Count ?? 0);
+
             return await SyncManualSnapshotAsync(bindingResult, "manual-set", "Manual calibration chart replaced from tank calibration panel.");
         }
 
@@ -214,6 +241,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
             {
                 return BadRequest(deviceResult);
             }
+
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. Height={Height}.",
+                "AddManualRecord", GetCurrentActor(), tankId, request.Height);
 
             return await SyncManualSnapshotAsync(bindingResult, "manual-add", $"Manual calibration record added at height {request.Height}.");
         }
@@ -240,6 +271,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 return BadRequest(deviceResult);
             }
 
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. Height={Height}.",
+                "EditManualRecord", GetCurrentActor(), tankId, request.Height);
+
             return await SyncManualSnapshotAsync(bindingResult, "manual-edit", $"Manual calibration record updated at height {request.Height}.");
         }
 
@@ -264,6 +299,10 @@ namespace FMS.WebClient.Controllers.FuelManagement
             {
                 return BadRequest(deviceResult);
             }
+
+            _logger.LogInformation(
+                "Calibration {Action} by {Actor} for TankId {TankId}. Height={Height}.",
+                "DeleteManualRecord", GetCurrentActor(), tankId, height);
 
             return await SyncManualSnapshotAsync(bindingResult, "manual-delete", $"Manual calibration record deleted at height {height}.");
         }
@@ -312,6 +351,146 @@ namespace FMS.WebClient.Controllers.FuelManagement
             return Ok(FMSResponse<List<CalibrationVarianceDto>>.Success(variances.ToList()));
         }
 
+        [HttpPost("learning/extract")]
+        [RequirePermission(Permissions.Tank.Edit)]
+        public async Task<ActionResult<FMSResponse<CalibrationLearningExtractionResultDto>>> ExtractLearningData(
+            int tankId,
+            [FromBody] CalibrationLearningExtractionRequestDto request)
+        {
+            if (request == null)
+            {
+                return BadRequest(FMSResponse<CalibrationLearningExtractionResultDto>.Failed("Extraction request is required."));
+            }
+
+            if (!request.IncludeDispensing && !request.IncludeDeliveries)
+            {
+                return BadRequest(FMSResponse<CalibrationLearningExtractionResultDto>.Failed("At least one extraction source must be enabled."));
+            }
+
+            try
+            {
+                var allDataPoints = new List<CalibrationDataPointDto>();
+                var dispensingPoints = request.IncludeDispensing
+                    ? await _learningService.ExtractDataPointsFromDispensingAsync(tankId, request.StartDateUtc, request.EndDateUtc)
+                    : new List<CalibrationDataPointDto>();
+                var deliveryPoints = request.IncludeDeliveries
+                    ? await _learningService.ExtractDataPointsFromDeliveriesAsync(tankId, request.StartDateUtc, request.EndDateUtc)
+                    : new List<CalibrationDataPointDto>();
+
+                allDataPoints.AddRange(dispensingPoints);
+                allDataPoints.AddRange(deliveryPoints);
+
+                var result = new CalibrationLearningExtractionResultDto
+                {
+                    TankId = tankId,
+                    DispensingPointCount = dispensingPoints.Count,
+                    DeliveryPointCount = deliveryPoints.Count,
+                    TotalPointCount = allDataPoints.Count,
+                    DataPoints = allDataPoints,
+                };
+
+                _logger.LogInformation(
+                    "Calibration {Action} by {Actor} for TankId {TankId}. DispensingPoints={DispensingCount}, DeliveryPoints={DeliveryCount}.",
+                    "ExtractLearningData", GetCurrentActor(), tankId, dispensingPoints.Count, deliveryPoints.Count);
+
+                return Ok(FMSResponse<CalibrationLearningExtractionResultDto>.Success(result, "Calibration learning data extracted successfully."));
+            }
+            catch (System.ArgumentException ex)
+            {
+                _logger.LogWarning(
+                    "Calibration {Action} failed for TankId {TankId}. Error={Error}.",
+                    "ExtractLearningData", tankId, ex.Message);
+                return BadRequest(FMSResponse<CalibrationLearningExtractionResultDto>.Failed(ex.Message));
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<CalibrationLearningExtractionResultDto>.Failed(ex.Message));
+            }
+        }
+
+        [HttpGet("learning/coverage")]
+        [RequirePermission(Permissions.Tank.Read)]
+        public async Task<ActionResult<FMSResponse<CalibrationCoverageDto>>> GetLearningCoverage(int tankId)
+        {
+            try
+            {
+                var coverage = await _learningService.GetAccumulationSummaryAsync(tankId);
+                return Ok(FMSResponse<CalibrationCoverageDto>.Success(coverage));
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<CalibrationCoverageDto>.Failed(ex.Message));
+            }
+        }
+
+        [HttpPost("learning/generate")]
+        [RequirePermission(Permissions.Tank.Edit)]
+        public async Task<ActionResult<FMSResponse<TankCalibrationSnapshotDto>>> GenerateLearnedChart(int tankId)
+        {
+            try
+            {
+                var snapshot = await _learningService.GenerateLearnedChartAsync(tankId);
+
+                _logger.LogInformation(
+                    "Calibration {Action} by {Actor} for TankId {TankId}. SnapshotId={SnapshotId}.",
+                    "GenerateLearnedChart", GetCurrentActor(), tankId, snapshot.Id);
+
+                return Ok(FMSResponse<TankCalibrationSnapshotDto>.Success(snapshot, "FMS learned calibration chart generated successfully."));
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<TankCalibrationSnapshotDto>.Failed(ex.Message));
+            }
+        }
+
+        [HttpPost("learning/seed/{snapshotId:long}")]
+        [RequirePermission(Permissions.Tank.Edit)]
+        public async Task<ActionResult<FMSResponse<CalibrationCoverageDto>>> SeedLearningFromSnapshot(int tankId, long snapshotId)
+        {
+            try
+            {
+                var coverage = await _learningService.SeedFromSnapshotAsync(tankId, snapshotId);
+
+                _logger.LogInformation(
+                    "Calibration {Action} by {Actor} for TankId {TankId}. SourceSnapshotId={SnapshotId}.",
+                    "SeedLearningFromSnapshot", GetCurrentActor(), tankId, snapshotId);
+
+                return Ok(FMSResponse<CalibrationCoverageDto>.Success(coverage, "Calibration learning baseline seeded successfully."));
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<CalibrationCoverageDto>.Failed(ex.Message));
+            }
+        }
+
+        [HttpGet("learning/compare")]
+        [RequirePermission(Permissions.Tank.Read)]
+        public async Task<ActionResult<FMSResponse<List<CalibrationComparisonDto>>>> CompareLearnedChart(
+            int tankId,
+            [FromQuery] long? referenceSnapshotId = null,
+            [FromQuery] long? comparedSnapshotId = null,
+            [FromQuery] string? comparedChartType = null)
+        {
+            try
+            {
+                var comparisons = await _learningService.CompareChartsAsync(
+                    tankId,
+                    referenceSnapshotId,
+                    comparedSnapshotId,
+                    comparedChartType);
+
+                return Ok(FMSResponse<List<CalibrationComparisonDto>>.Success(comparisons.ToList()));
+            }
+            catch (System.ArgumentException ex)
+            {
+                return BadRequest(FMSResponse<List<CalibrationComparisonDto>>.Failed(ex.Message));
+            }
+            catch (System.InvalidOperationException ex)
+            {
+                return BadRequest(FMSResponse<List<CalibrationComparisonDto>>.Failed(ex.Message));
+            }
+        }
+
         private async Task<TankBindingResult> ResolveTankBindingAsync(int tankId)
         {
             var tank = await _context.Tanks
@@ -339,8 +518,53 @@ namespace FMS.WebClient.Controllers.FuelManagement
                 TankId = tank.Id,
                 TankName = tank.Name,
                 PtsDeviceId = tank.PtsId,
-                ProbeNumber = tank.ProbeNumber
+                ProbeNumber = tank.ProbeNumber,
+                PtsTankId = tank.PtsTankId
             };
+        }
+
+        private async Task<AutomaticCalibrationStatus> GetAutomaticCalibrationStatusAsync(TankBindingResult bindingResult)
+        {
+            var effectivePtsTankId = bindingResult.PtsTankId ?? bindingResult.ProbeNumber;
+            var usedProbeFallback = !bindingResult.PtsTankId.HasValue && bindingResult.ProbeNumber.HasValue;
+
+            if (string.IsNullOrWhiteSpace(bindingResult.PtsDeviceId) || !effectivePtsTankId.HasValue)
+            {
+                return AutomaticCalibrationStatus.Unverified("Automatic calibration configuration could not be verified for this tank.");
+            }
+
+            var configResult = await _ptsConfigService.GetTanksConfigurationAsync(bindingResult.PtsDeviceId);
+            if (!configResult.IsSuccess || configResult.Data?.Tanks == null)
+            {
+                return AutomaticCalibrationStatus.Unverified(configResult.Message ?? "Unable to read PTS tank configuration.");
+            }
+
+            var tankConfig = configResult.Data.Tanks.FirstOrDefault(t => t.Id == effectivePtsTankId.Value);
+            if (tankConfig == null)
+            {
+                return AutomaticCalibrationStatus.Unverified($"PTS tank configuration {effectivePtsTankId.Value} was not found on the device.");
+            }
+
+            if (!tankConfig.AutomaticCalibrationEnabled)
+            {
+                return AutomaticCalibrationStatus.Verified(false, false,
+                    usedProbeFallback
+                        ? "Automatic calibration is disabled in PTS tank configuration. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                        : "Automatic calibration is disabled in PTS tank configuration.");
+            }
+
+            if (!tankConfig.AutomaticCalibrationReadyForGeneration)
+            {
+                return AutomaticCalibrationStatus.Verified(true, false,
+                    usedProbeFallback
+                        ? "Automatic calibration is enabled, but the controller is not ready for generation yet. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                        : "Automatic calibration is enabled, but the controller is not ready for generation yet.");
+            }
+
+            return AutomaticCalibrationStatus.Verified(true, true,
+                usedProbeFallback
+                    ? "Automatic calibration is enabled and ready for generation. Using probe/tank channel as the configuration mapping because PtsTankId is not set."
+                    : "Automatic calibration is enabled and ready for generation.");
         }
 
         private string GetCurrentActor()
@@ -358,7 +582,16 @@ namespace FMS.WebClient.Controllers.FuelManagement
             public string? TankName { get; init; }
             public string? PtsDeviceId { get; init; }
             public int? ProbeNumber { get; init; }
+            public int? PtsTankId { get; init; }
             public ActionResult<FMSResponse<TankCalibrationSnapshotDto>>? ErrorResult { get; init; }
+        }
+
+        private sealed record AutomaticCalibrationStatus(bool IsVerified, bool IsEnabled, bool IsReadyForGeneration, string Message)
+        {
+            public static AutomaticCalibrationStatus Unverified(string message) => new(false, false, false, message);
+
+            public static AutomaticCalibrationStatus Verified(bool isEnabled, bool isReadyForGeneration, string message)
+                => new(true, isEnabled, isReadyForGeneration, message);
         }
     }
 }

@@ -1,3 +1,13 @@
+/**
+ * File: ptsDeviceActions.js
+ * Purpose: Redux thunks for loading and mutating PTS device data.
+ * Dependencies: axiosInstance, pts reducer action types.
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - getPTSDeviceById(): Loads a single PTS device and unwraps FMSResponse payloads.
+ * - updatePTSDevice(): Updates a device and returns normalized device data.
+ */
 import axiosInstance from "../../../api/axiosInstance";
 
 import {
@@ -26,6 +36,8 @@ export const DELETE_PTS_DEVICE_FAILURE = "DELETE_PTS_DEVICE_FAILURE";
 
 export const GET_PTS_DEVICE_BY_ID_SUCCESS = "GET_PTS_DEVICE_BY_ID_SUCCESS";
 export const GET_PTS_DEVICE_BY_ID_FAILURE = "GET_PTS_DEVICE_BY_ID_FAILURE";
+
+const unwrapResponseData = (response) => response?.data?.data || response?.data;
 
 export const fetchDashboardMetrics = () => async (dispatch) => {
   try {
@@ -97,8 +109,7 @@ export const updatePTSDevice = (deviceId, ptsDevice) => async (dispatch) => {
       `/PTSDevice/update/${deviceId}`,
       ptsDevice
     );
-    // Response structure: { data: {...}, success: true, message: "..." }
-    const updatedDevice = response.data?.data || response.data;
+    const updatedDevice = unwrapResponseData(response);
     dispatch({
       type: UPDATE_PTS_DEVICE_SUCCESS,
       payload: updatedDevice,
@@ -129,12 +140,15 @@ export const deletePTSDevice = (deviceId) => async (dispatch) => {
 export const getPTSDeviceById = (deviceId) => async (dispatch) => {
   try {
     const response = await axiosInstance.get(`/PTSDevice/GetById/${deviceId}`);
+    const device = unwrapResponseData(response);
     dispatch({
       type: GET_PTS_DEVICE_BY_ID_SUCCESS,
-      payload: response.data,
+      payload: device,
     });
+    return { success: true, data: device };
   } catch (error) {
     dispatch({ type: GET_PTS_DEVICE_BY_ID_FAILURE, payload: error.message });
+    throw error;
   }
 };
 

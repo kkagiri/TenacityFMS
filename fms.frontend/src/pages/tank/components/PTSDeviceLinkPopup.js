@@ -206,7 +206,7 @@ const PTSDeviceLinkPopup = ({ visible, tank, onClose, onLinked }) => {
 
     // Set initial values from tank - use probeNumber (new field name)
     setSelectedDeviceId(tank?.ptsId || null);
-    setSelectedPtsTankNumber(tank?.probeNumber || null);
+    setSelectedPtsTankNumber(tank?.ptsTankId || tank?.probeNumber || null);
     setUsePtsProbeReadings(Boolean(tank?.usePtsProbeReadings));
     setConfigProbes([]);
     setConfigProbesError(null);
@@ -360,7 +360,7 @@ const PTSDeviceLinkPopup = ({ visible, tank, onClose, onLinked }) => {
         tankLength: tank.tankLength,
         ptsId: selectedDeviceId,
         probeNumber: selectedPtsTankNumber || null,
-        ptsTankId: null, // Reserved for future JsonPTS services
+        ptsTankId: selectedPtsTankNumber || null,
         usePtsProbeReadings: usePtsProbeReadings,
         useBookKeeping: Boolean(tank.useBookKeeping),
         hasAutomaticBookKeeping: Boolean(tank.hasAutomaticBookKeeping),

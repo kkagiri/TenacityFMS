@@ -50,7 +50,9 @@ const tankReducer = (state = initialState, action) => {
             return {
                 ...state,
                 tanks: state.tanks.map(tank =>
-                    tank.id === action.payload.id ? action.payload.tank : tank
+                    tank.id === action.payload.id
+                        ? { ...tank, ...action.payload.tank }
+                        : tank
                 ),
                 loading: false,
                 error: null,

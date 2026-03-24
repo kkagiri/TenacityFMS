@@ -562,6 +562,8 @@ public static class FmsServiceCollectionExtensions
             FMS.Application.Features.TankManagement.TankCalibration.Services.TankCalibrationValidator>();
         services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationAnalysisService,
             FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationAnalysisService>();
+        services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationLearningService,
+            FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationLearningService>();
         services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
         services.AddScoped<TankStockReconciliationService>(); // Tank Stock reconciliation service
 
@@ -646,6 +648,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<InventoryCostingService>();
         services.AddScoped<FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand.TankVolumeHistoryIntegrationService>();
         services.AddScoped<IInTankDeliveryDetectionService, InTankDeliveryDetectionService>();
+        services.AddScoped<IServerSideDeliveryDetectionService, ServerSideDeliveryDetectionService>();
         services.AddScoped<TankStockFutureRecordsService>();
         services.AddScoped<OpeningStockValidationService>();
         services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();

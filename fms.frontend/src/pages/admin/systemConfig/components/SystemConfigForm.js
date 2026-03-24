@@ -94,6 +94,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
     { value: "WorkSchedule", text: "Work Schedule" },
     { value: "CommandExecution", text: "Command Execution" },
     { value: "Maintenance", text: "Maintenance" },
+    { value: "Calibration", text: "Calibration" },
     { value: "Reconciliation", text: "Reconciliation" },
     { value: "Email", text: "Email" },
     { value: "ConnectionThresholds", text: "Connection Thresholds" },

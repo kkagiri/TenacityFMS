@@ -4,7 +4,7 @@
  *                device list, probe selection, and saves the PTS binding.
  * Dependencies:  PTSDeviceList, PTSProbeSelector, ptsSignalRService,
  *                ptsConfigService, tankActions, ptsDeviceActions
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-24
  *
  * Props:
  * - tank      (object): Tank being linked
@@ -86,6 +86,10 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
     const [configProbes, setConfigProbes] = useState([]);
     const [loadingConfig, setLoadingConfig] = useState(false);
     const [configError, setConfigError] = useState(null);
+    const [selectedPtsTankId, setSelectedPtsTankId] = useState(null);
+    const [configTanks, setConfigTanks] = useState([]);
+    const [loadingTanks, setLoadingTanks] = useState(false);
+    const [tanksError, setTanksError] = useState(null);
 
     useEffect(() => {
         mounted.current = true;
@@ -114,9 +118,12 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
     useEffect(() => {
         setSelectedDeviceId(tank?.ptsId || null);
         setSelectedProbeNumber(tank?.probeNumber || null);
+        setSelectedPtsTankId(tank?.ptsTankId || null);
         setUsePtsProbeReadings(Boolean(tank?.usePtsProbeReadings));
         setConfigProbes([]);
+        setConfigTanks([]);
         setConfigError(null);
+        setTanksError(null);
 
         dispatch(fetchPTSDevices());
         setSignalRConnected(ptsSignalRService.getConnectionStatus());
@@ -170,9 +177,50 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
         }
     }, []);
 
+    const fetchTanksConfig = useCallback(async (devId) => {
+        if (!devId || !mounted.current) return;
+        setLoadingTanks(true);
+        setTanksError(null);
+        try {
+            const res = await ptsConfigService.getTanksConfiguration(devId);
+            if (!mounted.current) return;
+            if (res?.isSuccess && Array.isArray(res?.data?.tanks)) {
+                setConfigTanks(
+                    res.data.tanks.map((tankConfig) => ({
+                        id: tankConfig.id,
+                        fuelGradeId: tankConfig.fuelGradeId,
+                        height: tankConfig.height,
+                        automaticCalibrationEnabled: Boolean(tankConfig.automaticCalibrationEnabled),
+                        automaticCalibrationReadyForGeneration: Boolean(tankConfig.automaticCalibrationReadyForGeneration),
+                    }))
+                );
+            } else {
+                setTanksError(res?.message || "Failed to fetch tanks configuration");
+                setConfigTanks([]);
+            }
+        } catch (err) {
+            if (mounted.current) {
+                setTanksError(err?.message || "Error fetching tanks configuration");
+                setConfigTanks([]);
+            }
+        } finally {
+            if (mounted.current) setLoadingTanks(false);
+        }
+    }, []);
+
     useEffect(() => {
         if (selectedDeviceId && !showLiveData) fetchConfig(selectedDeviceId);
     }, [selectedDeviceId, showLiveData, fetchConfig]);
+
+    useEffect(() => {
+        if (!selectedDeviceId) {
+            setConfigTanks([]);
+            setSelectedPtsTankId(null);
+            return;
+        }
+
+        fetchTanksConfig(selectedDeviceId);
+    }, [selectedDeviceId, fetchTanksConfig]);
 
     /* ── derived data ── */
     const devicesWithStatus = useMemo(() => {
@@ -213,8 +261,11 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
     const handleDeviceChange = useCallback((id) => {
         setSelectedDeviceId(id);
         setSelectedProbeNumber(null);
+        setSelectedPtsTankId(null);
         setConfigProbes([]);
+        setConfigTanks([]);
         setConfigError(null);
+        setTanksError(null);
     }, []);
 
     /* ── save ── */
@@ -223,6 +274,11 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
         if (!selectedDeviceId) { notify("Please select a PTS device", "warning", 3000); return; }
         if (availableProbes.length > 0 && !selectedProbeNumber) {
             notify("Please select a probe/tank channel", "warning", 3000);
+            return;
+        }
+
+        if (configTanks.length > 0 && !selectedPtsTankId) {
+            notify("Please select a PTS tank mapping", "warning", 3000);
             return;
         }
 
@@ -236,7 +292,7 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 tankLength: tank.tankLength,
                 ptsId: selectedDeviceId,
                 probeNumber: selectedProbeNumber || null,
-                ptsTankId: null,
+                ptsTankId: selectedPtsTankId || null,
                 usePtsProbeReadings,
                 useBookKeeping: Boolean(tank.useBookKeeping),
                 hasAutomaticBookKeeping: Boolean(tank.hasAutomaticBookKeeping),
@@ -256,15 +312,18 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
             const result = await dispatch(updateTank(tank.id, payload));
             if (!result?.success) throw new Error(result?.message || "Failed to save PTS binding");
 
-            notify("PTS probe binding saved successfully", "success", 3000);
-            onLinked?.();
+            notify("PTS device binding saved successfully", "success", 3000);
+            onLinked?.({
+                ...tank,
+                ...payload,
+            });
             onClose?.();
         } catch (err) {
             notify(err?.message || "Error saving PTS binding", "error", 4000);
         } finally {
             if (mounted.current) setSaving(false);
         }
-    }, [tank, selectedDeviceId, selectedProbeNumber, usePtsProbeReadings, availableProbes.length, dispatch, onLinked, onClose]);
+    }, [tank, selectedDeviceId, selectedProbeNumber, selectedPtsTankId, usePtsProbeReadings, availableProbes.length, configTanks.length, dispatch, onLinked, onClose]);
 
     return (
         <div className="m365-pts-link-panel">
@@ -281,12 +340,18 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 <PTSProbeSelector
                     availableProbes={availableProbes}
                     selectedProbeNumber={selectedProbeNumber}
+                    availableTanks={configTanks}
+                    selectedPtsTankId={selectedPtsTankId}
                     onProbeChange={setSelectedProbeNumber}
+                    onPtsTankChange={setSelectedPtsTankId}
                     showLiveData={showLiveData}
                     onToggleLiveData={() => setShowLiveData((p) => !p)}
                     loadingConfig={loadingConfig}
                     configError={configError}
                     onRetryConfig={() => fetchConfig(selectedDeviceId)}
+                    loadingTanks={loadingTanks}
+                    tanksError={tanksError}
+                    onRetryTanks={() => fetchTanksConfig(selectedDeviceId)}
                     usePtsProbeReadings={usePtsProbeReadings}
                     onToggleAutoStock={() => setUsePtsProbeReadings((p) => !p)}
                 />
@@ -300,7 +365,8 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 <p style={{ fontSize: 13, color: "var(--m365-text-primary)" }}>
                     Tank <strong>{tank?.name || "-"}</strong> → device{" "}
                     <strong>{selectedDeviceId || "-"}</strong>
-                    {selectedProbeNumber ? <> using <strong>Probe {selectedProbeNumber}</strong>.</> : "."}
+                    {selectedProbeNumber ? <> using <strong>Probe {selectedProbeNumber}</strong></> : <> with no probe selected</>}
+                    {selectedPtsTankId ? <> mapped to <strong>PTS Tank {selectedPtsTankId}</strong>.</> : <> and no PTS tank selected.</>}
                 </p>
             </div>
 

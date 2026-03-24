@@ -5,6 +5,9 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
   <ItemGroup>
+    <InternalsVisibleTo Include="FMS.Testing" />
+  </ItemGroup>
+  <ItemGroup>
     <Compile Remove="FuelDispensing\**" />
     <EmbeddedResource Remove="FuelDispensing\**" />
     <None Remove="FuelDispensing\**" />

@@ -1,21 +1,18 @@
 /**
- * VehicleDetailsScreen.js
- * Purpose: Main screen for viewing vehicle details with search, GPS info, consumption, and fueling history
- * Similar functionality to web VehicleDetails.js
- */
-
-/**
  * File: VehicleDetailsScreen.js
- * Purpose: Main screen for viewing vehicle details with search, GPS info, consumption, and fueling history
- * Similar functionality to web VehicleDetails.js
- * Last Modified: 2026-02-12
+ * Purpose: Combined vehicle tracking + details screen.
+ *   - Landing: Dashboard (summary cards) + Search
+ *   - After search: Vehicle details tabs (Info, GPS, Consumption, Fuel Refills)
  *
- * Notes:
- * - Tank capacity editing in Vehicle Info is admin-only
- * - Other vehicle details remain view-only in mobile
+ * Flow: Home → Vehicles → Dashboard + Search → Select Vehicle → Detail Tabs
+ *
+ * The dashboard shows live tracking summary (active, moving, parked) via SignalR.
+ * GPS tab shows live location with SignalR streaming.
+ *
+ * Last Modified: 2026-03-24
  */
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -24,10 +21,12 @@ import {
   SafeAreaView,
   StatusBar,
   Dimensions,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import ApiService from "../../services/apiService";
 import { usePermissions } from "../../hooks/usePermissions";
+import { useVehicleTracking } from "../../hooks/useVehicleTracking";
 
 // Import vehicle components
 import {
@@ -36,6 +35,7 @@ import {
   VehicleGPSInfo,
   VehicleConsumptionHistory,
   VehicleFuelingHistory,
+  VehicleDashboard,
 } from "../../components/vehicle";
 
 const { width } = Dimensions.get("window");
@@ -48,14 +48,19 @@ const TABS = [
 ];
 
 const VehicleDetailsScreen = ({ navigation, route }) => {
-  // Permissions - use canEditVehicle (permission-based)
+  // Permissions
   const { canEditVehicle } = usePermissions();
 
   // State
   const [selectedVehicle, setSelectedVehicle] = useState(null);
   const [activeTab, setActiveTab] = useState("info");
-  const [showSearch, setShowSearch] = useState(true);
   const [isLoadingDetails, setIsLoadingDetails] = useState(false);
+
+  // SignalR tracking (only active on dashboard, disconnects when viewing vehicle details)
+  const showDashboard = !selectedVehicle;
+  const { connectionState, isConnected, refreshData } = useVehicleTracking({
+    enabled: showDashboard,
+  });
 
   // Load vehicle from route params if passed
   useEffect(() => {
@@ -71,11 +76,9 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
       if (response && response.data) {
         const vehicleData = normalizeVehicleData(response.data);
         setSelectedVehicle(vehicleData);
-        setShowSearch(false);
       } else if (response) {
         const vehicleData = normalizeVehicleData(response);
         setSelectedVehicle(vehicleData);
-        setShowSearch(false);
       }
     } catch (error) {
       console.error("[VehicleDetailsScreen] Error loading vehicle:", error);
@@ -159,39 +162,29 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
     modifiedBy: v.ModifiedBy || v.modifiedBy || "",
   });
 
+  // When user taps a vehicle from dashboard or search
   const handleSelectVehicle = useCallback(async (vehicle) => {
-    // Fetch full vehicle details from API
     try {
       setIsLoadingDetails(true);
-      const response = await ApiService.getVehicleById(vehicle.vehicleId);
+      const vehicleId = vehicle.vehicleId || vehicle.VehicleId;
+      const response = await ApiService.getVehicleById(vehicleId);
       if (response && response.data) {
-        const vehicleData = normalizeVehicleData(response.data);
-        setSelectedVehicle(vehicleData);
+        setSelectedVehicle(normalizeVehicleData(response.data));
       } else if (response) {
-        const vehicleData = normalizeVehicleData(response);
-        setSelectedVehicle(vehicleData);
+        setSelectedVehicle(normalizeVehicleData(response));
       } else {
-        // Fallback to search result data
-        const normalizedVehicle = normalizeVehicleData(vehicle);
-        setSelectedVehicle(normalizedVehicle);
+        setSelectedVehicle(normalizeVehicleData(vehicle));
       }
     } catch (error) {
-      console.error(
-        "[VehicleDetailsScreen] Error fetching vehicle details:",
-        error
-      );
-      // Fallback to search result data
-      const normalizedVehicle = normalizeVehicleData(vehicle);
-      setSelectedVehicle(normalizedVehicle);
+      console.error("[VehicleDetailsScreen] Error fetching vehicle:", error);
+      setSelectedVehicle(normalizeVehicleData(vehicle));
     } finally {
       setIsLoadingDetails(false);
-      setShowSearch(false);
       setActiveTab("info");
     }
   }, []);
 
   const handleVehicleUpdated = useCallback(() => {
-    // Reload vehicle data after update
     if (selectedVehicle?.vehicleId) {
       loadVehicleById(selectedVehicle.vehicleId);
     }
@@ -199,12 +192,11 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
 
   const handleClearVehicle = useCallback(() => {
     setSelectedVehicle(null);
-    setShowSearch(true);
     setActiveTab("info");
   }, []);
 
   const handleBackPress = () => {
-    if (selectedVehicle && !showSearch) {
+    if (selectedVehicle) {
       handleClearVehicle();
     } else {
       navigation.goBack();
@@ -238,6 +230,60 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
     }
   };
 
+  // ─── Loading overlay when fetching vehicle details ───
+  if (isLoadingDetails) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+            <Icon name="arrow-left" size={18} color="white" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>Loading...</Text>
+        </View>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#2563eb" />
+          <Text style={styles.loadingText}>Loading vehicle details...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Dashboard view (no vehicle selected) ───
+  if (showDashboard) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
+
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <Icon name="arrow-left" size={18} color="white" />
+          </TouchableOpacity>
+          <View style={styles.headerTitleContainer}>
+            <Text style={styles.headerTitle}>Vehicles</Text>
+            <View style={styles.headerSubRow}>
+              <View style={[styles.connectionDot, { backgroundColor: isConnected ? "#10b981" : "#f59e0b" }]} />
+              <Text style={styles.headerSubtitle}>
+                {isConnected ? "Live Tracking" : connectionState}
+              </Text>
+            </View>
+          </View>
+          <TouchableOpacity style={styles.refreshButton} onPress={refreshData}>
+            <Icon name="sync-alt" size={14} color="white" />
+          </TouchableOpacity>
+        </View>
+
+        {/* Dashboard + Search (VehicleDashboard already includes search) */}
+        <VehicleDashboard
+          onSelectVehicle={handleSelectVehicle}
+          isConnected={isConnected}
+        />
+      </SafeAreaView>
+    );
+  }
+
+  // ─── Vehicle detail view (vehicle selected) ───
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#1f2937" />
@@ -249,93 +295,52 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         </TouchableOpacity>
         <View style={styles.headerTitleContainer}>
           <Text style={styles.headerTitle}>
-            {selectedVehicle ? selectedVehicle.hyoungNo : "Vehicle Details"}
+            {selectedVehicle.hyoungNo}
           </Text>
-          {selectedVehicle && (
-            <Text style={styles.headerSubtitle}>
-              {selectedVehicle.vehicleName}
-            </Text>
-          )}
+          <Text style={styles.headerSubtitle}>
+            {selectedVehicle.vehicleName}
+          </Text>
         </View>
-        {selectedVehicle && (
-          <TouchableOpacity
-            style={styles.searchToggleButton}
-            onPress={() => setShowSearch(!showSearch)}
-          >
-            <Icon
-              name={showSearch ? "times" : "search"}
-              size={16}
-              color="white"
-            />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={styles.searchToggleButton}
+          onPress={handleClearVehicle}
+        >
+          <Icon name="search" size={16} color="white" />
+        </TouchableOpacity>
       </View>
 
-      {/* Search Section */}
-      {showSearch && (
-        <View style={styles.searchSection}>
-          <VehicleSearch
-            onSelectVehicle={handleSelectVehicle}
-            selectedVehicle={selectedVehicle}
-          />
-        </View>
-      )}
-
-      {/* Vehicle Content */}
-      {selectedVehicle && !showSearch && (
-        <>
-          {/* Tab Bar */}
-          <View style={styles.tabBar}>
-            {TABS.map((tab) => (
-              <TouchableOpacity
-                key={tab.key}
-                style={[
-                  styles.tabItem,
-                  activeTab === tab.key && styles.tabItemActive,
-                ]}
-                onPress={() => setActiveTab(tab.key)}
-                activeOpacity={0.7}
-              >
-                <Icon
-                  name={tab.icon}
-                  size={16}
-                  color={activeTab === tab.key ? "#2563eb" : "#9ca3af"}
-                />
-                <Text
-                  style={[
-                    styles.tabText,
-                    activeTab === tab.key && styles.tabTextActive,
-                  ]}
-                  numberOfLines={1}
-                >
-                  {tab.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-
-          {/* Tab Content */}
-          <View style={styles.content}>{renderTabContent()}</View>
-        </>
-      )}
-
-      {/* Empty State when no vehicle selected and search hidden */}
-      {!selectedVehicle && !showSearch && (
-        <View style={styles.emptyState}>
-          <Icon name="truck" size={64} color="#d1d5db" />
-          <Text style={styles.emptyTitle}>No Vehicle Selected</Text>
-          <Text style={styles.emptySubtitle}>
-            Search for a vehicle to view its details
-          </Text>
+      {/* Tab Bar */}
+      <View style={styles.tabBar}>
+        {TABS.map((tab) => (
           <TouchableOpacity
-            style={styles.searchButton}
-            onPress={() => setShowSearch(true)}
+            key={tab.key}
+            style={[
+              styles.tabItem,
+              activeTab === tab.key && styles.tabItemActive,
+            ]}
+            onPress={() => setActiveTab(tab.key)}
+            activeOpacity={0.7}
           >
-            <Icon name="search" size={16} color="white" />
-            <Text style={styles.searchButtonText}>Search Vehicles</Text>
+            <Icon
+              name={tab.icon}
+              size={16}
+              color={activeTab === tab.key ? "#2563eb" : "#9ca3af"}
+            />
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === tab.key && styles.tabTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {tab.title}
+            </Text>
           </TouchableOpacity>
-        </View>
-      )}
+        ))}
+      </View>
+
+      {/* Tab Content */}
+      <View style={styles.content}>{renderTabContent()}</View>
     </SafeAreaView>
   );
 };
@@ -369,19 +374,31 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "white",
   },
+  headerSubRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 2,
+  },
+  connectionDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginRight: 6,
+  },
   headerSubtitle: {
     fontSize: 12,
     color: "#9ca3af",
     marginTop: 2,
   },
-  searchToggleButton: {
+  refreshButton: {
     padding: 8,
     backgroundColor: "rgba(255, 255, 255, 0.1)",
     borderRadius: 8,
   },
-  searchSection: {
-    flex: 1,
-    backgroundColor: "#f8fafc",
+  searchToggleButton: {
+    padding: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.1)",
+    borderRadius: 8,
   },
   tabBar: {
     flexDirection: "row",
@@ -421,38 +438,15 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
   },
-  emptyState: {
+  loadingContainer: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 32,
   },
-  emptyTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#1f2937",
-    marginTop: 16,
-  },
-  emptySubtitle: {
+  loadingText: {
+    marginTop: 12,
     fontSize: 14,
-    color: "#9ca3af",
-    textAlign: "center",
-    marginTop: 8,
-  },
-  searchButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#2563eb",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    marginTop: 24,
-  },
-  searchButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "white",
-    marginLeft: 10,
+    color: "#6b7280",
   },
 });
 

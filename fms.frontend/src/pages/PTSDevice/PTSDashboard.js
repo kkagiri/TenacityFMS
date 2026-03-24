@@ -31,6 +31,22 @@ import {
 import { fetchSiteList } from "../../redux/actions/siteActions";
 import "./PTSDashboard.scss";
 
+const LIVE_STATUS_TTL_MS = 5000;
+
+const isLiveConnectionOnline = (connectionStatus, now) => {
+  if (!connectionStatus?.lastActivity) {
+    return false;
+  }
+
+  const lastActivityMs = new Date(connectionStatus.lastActivity).getTime();
+  if (Number.isNaN(lastActivityMs)) {
+    return false;
+  }
+
+  return now - lastActivityMs <= LIVE_STATUS_TTL_MS
+    && String(connectionStatus.status || "").toLowerCase() !== "disconnected";
+};
+
 /* ─── Sort options ─── */
 const SORT_OPTIONS = [
   { value: "ptsName", label: "Name" },
@@ -84,6 +100,17 @@ const PTSDashboard = () => {
   const [sortBy, setSortBy] = useState("ptsName");
   const [sortDir, setSortDir] = useState("asc");
   const [viewMode, setViewMode] = useState("card");
+  const [statusTick, setStatusTick] = useState(() => Date.now());
+
+  const connectionStatuses = useSelector((state) => state.deviceConnections?.connectionStatuses || {});
+
+  useEffect(() => {
+    const intervalId = window.setInterval(() => {
+      setStatusTick(Date.now());
+    }, 1000);
+
+    return () => window.clearInterval(intervalId);
+  }, []);
 
   // ── Handlers ──
   const handleAddPTS = useCallback((prefillDeviceId = null) => {
@@ -118,15 +145,24 @@ const PTSDashboard = () => {
   const formattedDevices = useMemo(() => {
     return ptsDeviceList.map((device) => {
       const deviceId = device.ptsid || device.id;
+      const liveConnection = connectionStatuses[deviceId];
+      const liveOnline = isLiveConnectionOnline(liveConnection, statusTick);
+      const liveLastActivity = liveConnection?.lastActivity || null;
+      const lastActivity = liveLastActivity || device.lastActivity || null;
+      const connectionType = liveOnline
+        ? (liveConnection?.connectionType || (device.webSocketCapable ? "WebSocket" : "HTTP"))
+        : (device.webSocketCapable ? "WebSocket" : "HTTP");
+
       return {
         id: deviceId,
         ptsid: device.ptsid,
         ptsName: device.ptsName || device.ptsid,
         siteName: device.siteNavigation?.name || device.site?.name || "—",
-        status: device.isActive ? "online" : "offline",
-        lastActivity: device.lastActivity || null,
-        lastUpdated: device.lastActivity
-          ? new Date(device.lastActivity).toLocaleString()
+        status: liveOnline ? "online" : "offline",
+        connectionType,
+        lastActivity,
+        lastUpdated: lastActivity
+          ? new Date(lastActivity).toLocaleString()
           : "Never",
         isActive: device.isActive || false,
         ipaddress: device.ipaddress || "—",
@@ -134,7 +170,7 @@ const PTSDashboard = () => {
         webSocketCapable: device.webSocketCapable,
       };
     });
-  }, [ptsDeviceList]);
+  }, [connectionStatuses, ptsDeviceList, statusTick]);
 
   // Filtered & sorted devices
   const filteredDevices = useMemo(() => {
@@ -250,7 +286,7 @@ const PTSDashboard = () => {
           />
           <FluentStat
             label="Connected"
-            value={dashboardMetrics.totalConnectedDevices || 0}
+            value={dashboardMetrics.totalConnectedDevices ?? dashboardMetrics.totalOnline ?? 0}
             sub={`${dashboardMetrics.validatedOnline || 0} validated online`}
             color="green"
             icon="fa-light fa-server"
@@ -416,9 +452,9 @@ const PTSDashboard = () => {
                 width={120}
                 alignment="center"
                 cellRender={({ data }) => (
-                  <span className={`m365-badge ${data.webSocketCapable ? "m365-badge--primary" : "m365-badge--neutral"}`}>
+                  <span className={`m365-badge ${String(data.connectionType || "").toLowerCase().includes("websocket") ? "m365-badge--primary" : "m365-badge--neutral"}`}>
                     <i className="fa-light fa-bolt" />
-                    {data.webSocketCapable ? "WebSocket" : "HTTP"}
+                    {data.connectionType || (data.webSocketCapable ? "WebSocket" : "HTTP")}
                   </span>
                 )}
               />
@@ -494,9 +530,9 @@ const PTSDashboard = () => {
 
                   {/* Footer */}
                   <div className="pts-device-card__footer">
-                    <span className={`m365-badge ${device.webSocketCapable ? "m365-badge--primary" : "m365-badge--neutral"}`}>
+                    <span className={`m365-badge ${String(device.connectionType || "").toLowerCase().includes("websocket") ? "m365-badge--primary" : "m365-badge--neutral"}`}>
                       <i className="fa-light fa-bolt" />
-                      {device.webSocketCapable ? "WebSocket" : "HTTP Only"}
+                      {device.connectionType || (device.webSocketCapable ? "WebSocket" : "HTTP")}
                     </span>
                     <span className="pts-device-card__activity-ts">{device.lastUpdated}</span>
                   </div>

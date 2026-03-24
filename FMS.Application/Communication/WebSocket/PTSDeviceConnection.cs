@@ -65,6 +65,7 @@ namespace FMS.Application.Communication.webSocket
         {
             "SetRemoteServerConfiguration",
             "GetRemoteServerConfiguration",
+            "GetTanksConfiguration",
             "RemoteServerConfiguration",
             "SetDateTime",
             "GetDateTime"

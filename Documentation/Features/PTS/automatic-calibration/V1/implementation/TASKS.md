@@ -1,10 +1,10 @@
-# Task List: Advanced PTS Automatic Calibration from Fuel Dispensed and Tank Volume Monitoring
+# Task List: Advanced PTS Automatic Calibration and FMS Learned Calibration
 
 > **PRD Reference:** [PRD.md](PRD.md)
 > **Date:** 2026-03-23
-> **Estimated Tasks:** 24
-> **Progress:** 20/24 tasks complete (✅), 0 in progress (🔄), 4 remaining (⬜)
-> **Last Updated:** 2026-03-23
+> **Estimated Tasks:** 38
+> **Progress:** 29/38 tasks complete (✅), 0 in progress (🔄), 5 remaining (⬜), 4 skipped (⏭)
+> **Last Updated:** 2026-03-24
 
 ---
 
@@ -15,6 +15,7 @@
 | ⬜ | Not started |
 | 🔄 | In Progress |
 | ✅ | Complete |
+| ⏭ | Skipped |
 | 🔗 | Depends on another task |
 
 ---
@@ -124,11 +125,11 @@
   - automatic chart snapshot header (uses ChartType discriminator)
   - automatic chart snapshot rows (stored as JSON)
   - calibration run history (via snapshot table with RecordedAtUtc)
-  - [ ] variance analysis records
+  - [x] variance analysis records
 - [x] Decide revision semantics for manual sync versus automatic generation.
 - [x] Confirm whether new persistence types require protected Domain changes before implementation.
 
-> **Design:** Single `TankCalibrationSnapshot` entity with `ChartType` discriminator (manual/interval-volume/automatic). Records stored as serialized JSON in `RecordsJson` column.
+> **Design:** Single `TankCalibrationSnapshot` entity with `ChartType` discriminator (manual/interval-volume/automatic). Records stored as serialized JSON in `RecordsJson` column. Variance analysis is computed on demand from `Intankdeliveries` and related measurement data rather than persisted as a separate table.
 
 **Files:**
 - `FMS.Domain/Entities/Features/TankStockManagement/TankCalibrationSnapshot.cs`
@@ -313,10 +314,10 @@
 
 - [x] Show calibration enabled and ready state.
 - [x] Show last sync and last generation result.
-- [ ] Show latest variance or health indicator (depends on Phase 3 analytics).
+- [x] Show latest variance or health indicator (depends on Phase 3 analytics).
 - [x] Keep styling consistent with existing M365 tank UI patterns.
 
-> **Note:** TankDetailPanel auto-loads all 3 chart types in parallel on mount. Shows "Available" (green) / "Empty" (warning) badges per chart type. Displays sample records and volume-for-height lookup at current tank level. Variance/health indicator deferred to Phase 3.
+> **Note:** TankDetailPanel auto-loads all 3 chart types in parallel on mount. Shows "Available" (green) / "Empty" (warning) badges per chart type. Displays sample records, volume-for-height lookup at the current tank level, and the latest calibration health indicator sourced from the Phase 3 analytics endpoints.
 
 **Files:**
 - `fms.frontend/src/pages/tank/components/TankDetailPanel.js`
@@ -374,72 +375,374 @@
 
 ## Phase 7: Security, Logging, and Hardening
 
-### Task 7.1 ⬜ — Add logging and audit coverage
+### Task 7.1 ✅ — Add logging and audit coverage
 
-- [ ] Log calibration reads, writes, generation requests, sync events, and failures.
-- [ ] Record actor identity for chart modification and generation workflows.
+- [x] Log calibration reads, writes, generation requests, sync events, and failures.
+- [x] Record actor identity for chart modification and generation workflows.
+
+> **Note:** Added structured audit logging across the tank calibration write surface for sync, automatic generation, manual chart updates, single-record add/edit/delete, learning extraction, learned chart generation, and seed-from-snapshot workflows. Actor identity is resolved from the authenticated user claims via the controller actor helper.
 
 **Files:**
-- `FMS.Application/...`
-- `FMS.WebClient/...`
+- `FMS.WebClient/Controllers/FuelManagement/TankCalibrationController.cs`
 
 ---
 
-### Task 7.2 ⬜ — Review authorization requirements
+### Task 7.2 ✅ — Review authorization requirements
 
-- [ ] Confirm existing PTS device permissions are sufficient.
-- [ ] Add any required fine-grained permission checks for chart modification if needed.
+- [x] Confirm existing PTS device permissions are sufficient.
+- [x] Add any required fine-grained permission checks for chart modification if needed.
+
+> **Note:** Reviewed the controller authorization surface. Existing protection is sufficient: controller-level read access plus write-level edit permissions already cover chart sync, generation, and modification workflows, so no new permission constant was required.
 
 **Files:**
-- `FMS.WebClient/Controllers/...`
-- related permission constants if needed
+- `FMS.WebClient/Controllers/FuelManagement/TankCalibrationController.cs`
 
 ---
 
 ## Phase 8: Testing and Verification
 
-### Task 8.1 ⬜ — Add backend unit tests for request mapping and validation
+### Task 8.1 ⏭ — Add backend unit tests for request mapping and validation
 
-- [ ] Test service request-to-command mapping.
-- [ ] Test response parsing.
-- [ ] Test validation failures.
+- Skipped by request for this delivery pass.
 
 **Files:**
 - `FMS.Testing/...`
 
 ---
 
-### Task 8.2 ⬜ — Add backend tests for analysis calculations
+### Task 8.2 ⏭ — Add backend tests for analysis calculations
 
-- [ ] Test measured delta versus dispensed delta calculations.
-- [ ] Test edge cases with missing measurements, zero deltas, and noisy data.
+- Skipped by request for this delivery pass.
 
 **Files:**
 - `FMS.Testing/...`
 
 ---
 
-### Task 8.3 ⬜ — Add frontend verification coverage
+### Task 8.3 ⏭ — Add frontend verification coverage
 
-- [ ] Verify calibration panel loading and error states.
-- [ ] Verify generation action flow.
-- [ ] Verify revision/history display.
-- [ ] Verify compatibility with existing tank monitoring workflows.
+- Skipped by request for this delivery pass.
 
 **Files:**
 - `fms.frontend/...`
 
 ---
 
-### Task 8.4 ⬜ — Execute manual end-to-end verification
+### Task 8.4 ⏭ — Execute manual end-to-end verification
 
-- [ ] Bind a tank to a PTS device and probe.
-- [ ] Fetch manual chart from PTS.
-- [ ] Fetch interval-volume and automatic charts.
-- [ ] Trigger automatic calibration generation.
-- [ ] Sync results into FMS.
-- [ ] Review persisted history after refresh.
-- [ ] Confirm tank monitoring still works for non-calibration tanks.
+- Skipped by request for this delivery pass.
+
+---
+
+## Phase 9: FMS Learned Calibration — Data Model and Configuration
+
+### Task 9.1 ✅ — Add SystemConfiguration keys for calibration learning
+
+- [x] Add configuration keys to seed data or migration:
+  - `Calibration.LearningEnabled` (Bool, default false)
+  - `Calibration.HeightIntervalMm` (Int, default 50)
+  - `Calibration.MinObservationsPerInterval` (Int, default 5)
+  - `Calibration.StabilityWindowMinutes` (Int, default 5)
+  - `Calibration.MaxHeightVarianceMm` (Double, default 2.0)
+  - `Calibration.MinVolumeChangeLitres` (Double, default 10.0)
+  - `Calibration.BackgroundTriggerThreshold` (Int, default 10)
+- [x] Register keys in `ISystemConfigurationService` for typed access.
+- [x] Ensure keys are editable from admin UI.
+
+> **Note:** Added `Calibration.*` constants/defaults and typed getters in the configuration service, plus admin System Configuration UI support to initialize, filter, and edit calibration-learning settings.
+
+**Files:**
+- `FMS.Application/Services/Configuration/ISystemConfigurationService.cs`
+- `FMS.Application/Services/Configuration/SystemConfigurationService.cs`
+- `FMS.Application/Configuration/SystemConfiguration.cs` (if static defaults exist)
+- `fms.frontend/src/pages/admin/systemConfig/components/CalibrationLearningConfigSection.js`
+- `fms.frontend/src/pages/admin/systemConfig/SystemConfigPage.js`
+- `fms.frontend/src/pages/admin/systemConfig/components/SystemConfigForm.js`
+- `Documentation/Database/calibration-learning-systemconfig.sql`
+
+---
+
+### Task 9.2 ✅ — Design calibration data point and interval accumulation persistence
+
+- [x] Define `CalibrationDataPoint` entity:
+  - `Id`, `TankId`, `HeightBefore` (mm), `HeightAfter` (mm), `VolumeChange` (litres), `HeightInterval` (bucket index), `VolumePerMm` (calculated), `SourceType` (dispensing/delivery/transfer), `SourceEventId` (PumpTransaction.Id or Intankdelivery.DeliveryId), `RecordedAtUtc`, `IsProcessed` (whether included in latest chart generation).
+- [x] Define `CalibrationIntervalAccumulation` entity:
+  - `Id`, `TankId`, `IntervalStartMm`, `IntervalEndMm`, `ObservationCount`, `MeanVolumePerMm`, `StdDevVolumePerMm`, `LastUpdatedUtc`.
+- [x] Extend `TankCalibrationChartTypes` with `"fms-learned"` value.
+- [x] Add EF configurations and DbContext registrations.
+- [x] Create SQL migration/table script.
+
+> **Note:** Domain changes required — must be reviewed before implementation.
+>
+> **Implemented:** Added protected-domain entities, EF mappings, DbContext wiring, and MySQL 5.5.6-compatible SQL scripts for learned data points and interval accumulations. Interval accumulations now also track `SeededFromSnapshotId` so seeded baselines preserve their source snapshot lineage.
+
+**Files:**
+- `FMS.Domain/Entities/Features/TankStockManagement/CalibrationDataPoint.cs`
+- `FMS.Domain/Entities/Features/TankStockManagement/CalibrationIntervalAccumulation.cs`
+- `FMS.Persistence/EntityConfigurations/CalibrationDataPointConfiguration.cs`
+- `FMS.Persistence/EntityConfigurations/CalibrationIntervalAccumulationConfiguration.cs`
+- `FMS.Persistence/DataAccess/GpsdataContext.cs`
+- `Documentation/Database/calibrationdatapoints.sql`
+- `Documentation/Database/calibrationintervalaccumulations.sql`
+- `Documentation/Database/calibrationintervalaccumulations-add-seededfromsnapshotid.sql`
+- `Documentation/Database/calibration-learning-systemconfig.sql`
+
+---
+
+## Phase 10: FMS Learned Calibration — Data Point Extraction
+
+### Task 10.1 ✅ — Create calibration data point extraction service contract
+
+🔗 Depends on: Task 9.1, Task 9.2
+
+- [x] Define `ICalibrationLearningService` interface with methods:
+  - `ExtractDataPointsFromDispensing(tankId, dateRange)` — correlates pump transactions with tank measurements.
+  - `ExtractDataPointsFromDeliveries(tankId, dateRange)` — uses Intankdelivery start/end states.
+  - `GetAccumulationSummary(tankId)` — returns per-interval observation counts and coverage.
+  - `GenerateLearnedChart(tankId)` — builds chart from accumulated data.
+  - `SeedFromSnapshot(tankId, snapshotId)` — imports existing chart as baseline.
+- [x] Define DTOs:
+  - `CalibrationDataPointDto`
+  - `CalibrationIntervalSummaryDto`
+  - `CalibrationCoverageDto` (which intervals are ready, sparse, or empty)
+  - `CalibrationComparisonDto` (deviation per interval between two charts)
+
+> **Note:** Added the Phase 10.1 application contract and DTOs with explicit async signatures, interval coverage states, and chart-comparison fields so Phase 10.2-11.3 can build on a stable surface.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/ICalibrationLearningService.cs`
+- `FMS.Application/Features/TankManagement/TankCalibration/DTOs/CalibrationDataPointDto.cs`
+- `FMS.Application/Features/TankManagement/TankCalibration/DTOs/CalibrationCoverageDto.cs`
+- `FMS.Application/Features/TankManagement/TankCalibration/DTOs/CalibrationComparisonDto.cs`
+
+---
+
+### Task 10.2 ✅ — Implement dispensing-based data point extraction
+
+🔗 Depends on: Task 10.1
+
+- [x] Query `PumpTransaction` records for a tank within the date range.
+- [x] For each transaction, find `Tankmeasurement` records before and after:
+  - "Before" = last measurement at least `StabilityWindowMinutes` before transaction time where readings are stable (height variance < `MaxHeightVarianceMm` over the window).
+  - "After" = first measurement at least `StabilityWindowMinutes` after transaction time with stable readings.
+- [x] Reject windows where another dispensing or delivery event overlaps.
+- [x] Reject events where volume change < `MinVolumeChangeLitres`.
+- [x] Calculate: `VolumePerMm = Transaction.Volume / (HeightBefore - HeightAfter)`.
+- [x] Assign to height interval bucket: `floor(avgHeight / HeightIntervalMm) * HeightIntervalMm`.
+- [x] Persist as `CalibrationDataPoint` records.
+
+> **Note:** Implemented dispensing extraction using stable before and after tank-measurement windows, duplicate source-event suppression, overlap rejection, and transactional persistence into `CalibrationDataPoint` followed by accumulation rebuild.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+### Task 10.3 ✅ — Implement delivery-based data point extraction
+
+🔗 Depends on: Task 10.1
+
+- [x] Query `Intankdelivery` records for a tank within the date range.
+- [x] Use `StartProductHeight`, `EndProductHeight`, `AbsoluteProductVolume` directly (Intankdelivery already brackets the event).
+- [x] Apply stability validation on start/end readings using the same criteria as dispensing.
+- [x] For deliveries with `PumpsDispensedVolume`: account for dispensing that occurred during the delivery window.
+- [x] Reject events where height change is too small or volume change < `MinVolumeChangeLitres`.
+- [x] Calculate `VolumePerMm` and assign to height interval bucket.
+- [x] Persist as `CalibrationDataPoint` records.
+
+> **Note:** Implemented delivery extraction using in-tank delivery start and end states, net volume adjustment for `PumpsDispensedVolume`, duplicate source-event suppression, and the same configurable stability-window checks used by dispensing extraction.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+### Task 10.4 ✅ — Implement interval accumulation update
+
+🔗 Depends on: Task 10.2, Task 10.3
+
+- [x] After new data points are extracted, update `CalibrationIntervalAccumulation` records:
+  - Upsert per (TankId, IntervalStartMm, IntervalEndMm).
+  - Recalculate `ObservationCount`, `MeanVolumePerMm`, `StdDevVolumePerMm` from all data points in that interval.
+  - Update `LastUpdatedUtc`.
+- [x] Return updated coverage summary.
+
+> **Note:** Added accumulation rebuild logic and a real `GetAccumulationSummaryAsync` coverage response that classifies intervals as `ready`, `sparse`, or `empty` based on configurable observation thresholds.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+## Phase 11: FMS Learned Calibration — Chart Generation and Comparison
+
+### Task 11.1 ✅ — Implement FMS learned chart generation
+
+🔗 Depends on: Task 10.4
+
+- [x] Read all `CalibrationIntervalAccumulation` records for the tank.
+- [x] Filter to intervals with `ObservationCount >= MinObservationsPerInterval`.
+- [x] Build cumulative volume curve:
+  - Start at height 0, volume 0.
+  - For each interval (ascending by height): `V(h) = V(h-1) + MeanVolumePerMm * IntervalHeight`.
+  - Mark gaps where intervals have insufficient data.
+- [x] Serialize chart records as JSON (same format as PTS calibration records for consistency).
+- [x] Persist as `TankCalibrationSnapshot` with `ChartType = "fms-learned"`.
+- [x] Include coverage metadata in `Notes` field (e.g., "17/30 intervals covered").
+
+> **Note:** Implemented learned chart generation through the existing snapshot storage service, persisting `fms-learned` snapshots with coverage metadata and marking contributing interval data points as processed.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+### Task 11.2 ✅ — Implement seed/bootstrap from existing chart
+
+🔗 Depends on: Task 10.1
+
+- [x] Accept a source `TankCalibrationSnapshot` ID (manual or automatic chart).
+- [x] Convert chart records into baseline `CalibrationIntervalAccumulation` entries:
+  - For each pair of consecutive chart records, derive volume-per-mm for the height range.
+  - Set `ObservationCount = 0` (seed data, not observed data) and a flag indicating seeded baseline.
+- [x] Operational data points will then add observations on top of the seed, confirming or adjusting the baseline.
+- [x] When generating the learned chart, seeded intervals with zero observations use the seed value; intervals with observations use the observed mean.
+
+> **Note:** Implemented via `SeedFromSnapshotAsync` in CalibrationLearningService and `BuildSeededIntervalBaselines` in CalibrationLearningChartMath. Seeded baselines are identified by `ObservationCount == 0 && MeanVolumePerMm > 0`. Stale seeds are cleaned up on re-seed, and observed intervals are never overwritten. `GenerateLearnedChartAsync` includes seeded intervals alongside observed ones with separate coverage tracking.
+
+> **Tracking:** Seeded interval baselines persist `SeededFromSnapshotId` so learned calibration can trace each seeded interval back to the originating manual or automatic snapshot.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningChartMath.cs`
+- `FMS.Domain/Entities/Features/TankStockManagement/CalibrationIntervalAccumulation.cs`
+- `FMS.Persistence/EntityConfigurations/CalibrationIntervalAccumulationConfiguration.cs`
+
+---
+
+### Task 11.3 ✅ — Implement chart comparison engine
+
+🔗 Depends on: Task 11.1
+
+- [x] Accept two `TankCalibrationSnapshot` IDs (or one snapshot + latest of another chart type).
+- [x] Normalize both charts to the same height intervals.
+- [x] For each interval, calculate:
+  - absolute volume deviation,
+  - percentage deviation,
+  - confidence indicator (based on observation count in the FMS chart).
+- [x] Return `CalibrationComparisonDto` list.
+
+> **Note:** Implemented comparison math in the calibration learning service with normalized interval outputs and explicit comparison DTOs used by the API and frontend.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+## Phase 12: FMS Learned Calibration — API and Background Events
+
+### Task 12.1 ✅ — Add calibration learning endpoints to TankCalibrationController
+
+🔗 Depends on: Task 11.1, Task 11.2, Task 11.3
+
+- [x] `POST api/v1/tanks/{tankId}/calibration/learning/extract` — trigger data point extraction for a date range.
+- [x] `GET api/v1/tanks/{tankId}/calibration/learning/coverage` — return interval coverage summary.
+- [x] `POST api/v1/tanks/{tankId}/calibration/learning/generate` — trigger FMS learned chart generation.
+- [x] `POST api/v1/tanks/{tankId}/calibration/learning/seed/{snapshotId}` — seed from existing chart.
+- [x] `GET api/v1/tanks/{tankId}/calibration/learning/compare` — compare FMS learned chart vs PTS chart.
+- [x] All return `FMSResponse<T>`.
+
+> **Note:** Added the full learning controller surface to `TankCalibrationController` and wired it to the calibration learning service using standard `FMSResponse<T>` results.
+
+**Files:**
+- `FMS.WebClient/Controllers/FuelManagement/TankCalibrationController.cs`
+
+---
+
+### Task 12.2 ✅ — Add background event trigger for calibration readiness
+
+🔗 Depends on: Task 10.4, Task 9.1
+
+- [x] After data point extraction, count unprocessed points per tank.
+- [x] If count exceeds `Calibration.BackgroundTriggerThreshold`, emit an `INotification` event:
+  - `CalibrationDataReadyNotification { TankId, NewPointCount, CoveragePercentage }`.
+- [x] This notification is informational — does not auto-generate charts.
+- [x] Can be consumed by future alert/notification systems.
+
+> **Note:** Implemented threshold-crossing readiness notifications through a MediatR event and notification handler so tanks notify once when fresh unprocessed learning data becomes actionable.
+
+**Files:**
+- `FMS.Application/Features/TankManagement/TankCalibration/Events/CalibrationDataReadyNotification.cs`
+- `FMS.Application/Features/TankManagement/TankCalibration/Services/CalibrationLearningService.cs`
+
+---
+
+## Phase 13: FMS Learned Calibration — Frontend
+
+### Task 13.1 ✅ — Add calibration learning API methods to frontend service
+
+🔗 Depends on: Task 12.1
+
+- [x] Add methods for: extract, coverage, generate, seed, compare.
+- [x] Follow existing `ptsConfigService.js` patterns.
+
+> **Note:** Extended `ptsConfigService.js` with learning-specific API methods and reused the established error-handling and timeout patterns.
+
+**Files:**
+- `fms.frontend/src/services/ptsConfigService.js`
+
+---
+
+### Task 13.2 ✅ — Add FMS Learned tab to TankCalibrationPanel
+
+🔗 Depends on: Task 13.1, Task 6.3
+
+- [x] Add "FMS Learned" tab alongside Manual/Interval-Volume/Automatic tabs.
+- [x] Show coverage map — visual indicator per height interval (sufficient/sparse/empty).
+- [x] Show latest FMS learned chart records (if generated).
+- [x] Show "Generate" button (enabled when coverage meets minimum threshold).
+- [x] Show "Seed from PTS" button to import manual/automatic chart as baseline.
+- [x] Show "Extract Data" button to trigger data point extraction for a date range.
+
+**Files:**
+- `fms.frontend/src/pages/tank/components/TankCalibrationPanel.js`
+- `fms.frontend/src/pages/tank/components/TankCalibrationPanel.scss`
+
+> **Note:** Added a dedicated learned-calibration tab component, kept the oversized parent panel stable, and integrated FMS learned coverage, extraction, seeding, and generation flows.
+
+---
+
+### Task 13.3 ✅ — Add chart comparison view
+
+🔗 Depends on: Task 13.1, Task 13.2
+
+- [x] Show side-by-side or overlay comparison of FMS learned chart vs selected PTS chart.
+- [x] Highlight intervals with significant deviation (configurable threshold).
+- [x] Show confidence indicator per interval based on observation count.
+- [x] Use consistent M365 styling with the existing calibration panel.
+
+**Files:**
+- `fms.frontend/src/pages/tank/components/TankCalibrationPanel.js`
+
+> **Note:** The learned tab now renders chart and grid comparison views, auto-refreshes after generation, and highlights rows using a user-adjustable deviation threshold.
+
+---
+
+### Task 13.4 ✅ — Add calibration learning configuration to admin UI
+
+🔗 Depends on: Task 9.1
+
+- [x] Add calibration learning section to the SystemConfiguration admin page.
+- [x] Show all `Calibration.*` keys with descriptions and current values.
+- [x] Support editing with validation (min/max, type checks).
+- [x] Follow existing admin configuration UI patterns.
+
+> **Note:** Implemented a reusable calibration-learning section in the existing admin System Configuration screen with initialization helpers and category filtering.
+
+**Files:**
+- `fms.frontend/src/pages/admin/systemConfig/components/CalibrationLearningConfigSection.js`
+- `fms.frontend/src/pages/admin/systemConfig/SystemConfigPage.js`
+- `fms.frontend/src/pages/admin/systemConfig/components/SystemConfigForm.js`
 
 ---
 
@@ -448,3 +751,7 @@
 - Prefer phased delivery to reduce risk.
 - Treat protected Domain changes as an explicit checkpoint before coding.
 - Keep documentation, API shape, and UI wording aligned with jsonPTS terminology where it improves operator clarity.
+- **FMS learned calibration phases (9-13) are additive** — they do not modify or break any existing PTS calibration functionality from phases 1-8.
+- Phase 9 (Domain entities) requires explicit review before implementation due to protected Domain model changes.
+- Phase 10 is the core engine — should be built with testability as a priority since all calculations must be verifiable.
+- Phase 12 background events are lightweight and informational — no auto-generation without user action.

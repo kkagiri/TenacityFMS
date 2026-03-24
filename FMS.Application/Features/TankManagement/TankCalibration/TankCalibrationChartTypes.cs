@@ -2,7 +2,7 @@
  * File: TankCalibrationChartTypes.cs
  * Purpose: Centralizes supported persisted tank calibration chart type names.
  * Dependencies: System
- * Last Modified: 2026-03-23
+ * Last Modified: 2026-03-24
  *
  * Key Functions:
  * - IsSupported(): Validates chart type values used by APIs and CQRS handlers.
@@ -16,6 +16,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration
         public const string Manual = "manual";
         public const string IntervalVolume = "interval-volume";
         public const string Automatic = "automatic";
+        public const string FmsLearned = "fms-learned";
 
         public static bool IsSupported(string? chartType)
         {
@@ -26,7 +27,8 @@ namespace FMS.Application.Features.TankManagement.TankCalibration
 
             return string.Equals(chartType, Manual, StringComparison.OrdinalIgnoreCase)
                 || string.Equals(chartType, IntervalVolume, StringComparison.OrdinalIgnoreCase)
-                || string.Equals(chartType, Automatic, StringComparison.OrdinalIgnoreCase);
+                || string.Equals(chartType, Automatic, StringComparison.OrdinalIgnoreCase)
+                || string.Equals(chartType, FmsLearned, StringComparison.OrdinalIgnoreCase);
         }
 
         public static string Normalize(string chartType)
@@ -39,6 +41,11 @@ namespace FMS.Application.Features.TankManagement.TankCalibration
             if (string.Equals(chartType, IntervalVolume, StringComparison.OrdinalIgnoreCase))
             {
                 return IntervalVolume;
+            }
+
+            if (string.Equals(chartType, FmsLearned, StringComparison.OrdinalIgnoreCase))
+            {
+                return FmsLearned;
             }
 
             return Automatic;

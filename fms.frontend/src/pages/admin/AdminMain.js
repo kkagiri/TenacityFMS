@@ -74,7 +74,7 @@ const AdminMain = () => {
         <Route path="tanks" element={<TankPage />} />
         <Route path="tanks/*" element={<TankPage />} />
         <Route path="ptsdevice" element={<DeviceDashboard />} />
-        <Route path="ptsdevice/:deviceid" element={<PTSDeviceDetailPage />} />
+        <Route path="ptsdevice/:deviceid/*" element={<PTSDeviceDetailPage />} />
         <Route path="ptsdevice/*" element={<DeviceDashboard />} />
         {/* ptsconfig routes removed - migrated to systemconfig */}
         <Route path="systemconfig" element={<SystemConfiguration />} />

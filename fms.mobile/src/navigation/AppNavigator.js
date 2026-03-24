@@ -27,6 +27,7 @@ import SettingsScreen from "../screens/settings/SettingsScreen";
 import ManageStocksScreen from "../screens/tankStock/ManageStocksScreen";
 import OpenStockScreen from "../screens/tankStock/OpenStockScreen";
 import VehicleDetailsScreen from "../screens/vehicle/VehicleDetailsScreen";
+// VehicleTracking is now integrated into VehicleDetailsScreen (dashboard view)
 import ManualRefillScreen from "../screens/tankStock/ManualRefillScreen";
 import TankDeliveryScreen from "../screens/tankStock/TankDeliveryScreen";
 import TankTransferScreen from "../screens/tankStock/TankTransferScreen";
@@ -215,6 +216,7 @@ const MainStackNavigator = () => {
           headerShown: false,
         }}
       />
+      {/* VehicleTracking is now integrated into VehicleDetailsScreen */}
       <Stack.Screen
         name="ManualRefill"
         component={ManualRefillScreen}

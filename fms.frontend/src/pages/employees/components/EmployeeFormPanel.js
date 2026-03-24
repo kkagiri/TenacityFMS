@@ -154,9 +154,14 @@ const EmployeeFormPanel = ({
   const handleSubmit = async () => {
     const nextErrors = {};
     const fullName = (form.fullName || "").trim();
+    const siteId = form.siteId === undefined || form.siteId === null ? "" : String(form.siteId).trim();
 
     if (!fullName) {
       nextErrors.fullName = "Employee name is required";
+    }
+
+    if (!siteId) {
+      nextErrors.siteId = "Site selection is required";
     }
 
     if (Object.keys(nextErrors).length > 0) {
@@ -169,7 +174,7 @@ const EmployeeFormPanel = ({
       employeephoneNumber: (form.employeephoneNumber || "").trim(),
       employeeWorkNo: (form.employeeWorkNo || "").trim(),
       employeestatus: form.employeestatus || "Active",
-      siteId: form.siteId ? Number(form.siteId) : null,
+      siteId: Number(siteId),
       vehicles: normalizeVehicleIds(form.vehicles),
     };
 
@@ -246,19 +251,20 @@ const EmployeeFormPanel = ({
         <h3 className="m365-flat-section__title">Assignment</h3>
         <div className="employee-form-grid">
           <div className="m365-field">
-            <label className="m365-field__label">Site</label>
+            <label className="m365-field__label m365-field__label--required">Site</label>
             <select
-              className="m365-select"
+              className={`m365-select${errors.siteId ? " m365-input--error" : ""}`}
               value={form.siteId}
               onChange={(event) => setField("siteId", event.target.value)}
             >
-              <option value="">Unassigned</option>
+              <option value="">Select site</option>
               {(sites || []).map((site) => (
                 <option key={site.id} value={site.id}>
                   {site.name}
                 </option>
               ))}
             </select>
+            {errors.siteId && <span className="m365-field__error">{errors.siteId}</span>}
           </div>
 
           <div className="m365-field">

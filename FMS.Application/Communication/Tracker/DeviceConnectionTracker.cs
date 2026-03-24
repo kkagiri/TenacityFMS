@@ -1,3 +1,14 @@
+/**
+ * File: DeviceConnectionTracker.cs
+ * Purpose: Tracks live PTS device connectivity in Redis and broadcasts runtime status updates.
+ * Dependencies: Redis, SignalR, device connection summary models
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - GetConnectedDevices(): Returns live online devices from the runtime cache.
+ * - GetDeviceStatus(): Returns runtime status details for a single device.
+ * - TrackHttpStatusUpdate()/UpdateWebSocketConnection(): Refresh live activity timestamps.
+ */
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -24,6 +35,8 @@ namespace FMS.Application.Communication
     /// </summary>
     public class DeviceConnectionTracker
     {
+        public const int DeviceOnlineTtlSeconds = 10;
+
         private readonly ILogger<DeviceConnectionTracker> _logger;
         private readonly IHubContext<PTSHub> _hubContext;
         private readonly IDatabase _redisDb;
@@ -340,11 +353,18 @@ namespace FMS.Application.Communication
                     }
                 }
 
+                var distinctConnectedDeviceCount = webSocketConnections
+                    .Select(connection => connection.DeviceId)
+                    .Concat(httpConnections.Select(connection => connection.DeviceId))
+                    .Where(deviceId => !string.IsNullOrWhiteSpace(deviceId))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Count();
+
                 var summary = new DeviceConnectionSummary
                 {
                     WebSocketConnections = webSocketConnections,
                     HttpConnections = httpConnections,
-                    TotalConnectedDevices = webSocketConnections.Count + httpConnections.Count
+                    TotalConnectedDevices = distinctConnectedDeviceCount
                 };
 
                 summary.WebSocketPercentages = summary.TotalConnectedDevices > 0 ?
@@ -365,38 +385,72 @@ namespace FMS.Application.Communication
             }
         }
 
-        private static ConnectionStatus DetermineWebSocketStatus(DateTime lastMessageAt)
+        public static ConnectionStatus DetermineWebSocketStatus(DateTime lastMessageAt)
         {
-            var timeSinceLastMessage = DateTime.UtcNow - lastMessageAt;
-            var minutes = timeSinceLastMessage.TotalMinutes;
-            return minutes switch
+            return IsOnline(lastMessageAt)
+                ? ConnectionStatus.Active
+                : ConnectionStatus.Disconnected;
+        }
+
+        public static bool IsWebSocketOnline(WebSocketConnectionInfo? connection)
+        {
+            return connection != null && IsOnline(connection.LastMessageAt);
+        }
+
+        public static bool IsHttpOnline(HttpConnectionInfo? connection)
+        {
+            if (connection == null)
             {
-                < 2 => ConnectionStatus.Active,
-                < 10 => ConnectionStatus.Connected,
-                < 30 => ConnectionStatus.Idle,
-                _ => ConnectionStatus.Disconnected
-            };
+                return false;
+            }
+
+            var lastActivity = GetHttpLastActivity(connection);
+            return IsOnline(lastActivity);
+        }
+
+        public static DateTime GetHttpLastActivity(HttpConnectionInfo connection)
+        {
+            return connection.LastStatusUpdate > connection.LastPollTime
+                ? connection.LastStatusUpdate
+                : connection.LastPollTime;
+        }
+
+        public static DateTime? GetLastActivity(WebSocketConnectionInfo? wsInfo, HttpConnectionInfo? httpInfo)
+        {
+            DateTime? lastActivity = null;
+
+            if (wsInfo != null)
+            {
+                lastActivity = wsInfo.LastMessageAt;
+            }
+
+            if (httpInfo != null)
+            {
+                var httpLastActivity = GetHttpLastActivity(httpInfo);
+                lastActivity = !lastActivity.HasValue || httpLastActivity > lastActivity.Value
+                    ? httpLastActivity
+                    : lastActivity;
+            }
+
+            return lastActivity;
         }
 
         private static bool IsHttpConnectionStale(HttpConnectionInfo connection)
         {
-            const double httpTimeoutMinutes = 15.0;
-            var lastActivity = connection.LastStatusUpdate > connection.LastPollTime ?
-                connection.LastStatusUpdate :
-                connection.LastPollTime;
+            return !IsHttpOnline(connection);
+        }
 
-            return (DateTime.UtcNow - lastActivity).TotalMinutes > httpTimeoutMinutes;
+        private static bool IsOnline(DateTime lastActivity)
+        {
+            return DateTime.UtcNow - lastActivity <= TimeSpan.FromSeconds(DeviceOnlineTtlSeconds);
         }
 
         public static ConnectionMode DetermineConnectionMode(
             WebSocketConnectionInfo? wsInfo,
             HttpConnectionInfo? httpInfo)
         {
-            var recentActivityThreshold = TimeSpan.FromMinutes(5);
-            var now = DateTime.UtcNow;
-
-            bool hasActiveWebSocket = wsInfo != null && DetermineWebSocketStatus(wsInfo.LastMessageAt) != ConnectionStatus.Disconnected;
-            bool hasRecentHttpActivity = httpInfo != null && !IsHttpConnectionStale(httpInfo);
+            bool hasActiveWebSocket = IsWebSocketOnline(wsInfo);
+            bool hasRecentHttpActivity = IsHttpOnline(httpInfo);
 
             if (hasActiveWebSocket && hasRecentHttpActivity)
             {
@@ -546,7 +600,7 @@ namespace FMS.Application.Communication
                         lastKnownIp = httpInfo.LastKnownIp,
                         successfulPolls = httpInfo.SuccessfulPolls
                     } : null,
-                    lastActivity = GetLastActivityTime(wsInfo, httpInfo)
+                    lastActivity = GetLastActivity(wsInfo, httpInfo)
                 };
 
                 return status;
@@ -560,23 +614,7 @@ namespace FMS.Application.Communication
 
         private object GetLastActivityTime(WebSocketConnectionInfo? wsInfo, HttpConnectionInfo? httpInfo)
         {
-            DateTime lastActivity = DateTime.MinValue;
-            if (wsInfo != null)
-            {
-                lastActivity = wsInfo.LastMessageAt > lastActivity ? wsInfo.LastMessageAt : lastActivity;
-            }
-            if (httpInfo != null)
-            {
-                var httpLastActivity = httpInfo.LastStatusUpdate > httpInfo.LastPollTime
-                                   ? httpInfo.LastStatusUpdate
-                                   : httpInfo.LastPollTime;
-
-                if (httpLastActivity > lastActivity)
-                {
-                    lastActivity = httpLastActivity;
-                }
-            }
-            return lastActivity;
+            return GetLastActivity(wsInfo, httpInfo) ?? DateTime.MinValue;
         }
 
         public async Task UpdateWebSocketLastMessageTime(string deviceId)

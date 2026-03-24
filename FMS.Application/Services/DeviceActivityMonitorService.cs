@@ -1,3 +1,13 @@
+/**
+ * File: DeviceActivityMonitorService.cs
+ * Purpose: Persists PTS device online/offline transitions and activity history from live runtime connectivity.
+ * Dependencies: DeviceConnectionTracker, EF Core, system configuration services
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - CheckDeviceActivity(): Persists runtime online/offline state changes to the database.
+ * - PerformRedisCleanup(): Removes stale runtime connection entries.
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -276,17 +286,14 @@ namespace FMS.Application.Services
                         wsConnection != null ? $"LastMsg: {wsConnection.LastMessageAt:o}" : "null",
                         httpConnection != null ? $"LastUpdate: {httpConnection.LastStatusUpdate:o}, LastPoll: {httpConnection.LastPollTime:o}" : "null");
 
-                    var wsTimeout = await GetWebSocketTimeoutAsync();
-                    var httpTimeout = await GetHttpTimeoutAsync();
-
-                    bool isWsActive = wsConnection != null && (now - wsConnection.LastMessageAt).TotalSeconds <= wsTimeout;
-                    bool isHttpActive = httpConnection != null && (now - (httpConnection.LastStatusUpdate > httpConnection.LastPollTime ? httpConnection.LastStatusUpdate : httpConnection.LastPollTime)).TotalSeconds <= httpTimeout;
+                    bool isWsActive = DeviceConnectionTracker.IsWebSocketOnline(wsConnection);
+                    bool isHttpActive = DeviceConnectionTracker.IsHttpOnline(httpConnection);
 
                     bool isCurrentlyActive = isWsActive || isHttpActive;
                     string determinedStatus = isCurrentlyActive ? "Connected" : "Disconnected";
                     string? currentIp = isWsActive ? wsConnection?.IpAddress : (isHttpActive ? httpConnection?.LastKnownIp : null);
                     DateTime lastActivity = isCurrentlyActive ?
-                        (isWsActive ? wsConnection.LastMessageAt : (httpConnection.LastStatusUpdate > httpConnection.LastPollTime ? httpConnection.LastStatusUpdate : httpConnection.LastPollTime)) :
+                        (isWsActive ? wsConnection.LastMessageAt : DeviceConnectionTracker.GetHttpLastActivity(httpConnection)) :
                         (originalLastActivity ?? now);
                     string connectionType = isWsActive ? "WebSocket" : (isHttpActive ? "HTTP" : (activeDbConnection?.ConnectionType ?? "Unknown"));
 

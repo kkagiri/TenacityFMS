@@ -7,6 +7,7 @@
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.TankManagement.Deliveries.Services;
 using FMS.Application.Common.PTSResponse;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.SignalR;
@@ -511,6 +512,24 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 {
                     updatesApplied++;
                 }
+
+                // Fire-and-forget: server-side delivery detection (does not block UploadStatus processing)
+                var capturedTankId = tank.Id;
+                var capturedProbe = probeMeasurement;
+                var capturedDeviceId = deviceId;
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        using var scope = _serviceScopeFactory.CreateScope();
+                        var detector = scope.ServiceProvider.GetRequiredService<IServerSideDeliveryDetectionService>();
+                        await detector.ProcessProbeReadingAsync(capturedTankId, capturedProbe, DateTime.UtcNow, capturedDeviceId);
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "[UploadStatus] Server-side ITD detection failed for tank {TankId}", capturedTankId);
+                    }
+                });
             }
 
             if (updatesApplied > 0)

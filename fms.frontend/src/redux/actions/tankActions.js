@@ -87,7 +87,7 @@ export const updateTank = (id, tank) => async (dispatch) => {
   try {
     await axiosInstance.put(`/tank/${id}`, tank);
     dispatch({ type: UPDATE_TANK_SUCCESS, payload: { id, tank } });
-    return { success: true };
+    return { success: true, data: { id, ...tank } };
   } catch (error) {
     console.error("Update tank error details:", error.response || error);
     const errorMessage =

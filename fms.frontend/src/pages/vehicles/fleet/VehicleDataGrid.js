@@ -1,3 +1,14 @@
+/**
+ * File:          VehicleDataGrid.js
+ * Purpose:       Renders the vehicle fleet DataGrid with CSV export, column chooser, refresh, and row selection actions.
+ * Dependencies:  React, Redux, DevExtreme DataGrid, file-saver
+ * Last Modified: 2026-03-24
+ *
+ * Key Functions:
+ * - fetchData(): Loads lookup data and vehicle records for the fleet grid.
+ * - handleExportCsv(): Exports the current vehicle grid view to CSV.
+ * - handleRowClick(): Opens the selected vehicle in the detail panel.
+ */
 import React, {
   useEffect,
   useCallback,
@@ -25,9 +36,7 @@ import { Popup } from "devextreme-react/popup"; // still used for tag assignment
 import LoadIndicator from "devextreme-react/load-indicator";
 import Button from "devextreme-react/button";
 import "./VehicleDataGrid.scss";
-import { Workbook } from 'exceljs';
 import saveAs from 'file-saver';
-import { exportDataGrid } from 'devextreme/excel_exporter';
 import DataGrid, {
   Paging,
   HeaderFilter,
@@ -41,7 +50,6 @@ import DataGrid, {
   ColumnChooser,
   Toolbar,
   Item as TItems,
-  Export,
   Selection,
   // Summary, // Not currently used
   // GroupItem, // Not currently used
@@ -103,9 +111,62 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
   // const [showEditForm, setShowEditForm] = useState(false);
   // const [editingVehicle, setEditingVehicle] = useState(null);
   // const [showRuleSetForm, setShowRuleSetForm] = useState(false); // Not currently used
-  const exportFormats = ["xlsx"];
-
   const gridRef = useRef(null);
+
+  const escapeCsvValue = useCallback((value) => {
+    if (value === null || value === undefined) {
+      return "";
+    }
+
+    const normalizedValue = String(value).replace(/\r?\n|\r/g, " ");
+    const escapedValue = normalizedValue.replace(/"/g, '""');
+    return `"${escapedValue}"`;
+  }, []);
+
+  const resolveLookupDisplayValue = useCallback((lookupConfig, rawValue) => {
+    if (!lookupConfig || rawValue === null || rawValue === undefined || rawValue === "") {
+      return rawValue;
+    }
+
+    const lookupItems = Array.isArray(lookupConfig.dataSource)
+      ? lookupConfig.dataSource
+      : [];
+
+    const valueExpr = lookupConfig.valueExpr ?? "id";
+    const displayExpr = lookupConfig.displayExpr ?? "name";
+    const matchedItem = lookupItems.find((item) => item?.[valueExpr] === rawValue);
+
+    return matchedItem?.[displayExpr] ?? rawValue;
+  }, []);
+
+  const resolveExportValue = useCallback(
+    (column, rowData) => {
+      if (!column?.dataField) {
+        return "";
+      }
+
+      if (typeof column.calculateDisplayValue === "function") {
+        return column.calculateDisplayValue(rowData);
+      }
+
+      const rawValue = rowData[column.dataField];
+
+      if (column.lookup) {
+        return resolveLookupDisplayValue(column.lookup, rawValue);
+      }
+
+      if (column.dataType === "boolean") {
+        return rawValue ? "Yes" : "No";
+      }
+
+      if (column.dataType === "date" || column.dataField.toLowerCase().includes("date")) {
+        return formatAsLocalDateIfPossible(rawValue);
+      }
+
+      return rawValue;
+    },
+    [resolveLookupDisplayValue]
+  );
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
@@ -267,46 +328,45 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
   const canEdit = permissions.includes("_Edit_Vehicle");
   // const canCreate = permissions.includes("_CreateVehicle"); // Moved to popup-based creation
 
-  const onExporting = useCallback((e) => {
+  const handleExportCsv = useCallback(() => {
     try {
-      const workbook = new Workbook();
-      const worksheet = workbook.addWorksheet('Vehicles');
+      const gridInstance = gridRef.current?.instance;
 
-      notify('Preparing export...', 'info', 2000);
+      if (!gridInstance) {
+        notify("Grid is not ready for export", "warning", 2000);
+        return;
+      }
 
-      exportDataGrid({
-        component: e.component,
-        worksheet,
-        autoFilterEnabled: true,
-        customizeCell: ({ gridCell, excelCell }) => {
-          if (gridCell.rowType === 'data') {
-            excelCell.font = { size: 12 };
-          }
-          if (gridCell.rowType === 'header') {
-            excelCell.font = { bold: true };
-          }
-        }
-      }).then(() => {
-        workbook.xlsx.writeBuffer()
-          .then((buffer) => {
-            saveAs(new Blob([buffer], { type: 'application/octet-stream' }), 'Vehicles.xlsx');
-            notify('Export complete', 'success', 2000);
-          })
-          .catch(err => {
-            console.error("Buffer creation error:", err);
-            notify('Export failed', 'error', 2000);
-          });
-      }).catch(err => {
-        console.error("exportDataGrid error:", err);
-        notify('Export failed', 'error', 2000);
+      const visibleColumns = gridInstance
+        .getVisibleColumns()
+        .filter((column) => column?.dataField && column?.allowExporting !== false);
+
+      const rows = gridInstance.getDataSource().items();
+
+      if (!rows.length) {
+        notify("No vehicle data available to export", "warning", 2000);
+        return;
+      }
+
+      notify("Preparing CSV export...", "info", 2000);
+
+      const headerRow = visibleColumns.map((column) => escapeCsvValue(column.caption || column.dataField));
+      const dataRows = rows.map((row) =>
+        visibleColumns.map((column) => escapeCsvValue(resolveExportValue(column, row)))
+      );
+
+      const csvContent = [headerRow, ...dataRows].map((row) => row.join(",")).join("\r\n");
+      const csvBlob = new Blob([`\uFEFF${csvContent}`], {
+        type: "text/csv;charset=utf-8;",
       });
 
-      e.cancel = true;
+      saveAs(csvBlob, "Vehicles.csv");
+      notify("CSV export complete", "success", 2000);
     } catch (error) {
-      console.error("General export error:", error);
-      notify('Export failed', 'error', 2000);
+      console.error("CSV export error:", error);
+      notify("CSV export failed", "error", 2000);
     }
-  }, []);
+  }, [escapeCsvValue, resolveExportValue]);
 
   // const addRow = () => {
   //   gridRef.current.instance.addRow();
@@ -452,15 +512,9 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           rowAlernationEnable={true}
           repaintChangesOnly={true} onRowUpdated={onRowUpdated}
           onEditorPreparing={onEditorPreparing}
-          onExporting={onExporting}
           scrolling={{ mode: 'standard' }}
           onRowClick={handleRowClick}
         >
-          <Export
-            enabled={true}
-            allowExportSelectedData={true}
-            formats={exportFormats}
-          />
           <StateStoring
             enabled={true}
             type="sessionStorage"
@@ -481,16 +535,19 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
           />
 
           <Toolbar>
-
-            <TItems name="exportButton" locateInMenu={'auto'} />
-            <TItems name="columnChooserButton" />
             <TItems
               location='after'
-              showText='inMenu'
               widget='dxButton'
             >
-
+              <Button
+                icon='export'
+                text='Export CSV'
+                stylingMode='contained'
+                type='default'
+                onClick={handleExportCsv}
+              />
             </TItems>
+            <TItems name="columnChooserButton" />
             <TItems
               location='after'
               showText='inMenu'
@@ -608,7 +665,7 @@ const VehicleDataGrid = ({ onSelectVehicle }) => {
 
           <Column
             dataField="passenger"
-            caption="Passenger Capacity"
+            caption="Passenger"
             minWidth={130}
             allowEditing={false}
           />

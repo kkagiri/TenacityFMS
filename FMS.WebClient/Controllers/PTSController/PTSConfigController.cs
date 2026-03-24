@@ -1,4 +1,3 @@
-//Cursor
 /**
  * File: PTSConfigController.cs
  * Purpose: Exposes authenticated API endpoints for PTS configuration and calibration operations.
@@ -130,6 +129,31 @@ namespace FMS.WebClient.Controllers.PTSController
             {
                 _logger.LogError(ex, "Error getting Probes Configuration for device {DeviceId}", deviceId);
                 return StatusCode(500, FMSResponse<ProbesConfigurationResponse>.Failed("Internal server error"));
+            }
+        }
+
+        /// <summary>
+        /// Gets the tanks configuration from the PTS device.
+        /// Based on protocol 69. GetTanksConfiguration
+        /// </summary>
+        [HttpGet("tanks")]
+        public async Task<ActionResult<FMSResponse<TanksConfigurationResponse>>> GetDeviceTanksConfiguration(string deviceId)
+        {
+            try
+            {
+                _logger.LogInformation("API: Getting Tanks Configuration for device {DeviceId}", deviceId);
+                var result = await _ptsConfigService.GetTanksConfigurationAsync(deviceId);
+                if (!result.IsSuccess)
+                {
+                    return BadRequest(result);
+                }
+
+                return Ok(result);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error getting Tanks Configuration for device {DeviceId}", deviceId);
+                return StatusCode(500, FMSResponse<TanksConfigurationResponse>.Failed("Internal server error"));
             }
         }
 
