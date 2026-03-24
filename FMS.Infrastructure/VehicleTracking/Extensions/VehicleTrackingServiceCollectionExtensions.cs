@@ -1,3 +1,13 @@
+/**
+ * File: VehicleTrackingServiceCollectionExtensions.cs
+ * Purpose: Registers vehicle tracking providers and GPSGate integration services for dependency injection.
+ * Dependencies: Microsoft.Extensions.DependencyInjection, Microsoft.Extensions.DependencyInjection.Extensions, GPSGate service interfaces and implementations.
+ * Last Modified: 2026-03-23
+ *
+ * Key Functions:
+ * - AddVehicleTracking(): Registers shared vehicle tracking and GPSGate services.
+ * - AddVehicleTrackingProvider<TProvider>(): Registers a concrete vehicle tracking provider.
+ */
 using System;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.FuelAudit.Services;
@@ -60,6 +70,9 @@ namespace FMS.Infrastructure.VehicleTracking.Extensions
             // GPSGate services organized by domain for better separation of concerns
             services.AddHttpClient<IGPSGateLocationService, GPSGateLocationService>();
             services.TryAddScoped<IGPSGateLocationService, GPSGateLocationService>();
+
+            services.AddHttpClient<IGPSGateTracksService, GPSGateTracksService>();
+            services.TryAddScoped<IGPSGateTracksService, GPSGateTracksService>();
 
             services.AddHttpClient<IGPSGateTrackInfoService, GPSGateTrackInfoService>();
             services.TryAddScoped<IGPSGateTrackInfoService, GPSGateTrackInfoService>();
