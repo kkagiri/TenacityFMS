@@ -211,40 +211,53 @@ class PushNotificationService {
   async getToken() {
     if (!messaging) return null;
 
-    // Helper function to add timeout to a promise
-    const withTimeout = (promise, ms) => {
-      const timeout = new Promise((_, reject) =>
+    const withTimeout = (promise, ms) => Promise.race([
+      promise,
+      new Promise((_, reject) =>
         setTimeout(() => reject(new Error(`Timeout after ${ms}ms`)), ms)
-      );
-      return Promise.race([promise, timeout]);
-    };
+      ),
+    ]);
+    const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    const timeoutMs = Platform.OS === "android" ? 30000 : 15000;
+    const attempts = Platform.OS === "android" ? 2 : 1;
 
     try {
-      // Check if registration is allowed
       console.log("[PushNotification] Registering device for remote messages...");
 
-      // registerDeviceForRemoteMessages is primarily for iOS
       if (Platform.OS === 'ios' && fbApi.registerDeviceForRemoteMessages) {
         await withTimeout(fbApi.registerDeviceForRemoteMessages(messaging), 10000);
       }
 
       console.log("[PushNotification] Getting FCM token...");
+      let lastError = null;
 
-      // Get token with 15 second timeout
-      const token = await withTimeout(fbApi.getToken(messaging), 15000);
+      for (let attempt = 1; attempt <= attempts; attempt += 1) {
+        try {
+          const token = await withTimeout(fbApi.getToken(messaging), timeoutMs);
 
-      if (!token) {
-        console.warn("[PushNotification] No token returned from Firebase");
-        return null;
+          if (!token) {
+            throw new Error("No token returned from Firebase");
+          }
+
+          this.currentToken = token;
+          await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, token);
+
+          console.log("[PushNotification] Got FCM token:", token.substring(0, 30) + "...");
+          return token;
+        } catch (error) {
+          lastError = error;
+          console.warn(
+            `[PushNotification] Token fetch attempt ${attempt}/${attempts} failed:`,
+            error.message || error
+          );
+
+          if (attempt < attempts) {
+            await wait(2000);
+          }
+        }
       }
 
-      this.currentToken = token;
-
-      // Store token locally
-      await AsyncStorage.setItem(STORAGE_KEYS.FCM_TOKEN, token);
-
-      console.log("[PushNotification] Got FCM token:", token.substring(0, 30) + "...");
-      return token;
+      throw lastError || new Error("No token returned from Firebase");
     } catch (error) {
       console.error("[PushNotification] Failed to get token:", error.message || error);
 
