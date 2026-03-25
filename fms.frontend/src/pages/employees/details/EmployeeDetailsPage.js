@@ -11,7 +11,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import Popup from "devextreme-react/popup";
 import TagBox from "devextreme-react/tag-box";
 import DataGrid, {
@@ -32,6 +32,7 @@ import {
 import { fetchpermissionbyUserId } from "../../../redux/actions/permissionActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
+import EmployeeDocumentsWorkspace from "./components/EmployeeDocumentsWorkspace";
 import "./EmployeeDetailsPage.scss";
 
 const toDateInputValue = (date) => date.toISOString().split("T")[0];
@@ -58,6 +59,7 @@ const TAB_ITEMS = [
   { key: "consumption", label: "Consumption History", icon: "fa-light fa-chart-column" },
   { key: "refill", label: "Fuel Refill History", icon: "fa-light fa-gas-pump" },
   { key: "vehicle-change", label: "Vehicle Change History", icon: "fa-light fa-right-left" },
+  { key: "documents", label: "Documents", icon: "fa-light fa-folder-open" },
 ];
 
 const employeeStatusOptions = ["Active", "Terminated"];
@@ -76,6 +78,7 @@ const EmployeeDetailsPage = () => {
   const employeeId = Number(id);
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
   const sites = useSelector((state) => state.site?.sites || []);
@@ -86,7 +89,10 @@ const EmployeeDetailsPage = () => {
   const [allTransactions, setAllTransactions] = useState([]);
   const [loadingEmployee, setLoadingEmployee] = useState(true);
   const [loadingTransactions, setLoadingTransactions] = useState(false);
-  const [selectedTab, setSelectedTab] = useState("consumption");
+  const [selectedTab, setSelectedTab] = useState(() => {
+    const queryTab = new URLSearchParams(window.location.search).get("tab");
+    return TAB_ITEMS.some((tab) => tab.key === queryTab) ? queryTab : "consumption";
+  });
   const [fromDate, setFromDate] = useState(
     toDateInputValue(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000))
   );
@@ -179,6 +185,25 @@ const EmployeeDetailsPage = () => {
   useEffect(() => {
     loadTransactions();
   }, [loadTransactions]);
+
+  useEffect(() => {
+    const queryTab = new URLSearchParams(location.search).get("tab");
+    if (queryTab && TAB_ITEMS.some((tab) => tab.key === queryTab)) {
+      setSelectedTab(queryTab);
+      return;
+    }
+
+    setSelectedTab("consumption");
+  }, [location.search]);
+
+  const handleTabChange = useCallback(
+    (nextTab) => {
+      setSelectedTab(nextTab);
+      const search = nextTab === "consumption" ? "" : `?tab=${nextTab}`;
+      navigate({ pathname: location.pathname, search }, { replace: true });
+    },
+    [location.pathname, navigate]
+  );
 
   const vehicleMap = useMemo(() => {
     const map = new Map();
@@ -590,7 +615,7 @@ const EmployeeDetailsPage = () => {
             <button
               key={tab.key}
               className={`m365-tab${selectedTab === tab.key ? " m365-tab--active" : ""}`}
-              onClick={() => setSelectedTab(tab.key)}
+              onClick={() => handleTabChange(tab.key)}
             >
               <i className={tab.icon} />
               {tab.label}
@@ -599,7 +624,7 @@ const EmployeeDetailsPage = () => {
         </div>
 
         <div className="edp-tabbed-card__body">
-          {loadingTransactions ? (
+          {selectedTab !== "documents" && loadingTransactions ? (
             <div className="m365-empty">
               <i className="fa-light fa-spinner fa-spin m365-empty__icon" />
               <p className="m365-empty__text">Loading transactions...</p>
@@ -701,6 +726,10 @@ const EmployeeDetailsPage = () => {
                   <Column dataField="source" caption="Source" minWidth={180} />
                   <Column dataField="reference" caption="Reference" minWidth={110} />
                 </DataGrid>
+              )}
+
+              {selectedTab === "documents" && (
+                <EmployeeDocumentsWorkspace employeeId={employeeId} employee={employee} />
               )}
             </>
           )}

@@ -247,7 +247,9 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
 
     // Task Management System
     public virtual DbSet<TaskEntity> Tasks { get; set; }
+    public virtual DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
     public virtual DbSet<VehicleDocument> VehicleDocuments { get; set; }
+    public virtual DbSet<VehicleComplianceRequirement> VehicleComplianceRequirements { get; set; }
 
     // Vehicle Transfer System
     public virtual DbSet<FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer> VehicleTransfers { get; set; }

@@ -2,7 +2,7 @@
  * File: WidgetForm.js
  * Purpose: Render the dashboard widget creation form for template-based and custom widgets.
  * Dependencies: React, DevExtreme inputs, dataSourceService, widgetFactoryService, ModeSelector
- * Last Modified: 2026-03-07
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - handleTemplateSelect(): Applies template defaults for a one-touch widget setup flow
@@ -1397,6 +1397,7 @@ export default function WidgetForm({
               ))}
             </div>
           </div>
+
         </div>
       )}
     </div>

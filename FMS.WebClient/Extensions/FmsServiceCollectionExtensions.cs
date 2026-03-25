@@ -566,6 +566,8 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationLearningService,
             FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationLearningService>();
         services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
+        services.AddScoped<FMS.Application.Features.TankManagement.TankMeasurements.Services.IProbeReadingEnrichmentService,
+            FMS.Application.Features.TankManagement.TankMeasurements.Services.ProbeReadingEnrichmentService>();
         services.AddScoped<TankStockReconciliationService>(); // Tank Stock reconciliation service
 
         // ========== UNIFIED BACKGROUND SERVICES (consolidated from multiple services) ==========

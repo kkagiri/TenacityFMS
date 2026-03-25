@@ -92,6 +92,23 @@ namespace FMS.Application.Services.Dashboard
 
         private Task<object> TransformForDataTable(object rawData, Dictionary<string, object> configuration)
         {
+            // Prefer explicit tabular rows when a data source already prepared table-ready output.
+            var rowsProp = rawData?.GetType().GetProperty("rows") ?? rawData?.GetType().GetProperty("Rows");
+            var rawRows = rowsProp?.GetValue(rawData);
+            if (rawRows is System.Collections.IEnumerable enumerable)
+            {
+                var rows = new List<object>();
+                foreach (var item in enumerable)
+                {
+                    rows.Add(item);
+                }
+
+                if (rows.Count > 0)
+                {
+                    return Task.FromResult<object>(new { rows });
+                }
+            }
+
             // Expect either tabular rows or categorical entries
             var categories = ExtractCategories(rawData);
             if (categories.Any())

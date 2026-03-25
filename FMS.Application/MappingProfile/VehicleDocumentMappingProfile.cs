@@ -11,6 +11,7 @@ public class VehicleDocumentMappingProfile : Profile
     {
         CreateMap<VehicleDocument, VehicleDocumentDto>()
             .ForMember(dest => dest.DocumentTypeName, opt => opt.MapFrom(src => src.DocumentType.ToString()))
+            .ForMember(dest => dest.ComplianceCategoryName, opt => opt.MapFrom(src => src.ComplianceCategory.ToString()))
             .ForMember(dest => dest.VehicleRegistration, opt => opt.MapFrom(src => src.Vehicle.HyoungNo))
             .ForMember(dest => dest.DocumentFileUrl, opt => opt.MapFrom(src => NormalizeFileUrl(src.DocumentFileUrl)));
 

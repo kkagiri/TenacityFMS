@@ -18,6 +18,7 @@ public class GetVehicleDocumentsQuery : IRequest<FMSResponse<List<VehicleDocumen
 {
     public int? VehicleId { get; set; }
     public VehicleDocumentType? DocumentType { get; set; }
+    public VehicleComplianceCategory? ComplianceCategory { get; set; }
     public DocumentStatus? Status { get; set; }
 }
 
@@ -38,7 +39,9 @@ public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumen
     {
         try
         {
-            var query = _context.VehicleDocuments.AsQueryable();
+            var query = _context.VehicleDocuments
+                .Include(vd => vd.Vehicle)
+                .AsQueryable();
 
             if (request.VehicleId.HasValue)
             {
@@ -48,6 +51,11 @@ public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumen
             if (request.DocumentType.HasValue)
             {
                 query = query.Where(vd => vd.DocumentType == request.DocumentType.Value);
+            }
+
+            if (request.ComplianceCategory.HasValue)
+            {
+                query = query.Where(vd => vd.ComplianceCategory == request.ComplianceCategory.Value);
             }
 
             if (request.Status.HasValue)

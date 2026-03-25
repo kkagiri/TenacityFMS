@@ -2,7 +2,7 @@
  * File: ModuleDashboard.js
  * Purpose: Reusable module dashboard shell using the same widget infrastructure as RealtimeDashboard.
  * Dependencies: useModuleDashboard, CategoryGroupedWidgetRenderer, WidgetConfigModal, DevExtreme
- * Last Modified: 2026-03-20
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - Renders a standardized dashboard for any module (vehicle, issue_tracker, tank_stock, etc.)
@@ -121,6 +121,7 @@ const ModuleDashboard = ({
   }, [handleLayoutSettingsChange, layoutSettings]);
 
   const activeGroupBy = layoutSettings?.widgetGrouping || 'category';
+  const showFilterCards = layoutSettings?.showFilterCards !== false;
 
   const handleWidgetMutation = useCallback(async () => {
     await loadWidgetInstances();
@@ -166,6 +167,16 @@ const ModuleDashboard = ({
               ))}
             </select>
           </div>
+
+          <label className="module-dashboard-toggle-control" htmlFor={`${moduleId}-show-filter-cards`}>
+            <span className="module-dashboard-toggle-control__label">Show filter cards</span>
+            <input
+              id={`${moduleId}-show-filter-cards`}
+              type="checkbox"
+              checked={showFilterCards}
+              onChange={(event) => handleDashboardLayoutSettingsChange({ showFilterCards: event.target.checked })}
+            />
+          </label>
 
           {/* Save layout button (edit mode) */}
           {isEditMode && (

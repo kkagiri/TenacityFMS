@@ -108,7 +108,7 @@ export function useModuleDashboard({
     return moduleWidgets.filter(widget => {
       const signature = buildModuleWidgetSignature({
         ...widget,
-        customName: widget.customName || widget.template?.displayName,
+        customName: widget.customName || widget.name || widget.template?.displayName,
         visualizationType: widget.widgetType || widget.visualizationType || widget.template?.widgetType,
         dataSource: normalizeDashboardDataSourceId(widget.dataSource || widget.settings?.dataSource || widget.template?.dataSource),
         settings: widget.settings || {},
@@ -144,7 +144,7 @@ export function useModuleDashboard({
       const dashboardSvc = serviceFactory.getDashboardService();
       const existingSignatures = new Set(moduleWidgets.map(widget => buildModuleWidgetSignature({
         ...widget,
-        customName: widget.customName || widget.template?.displayName,
+        customName: widget.customName || widget.name || widget.template?.displayName,
         visualizationType: widget.widgetType || widget.visualizationType || widget.template?.widgetType,
         dataSource: normalizeDashboardDataSourceId(widget.dataSource || widget.settings?.dataSource || widget.template?.dataSource),
         settings: widget.settings || {},

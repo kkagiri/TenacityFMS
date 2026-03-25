@@ -115,6 +115,7 @@ const RealtimeDashboard = () => {
   }, [handleLayoutSettingsChange, layoutSettings]);
 
   const activeGroupBy = layoutSettings?.widgetGrouping || 'category';
+  const showFilterCards = layoutSettings?.showFilterCards !== false;
 
   useEffect(() => {
     if (!actionsMenuOpen) {
@@ -219,6 +220,16 @@ const RealtimeDashboard = () => {
               ))}
             </select>
           </div>
+
+          <label className="dashboard-toggle-control" htmlFor="dashboard-show-filter-cards">
+            <span className="dashboard-toggle-control__label">Show filter cards</span>
+            <input
+              id="dashboard-show-filter-cards"
+              type="checkbox"
+              checked={showFilterCards}
+              onChange={(event) => handleDashboardLayoutSettingsChange({ showFilterCards: event.target.checked })}
+            />
+          </label>
 
           {isEditMode && (
             <button

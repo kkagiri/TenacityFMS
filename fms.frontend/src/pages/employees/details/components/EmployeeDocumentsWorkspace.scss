@@ -1,0 +1,359 @@
+/**
+ * File: EmployeeDocumentsWorkspace.scss
+ * Purpose: M365-style layout and side-panel styles for employee document management.
+ * Dependencies: m365-shared.scss
+ * Last Modified: 2026-03-25
+ */
+@import "../../../../components/m365/m365-shared.scss";
+
+.employee-documents-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+
+  &__header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  &__eyebrow {
+    display: inline-flex;
+    margin-bottom: 6px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--m365-text-secondary);
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--m365-text-secondary);
+    line-height: 1.5;
+  }
+
+  &__button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &--primary {
+      background: #0078d4;
+      color: #fff;
+    }
+  }
+
+  &__stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+  }
+
+  &__stat-card {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 16px;
+    border: 1px solid var(--m365-border-light);
+    border-radius: 8px;
+    background: linear-gradient(180deg, #ffffff 0%, #faf9f8 100%);
+  }
+
+  &__stat-value {
+    font-size: 24px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  &__stat-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--m365-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  &__grid-shell {
+    border: 1px solid var(--m365-border-light);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__grid {
+    .dx-datagrid-headers {
+      border-top: none !important;
+      border-left: none !important;
+      border-right: none !important;
+      border-bottom: 1px solid var(--m365-border-light) !important;
+      background: #fff;
+    }
+
+    .dx-datagrid-headers .dx-header-row > td {
+      border: none !important;
+      color: var(--m365-text-secondary);
+      font-size: 12px;
+      font-weight: 600;
+      background: #fff;
+    }
+
+    .dx-datagrid-rowsview {
+      border: none !important;
+    }
+
+    .dx-datagrid-rowsview .dx-row > td {
+      border-left: none !important;
+      border-right: none !important;
+      border-top: none !important;
+      border-bottom: 1px solid #f3f2f1 !important;
+      font-size: 13px;
+      color: var(--m365-text);
+      padding-top: 10px;
+      padding-bottom: 10px;
+    }
+  }
+
+  &__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  &__action-link {
+    border: none;
+    background: transparent;
+    color: #0078d4;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &--danger {
+      color: var(--m365-error);
+    }
+  }
+
+  &__muted {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+  }
+}
+
+.employee-documents-panel-shell {
+  .slide-panel__body {
+    padding: 0;
+  }
+}
+
+.employee-documents-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+
+  &__summary {
+    display: grid;
+    grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.9fr);
+    gap: 16px;
+    padding: 24px 24px 18px;
+    border-bottom: 1px solid var(--m365-border-light);
+    background: linear-gradient(135deg, #f7fbff 0%, #fffdf7 100%);
+  }
+
+  &__eyebrow {
+    display: inline-flex;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--m365-text-secondary);
+  }
+
+  h3 {
+    margin: 0;
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--m365-text);
+  }
+
+  p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--m365-text-secondary);
+  }
+
+  &__mapping {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+
+    div {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      padding: 12px 14px;
+      border: 1px solid rgba(0, 120, 212, 0.12);
+      border-radius: 8px;
+      background: rgba(255, 255, 255, 0.82);
+    }
+
+    span {
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--m365-text-secondary);
+    }
+
+    strong {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--m365-text);
+    }
+  }
+
+  &__form {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    min-height: 100%;
+  }
+
+  &__section {
+    padding: 20px 24px;
+    border-bottom: 1px solid var(--m365-border-light);
+  }
+
+  &__section-header {
+    margin-bottom: 16px;
+
+    h4 {
+      margin: 0 0 4px;
+      font-size: 15px;
+      font-weight: 600;
+      color: var(--m365-text);
+    }
+
+    p {
+      margin: 0;
+      font-size: 13px;
+      color: var(--m365-text-secondary);
+    }
+  }
+
+  &__field-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px 16px;
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+
+    span {
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--m365-text-secondary);
+    }
+
+    &--wide {
+      grid-column: 1 / -1;
+    }
+  }
+
+  &__input,
+  &__select,
+  &__textarea,
+  &__file {
+    width: 100%;
+    border: 1px solid var(--m365-border-light);
+    border-radius: 4px;
+    background: #fff;
+    color: var(--m365-text);
+    font: inherit;
+  }
+
+  &__input,
+  &__select,
+  &__file {
+    min-height: 34px;
+    padding: 0 11px;
+  }
+
+  &__textarea {
+    min-height: 120px;
+    padding: 10px 11px;
+    resize: vertical;
+  }
+
+  &__hint {
+    font-size: 12px;
+    color: var(--m365-text-tertiary);
+  }
+
+  &__footer {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    padding: 16px 24px 24px;
+  }
+
+  &__button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 136px;
+    height: 34px;
+    padding: 0 14px;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+
+    &--ghost {
+      background: #fff;
+      border-color: var(--m365-border-light);
+      color: var(--m365-text);
+    }
+
+    &--primary {
+      background: #0078d4;
+      color: #fff;
+    }
+  }
+}
+
+@media (max-width: 900px) {
+  .employee-documents-workspace {
+    &__stats {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  .employee-documents-panel {
+    &__summary,
+    &__field-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+}

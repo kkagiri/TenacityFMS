@@ -687,15 +687,19 @@ class ApiService {
    * @returns {Promise<Object>} GPS data including location, speed, etc.
    */
   /**
-   * Get GPS vehicles tracking summary (total, online, offline, moving, parked)
-   * @returns {Promise<Object>} Summary counts
+   * Get fleet dashboard summary via DataSourceManager (total, online, offline, moving, parked, stopped)
+   * Uses the unified dashboard data-source endpoint: fleet_total_gps
+   * @returns {Promise<Object>} Fleet summary with categories
    */
-  async getVehicleTrackingSummary() {
+  async getFleetDashboardSummary() {
     try {
-      const response = await this.api.get("/v1/vehicletracking/summary");
+      const response = await this.api.get(
+        "/v1/dashboard/data-sources/fleet_total_gps/initial",
+        { params: { MetricType: "fleet_total_gps", Mode: "live", DatePreset: "today" } }
+      );
       return response.data;
     } catch (error) {
-      throw this.handleError(error, "Failed to fetch tracking summary");
+      throw this.handleError(error, "Failed to fetch fleet dashboard summary");
     }
   }
 

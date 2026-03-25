@@ -22,7 +22,7 @@ import PTSDeviceEditForm from "./components/PTSDeviceEditForm";
 import PTSDeviceConfiguration from "./components/PTSDeviceConfiguration";
 import "./PTSDeviceDetailPage.scss";
 
-const LIVE_STATUS_TTL_MS = 5000;
+const LIVE_STATUS_TTL_MS = 120_000; // 2 minutes — keeps device online between data intervals
 
 const isLiveConnectionOnline = (connectionStatus, now) => {
   if (!connectionStatus?.lastActivity) {
@@ -112,7 +112,7 @@ const PTSDeviceDetailPage = () => {
   useEffect(() => {
     const intervalId = window.setInterval(() => {
       setStatusTick(Date.now());
-    }, 1000);
+    }, 10_000); // 10s — TTL is 2 min so per-second checks are unnecessary
 
     return () => window.clearInterval(intervalId);
   }, []);

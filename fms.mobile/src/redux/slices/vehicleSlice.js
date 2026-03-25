@@ -17,8 +17,29 @@ export const fetchTrackingSummary = createAsyncThunk(
   "vehicle/fetchTrackingSummary",
   async (_, { rejectWithValue }) => {
     try {
-      const response = await ApiService.getVehicleTrackingSummary();
-      return response?.Data || response?.data || response;
+      const response = await ApiService.getFleetDashboardSummary();
+      // DataSourceManager returns: { isSuccess, data: { current, change, total, categories, ... } }
+      const raw = response?.Data || response?.data || response;
+
+      // Normalize categories array into a flat summary object for the dashboard cards
+      const categories = raw?.categories || [];
+      const catMap = {};
+      categories.forEach((c) => {
+        const key = (c.key || "").toLowerCase();
+        catMap[key] = c.value ?? 0;
+      });
+
+      return {
+        totalGPSVehicles: raw?.total ?? 0,
+        onlineVehicles: catMap.online ?? 0,
+        offlineVehicles: catMap.offline ?? 0,
+        movingVehicles: catMap.moving ?? 0,
+        parkedVehicles: catMap.parked ?? 0,
+        stoppedVehicles: catMap.stopped ?? 0,
+        inTransitVehicles: catMap.moving ?? 0,
+        // Keep raw response for advanced use
+        _raw: raw,
+      };
     } catch (error) {
       return rejectWithValue(error.message);
     }

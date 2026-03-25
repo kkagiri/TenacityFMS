@@ -1,4 +1,10 @@
-﻿using System;
+﻿/**
+ * File: Employee.cs
+ * Purpose: Core employee aggregate for assignment, audit, and document relationships.
+ * Dependencies: Site, User, FuelRefill, EmployeeVehicle, Vehicle, EmployeeDocument
+ * Last Modified: 2026-03-25
+ */
+using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations.Schema;
 
@@ -29,6 +35,7 @@ public partial class Employee {
     public virtual User? ModifiedByNavigation { get; set; }
 
     public virtual ICollection<FuelRefill> Fuelrefils { get; set; } = new List<FuelRefill> ();
+    public virtual ICollection<EmployeeDocument> EmployeeDocuments { get; set; } = new List<EmployeeDocument> ();
 
     // Many-to-many relationship with Vehicle through EmployeeVehicle
     public virtual ICollection<EmployeeVehicle> EmployeeVehicles { get; set; } = new List<EmployeeVehicle> ();

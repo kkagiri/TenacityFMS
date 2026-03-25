@@ -258,7 +258,7 @@ const VehicleGPSInfo = ({ vehicle }) => {
         <View style={styles.sectionContent}>
           <View style={styles.motionGrid}>
             <View style={styles.motionItem}>
-              <Icon name="gauge-high" size={20} color="#10b981" />
+              <Icon name="tachometer-alt" size={20} color="#10b981" />
               <Text style={styles.motionValue}>
                 {formatSpeed(gpsData?.speed)}
               </Text>

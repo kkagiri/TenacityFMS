@@ -1,11 +1,16 @@
 /**
  * File: VehicleDashboard.js
- * Purpose: Vehicle tracking dashboard with summary cards (Active, Moving, Parked),
+ * Purpose: Vehicle tracking dashboard with summary cards (Total GPS, Online, Moving, Parked, Stopped),
  *          tag-based group selection, and a searchable vehicle list showing live status.
+ *
+ * Data Source: Uses FMS.Application.Services.Dashboard.DataSourceManager (fleet_total_gps)
+ *             via GET /api/v1/dashboard/data-sources/fleet_total_gps/initial
  *
  * Performance: Vehicles are loaded per-tag (not all 587+ at once).
  *              User selects a tag/group first, then sees vehicles in that group.
- *              Summary cards show global totals from the summary API.
+ *              Summary cards show global totals from DataSourceManager fleet data source.
+ *
+ * Last Modified: 2026-03-25
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -14,9 +19,11 @@ import {
   Text,
   TextInput,
   FlatList,
+  ScrollView,
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Modal,
   StyleSheet,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
@@ -27,24 +34,30 @@ import {
 } from "../../redux/slices/vehicleSlice";
 
 const SUMMARY_CARDS = [
-  { key: "total", label: "Total GPS", icon: "satellite-dish", color: "#3b82f6", bgColor: "#eff6ff", field: "totalGPSVehicles", altField: "TotalGPSVehicles" },
-  { key: "online", label: "Online", icon: "signal", color: "#10b981", bgColor: "#ecfdf5", field: "onlineVehicles", altField: "OnlineVehicles" },
-  { key: "moving", label: "Moving", icon: "shipping-fast", color: "#8b5cf6", bgColor: "#f5f3ff", field: "inTransitVehicles", altField: "InTransitVehicles" },
-  { key: "parked", label: "Parked", icon: "parking", color: "#f59e0b", bgColor: "#fffbeb", field: "parkedVehicles", altField: "ParkedVehicles" },
+  { key: "total", label: "Total GPS", icon: "satellite-dish", color: "#3b82f6", bgColor: "#eff6ff", field: "totalGPSVehicles" },
+  { key: "online", label: "Online", icon: "signal", color: "#10b981", bgColor: "#ecfdf5", field: "onlineVehicles" },
+  { key: "moving", label: "Moving", icon: "shipping-fast", color: "#8b5cf6", bgColor: "#f5f3ff", field: "movingVehicles" },
+  { key: "parked", label: "Parked", icon: "parking", color: "#f59e0b", bgColor: "#fffbeb", field: "parkedVehicles" },
+  { key: "stopped", label: "Stopped", icon: "hand-paper", color: "#ef4444", bgColor: "#fef2f2", field: "stoppedVehicles" },
 ];
 
 const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => {
   const dispatch = useDispatch();
-  const { trackingSummary, trackingSummaryLoading } = useSelector((state) => state.vehicle);
+  // Select ONLY the fields we need — NOT the entire slice.
+  // Selecting state.vehicle would re-render on every liveLocation update (587 vehicles).
+  const trackingSummary = useSelector((state) => state.vehicle.trackingSummary);
+  const trackingSummaryLoading = useSelector((state) => state.vehicle.trackingSummaryLoading);
 
   const [searchQuery, setSearchQuery] = useState("");
   const [refreshing, setRefreshing] = useState(false);
   const [statusFilter, setStatusFilter] = useState("all");
 
-  // Tag selection
+  // Tag selection (searchable dropdown)
   const [tags, setTags] = useState([]);
   const [tagsLoading, setTagsLoading] = useState(false);
   const [selectedTag, setSelectedTag] = useState(null);
+  const [tagDropdownVisible, setTagDropdownVisible] = useState(false);
+  const [tagSearchQuery, setTagSearchQuery] = useState("");
 
   // Vehicles loaded per-tag (NOT all 587 at once)
   const [tagVehicles, setTagVehicles] = useState([]);
@@ -94,14 +107,55 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
     }
   };
 
+  // Summary adjusts based on selected tag: local counts from tag vehicles, or global from DataSourceManager
+  const displaySummary = useMemo(() => {
+    if (!selectedTag || tagVehicles.length === 0) {
+      // No tag selected — show global summary from DataSourceManager
+      return trackingSummary;
+    }
+    // Tag selected — compute counts from loaded tag vehicles
+    // Use speed > 2 km/h as fallback for isMoving (API may not return isMoving boolean)
+    const isVehicleMoving = (v) => {
+      const speed = v.speed || v.Speed || v.speedKmh || v.SpeedKmh || 0;
+      return v.isMoving || v.IsMoving || speed > 2;
+    };
+    const total = tagVehicles.length;
+    const online = tagVehicles.filter((v) => v.isOnline || v.IsOnline).length;
+    const offline = total - online;
+    const moving = tagVehicles.filter((v) => (v.isOnline || v.IsOnline) && isVehicleMoving(v)).length;
+    const stationary = tagVehicles.filter((v) => (v.isOnline || v.IsOnline) && !isVehicleMoving(v));
+    const parked = stationary.filter((v) => {
+      const lastUpdated = v.lastUpdated || v.LastUpdated;
+      if (!lastUpdated) return false;
+      const diff = Date.now() - new Date(lastUpdated).getTime();
+      return diff >= 15 * 60 * 1000; // 15 minutes
+    }).length;
+    const stopped = Math.max(0, stationary.length - parked);
+
+    return {
+      totalGPSVehicles: total,
+      onlineVehicles: online,
+      offlineVehicles: offline,
+      movingVehicles: moving,
+      parkedVehicles: parked,
+      stoppedVehicles: stopped,
+    };
+  }, [selectedTag, tagVehicles, trackingSummary]);
+
   // Filter vehicles by search + status
   const filteredVehicles = useMemo(() => {
     let list = tagVehicles;
 
+    // Use speed > 2 km/h as fallback for isMoving
+    const isVehicleMoving = (v) => {
+      const speed = v.speed || v.Speed || v.speedKmh || v.SpeedKmh || 0;
+      return v.isMoving || v.IsMoving || speed > 2;
+    };
+
     if (statusFilter === "moving") {
-      list = list.filter((v) => v.isMoving || v.IsMoving);
+      list = list.filter((v) => isVehicleMoving(v));
     } else if (statusFilter === "parked") {
-      list = list.filter((v) => (v.isOnline || v.IsOnline) && !(v.isMoving || v.IsMoving));
+      list = list.filter((v) => (v.isOnline || v.IsOnline) && !isVehicleMoving(v));
     } else if (statusFilter === "offline") {
       list = list.filter((v) => !(v.isOnline || v.IsOnline));
     }
@@ -131,11 +185,47 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
 
   const getStatusInfo = (vehicle) => {
     const isOnline = vehicle.isOnline || vehicle.IsOnline;
-    const isMoving = vehicle.isMoving || vehicle.IsMoving;
+    const speed = vehicle.speed || vehicle.Speed || vehicle.speedKmh || vehicle.SpeedKmh || 0;
+    // Use isMoving if available, otherwise fall back to speed > 2 km/h (accounts for GPS drift)
+    const isMoving = vehicle.isMoving || vehicle.IsMoving || speed > 2;
     if (!isOnline) return { label: "Offline", color: "#9ca3af", icon: "circle", bgColor: "#f3f4f6" };
     if (isMoving) return { label: "Moving", color: "#8b5cf6", icon: "shipping-fast", bgColor: "#f5f3ff" };
     return { label: "Parked", color: "#f59e0b", icon: "parking", bgColor: "#fffbeb" };
   };
+
+  // Filter tags by dropdown search
+  const filteredTags = useMemo(() => {
+    if (!tagSearchQuery || tagSearchQuery.length < 1) return tags;
+    const q = tagSearchQuery.toLowerCase();
+    return tags.filter((t) => {
+      const name = (t.name || t.Name || t.tagName || t.TagName || "").toLowerCase();
+      return name.includes(q);
+    });
+  }, [tags, tagSearchQuery]);
+
+  const getTagName = (tag) =>
+    tag?.name || tag?.Name || tag?.tagName || tag?.TagName || `Tag ${tag?.id || tag?.Id || ""}`;
+
+  const getTagId = (tag) =>
+    tag?.id || tag?.Id || tag?.tagId || tag?.TagId;
+
+  const handleSelectTag = useCallback((tag) => {
+    const currentId = selectedTag ? getTagId(selectedTag) : null;
+    const newId = getTagId(tag);
+    if (currentId === newId) {
+      setSelectedTag(null);
+    } else {
+      setSelectedTag(tag);
+    }
+    setTagDropdownVisible(false);
+    setTagSearchQuery("");
+  }, [selectedTag]);
+
+  const handleClearTag = useCallback(() => {
+    setSelectedTag(null);
+    setTagDropdownVisible(false);
+    setTagSearchQuery("");
+  }, []);
 
   const formatSpeed = (vehicle) => {
     const speed = vehicle.speedKmh || vehicle.SpeedKmh || vehicle.speed || vehicle.Speed || 0;
@@ -179,63 +269,162 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
   };
 
   const renderSummaryCards = () => (
-    <View style={styles.summaryContainer}>
-      {SUMMARY_CARDS.map((card) => {
-        const value = trackingSummary?.[card.field] || trackingSummary?.[card.altField] || 0;
-        return (
-          <View key={card.key} style={[styles.summaryCard, { backgroundColor: card.bgColor }]}>
-            <Icon name={card.icon} size={18} color={card.color} />
-            <Text style={[styles.summaryValue, { color: card.color }]}>{value}</Text>
-            <Text style={styles.summaryLabel}>{card.label}</Text>
-          </View>
-        );
-      })}
+    <View>
+      {/* Scope indicator */}
+      {selectedTag && (
+        <View style={styles.summaryScope}>
+          <Icon name="filter" size={10} color="#2563eb" />
+          <Text style={styles.summaryScopeText}>
+            Showing: {getTagName(selectedTag)}
+          </Text>
+        </View>
+      )}
+      <View style={styles.summaryContainer}>
+        {SUMMARY_CARDS.map((card) => {
+          const value = displaySummary?.[card.field] ?? 0;
+          return (
+            <View key={card.key} style={[styles.summaryCard, { backgroundColor: card.bgColor }]}>
+              <Icon name={card.icon} size={14} color={card.color} />
+              <Text style={[styles.summaryValue, { color: card.color }]}>{value}</Text>
+              <Text style={styles.summaryLabel}>{card.label}</Text>
+            </View>
+          );
+        })}
+      </View>
     </View>
   );
 
   const renderTagSelector = () => (
     <View style={styles.tagSection}>
-      <Text style={styles.tagSectionTitle}>Select Group / Tag</Text>
-      {tagsLoading ? (
-        <View style={styles.tagLoadingRow}>
-          <ActivityIndicator size="small" color="#2563eb" />
-          <Text style={styles.tagLoadingText}>Loading tags...</Text>
-        </View>
-      ) : tags.length === 0 ? (
-        <View style={styles.tagEmptyRow}>
-          <Icon name="folder-open" size={14} color="#9ca3af" />
-          <Text style={styles.tagEmptyText}>No tags available</Text>
-        </View>
-      ) : (
-        <FlatList
-          data={tags}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => (item.id || item.Id || item.tagId || item.TagId || Math.random()).toString()}
-          contentContainerStyle={styles.tagList}
-          renderItem={({ item }) => {
-            const tagId = item.id || item.Id || item.tagId || item.TagId;
-            const tagName = item.name || item.Name || item.tagName || item.TagName || `Tag ${tagId}`;
-            const isSelected = selectedTag && (selectedTag.id || selectedTag.Id || selectedTag.tagId || selectedTag.TagId) === tagId;
-            return (
-              <TouchableOpacity
-                style={[styles.tagChip, isSelected && styles.tagChipActive]}
-                onPress={() => setSelectedTag(isSelected ? null : item)}
-                activeOpacity={0.7}
-              >
-                <Icon
-                  name="tag"
-                  size={11}
-                  color={isSelected ? "white" : "#6b7280"}
-                />
-                <Text style={[styles.tagChipText, isSelected && styles.tagChipTextActive]}>
-                  {tagName}
-                </Text>
-              </TouchableOpacity>
-            );
-          }}
+      <Text style={styles.tagSectionTitle}>Vehicle Group / Tag</Text>
+
+      {/* Dropdown trigger button */}
+      <TouchableOpacity
+        style={[styles.dropdownTrigger, selectedTag && styles.dropdownTriggerActive]}
+        onPress={() => setTagDropdownVisible(true)}
+        activeOpacity={0.7}
+      >
+        <Icon
+          name={selectedTag ? "tag" : "caret-down"}
+          size={14}
+          color={selectedTag ? "#2563eb" : "#6b7280"}
+          style={styles.dropdownIcon}
         />
-      )}
+        <Text
+          style={[styles.dropdownText, selectedTag && styles.dropdownTextActive]}
+          numberOfLines={1}
+        >
+          {tagsLoading
+            ? "Loading groups..."
+            : selectedTag
+            ? getTagName(selectedTag)
+            : "Select a group / tag..."}
+        </Text>
+        {selectedTag ? (
+          <TouchableOpacity onPress={handleClearTag} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
+            <Icon name="times-circle" size={16} color="#9ca3af" />
+          </TouchableOpacity>
+        ) : (
+          <Icon name="chevron-down" size={12} color="#9ca3af" />
+        )}
+      </TouchableOpacity>
+
+      {/* Dropdown modal */}
+      <Modal
+        visible={tagDropdownVisible}
+        animationType="slide"
+        transparent
+        onRequestClose={() => {
+          setTagDropdownVisible(false);
+          setTagSearchQuery("");
+        }}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setTagDropdownVisible(false);
+            setTagSearchQuery("");
+          }}
+        >
+          <View style={styles.modalContent} onStartShouldSetResponder={() => true}>
+            {/* Modal header */}
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Select Group / Tag</Text>
+              <TouchableOpacity
+                onPress={() => {
+                  setTagDropdownVisible(false);
+                  setTagSearchQuery("");
+                }}
+              >
+                <Icon name="times" size={18} color="#6b7280" />
+              </TouchableOpacity>
+            </View>
+
+            {/* Search input */}
+            <View style={styles.modalSearchContainer}>
+              <Icon name="search" size={14} color="#9ca3af" style={styles.modalSearchIcon} />
+              <TextInput
+                style={styles.modalSearchInput}
+                placeholder="Search tags..."
+                placeholderTextColor="#9ca3af"
+                value={tagSearchQuery}
+                onChangeText={setTagSearchQuery}
+                autoCapitalize="none"
+                autoFocus
+              />
+              {tagSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setTagSearchQuery("")}>
+                  <Icon name="times-circle" size={14} color="#9ca3af" />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            {/* Tag list */}
+            <ScrollView
+              style={styles.modalList}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps="handled"
+            >
+              {filteredTags.length === 0 ? (
+                <View style={styles.modalEmptyRow}>
+                  <Icon name="folder-open" size={16} color="#9ca3af" />
+                  <Text style={styles.modalEmptyText}>
+                    {tagSearchQuery ? "No matching tags" : "No tags available"}
+                  </Text>
+                </View>
+              ) : (
+                filteredTags.map((tag) => {
+                  const tagId = getTagId(tag);
+                  const tagName = getTagName(tag);
+                  const isSelected = selectedTag && getTagId(selectedTag) === tagId;
+                  return (
+                    <TouchableOpacity
+                      key={tagId?.toString() || Math.random().toString()}
+                      style={[styles.modalTagItem, isSelected && styles.modalTagItemActive]}
+                      onPress={() => handleSelectTag(tag)}
+                      activeOpacity={0.7}
+                    >
+                      <Icon
+                        name="tag"
+                        size={13}
+                        color={isSelected ? "#2563eb" : "#6b7280"}
+                        style={styles.modalTagIcon}
+                      />
+                      <Text style={[styles.modalTagText, isSelected && styles.modalTagTextActive]}>
+                        {tagName}
+                      </Text>
+                      {isSelected && (
+                        <Icon name="check" size={14} color="#2563eb" />
+                      )}
+                    </TouchableOpacity>
+                  );
+                })
+              )}
+            </ScrollView>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 
@@ -261,7 +450,7 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => 
       </View>
 
       {/* Summary Cards */}
-      {trackingSummaryLoading && !trackingSummary ? (
+      {trackingSummaryLoading && !displaySummary ? (
         <View style={styles.loadingRow}>
           <ActivityIndicator size="small" color="#2563eb" />
         </View>
@@ -386,26 +575,41 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     marginLeft: 6,
   },
+  summaryScope: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingTop: 8,
+    paddingHorizontal: 16,
+  },
+  summaryScopeText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#2563eb",
+    marginLeft: 6,
+  },
   summaryContainer: {
     flexDirection: "row",
-    paddingHorizontal: 12,
-    paddingTop: 12,
+    flexWrap: "wrap",
+    paddingHorizontal: 8,
+    paddingTop: 8,
     paddingBottom: 8,
   },
   summaryCard: {
     flex: 1,
+    minWidth: 60,
     alignItems: "center",
-    paddingVertical: 12,
-    marginHorizontal: 4,
-    borderRadius: 12,
+    paddingVertical: 10,
+    marginHorizontal: 3,
+    borderRadius: 10,
   },
   summaryValue: {
-    fontSize: 22,
+    fontSize: 18,
     fontWeight: "800",
-    marginTop: 4,
+    marginTop: 3,
   },
   summaryLabel: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#6b7280",
     fontWeight: "500",
     marginTop: 2,
@@ -414,7 +618,7 @@ const styles = StyleSheet.create({
     paddingVertical: 24,
     alignItems: "center",
   },
-  // Tag selector
+  // Tag selector (dropdown)
   tagSection: {
     paddingHorizontal: 16,
     paddingTop: 8,
@@ -426,50 +630,115 @@ const styles = StyleSheet.create({
     color: "#374151",
     marginBottom: 8,
   },
-  tagList: {
-    paddingRight: 16,
-  },
-  tagChip: {
+  dropdownTrigger: {
     flexDirection: "row",
     alignItems: "center",
+    backgroundColor: "white",
     paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 18,
-    backgroundColor: "#f3f4f6",
-    marginRight: 8,
+    paddingVertical: 12,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: "#e5e7eb",
   },
-  tagChipActive: {
-    backgroundColor: "#2563eb",
+  dropdownTriggerActive: {
     borderColor: "#2563eb",
+    backgroundColor: "#eff6ff",
   },
-  tagChipText: {
-    fontSize: 13,
+  dropdownIcon: {
+    marginRight: 10,
+  },
+  dropdownText: {
+    flex: 1,
+    fontSize: 14,
+    color: "#9ca3af",
+  },
+  dropdownTextActive: {
+    color: "#1f2937",
     fontWeight: "600",
-    color: "#6b7280",
-    marginLeft: 6,
   },
-  tagChipTextActive: {
-    color: "white",
+  // Modal styles
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "flex-end",
   },
-  tagLoadingRow: {
+  modalContent: {
+    backgroundColor: "white",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    maxHeight: "70%",
+    paddingBottom: 24,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 16,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
+  },
+  modalTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#1f2937",
+  },
+  modalSearchContainer: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    backgroundColor: "#f3f4f6",
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    paddingHorizontal: 12,
+    borderRadius: 10,
   },
-  tagLoadingText: {
-    fontSize: 13,
-    color: "#6b7280",
-    marginLeft: 8,
+  modalSearchIcon: {
+    marginRight: 8,
   },
-  tagEmptyRow: {
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 14,
+    color: "#1f2937",
+    paddingVertical: 10,
+  },
+  modalList: {
+    paddingHorizontal: 16,
+  },
+  modalTagItem: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f3f4f6",
   },
-  tagEmptyText: {
-    fontSize: 13,
+  modalTagItemActive: {
+    backgroundColor: "#eff6ff",
+    borderRadius: 8,
+    borderBottomColor: "transparent",
+  },
+  modalTagIcon: {
+    marginRight: 12,
+  },
+  modalTagText: {
+    flex: 1,
+    fontSize: 15,
+    color: "#374151",
+  },
+  modalTagTextActive: {
+    color: "#2563eb",
+    fontWeight: "600",
+  },
+  modalEmptyRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 24,
+  },
+  modalEmptyText: {
+    fontSize: 14,
     color: "#9ca3af",
     marginLeft: 8,
   },
@@ -477,7 +746,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    paddingVertical: 24,
+    paddingVertical: 20,
   },
   selectTagText: {
     fontSize: 14,

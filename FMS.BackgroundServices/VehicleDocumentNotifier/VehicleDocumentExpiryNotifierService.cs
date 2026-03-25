@@ -53,25 +53,25 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
         GpsdataContext context = scope.ServiceProvider.GetRequiredService<GpsdataContext>();
         var eventEngine = scope.ServiceProvider.GetService<IEventExpressionEngine>();
 
-        DateTime expiringSoonDate = DateTime.UtcNow.Date.AddDays(30);
+        DateTime processingHorizon = DateTime.UtcNow.Date.AddDays(365);
         List<VehicleDocument> documentsToNotify = await context.VehicleDocuments
             .Include(vd => vd.Vehicle)
-            .Where(vd => vd.ExpiryDate <= expiringSoonDate && vd.Status != DocumentStatus.Expired)
+            .Where(vd => vd.ExpiryDate <= processingHorizon)
             .ToListAsync(stoppingToken);
 
         foreach (VehicleDocument doc in documentsToNotify)
         {
             int daysUntilExpiry = (doc.ExpiryDate.Date - DateTime.UtcNow.Date).Days;
-            if (daysUntilExpiry == 30 || daysUntilExpiry == 7 || daysUntilExpiry == 1 || daysUntilExpiry <= 0)
+            if (daysUntilExpiry == doc.AlertLeadDays || daysUntilExpiry == 0 || daysUntilExpiry < 0)
             {
                 string alarmType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon";
-                string priority = daysUntilExpiry <= 7 ? "High" : "Medium";
-                string message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} is expiring in {daysUntilExpiry} days.";
+                string priority = daysUntilExpiry <= Math.Max(1, Math.Min(doc.AlertLeadDays, 7)) ? "High" : "Medium";
+                string message = $"{doc.ComplianceCategory} for vehicle {doc.Vehicle.HyoungNo} is expiring in {daysUntilExpiry} days.";
                 if (daysUntilExpiry == 0) message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} expires today.";
 
                 if (daysUntilExpiry < 0)
                 {
-                    message = $"{doc.DocumentType} for vehicle {doc.Vehicle.HyoungNo} expired {-daysUntilExpiry} days ago.";
+                    message = $"{doc.ComplianceCategory} for vehicle {doc.Vehicle.HyoungNo} expired {-daysUntilExpiry} days ago.";
                 }
 
 
@@ -80,7 +80,7 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                 {
                     var docEvent = new SystemEvent
                     {
-                        Severity = daysUntilExpiry <= 7 ? "High" : "Medium",
+                        Severity = priority,
                         SubType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon",
                         SourceComponent = "VehicleDocumentNotifier",
                         Message = message,
@@ -88,8 +88,10 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                     };
                     docEvent.Data["DocumentId"] = doc.Id.ToString();
                     docEvent.Data["DocumentType"] = doc.DocumentType.ToString();
+                    docEvent.Data["ComplianceCategory"] = doc.ComplianceCategory.ToString();
                     docEvent.Data["VehicleNo"] = doc.Vehicle?.HyoungNo ?? "";
                     docEvent.Data["DaysUntilExpiry"] = daysUntilExpiry;
+                    docEvent.Data["AlertLeadDays"] = doc.AlertLeadDays;
                     docEvent.Data["ExpiryDate"] = doc.ExpiryDate.ToString("yyyy-MM-dd");
                     await eventEngine.ProcessAsync(docEvent, stoppingToken);
                 }

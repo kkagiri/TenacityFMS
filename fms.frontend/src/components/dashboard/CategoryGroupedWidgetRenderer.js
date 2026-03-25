@@ -379,7 +379,9 @@ const CategoryGroupedWidgetRenderer = ({
                     const loading = isLoading[instanceId] || false;
                     const rawError = errors[instanceId] || null;
                     const error = rawError ? (typeof rawError === 'string' ? { message: rawError } : rawError) : null;
-                    const filters = parseWidgetFilters(widget.configurationJson, data);
+                    const filters = parseWidgetFilters(widget.configurationJson, data, {
+                      showFilterCards: layoutSettings?.showFilterCards !== false
+                    });
                     const widgetCols = getWidgetGridColumns(instanceId);
                     const currentSizeOption = getSizeOptionFromCols(widgetCols);
                     const defaultHeight = getDefaultWidgetHeight(widget);

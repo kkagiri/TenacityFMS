@@ -1,5 +1,21 @@
 import axiosInstance from "../../api/axiosInstance";
 
+const getApiErrorMessage = (error, fallbackMessage) => {
+    const responseData = error?.response?.data;
+
+    if (responseData?.errors && typeof responseData.errors === "object") {
+        const validationMessages = Object.values(responseData.errors)
+            .flat()
+            .filter(Boolean);
+
+        if (validationMessages.length > 0) {
+            return validationMessages.join(" ");
+        }
+    }
+
+    return responseData?.message || responseData?.title || error?.message || fallbackMessage;
+};
+
 // Action Types
 export const FETCH_VEHICLE_DOCUMENTS_SUCCESS = "FETCH_VEHICLE_DOCUMENTS_SUCCESS";
 export const FETCH_VEHICLE_DOCUMENTS_FAILURE = "FETCH_VEHICLE_DOCUMENTS_FAILURE";
@@ -19,7 +35,8 @@ export const DELETE_VEHICLE_DOCUMENT_FAILURE = "DELETE_VEHICLE_DOCUMENT_FAILURE"
  */
 export const getVehicleDocuments = (vehicleId) => async (dispatch) => {
     try {
-        const response = await axiosInstance.get(`/vehicledocuments/vehicle/${vehicleId}`);
+        const endpoint = vehicleId ? `/vehicledocuments/vehicle/${vehicleId}` : "/vehicledocuments";
+        const response = await axiosInstance.get(endpoint);
         if (response.data.isSuccess) {
             dispatch({ type: FETCH_VEHICLE_DOCUMENTS_SUCCESS, payload: response.data.data });
             return response.data;
@@ -28,7 +45,7 @@ export const getVehicleDocuments = (vehicleId) => async (dispatch) => {
             return response.data;
         }
     } catch (error) {
-        const errorMessage = error.response?.data?.message || "An error occurred";
+        const errorMessage = getApiErrorMessage(error, "Failed to load vehicle documents");
         dispatch({ type: FETCH_VEHICLE_DOCUMENTS_FAILURE, payload: errorMessage });
         return { isSuccess: false, message: errorMessage };
     }
@@ -51,7 +68,7 @@ export const createVehicleDocument = (formData) => async (dispatch) => {
             return response.data;
         }
     } catch (error) {
-        const errorMessage = error.response?.data?.message || "An error occurred";
+        const errorMessage = getApiErrorMessage(error, "Failed to create vehicle document");
         dispatch({ type: CREATE_VEHICLE_DOCUMENT_FAILURE, payload: errorMessage });
         return { isSuccess: false, message: errorMessage };
     }
@@ -68,14 +85,14 @@ export const updateVehicleDocument = (id, formData) => async (dispatch) => {
             headers: { 'Content-Type': 'multipart/form-data' }
         });
         if (response.data.isSuccess) {
-            dispatch({ type: UPDATE_VEHICLE_DOCUMENT_SUCCESS, payload: { id, ...formData } });
+            dispatch({ type: UPDATE_VEHICLE_DOCUMENT_SUCCESS, payload: response.data.data || { id } });
             return response.data;
         } else {
             dispatch({ type: UPDATE_VEHICLE_DOCUMENT_FAILURE, payload: response.data.message });
             return response.data;
         }
     } catch (error) {
-        const errorMessage = error.response?.data?.message || "An error occurred";
+        const errorMessage = getApiErrorMessage(error, "Failed to update vehicle document");
         dispatch({ type: UPDATE_VEHICLE_DOCUMENT_FAILURE, payload: errorMessage });
         return { isSuccess: false, message: errorMessage };
     }
@@ -96,8 +113,44 @@ export const deleteVehicleDocument = (id) => async (dispatch) => {
             return response.data;
         }
     } catch (error) {
-        const errorMessage = error.response?.data?.message || "An error occurred";
+        const errorMessage = getApiErrorMessage(error, "Failed to delete vehicle document");
         dispatch({ type: DELETE_VEHICLE_DOCUMENT_FAILURE, payload: errorMessage });
         return { isSuccess: false, message: errorMessage };
+    }
+};
+
+export const getVehicleComplianceRequirements = () => async () => {
+    try {
+        const response = await axiosInstance.get("/vehicledocuments/compliance/requirements");
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to load compliance requirements")
+        };
+    }
+};
+
+export const getVehicleComplianceDashboard = () => async () => {
+    try {
+        const response = await axiosInstance.get("/vehicledocuments/compliance/dashboard");
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to load compliance dashboard")
+        };
+    }
+};
+
+export const bulkCreateVehicleComplianceRequirements = (payload) => async () => {
+    try {
+        const response = await axiosInstance.post("/vehicledocuments/compliance/requirements/bulk", payload);
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to create compliance assignments")
+        };
     }
 };

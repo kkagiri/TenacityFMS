@@ -8,6 +8,7 @@ using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
 using FMS.Application.Features.TankManagement.Deliveries.Services;
+using FMS.Application.Features.TankManagement.TankMeasurements.Services;
 using FMS.Application.Common.PTSResponse;
 using FMS.Application.Communication.HttpPolling;
 using FMS.Application.Communication.SignalR;
@@ -82,6 +83,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
         private readonly IPumpTankTransferService _pumpTankTransferService; //Cursor: Add tank transfer service
         private readonly IServiceScopeFactory _serviceScopeFactory; // For background task scoping
         private readonly ISystemConfigurationService _systemConfigurationService;
+        private readonly IProbeReadingEnrichmentService _probeReadingEnrichmentService;
 
         public UploadStatusCommandHandler(
             IHubContext<PTSHub> hubContext,
@@ -98,6 +100,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             IAutoTransactionCompletionService autoCompletionService, //Cursor: Add auto-completion service
             IPumpTankTransferService pumpTankTransferService, //Cursor: Add tank transfer service
             ISystemConfigurationService systemConfigurationService,
+            IProbeReadingEnrichmentService probeReadingEnrichmentService,
             IServiceScopeFactory serviceScopeFactory) // IEventExpressionEngine removed: engine is now resolved
                                                       // per-call via IServiceScopeFactory to avoid sharing a
                                                       // potentially degraded GpsdataContext connection.
@@ -116,6 +119,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             _autoCompletionService = autoCompletionService; //Cursor: Add auto-completion service
             _pumpTankTransferService = pumpTankTransferService; //Cursor: Add tank transfer service
             _systemConfigurationService = systemConfigurationService;
+            _probeReadingEnrichmentService = probeReadingEnrichmentService;
             _serviceScopeFactory = serviceScopeFactory; // For background task scoping
         }
 
@@ -514,27 +518,48 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     updatesApplied++;
                 }
 
-                // Persist probe reading as time-series record
-                _context.UploadStatusProbeReadings.Add(new UploadStatusProbeReading
+                // Enrich volume from calibration chart if PTS device sends 0
+                var enrichedVolume = probeMeasurement.ProductVolume;
+                if (!enrichedVolume.HasValue || enrichedVolume <= 0)
                 {
-                    DateTime = DateTime.UtcNow,
-                    DeviceId = deviceId,
-                    ProbeNumber = probeMeasurement.ProbeNumber,
-                    ProductHeight = probeMeasurement.ProductHeight,
-                    WaterHeight = probeMeasurement.WaterHeight,
-                    Temperature = probeMeasurement.Temperature,
-                    ProductVolume = probeMeasurement.ProductVolume,
-                    WaterVolume = probeMeasurement.WaterVolume,
-                    ProductTcvolume = probeMeasurement.ProductTemperatureCompensatedVolume,
-                    ProductDensity = probeMeasurement.ProductDensity,
-                    ProductMass = probeMeasurement.ProductMass,
-                    TankFillingPercentage = probeMeasurement.TankFillingPercentage,
-                    ProductUllage = probeMeasurement.ProductUllage,
-                    TankId = tank.Id,
-                    SiteId = tank.SiteId,
-                    FuelGradeId = tank.FuelGradeId,
-                    FuelGradeName = tank.FuelGradeName
-                });
+                    var calibratedVolume = await _probeReadingEnrichmentService
+                        .EnrichVolumeFromCalibrationAsync(tank.Id, probeMeasurement.ProductHeight, cancellationToken);
+                    if (calibratedVolume.HasValue)
+                    {
+                        enrichedVolume = (float)calibratedVolume.Value;
+                    }
+                }
+
+                // Persist probe reading only when height changed or max interval elapsed (Redis cadence check)
+                var shouldSave = await _probeReadingEnrichmentService
+                    .ShouldSaveReadingAsync(deviceId, tank.Id, probeMeasurement.ProductHeight, cancellationToken);
+
+                if (shouldSave)
+                {
+                    _context.UploadStatusProbeReadings.Add(new UploadStatusProbeReading
+                    {
+                        DateTime = DateTime.UtcNow,
+                        DeviceId = deviceId,
+                        ProbeNumber = probeMeasurement.ProbeNumber,
+                        ProductHeight = probeMeasurement.ProductHeight,
+                        WaterHeight = probeMeasurement.WaterHeight,
+                        Temperature = probeMeasurement.Temperature,
+                        ProductVolume = enrichedVolume,
+                        WaterVolume = probeMeasurement.WaterVolume,
+                        ProductTcvolume = probeMeasurement.ProductTemperatureCompensatedVolume,
+                        ProductDensity = probeMeasurement.ProductDensity,
+                        ProductMass = probeMeasurement.ProductMass,
+                        TankFillingPercentage = probeMeasurement.TankFillingPercentage,
+                        ProductUllage = probeMeasurement.ProductUllage,
+                        TankId = tank.Id,
+                        SiteId = tank.SiteId,
+                        FuelGradeId = tank.FuelGradeId,
+                        FuelGradeName = tank.FuelGradeName
+                    });
+
+                    await _probeReadingEnrichmentService
+                        .MarkReadingSavedAsync(deviceId, tank.Id, probeMeasurement.ProductHeight);
+                }
 
                 // Fire-and-forget: server-side delivery detection (does not block UploadStatus processing)
                 var capturedTankId = tank.Id;

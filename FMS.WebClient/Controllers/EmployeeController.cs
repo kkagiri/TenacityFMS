@@ -14,6 +14,8 @@ using System.Text.Json;
 using AutoMapper.Configuration.Annotations;
 using FMS.Application.Command.DatabaseCommand.EmployeeCmd;
 using FMS.Application.Common;
+using FMS.Application.Features.Employee.Commands;
+using FMS.Application.Features.Employee.DTOs;
 using FMS.Application.Features.Employee.Queries;
 using FMS.Application.Features.FMS.Employee;
 using FMS.Application.Queries.Database.FMSQuery.EmployeeQuery;
@@ -147,6 +149,77 @@ namespace FMS.WebClient.Controllers
             if (!result.Success) return BadRequest(result.Message);
 
             return NoContent();
+        }
+
+        [HttpGet("{id}/documents")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
+        public async Task<IActionResult> GetEmployeeDocuments(int id)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var result = await _mediator.Send(new GetEmployeeDocumentsQuery(id));
+            return Ok(result);
+        }
+
+        [HttpGet("documents/{documentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Read)]
+        public async Task<IActionResult> GetEmployeeDocumentById(Guid documentId)
+        {
+            var result = await _mediator.Send(new GetEmployeeDocumentByIdQuery(documentId));
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/documents")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Create)]
+        public async Task<IActionResult> CreateEmployeeDocument(int id, [FromForm] CreateEmployeeDocumentDto createEmployeeDocumentDto)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            createEmployeeDocumentDto.EmployeeId = id;
+            createEmployeeDocumentDto.UserId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+
+            var result = await _mediator.Send(new CreateEmployeeDocumentCommand(createEmployeeDocumentDto));
+            return Ok(result);
+        }
+
+        [HttpPut("{id}/documents/{documentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Edit)]
+        public async Task<IActionResult> UpdateEmployeeDocument(int id, Guid documentId, [FromForm] UpdateEmployeeDocumentDto updateEmployeeDocumentDto)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+            if (documentId != updateEmployeeDocumentDto.Id) return BadRequest("ID mismatch");
+
+            updateEmployeeDocumentDto.EmployeeId = id;
+            updateEmployeeDocumentDto.UserId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+
+            var result = await _mediator.Send(new UpdateEmployeeDocumentCommand(updateEmployeeDocumentDto));
+            return Ok(result);
+        }
+
+        [HttpDelete("{id}/documents/{documentId}")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.Employee.Delete)]
+        public async Task<IActionResult> DeleteEmployeeDocument(int id, Guid documentId)
+        {
+            if (id <= 0) return BadRequest("Invalid ID");
+
+            var documentResult = await _mediator.Send(new GetEmployeeDocumentByIdQuery(documentId));
+            if (!documentResult.IsSuccess || documentResult.Data == null)
+            {
+                return Ok(documentResult);
+            }
+
+            if (documentResult.Data.EmployeeId != id)
+            {
+                return BadRequest("Employee document does not belong to the requested employee.");
+            }
+
+            var result = await _mediator.Send(new DeleteEmployeeDocumentCommand(documentId));
+            return Ok(result);
         }
 
         // Employee Search Endpoints

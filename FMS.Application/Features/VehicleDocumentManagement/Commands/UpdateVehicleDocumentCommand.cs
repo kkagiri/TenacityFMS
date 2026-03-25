@@ -41,19 +41,26 @@ public class UpdateVehicleDocumentCommandHandler : IRequestHandler<UpdateVehicle
 
             string documentFileUrl = vehicleDocument.DocumentFileUrl;
             string documentFileName = vehicleDocument.DocumentFileName;
+            var uploadDirectory = $"vehicle-documents/{vehicleDocument.VehicleId}";
+            var complianceCategory = VehicleDocument.ResolveComplianceCategory(
+                request.UpdateVehicleDocumentDto.DocumentType,
+                request.UpdateVehicleDocumentDto.ComplianceCategory);
 
             if (request.UpdateVehicleDocumentDto.DocumentFile != null)
             {
-                documentFileUrl = await _fileHandlingService.UploadFileAsync(request.UpdateVehicleDocumentDto.DocumentFile, "vehicle-documents");
+                documentFileUrl = await _fileHandlingService.UploadFileAsync(request.UpdateVehicleDocumentDto.DocumentFile, uploadDirectory);
                 documentFileName = request.UpdateVehicleDocumentDto.DocumentFile.FileName;
             }
 
             vehicleDocument.Update(
+                request.UpdateVehicleDocumentDto.DocumentType,
+                complianceCategory,
                 request.UpdateVehicleDocumentDto.DocumentNumber,
                 request.UpdateVehicleDocumentDto.IssueDate,
                 request.UpdateVehicleDocumentDto.ExpiryDate,
-                request.UpdateVehicleDocumentDto.IssuingAuthority,
-                request.UpdateVehicleDocumentDto.Notes,
+                request.UpdateVehicleDocumentDto.AlertLeadDays,
+                request.UpdateVehicleDocumentDto.IssuingAuthority ?? string.Empty,
+                request.UpdateVehicleDocumentDto.Notes ?? string.Empty,
                 documentFileName,
                 documentFileUrl,
                 "System" // Replace with actual user

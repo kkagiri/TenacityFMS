@@ -25,6 +25,7 @@ class VehicleTrackingSignalRService {
     this.subscribedToAll = false;
     this.subscribedVehicles = new Set();
     this.connectionPromise = null;
+    this.stopPromise = null; // Track pending stop to prevent start/stop race
     this.isPaused = false;
   }
 
@@ -100,6 +101,11 @@ class VehicleTrackingSignalRService {
   }
 
   async start() {
+    // Wait for any pending stop to finish first (prevents "stopped during negotiation")
+    if (this.stopPromise) {
+      try { await this.stopPromise; } catch (e) { /* ignore */ }
+      this.stopPromise = null;
+    }
     if (this.connectionPromise) {
       return this.connectionPromise;
     }
@@ -116,6 +122,12 @@ class VehicleTrackingSignalRService {
 
   async _startConnection() {
     try {
+      // Clean up any existing dead connection first
+      if (this.connection) {
+        try { await this.connection.stop(); } catch (e) { /* ignore */ }
+        this.connection = null;
+      }
+
       this.connectionState = TrackingConnectionState.CONNECTING;
       this._notifyHandlers("connectionStateChanged", { state: this.connectionState });
 
@@ -225,11 +237,11 @@ class VehicleTrackingSignalRService {
     });
 
     this.connection.on("SubscriptionConfirmed", (data) => {
-      console.log("[VehicleTracking SignalR] Subscription confirmed:", data?.Type);
+      console.log("[VehicleTracking SignalR] Subscription confirmed:", data?.Type || data?.type || "all");
     });
 
     this.connection.on("UnsubscriptionConfirmed", (data) => {
-      console.log("[VehicleTracking SignalR] Unsubscription confirmed:", data?.Type);
+      console.log("[VehicleTracking SignalR] Unsubscription confirmed:", data?.Type || data?.type || "all");
     });
   }
 
@@ -250,11 +262,11 @@ class VehicleTrackingSignalRService {
 
   async unsubscribeFromAllVehicles() {
     this.subscribedToAll = false;
-    if (this.connectionState !== TrackingConnectionState.CONNECTED) return;
+    if (this.connectionState !== TrackingConnectionState.CONNECTED || !this.connection) return;
     try {
       await this.connection.invoke("UnsubscribeFromAllVehicles");
     } catch (error) {
-      console.error("[VehicleTracking SignalR] Unsubscribe all failed:", error.message);
+      // Expected during cleanup — connection may already be closing
     }
   }
 
@@ -272,11 +284,11 @@ class VehicleTrackingSignalRService {
 
   async unsubscribeFromVehicles(vehicleIds) {
     vehicleIds.forEach((id) => this.subscribedVehicles.delete(id));
-    if (this.connectionState !== TrackingConnectionState.CONNECTED) return;
+    if (this.connectionState !== TrackingConnectionState.CONNECTED || !this.connection) return;
     try {
       await this.connection.invoke("UnsubscribeFromVehicles", vehicleIds);
     } catch (error) {
-      console.error("[VehicleTracking SignalR] Unsubscribe vehicles failed:", error.message);
+      // Expected during cleanup — connection may already be closing
     }
   }
 
@@ -293,15 +305,14 @@ class VehicleTrackingSignalRService {
     this.subscribedToAll = false;
     this.subscribedVehicles.clear();
     if (this.connection) {
-      try {
-        await this.connection.stop();
-      } catch (error) {
-        console.error("[VehicleTracking SignalR] Stop error:", error.message);
-      }
+      const conn = this.connection;
+      this.connection = null;
+      this.connectionPromise = null;
+      this.stopPromise = conn.stop().catch(() => {});
+      await this.stopPromise;
+      this.stopPromise = null;
     }
     this.connectionState = TrackingConnectionState.DISCONNECTED;
-    this.connection = null;
-    this.connectionPromise = null;
     this._notifyHandlers("connectionStateChanged", { state: this.connectionState });
   }
 

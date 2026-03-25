@@ -154,6 +154,30 @@ public class TankStockController : ControllerBase
     }
 
     /// <summary>
+    /// Gets upload status probe reading history for charting (periodic readings from UploadStatus packets).
+    /// </summary>
+    [HttpGet("upload-status-readings/history")]
+    [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+    [RequirePermission(Permissions.TankStock.Read)]
+    public async Task<IActionResult> GetUploadStatusProbeReadingHistory(
+        [FromQuery] int tankId,
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        if (tankId <= 0)
+        {
+            return BadRequest(FMSResponse.FailedResponse("Invalid Tank ID"));
+        }
+
+        var result = await _mediator.Send(new GetUploadStatusProbeReadingHistoryQuery(
+            TankId: tankId,
+            StartDate: startDate,
+            EndDate: endDate));
+
+        return Ok(result);
+    }
+
+    /// <summary>
     /// Validates if a historical tank stock entry can be processed based on future records policy
     /// </summary>
     /// <param name="request">Historical entry validation request</param>

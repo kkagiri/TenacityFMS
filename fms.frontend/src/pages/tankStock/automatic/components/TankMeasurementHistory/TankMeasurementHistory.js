@@ -30,10 +30,22 @@ const parseUtcToLocal = (value) => {
     return new Date(value);
 };
 
+const DATA_SOURCE_OPTIONS = [
+    { value: "tank-measurement", label: "Tank Measurement" },
+    { value: "upload-status", label: "Upload Status" },
+    { value: "both", label: "Both" },
+];
+
+const ENDPOINTS = {
+    "tank-measurement": "/tankstock/tank-measurements/history",
+    "upload-status": "/tankstock/upload-status-readings/history",
+};
+
 const TankMeasurementHistory = () => {
     const { startDate, endDate, selectedTankIds } = useStockFilters();
     const [points, setPoints] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [dataSource, setDataSource] = useState("tank-measurement");
 
     const tankId = useMemo(() => {
         if (!Array.isArray(selectedTankIds) || selectedTankIds.length === 0) return null;
@@ -50,18 +62,27 @@ const TankMeasurementHistory = () => {
 
         setLoading(true);
         try {
-            const response = await axiosInstance.get("/tankstock/tank-measurements/history", {
-                params: {
-                    tankId,
-                    startDate: startDate ? new Date(startDate).toISOString() : null,
-                    endDate: endDate ? new Date(endDate).toISOString() : null,
-                },
+            const params = {
+                tankId,
+                startDate: startDate ? new Date(startDate).toISOString() : null,
+                endDate: endDate ? new Date(endDate).toISOString() : null,
+            };
+
+            const endpointsToFetch =
+                dataSource === "both"
+                    ? [ENDPOINTS["tank-measurement"], ENDPOINTS["upload-status"]]
+                    : [ENDPOINTS[dataSource]];
+
+            const responses = await Promise.all(
+                endpointsToFetch.map((url) => axiosInstance.get(url, { params }))
+            );
+
+            const allPayload = responses.flatMap((response) => {
+                const data = response?.data;
+                return Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
             });
 
-            const data = response?.data;
-            const payload = Array.isArray(data?.data) ? data.data : Array.isArray(data) ? data : [];
-
-            const normalized = payload
+            const normalized = allPayload
                 .map((p) => ({
                     ...p,
                     localDateTime: parseUtcToLocal(p.dateTime),
@@ -71,10 +92,10 @@ const TankMeasurementHistory = () => {
 
             setPoints(normalized.slice(-MAX_POINTS));
         } catch (error) {
-            console.error("Failed to load tank measurement history", error);
+            console.error("Failed to load measurement history", error);
             notify(
                 {
-                    message: "Failed to load tank measurement history",
+                    message: "Failed to load measurement history",
                     type: "error",
                     displayTime: 3000,
                     position: "top center",
@@ -85,7 +106,7 @@ const TankMeasurementHistory = () => {
         } finally {
             setLoading(false);
         }
-    }, [tankId, startDate, endDate]);
+    }, [tankId, startDate, endDate, dataSource]);
 
     useEffect(() => {
         fetchHistory();
@@ -117,6 +138,7 @@ const TankMeasurementHistory = () => {
                 waterHeight: update?.WaterHeight ?? update?.waterHeight,
                 productHeight: update?.ProductHeight ?? update?.productHeight,
                 waterVolume: update?.WaterVolume ?? update?.waterVolume,
+                source: "TankMeasurement",
             };
 
             setPoints((prev) => {
@@ -132,6 +154,20 @@ const TankMeasurementHistory = () => {
         };
     }, [tankId]);
 
+    // Computed: split points by source for "Both" mode color-coding
+    const chartData = useMemo(() => {
+        if (dataSource !== "both") return points;
+        return points.map((p) => ({
+            ...p,
+            tmVolume: p.source === "TankMeasurement" ? p.productVolume : null,
+            usVolume: p.source === "UploadStatus" ? p.productVolume : null,
+            tmTemp: p.source === "TankMeasurement" ? p.temperature : null,
+            usTemp: p.source === "UploadStatus" ? p.temperature : null,
+            tmWater: p.source === "TankMeasurement" ? p.waterHeight : null,
+            usWater: p.source === "UploadStatus" ? p.waterHeight : null,
+        }));
+    }, [points, dataSource]);
+
     if (!tankId) {
         return (
             <div className="tw-p-4 tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-text-amber-800">
@@ -142,39 +178,79 @@ const TankMeasurementHistory = () => {
 
     return (
         <div className="tw-w-full tw-space-y-6">
+            <div className="tw-flex tw-items-center tw-gap-3">
+                <label htmlFor="data-source-select" className="tw-text-sm tw-font-medium tw-text-gray-700">
+                    Data Source
+                </label>
+                <select
+                    id="data-source-select"
+                    className="m365-select"
+                    value={dataSource}
+                    onChange={(e) => setDataSource(e.target.value)}
+                    disabled={loading}
+                >
+                    {DATA_SOURCE_OPTIONS.map((opt) => (
+                        <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                        </option>
+                    ))}
+                </select>
+            </div>
+
             {loading && (
                 <div className="tw-text-sm tw-text-gray-500">Loading measurement history...</div>
             )}
 
             <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
                 <div className="tw-font-semibold tw-mb-2">Product Volume (L)</div>
-                <Chart dataSource={points}>
+                <Chart dataSource={chartData}>
                     <CommonSeriesSettings argumentField="localDateTime" type="line" />
                     <ArgumentAxis argumentType="datetime" />
-                    <Series valueField="productVolume" name="Volume" />
-                    <Legend visible={false} />
+                    {dataSource === "both" ? (
+                        <>
+                            <Series valueField="tmVolume" name="Tank Measurement" color="#0078d4" />
+                            <Series valueField="usVolume" name="Upload Status" color="#e36209" />
+                        </>
+                    ) : (
+                        <Series valueField="productVolume" name="Volume" />
+                    )}
+                    <Legend visible={dataSource === "both"} />
                     <Tooltip enabled={true} />
                 </Chart>
             </div>
 
             <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
                 <div className="tw-font-semibold tw-mb-2">Temperature</div>
-                <Chart dataSource={points}>
+                <Chart dataSource={chartData}>
                     <CommonSeriesSettings argumentField="localDateTime" type="line" />
                     <ArgumentAxis argumentType="datetime" />
-                    <Series valueField="temperature" name="Temperature" />
-                    <Legend visible={false} />
+                    {dataSource === "both" ? (
+                        <>
+                            <Series valueField="tmTemp" name="Tank Measurement" color="#0078d4" />
+                            <Series valueField="usTemp" name="Upload Status" color="#e36209" />
+                        </>
+                    ) : (
+                        <Series valueField="temperature" name="Temperature" />
+                    )}
+                    <Legend visible={dataSource === "both"} />
                     <Tooltip enabled={true} />
                 </Chart>
             </div>
 
             <div className="tw-bg-white tw-rounded-lg tw-border tw-border-gray-200 tw-p-4">
                 <div className="tw-font-semibold tw-mb-2">Water Height</div>
-                <Chart dataSource={points}>
+                <Chart dataSource={chartData}>
                     <CommonSeriesSettings argumentField="localDateTime" type="line" />
                     <ArgumentAxis argumentType="datetime" />
-                    <Series valueField="waterHeight" name="Water Height" />
-                    <Legend visible={false} />
+                    {dataSource === "both" ? (
+                        <>
+                            <Series valueField="tmWater" name="Tank Measurement" color="#0078d4" />
+                            <Series valueField="usWater" name="Upload Status" color="#e36209" />
+                        </>
+                    ) : (
+                        <Series valueField="waterHeight" name="Water Height" />
+                    )}
+                    <Legend visible={dataSource === "both"} />
                     <Tooltip enabled={true} />
                 </Chart>
             </div>

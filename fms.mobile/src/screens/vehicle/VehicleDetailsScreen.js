@@ -2,14 +2,15 @@
  * File: VehicleDetailsScreen.js
  * Purpose: Combined vehicle tracking + details screen.
  *   - Landing: Dashboard (summary cards) + Search
- *   - After search: Vehicle details tabs (Info, GPS, Consumption, Fuel Refills)
+ *   - After search: Vehicle details tabs (Info, GPS, Live Map, Consumption, Fuel Refills)
  *
  * Flow: Home → Vehicles → Dashboard + Search → Select Vehicle → Detail Tabs
  *
- * The dashboard shows live tracking summary (active, moving, parked) via SignalR.
- * GPS tab shows live location with SignalR streaming.
+ * The dashboard shows live tracking summary via DataSourceManager (fleet_total_gps).
+ * Summary cards adjust based on selected group/tag.
+ * Live Map tab shows embedded Google Maps with vehicle position.
  *
- * Last Modified: 2026-03-24
+ * Last Modified: 2026-03-25
  */
 
 import React, { useState, useEffect, useCallback, useMemo } from "react";
@@ -33,6 +34,7 @@ import {
   VehicleSearch,
   VehicleInformation,
   VehicleGPSInfo,
+  VehicleLiveMap,
   VehicleConsumptionHistory,
   VehicleFuelingHistory,
   VehicleDashboard,
@@ -41,10 +43,11 @@ import {
 const { width } = Dimensions.get("window");
 
 const TABS = [
-  { key: "info", title: "Vehicle Info", icon: "truck" },
+  { key: "info", title: "Info", icon: "truck" },
   { key: "gps", title: "GPS", icon: "satellite-dish" },
+  { key: "livemap", title: "Live Map", icon: "map-marked-alt" },
   { key: "consumption", title: "Consumption", icon: "gas-pump" },
-  { key: "fueling", title: "Fuel Refills", icon: "tint" },
+  { key: "fueling", title: "Refills", icon: "tint" },
 ];
 
 const VehicleDetailsScreen = ({ navigation, route }) => {
@@ -88,7 +91,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
   };
 
   const normalizeVehicleData = (v) => ({
-    vehicleId: v.VehicleId || v.vehicleId,
+    vehicleId: v.VehicleId || v.vehicleId || v.Id || v.id,
     hyoungNo: v.HyoungNo || v.hyoungNo || "",
     vehicleName: v.VehicleName || v.vehicleName || v.Name || v.name || "",
     numberPlate:
@@ -166,7 +169,15 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
   const handleSelectVehicle = useCallback(async (vehicle) => {
     try {
       setIsLoadingDetails(true);
-      const vehicleId = vehicle.vehicleId || vehicle.VehicleId;
+      // Handle all possible ID field names from different API responses
+      const vehicleId = vehicle.vehicleId || vehicle.VehicleId || vehicle.id || vehicle.Id;
+      if (!vehicleId) {
+        console.warn("[VehicleDetailsScreen] No vehicle ID found in:", Object.keys(vehicle));
+        setSelectedVehicle(normalizeVehicleData(vehicle));
+        setIsLoadingDetails(false);
+        setActiveTab("info");
+        return;
+      }
       const response = await ApiService.getVehicleById(vehicleId);
       if (response && response.data) {
         setSelectedVehicle(normalizeVehicleData(response.data));
@@ -215,6 +226,8 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
         );
       case "gps":
         return <VehicleGPSInfo vehicle={selectedVehicle} />;
+      case "livemap":
+        return <VehicleLiveMap selectedVehicle={selectedVehicle} />;
       case "consumption":
         return <VehicleConsumptionHistory vehicle={selectedVehicle} />;
       case "fueling":
@@ -329,7 +342,7 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
           >
             <Icon
               name={tab.icon}
-              size={16}
+              size={14}
               color={activeTab === tab.key ? "#2563eb" : "#9ca3af"}
             />
             <Text
@@ -431,9 +444,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#eff6ff",
   },
   tabText: {
-    fontSize: 11,
+    fontSize: 10,
     color: "#9ca3af",
-    marginTop: 4,
+    marginTop: 3,
     fontWeight: "500",
     textAlign: "center",
   },

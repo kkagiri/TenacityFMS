@@ -35,7 +35,7 @@ namespace FMS.Application.Communication
     /// </summary>
     public class DeviceConnectionTracker
     {
-        public const int DeviceOnlineTtlSeconds = 10;
+        public const int DeviceOnlineTtlSeconds = 120;
 
         private readonly ILogger<DeviceConnectionTracker> _logger;
         private readonly IHubContext<PTSHub> _hubContext;

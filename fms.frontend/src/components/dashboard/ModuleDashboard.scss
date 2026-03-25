@@ -131,6 +131,34 @@ $font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, 'Roboto', sans-seri
   }
 }
 
+.module-dashboard-toggle-control {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 10px;
+  border: 1px solid $color-border;
+  border-radius: $radius;
+  background: $color-surface;
+  cursor: pointer;
+
+  &__label {
+    font-size: 13px;
+    font-weight: 500;
+    color: $color-text-primary;
+    white-space: nowrap;
+  }
+
+  input[type='checkbox'] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: $color-primary;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+}
+
 // ===========================
 // SAVE BUTTON
 // ===========================

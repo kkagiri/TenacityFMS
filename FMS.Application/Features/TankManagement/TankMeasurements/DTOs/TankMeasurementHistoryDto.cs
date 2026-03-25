@@ -17,5 +17,10 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.DTOs
         public decimal? WaterHeight { get; set; }
         public decimal? ProductHeight { get; set; }
         public decimal? WaterVolume { get; set; }
+
+        /// <summary>
+        /// Data source indicator: "TankMeasurement" or "UploadStatus"
+        /// </summary>
+        public string Source { get; set; } = "TankMeasurement";
     }
 }

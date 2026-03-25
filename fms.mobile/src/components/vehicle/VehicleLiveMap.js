@@ -20,9 +20,11 @@ import {
   Linking,
   Alert,
   UIManager,
+  ActivityIndicator,
 } from "react-native";
 import Icon from "react-native-vector-icons/FontAwesome5";
 import { useSelector } from "react-redux";
+import ApiService from "../../services/apiService";
 
 // ─── Safe native module detection ──────────────────────────────────
 // require("react-native-maps") can succeed (JS exists in node_modules)
@@ -59,18 +61,67 @@ try {
 const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
   const mapRef = useRef(null);
   const hasFittedRef = useRef(false);
-  const { vehicleLocations, liveLocations } = useSelector(
-    (state) => state.vehicle
-  );
+  // Select ONLY the fields we need — NOT the entire slice
+  const vehicleLocations = useSelector((state) => state.vehicle.vehicleLocations);
+  const liveLocations = useSelector((state) => state.vehicle.liveLocations);
   const [mapReady, setMapReady] = useState(false);
   const [followSelected, setFollowSelected] = useState(true);
 
-  // Merge locations with live data
+  // Single vehicle location fetch (for detail view when vehicleLocations is empty)
+  const [singleVehicleLocation, setSingleVehicleLocation] = useState(null);
+  const [singleVehicleLoading, setSingleVehicleLoading] = useState(false);
+
+  const selectedVehicleId = selectedVehicle?.vehicleId || selectedVehicle?.VehicleId || selectedVehicle?.id || selectedVehicle?.Id;
+
+  // Fetch selected vehicle's GPS location when in single-vehicle detail view
+  useEffect(() => {
+    if (!selectedVehicleId || vehicleLocations.length > 0) {
+      return; // Skip if no vehicle selected or if bulk locations exist
+    }
+    let isMounted = true;
+    setSingleVehicleLoading(true);
+
+    ApiService.getVehicleGPSInfo(selectedVehicleId)
+      .then((response) => {
+        if (!isMounted) return;
+        const data = response?.data || response?.Data || response;
+        if (data && (data.latitude || data.Latitude)) {
+          setSingleVehicleLocation({
+            vehicleId: selectedVehicleId,
+            hyoungNo: selectedVehicle?.hyoungNo || selectedVehicle?.HyoungNo || "",
+            vehicleName: selectedVehicle?.vehicleName || selectedVehicle?.VehicleName || "",
+            numberPlate: selectedVehicle?.numberPlate || selectedVehicle?.NumberPlate || "",
+            latitude: data.latitude || data.Latitude,
+            longitude: data.longitude || data.Longitude,
+            speed: data.speed || data.Speed || 0,
+            speedKmh: data.speed || data.Speed || 0,
+            heading: data.heading || data.Heading || 0,
+            isOnline: data.isOnline !== undefined ? data.isOnline : true,
+            isMoving: (data.speed || data.Speed || 0) > 2,
+          });
+        }
+      })
+      .catch((err) => {
+        if (!isMounted) return;
+        console.warn("[VehicleLiveMap] Failed to fetch vehicle GPS:", err.message);
+      })
+      .finally(() => {
+        if (isMounted) setSingleVehicleLoading(false);
+      });
+
+    return () => { isMounted = false; };
+  }, [selectedVehicleId, vehicleLocations.length]);
+
+  // Merge locations with live data (use single vehicle as fallback)
   const vehicles = useMemo(() => {
-    return vehicleLocations
+    const baseList = vehicleLocations.length > 0
+      ? vehicleLocations
+      : (singleVehicleLocation ? [singleVehicleLocation] : []);
+
+    return baseList
       .map((v) => {
-        const vehicleId = v.vehicleId || v.VehicleId;
-        const live = liveLocations[vehicleId];
+        const vId = v.vehicleId || v.VehicleId;
+        const live = liveLocations[vId];
         return live ? { ...v, ...live } : v;
       })
       .filter((v) => {
@@ -78,10 +129,9 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
         const lng = v.longitude || v.Longitude;
         return lat && lng && lat !== 0 && lng !== 0;
       });
-  }, [vehicleLocations, liveLocations]);
+  }, [vehicleLocations, liveLocations, singleVehicleLocation]);
 
-  // Selected vehicle's live data
-  const selectedVehicleId = selectedVehicle?.vehicleId || selectedVehicle?.VehicleId;
+  // Selected vehicle's live data (selectedVehicleId already defined above)
   const selectedVehicleData = useMemo(() => {
     if (!selectedVehicleId) return null;
     return (
@@ -131,13 +181,20 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
     }
   }, [mapReady, vehicleCount, selectedVehicleId]);
 
-  const getMarkerColor = useCallback((vehicle) => {
+  const getVehicleStatus = useCallback((vehicle) => {
     const isOnline = vehicle.isOnline || vehicle.IsOnline;
-    const isMoving = vehicle.isMoving || vehicle.IsMoving;
+    const speed = vehicle.speed || vehicle.Speed || vehicle.speedKmh || vehicle.SpeedKmh || 0;
+    // Use isMoving if available, otherwise fall back to speed > 2 km/h (accounts for GPS drift)
+    const isMoving = vehicle.isMoving || vehicle.IsMoving || speed > 2;
+    return { isOnline, isMoving, speed };
+  }, []);
+
+  const getMarkerColor = useCallback((vehicle) => {
+    const { isOnline, isMoving } = getVehicleStatus(vehicle);
     if (!isOnline) return "#9ca3af";
     if (isMoving) return "#8b5cf6";
     return "#f59e0b";
-  }, []);
+  }, [getVehicleStatus]);
 
   const openInExternalMaps = useCallback((vehicle) => {
     const lat = vehicle.latitude || vehicle.Latitude;
@@ -162,6 +219,16 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
       .then((supported) => Linking.openURL(supported ? url : webUrl))
       .catch(() => Linking.openURL(webUrl));
   }, []);
+
+  // ─── Loading state (fetching single vehicle location) ──────────
+  if (singleVehicleLoading && vehicles.length === 0) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#2563eb" />
+        <Text style={styles.loadingText}>Loading vehicle location...</Text>
+      </View>
+    );
+  }
 
   // ─── Fallback UI (no native maps available) ─────────────────────
   if (!isMapAvailable) {
@@ -202,7 +269,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
               <View style={styles.fallbackStat}>
                 <Icon name="circle" size={8} color={getMarkerColor(selectedVehicleData)} solid />
                 <Text style={styles.fallbackStatText}>
-                  {(selectedVehicleData.isMoving || selectedVehicleData.IsMoving) ? "Moving" : (selectedVehicleData.isOnline || selectedVehicleData.IsOnline) ? "Parked" : "Offline"}
+                  {getVehicleStatus(selectedVehicleData).isMoving ? "Moving" : getVehicleStatus(selectedVehicleData).isOnline ? "Parked" : "Offline"}
                 </Text>
               </View>
             </View>
@@ -219,8 +286,7 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
         {/* Vehicle list */}
         {vehicles.map((v) => {
           const id = v.vehicleId || v.VehicleId;
-          const isMoving = v.isMoving || v.IsMoving;
-          const isOnline = v.isOnline || v.IsOnline;
+          const { isOnline, isMoving } = getVehicleStatus(v);
           const isSelected = selectedVehicleId === id;
           return (
             <TouchableOpacity
@@ -281,11 +347,16 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
         ref={mapRef}
         style={styles.map}
         provider={PROVIDER_GOOGLE}
+        mapType="satellite"
         initialRegion={defaultRegion}
         onMapReady={() => setMapReady(true)}
         showsUserLocation={true}
         showsMyLocationButton={true}
         showsCompass={true}
+        zoomEnabled={true}
+        zoomControlEnabled={true}
+        minZoomLevel={3}
+        maxZoomLevel={20}
         onPanDrag={() => setFollowSelected(false)}
       >
         {vehicles.map((vehicle) => {
@@ -293,11 +364,10 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
           const lat = vehicle.latitude || vehicle.Latitude;
           const lng = vehicle.longitude || vehicle.Longitude;
           const heading = vehicle.heading || vehicle.Heading || 0;
-          const isMoving = vehicle.isMoving || vehicle.IsMoving;
-          const isOnline = vehicle.isOnline || vehicle.IsOnline;
+          const { isOnline, isMoving, speed: rawSpeed } = getVehicleStatus(vehicle);
           const plate = vehicle.hyoungNo || vehicle.HyoungNo || vehicle.numberPlate || vehicle.NumberPlate || "";
           const name = vehicle.vehicleName || vehicle.VehicleName || "";
-          const speed = Math.round(vehicle.speedKmh || vehicle.SpeedKmh || vehicle.speed || 0);
+          const speed = Math.round(rawSpeed);
           const isSelected = selectedVehicleId === vehicleId;
 
           return (
@@ -386,11 +456,12 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
               {selectedVehicleData.hyoungNo || selectedVehicleData.HyoungNo || selectedVehicleData.vehicleName || selectedVehicleData.VehicleName}
             </Text>
             <Text style={styles.selectedStatus}>
-              {(selectedVehicleData.isMoving || selectedVehicleData.IsMoving)
-                ? `Moving - ${Math.round(selectedVehicleData.speedKmh || selectedVehicleData.SpeedKmh || selectedVehicleData.speed || 0)} km/h`
-                : (selectedVehicleData.isOnline || selectedVehicleData.IsOnline)
-                ? "Parked"
-                : "Offline"}
+              {(() => {
+                const s = getVehicleStatus(selectedVehicleData);
+                if (s.isMoving) return `Moving - ${Math.round(s.speed)} km/h`;
+                if (s.isOnline) return "Parked";
+                return "Offline";
+              })()}
             </Text>
           </View>
           <TouchableOpacity
@@ -412,6 +483,17 @@ const VehicleLiveMap = ({ selectedVehicle, onSelectVehicle }) => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#f8fafc",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: "#6b7280",
+  },
   container: {
     flex: 1,
   },

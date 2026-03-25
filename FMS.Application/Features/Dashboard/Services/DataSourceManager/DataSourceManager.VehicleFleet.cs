@@ -2,7 +2,7 @@
  * File: DataSourceManager.VehicleFleet.cs
  * Purpose: Provides dashboard data sources for live GPS fleet counts and trip-distance KPIs.
  * Dependencies: GpsdataContext, IGPSService, VehicleLocationDTO, VehicleTripGroup, DataSourceMetadata
- * Last Modified: 2026-03-11
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - GetVehicleFleetDataAsync(): Routes vehicle fleet dashboard sources to live or historical builders.
@@ -33,6 +33,7 @@ namespace FMS.Application.Services.Dashboard
         private const string FleetOfflineGpsDataSource = "fleet_offline_gps";
         private const string FleetTotalGpsDataSource = "fleet_total_gps";
         private const string TripDistanceDataSource = "trip_distance";
+        private const string MostVehicleTravelledGpsDataSource = "most_vehicle_travelled_gps";
         private const string TripInTransitDataSource = "trip_in_transit";
         private const string VehiclesAtSiteDataSource = "vehicles_at_site";
         private const string TripCountVsExpectedDataSource = "trip_count_vs_expected";
@@ -48,6 +49,7 @@ namespace FMS.Application.Services.Dashboard
             FleetOfflineGpsDataSource,
             FleetTotalGpsDataSource,
             TripDistanceDataSource,
+            MostVehicleTravelledGpsDataSource,
             TripInTransitDataSource,
             VehiclesAtSiteDataSource,
             TripCountVsExpectedDataSource,
@@ -81,6 +83,10 @@ namespace FMS.Application.Services.Dashboard
                 AverageTripDurationDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
                     => await BuildAverageTripDurationAggregatedAsync(request, aggregationInterval),
                 AverageTripDurationDataSource => await BuildAverageTripDurationSnapshotAsync(request),
+                MostVehicleTravelledGpsDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
+                    => await BuildMostVehicleTravelledGpsAggregatedAsync(request, canonicalSource, aggregationInterval),
+                MostVehicleTravelledGpsDataSource
+                    => await BuildMostVehicleTravelledGpsSnapshotAsync(request, canonicalSource),
                 TripDistanceDataSource when string.Equals(accessMode, "aggregated", StringComparison.OrdinalIgnoreCase)
                     => await BuildTripDistanceAggregatedAsync(request, aggregationInterval),
                 TripDistanceDataSource

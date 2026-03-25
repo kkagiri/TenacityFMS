@@ -67,7 +67,8 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Queries
                         Temperature = tm.Temperature.HasValue ? (decimal?)tm.Temperature.Value : null,
                         WaterHeight = tm.WaterHeight.HasValue ? (decimal?)tm.WaterHeight.Value : null,
                         ProductHeight = tm.ProductHeight.HasValue ? (decimal?)tm.ProductHeight.Value : null,
-                        WaterVolume = tm.WaterVolume.HasValue ? (decimal?)tm.WaterVolume.Value : null
+                        WaterVolume = tm.WaterVolume.HasValue ? (decimal?)tm.WaterVolume.Value : null,
+                        Source = "TankMeasurement"
                     })
                     .ToListAsync(cancellationToken);
 

@@ -34,12 +34,13 @@ public class GetVehicleDocumentsByVehicleIdQueryHandler : IRequestHandler<GetVeh
                 return FMSResponse<List<VehicleDocumentDto>>.Failed($"Vehicle with id {request.VehicleId} not found");
             }
             var documents = await _context.VehicleDocuments
+                .Include(d => d.Vehicle)
                 .Where(d => d.VehicleId == request.VehicleId)
                 .ToListAsync(cancellationToken);
 
             if (documents == null || !documents.Any())
             {
-                return FMSResponse<List<VehicleDocumentDto>>.Failed("No documents found for this vehicle.");
+                return FMSResponse<List<VehicleDocumentDto>>.Success(new List<VehicleDocumentDto>(), "No documents found for this vehicle.");
             }
 
             var documentDtos = _mapper.Map<List<VehicleDocumentDto>>(documents);

@@ -188,6 +188,33 @@
       }
     }
 
+    .dashboard-toggle-control {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      height: 32px;
+      padding: 0 10px;
+      border: 1px solid #c8c6c4;
+      border-radius: 4px;
+      background: #ffffff;
+      cursor: pointer;
+
+      &__label {
+        color: #201f1e;
+        font-size: 13px;
+        font-weight: 500;
+        white-space: nowrap;
+      }
+
+      input[type='checkbox'] {
+        width: 16px;
+        height: 16px;
+        margin: 0;
+        accent-color: #0078d4;
+        cursor: pointer;
+      }
+    }
+
     .header-btn {
       white-space: nowrap;
     }

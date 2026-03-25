@@ -10,7 +10,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  FlatList,
+  ScrollView,
   ActivityIndicator,
   StyleSheet,
 } from "react-native";
@@ -186,13 +186,18 @@ const VehicleSearch = ({ onSelectVehicle, selectedVehicle }) => {
             </Text>
           </View>
         ) : filteredVehicles.length > 0 ? (
-          <FlatList
-            data={filteredVehicles}
-            keyExtractor={(item) => item.vehicleId?.toString()}
-            renderItem={renderVehicleItem}
+          <ScrollView
+            nestedScrollEnabled
             showsVerticalScrollIndicator={false}
             keyboardShouldPersistTaps="handled"
-          />
+            style={styles.resultsList}
+          >
+            {filteredVehicles.map((item) => (
+              <React.Fragment key={item.vehicleId?.toString()}>
+                {renderVehicleItem({ item })}
+              </React.Fragment>
+            ))}
+          </ScrollView>
         ) : searchQuery.length >= 2 ? (
           <View style={styles.emptyContainer}>
             <Icon name="truck" size={32} color="#d1d5db" />
@@ -227,6 +232,9 @@ const styles = StyleSheet.create({
     fontSize: 15,
     color: "#1f2937",
     paddingVertical: 14,
+  },
+  resultsList: {
+    maxHeight: 300,
   },
   resultsContainer: {
     flex: 1,

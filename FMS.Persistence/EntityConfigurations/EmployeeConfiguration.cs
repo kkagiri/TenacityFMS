@@ -90,6 +90,11 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasForeignKey(e => e.ModifiedBy)
                     .OnDelete(DeleteBehavior.Restrict);
 
+                builder.HasMany(e => e.EmployeeDocuments)
+                    .WithOne(document => document.Employee)
+                    .HasForeignKey(document => document.EmployeeId)
+                    .OnDelete(DeleteBehavior.Cascade);
+
                 // Prevent implicit many-to-many join table creation (EmployeesId/VehiclesVehicleId).
                 // Employee-vehicle links are managed explicitly by EmployeeVehicleConfiguration.
                 builder.Ignore(e => e.Vehicles);

@@ -1,3 +1,4 @@
+using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.VehicleDocumentManagement;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
@@ -27,6 +28,12 @@ public class VehicleDocumentConfiguration : IEntityTypeConfiguration<VehicleDocu
             .HasColumnType("INT")
             .IsRequired();
 
+        builder.Property(vd => vd.ComplianceCategory)
+            .HasColumnName("ComplianceCategory")
+            .HasColumnType("INT")
+            .HasDefaultValue((int)VehicleComplianceCategory.Other)
+            .IsRequired();
+
         builder.Property(vd => vd.DocumentNumber)
             .HasColumnName("DocumentNumber")
             .HasColumnType("VARCHAR(100)")
@@ -40,6 +47,12 @@ public class VehicleDocumentConfiguration : IEntityTypeConfiguration<VehicleDocu
         builder.Property(vd => vd.ExpiryDate)
             .HasColumnName("ExpiryDate")
             .HasColumnType("DATETIME")
+            .IsRequired();
+
+        builder.Property(vd => vd.AlertLeadDays)
+            .HasColumnName("AlertLeadDays")
+            .HasColumnType("INT")
+            .HasDefaultValue(30)
             .IsRequired();
 
         builder.Property(vd => vd.IssuingAuthority)
@@ -96,6 +109,9 @@ public class VehicleDocumentConfiguration : IEntityTypeConfiguration<VehicleDocu
 
         builder.HasIndex(vd => vd.DocumentType)
             .HasDatabaseName("IX_vehicle_documents_DocumentType");
+
+        builder.HasIndex(vd => vd.ComplianceCategory)
+            .HasDatabaseName("IX_vehicle_documents_ComplianceCategory");
 
         builder.HasIndex(vd => vd.Status)
             .HasDatabaseName("IX_vehicle_documents_Status");

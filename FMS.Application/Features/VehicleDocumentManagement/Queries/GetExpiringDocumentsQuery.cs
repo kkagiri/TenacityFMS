@@ -35,10 +35,14 @@ public class GetExpiringDocumentsQueryHandler : IRequestHandler<GetExpiringDocum
     {
         try
         {
-            var expiryDateThreshold = DateTime.UtcNow.Date.AddDays(request.DaysThreshold);
             var documents = await _context.VehicleDocuments
-                .Where(vd => vd.ExpiryDate <= expiryDateThreshold && vd.ExpiryDate >= DateTime.UtcNow.Date)
+                .Include(vd => vd.Vehicle)
+                .Where(vd => vd.ExpiryDate >= DateTime.UtcNow.Date)
                 .ToListAsync(cancellationToken);
+
+            documents = documents
+                .Where(vd => vd.DaysUntilExpiry <= (request.DaysThreshold > 0 ? request.DaysThreshold : vd.AlertLeadDays))
+                .ToList();
 
             var documentDtos = _mapper.Map<List<VehicleDocumentDto>>(documents);
 

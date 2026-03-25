@@ -2,7 +2,7 @@
  * File: WidgetConfigModal.js
  * Purpose: Configure, create, and update dashboard widgets from the modal workflow
  * Dependencies: React, Redux, DevExtreme button, M365SidePanel, dashboardService, widgetFactoryService
- * Last Modified: 2026-03-06
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - loadWidgetTemplates(): Fetches widget templates for add/edit flows

@@ -35,24 +35,30 @@ public class CreateVehicleDocumentCommandHandler : IRequestHandler<CreateVehicle
         {
             string documentFileUrl = null;
             string documentFileName = null;
+            var uploadDirectory = $"vehicle-documents/{request.CreateVehicleDocumentDto.VehicleId}";
+            var complianceCategory = VehicleDocument.ResolveComplianceCategory(
+                request.CreateVehicleDocumentDto.DocumentType,
+                request.CreateVehicleDocumentDto.ComplianceCategory);
 
             if (request.CreateVehicleDocumentDto.DocumentFile != null)
             {
-                documentFileUrl = await _fileHandlingService.UploadFileAsync(request.CreateVehicleDocumentDto.DocumentFile, "vehicle-documents");
+                documentFileUrl = await _fileHandlingService.UploadFileAsync(request.CreateVehicleDocumentDto.DocumentFile, uploadDirectory);
                 documentFileName = request.CreateVehicleDocumentDto.DocumentFile.FileName;
             }
 
             var vehicleDocument = new VehicleDocument(
                 request.CreateVehicleDocumentDto.VehicleId,
                 request.CreateVehicleDocumentDto.DocumentType,
+                complianceCategory,
                 request.CreateVehicleDocumentDto.DocumentNumber,
                 request.CreateVehicleDocumentDto.IssueDate,
                 request.CreateVehicleDocumentDto.ExpiryDate,
+                request.CreateVehicleDocumentDto.AlertLeadDays,
                 request.CreateVehicleDocumentDto.IssuingAuthority,
-                request.CreateVehicleDocumentDto.Notes,
+                request.CreateVehicleDocumentDto.Notes ?? string.Empty,
                 documentFileName,
                 documentFileUrl,
-                request.CreateVehicleDocumentDto.UserId
+                request.CreateVehicleDocumentDto.UserId ?? string.Empty
             );
 
             await _context.VehicleDocuments.AddAsync(vehicleDocument, cancellationToken);

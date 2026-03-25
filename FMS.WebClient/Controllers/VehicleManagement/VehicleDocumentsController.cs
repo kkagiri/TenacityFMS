@@ -105,4 +105,28 @@ public class VehicleDocumentsController : ControllerBase
         var result = await _mediator.Send(query);
         return Ok(result);
     }
+
+    [HttpGet("compliance/requirements")]
+    public async Task<ActionResult<FMSResponse<List<VehicleComplianceRequirementDto>>>> GetComplianceRequirements()
+    {
+        var result = await _mediator.Send(new GetVehicleComplianceRequirementsQuery());
+        return Ok(result);
+    }
+
+    [HttpPost("compliance/requirements/bulk")]
+    public async Task<ActionResult<FMSResponse<VehicleComplianceBulkAssignmentResultDto>>> BulkCreateComplianceRequirements([FromBody] VehicleComplianceBulkAssignmentDto bulkAssignmentDto)
+    {
+        string? userId = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+        bulkAssignmentDto.UserId = userId;
+
+        var result = await _mediator.Send(new BulkCreateVehicleComplianceRequirementsCommand(bulkAssignmentDto));
+        return Ok(result);
+    }
+
+    [HttpGet("compliance/dashboard")]
+    public async Task<ActionResult<FMSResponse<VehicleComplianceDashboardDto>>> GetComplianceDashboard()
+    {
+        var result = await _mediator.Send(new GetVehicleComplianceDashboardQuery());
+        return Ok(result);
+    }
 }

@@ -816,10 +816,10 @@ namespace FMS.BackgroundServices.TankReconciliation
                             CreatedOn = DateTime.UtcNow,
                             OpeningLevel = openingLevel,
                             ClosingLevel = closingLevel,
-                            TotalDeliveries = tankStock.DeliveryAmount,
-                            TotalTransfersIn = tankStock.TransferInAmount,
-                            TotalTransfersOut = tankStock.TransferOutAmount,
-                            TotalRefills = totalRefills
+                            TotalDeliveries = tankStock.DeliveryAmount ?? 0m,
+                            TotalTransfersIn = tankStock.TransferInAmount ?? 0m,
+                            TotalTransfersOut = tankStock.TransferOutAmount ?? 0m,
+                            TotalRefills = totalRefills ?? 0m
                         };
                         await context.Dailytankreconciliations.AddAsync(reconciliation, cancellationToken);
                     }
@@ -827,10 +827,10 @@ namespace FMS.BackgroundServices.TankReconciliation
                     {
                         existingReconciliation.OpeningLevel = openingLevel;
                         existingReconciliation.ClosingLevel = closingLevel;
-                        existingReconciliation.TotalDeliveries = tankStock.DeliveryAmount;
-                        existingReconciliation.TotalTransfersIn = tankStock.TransferInAmount;
-                        existingReconciliation.TotalTransfersOut = tankStock.TransferOutAmount;
-                        existingReconciliation.TotalRefills = totalRefills;
+                        existingReconciliation.TotalDeliveries = tankStock.DeliveryAmount ?? 0m;
+                        existingReconciliation.TotalTransfersIn = tankStock.TransferInAmount ?? 0m;
+                        existingReconciliation.TotalTransfersOut = tankStock.TransferOutAmount ?? 0m;
+                        existingReconciliation.TotalRefills = totalRefills ?? 0m;
                     }
                 }
 

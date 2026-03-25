@@ -9,7 +9,6 @@ import vehicleTrackingSignalRService, {
   TrackingConnectionState,
 } from "../services/vehicleTrackingSignalRService";
 import {
-  updateLiveLocation,
   updateLiveLocationBatch,
   clearLiveLocations,
   fetchTrackingSummary,
@@ -40,12 +39,14 @@ export function useVehicleTracking({ enabled = true, batchInterval = 2000 } = {}
   const dispatchRef = useRef(dispatch);
   dispatchRef.current = dispatch;
 
-  // Flush batched location updates to Redux
+  // Flush batched location updates to Redux — ONE dispatch for all queued updates
   const flushBatch = useCallback(() => {
     if (batchRef.current.length > 0) {
       const updates = [...batchRef.current];
       batchRef.current = [];
-      updates.forEach((loc) => dispatchRef.current(updateLiveLocation(loc)));
+      // Single batch dispatch instead of N individual dispatches
+      // This prevents 587 rapid re-renders that cause "Maximum update depth exceeded"
+      dispatchRef.current(updateLiveLocationBatch(updates));
     }
   }, []);
 

@@ -30,7 +30,9 @@ public class GetVehicleDocumentByIdQueryHandler : IRequestHandler<GetVehicleDocu
     {
         try
         {
-            var vehicleDocument = await _context.VehicleDocuments.FirstOrDefaultAsync(vd => vd.Id == request.Id, cancellationToken);
+            var vehicleDocument = await _context.VehicleDocuments
+                .Include(vd => vd.Vehicle)
+                .FirstOrDefaultAsync(vd => vd.Id == request.Id, cancellationToken);
 
             if (vehicleDocument == null)
             {

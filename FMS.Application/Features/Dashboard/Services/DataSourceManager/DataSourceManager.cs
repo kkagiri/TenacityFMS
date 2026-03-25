@@ -334,7 +334,9 @@ namespace FMS.Application.Services.Dashboard
                 }
 
                 // Map aggregationInterval to granularity for time-series service
-                var granularity = MapAggregationIntervalToGranularity(aggregationInterval);
+                var granularity = string.IsNullOrWhiteSpace(request.Granularity)
+                    ? MapAggregationIntervalToGranularity(aggregationInterval)
+                    : request.Granularity;
 
                 // Create request with the resolved granularity
                 var aggregatedRequest = new DashboardMetricRequestDto
@@ -347,6 +349,8 @@ namespace FMS.Application.Services.Dashboard
                     SiteIds = request.SiteIds,
                     VehicleIds = request.VehicleIds,
                     VehicleType = request.VehicleType,
+                    AggregationType = request.AggregationType,
+                    GroupBy = request.GroupBy,
                     Granularity = granularity
                 };
 

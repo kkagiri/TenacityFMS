@@ -2,7 +2,7 @@
  * File: CategoryGroupedWidgetRenderer.utils.js
  * Purpose: Shared grouping, ordering, and display helpers for the real-time dashboard widget renderer.
  * Dependencies: none
- * Last Modified: 2026-03-11
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - buildGroupedWidgets(): Groups widgets using the active grouping mode.
@@ -132,9 +132,15 @@ export const buildGroupedWidgets = (widgets = [], groupBy = 'category', widgetOr
   return groups;
 };
 
-export const parseWidgetFilters = (configurationJson, liveData) => {
+export const parseWidgetFilters = (configurationJson, liveData, options = {}) => {
   try {
     const config = JSON.parse(configurationJson || '{}');
+    const shouldShowFilterCards = options.showFilterCards !== false;
+
+    if (!shouldShowFilterCards) {
+      return [];
+    }
+
     const filters = [];
 
     const configDatePreset = (config.settings && config.settings.datePreset) || config.datePreset;

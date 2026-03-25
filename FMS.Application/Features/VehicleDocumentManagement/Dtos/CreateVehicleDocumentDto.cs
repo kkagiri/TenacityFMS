@@ -13,9 +13,11 @@ public class CreateVehicleDocumentDto
     [Required]
     public VehicleDocumentType DocumentType { get; set; }
 
+    public VehicleComplianceCategory? ComplianceCategory { get; set; }
+
     [Required]
     [MaxLength(100)]
-    public string DocumentNumber { get; set; }
+    public string DocumentNumber { get; set; } = string.Empty;
 
     [Required]
     public DateTime IssueDate { get; set; }
@@ -23,15 +25,18 @@ public class CreateVehicleDocumentDto
     [Required]
     public DateTime ExpiryDate { get; set; }
 
+    [Range(0, 365)]
+    public int AlertLeadDays { get; set; } = 30;
+
     [Required]
     [MaxLength(200)]
-    public string IssuingAuthority { get; set; }
+    public string IssuingAuthority { get; set; } = string.Empty;
 
     [MaxLength(1000)]
-    public string Notes { get; set; }
+    public string? Notes { get; set; }
 
-    public string UserId { get; set; }
+    public string? UserId { get; set; }
 
     [Required]
-    public IFormFile DocumentFile { get; set; }
+    public IFormFile DocumentFile { get; set; } = null!;
 }

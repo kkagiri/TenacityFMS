@@ -180,6 +180,23 @@ const EmployeeDetailPanel = ({ employee, sites = [], onEdit, onDelete }) => {
         </div>
       </div>
 
+      <div className="emp-panel-section">
+        <div className="emp-panel-section__title-row">
+          <h3 className="emp-panel-section__title">
+            <i className="fa-light fa-folder-open" /> Documents
+          </h3>
+          <button
+            className="m365-action-link"
+            onClick={() => navigate(`${getEmployeeDetailsRoute(employee.id)}?tab=documents`)}
+          >
+            <i className="fa-light fa-arrow-up-right-from-square" /> Open workspace
+          </button>
+        </div>
+        <p className="employee-panel__muted">
+          Driving licenses and employee compliance files are managed against the employee record instead of the vehicle.
+        </p>
+      </div>
+
       {/* ── Assigned Vehicles ── */}
       <div className="emp-panel-section">
         <div className="emp-panel-section__title-row">

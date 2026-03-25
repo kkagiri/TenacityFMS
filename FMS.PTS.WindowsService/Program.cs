@@ -512,6 +512,10 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<FMS.Application.Features.TankManagement.Deliveries.Services.IServerSideDeliveryDetectionService,
                 FMS.Application.Features.TankManagement.Deliveries.Services.ServerSideDeliveryDetectionService>();
 
+            // Probe reading enrichment (Redis cadence dedup + calibration volume lookup)
+            services.AddScoped<FMS.Application.Features.TankManagement.TankMeasurements.Services.IProbeReadingEnrichmentService,
+                FMS.Application.Features.TankManagement.TankMeasurements.Services.ProbeReadingEnrichmentService>();
+
             //Cursor: Register system user service
             services.AddScoped<ISystemUserService, SystemUserService>();
 
