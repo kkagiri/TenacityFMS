@@ -21,6 +21,7 @@ using FMS.Application.Features.VehicleTrips.Queries;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.IssueTracker.Queries;
 using FMS.Application.Features.PTSDevice.Queries;
+using FMS.Application.Features.Reporting.Services;
 using FMS.Application.Features.TankManagement.PumpTransaction;
 using FMS.Domain.Entities;
 using FMS.Persistence.DataAccess;
@@ -40,6 +41,7 @@ namespace FMS.Application.Features.Notification.Services
         private readonly IMediator _mediator;
         private readonly GpsdataContext _context;
         private readonly ILogger<ScheduledReportPayloadBuilder> _logger;
+        private readonly OperationalReportPayloadBuilder _operationalReportPayloadBuilder;
 
         /// <summary>
         /// Source IDs (kebab-case) that this builder explicitly handles.
@@ -57,16 +59,21 @@ namespace FMS.Application.Features.Notification.Services
             "pts-device",
             "issue-tracker",
             "live-trip-operations",
+            "tank-level-detail",
+            "storage-received-vs-dispensed",
+            "alarm-report",
         };
 
         public ScheduledReportPayloadBuilder(
             IMediator mediator,
             GpsdataContext context,
-            ILogger<ScheduledReportPayloadBuilder> logger)
+            ILogger<ScheduledReportPayloadBuilder> logger,
+            OperationalReportPayloadBuilder operationalReportPayloadBuilder)
         {
             _mediator = mediator;
             _context = context;
             _logger = logger;
+            _operationalReportPayloadBuilder = operationalReportPayloadBuilder;
         }
 
         /// <summary>
@@ -135,6 +142,9 @@ namespace FMS.Application.Features.Notification.Services
                     "pts-device" => await BuildPtsDevicePayload(metadata, reportTitle, cancellationToken),
                     "issue-tracker" => await BuildIssueTrackerPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     "live-trip-operations" => await BuildLiveTripOperationsPayload(metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "tank-level-detail" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "storage-received-vs-dispensed" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
+                    "alarm-report" => await _operationalReportPayloadBuilder.FetchAndBuildAsync(sourceId, metadata, windowStartUtc, windowEndUtc, windowStartLocal, windowEndLocal, reportTitle, cancellationToken),
                     _ => null,
                 };
             }
@@ -1026,6 +1036,7 @@ namespace FMS.Application.Features.Notification.Services
                 "pts-device-status-report" => "pts-device",
                 "issue-tracker-report" => "issue-tracker",
                 "live-trip-operations-report" => "live-trip-operations",
+                "alarm-report" => "alarm-report",
                 _ => null,
             };
         }
@@ -1043,6 +1054,9 @@ namespace FMS.Application.Features.Notification.Services
                 "ptsdevice" or "ptsdevicestatus" or "pts-device" => "pts-device",
                 "issuetracker" or "issue-tracker" => "issue-tracker",
                 "livetripoperations" or "live-trip-operations" => "live-trip-operations",
+                "tankleveldetail" or "tank-level-detail" => "tank-level-detail",
+                "storagereceivedvsdispensed" or "storage-received-vs-dispensed" => "storage-received-vs-dispensed",
+                "alarmreport" or "alarm-report" => "alarm-report",
                 _ => null,
             };
         }

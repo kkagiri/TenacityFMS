@@ -49,6 +49,7 @@ using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.Channels;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
+using FMS.Application.Features.Reporting.Services;
 using FMS.Infrastructure.VehicleTracking.Extensions;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Features.TankManagement.Services;
@@ -499,6 +500,18 @@ namespace FMS.PTS.WindowsService
             // Register tank management services
             services.AddScoped<InventoryCostingService>();
 
+            // Tank Calibration services (required by CalibrationExtractionTriggerHandler auto-discovered via MediatR)
+            services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ITankCalibrationStorageService,
+                FMS.Application.Features.TankManagement.TankCalibration.Services.TankCalibrationStorageService>();
+            services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationLearningService,
+                FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationLearningService>();
+
+            // Server-side delivery detection (publishes InTankDeliveryCompletedNotification for calibration)
+            services.AddScoped<FMS.Application.Features.TankManagement.Deliveries.Services.IInTankDeliveryDetectionService,
+                FMS.Application.Features.TankManagement.Deliveries.Services.InTankDeliveryDetectionService>();
+            services.AddScoped<FMS.Application.Features.TankManagement.Deliveries.Services.IServerSideDeliveryDetectionService,
+                FMS.Application.Features.TankManagement.Deliveries.Services.ServerSideDeliveryDetectionService>();
+
             //Cursor: Register system user service
             services.AddScoped<ISystemUserService, SystemUserService>();
 
@@ -541,6 +554,7 @@ namespace FMS.PTS.WindowsService
 
             // Register missing services from error messages
             services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
+            services.AddScoped<OperationalReportPayloadBuilder>();
             services.AddScoped<FMS.Application.Features.Reporting.Services.IReportDefinitionService, FMS.Application.Features.Reporting.Services.ReportDefinitionService>();
             services.AddScoped<FMS.Application.Features.Reporting.Services.IReportGenerationService, FMS.Application.Features.Reporting.Services.ReportGenerationService>();
             services.AddScoped<FMS.Application.Features.GPSGate.Services.IGPSGateReportingService, FMS.Application.Features.GPSGate.Services.GPSGateReportingService>();

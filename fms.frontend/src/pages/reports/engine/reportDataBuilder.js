@@ -11,6 +11,20 @@
 import mapVehicleTripAnalysis from './vehicleTripAnalysisReportBuilder';
 import mapLiveTripOperations from './liveTripOperationsReportBuilder';
 
+const TANK_DELIVERY_REASON_CODES = new Set([2, 10]);
+const TANK_DISPENSE_REASON_CODES = new Set([6, 7]);
+const TANK_TRANSFER_IN_REASON_CODES = new Set([3]);
+const TANK_TRANSFER_OUT_REASON_CODES = new Set([4]);
+
+const TANK_REASON_LABELS = {
+    2: 'Delivery',
+    3: 'Transfer In',
+    4: 'Transfer Out',
+    6: 'Manual Dispensing',
+    7: 'Auto Dispensing',
+    10: 'In-Tank Delivery',
+};
+
 const numberOrZero = (value) => {
     const n = Number(value);
     return Number.isFinite(n) ? n : 0;
@@ -1585,6 +1599,226 @@ const mapTransactionHistorySummary = (rawRecords) => {
     };
 };
 
+const normalizeTankHistoryRows = (rawRecords) => {
+    return rawRecords
+        .map((record) => {
+            const timestamp = getValue(record, ['timestamp', 'Timestamp', 'dateTime', 'DateTime']);
+            const reasonCode = Number(getValue(record, ['changeReason', 'ChangeReason'])) || 0;
+            const transactionType = normalizeText(
+                getValue(record, ['changeReasonDisplay', 'ChangeReasonDisplay']) || TANK_REASON_LABELS[reasonCode] || `Type ${reasonCode}`,
+            );
+            const volumeChange = numberOrZero(getValue(record, ['volumeChange', 'VolumeChange']));
+            const balanceAfter = numberOrZero(getValue(record, ['newVolume', 'NewVolume']));
+            const tankId = getValue(record, ['tankId', 'TankId']);
+            const tankName = normalizeText(getValue(record, ['tankName', 'TankName']) || (tankId ? `Tank ${tankId}` : '-'));
+            const siteName = normalizeText(getValue(record, ['site', 'Site', 'siteName']));
+            const parsed = parseDateAssumeUtc(timestamp);
+
+            return {
+                timestamp: parsed,
+                rawTimestamp: timestamp,
+                reasonCode,
+                transactionType,
+                volumeChange,
+                balanceAfter,
+                tankId,
+                tankName,
+                siteName,
+                vehicleName: normalizeText(getValue(record, ['vehicleName', 'VehicleName']), '-'),
+                vehicleType: normalizeText(getValue(record, ['vehicleType', 'VehicleType']), ''),
+                reference: normalizeText(getValue(record, ['referenceType', 'ReferenceType']), '-'),
+                operatorName: normalizeText(getValue(record, ['recordedByUserName', 'RecordedByUserName', 'recordedBy', 'RecordedBy']), 'System'),
+                transferTankName: normalizeText(getValue(record, ['transferTankName', 'TransferTankName']), ''),
+                transferTankSite: normalizeText(getValue(record, ['transferTankSite', 'TransferTankSite']), ''),
+            };
+        })
+        .sort((left, right) => {
+            const leftTime = left.timestamp?.getTime?.() || 0;
+            const rightTime = right.timestamp?.getTime?.() || 0;
+            return leftTime - rightTime;
+        });
+};
+
+const buildTankNotes = (row) => {
+    const notes = [];
+    if (row.vehicleType && row.vehicleType !== '-') {
+        notes.push(row.vehicleType);
+    }
+    if (row.transferTankName) {
+        notes.push(`Transfer: ${row.transferTankName}`);
+    }
+    if (row.transferTankSite) {
+        notes.push(`Site: ${row.transferTankSite}`);
+    }
+    return notes.length ? notes.join(' | ') : '-';
+};
+
+const mapTankLevelDetail = (rawRecords) => {
+    const rows = normalizeTankHistoryRows(rawRecords);
+    if (!rows.length) {
+        return {
+            records: [],
+            summary: {
+                totalRecords: 0,
+                openingLevel: '0.00',
+                currentLevel: '0.00',
+                totalReceived: '0.00',
+                totalDispensed: '0.00',
+                netChange: '0.00',
+            },
+        };
+    }
+
+    const openingLevel = rows[0].balanceAfter - rows[0].volumeChange;
+    const currentLevel = rows[rows.length - 1].balanceAfter;
+    const totalReceived = rows
+        .filter((row) => TANK_DELIVERY_REASON_CODES.has(row.reasonCode))
+        .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+    const totalDispensed = rows
+        .filter((row) => TANK_DISPENSE_REASON_CODES.has(row.reasonCode))
+        .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+    const netChange = currentLevel - openingLevel;
+
+    return {
+        records: rows.map((row, index) => ({
+            rowNumber: index + 1,
+            occurredAt: formatUtcDateTimeToLocal(row.rawTimestamp || row.timestamp),
+            siteName: row.siteName,
+            tankName: row.tankName,
+            transactionType: row.transactionType,
+            volumeChange: row.volumeChange >= 0 ? `+${formatNumber(row.volumeChange)}` : `-${formatNumber(Math.abs(row.volumeChange))}`,
+            balanceAfter: formatNumber(row.balanceAfter),
+            vehicleName: row.vehicleName,
+            reference: row.reference,
+            operatorName: row.operatorName,
+            notes: buildTankNotes(row),
+        })),
+        summary: {
+            totalRecords: rows.length,
+            openingLevel: formatNumber(openingLevel),
+            currentLevel: formatNumber(currentLevel),
+            totalReceived: formatNumber(totalReceived),
+            totalDispensed: formatNumber(totalDispensed),
+            netChange: netChange >= 0 ? `+${formatNumber(netChange)}` : `-${formatNumber(Math.abs(netChange))}`,
+            lastUpdatedAt: formatUtcDateTimeToLocal(rows[rows.length - 1].rawTimestamp || rows[rows.length - 1].timestamp),
+        },
+    };
+};
+
+const mapStorageReceivedVsDispensed = (rawRecords) => {
+    const rows = normalizeTankHistoryRows(rawRecords);
+    const groups = new Map();
+
+    rows.forEach((row) => {
+        const key = `${row.siteName}::${row.tankId || row.tankName}`;
+        if (!groups.has(key)) {
+            groups.set(key, []);
+        }
+        groups.get(key).push(row);
+    });
+
+    const records = Array.from(groups.values())
+        .map((groupRows) => {
+            const ordered = [...groupRows].sort((left, right) => (left.timestamp?.getTime?.() || 0) - (right.timestamp?.getTime?.() || 0));
+            const first = ordered[0];
+            const last = ordered[ordered.length - 1];
+            const openingLevel = first.balanceAfter - first.volumeChange;
+            const actualClosing = last.balanceAfter;
+            const received = ordered
+                .filter((row) => TANK_DELIVERY_REASON_CODES.has(row.reasonCode))
+                .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+            const dispensed = ordered
+                .filter((row) => TANK_DISPENSE_REASON_CODES.has(row.reasonCode))
+                .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+            const transferIn = ordered
+                .filter((row) => TANK_TRANSFER_IN_REASON_CODES.has(row.reasonCode))
+                .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+            const transferOut = ordered
+                .filter((row) => TANK_TRANSFER_OUT_REASON_CODES.has(row.reasonCode))
+                .reduce((sum, row) => sum + Math.abs(row.volumeChange), 0);
+            const expectedClosing = openingLevel + received + transferIn - dispensed - transferOut;
+            const variance = actualClosing - expectedClosing;
+
+            return {
+                siteName: first.siteName,
+                tankName: first.tankName,
+                openingLevel,
+                received,
+                dispensed,
+                transferIn,
+                transferOut,
+                expectedClosing,
+                actualClosing,
+                variance,
+            };
+        })
+        .sort((left, right) => `${left.siteName}-${left.tankName}`.localeCompare(`${right.siteName}-${right.tankName}`));
+
+    return {
+        records: records.map((row, index) => ({
+            rowNumber: index + 1,
+            siteName: row.siteName,
+            tankName: row.tankName,
+            openingLevel: formatNumber(row.openingLevel),
+            received: formatNumber(row.received),
+            dispensed: formatNumber(row.dispensed),
+            transferIn: formatNumber(row.transferIn),
+            transferOut: formatNumber(row.transferOut),
+            expectedClosing: formatNumber(row.expectedClosing),
+            actualClosing: formatNumber(row.actualClosing),
+            variance: row.variance >= 0 ? `+${formatNumber(row.variance)}` : `-${formatNumber(Math.abs(row.variance))}`,
+            varianceClass: row.variance < 0 ? 'text-danger' : row.variance > 0 ? 'text-success' : 'text-muted',
+        })),
+        summary: {
+            totalRecords: records.length,
+            tankCount: records.length,
+            totalReceived: formatNumber(records.reduce((sum, row) => sum + row.received, 0)),
+            totalDispensed: formatNumber(records.reduce((sum, row) => sum + row.dispensed, 0)),
+            totalTransferIn: formatNumber(records.reduce((sum, row) => sum + row.transferIn, 0)),
+            totalTransferOut: formatNumber(records.reduce((sum, row) => sum + row.transferOut, 0)),
+            totalVariance: (() => {
+                const value = records.reduce((sum, row) => sum + row.variance, 0);
+                return value >= 0 ? `+${formatNumber(value)}` : `-${formatNumber(Math.abs(value))}`;
+            })(),
+        },
+    };
+};
+
+const mapAlarmReport = (rawRecords) => {
+    const mapped = rawRecords.map((record, index) => {
+        const severity = normalizeText(getValue(record, ['severity', 'Severity']), 'Medium');
+        return {
+            rowNumber: index + 1,
+            occurredAt: formatUtcDateTimeToLocal(getValue(record, ['occurredAt', 'OccurredAt', 'dateTime', 'DateTime'])),
+            ptsId: normalizeText(getValue(record, ['ptsId', 'PtsId']), '-'),
+            deviceLabel: `${normalizeText(getValue(record, ['deviceType', 'DeviceType']), '-') } #${normalizeText(getValue(record, ['deviceNumber', 'DeviceNumber']), '-')}`,
+            alertCode: normalizeText(getValue(record, ['alertCode', 'AlertCode']), '-'),
+            alarmType: normalizeText(getValue(record, ['alarmType', 'AlarmType']), '-'),
+            severity,
+            severityClass: severity === 'Critical' ? 'text-danger' : severity === 'High' ? 'text-success' : 'text-muted',
+            state: normalizeText(getValue(record, ['state', 'State']), '-'),
+            description: normalizeText(getValue(record, ['description', 'Description']), '-'),
+            configurationId: normalizeText(getValue(record, ['configurationId', 'ConfigurationId']), '-'),
+        };
+    });
+
+    const activeCount = mapped.filter((row) => /started|detected/i.test(row.state)).length;
+    const resolvedCount = mapped.filter((row) => /finished/i.test(row.state)).length;
+    const criticalCount = mapped.filter((row) => row.severity === 'Critical').length;
+    const uniqueDevices = new Set(mapped.map((row) => `${row.ptsId}:${row.deviceLabel}`)).size;
+
+    return {
+        records: mapped,
+        summary: {
+            totalRecords: mapped.length,
+            criticalCount,
+            activeCount,
+            resolvedCount,
+            uniqueDevices,
+        },
+    };
+};
+
 const transformBySource = (sourceId, rawRecords, container, queryParams) => {
     switch (sourceId) {
         case 'fuel-refill':
@@ -1605,6 +1839,12 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
             return mapIssueTracker(rawRecords, container, queryParams);
         case 'transaction-history-summary':
             return mapTransactionHistorySummary(rawRecords);
+        case 'tank-level-detail':
+            return mapTankLevelDetail(rawRecords);
+        case 'storage-received-vs-dispensed':
+            return mapStorageReceivedVsDispensed(rawRecords);
+        case 'alarm-report':
+            return mapAlarmReport(rawRecords);
         case 'route-analysis':
             return mapVehicleTripAnalysis(rawRecords, queryParams);
         case 'live-trip-operations':

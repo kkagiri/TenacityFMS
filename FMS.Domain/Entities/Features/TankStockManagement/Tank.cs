@@ -131,6 +131,8 @@ public partial class Tank
 
     public virtual ICollection<Tankmeasurement> Tankmeasurements { get; set; } = new List<Tankmeasurement>();
 
+    public virtual ICollection<UploadStatusProbeReading> UploadStatusProbeReadings { get; set; } = new List<UploadStatusProbeReading>();
+
     /// <summary>
     /// Navigation property for the vehicle that carries this mobile tanker.
     /// Used to get real-time GPS location for location validation.

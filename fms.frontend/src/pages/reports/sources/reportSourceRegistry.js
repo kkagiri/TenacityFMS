@@ -25,6 +25,9 @@ import issueTracker from './issueTracker';
 import transactionHistorySummary from './transactionHistorySummary';
 import routeAnalysis from './routeAnalysis';
 import liveTripOperations from './liveTripOperations';
+import tankLevelDetail from './tankLevelDetail';
+import alarmReport from './alarmReport';
+import storageReceivedVsDispensed from './storageReceivedVsDispensed';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -60,6 +63,9 @@ const builtInSources = [
     transactionHistorySummary,
     routeAnalysis,
     liveTripOperations,
+    tankLevelDetail,
+    alarmReport,
+    storageReceivedVsDispensed,
 ];
 
 builtInSources.forEach((source) => {

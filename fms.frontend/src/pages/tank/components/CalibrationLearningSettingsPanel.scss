@@ -1,0 +1,287 @@
+/**
+ * File: CalibrationLearningSettingsPanel.scss
+ * Purpose: Styles the learned calibration settings side panel in the tank calibration workspace.
+ * Dependencies: M365 SlidePanel, M365 button/input utility classes
+ * Last Modified: 2026-03-24
+ */
+
+.m365-calibration-settings-panel-shell {
+  .fms-slide-panel__body {
+    background: #faf9f8;
+    padding-bottom: 0;
+  }
+}
+
+.m365-calibration-settings-panel {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  color: #201f1e;
+
+  &__intro,
+  &__notice,
+  &__row,
+  &__footer {
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    padding: 16px;
+  }
+
+  &__content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 16px;
+  }
+
+  &__intro {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+
+    h3 {
+      margin: 4px 0 0;
+      font-size: 18px;
+      font-weight: 600;
+      color: #201f1e;
+    }
+
+    p {
+      margin: 10px 0 0;
+      font-size: 13px;
+      line-height: 1.6;
+      color: #605e5c;
+      max-width: 560px;
+    }
+  }
+
+  &__eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: #0078d4;
+  }
+
+  &__summary,
+  &__footer,
+  &__meta,
+  &__row-header,
+  &__row-title-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  &__summary {
+    align-self: flex-start;
+  }
+
+  &__notice {
+    font-size: 13px;
+    line-height: 1.6;
+    color: #605e5c;
+    background: #deecf9;
+    border-color: #c7e0f4;
+  }
+
+  &__list {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    background: #ffffff;
+    border: 1px solid #edebe9;
+    border-radius: 8px;
+    overflow: hidden;
+  }
+
+  &__row {
+    display: flex;
+    align-items: flex-start;
+    gap: 18px;
+    background: #ffffff;
+    border: 0;
+    border-radius: 0;
+    padding: 16px;
+
+    &:not(:last-child) {
+      border-bottom: 1px solid #edebe9;
+    }
+  }
+
+  &__row-main,
+  &__field-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  &__row-main {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+
+  &__field-wrap {
+    flex: 0 0 240px;
+  }
+
+  &__row-header {
+    justify-content: space-between;
+    align-items: flex-start;
+
+    h4 {
+      margin: 0;
+      font-size: 15px;
+      font-weight: 600;
+      color: #201f1e;
+    }
+  }
+
+  &__row-title-group {
+    gap: 8px;
+    align-items: center;
+  }
+
+  &__key {
+    font-size: 12px;
+    color: #605e5c;
+    font-family: Consolas, "Courier New", monospace;
+  }
+
+  &__meta {
+    font-size: 12px;
+    color: #605e5c;
+  }
+
+  &__info-btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 22px;
+    height: 22px;
+    border: 1px solid #c8c6c4;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #605e5c;
+    cursor: pointer;
+    transition: border-color 0.15s ease, color 0.15s ease, background 0.15s ease;
+
+    &:hover,
+    &:focus-visible {
+      border-color: #0078d4;
+      color: #0078d4;
+      background: #deecf9;
+      outline: none;
+    }
+
+    &:hover .m365-calibration-settings-panel__tooltip,
+    &:focus-visible .m365-calibration-settings-panel__tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+    }
+  }
+
+  &__tooltip {
+    position: absolute;
+    top: calc(100% + 10px);
+    left: 0;
+    z-index: 5;
+    width: 280px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: #201f1e;
+    color: #ffffff;
+    font-size: 12px;
+    line-height: 1.5;
+    text-align: left;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(-4px);
+    transition: opacity 0.15s ease, transform 0.15s ease, visibility 0.15s ease;
+    pointer-events: none;
+
+    &::before {
+      content: "";
+      position: absolute;
+      top: -6px;
+      left: 10px;
+      width: 12px;
+      height: 12px;
+      background: #201f1e;
+      transform: rotate(45deg);
+    }
+  }
+
+  &__field {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  &__input--error {
+    border-color: #d13438;
+    box-shadow: 0 0 0 1px #d13438;
+  }
+
+  &__error {
+    color: #d13438;
+    font-size: 12px;
+    line-height: 1.4;
+  }
+
+  &__footer {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: auto;
+    border-radius: 0;
+    border-left: 0;
+    border-right: 0;
+    border-bottom: 0;
+    box-shadow: 0 -8px 20px rgba(0, 0, 0, 0.05);
+  }
+
+  @media (max-width: 768px) {
+    &__row {
+      flex-direction: column;
+    }
+
+    &__field-wrap {
+      flex-basis: auto;
+      width: 100%;
+    }
+
+    &__footer {
+      justify-content: stretch;
+    }
+
+    &__footer .m365-btn {
+      width: 100%;
+      justify-content: center;
+    }
+
+    &__summary {
+      width: 100%;
+    }
+
+    &__tooltip {
+      width: 220px;
+      left: auto;
+      right: 0;
+
+      &::before {
+        left: auto;
+        right: 10px;
+      }
+    }
+  }
+}

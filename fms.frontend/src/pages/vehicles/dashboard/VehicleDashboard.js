@@ -451,42 +451,9 @@ const VehicleDashboard = () => {
       {/* Header Section */}
       <div className="tw-flex tw-justify-between tw-items-center tw-mb-6">
         <div>
-          <h1 className="tw-text-3xl tw-font-bold tw-text-gray-800 tw-mb-2">
-            <i className="fa-light fa-chart-line tw-mr-3"></i>
-            Fleet Dashboard
-          </h1>
-          <p className="tw-text-gray-600">
-            Monitor fleet performance, utilization, and health metrics
-          </p>
+
         </div>
 
-        {/* Quick Actions */}
-        <div className="tw-flex tw-gap-3">
-          <Button
-            text="Manage Fleet"
-            icon="fa-light fa-cars"
-            type="default"
-            stylingMode="contained"
-            onClick={navigateToFleet}
-            className="tw-bg-blue-600 tw-text-white hover:tw-bg-blue-700"
-          />
-          <Button
-            text="Live Tracking"
-            icon="fa-light fa-location-dot"
-            type="normal"
-            stylingMode="outlined"
-            onClick={navigateToTracking}
-            className="tw-border-gray-300"
-          />
-          <Button
-            text="Refresh"
-            icon="fa-light fa-refresh"
-            type="normal"
-            stylingMode="outlined"
-            onClick={handleRefresh}
-            className="tw-border-gray-300"
-          />
-        </div>
       </div>
 
       {/* Standardized Widget Dashboard */}

@@ -475,6 +475,7 @@ public static class FmsServiceCollectionExtensions
         // JsReport PDF/Excel Report Generation Service
         services.AddSingleton<FMS.WebClient.Services.Reporting.IJsReportService, FMS.WebClient.Services.Reporting.JsReportService>();
         services.AddScoped<INotificationReportRenderer, FMS.WebClient.Services.Reporting.NotificationReportRenderer>();
+        services.AddScoped<FMS.Application.Features.Reporting.Services.OperationalReportPayloadBuilder>();
         services.AddScoped<ScheduledReportPayloadBuilder>();
         services.AddScoped<IScheduledReportDeliveryService, ScheduledReportDeliveryService>();
         services.AddSingleton<FMS.Application.Features.TankManagement.TankVolumeHistory.Services.ITankVolumeReportDataBuilder,

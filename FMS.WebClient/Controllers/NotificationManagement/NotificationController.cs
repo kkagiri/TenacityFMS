@@ -832,6 +832,46 @@ namespace FMS.WebClient.Controllers
             }
         }
 
+        /// <summary>
+        /// Get report-friendly alarm records for the reporting engine.
+        /// </summary>
+        [HttpGet("alert-records/report")]
+        [RequirePermission(Permissions.Notification.Read)]
+        public async Task<IActionResult> GetAlarmReportData(
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] string? ptsId,
+            [FromQuery] string? deviceType,
+            [FromQuery] string? state,
+            [FromQuery] int? take = 5000,
+            CancellationToken cancellationToken = default)
+        {
+            try
+            {
+                var result = await _mediator.Send(new GetAlarmReportDataQuery
+                {
+                    StartDate = startDate,
+                    EndDate = endDate,
+                    PtsId = ptsId,
+                    DeviceType = deviceType,
+                    State = state,
+                    Take = take,
+                }, cancellationToken);
+
+                if (result.IsSuccess)
+                {
+                    return Ok(result.Data);
+                }
+
+                return BadRequest(new { success = false, message = result.Message });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error retrieving alarm report data");
+                return StatusCode(500, new { success = false, message = "Internal server error" });
+            }
+        }
+
         #endregion
 
         #region Test Notification

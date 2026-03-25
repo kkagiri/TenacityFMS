@@ -15,6 +15,9 @@ export { default as consumptionByRefills } from './consumptionByRefills';
 export { default as issueTracker } from './issueTracker';
 export { default as transactionHistorySummary } from './transactionHistorySummary';
 export { default as routeAnalysis } from './routeAnalysis';
+export { default as tankLevelDetail } from './tankLevelDetail';
+export { default as alarmReport } from './alarmReport';
+export { default as storageReceivedVsDispensed } from './storageReceivedVsDispensed';
 
 export {
     getReportSource,

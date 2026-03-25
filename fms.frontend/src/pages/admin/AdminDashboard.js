@@ -105,10 +105,10 @@ const AdminDashboard = () => {
   return (
     <div className="admin-dashboard">
       <div className="admin-dashboard__header">
-        <h1 className="admin-dashboard__title">Administration Dashboard</h1>
+        {/* <h1 className="admin-dashboard__title">Administration Dashboard</h1>
         <p className="admin-dashboard__subtitle">
           Manage system configuration, users, and access control
-        </p>
+        </p> */}
       </div>
 
       {/* Standardized Widget Dashboard */}

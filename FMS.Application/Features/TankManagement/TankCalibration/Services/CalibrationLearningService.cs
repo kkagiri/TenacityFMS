@@ -9,6 +9,11 @@
  * - ExtractDataPointsFromDeliveriesAsync(): Converts in-tank deliveries into learned-calibration observations.
  * - GetAccumulationSummaryAsync(): Returns interval readiness and coverage for a tank.
  * - GenerateLearnedChartAsync()/CompareChartsAsync(): Produces learned snapshots and interval deviation output.
+ *
+ * Stability Validation:
+ *   Uses UploadStatusProbeReading (10-30s interval time-series) instead of Tankmeasurement
+ *   (sparse, volume-change-only) for stability window checks, giving ~10-30 readings per
+ *   5-minute window vs potentially &lt;2 from Tankmeasurement.
  */
 using System;
 using System.Collections.Generic;
@@ -32,6 +37,12 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
         private const string DispensingSourceType = "dispensing";
         private const string DeliverySourceType = "delivery";
         private const string LearnedChartSource = "fms-learned-generation";
+
+        /// <summary>
+        /// Lightweight projection shared by Tankmeasurement and UploadStatusProbeReading
+        /// so stability-window logic is source-agnostic.
+        /// </summary>
+        private sealed record StabilityReading(DateTime DateTime, double Height);
 
         private readonly GpsdataContext _context;
         private readonly IMediator _mediator;
@@ -97,7 +108,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 .Max()
                 .AddMinutes(settings.StabilityWindowMinutes * 2);
 
-            var measurements = await LoadTankMeasurementsAsync(
+            var probeReadings = await LoadProbeReadingsForStabilityAsync(
                 tankId,
                 measurementWindowStart,
                 measurementWindowEnd,
@@ -135,22 +146,22 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                     ? eventStartUtc
                     : transaction.DateTime;
 
-                var beforeMeasurement = FindStableMeasurementBefore(measurements, eventStartUtc, settings);
-                var afterMeasurement = FindStableMeasurementAfter(measurements, eventEndUtc, settings);
+                var beforeReading = FindStableMeasurementBefore(probeReadings, eventStartUtc, settings);
+                var afterReading = FindStableMeasurementAfter(probeReadings, eventEndUtc, settings);
 
-                if (beforeMeasurement == null || afterMeasurement == null)
+                if (beforeReading == null || afterReading == null)
                 {
                     continue;
                 }
 
-                if (HasOverlappingDispensingEvent(transactions, transaction, beforeMeasurement.DateTime, afterMeasurement.DateTime)
-                    || HasOverlappingDelivery(deliveries, beforeMeasurement.DateTime, afterMeasurement.DateTime))
+                if (HasOverlappingDispensingEvent(transactions, transaction, beforeReading.DateTime, afterReading.DateTime)
+                    || HasOverlappingDelivery(deliveries, beforeReading.DateTime, afterReading.DateTime))
                 {
                     continue;
                 }
 
-                var heightBeforeMm = Convert.ToDecimal(beforeMeasurement.ProductHeight!.Value);
-                var heightAfterMm = Convert.ToDecimal(afterMeasurement.ProductHeight!.Value);
+                var heightBeforeMm = Convert.ToDecimal(beforeReading.Height);
+                var heightAfterMm = Convert.ToDecimal(afterReading.Height);
                 var heightDeltaMm = heightBeforeMm - heightAfterMm;
                 if (heightDeltaMm <= 0)
                 {
@@ -188,13 +199,17 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 return Array.Empty<CalibrationDataPointDto>();
             }
 
-            await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            await executionStrategy.ExecuteAsync(async () =>
+            {
+                await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            _context.CalibrationDataPoints.AddRange(newEntities);
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.CalibrationDataPoints.AddRange(newEntities);
+                await _context.SaveChangesAsync(cancellationToken);
 
-            await RebuildIntervalAccumulationsAsync(tankId, settings, cancellationToken);
-            await databaseTransaction.CommitAsync(cancellationToken);
+                await RebuildIntervalAccumulationsAsync(tankId, settings, cancellationToken);
+                await databaseTransaction.CommitAsync(cancellationToken);
+            });
 
             await PublishReadinessNotificationIfThresholdCrossedAsync(
                 tankId,
@@ -238,7 +253,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                     && delivery.StartProductHeight.HasValue
                     && delivery.EndProductHeight.HasValue
                     && delivery.AbsoluteProductVolume.HasValue
-                    && !string.Equals(delivery.Status, "Rejected", StringComparison.OrdinalIgnoreCase)
+                    && delivery.Status != "Rejected"
                     && (!startDateUtc.HasValue || delivery.EndDateTime.Value >= startDateUtc.Value)
                     && (!endDateUtc.HasValue || delivery.StartDateTime.Value <= endDateUtc.Value))
                 .OrderBy(delivery => delivery.StartDateTime)
@@ -260,7 +275,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 .Max(delivery => delivery.EndDateTime!.Value)
                 .AddMinutes(settings.StabilityWindowMinutes * 2);
 
-            var measurements = await LoadTankMeasurementsAsync(
+            var probeReadings = await LoadProbeReadingsForStabilityAsync(
                 tankId,
                 measurementWindowStart,
                 measurementWindowEnd,
@@ -291,8 +306,8 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                     ? eventStartUtc
                     : delivery.EndDateTime.Value;
 
-                if (!HasStableWindow(measurements, eventStartUtc.AddMinutes(-settings.StabilityWindowMinutes), eventStartUtc, settings)
-                    || !HasStableWindow(measurements, eventEndUtc, eventEndUtc.AddMinutes(settings.StabilityWindowMinutes), settings))
+                if (!HasStableWindow(probeReadings, eventStartUtc.AddMinutes(-settings.StabilityWindowMinutes), eventStartUtc, settings)
+                    || !HasStableWindow(probeReadings, eventEndUtc, eventEndUtc.AddMinutes(settings.StabilityWindowMinutes), settings))
                 {
                     continue;
                 }
@@ -339,15 +354,19 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 return Array.Empty<CalibrationDataPointDto>();
             }
 
-            await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            var createdDtos = await executionStrategy.ExecuteAsync(async () =>
+            {
+                await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            _context.CalibrationDataPoints.AddRange(newEntities);
-            await _context.SaveChangesAsync(cancellationToken);
+                _context.CalibrationDataPoints.AddRange(newEntities);
+                await _context.SaveChangesAsync(cancellationToken);
 
-            await RebuildIntervalAccumulationsAsync(tankId, settings, cancellationToken);
-            await databaseTransaction.CommitAsync(cancellationToken);
+                await RebuildIntervalAccumulationsAsync(tankId, settings, cancellationToken);
+                await databaseTransaction.CommitAsync(cancellationToken);
 
-            var createdDtos = newEntities.Select(MapToDataPointDto).ToList();
+                return newEntities.Select(MapToDataPointDto).ToList();
+            });
 
             await PublishReadinessNotificationIfThresholdCrossedAsync(
                 tankId,
@@ -582,20 +601,26 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 Records = records,
             };
 
-            await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-            var trackedDataPoints = await _context.CalibrationDataPoints
-                .Where(item => item.TankId == tankId)
-                .ToListAsync(cancellationToken);
-
-            foreach (var dataPoint in trackedDataPoints)
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            var savedSnapshot = await executionStrategy.ExecuteAsync(async () =>
             {
-                dataPoint.IsProcessed = readyIntervalStarts.Contains(dataPoint.HeightInterval);
-            }
+                await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            var savedSnapshot = await _storageService.SaveSnapshotAsync(snapshot, cancellationToken);
-            await databaseTransaction.CommitAsync(cancellationToken);
+                var trackedDataPoints = await _context.CalibrationDataPoints
+                    .Where(item => item.TankId == tankId)
+                    .ToListAsync(cancellationToken);
+
+                foreach (var dataPoint in trackedDataPoints)
+                {
+                    dataPoint.IsProcessed = readyIntervalStarts.Contains(dataPoint.HeightInterval);
+                }
+
+                await _context.SaveChangesAsync(cancellationToken);
+                var persistedSnapshot = await _storageService.SaveSnapshotAsync(snapshot, cancellationToken);
+                await databaseTransaction.CommitAsync(cancellationToken);
+
+                return persistedSnapshot;
+            });
 
             _logger.LogInformation(
                 "Generated FMS learned calibration chart for TankId {TankId} with {RecordCount} records and {ReadyIntervalCount}/{TotalIntervalCount} ready intervals.",
@@ -745,50 +770,56 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 throw new InvalidOperationException("Seed snapshot does not contain any usable interval ranges for learned calibration bootstrap.");
             }
 
-            await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-
-            var accumulations = await _context.CalibrationIntervalAccumulations
-                .Where(item => item.TankId == tankId)
-                .ToListAsync(cancellationToken);
-
-            var accumulationLookup = accumulations.ToDictionary(item => item.IntervalStartMm);
-            var seededIntervals = seededBaselines.Keys.ToHashSet();
-            var nowUtc = DateTime.UtcNow;
-
-            foreach (var staleSeed in accumulations.Where(item => CalibrationLearningChartMath.IsSeededBaseline(item) && !seededIntervals.Contains(item.IntervalStartMm)))
+            var executionStrategy = _context.Database.CreateExecutionStrategy();
+            var coverage = await executionStrategy.ExecuteAsync(async () =>
             {
-                _context.CalibrationIntervalAccumulations.Remove(staleSeed);
-            }
+                await using var databaseTransaction = await _context.Database.BeginTransactionAsync(cancellationToken);
 
-            foreach (var seededBaseline in seededBaselines)
-            {
-                if (accumulationLookup.TryGetValue(seededBaseline.Key, out var existingAccumulation)
-                    && existingAccumulation.ObservationCount > 0)
+                var accumulations = await _context.CalibrationIntervalAccumulations
+                    .Where(item => item.TankId == tankId)
+                    .ToListAsync(cancellationToken);
+
+                var accumulationLookup = accumulations.ToDictionary(item => item.IntervalStartMm);
+                var seededIntervals = seededBaselines.Keys.ToHashSet();
+                var nowUtc = DateTime.UtcNow;
+
+                foreach (var staleSeed in accumulations.Where(item => CalibrationLearningChartMath.IsSeededBaseline(item) && !seededIntervals.Contains(item.IntervalStartMm)))
                 {
-                    continue;
+                    _context.CalibrationIntervalAccumulations.Remove(staleSeed);
                 }
 
-                if (!accumulationLookup.TryGetValue(seededBaseline.Key, out var accumulation))
+                foreach (var seededBaseline in seededBaselines)
                 {
-                    accumulation = new CalibrationIntervalAccumulation
+                    if (accumulationLookup.TryGetValue(seededBaseline.Key, out var existingAccumulation)
+                        && existingAccumulation.ObservationCount > 0)
                     {
-                        TankId = tankId,
-                        IntervalStartMm = seededBaseline.Key,
-                        IntervalEndMm = seededBaseline.Key + settings.HeightIntervalMm,
-                    };
+                        continue;
+                    }
 
-                    _context.CalibrationIntervalAccumulations.Add(accumulation);
+                    if (!accumulationLookup.TryGetValue(seededBaseline.Key, out var accumulation))
+                    {
+                        accumulation = new CalibrationIntervalAccumulation
+                        {
+                            TankId = tankId,
+                            IntervalStartMm = seededBaseline.Key,
+                            IntervalEndMm = seededBaseline.Key + settings.HeightIntervalMm,
+                        };
+
+                        _context.CalibrationIntervalAccumulations.Add(accumulation);
+                    }
+
+                    accumulation.ObservationCount = 0;
+                    accumulation.MeanVolumePerMm = Math.Round(seededBaseline.Value, 6, MidpointRounding.AwayFromZero);
+                    accumulation.StdDevVolumePerMm = 0;
+                    accumulation.LastUpdatedUtc = nowUtc;
+                    accumulation.SeededFromSnapshotId = snapshotId;
                 }
 
-                accumulation.ObservationCount = 0;
-                accumulation.MeanVolumePerMm = Math.Round(seededBaseline.Value, 6, MidpointRounding.AwayFromZero);
-                accumulation.StdDevVolumePerMm = 0;
-                accumulation.LastUpdatedUtc = nowUtc;
-                accumulation.SeededFromSnapshotId = snapshotId;
-            }
+                await _context.SaveChangesAsync(cancellationToken);
+                await databaseTransaction.CommitAsync(cancellationToken);
 
-            await _context.SaveChangesAsync(cancellationToken);
-            await databaseTransaction.CommitAsync(cancellationToken);
+                return await GetAccumulationSummaryAsync(tankId, cancellationToken);
+            });
 
             _logger.LogInformation(
                 "Seeded {IntervalCount} learned-calibration baseline intervals for TankId {TankId} from SnapshotId {SnapshotId} ({ChartType}).",
@@ -797,7 +828,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 snapshotId,
                 normalizedChartType);
 
-            return await GetAccumulationSummaryAsync(tankId, cancellationToken);
+            return coverage;
         }
 
         private async Task<List<Tankmeasurement>> LoadTankMeasurementsAsync(
@@ -816,6 +847,23 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 .ToListAsync(cancellationToken);
         }
 
+        private async Task<List<StabilityReading>> LoadProbeReadingsForStabilityAsync(
+            int tankId,
+            DateTime rangeStartUtc,
+            DateTime rangeEndUtc,
+            CancellationToken cancellationToken)
+        {
+            return await _context.UploadStatusProbeReadings
+                .AsNoTracking()
+                .Where(reading => reading.TankId == tankId
+                    && reading.ProductHeight.HasValue
+                    && reading.DateTime >= rangeStartUtc
+                    && reading.DateTime <= rangeEndUtc)
+                .OrderBy(reading => reading.DateTime)
+                .Select(reading => new StabilityReading(reading.DateTime, reading.ProductHeight!.Value))
+                .ToListAsync(cancellationToken);
+        }
+
         private async Task<List<Intankdelivery>> LoadDeliveriesAsync(
             int tankId,
             DateTime rangeStartUtc,
@@ -829,7 +877,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                     && delivery.EndDateTime.HasValue
                     && delivery.StartDateTime.Value <= rangeEndUtc
                     && delivery.EndDateTime.Value >= rangeStartUtc
-                    && !string.Equals(delivery.Status, "Rejected", StringComparison.OrdinalIgnoreCase))
+                    && delivery.Status != "Rejected")
                 .OrderBy(delivery => delivery.StartDateTime)
                 .ToListAsync(cancellationToken);
         }
@@ -893,48 +941,48 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
             await _context.SaveChangesAsync(cancellationToken);
         }
 
-        private static Tankmeasurement? FindStableMeasurementBefore(
-            IReadOnlyList<Tankmeasurement> measurements,
+        private static StabilityReading? FindStableMeasurementBefore(
+            IReadOnlyList<StabilityReading> readings,
             DateTime anchorUtc,
             CalibrationLearningSettings settings)
         {
             var latestAllowedUtc = anchorUtc.AddMinutes(-settings.StabilityWindowMinutes);
 
-            foreach (var measurement in measurements
-                .Where(item => item.DateTime <= latestAllowedUtc && item.ProductHeight.HasValue)
+            foreach (var reading in readings
+                .Where(item => item.DateTime <= latestAllowedUtc)
                 .OrderByDescending(item => item.DateTime))
             {
                 if (HasStableWindow(
-                    measurements,
-                    measurement.DateTime.AddMinutes(-settings.StabilityWindowMinutes),
-                    measurement.DateTime,
+                    readings,
+                    reading.DateTime.AddMinutes(-settings.StabilityWindowMinutes),
+                    reading.DateTime,
                     settings))
                 {
-                    return measurement;
+                    return reading;
                 }
             }
 
             return null;
         }
 
-        private static Tankmeasurement? FindStableMeasurementAfter(
-            IReadOnlyList<Tankmeasurement> measurements,
+        private static StabilityReading? FindStableMeasurementAfter(
+            IReadOnlyList<StabilityReading> readings,
             DateTime anchorUtc,
             CalibrationLearningSettings settings)
         {
             var earliestAllowedUtc = anchorUtc.AddMinutes(settings.StabilityWindowMinutes);
 
-            foreach (var measurement in measurements
-                .Where(item => item.DateTime >= earliestAllowedUtc && item.ProductHeight.HasValue)
+            foreach (var reading in readings
+                .Where(item => item.DateTime >= earliestAllowedUtc)
                 .OrderBy(item => item.DateTime))
             {
                 if (HasStableWindow(
-                    measurements,
-                    measurement.DateTime,
-                    measurement.DateTime.AddMinutes(settings.StabilityWindowMinutes),
+                    readings,
+                    reading.DateTime,
+                    reading.DateTime.AddMinutes(settings.StabilityWindowMinutes),
                     settings))
                 {
-                    return measurement;
+                    return reading;
                 }
             }
 
@@ -942,7 +990,7 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
         }
 
         private static bool HasStableWindow(
-            IReadOnlyList<Tankmeasurement> measurements,
+            IReadOnlyList<StabilityReading> readings,
             DateTime windowStartUtc,
             DateTime windowEndUtc,
             CalibrationLearningSettings settings)
@@ -952,25 +1000,24 @@ namespace FMS.Application.Features.TankManagement.TankCalibration.Services
                 return false;
             }
 
-            var windowMeasurements = measurements
+            var windowReadings = readings
                 .Where(item => item.DateTime >= windowStartUtc
-                    && item.DateTime <= windowEndUtc
-                    && item.ProductHeight.HasValue)
+                    && item.DateTime <= windowEndUtc)
                 .OrderBy(item => item.DateTime)
                 .ToList();
 
-            if (windowMeasurements.Count < 2)
+            if (windowReadings.Count < 2)
             {
                 return false;
             }
 
-            var coveredMinutes = (windowMeasurements[^1].DateTime - windowMeasurements[0].DateTime).TotalMinutes;
+            var coveredMinutes = (windowReadings[^1].DateTime - windowReadings[0].DateTime).TotalMinutes;
             if (coveredMinutes < settings.StabilityWindowMinutes * 0.75)
             {
                 return false;
             }
 
-            var heights = windowMeasurements.Select(item => item.ProductHeight!.Value).ToList();
+            var heights = windowReadings.Select(item => item.Height).ToList();
             var varianceMm = heights.Max() - heights.Min();
             return varianceMm <= (double)settings.MaxHeightVarianceMm;
         }

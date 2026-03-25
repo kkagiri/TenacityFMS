@@ -48,6 +48,21 @@ namespace FMS.WebClient.Services.Reporting
 
         public static string TransactionHistorySummary() => TransactionHistorySummaryHtmlTemplate.Get();
 
+        public static string TankLevelDetail() => BuildGenericTemplate(
+            "Tank Level Detail Report", "#0f766e",
+            TankLevelDetailSummary(), TankLevelDetailTable(),
+            "No tank level detail records found for the selected criteria.");
+
+        public static string AlarmReport() => BuildGenericTemplate(
+            "Alarm Report", "#dc2626",
+            AlarmReportSummary(), AlarmReportTable(),
+            "No alarm records found for the selected criteria.");
+
+        public static string StorageReceivedVsDispensed() => BuildGenericTemplate(
+            "Storage Received vs. Dispensed Report", "#2563eb",
+            StorageReceivedVsDispensedSummary(), StorageReceivedVsDispensedTable(),
+            "No storage receipt or dispensing data found for the selected criteria.");
+
         public static string IssueTracker() => BuildGenericTemplate(
             "Issue Tracker Report", "#0ea5e9",
             IssueTrackerSummary(), IssueTrackerTable(),
@@ -189,6 +204,9 @@ namespace FMS.WebClient.Services.Reporting
             {{{{#if siteName}}}}<div class=""filter-item""><span class=""filter-label"">Site:</span><span class=""filter-value"">{{{{siteName}}}}</span></div>{{{{/if}}}}
             {{{{#if tankName}}}}<div class=""filter-item""><span class=""filter-label"">Tank:</span><span class=""filter-value"">{{{{tankName}}}}</span></div>{{{{/if}}}}
             {{{{#if status}}}}<div class=""filter-item""><span class=""filter-label"">Status:</span><span class=""filter-value"">{{{{status}}}}</span></div>{{{{/if}}}}
+            {{{{#if state}}}}<div class=""filter-item""><span class=""filter-label"">State:</span><span class=""filter-value"">{{{{state}}}}</span></div>{{{{/if}}}}
+            {{{{#if deviceType}}}}<div class=""filter-item""><span class=""filter-label"">Device:</span><span class=""filter-value"">{{{{deviceType}}}}</span></div>{{{{/if}}}}
+            {{{{#if ptsId}}}}<div class=""filter-item""><span class=""filter-label"">PTS ID:</span><span class=""filter-value"">{{{{ptsId}}}}</span></div>{{{{/if}}}}
         </div>
     </div>
 {summarySection}
@@ -205,6 +223,134 @@ namespace FMS.WebClient.Services.Reporting
 </div>
 </body>
 </html>";
+
+        private static string TankLevelDetailSummary() => @"
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.currentLevel}}</div><div class=""label"">Current Level (L)</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalReceived}}</div><div class=""label"">Total Received (L)</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDispensed}}</div><div class=""label"">Total Dispensed (L)</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.netChange}}</div><div class=""label"">Net Change (L)</div></div>
+    </div>";
+
+        private static string TankLevelDetailTable() => @"
+        <table class=""data-table"">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Occurred At</th>
+                    <th>Site</th>
+                    <th>Tank</th>
+                    <th>Transaction</th>
+                    <th class=""text-right"">Change (L)</th>
+                    <th class=""text-right"">Balance After (L)</th>
+                    <th>Vehicle</th>
+                    <th>Reference</th>
+                    <th>Operator</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each records}}
+                <tr>
+                    <td>{{this.rowNumber}}</td>
+                    <td>{{this.occurredAt}}</td>
+                    <td>{{this.siteName}}</td>
+                    <td>{{this.tankName}}</td>
+                    <td>{{this.transactionType}}</td>
+                    <td class=""text-right font-bold"">{{this.volumeChange}}</td>
+                    <td class=""text-right"">{{this.balanceAfter}}</td>
+                    <td>{{this.vehicleName}}</td>
+                    <td>{{this.reference}}</td>
+                    <td>{{this.operatorName}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>";
+
+        private static string AlarmReportSummary() => @"
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalRecords}}</div><div class=""label"">Total Alarms</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.criticalCount}}</div><div class=""label"">Critical</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.activeCount}}</div><div class=""label"">Active</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.resolvedCount}}</div><div class=""label"">Resolved</div></div>
+    </div>";
+
+        private static string AlarmReportTable() => @"
+        <table class=""data-table"">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Occurred At</th>
+                    <th>PTS ID</th>
+                    <th>Device</th>
+                    <th>Alert Code</th>
+                    <th>Alarm Type</th>
+                    <th>Severity</th>
+                    <th>State</th>
+                    <th>Description</th>
+                    <th>Configuration</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each records}}
+                <tr>
+                    <td>{{this.rowNumber}}</td>
+                    <td>{{this.occurredAt}}</td>
+                    <td>{{this.ptsId}}</td>
+                    <td>{{this.deviceLabel}}</td>
+                    <td>{{this.alertCode}}</td>
+                    <td>{{this.alarmType}}</td>
+                    <td class=""{{this.severityClass}} font-bold"">{{this.severity}}</td>
+                    <td>{{this.state}}</td>
+                    <td>{{this.description}}</td>
+                    <td>{{this.configurationId}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>";
+
+        private static string StorageReceivedVsDispensedSummary() => @"
+    <div class=""summary-section"">
+        <div class=""summary-card card-success""><div class=""value"">{{summary.totalReceived}}</div><div class=""label"">Total Received (L)</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDispensed}}</div><div class=""label"">Total Dispensed (L)</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.totalTransferIn}}</div><div class=""label"">Transfer In (L)</div></div>
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVariance}}</div><div class=""label"">Total Variance (L)</div></div>
+    </div>";
+
+        private static string StorageReceivedVsDispensedTable() => @"
+        <table class=""data-table"">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Site</th>
+                    <th>Tank</th>
+                    <th class=""text-right"">Opening (L)</th>
+                    <th class=""text-right"">Received (L)</th>
+                    <th class=""text-right"">Dispensed (L)</th>
+                    <th class=""text-right"">Transfer In (L)</th>
+                    <th class=""text-right"">Transfer Out (L)</th>
+                    <th class=""text-right"">Expected Closing (L)</th>
+                    <th class=""text-right"">Actual Closing (L)</th>
+                    <th class=""text-right"">Variance (L)</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each records}}
+                <tr>
+                    <td>{{this.rowNumber}}</td>
+                    <td>{{this.siteName}}</td>
+                    <td>{{this.tankName}}</td>
+                    <td class=""text-right"">{{this.openingLevel}}</td>
+                    <td class=""text-right"">{{this.received}}</td>
+                    <td class=""text-right"">{{this.dispensed}}</td>
+                    <td class=""text-right"">{{this.transferIn}}</td>
+                    <td class=""text-right"">{{this.transferOut}}</td>
+                    <td class=""text-right"">{{this.expectedClosing}}</td>
+                    <td class=""text-right"">{{this.actualClosing}}</td>
+                    <td class=""text-right {{this.varianceClass}} font-bold"">{{this.variance}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>";
 
         // â”€â”€â”€ Pump Transaction (standalone template) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 

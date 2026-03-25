@@ -43,6 +43,7 @@ using FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCommand
 using FMS.Application.Communication;
 using FMS.Application.Features.ATG;
 using FMS.Domain.Entities;
+using FMS.Domain.Entities.Features.TankStockManagement;
 using MediatR;
 using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
@@ -513,6 +514,28 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     updatesApplied++;
                 }
 
+                // Persist probe reading as time-series record
+                _context.UploadStatusProbeReadings.Add(new UploadStatusProbeReading
+                {
+                    DateTime = DateTime.UtcNow,
+                    DeviceId = deviceId,
+                    ProbeNumber = probeMeasurement.ProbeNumber,
+                    ProductHeight = probeMeasurement.ProductHeight,
+                    WaterHeight = probeMeasurement.WaterHeight,
+                    Temperature = probeMeasurement.Temperature,
+                    ProductVolume = probeMeasurement.ProductVolume,
+                    WaterVolume = probeMeasurement.WaterVolume,
+                    ProductTcvolume = probeMeasurement.ProductTemperatureCompensatedVolume,
+                    ProductDensity = probeMeasurement.ProductDensity,
+                    ProductMass = probeMeasurement.ProductMass,
+                    TankFillingPercentage = probeMeasurement.TankFillingPercentage,
+                    ProductUllage = probeMeasurement.ProductUllage,
+                    TankId = tank.Id,
+                    SiteId = tank.SiteId,
+                    FuelGradeId = tank.FuelGradeId,
+                    FuelGradeName = tank.FuelGradeName
+                });
+
                 // Fire-and-forget: server-side delivery detection (does not block UploadStatus processing)
                 var capturedTankId = tank.Id;
                 var capturedProbe = probeMeasurement;
@@ -532,7 +555,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 });
             }
 
-            if (updatesApplied > 0)
+            if (updatesApplied > 0 || _context.ChangeTracker.HasChanges())
             {
                 await _context.SaveChangesAsync(cancellationToken);
                 _logger.LogInformation(

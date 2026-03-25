@@ -1,14 +1,14 @@
 /**
  * File: SystemConfigForm.js
  * Purpose: System configuration create/edit form rendered inside the global SlidePanel.
- * Dependencies: react, prop-types, devextreme-react controls, SlidePanel
- * Last Modified: 2026-03-03
+ * Dependencies: react, prop-types, devextreme-react controls, SlidePanel, typed editor helpers
+ * Last Modified: 2026-03-24
  *
  * Key Functions:
- * - validateForm(): Validates required and data-type-specific fields
+ * - validateForm(): Validates required, datatype, regex, and allowed-value constraints
  * - handleSave(): Normalizes values by data type and submits payload
  */
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import PropTypes from "prop-types";
 import TextBox from "devextreme-react/text-box";
 import TextArea from "devextreme-react/text-area";
@@ -17,6 +17,15 @@ import NumberBox from "devextreme-react/number-box";
 import Button from "devextreme-react/button";
 import notify from "devextreme/ui/notify";
 import SlidePanel from "../../../../components/ui/SlidePanel";
+import SystemConfigTypedValueEditor from "./SystemConfigTypedValueEditor";
+import {
+  getDataTypeDescriptor,
+  getDataTypeOptions,
+  prepareValueForEditor,
+  serializeConfiguredValue,
+  validateConfiguredValue,
+  validateRegexPattern,
+} from "./SystemConfigForm.utils";
 
 // Custom Toggle Switch Component
 const ToggleSwitch = ({ checked, onChange, colorScheme = "blue" }) => {
@@ -44,37 +53,34 @@ const ToggleSwitch = ({ checked, onChange, colorScheme = "blue" }) => {
   );
 };
 
+const createEmptyFormData = () => ({
+  configurationKey: "",
+  configurationValue: "",
+  description: "",
+  dataType: "String",
+  category: "General",
+  isActive: true,
+  isEditable: true,
+  validationPattern: "",
+  defaultValue: "",
+  minValue: null,
+  maxValue: null,
+  possibleValues: "",
+});
+
+const renderFieldError = (message) => {
+  if (!message) {
+    return null;
+  }
+
+  return <p className="system-config-inline-error">{message}</p>;
+};
+
 const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
-  const [formData, setFormData] = useState({
-    configurationKey: "",
-    configurationValue: "",
-    description: "",
-    dataType: "String",
-    category: "General",
-    isActive: true,
-    isEditable: true,
-    validationPattern: "",
-    defaultValue: "",
-    minValue: null,
-    maxValue: null,
-    possibleValues: "",
-  });
+  const [formData, setFormData] = useState(createEmptyFormData);
 
   const [validationErrors, setValidationErrors] = useState({});
   const [activeTab, setActiveTab] = useState(0);
-
-  // Data type options
-  const dataTypeOptions = [
-    { value: "String", text: "String" },
-    { value: "Integer", text: "Integer" },
-    { value: "Decimal", text: "Decimal" },
-    { value: "Boolean", text: "Boolean" },
-    { value: "DateTime", text: "DateTime" },
-    { value: "Json", text: "JSON" },
-    { value: "Url", text: "URL" },
-    { value: "Email", text: "Email" },
-    { value: "Password", text: "Password" },
-  ];
 
   // Base category options
   const baseCategoryOptions = [
@@ -105,8 +111,18 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
     { value: "Reports", text: "Reports" },
   ];
 
+  const valueTypeDescriptor = useMemo(
+    () => getDataTypeDescriptor(formData.dataType),
+    [formData.dataType]
+  );
+
+  const dataTypeOptions = useMemo(
+    () => getDataTypeOptions(config?.dataType || formData.dataType),
+    [config?.dataType, formData.dataType]
+  );
+
   // Dynamic category options - include config's category if not in the list
-  const categoryOptions = React.useMemo(() => {
+  const categoryOptions = useMemo(() => {
     if (config?.category) {
       const existingCategory = baseCategoryOptions.find(
         (opt) => opt.value.toLowerCase() === config.category.toLowerCase()
@@ -124,8 +140,6 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
 
   useEffect(() => {
     if (config) {
-      // Map API response fields to form fields
-      // Find the matching category (case-insensitive)
       const matchedCategory = categoryOptions.find(
         (opt) =>
           opt.value.toLowerCase() === (config.category || "").toLowerCase()
@@ -133,7 +147,10 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
 
       setFormData({
         configurationKey: config.configurationKey || "",
-        configurationValue: config.configurationValue || "",
+        configurationValue: prepareValueForEditor(
+          config.configurationValue,
+          config.dataType
+        ),
         description: config.description || "",
         dataType: config.dataType || "String",
         category: matchedCategory
@@ -142,7 +159,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         isActive: config.isActive !== undefined ? config.isActive : true,
         isEditable: config.isEditable !== undefined ? config.isEditable : true,
         validationPattern: config.validationPattern || "",
-        defaultValue: config.defaultValue || "",
+        defaultValue: prepareValueForEditor(config.defaultValue, config.dataType),
         minValue:
           config.minValue !== undefined && config.minValue !== null
             ? config.minValue
@@ -154,24 +171,11 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         possibleValues: config.possibleValues || "",
       });
     } else {
-      // Reset for new configuration
-      setFormData({
-        configurationKey: "",
-        configurationValue: "",
-        description: "",
-        dataType: "String",
-        category: "General",
-        isActive: true,
-        isEditable: true,
-        validationPattern: "",
-        defaultValue: "",
-        minValue: null,
-        maxValue: null,
-        possibleValues: "",
-      });
+      setFormData(createEmptyFormData());
     }
     setValidationErrors({});
-  }, [config, visible]);
+    setActiveTab(0);
+  }, [categoryOptions, config, visible]);
 
   const handleValueChange = (field, value) => {
     setFormData((prev) => ({
@@ -189,10 +193,25 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
     }
   };
 
+  const handleDataTypeChange = (nextDataType) => {
+    setFormData((prev) => ({
+      ...prev,
+      dataType: nextDataType,
+      configurationValue: prepareValueForEditor(prev.configurationValue, nextDataType),
+      defaultValue: prepareValueForEditor(prev.defaultValue, nextDataType),
+    }));
+
+    setValidationErrors((prev) => {
+      const nextErrors = { ...prev };
+      delete nextErrors.configurationValue;
+      delete nextErrors.defaultValue;
+      return nextErrors;
+    });
+  };
+
   const validateForm = () => {
     const errors = {};
 
-    // Required field validations
     if (!formData.configurationKey.trim()) {
       errors.configurationKey = "Configuration key is required";
     } else if (formData.configurationKey.length > 255) {
@@ -211,37 +230,43 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
       errors.description = "Description must be 500 characters or less";
     }
 
-    // Data type specific validations
-    if (formData.dataType === "Integer") {
-      const intValue = parseInt(formData.configurationValue);
-      if (isNaN(intValue)) {
-        errors.configurationValue = "Value must be a valid integer";
-      }
-    } else if (formData.dataType === "Decimal") {
-      const decValue = parseFloat(formData.configurationValue);
-      if (isNaN(decValue)) {
-        errors.configurationValue = "Value must be a valid decimal number";
-      }
-    } else if (formData.dataType === "Boolean") {
-      const lowerValue = formData.configurationValue.toLowerCase();
-      if (!["true", "false", "1", "0"].includes(lowerValue)) {
-        errors.configurationValue = "Value must be true/false or 1/0";
-      }
-    } else if (formData.dataType === "Email") {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.configurationValue)) {
-        errors.configurationValue = "Value must be a valid email address";
-      }
-    } else if (formData.dataType === "Url") {
-      try {
-        new URL(formData.configurationValue);
-      } catch {
-        errors.configurationValue = "Value must be a valid URL";
-      }
+    if (formData.defaultValue && formData.defaultValue.length > 1000) {
+      errors.defaultValue = "Default value must be 1000 characters or less";
     }
 
-    // Min/Max value validations for numeric types
-    if (["Integer", "Decimal"].includes(formData.dataType)) {
+    const regexError = validateRegexPattern(formData.validationPattern);
+    if (regexError) {
+      errors.validationPattern = regexError;
+    }
+
+    const configurationValueError = validateConfiguredValue({
+      fieldLabel: "Configuration value",
+      rawValue: formData.configurationValue,
+      dataType: formData.dataType,
+      minValue: formData.minValue,
+      maxValue: formData.maxValue,
+      validationPattern: formData.validationPattern,
+      possibleValues: formData.possibleValues,
+    });
+    if (configurationValueError) {
+      errors.configurationValue = configurationValueError;
+    }
+
+    const defaultValueError = validateConfiguredValue({
+      fieldLabel: "Default value",
+      rawValue: formData.defaultValue,
+      dataType: formData.dataType,
+      minValue: formData.minValue,
+      maxValue: formData.maxValue,
+      validationPattern: formData.validationPattern,
+      possibleValues: formData.possibleValues,
+      allowEmpty: true,
+    });
+    if (defaultValueError) {
+      errors.defaultValue = defaultValueError;
+    }
+
+    if (["integer", "decimal"].includes(valueTypeDescriptor.kind)) {
       if (formData.minValue !== null && formData.maxValue !== null) {
         if (parseFloat(formData.minValue) >= parseFloat(formData.maxValue)) {
           errors.minValue = "Minimum value must be less than maximum value";
@@ -259,23 +284,18 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
       return;
     }
 
-    const saveData = { ...formData };
-
-    // Convert string values to appropriate types
-    if (formData.dataType === "Integer") {
-      saveData.configurationValue = parseInt(
-        formData.configurationValue
-      ).toString();
-    } else if (formData.dataType === "Decimal") {
-      saveData.configurationValue = parseFloat(
-        formData.configurationValue
-      ).toString();
-    } else if (formData.dataType === "Boolean") {
-      const lowerValue = formData.configurationValue.toLowerCase();
-      saveData.configurationValue = ["true", "1"]
-        .includes(lowerValue)
-        .toString();
-    }
+    const saveData = {
+      ...formData,
+      configurationValue: serializeConfiguredValue(
+        formData.configurationValue,
+        formData.dataType
+      ),
+      defaultValue: formData.defaultValue
+        ? serializeConfiguredValue(formData.defaultValue, formData.dataType)
+        : "",
+      validationPattern: formData.validationPattern.trim(),
+      possibleValues: formData.possibleValues,
+    };
 
     onSave(saveData);
   };
@@ -329,7 +349,6 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
 
   const renderBasicInfoTab = () => (
     <div className="tw-space-y-5">
-      {/* Configuration Key & Category Row */}
       <div className="tw-grid tw-grid-cols-2 tw-gap-4">
         <div>
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
@@ -345,6 +364,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
             stylingMode="outlined"
             className={isEditMode ? "tw-opacity-60" : ""}
           />
+          {renderFieldError(validationErrors.configurationKey)}
           {isEditMode && (
             <p className="tw-text-xs tw-text-gray-400 tw-mt-1 tw-flex tw-items-center tw-gap-1">
               <i className="fa-light fa-lock tw-text-xs"></i> Key cannot be
@@ -376,7 +396,6 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         </div>
       </div>
 
-      {/* Description */}
       <div>
         <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
           Description
@@ -388,9 +407,9 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
           height={80}
           stylingMode="outlined"
         />
+        {renderFieldError(validationErrors.description)}
       </div>
 
-      {/* Data Type & Value Row */}
       <div className="tw-grid tw-grid-cols-2 tw-gap-4">
         <div>
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
@@ -398,29 +417,39 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
           </label>
           <SelectBox
             value={formData.dataType}
-            onValueChanged={(e) => handleValueChange("dataType", e.value)}
+            onValueChanged={(e) => handleDataTypeChange(e.value)}
             dataSource={dataTypeOptions}
             valueExpr="value"
             displayExpr="text"
             stylingMode="outlined"
           />
+          <div className="system-config-type-summary">
+            <div className="system-config-type-summary__pill">
+              <i className={`fa-light ${valueTypeDescriptor.icon}`}></i>
+              <span>{valueTypeDescriptor.title}</span>
+            </div>
+            <p className="system-config-type-summary__text">
+              {valueTypeDescriptor.description}
+            </p>
+          </div>
         </div>
         <div>
           <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
             Configuration Value <span className="tw-text-red-500">*</span>
           </label>
-          <TextBox
+          <SystemConfigTypedValueEditor
+            dataType={formData.dataType}
             value={formData.configurationValue}
-            onValueChanged={(e) =>
-              handleValueChange("configurationValue", e.value)
-            }
-            placeholder="Enter configuration value..."
-            stylingMode="outlined"
+            onChange={(value) => handleValueChange("configurationValue", value)}
+            minValue={formData.minValue}
+            maxValue={formData.maxValue}
+            possibleValues={formData.possibleValues}
+            error={validationErrors.configurationValue}
           />
+          {renderFieldError(validationErrors.configurationValue)}
         </div>
       </div>
 
-      {/* Status Switches */}
       <div className="tw-grid tw-grid-cols-2 tw-gap-4 tw-pt-2">
         <div className="tw-flex tw-items-center tw-justify-between tw-p-4 tw-bg-gray-50 tw-rounded-lg tw-border tw-border-gray-100 hover:tw-border-gray-200 tw-transition-colors">
           <div className="tw-flex tw-items-center tw-gap-3">
@@ -480,24 +509,27 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
 
   const renderValidationTab = () => (
     <div className="tw-space-y-5">
-      {/* Default Value */}
       <div>
         <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
           <i className="fa-light fa-rotate-left tw-mr-1.5 tw-text-gray-400"></i>
           Default Value
         </label>
-        <TextBox
+        <SystemConfigTypedValueEditor
+          dataType={formData.dataType}
           value={formData.defaultValue}
-          onValueChanged={(e) => handleValueChange("defaultValue", e.value)}
-          placeholder="Default value if not set..."
-          stylingMode="outlined"
+          onChange={(value) => handleValueChange("defaultValue", value)}
+          minValue={formData.minValue}
+          maxValue={formData.maxValue}
+          possibleValues={formData.possibleValues}
+          error={validationErrors.defaultValue}
+          allowEmpty={true}
         />
+        {renderFieldError(validationErrors.defaultValue)}
         <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
           Used when configuration value is empty or invalid
         </p>
       </div>
 
-      {/* Validation Pattern */}
       <div>
         <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
           <i className="fa-light fa-code tw-mr-1.5 tw-text-gray-400"></i>
@@ -511,13 +543,13 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
           placeholder="e.g., ^[a-zA-Z0-9]+$"
           stylingMode="outlined"
         />
+        {renderFieldError(validationErrors.validationPattern)}
         <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
           Regular expression to validate the configuration value
         </p>
       </div>
 
-      {/* Min/Max Values for Numeric Types */}
-      {["Integer", "Decimal"].includes(formData.dataType) && (
+      {["integer", "decimal"].includes(valueTypeDescriptor.kind) && (
         <div className="tw-p-4 tw-bg-blue-50 tw-rounded-lg tw-border tw-border-blue-100">
           <div className="tw-flex tw-items-center tw-gap-2 tw-mb-3">
             <i className="fa-light fa-sliders tw-text-blue-600"></i>
@@ -536,6 +568,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
                 placeholder="Min"
                 stylingMode="outlined"
               />
+              {renderFieldError(validationErrors.minValue)}
             </div>
             <div>
               <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
@@ -552,7 +585,6 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
         </div>
       )}
 
-      {/* Possible Values */}
       <div>
         <label className="tw-block tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1.5">
           <i className="fa-light fa-list-check tw-mr-1.5 tw-text-gray-400"></i>
@@ -566,7 +598,7 @@ const SystemConfigForm = ({ visible, config, onSave, onCancel, saving }) => {
           stylingMode="outlined"
         />
         <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
-          Comma-separated list of valid values (optional)
+          Comma-separated or newline-separated values. When provided, the value editor becomes a pick list.
         </p>
       </div>
     </div>

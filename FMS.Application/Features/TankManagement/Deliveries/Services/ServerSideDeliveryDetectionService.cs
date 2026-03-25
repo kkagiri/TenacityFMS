@@ -17,11 +17,13 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Configuration;
+using FMS.Application.Features.TankManagement.TankCalibration.Events;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.TankStockManagement;
 using FMS.Domain.Entities.PTS.PTSStatus.ProbeStatus;
 using FMS.Persistence.DataAccess;
+using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
@@ -34,6 +36,7 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
         private readonly GpsdataContext _context;
         private readonly ISystemConfigurationService _configService;
         private readonly IInTankDeliveryDetectionService _itdService;
+        private readonly IMediator _mediator;
         private readonly ILogger<ServerSideDeliveryDetectionService> _logger;
 
         private static readonly TimeSpan StateExpiry = TimeSpan.FromMinutes(180); // 3h TTL safety net
@@ -43,12 +46,14 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
             GpsdataContext context,
             ISystemConfigurationService configService,
             IInTankDeliveryDetectionService itdService,
+            IMediator mediator,
             ILogger<ServerSideDeliveryDetectionService> logger)
         {
             _redisDb = redisConnection.GetDatabase();
             _context = context;
             _configService = configService;
             _itdService = itdService;
+            _mediator = mediator;
             _logger = logger;
         }
 
@@ -370,6 +375,17 @@ namespace FMS.Application.Features.TankManagement.Deliveries.Services
 
                 // Reuse existing ITD pipeline (alerts, ledger, matching)
                 await _itdService.ProcessDetectedDeliveryAsync(delivery, tank, ct);
+
+                // Notify calibration system so it can extract data points from this delivery
+                try
+                {
+                    await _mediator.Publish(new InTankDeliveryCompletedNotification(
+                        delivery.DeliveryId, tankId, DateTime.UtcNow), ct);
+                }
+                catch (Exception pubEx)
+                {
+                    _logger.LogWarning(pubEx, "[ServerITD] Failed to publish InTankDeliveryCompletedNotification for delivery {DeliveryId}", delivery.DeliveryId);
+                }
             }
             catch (Exception ex)
             {

@@ -183,6 +183,9 @@ namespace FMS.WebClient.Services.Reporting
                 ["tank-volume-history-report"] = JsReportHtmlTemplates.TankVolumeHistory,
                 ["issue-tracker-report"] = JsReportHtmlTemplates.IssueTracker,
                 ["consumption-by-refills-report"] = JsReportHtmlTemplates.ConsumptionByRefills,
+                ["tank-level-detail-report"] = JsReportHtmlTemplates.TankLevelDetail,
+                ["alarm-report"] = JsReportHtmlTemplates.AlarmReport,
+                ["storage-received-vs-dispensed-report"] = JsReportHtmlTemplates.StorageReceivedVsDispensed,
                 ["vehicle-trip-analysis-report"] = VehicleTripAnalysisHtmlTemplate.Get,
                 ["live-trip-operations-report"] = LiveTripOperationsHtmlTemplate.Get,
             };

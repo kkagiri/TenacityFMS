@@ -274,10 +274,16 @@ const VehicleDetailsScreen = ({ navigation, route }) => {
           </TouchableOpacity>
         </View>
 
-        {/* Dashboard + Search (VehicleDashboard already includes search) */}
+        {/* Search + Dashboard combined */}
         <VehicleDashboard
           onSelectVehicle={handleSelectVehicle}
           isConnected={isConnected}
+          searchComponent={
+            <VehicleSearch
+              onSelectVehicle={handleSelectVehicle}
+              selectedVehicle={null}
+            />
+          }
         />
       </SafeAreaView>
     );

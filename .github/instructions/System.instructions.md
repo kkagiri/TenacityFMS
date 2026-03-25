@@ -53,11 +53,11 @@
 
 > ⚠️ **Strictly Enforced**
 
-- **ONLY write documentation when the user explicitly requests it with the `[doc]` prefix**
+- **ONLY write documentation when the user explicitly requests it **
 - DO NOT auto-generate documentation at any time
 - DO NOT suggest documentation unless the user asks
-- Write documentation ONCE ONLY per `[doc]` request
-
+- Write documentation ONCE ONLY per request
+9Wrapped all explicit transaction blocks with _context.Database.CreateExecutionStrategy().ExecuteAsync(...)
 **Folder structure for all documentation:**
 
 ```

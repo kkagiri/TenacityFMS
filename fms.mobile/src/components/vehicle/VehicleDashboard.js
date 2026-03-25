@@ -33,7 +33,7 @@ const SUMMARY_CARDS = [
   { key: "parked", label: "Parked", icon: "parking", color: "#f59e0b", bgColor: "#fffbeb", field: "parkedVehicles", altField: "ParkedVehicles" },
 ];
 
-const VehicleDashboard = ({ onSelectVehicle, isConnected }) => {
+const VehicleDashboard = ({ onSelectVehicle, isConnected, searchComponent }) => {
   const dispatch = useDispatch();
   const { trackingSummary, trackingSummaryLoading } = useSelector((state) => state.vehicle);
 
@@ -241,6 +241,13 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected }) => {
 
   const renderHeader = () => (
     <View>
+      {/* Vehicle Search (passed from parent) */}
+      {searchComponent && (
+        <View style={styles.searchComponentWrapper}>
+          {searchComponent}
+        </View>
+      )}
+
       {/* Connection Status */}
       <View style={[styles.connectionBar, isConnected ? styles.connectionOnline : styles.connectionOffline]}>
         <Icon
@@ -352,6 +359,14 @@ const VehicleDashboard = ({ onSelectVehicle, isConnected }) => {
 const styles = StyleSheet.create({
   listContent: {
     paddingBottom: 20,
+  },
+  searchComponentWrapper: {
+    backgroundColor: "white",
+    paddingHorizontal: 12,
+    paddingTop: 8,
+    paddingBottom: 4,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   connectionBar: {
     flexDirection: "row",

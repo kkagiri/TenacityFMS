@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Common.PTSResponse;
+using FMS.Application.Events.Pump;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.ATG.Common;
 using FMS.Application.Services.Configuration;
@@ -136,6 +137,20 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.PumpTransactionCom
                 }
 
                 await _context.SaveChangesAsync(cancellationToken);
+
+                // Publish event so downstream handlers (refueling, calibration) can react
+                try
+                {
+                    await _mediator.Publish(new TransactionCompletedEvent(
+                        pumpTransactionData.PtsId,
+                        pumpTransactionData.Pump ?? 0,
+                        pumpTransactionData.Id,
+                        pumpTransactionData.Nozzle), cancellationToken);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogWarning(ex, "Failed to publish TransactionCompletedEvent for transaction {Id}", pumpTransactionData.Id);
+                }
 
                 // Process tank volume history if configured, not a duplicate, and we have tank ID
                 var autoCreateLedger = await _systemConfigService.GetPtsAutoCreateLedgerEntriesAsync(cancellationToken);
