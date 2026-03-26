@@ -190,6 +190,17 @@ const getCalibrationSourceSummary = (value) => {
     }
 };
 
+const getProductVolumeSourceSummary = (value) => {
+    switch (value) {
+        case "pts":
+            return "PTS product volume";
+        case "fms-calibrated":
+            return "FMS calibrated volume";
+        default:
+            return "System default";
+    }
+};
+
 /* ── helpers ── */
 const isOnline = (s) => {
     const n = (s || "").toLowerCase();
@@ -250,6 +261,7 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
     const [usePtsProbeReadings, setUsePtsProbeReadings] = useState(false);
     const [probePhysicalStockUpdateSource, setProbePhysicalStockUpdateSource] = useState(DEFAULT_PHYSICAL_STOCK_SOURCE);
     const [calibrationChartSource, setCalibrationChartSource] = useState(AUTO_CALIBRATION_SOURCE);
+    const [productVolumeSource, setProductVolumeSource] = useState("");
     const [signalRConnected, setSignalRConnected] = useState(false);
     const [connecting, setConnecting] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -299,6 +311,7 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
         setUsePtsProbeReadings(Boolean(tank?.usePtsProbeReadings));
         setProbePhysicalStockUpdateSource(tank?.probePhysicalStockUpdateSource || DEFAULT_PHYSICAL_STOCK_SOURCE);
         setCalibrationChartSource(tank?.calibrationChartSource || AUTO_CALIBRATION_SOURCE);
+        setProductVolumeSource(tank?.productVolumeSource || "");
         setConfigProbes([]);
         setConfigTanks([]);
         setConfigError(null);
@@ -559,6 +572,7 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 usePtsProbeReadings,
                 probePhysicalStockUpdateSource: probePhysicalStockUpdateSource || null,
                 calibrationChartSource: calibrationChartSource || null,
+                productVolumeSource: productVolumeSource || null,
                 useBookKeeping: Boolean(tank.useBookKeeping),
                 hasAutomaticBookKeeping: Boolean(tank.hasAutomaticBookKeeping),
                 priority: tank.priority || null,
@@ -588,7 +602,7 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
         } finally {
             if (mounted.current) setSaving(false);
         }
-    }, [tank, selectedDeviceId, selectedProbeNumber, selectedPtsTankId, usePtsProbeReadings, probePhysicalStockUpdateSource, calibrationChartSource, availableProbes.length, configTanks.length, dispatch, onLinked, onClose]);
+    }, [tank, selectedDeviceId, selectedProbeNumber, selectedPtsTankId, usePtsProbeReadings, probePhysicalStockUpdateSource, calibrationChartSource, productVolumeSource, availableProbes.length, configTanks.length, dispatch, onLinked, onClose]);
 
     return (
         <div className="m365-pts-link-panel">
@@ -623,6 +637,8 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                     onProbePhysicalStockUpdateSourceChange={setProbePhysicalStockUpdateSource}
                     calibrationChartSource={calibrationChartSource}
                     onCalibrationChartSourceChange={setCalibrationChartSource}
+                    productVolumeSource={productVolumeSource}
+                    onProductVolumeSourceChange={setProductVolumeSource}
                     onOpenCalibrationPreview={openCalibrationPreview}
                     onOpenCalibrationHelp={() => setHelpOpen(true)}
                 />
@@ -641,6 +657,8 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 </p>
                 <p style={{ fontSize: 12, color: "var(--m365-text-secondary)", marginTop: 6 }}>
                     Physical stock owner: <strong>{getPhysicalStockSourceSummary(probePhysicalStockUpdateSource)}</strong>
+                    {" · "}
+                    Stored product volume: <strong>{getProductVolumeSourceSummary(productVolumeSource)}</strong>
                     {" · "}
                     Local calibration source: <strong>{getCalibrationSourceSummary(calibrationChartSource)}</strong>
                 </p>
@@ -695,6 +713,10 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                         <div className="m365-pts-calibration-preview__summary-card">
                             <span className="m365-pts-calibration-preview__label">Resolved source</span>
                             <strong>{getChartDisplayName(previewData?.effectiveChartType)}</strong>
+                        </div>
+                        <div className="m365-pts-calibration-preview__summary-card">
+                            <span className="m365-pts-calibration-preview__label">Stored volume source</span>
+                            <strong>{getProductVolumeSourceSummary(productVolumeSource)}</strong>
                         </div>
                         <div className="m365-pts-calibration-preview__summary-card">
                             <span className="m365-pts-calibration-preview__label">Physical stock owner</span>
@@ -914,6 +936,15 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                             <p>
                                 The local calibration storage already exists in <strong>TankCalibrationSnapshot</strong> and already supports tank and probe-aware snapshots. The recent backend work changed how those snapshots are chosen and validated; it did not need another schema change for the snapshot table itself.
                             </p>
+                        </section>
+
+                        <section className="m365-pts-help-panel__card">
+                            <h4><i className="fa-light fa-waveform-lines"></i> Stored Product Volume Source</h4>
+                            <ul className="m365-pts-help-panel__list">
+                                <li><strong>System default</strong>: keep a positive PTS ProductVolume when it arrives, otherwise derive from local calibration.</li>
+                                <li><strong>PTS product volume</strong>: trust the probe ProductVolume when it is usable; calibration is only a fallback when the PTS volume is missing.</li>
+                                <li><strong>FMS calibrated volume</strong>: prefer local height-to-volume calibration for the stored UploadStatus ProductVolume and only fall back to PTS when no usable local chart exists.</li>
+                            </ul>
                         </section>
 
                         <section className="m365-pts-help-panel__card">

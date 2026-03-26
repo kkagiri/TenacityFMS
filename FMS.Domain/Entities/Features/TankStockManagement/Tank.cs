@@ -50,6 +50,12 @@ public partial class Tank
     /// </summary>
     public string? CalibrationChartSource { get; set; }
 
+    /// <summary>
+    /// Controls which product-volume value should be stored from UploadStatus probe readings.
+    /// Supported values: pts, fms-calibrated. Null preserves legacy fallback behavior.
+    /// </summary>
+    public string? ProductVolumeSource { get; set; }
+
     public sbyte? UseBookKeeping { get; set; }
     public int SiteId { get; set; }
     public decimal? DiscrepancyThreshold { get; set; }

@@ -74,6 +74,10 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(32)
                     .IsRequired(false);
 
+                builder.Property(e => e.ProductVolumeSource)
+                    .HasMaxLength(32)
+                    .IsRequired(false);
+
                 // =====================================================
                 // Location Validation Properties
                 // =====================================================

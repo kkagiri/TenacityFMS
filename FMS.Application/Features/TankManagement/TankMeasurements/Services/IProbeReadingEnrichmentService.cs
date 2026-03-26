@@ -7,6 +7,7 @@
  * Key Functions:
  * - ShouldSaveReadingAsync(): Checks Redis to skip duplicate/unchanged readings.
  * - EnrichVolumeFromCalibrationAsync(): Looks up ProductVolume from calibration chart when PTS sends 0.
+ * - ResolveProductVolumeAsync(): Chooses the stored ProductVolume based on tank preference, PTS volume, and local calibration.
  * - MarkReadingSavedAsync(): Updates the Redis last-saved cache after persisting a reading.
  */
 using System.Threading;
@@ -31,5 +32,18 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
         /// Returns the calculated volume in liters, or null if no calibration data is available.
         /// </summary>
         Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, int? probeNumber, string? preferredChartSource, double? productHeightMm, CancellationToken cancellationToken = default);
+
+        /// <summary>
+        /// Chooses the ProductVolume that should be persisted for an UploadStatus reading.
+        /// Respects tank preference for trusting PTS volume versus preferring locally calibrated height-to-volume.
+        /// </summary>
+        Task<double?> ResolveProductVolumeAsync(
+            int tankId,
+            int? probeNumber,
+            string? preferredProductVolumeSource,
+            string? preferredChartSource,
+            double? incomingProductVolume,
+            double? productHeightMm,
+            CancellationToken cancellationToken = default);
     }
 }

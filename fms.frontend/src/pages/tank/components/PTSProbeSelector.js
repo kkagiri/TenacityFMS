@@ -26,6 +26,8 @@
  * - onProbePhysicalStockUpdateSourceChange (func): Change stock owner
  * - calibrationChartSource (string): Preferred local calibration source
  * - onCalibrationChartSourceChange (func): Change calibration source
+ * - productVolumeSource (string): Preferred stored product-volume source
+ * - onProductVolumeSourceChange (func): Change stored product-volume source
  * - onOpenCalibrationPreview (func): Open calibration preview popup
  * - onOpenCalibrationHelp (func): Open calibration help panel
  */
@@ -55,6 +57,12 @@ const CALIBRATION_SOURCE_OPTIONS = [
     { value: "fms-learned", label: "FMS learned chart", hint: "Prefer the learned FMS calibration chart first." },
 ];
 
+const PRODUCT_VOLUME_SOURCE_OPTIONS = [
+    { value: "", label: "System default", hint: "Use existing behavior: keep positive PTS volume, otherwise derive from local calibration." },
+    { value: "pts", label: "PTS product volume", hint: "Trust the probe ProductVolume when it is usable and only derive from calibration if PTS volume is missing." },
+    { value: "fms-calibrated", label: "FMS calibrated volume", hint: "Prefer local height-to-volume calibration for the stored UploadStatus ProductVolume." },
+];
+
 const PTSProbeSelector = ({
     availableProbes,
     selectedProbeNumber,
@@ -76,6 +84,8 @@ const PTSProbeSelector = ({
     onProbePhysicalStockUpdateSourceChange,
     calibrationChartSource,
     onCalibrationChartSourceChange,
+    productVolumeSource,
+    onProductVolumeSourceChange,
     onOpenCalibrationPreview,
     onOpenCalibrationHelp,
 }) => {
@@ -97,6 +107,11 @@ const PTSProbeSelector = ({
     const selectedCalibrationSource = useMemo(
         () => CALIBRATION_SOURCE_OPTIONS.find((option) => option.value === calibrationChartSource) || CALIBRATION_SOURCE_OPTIONS[0],
         [calibrationChartSource]
+    );
+
+    const selectedProductVolumeSource = useMemo(
+        () => PRODUCT_VOLUME_SOURCE_OPTIONS.find((option) => option.value === productVolumeSource) || PRODUCT_VOLUME_SOURCE_OPTIONS[0],
+        [productVolumeSource]
     );
 
     return (
@@ -351,6 +366,21 @@ const PTSProbeSelector = ({
                                 ))}
                             </select>
                             <p className="m365-field__hint">{selectedPhysicalStockSource.hint}</p>
+                        </div>
+                        <div>
+                            <label className="m365-field__label">Stored Product Volume Source</label>
+                            <select
+                                className="m365-select"
+                                value={productVolumeSource ?? ""}
+                                onChange={(event) => onProductVolumeSourceChange(event.target.value)}
+                            >
+                                {PRODUCT_VOLUME_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value || "volume-default"} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="m365-field__hint">{selectedProductVolumeSource.hint}</p>
                         </div>
                         <div>
                             <label className="m365-field__label">Local Calibration Source</label>

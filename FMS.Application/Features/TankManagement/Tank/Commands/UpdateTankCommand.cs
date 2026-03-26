@@ -70,8 +70,15 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     throw new ArgumentException("CalibrationChartSource must be auto, manual, automatic, interval-volume, or fms-learned");
                 }
 
+                var normalizedProductVolumeSource = TankProbeConfigurationOptions.NormalizeProductVolumeSource(request.Tank.ProductVolumeSource);
+                if (!string.IsNullOrWhiteSpace(request.Tank.ProductVolumeSource) && normalizedProductVolumeSource == null)
+                {
+                    throw new ArgumentException("ProductVolumeSource must be pts or fms-calibrated");
+                }
+
                 tank.ProbePhysicalStockUpdateSource = normalizedPhysicalStockUpdateSource;
                 tank.CalibrationChartSource = normalizedCalibrationChartSource;
+                tank.ProductVolumeSource = normalizedProductVolumeSource;
 
                 // Fuel Grade
                 tank.FuelGradeId = request.Tank.FuelGradeId;

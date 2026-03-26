@@ -53,6 +53,12 @@ namespace FMS.Application.Features.FMS.Tank
         /// </summary>
         public string? CalibrationChartSource { get; set; }
 
+        /// <summary>
+        /// Selects which product-volume value should be persisted from UploadStatus.
+        /// Supported values: pts, fms-calibrated.
+        /// </summary>
+        public string? ProductVolumeSource { get; set; }
+
         public int SiteId { get; set; }
         public decimal? DiscrepancyThreshold { get; set; }
         public decimal? TankLength { get; set; }

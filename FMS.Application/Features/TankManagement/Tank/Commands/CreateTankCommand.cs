@@ -36,6 +36,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
             {
                 var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(request.TankDto.ProbePhysicalStockUpdateSource);
                 var normalizedCalibrationChartSource = TankProbeConfigurationOptions.NormalizeCalibrationChartSource(request.TankDto.CalibrationChartSource);
+                var normalizedProductVolumeSource = TankProbeConfigurationOptions.NormalizeProductVolumeSource(request.TankDto.ProductVolumeSource);
 
                 if (!string.IsNullOrWhiteSpace(request.TankDto.ProbePhysicalStockUpdateSource) && normalizedPhysicalStockUpdateSource == null)
                 {
@@ -45,6 +46,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                 if (!string.IsNullOrWhiteSpace(request.TankDto.CalibrationChartSource) && normalizedCalibrationChartSource == null)
                 {
                     throw new ArgumentException("CalibrationChartSource must be auto, manual, automatic, interval-volume, or fms-learned");
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.TankDto.ProductVolumeSource) && normalizedProductVolumeSource == null)
+                {
+                    throw new ArgumentException("ProductVolumeSource must be pts or fms-calibrated");
                 }
 
                 // Direct property assignment instead of AutoMapper
@@ -70,6 +76,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     UsePtsProbeReadings = request.TankDto.UsePtsProbeReadings,
                     ProbePhysicalStockUpdateSource = normalizedPhysicalStockUpdateSource,
                     CalibrationChartSource = normalizedCalibrationChartSource,
+                    ProductVolumeSource = normalizedProductVolumeSource,
 
                     // Fuel Grade
                     FuelGradeId = request.TankDto.FuelGradeId,

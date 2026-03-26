@@ -153,6 +153,77 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
 
         #region Calibration Volume Enrichment
 
+        public async Task<double?> ResolveProductVolumeAsync(
+            int tankId,
+            int? probeNumber,
+            string? preferredProductVolumeSource,
+            string? preferredChartSource,
+            double? incomingProductVolume,
+            double? productHeightMm,
+            CancellationToken cancellationToken = default)
+        {
+            var normalizedProductVolumeSource = TankProbeConfigurationOptions.NormalizeProductVolumeSource(preferredProductVolumeSource);
+            var hasUsablePtsVolume = incomingProductVolume.HasValue && incomingProductVolume.Value > 0;
+
+            if (string.Equals(normalizedProductVolumeSource, TankProbeConfigurationOptions.FmsCalibrated, StringComparison.Ordinal))
+            {
+                var calibratedVolume = await EnrichVolumeFromCalibrationAsync(
+                    tankId,
+                    probeNumber,
+                    preferredChartSource,
+                    productHeightMm,
+                    cancellationToken);
+
+                if (calibratedVolume.HasValue)
+                {
+                    _logger.LogDebug(
+                        "[ProbeEnrichment] Resolved product volume from FMS calibration for tank {TankId}, probe {ProbeNumber}: {Volume}L",
+                        tankId,
+                        probeNumber,
+                        calibratedVolume.Value);
+                    return calibratedVolume.Value;
+                }
+
+                if (hasUsablePtsVolume)
+                {
+                    _logger.LogWarning(
+                        "[ProbeEnrichment] Tank {TankId}, probe {ProbeNumber} prefers FMS calibrated volume but no usable local chart was found. Falling back to PTS ProductVolume {Volume}L",
+                        tankId,
+                        probeNumber,
+                        incomingProductVolume.Value);
+                }
+
+                return hasUsablePtsVolume ? incomingProductVolume : null;
+            }
+
+            if (string.Equals(normalizedProductVolumeSource, TankProbeConfigurationOptions.Pts, StringComparison.Ordinal))
+            {
+                if (hasUsablePtsVolume)
+                {
+                    return incomingProductVolume;
+                }
+
+                return await EnrichVolumeFromCalibrationAsync(
+                    tankId,
+                    probeNumber,
+                    preferredChartSource,
+                    productHeightMm,
+                    cancellationToken);
+            }
+
+            if (hasUsablePtsVolume)
+            {
+                return incomingProductVolume;
+            }
+
+            return await EnrichVolumeFromCalibrationAsync(
+                tankId,
+                probeNumber,
+                preferredChartSource,
+                productHeightMm,
+                cancellationToken);
+        }
+
         public async Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, int? probeNumber, string? preferredChartSource, double? productHeightMm, CancellationToken cancellationToken = default)
         {
             if (!productHeightMm.HasValue || productHeightMm.Value <= 0)

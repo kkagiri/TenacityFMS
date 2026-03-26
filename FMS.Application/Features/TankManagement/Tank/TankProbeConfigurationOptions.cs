@@ -7,6 +7,7 @@
  * Key Functions:
  * - NormalizePhysicalStockUpdateSource(): Converts accepted aliases into canonical sensor source values.
  * - NormalizeCalibrationChartSource(): Converts accepted aliases into canonical calibration chart source values.
+ * - NormalizeProductVolumeSource(): Converts accepted aliases into canonical product-volume source values.
  */
 using System;
 
@@ -22,6 +23,9 @@ namespace FMS.Application.Features.FMS.Tank
         public const string Automatic = "automatic";
         public const string IntervalVolume = "interval-volume";
         public const string FmsLearned = "fms-learned";
+
+        public const string Pts = "pts";
+        public const string FmsCalibrated = "fms-calibrated";
 
         public static string? NormalizePhysicalStockUpdateSource(string? value)
         {
@@ -52,6 +56,21 @@ namespace FMS.Application.Features.FMS.Tank
                 "automatic" or "pts-automatic" or "pts_automatic" => Automatic,
                 "interval" or "interval-volume" or "interval_volume" => IntervalVolume,
                 "fms" or "fms-learned" or "fms_learned" => FmsLearned,
+                _ => null
+            };
+        }
+
+        public static string? NormalizeProductVolumeSource(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            return value.Trim().ToLowerInvariant() switch
+            {
+                "pts" or "pts-volume" or "pts_volume" => Pts,
+                "fms" or "fms-calibrated" or "fms_calibrated" or "calibrated" or "local-calibration" or "local_calibration" => FmsCalibrated,
                 _ => null
             };
         }

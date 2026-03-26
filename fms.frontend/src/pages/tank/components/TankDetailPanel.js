@@ -82,6 +82,17 @@ const getCalibrationSourceLabel = (value) => {
   }
 };
 
+const getProductVolumeSourceLabel = (value) => {
+  switch ((value || "").toLowerCase()) {
+    case "pts":
+      return "PTS product volume";
+    case "fms-calibrated":
+      return "FMS calibrated volume";
+    default:
+      return "System default";
+  }
+};
+
 const enabledBadge = (v) =>
   v
     ? <span className="m365-badge m365-badge--success">Enabled</span>
@@ -482,6 +493,10 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
             <div className="m365-info-cell">
               <span className="m365-info-cell__label">Physical Stock Owner</span>
               <span className="m365-info-cell__value">{getPhysicalStockOwnerLabel(tank.probePhysicalStockUpdateSource)}</span>
+            </div>
+            <div className="m365-info-cell">
+              <span className="m365-info-cell__label">Stored Product Volume</span>
+              <span className="m365-info-cell__value">{getProductVolumeSourceLabel(tank.productVolumeSource)}</span>
             </div>
             <div className="m365-info-cell">
               <span className="m365-info-cell__label">Live Volume</span>

@@ -88,7 +88,7 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
             }
 
             var measurements = probeStatus.OnlineStatus.Measurements
-                .Where(m => m != null && m.ProductVolume.HasValue && m.ProductVolume.Value >= 0)
+                .Where(HasUsableProbeMeasurement)
                 .ToList();
 
             if (measurements.Count == 0)
@@ -127,20 +127,19 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                     continue;
                 }
 
-                if (!probeMeasurement.ProductVolume.HasValue || probeMeasurement.ProductVolume <= 0)
-                {
-                    var calibratedVolume = await _probeReadingEnrichmentService
-                        .EnrichVolumeFromCalibrationAsync(
-                            tank.Id,
-                            tank.ProbeNumber ?? probeMeasurement.ProbeNumber,
-                            tank.CalibrationChartSource,
-                            probeMeasurement.ProductHeight,
-                            cancellationToken);
-                    if (calibratedVolume.HasValue)
-                    {
-                        probeMeasurement.ProductVolume = (float)calibratedVolume.Value;
-                    }
-                }
+                var resolvedProductVolume = await _probeReadingEnrichmentService
+                    .ResolveProductVolumeAsync(
+                        tank.Id,
+                        tank.ProbeNumber ?? probeMeasurement.ProbeNumber,
+                        tank.ProductVolumeSource,
+                        tank.CalibrationChartSource,
+                        probeMeasurement.ProductVolume,
+                        probeMeasurement.ProductHeight,
+                        cancellationToken);
+
+                probeMeasurement.ProductVolume = resolvedProductVolume.HasValue
+                    ? (float?)resolvedProductVolume.Value
+                    : null;
 
                 if (ShouldUpdatePhysicalStockFromUploadStatus(tank))
                 {
@@ -404,6 +403,19 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 tank.PtsId);
 
             return null;
+        }
+
+        private static bool HasUsableProbeMeasurement(ProbeMeasurement? measurement)
+        {
+            if (measurement == null)
+            {
+                return false;
+            }
+
+            var hasUsableVolume = measurement.ProductVolume.HasValue && measurement.ProductVolume.Value >= 0;
+            var hasUsableHeight = measurement.ProductHeight.HasValue && measurement.ProductHeight.Value > 0;
+
+            return hasUsableVolume || hasUsableHeight;
         }
 
         private static bool ShouldUpdatePhysicalStockFromUploadStatus(Tank tank)
