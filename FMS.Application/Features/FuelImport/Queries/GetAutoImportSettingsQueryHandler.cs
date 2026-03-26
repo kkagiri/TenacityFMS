@@ -2,7 +2,7 @@
  * File: GetAutoImportSettingsQueryHandler.cs
  * Purpose: Reads fuel auto-import settings (master toggle + profiles JSON) from SystemConfigurations table
  * Dependencies: GpsdataContext, MediatR, FMSResponse, SystemConfiguration constants
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-26
  */
 using System;
 using System.Collections.Generic;
@@ -39,18 +39,24 @@ public class GetAutoImportSettingsQueryHandler
         PropertyNameCaseInsensitive = true,
     };
 
+    private static readonly Dictionary<string, string> LegacyScanPathMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [@"Z:\Heavy Report"] = @"\\10.0.10.150\reports\Heavy Report",
+        [@"Z:\Truck Report"] = @"\\10.0.10.150\reports\Truck Report",
+    };
+
     /// <summary>Default profiles when none are stored in the database.</summary>
     private static readonly List<FuelAutoImportProfileDto> DefaultProfiles = new()
     {
         new FuelAutoImportProfileDto
         {
-            Id = "heavy_report", Name = "Heavy Report", ScanPath = @"Z:\Heavy Report",
+            Id = "heavy_report", Name = "Heavy Report", ScanPath = @"\\10.0.10.150\reports\Heavy Report",
             Enabled = true, IntervalMinutes = 0, ScheduleTime = "", BatchSize = 50,
             IncludeRetries = true, NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
         },
         new FuelAutoImportProfileDto
         {
-            Id = "truck_report", Name = "Truck Report", ScanPath = @"Z:\Truck Report",
+            Id = "truck_report", Name = "Truck Report", ScanPath = @"\\10.0.10.150\reports\Truck Report",
             Enabled = true, IntervalMinutes = 0, ScheduleTime = "", BatchSize = 50,
             IncludeRetries = true, NotificationsEnabled = false, NotifyOnSuccess = false, NotifyOnFailure = true
         }
@@ -94,7 +100,7 @@ public class GetAutoImportSettingsQueryHandler
                 try
                 {
                     var parsed = JsonSerializer.Deserialize<List<FuelAutoImportProfileDto>>(profilesJson, JsonOptions);
-                    if (parsed?.Count > 0) profiles = parsed;
+                    if (parsed?.Count > 0) profiles = parsed.Select(NormalizeProfile).ToList();
                 }
                 catch (JsonException ex)
                 {
@@ -105,7 +111,7 @@ public class GetAutoImportSettingsQueryHandler
             var dto = new FuelAutoImportSettingsDto
             {
                 Enabled = enabled,
-                Profiles = profiles
+                Profiles = profiles.Select(NormalizeProfile).ToList()
             };
 
             return FMSResponse<FuelAutoImportSettingsDto>.Success(dto, "Auto-import settings retrieved successfully");
@@ -115,5 +121,18 @@ public class GetAutoImportSettingsQueryHandler
             _logger.LogError(ex, "Error retrieving fuel auto-import settings");
             return FMSResponse<FuelAutoImportSettingsDto>.Failed("Failed to retrieve auto-import settings");
         }
+    }
+
+    private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile.ScanPath))
+            return profile;
+
+        var normalized = profile.ScanPath.Trim().TrimEnd('\\', '/');
+        if (!LegacyScanPathMappings.TryGetValue(normalized, out var mappedPath))
+            return profile;
+
+        profile.ScanPath = mappedPath;
+        return profile;
     }
 }

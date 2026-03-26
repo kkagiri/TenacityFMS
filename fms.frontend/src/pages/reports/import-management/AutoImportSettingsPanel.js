@@ -169,7 +169,7 @@ const ProfileCard = ({ profile, updateProfileField, removeProfile, canManage }) 
                                 className="m365-input tw-w-full"
                                 value={profile.scanPath}
                                 onChange={(e) => update("scanPath", e.target.value)}
-                                placeholder="e.g. Z:\Heavy Report"
+                                placeholder="e.g. \\10.0.10.150\reports\Heavy Report"
                             />
                         </div>
                     </div>

@@ -388,7 +388,7 @@ public class Program
     private static void EnsureLogDirectoriesExist()
     {
         var logBasePath = "C:\\Logs\\FMS.Webclient";
-        var subDirectories = new[] { "app", "errors", "audit", "slow", "startup", "gps", "fuel", "signalr", "issues", "efcore" };
+        var subDirectories = new[] { "app", "errors", "audit", "slow", "startup", "gps", "fuel", "import", "signalr", "issues", "efcore" };
 
         try
         {

@@ -3,7 +3,7 @@
  * Purpose: Orchestrates the auto-import pipeline: scan directories → detect changes → parse → import → track results.
  *          Dispatches existing ImportFuelReportCommand for each file's parsed records.
  * Dependencies: IExcelParsingService, IFileTrackerService, IMediator, GpsdataContext, IConfiguration
- * Last Modified: 2026-03-03
+ * Last Modified: 2026-03-26
  *
  * Key Functions:
  * - ScanAndImportAsync: Full pipeline with batch processing
@@ -41,13 +41,19 @@ public class FuelAutoImportService : IFuelAutoImportService
     // Default scan paths (overridable via SystemConfigurations DB or appsettings "FuelAutoImport:ScanPaths")
     private static readonly string[] DefaultScanPaths = new[]
     {
-        @"Z:\Heavy Report",
-        @"Z:\Truck Report",
+        @"\\10.0.10.150\reports\Heavy Report",
+        @"\\10.0.10.150\reports\Truck Report",
     };
 
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+    };
+
+    private static readonly Dictionary<string, string> LegacyScanPathMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [@"Z:\Heavy Report"] = @"\\10.0.10.150\reports\Heavy Report",
+        [@"Z:\Truck Report"] = @"\\10.0.10.150\reports\Truck Report",
     };
 
     public FuelAutoImportService(
@@ -186,6 +192,8 @@ public class FuelAutoImportService : IFuelAutoImportService
 
     public async Task<AutoImportResult> ImportSingleFileAsync(string filePath, string userId = "SYSTEM_AUTO_IMPORT")
     {
+        _logger.LogInformation("Manual single-file import requested for {FilePath} by {UserId}", filePath, userId);
+
         var options = new AutoImportOptions
         {
             ScanPaths = new List<string> { Path.GetDirectoryName(filePath)! },
@@ -258,11 +266,15 @@ public class FuelAutoImportService : IFuelAutoImportService
                 {
                     var enabledPaths = profiles
                         .Where(p => p.Enabled && !string.IsNullOrWhiteSpace(p.ScanPath))
-                        .Select(p => p.ScanPath!)
+                        .Select(p => NormalizeScanPath(p.ScanPath!))
                         .ToList();
 
                     if (enabledPaths.Count > 0)
+                    {
+                        _logger.LogInformation("Resolved auto-import scan paths from SystemConfigurations profiles: {Paths}",
+                            string.Join(", ", enabledPaths));
                         return enabledPaths;
+                    }
                 }
             }
         }
@@ -273,7 +285,17 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         // 2. Try appsettings.json
         var configPaths = _configuration.GetSection("FuelAutoImport:ScanPaths").Get<string[]>();
-        return (configPaths?.Length > 0 ? configPaths : DefaultScanPaths).ToList();
+        var resolvedPaths = (configPaths?.Length > 0 ? configPaths : DefaultScanPaths)
+            .Select(NormalizeScanPath)
+            .ToList();
+
+        _logger.LogInformation(
+            configPaths?.Length > 0
+                ? "Resolved auto-import scan paths from appsettings: {Paths}"
+                : "Resolved auto-import scan paths from compiled defaults: {Paths}",
+            string.Join(", ", resolvedPaths));
+
+        return resolvedPaths;
     }
 
     /// <summary>
@@ -370,9 +392,19 @@ public class FuelAutoImportService : IFuelAutoImportService
     {
         var processResult = new FileProcessResult();
 
+        _logger.LogInformation(
+            "Starting auto-import for file {FileName}. Path: {FilePath}, ReportType: {ReportType}, DetectedSite: {DetectedSite}, UserId: {UserId}",
+            metadata.FileName,
+            metadata.FilePath,
+            metadata.ReportType,
+            metadata.DetectedSiteName ?? "unknown",
+            userId);
+
         // 1. Register or update tracker
         var tracker = await _fileTrackerService.RegisterOrUpdateFileAsync(metadata);
         await _fileTrackerService.MarkAsProcessingAsync(tracker.Id);
+
+        _logger.LogInformation("Tracker {TrackerId} marked as Processing for {FileName}", tracker.Id, metadata.FileName);
 
         try
         {
@@ -401,11 +433,19 @@ public class FuelAutoImportService : IFuelAutoImportService
 
             processResult.Warnings.AddRange(parseResult.Warnings);
 
+            _logger.LogInformation(
+                "Parsed file {FileName}. Success: {Success}, Records: {RecordCount}, Warnings: {WarningCount}",
+                metadata.FileName,
+                parseResult.Success,
+                parseResult.Records.Count,
+                parseResult.Warnings.Count);
+
             if (!parseResult.Success || parseResult.Records.Count == 0)
             {
                 var error = parseResult.ErrorMessage ?? "No valid records found in file";
                 await _fileTrackerService.MarkAsFailedAsync(tracker.Id, error);
                 processResult.ErrorMessage = error;
+                _logger.LogWarning("Parsing failed for {FileName}. TrackerId: {TrackerId}, Error: {Error}", metadata.FileName, tracker.Id, error);
                 return processResult;
             }
 
@@ -416,7 +456,12 @@ public class FuelAutoImportService : IFuelAutoImportService
                 SkipDuplicates = true,
                 OverwriteExisting = false,
                 UserId = userId,
-                JobId = $"auto-import-{tracker.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}"
+                JobId = $"auto-import-{tracker.Id}-{DateTime.UtcNow:yyyyMMddHHmmss}",
+                SourceFileName = metadata.FileName,
+                SourceFilePath = metadata.FilePath,
+                SourceReportType = metadata.ReportType,
+                SourceDetectedSiteName = metadata.DetectedSiteName,
+                ImportMode = "Auto Import"
             };
 
             var importResult = await _mediator.Send(command);
@@ -446,12 +491,14 @@ public class FuelAutoImportService : IFuelAutoImportService
                 var error = importResult.Message ?? "Import command returned failure";
                 await _fileTrackerService.MarkAsFailedAsync(tracker.Id, error);
                 processResult.ErrorMessage = error;
+                _logger.LogWarning("Import command failed for {FileName}. TrackerId: {TrackerId}, Error: {Error}", metadata.FileName, tracker.Id, error);
             }
         }
         catch (Exception ex)
         {
             await _fileTrackerService.MarkAsFailedAsync(tracker.Id, ex.Message);
             processResult.ErrorMessage = ex.Message;
+            _logger.LogError(ex, "Unhandled auto-import failure for {FileName}. TrackerId: {TrackerId}", metadata.FileName, tracker.Id);
             throw; // Let caller handle logging
         }
 
@@ -466,6 +513,15 @@ public class FuelAutoImportService : IFuelAutoImportService
         if (string.IsNullOrWhiteSpace(siteName))
             return 0;
         return siteLookup.TryGetValue(siteName.Trim(), out var id) ? id : 0;
+    }
+
+    private static string NormalizeScanPath(string scanPath)
+    {
+        if (string.IsNullOrWhiteSpace(scanPath))
+            return scanPath;
+
+        var normalized = scanPath.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
+        return LegacyScanPathMappings.TryGetValue(normalized, out var mappedPath) ? mappedPath : normalized;
     }
 
     #endregion

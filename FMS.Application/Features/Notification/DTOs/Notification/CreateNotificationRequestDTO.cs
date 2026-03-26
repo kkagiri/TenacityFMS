@@ -1,13 +1,22 @@
+/**
+ * File: CreateNotificationRequestDTO.cs
+ * Purpose: Contract for creating notifications with optional recipient and category overrides.
+ * Dependencies: NotificationRecipientDto, notification enums
+ * Last Modified: 2026-03-26
+ */
 using System;
 using System.Collections.Generic;
 using FMS.Application.Features.Notification.DTOs.NotificationRecipient;
 using FMS.Application.Features.Notification.Enums;
 
-namespace FMS.Application.Features.Notification.DTOs {
-    public class CreateNotificationRequest {
+namespace FMS.Application.Features.Notification.DTOs
+{
+    public class CreateNotificationRequest
+    {
         public string? NotificationId { get; set; }
         public NotificationType Type { get; set; }
         public int CategoryId { get; set; } // Changed to use category ID
+        public string? CategoryName { get; set; }
         public NotificationPriority? Priority { get; set; }
         public string Title { get; set; } = null!;
         public string Message { get; set; } = null!;
@@ -23,7 +32,7 @@ namespace FMS.Application.Features.Notification.DTOs {
         public int? AlarmId { get; set; }
         public int? NotificationPolicyId { get; set; }
 
-        public List<NotificationRecipientDto> ? Recipients { get; set; }
+        public List<NotificationRecipientDto>? Recipients { get; set; }
 
         /// <summary>
         /// Suppresses resolver fallback that would broadcast to all active users when no recipients are resolved.

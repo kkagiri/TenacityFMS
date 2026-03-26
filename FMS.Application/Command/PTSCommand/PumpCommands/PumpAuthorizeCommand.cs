@@ -813,10 +813,34 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
 
             // Get site ID for context
             int? siteId = null;
+            string? tankName = null;
             if (request.TankId.HasValue)
             {
                 var tank = await _context.Tanks.FindAsync(request.TankId.Value);
                 siteId = tank?.SiteId;
+                tankName = tank?.Name;
+            }
+
+            string? vehicleName = null;
+            if (request.VehicleId.HasValue)
+            {
+                var vehicle = await _context.Vehicles
+                    .AsNoTracking()
+                    .Where(v => v.VehicleId == request.VehicleId.Value)
+                    .Select(v => new { v.NumberPlate, v.HyoungNo })
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                vehicleName = vehicle?.NumberPlate ?? vehicle?.HyoungNo;
+            }
+
+            string? userName = null;
+            if (!string.IsNullOrWhiteSpace(request.UserId))
+            {
+                userName = await _context.Users
+                    .AsNoTracking()
+                    .Where(u => u.Id == request.UserId)
+                    .Select(u => u.UserName)
+                    .FirstOrDefaultAsync(cancellationToken);
             }
 
             // Get auto-create ledger setting from system configuration
@@ -844,6 +868,9 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 TankId = request.TankId,
                 VehicleId = request.VehicleId,
                 UserId = request.UserId,
+                VehicleName = vehicleName,
+                TankName = tankName,
+                UserName = userName,
                 SiteId = siteId,
                 Odometer = request.Odometer,
                 FuelLevelBefore = fuelLevelBefore,
@@ -867,7 +894,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 // ConfigurationId can be populated if available from device
                 ConfigurationId = null,
                 // Employee/Driver who is performing the fueling
-                EmployeeId = request.EmployeeId
+                EmployeeId = request.EmployeeId,
+                IsTransferMode = false
             };
 
             await _transactionContextService.StoreTransactionContextAsync(transactionContext);
