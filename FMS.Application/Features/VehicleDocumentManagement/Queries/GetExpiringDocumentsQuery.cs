@@ -1,4 +1,3 @@
-using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using FMS.Persistence.DataAccess;
@@ -21,13 +20,11 @@ public class GetExpiringDocumentsQuery : IRequest<FMSResponse<List<VehicleDocume
 public class GetExpiringDocumentsQueryHandler : IRequestHandler<GetExpiringDocumentsQuery, FMSResponse<List<VehicleDocumentDto>>>
 {
     private readonly GpsdataContext _context;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetExpiringDocumentsQueryHandler> _logger;
 
-    public GetExpiringDocumentsQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetExpiringDocumentsQueryHandler> logger)
+    public GetExpiringDocumentsQueryHandler(GpsdataContext context, ILogger<GetExpiringDocumentsQueryHandler> logger)
     {
         _context = context;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -35,23 +32,24 @@ public class GetExpiringDocumentsQueryHandler : IRequestHandler<GetExpiringDocum
     {
         try
         {
-            var documents = await _context.VehicleDocuments
-                .Include(vd => vd.Vehicle)
+            var rows = await _context.VehicleDocuments
+                .AsNoTracking()
                 .Where(vd => vd.ExpiryDate >= DateTime.UtcNow.Date)
+                .ProjectToVehicleDocumentRows()
                 .ToListAsync(cancellationToken);
 
-            documents = documents
-                .Where(vd => vd.DaysUntilExpiry <= (request.DaysThreshold > 0 ? request.DaysThreshold : vd.AlertLeadDays))
+            var filteredRows = rows
+                .Where(vd => (vd.ExpiryDate.Date - DateTime.UtcNow.Date).Days <= (request.DaysThreshold > 0 ? request.DaysThreshold : vd.AlertLeadDays))
                 .ToList();
 
-            var documentDtos = _mapper.Map<List<VehicleDocumentDto>>(documents);
+            var documentDtos = filteredRows.ToDtos();
 
             return FMSResponse<List<VehicleDocumentDto>>.Success(documentDtos);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting expiring documents.");
-            return FMSResponse<List<VehicleDocumentDto>>.Failed("Error getting expiring documents.");
+            return FMSResponse<List<VehicleDocumentDto>>.SystemError("Error getting expiring documents.");
         }
     }
 }

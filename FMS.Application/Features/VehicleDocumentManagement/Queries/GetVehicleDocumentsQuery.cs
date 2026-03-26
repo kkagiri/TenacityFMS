@@ -1,4 +1,3 @@
-using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using FMS.Domain.Entities;
@@ -25,13 +24,11 @@ public class GetVehicleDocumentsQuery : IRequest<FMSResponse<List<VehicleDocumen
 public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumentsQuery, FMSResponse<List<VehicleDocumentDto>>>
 {
     private readonly GpsdataContext _context;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetVehicleDocumentsQueryHandler> _logger;
 
-    public GetVehicleDocumentsQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetVehicleDocumentsQueryHandler> logger)
+    public GetVehicleDocumentsQueryHandler(GpsdataContext context, ILogger<GetVehicleDocumentsQueryHandler> logger)
     {
         _context = context;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -40,7 +37,7 @@ public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumen
         try
         {
             var query = _context.VehicleDocuments
-                .Include(vd => vd.Vehicle)
+                .AsNoTracking()
                 .AsQueryable();
 
             if (request.VehicleId.HasValue)
@@ -63,15 +60,17 @@ public class GetVehicleDocumentsQueryHandler : IRequestHandler<GetVehicleDocumen
                 query = query.Where(vd => vd.Status == request.Status.Value);
             }
 
-            var documents = await query.ToListAsync(cancellationToken);
-            var documentDtos = _mapper.Map<List<VehicleDocumentDto>>(documents);
+            var rows = await query
+                .ProjectToVehicleDocumentRows()
+                .ToListAsync(cancellationToken);
+            var documentDtos = rows.ToDtos();
 
             return FMSResponse<List<VehicleDocumentDto>>.Success(documentDtos);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting vehicle documents.");
-            return FMSResponse<List<VehicleDocumentDto>>.Failed("Error getting vehicle documents.");
+            return FMSResponse<List<VehicleDocumentDto>>.SystemError("Error getting vehicle documents.");
         }
     }
 }

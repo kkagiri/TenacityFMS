@@ -17,13 +17,27 @@
 
 import React from 'react';
 import { TagBox } from 'devextreme-react/tag-box';
+import { SelectBox } from 'devextreme-react/select-box';
 import { TextBox } from 'devextreme-react/text-box';
+
+const getVehicleId = (vehicle) => Number(vehicle?.vehicleId ?? vehicle?.VehicleId ?? 0) || null;
+const getVehicleTypeId = (vehicle) => Number(vehicle?.vehicleTypeId ?? vehicle?.VehicleTypeId ?? vehicle?.vehicletypeId ?? vehicle?.VehicletypeId ?? 0) || null;
+const getVehicleDisplay = (vehicle) => {
+    if (!vehicle) {
+        return '';
+    }
+
+    const vehicleNo = vehicle.hyoungNo || vehicle.HyoungNo || vehicle.numberPlate || vehicle.NumberPlate || `Vehicle ${getVehicleId(vehicle)}`;
+    const regNo = vehicle.numberPlate || vehicle.NumberPlate;
+    return regNo && regNo !== vehicleNo ? `${vehicleNo} • ${regNo}` : vehicleNo;
+};
 
 const SCOPE_ICONS = {
     SiteId: 'fa-light fa-building',
     TankId: 'fa-light fa-database',
     DeviceId: 'fa-light fa-microchip',
     VehicleId: 'fa-light fa-car',
+    VehicleTypeId: 'fa-light fa-truck-field',
     UserId: 'fa-light fa-user',
     ProductId: 'fa-light fa-droplet'
 };
@@ -33,18 +47,33 @@ const SCOPE_LABELS = {
     TankId: 'Tank',
     DeviceId: 'Device',
     VehicleId: 'Vehicle',
+    VehicleTypeId: 'Vehicle type',
     UserId: 'User',
     ProductId: 'Product (Fuel Type)'
 };
 
-const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, loadingTanks, availableScopeFilters }) => {
+const StepScope = ({ formData, onFieldChange, onSiteChange, onVehicleChange, onVehicleTypeChange, sites, tanks, loadingTanks, vehicles, vehicleTypes, availableScopeFilters }) => {
     const filters = availableScopeFilters || ['SiteId', 'TankId'];
     const hasSite = filters.includes('SiteId');
     const hasTank = filters.includes('TankId');
     const hasDevice = filters.includes('DeviceId');
     const hasVehicle = filters.includes('VehicleId');
+    const hasVehicleType = filters.includes('VehicleTypeId');
     const hasUser = filters.includes('UserId');
     const hasProduct = filters.includes('ProductId');
+    const visibleVehicles = (vehicles || []).filter((vehicle) => {
+        if (!formData.siteIds || formData.siteIds.length === 0) {
+            return !formData.vehicleTypeId || getVehicleTypeId(vehicle) === Number(formData.vehicleTypeId);
+        }
+
+        const workingSiteId = Number(vehicle?.workingSiteId ?? vehicle?.WorkingSiteId ?? 0) || null;
+        const matchesSite = workingSiteId && formData.siteIds.includes(workingSiteId);
+        const matchesVehicleType = !formData.vehicleTypeId || getVehicleTypeId(vehicle) === Number(formData.vehicleTypeId);
+        return matchesSite && matchesVehicleType;
+    });
+    const selectedVehicle = (vehicles || []).find((vehicle) => getVehicleId(vehicle) === Number(formData.vehicleId));
+    const effectiveVehicleTypeId = formData.vehicleId ? getVehicleTypeId(selectedVehicle) : Number(formData.vehicleTypeId ?? 0) || null;
+    const selectedVehicleType = (vehicleTypes || []).find((vehicleType) => Number(vehicleType?.id ?? vehicleType?.Id ?? vehicleType?.vehicleTypeId ?? 0) === effectiveVehicleTypeId);
 
     return (
         <div className="tw-flex tw-flex-col lg:tw-flex-row tw-gap-6">
@@ -137,13 +166,57 @@ const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, loadin
                             <i className={`${SCOPE_ICONS.VehicleId} tw-mr-1 tw-text-gray-400`} />
                             Vehicle
                         </label>
-                        <TextBox
-                            value={formData.vehicleId || ''}
-                            onValueChanged={(e) => onFieldChange('vehicleId', e.value || null)}
-                            placeholder="Enter Vehicle ID or leave blank for all"
+                        <SelectBox
+                            items={visibleVehicles}
+                            displayExpr={getVehicleDisplay}
+                            valueExpr={(item) => item?.vehicleId ?? item?.VehicleId ?? null}
+                            value={formData.vehicleId}
+                            onValueChanged={(e) => {
+                                if (onVehicleChange) {
+                                    onVehicleChange(e.value || null);
+                                } else {
+                                    onFieldChange('vehicleId', e.value || null);
+                                }
+                            }}
+                            placeholder={formData.siteIds?.length > 0 ? 'All vehicles in selected site(s)' : 'All vehicles'}
                             showClearButton={true}
+                            searchEnabled={true}
+                            searchExpr={['hyoungNo', 'HyoungNo', 'numberPlate', 'NumberPlate']}
                             width="100%"
                         />
+                        <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                            Search by fleet number or registration. Vehicle type selection narrows this list.
+                        </p>
+                    </div>
+                )}
+
+                {hasVehicleType && (
+                    <div className="tw-mb-3">
+                        <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                            <i className={`${SCOPE_ICONS.VehicleTypeId} tw-mr-1 tw-text-gray-400`} />
+                            Vehicle Type
+                        </label>
+                        <SelectBox
+                            items={vehicleTypes || []}
+                            displayExpr={(item) => item?.name || item?.Name || item?.label || ''}
+                            valueExpr={(item) => item?.id ?? item?.Id ?? item?.vehicleTypeId ?? null}
+                            value={effectiveVehicleTypeId}
+                            onValueChanged={(e) => {
+                                if (onVehicleTypeChange) {
+                                    onVehicleTypeChange(e.value || null);
+                                } else {
+                                    onFieldChange('vehicleTypeId', e.value || null);
+                                }
+                            }}
+                            placeholder={formData.vehicleId ? 'Linked to selected vehicle' : 'All vehicle types'}
+                            showClearButton={true}
+                            searchEnabled={true}
+                            disabled={!!formData.vehicleId}
+                            width="100%"
+                        />
+                        <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                            Choose a vehicle type first to filter vehicles. Once a specific vehicle is chosen, its type becomes the active scope.
+                        </p>
                     </div>
                 )}
 
@@ -226,7 +299,13 @@ const StepScope = ({ formData, onFieldChange, onSiteChange, sites, tanks, loadin
                     {hasVehicle && (
                         <div className="tw-flex tw-items-center tw-gap-2">
                             <i className={`${SCOPE_ICONS.VehicleId} tw-w-5 tw-text-gray-400`} />
-                            <span>{formData.vehicleId ? `Vehicle: ${formData.vehicleId}` : 'All vehicles'}</span>
+                            <span>{selectedVehicle ? `Vehicle: ${getVehicleDisplay(selectedVehicle)}` : 'All vehicles'}</span>
+                        </div>
+                    )}
+                    {hasVehicleType && (
+                        <div className="tw-flex tw-items-center tw-gap-2">
+                            <i className={`${SCOPE_ICONS.VehicleTypeId} tw-w-5 tw-text-gray-400`} />
+                            <span>{selectedVehicleType ? `Vehicle type: ${selectedVehicleType.name || selectedVehicleType.Name || selectedVehicleType.label}` : 'All vehicle types'}</span>
                         </div>
                     )}
                     {hasUser && (

@@ -61,7 +61,7 @@ public class GetVehicleComplianceRequirementsQueryHandler : IRequestHandler<GetV
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error retrieving vehicle compliance requirements.");
-            return FMSResponse<List<VehicleComplianceRequirementDto>>.Failed("Error retrieving vehicle compliance requirements.");
+            return FMSResponse<List<VehicleComplianceRequirementDto>>.SystemError("Error retrieving vehicle compliance requirements.");
         }
     }
 }

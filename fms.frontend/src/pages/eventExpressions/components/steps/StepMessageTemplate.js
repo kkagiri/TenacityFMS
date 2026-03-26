@@ -20,6 +20,33 @@ import HtmlEditor, { Toolbar, Item as ToolbarItem } from 'devextreme-react/html-
 import { TextBox } from 'devextreme-react/text-box';
 import DeliveryEventTemplate from '../DeliveryEventTemplate';
 
+export const VEHICLE_DOCUMENT_QUICK_TITLE = 'Vehicle document {{SubType}} | {{VehicleNo}} | {{ComplianceCategoryName}}';
+export const VEHICLE_DOCUMENT_QUICK_TEMPLATE =
+    '<div style="font-family:Segoe UI,-apple-system,system-ui,sans-serif;background:#f5f7fb;padding:24px;color:#201f1e">' +
+    '<div style="max-width:680px;margin:0 auto;background:#ffffff;border:1px solid #d8dde6;border-radius:12px;overflow:hidden">' +
+    '<div style="padding:18px 24px;background:#0078d4;color:#ffffff">' +
+    '<div style="font-size:12px;letter-spacing:.08em;text-transform:uppercase;opacity:.9">Vehicle document compliance</div>' +
+    '<div style="font-size:22px;font-weight:600;margin-top:6px">{{ComplianceCategoryName}} for {{VehicleNo}}</div>' +
+    '<div style="font-size:13px;opacity:.92;margin-top:4px">Status: {{SubType}} | Expiry date: {{ExpiryDate}}</div>' +
+    '</div>' +
+    '<div style="padding:24px">' +
+    '<p style="margin:0 0 16px;font-size:14px;line-height:1.6">A vehicle document compliance event has been raised for <strong>{{VehicleNo}}</strong> at <strong>{{SiteName}}</strong>.</p>' +
+    '<table style="width:100%;border-collapse:collapse;margin:0 0 18px">' +
+    '<tr><td style="padding:10px 0;border-bottom:1px solid #edebe9;color:#605e5c;width:38%">Vehicle type</td><td style="padding:10px 0;border-bottom:1px solid #edebe9;font-weight:600">{{VehicleTypeName}}</td></tr>' +
+    '<tr><td style="padding:10px 0;border-bottom:1px solid #edebe9;color:#605e5c">Document type</td><td style="padding:10px 0;border-bottom:1px solid #edebe9;font-weight:600">{{DocumentTypeName}}</td></tr>' +
+    '<tr><td style="padding:10px 0;border-bottom:1px solid #edebe9;color:#605e5c">Document number</td><td style="padding:10px 0;border-bottom:1px solid #edebe9;font-weight:600">{{DocumentNumber}}</td></tr>' +
+    '<tr><td style="padding:10px 0;border-bottom:1px solid #edebe9;color:#605e5c">Issuing authority</td><td style="padding:10px 0;border-bottom:1px solid #edebe9;font-weight:600">{{IssuingAuthority}}</td></tr>' +
+    '<tr><td style="padding:10px 0;border-bottom:1px solid #edebe9;color:#605e5c">Days until expiry</td><td style="padding:10px 0;border-bottom:1px solid #edebe9;font-weight:600">{{DaysUntilExpiry}}</td></tr>' +
+    '<tr><td style="padding:10px 0;color:#605e5c">Attached file</td><td style="padding:10px 0;font-weight:600">{{DocumentFileName}}</td></tr>' +
+    '</table>' +
+    '<div style="margin:18px 0 14px">' +
+    '<a href="{{DocumentFileUrl}}" style="display:inline-block;background:#0078d4;color:#ffffff;text-decoration:none;padding:10px 16px;border-radius:6px;font-size:13px;font-weight:600">Open document</a>' +
+    '</div>' +
+    '<p style="margin:0;font-size:12px;color:#605e5c">If file attachments are enabled for this event, the stored document is also included with the email.</p>' +
+    '</div>' +
+    '</div>' +
+    '</div>';
+
 // ─── Placeholder definitions per event type ───
 // Base placeholders available for ALL event types (from FMSEvent.GetTemplateVariables + engine additions)
 const BASE_PLACEHOLDERS = [
@@ -195,6 +222,24 @@ const EVENT_TYPE_PLACEHOLDERS = {
         { key: 'SourceComponent', label: 'Source Component', description: 'Originating system component', sample: 'BackgroundService' },
         { key: 'ReferenceId', label: 'Reference ID', description: 'Related entity ID', sample: '42' },
         { key: 'ReferenceType', label: 'Reference Type', description: 'Related entity type', sample: 'Tank' },
+    ],
+    VehicleDocumentCompliance: [
+        { key: 'SubType', label: 'Status', description: 'Vehicle document event state', sample: 'VehicleDocumentExpiringSoon' },
+        { key: 'VehicleId', label: 'Vehicle ID', description: 'Vehicle identifier', sample: '42' },
+        { key: 'VehicleNo', label: 'Vehicle Number', description: 'Vehicle fleet/reference number', sample: 'KDA-042X' },
+        { key: 'VehicleTypeId', label: 'Vehicle Type ID', description: 'Vehicle type identifier', sample: '7' },
+        { key: 'VehicleTypeName', label: 'Vehicle Type', description: 'Vehicle type display name', sample: 'Tanker' },
+        { key: 'SiteName', label: 'Site Name', description: 'Assigned working site', sample: 'Main Depot' },
+        { key: 'DocumentId', label: 'Document ID', description: 'Vehicle document identifier', sample: '3b487f2f-cd60-4dd0-a677-4b7ae1947f63' },
+        { key: 'DocumentTypeName', label: 'Document Type', description: 'Document type name', sample: 'Insurance' },
+        { key: 'ComplianceCategoryName', label: 'Compliance Category', description: 'Compliance bucket for the document', sample: 'InsuranceCertificate' },
+        { key: 'DocumentNumber', label: 'Document Number', description: 'External reference number', sample: 'INS-2026-0042' },
+        { key: 'IssuingAuthority', label: 'Issuing Authority', description: 'Authority or issuer name', sample: 'NTSA' },
+        { key: 'DocumentFileName', label: 'Document File Name', description: 'Original uploaded file name', sample: 'insurance-2026.pdf' },
+        { key: 'ExpiryDate', label: 'Expiry Date', description: 'Document expiry date', sample: '2026-04-01' },
+        { key: 'DaysUntilExpiry', label: 'Days Until Expiry', description: 'Remaining days before expiry', sample: '6' },
+        { key: 'AlertLeadDays', label: 'Alert Lead Days', description: 'Configured lead time for notifications', sample: '30' },
+        { key: 'DocumentFileUrl', label: 'Document Download URL', description: 'Authenticated link to the stored document', sample: '/api/v1/files/vehicle-documents/42/insurance.pdf' },
     ],
     EventLifecycle: [
         { key: 'ActiveEventId', label: 'Active Event ID', description: 'ID of the active event', sample: '567' },
@@ -759,12 +804,25 @@ const StepMessageTemplate = ({
                                 Manual Delivery — Full Detail Card
                             </button>
                         )}
+                        {eventType === 'VehicleDocumentCompliance' && (
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    onPolicyChange('titleTemplate', VEHICLE_DOCUMENT_QUICK_TITLE);
+                                    onFieldChange('messageTemplate', VEHICLE_DOCUMENT_QUICK_TEMPLATE);
+                                }}
+                                className="tw-text-left tw-w-full tw-p-2 tw-rounded tw-border tw-border-dashed tw-border-gray-300 tw-text-xs tw-text-gray-600 hover:tw-bg-sky-50 hover:tw-border-sky-300 tw-cursor-pointer tw-transition-colors"
+                            >
+                                <i className="fa-light fa-id-card tw-mr-1 tw-text-sky-500" />
+                                Vehicle Document Compliance — Email Card
+                            </button>
+                        )}
                         {!eventType && (
                             <p className="tw-text-xs tw-text-gray-400 tw-italic">
                                 Select an event type to see quick-start templates.
                             </p>
                         )}
-                        {eventType && alertTypeKey !== 'NoTankStockEntry' && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && eventType !== 'InTankDelivery' && eventType !== 'ManualDelivery' && (
+                        {eventType && alertTypeKey !== 'NoTankStockEntry' && eventType !== 'TankStockDiscrepancy' && eventType !== 'SensorVariance' && eventType !== 'InTankDelivery' && eventType !== 'ManualDelivery' && eventType !== 'VehicleDocumentCompliance' && (
                             <button
                                 type="button"
                                 onClick={() => onFieldChange('messageTemplate',

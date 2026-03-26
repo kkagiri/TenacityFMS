@@ -39,6 +39,8 @@ import {
 } from '../../../redux/slices/eventExpressionSlice';
 import { fetchSiteList } from '../../../redux/actions/siteActions';
 import { fetchAllDepartments } from '../../../redux/actions/userActions';
+import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
+import { fetchVehicleTypes } from '../../../redux/actions/vehicleTypeActions';
 import notificationsApi from '../../../dataservice/notificationsApi';
 import axiosInstance from '../../../api/axiosInstance';
 import StepBasicInfo from './steps/StepBasicInfo';
@@ -46,7 +48,10 @@ import StepEventTriggers from './steps/StepEventTriggers';
 import StepScope from './steps/StepScope';
 import StepDelivery from './steps/StepDelivery';
 import StepRecipients from './steps/StepRecipients';
-import StepMessageTemplate from './steps/StepMessageTemplate';
+import StepMessageTemplate, {
+    VEHICLE_DOCUMENT_QUICK_TEMPLATE,
+    VEHICLE_DOCUMENT_QUICK_TITLE
+} from './steps/StepMessageTemplate';
 import './EventExpressionForm.scss';
 
 const STEP_TITLES = [
@@ -57,6 +62,64 @@ const STEP_TITLES = [
     '5. Recipients',
     '6. Message Template'
 ];
+
+const VEHICLE_DOCUMENT_CATEGORY_OPTIONS = [
+    { value: '', text: 'All compliance categories' },
+    { value: 'InsuranceCertificate', text: 'Insurance Certificate' },
+    { value: 'VehicleRegistration', text: 'Vehicle Registration' },
+    { value: 'NtsaInspectionCertificate', text: 'NTSA Inspection Certificate' },
+    { value: 'KenhaRoadPermit', text: 'KENHA Road Permit' },
+    { value: 'KenhaPermitExemption', text: 'KENHA Permit Exemption' },
+    { value: 'SpeedGovernorCertificate', text: 'Speed Governor Certificate' },
+    { value: 'DrivingLicense', text: 'Driving License' },
+    { value: 'Other', text: 'Other' }
+];
+
+const VEHICLE_DOCUMENT_TYPES_BY_CATEGORY = {
+    '': [
+        { value: '', text: 'All document types' },
+        { value: 'Insurance', text: 'Insurance' },
+        { value: 'Registration', text: 'Registration' },
+        { value: 'Inspection', text: 'Inspection' },
+        { value: 'RoadPermit', text: 'Road Permit' },
+        { value: 'Other', text: 'Other' }
+    ],
+    InsuranceCertificate: [
+        { value: '', text: 'All insurance documents' },
+        { value: 'Insurance', text: 'Insurance' }
+    ],
+    VehicleRegistration: [
+        { value: '', text: 'All registration documents' },
+        { value: 'Registration', text: 'Registration' }
+    ],
+    NtsaInspectionCertificate: [
+        { value: '', text: 'All inspection documents' },
+        { value: 'Inspection', text: 'Inspection' }
+    ],
+    KenhaRoadPermit: [
+        { value: '', text: 'All road permit documents' },
+        { value: 'RoadPermit', text: 'Road Permit' }
+    ],
+    KenhaPermitExemption: [
+        { value: '', text: 'All KENHA exemption documents' },
+        { value: 'RoadPermit', text: 'Road Permit' }
+    ],
+    SpeedGovernorCertificate: [
+        { value: '', text: 'All speed governor documents' },
+        { value: 'Inspection', text: 'Inspection' }
+    ],
+    DrivingLicense: [
+        { value: '', text: 'All driving licence documents' },
+        { value: 'Other', text: 'Other' }
+    ],
+    Other: [
+        { value: '', text: 'All other documents' },
+        { value: 'Other', text: 'Other' }
+    ]
+};
+
+const getVehicleId = (vehicle) => Number(vehicle?.vehicleId ?? vehicle?.VehicleId ?? 0) || null;
+const getVehicleTypeId = (vehicle) => Number(vehicle?.vehicleTypeId ?? vehicle?.VehicleTypeId ?? vehicle?.vehicletypeId ?? vehicle?.VehicletypeId ?? 0) || null;
 
 const EventExpressionForm = () => {
     const dispatch = useDispatch();
@@ -81,6 +144,8 @@ const EventExpressionForm = () => {
         siteIds: [],
         tankIds: [],
         deviceId: null,
+        vehicleId: null,
+        vehicleTypeId: null,
         minimumSeverity: null,
         conditions: '{}',
         notificationPolicyId: null,
@@ -128,12 +193,16 @@ const EventExpressionForm = () => {
     // Lookup data from Redux store
     const sites = useSelector((state) => state.site?.sites || []);
     const departments = useSelector((state) => state.user?.allDepartments || []);
+    const vehicles = useSelector((state) => state.vehicle?.vehicles || []);
+    const vehicleTypes = useSelector((state) => state.vehicleType?.vehicleTypes || []);
 
     // ─── Load types, sites, and recipient options on mount ───
     useEffect(() => {
         dispatch(fetchEventExpressionTypes());
         dispatch(fetchSiteList());
         dispatch(fetchAllDepartments());
+        dispatch(fetchVehicleList());
+        dispatch(fetchVehicleTypes());
 
         // Load role list for dynamic-rule role picker
         (async () => {
@@ -194,9 +263,11 @@ const EventExpressionForm = () => {
 
             // Recover attach report flag
             const recoveredAttachReport = !!parsedConditions._attachReport;
+            const recoveredVehicleId = Number(parsedConditions.vehicleIdFilter ?? 0) || null;
+            const recoveredVehicleTypeId = Number(parsedConditions.vehicleTypeIdFilter ?? 0) || null;
 
             // Strip internal fields from display conditions
-            const { _alertTypeKey, _siteIds, _tankIds, _attachReport, ...displayConditions } = parsedConditions;
+            const { _alertTypeKey, _siteIds, _tankIds, _attachReport, vehicleIdFilter, vehicleTypeIdFilter, ...displayConditions } = parsedConditions;
             setConditionValues(displayConditions);
 
             setFormData({
@@ -206,6 +277,8 @@ const EventExpressionForm = () => {
                 siteIds: recoveredSiteIds,
                 tankIds: recoveredTankIds,
                 deviceId: selectedExpression.deviceId,
+                vehicleId: recoveredVehicleId,
+                vehicleTypeId: recoveredVehicleTypeId,
                 minimumSeverity: selectedExpression.minimumSeverity,
                 conditions: JSON.stringify(displayConditions),
                 notificationPolicyId: selectedExpression.notificationPolicyId,
@@ -319,6 +392,33 @@ const EventExpressionForm = () => {
         setFormData((prev) => ({ ...prev, [field]: value }));
     }, []);
 
+    const handleVehicleTypeChange = useCallback((vehicleTypeId) => {
+        setFormData((prev) => {
+            const normalizedVehicleTypeId = Number(vehicleTypeId ?? 0) || null;
+            const selectedVehicle = (vehicles || []).find((vehicle) => getVehicleId(vehicle) === Number(prev.vehicleId));
+            const selectedVehicleTypeId = getVehicleTypeId(selectedVehicle);
+
+            return {
+                ...prev,
+                vehicleTypeId: normalizedVehicleTypeId,
+                vehicleId: prev.vehicleId && normalizedVehicleTypeId && selectedVehicleTypeId !== normalizedVehicleTypeId
+                    ? null
+                    : prev.vehicleId
+            };
+        });
+    }, [vehicles]);
+
+    const handleVehicleChange = useCallback((vehicleId) => {
+        const normalizedVehicleId = Number(vehicleId ?? 0) || null;
+        const selectedVehicle = (vehicles || []).find((vehicle) => getVehicleId(vehicle) === normalizedVehicleId);
+
+        setFormData((prev) => ({
+            ...prev,
+            vehicleId: normalizedVehicleId,
+            vehicleTypeId: selectedVehicle ? getVehicleTypeId(selectedVehicle) : prev.vehicleTypeId
+        }));
+    }, [vehicles]);
+
     // Load tanks when site selection changes — fetches from ALL selected sites
     const handleSiteChange = useCallback((siteIds) => {
         handleFieldChange('siteIds', siteIds);
@@ -343,11 +443,35 @@ const EventExpressionForm = () => {
 
     const handleEventTypeChange = useCallback(
         (value) => {
-            handleFieldChange('eventType', value);
             setConditionValues({});
-            setFormData((prev) => ({ ...prev, conditions: '{}' }));
+            setFormData((prev) => {
+                const shouldApplyVehicleDocumentDefaults =
+                    value === 'VehicleDocumentCompliance' &&
+                    !prev.messageTemplate?.trim() &&
+                    !policyData.titleTemplate?.trim();
+
+                return {
+                    ...prev,
+                    eventType: value,
+                    conditions: '{}',
+                    messageTemplate: shouldApplyVehicleDocumentDefaults
+                        ? VEHICLE_DOCUMENT_QUICK_TEMPLATE
+                        : prev.messageTemplate
+                };
+            });
+
+            if (
+                value === 'VehicleDocumentCompliance' &&
+                !formData.messageTemplate?.trim() &&
+                !policyData.titleTemplate?.trim()
+            ) {
+                setPolicyData((prev) => ({
+                    ...prev,
+                    titleTemplate: VEHICLE_DOCUMENT_QUICK_TITLE
+                }));
+            }
         },
-        [handleFieldChange]
+        [formData.messageTemplate, policyData.titleTemplate]
     );
 
     const handleCancel = useCallback(() => {
@@ -375,6 +499,7 @@ const EventExpressionForm = () => {
         (condition) => {
             const { key, label, inputType, isRequired, defaultValue, options } = condition;
             const value = conditionValues[key] ?? defaultValue ?? '';
+            const isVehicleDocumentEvent = selectedTypeMetadata?.eventType === 'VehicleDocumentCompliance';
 
             switch (inputType) {
                 case 'number':
@@ -392,6 +517,63 @@ const EventExpressionForm = () => {
                         </div>
                     );
                 case 'select':
+                    if (isVehicleDocumentEvent && key === 'complianceCategoryFilter') {
+                        return (
+                            <div key={key} className="tw-mb-3">
+                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                                    {label} {isRequired && <span className="tw-text-red-500">*</span>}
+                                </label>
+                                <SelectBox
+                                    items={VEHICLE_DOCUMENT_CATEGORY_OPTIONS}
+                                    displayExpr="text"
+                                    valueExpr="value"
+                                    value={value || ''}
+                                    onValueChanged={(e) => {
+                                        const nextCategory = e.value || null;
+                                        const nextDocumentOptions = VEHICLE_DOCUMENT_TYPES_BY_CATEGORY[nextCategory || ''] || VEHICLE_DOCUMENT_TYPES_BY_CATEGORY[''];
+                                        const currentDocumentType = conditionValues.documentTypeFilter || '';
+                                        const documentStillValid = nextDocumentOptions.some((item) => item.value === currentDocumentType);
+
+                                        handleConditionChange(key, nextCategory);
+                                        if (!documentStillValid) {
+                                            handleConditionChange('documentTypeFilter', null);
+                                        }
+                                    }}
+                                    placeholder="All compliance categories"
+                                    width="100%"
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    Compliance category drives the document type list. Leave it on All to match every category.
+                                </p>
+                            </div>
+                        );
+                    }
+
+                    if (isVehicleDocumentEvent && key === 'documentTypeFilter') {
+                        const categoryValue = conditionValues.complianceCategoryFilter || '';
+                        const linkedOptions = VEHICLE_DOCUMENT_TYPES_BY_CATEGORY[categoryValue] || VEHICLE_DOCUMENT_TYPES_BY_CATEGORY[''];
+
+                        return (
+                            <div key={key} className="tw-mb-3">
+                                <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
+                                    {label} {isRequired && <span className="tw-text-red-500">*</span>}
+                                </label>
+                                <SelectBox
+                                    items={linkedOptions}
+                                    displayExpr="text"
+                                    valueExpr="value"
+                                    value={value || ''}
+                                    onValueChanged={(e) => handleConditionChange(key, e.value || null)}
+                                    placeholder="All document types"
+                                    width="100%"
+                                />
+                                <p className="tw-text-xs tw-text-gray-400 tw-mt-1">
+                                    The options shown here follow the selected compliance category.
+                                </p>
+                            </div>
+                        );
+                    }
+
                     return (
                         <div key={key} className="tw-mb-3">
                             <label className="tw-text-sm tw-font-medium tw-text-gray-700 tw-mb-1 tw-block">
@@ -463,7 +645,7 @@ const EventExpressionForm = () => {
                     );
             }
         },
-        [conditionValues, handleConditionChange]
+        [conditionValues, handleConditionChange, selectedTypeMetadata]
     );
 
     // ─── Submit: create/update policy first, then save expression ───
@@ -537,6 +719,12 @@ const EventExpressionForm = () => {
                 }
                 if (formData.tankIds?.length > 0) {
                     conditionsObj._tankIds = formData.tankIds;
+                }
+                if (formData.vehicleId) {
+                    conditionsObj.vehicleIdFilter = Number(formData.vehicleId);
+                }
+                if (formData.vehicleTypeId) {
+                    conditionsObj.vehicleTypeIdFilter = Number(formData.vehicleTypeId);
                 }
 
                 // Store attach report flag
@@ -686,9 +874,13 @@ const EventExpressionForm = () => {
                             formData={formData}
                             onFieldChange={handleFieldChange}
                             onSiteChange={handleSiteChange}
+                            onVehicleChange={handleVehicleChange}
+                            onVehicleTypeChange={handleVehicleTypeChange}
                             sites={sites}
                             tanks={scopeTanks}
                             loadingTanks={loadingScopeTanks}
+                            vehicles={vehicles}
+                            vehicleTypes={vehicleTypes}
                             availableScopeFilters={selectedTypeMetadata?.availableScopeFilters}
                         />
                     </AccordionItem>

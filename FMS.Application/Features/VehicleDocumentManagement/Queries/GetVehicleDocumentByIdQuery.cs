@@ -1,4 +1,3 @@
-using AutoMapper;
 using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using FMS.Persistence.DataAccess;
@@ -6,6 +5,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -16,13 +16,11 @@ public record GetVehicleDocumentByIdQuery(Guid Id) : IRequest<FMSResponse<Vehicl
 public class GetVehicleDocumentByIdQueryHandler : IRequestHandler<GetVehicleDocumentByIdQuery, FMSResponse<VehicleDocumentDto>>
 {
     private readonly GpsdataContext _context;
-    private readonly IMapper _mapper;
     private readonly ILogger<GetVehicleDocumentByIdQueryHandler> _logger;
 
-    public GetVehicleDocumentByIdQueryHandler(GpsdataContext context, IMapper mapper, ILogger<GetVehicleDocumentByIdQueryHandler> logger)
+    public GetVehicleDocumentByIdQueryHandler(GpsdataContext context, ILogger<GetVehicleDocumentByIdQueryHandler> logger)
     {
         _context = context;
-        _mapper = mapper;
         _logger = logger;
     }
 
@@ -30,23 +28,25 @@ public class GetVehicleDocumentByIdQueryHandler : IRequestHandler<GetVehicleDocu
     {
         try
         {
-            var vehicleDocument = await _context.VehicleDocuments
-                .Include(vd => vd.Vehicle)
-                .FirstOrDefaultAsync(vd => vd.Id == request.Id, cancellationToken);
+            var row = await _context.VehicleDocuments
+                .AsNoTracking()
+                .Where(vd => vd.Id == request.Id)
+                .ProjectToVehicleDocumentRows()
+                .FirstOrDefaultAsync(cancellationToken);
 
-            if (vehicleDocument == null)
+            if (row == null)
             {
                 return FMSResponse<VehicleDocumentDto>.Failed("Vehicle document not found.");
             }
 
-            var vehicleDocumentDto = _mapper.Map<VehicleDocumentDto>(vehicleDocument);
+            var vehicleDocumentDto = row.ToDto();
 
             return FMSResponse<VehicleDocumentDto>.Success(vehicleDocumentDto);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error getting vehicle document by ID.");
-            return FMSResponse<VehicleDocumentDto>.Failed("Error getting vehicle document by ID.");
+            return FMSResponse<VehicleDocumentDto>.SystemError("Error getting vehicle document by ID.");
         }
     }
 }

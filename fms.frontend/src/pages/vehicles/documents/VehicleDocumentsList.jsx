@@ -7,6 +7,7 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import notify from "devextreme/ui/notify";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
@@ -14,23 +15,36 @@ import { fetchVehicleTypes } from "../../../redux/actions/vehicleTypeActions";
 import {
   bulkCreateVehicleComplianceRequirements,
   createVehicleDocument,
+  deleteVehicleDocumentIssuingAuthority,
   deleteVehicleDocument,
   getVehicleComplianceDashboard,
   getVehicleComplianceRequirements,
+  getVehicleDocumentIssuingAuthorities,
+  getVehicleDocumentUserPreferences,
   getVehicleDocuments,
+  renameVehicleDocumentIssuingAuthority,
+  saveVehicleDocumentUserPreferences,
   updateVehicleDocument,
 } from "../../../redux/actions/vehicleDocumentActions";
 import VehicleComplianceBulkPanel from "./components/VehicleComplianceBulkPanel";
 import VehicleComplianceWidgets from "./components/VehicleComplianceWidgets";
 import VehicleDocumentFormPanel from "./components/VehicleDocumentFormPanel";
+import VehicleDocumentSettingsPanel from "./components/VehicleDocumentSettingsPanel";
 import VehicleDocumentsFilterBar from "./components/VehicleDocumentsFilterBar";
 import VehicleDocumentsGrid from "./components/VehicleDocumentsGrid";
 import VehicleDocumentsSummaryCards from "./components/VehicleDocumentsSummaryCards";
 import {
+  DEFAULT_NOTIFICATION_REMINDER_SETTINGS,
+  buildDocumentComplianceCatalog,
   EMPTY_DOCUMENT_FORM_STATE,
   EMPTY_REQUIREMENT_FORM_STATE,
+  getDefaultReminderDays,
+  getComplianceEntry,
+  getPreferredIssuingAuthority,
+  getResolvedDocumentType,
   getStatusDescriptor,
   normalizeDocument,
+  parseNotificationReminderSettings,
   normalizeRequirement,
   normalizeSite,
   normalizeVehicle,
@@ -39,8 +53,15 @@ import {
 } from "./VehicleDocuments.shared";
 import "./VehicleDocumentsList.scss";
 
+const STATUS_TO_REPORT_STATUS = {
+  valid: 1,
+  expiring: 2,
+  expired: 3,
+};
+
 const VehicleDocumentsList = ({ vehicleId }) => {
   const dispatch = useDispatch();
+  const navigate = useNavigate();
   const fixedVehicleId = Number(vehicleId) > 0 ? Number(vehicleId) : null;
 
   const [documents, setDocuments] = useState([]);
@@ -58,10 +79,16 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   const [selectedStatus, setSelectedStatus] = useState("all");
   const [documentPanelOpen, setDocumentPanelOpen] = useState(false);
   const [bulkPanelOpen, setBulkPanelOpen] = useState(false);
+  const [settingsPanelOpen, setSettingsPanelOpen] = useState(false);
   const [documentSubmitting, setDocumentSubmitting] = useState(false);
   const [bulkSubmitting, setBulkSubmitting] = useState(false);
+  const [settingsSaving, setSettingsSaving] = useState(false);
+  const [authoritySaving, setAuthoritySaving] = useState(false);
+  const [documentFormErrors, setDocumentFormErrors] = useState({});
   const [documentFormState, setDocumentFormState] = useState({ ...EMPTY_DOCUMENT_FORM_STATE, vehicleId: fixedVehicleId || "" });
   const [requirementFormState, setRequirementFormState] = useState({ ...EMPTY_REQUIREMENT_FORM_STATE });
+  const [notificationDefaults, setNotificationDefaults] = useState({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS });
+  const [issuingAuthorities, setIssuingAuthorities] = useState([]);
 
   const vehicleLookup = useMemo(
     () => Object.fromEntries(vehicles.map((vehicle) => [vehicle.vehicleId, vehicle])),
@@ -75,6 +102,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     () => Object.fromEntries(vehicleTypes.map((vehicleType) => [vehicleType.vehicleTypeId, vehicleType])),
     [vehicleTypes]
   );
+  const documentCatalog = useMemo(() => buildDocumentComplianceCatalog(requirements, documents), [documents, requirements]);
 
   const loadDocuments = useCallback(async () => {
     setLoadingDocuments(true);
@@ -119,6 +147,22 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     setDashboard(dashboardResponse?.data || null);
   }, [dispatch, fixedVehicleId]);
 
+  const loadVehicleDocumentSettings = useCallback(async () => {
+    try {
+      const [preferenceResult, authorityResult] = await Promise.all([
+        dispatch(getVehicleDocumentUserPreferences()),
+        dispatch(getVehicleDocumentIssuingAuthorities()),
+      ]);
+
+      setNotificationDefaults(parseNotificationReminderSettings(preferenceResult?.data));
+      setIssuingAuthorities(Array.isArray(authorityResult?.data) ? authorityResult.data : []);
+    } catch (error) {
+      notify(error?.message || "Failed to load vehicle document settings", "error", 3000);
+      setNotificationDefaults({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS });
+      setIssuingAuthorities([]);
+    }
+  }, [dispatch]);
+
   const refreshAll = useCallback(async () => {
     await Promise.all([loadDocuments(), loadCompliance()]);
   }, [loadCompliance, loadDocuments]);
@@ -135,6 +179,10 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   useEffect(() => {
     refreshAll();
   }, [refreshAll]);
+
+  useEffect(() => {
+    loadVehicleDocumentSettings();
+  }, [loadVehicleDocumentSettings]);
 
   const enrichedDocuments = useMemo(
     () => documents.map((document) => {
@@ -190,14 +238,17 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   }, [vehicleTypes, vehicles]);
 
   const openCreatePanel = () => {
+    setDocumentFormErrors({});
     setDocumentFormState({
       ...EMPTY_DOCUMENT_FORM_STATE,
+      alertLeadDays: getDefaultReminderDays(notificationDefaults, null),
       vehicleId: fixedVehicleId || (selectedVehicleId !== "all" ? Number(selectedVehicleId) : "") || "",
     });
     setDocumentPanelOpen(true);
   };
 
   const openEditPanel = (document) => {
+    setDocumentFormErrors({});
     setDocumentFormState({
       id: document.id,
       vehicleId: document.vehicleId,
@@ -206,13 +257,24 @@ const VehicleDocumentsList = ({ vehicleId }) => {
       documentNumber: document.documentNumber,
       issueDate: toDateInputValue(document.issueDate),
       expiryDate: toDateInputValue(document.expiryDate),
+      notifyBeforeExpiry: document.alertLeadDays > 0,
       alertLeadDays: document.alertLeadDays,
       issuingAuthority: document.issuingAuthority,
+      customAuthorityOptions: [],
       notes: document.notes,
       file: null,
     });
     setDocumentPanelOpen(true);
   };
+
+  const closeDocumentPanel = useCallback(() => {
+    if (documentSubmitting) {
+      return;
+    }
+
+    setDocumentPanelOpen(false);
+    setDocumentFormErrors({});
+  }, [documentSubmitting]);
 
   const handleDelete = async (document) => {
     if (!window.confirm(`Delete ${document.complianceCategoryName} for ${document.vehicleLabel}?`)) {
@@ -232,21 +294,33 @@ const VehicleDocumentsList = ({ vehicleId }) => {
   const handleDocumentSubmit = async (event) => {
     event.preventDefault();
     const resolvedVehicleId = Number(documentFormState.vehicleId || fixedVehicleId || 0);
-    const resolvedDocumentType = Number(documentFormState.documentType || 0);
     const resolvedComplianceCategory = Number(documentFormState.complianceCategory || 0);
-    const resolvedAlertLeadDays = Number(documentFormState.alertLeadDays || 0);
+    const resolvedDocumentType = getResolvedDocumentType(documentCatalog, resolvedComplianceCategory, documentFormState.documentType);
+    const selectedComplianceEntry = getComplianceEntry(documentCatalog, resolvedComplianceCategory);
+    const resolvedIssuingAuthority = documentFormState.issuingAuthority.trim() || getPreferredIssuingAuthority(selectedComplianceEntry, documentFormState.customAuthorityOptions, documentFormState.issuingAuthority);
+    const resolvedAlertLeadDays = documentFormState.notifyBeforeExpiry ? Number(documentFormState.alertLeadDays || 0) : 0;
     const isEditing = Boolean(documentFormState.id);
 
-    if (!resolvedVehicleId || !resolvedDocumentType || !resolvedComplianceCategory || !documentFormState.documentNumber.trim()) {
-      notify("Complete the required document fields before saving", "warning", 3000);
-      return;
+    const nextValidationErrors = {};
+    if (!resolvedVehicleId) nextValidationErrors.vehicleId = "Vehicle is required.";
+    if (!resolvedComplianceCategory) nextValidationErrors.complianceCategory = "Compliance category is required.";
+    if (!resolvedDocumentType) nextValidationErrors.complianceCategory = nextValidationErrors.complianceCategory || "Select a supported compliance category.";
+    if (!documentFormState.documentNumber.trim()) nextValidationErrors.documentNumber = "Document number is required.";
+    if (!documentFormState.issueDate) nextValidationErrors.issueDate = "Issue date is required.";
+    if (!documentFormState.expiryDate) nextValidationErrors.expiryDate = "Expiry date is required.";
+    if (documentFormState.issueDate && documentFormState.expiryDate && new Date(documentFormState.expiryDate) < new Date(documentFormState.issueDate)) {
+      nextValidationErrors.expiryDate = "Expiry date must be on or after the issue date.";
     }
-    if (!documentFormState.issueDate || !documentFormState.expiryDate) {
-      notify("Provide both issue date and expiry date", "warning", 3000);
-      return;
+    if (documentFormState.notifyBeforeExpiry && (!Number.isFinite(resolvedAlertLeadDays) || resolvedAlertLeadDays < 0 || resolvedAlertLeadDays > 365)) {
+      nextValidationErrors.alertLeadDays = "Notify me days must be between 0 and 365.";
     }
-    if (!isEditing && !documentFormState.file) {
-      notify("Attach the source document file", "warning", 3000);
+    if (!resolvedIssuingAuthority) nextValidationErrors.issuingAuthority = "Issuing authority is required.";
+    if (!isEditing && !documentFormState.file) nextValidationErrors.file = "Supporting document is required.";
+
+    setDocumentFormErrors(nextValidationErrors);
+
+    if (Object.keys(nextValidationErrors).length > 0) {
+      notify("Correct the highlighted fields before saving", "warning", 3000);
       return;
     }
 
@@ -259,7 +333,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     payload.append("IssueDate", new Date(documentFormState.issueDate).toISOString());
     payload.append("ExpiryDate", new Date(documentFormState.expiryDate).toISOString());
     payload.append("AlertLeadDays", String(resolvedAlertLeadDays));
-    payload.append("IssuingAuthority", documentFormState.issuingAuthority.trim());
+    payload.append("IssuingAuthority", resolvedIssuingAuthority);
     payload.append("Notes", documentFormState.notes || "");
     if (documentFormState.file) payload.append("DocumentFile", documentFormState.file);
 
@@ -272,6 +346,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
       if (response?.isSuccess) {
         notify(isEditing ? "Vehicle document updated" : "Vehicle document created", "success", 2500);
         setDocumentPanelOpen(false);
+        setDocumentFormErrors({});
         setDocumentFormState({ ...EMPTY_DOCUMENT_FORM_STATE, vehicleId: fixedVehicleId || "" });
         await refreshAll();
         return;
@@ -317,6 +392,97 @@ const VehicleDocumentsList = ({ vehicleId }) => {
     }
   };
 
+  const handleSaveNotificationDefaults = async (nextDefaults) => {
+    const payload = {
+      preferences: Object.entries({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS, ...(nextDefaults || {}) }).map(([complianceCategory, reminderLeadDays]) => ({
+        complianceCategory: Number(complianceCategory),
+        reminderLeadDays: Math.max(0, Math.min(365, Number(reminderLeadDays) || 0)),
+      })),
+    };
+
+    setSettingsSaving(true);
+    try {
+      const response = await dispatch(saveVehicleDocumentUserPreferences(payload));
+      if (!response?.isSuccess) {
+        notify(response?.message || "Failed to save your reminder defaults", "error", 3500);
+        return;
+      }
+
+      setNotificationDefaults({ ...nextDefaults });
+      notify("Your vehicle document reminder defaults were saved", "success", 2500);
+      await loadVehicleDocumentSettings();
+    } catch (error) {
+      notify(error?.response?.data?.message || error?.message || "Failed to save your reminder defaults", "error", 3500);
+    } finally {
+      setSettingsSaving(false);
+    }
+  };
+
+  const handleRenameAuthority = async (oldName, newName) => {
+    setAuthoritySaving(true);
+    try {
+      const response = await dispatch(renameVehicleDocumentIssuingAuthority({ oldName, newName }));
+      if (response?.isSuccess) {
+        notify("Issuing authority updated", "success", 2500);
+        await Promise.all([refreshAll(), loadVehicleDocumentSettings()]);
+        return;
+      }
+
+      notify(response?.message || "Failed to update issuing authority", "error", 3500);
+    } finally {
+      setAuthoritySaving(false);
+    }
+  };
+
+  const handleDeleteAuthority = async (name) => {
+    if (!window.confirm(`Delete issuing authority \"${name}\" from stored documents and requirements?`)) {
+      return;
+    }
+
+    setAuthoritySaving(true);
+    try {
+      const response = await dispatch(deleteVehicleDocumentIssuingAuthority({ name }));
+      if (response?.isSuccess) {
+        notify("Issuing authority deleted", "success", 2500);
+        await Promise.all([refreshAll(), loadVehicleDocumentSettings()]);
+        return;
+      }
+
+      notify(response?.message || "Failed to delete issuing authority", "error", 3500);
+    } finally {
+      setAuthoritySaving(false);
+    }
+  };
+
+  const handleOpenReport = () => {
+    const params = new URLSearchParams();
+
+    if (fixedVehicleId) {
+      params.set("vehicleId", String(fixedVehicleId));
+    } else if (selectedVehicleId !== "all") {
+      params.set("vehicleId", String(selectedVehicleId));
+    }
+
+    if (selectedSiteId !== "all") {
+      params.set("siteId", String(selectedSiteId));
+    }
+
+    if (selectedVehicleTypeId !== "all") {
+      params.set("vehicleTypeId", String(selectedVehicleTypeId));
+    }
+
+    if (selectedComplianceCategory !== "all") {
+      params.set("complianceCategory", String(selectedComplianceCategory));
+    }
+
+    if (selectedStatus !== "all") {
+      params.set("status", String(STATUS_TO_REPORT_STATUS[selectedStatus] || ""));
+    }
+
+    const queryString = params.toString();
+    navigate(`/reports/engine/vehicle-document-compliance${queryString ? `?${queryString}` : ""}`);
+  };
+
   return (
     <div className="vehicle-documents-page">
       <div className="vehicle-documents-page__header">
@@ -326,6 +492,14 @@ const VehicleDocumentsList = ({ vehicleId }) => {
           <p className="vehicle-documents-page__subtitle">Track uploaded compliance records, assign requirements by site or vehicle type, and review due versus completed coverage.</p>
         </div>
         <div className="vehicle-documents-page__header-actions">
+          <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setSettingsPanelOpen(true)} disabled={settingsSaving || authoritySaving}>
+            <i className="fa-light fa-sliders" />
+            Settings
+          </button>
+          <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={handleOpenReport}>
+            <i className="fa-light fa-file-chart-column" />
+            Create report
+          </button>
           <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={refreshAll} disabled={loadingDocuments}>
             <i className="fa-light fa-rotate-right" />
             Refresh
@@ -344,10 +518,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
       </div>
 
       <div className="vehicle-documents-page__note-grid">
-        <div className="vehicle-documents-page__note-card">
-          <span className="vehicle-documents-page__note-title">Current storage model</span>
-          <p>Documents are stored under <strong>C:\FMSData\uploads\vehicle-documents\&lt;vehicleId&gt;</strong> so each vehicle keeps its own file folder.</p>
-        </div>
+
         <div className="vehicle-documents-page__note-card vehicle-documents-page__note-card--warning">
           <span className="vehicle-documents-page__note-title">Compliance model</span>
           <p>Each document now carries a dedicated compliance category and alert lead days. Bulk requirement assignments compare site and vehicle-type expectations against the latest uploaded record.</p>
@@ -379,11 +550,14 @@ const VehicleDocumentsList = ({ vehicleId }) => {
 
       <VehicleDocumentFormPanel
         open={documentPanelOpen}
-        onClose={() => !documentSubmitting && setDocumentPanelOpen(false)}
+        onClose={closeDocumentPanel}
         onSubmit={handleDocumentSubmit}
         isSubmitting={documentSubmitting}
         formState={documentFormState}
         setFormState={setDocumentFormState}
+        validationErrors={documentFormErrors}
+        documentCatalog={documentCatalog}
+        notificationDefaults={notificationDefaults}
         fixedVehicleId={fixedVehicleId}
         vehicles={vehicles}
       />
@@ -398,8 +572,22 @@ const VehicleDocumentsList = ({ vehicleId }) => {
           setFormState={setRequirementFormState}
           sites={sites}
           vehicleTypes={vehicleTypes}
+          documentCatalog={documentCatalog}
         />
       ) : null}
+
+      <VehicleDocumentSettingsPanel
+        open={settingsPanelOpen}
+        onClose={() => !settingsSaving && !authoritySaving && setSettingsPanelOpen(false)}
+        loading={loadingLookups}
+        saving={settingsSaving}
+        notificationDefaults={notificationDefaults}
+        onSaveNotificationDefaults={handleSaveNotificationDefaults}
+        issuingAuthorities={issuingAuthorities}
+        authoritySaving={authoritySaving}
+        onRenameAuthority={handleRenameAuthority}
+        onDeleteAuthority={handleDeleteAuthority}
+      />
     </div>
   );
 };

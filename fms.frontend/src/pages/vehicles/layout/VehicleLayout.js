@@ -2,16 +2,17 @@
  * File: VehicleLayout.js
  * Purpose: Provides the shared vehicle module layout with sidebar navigation and route-aware header behavior
  * Dependencies: React, react-router-dom, navigationHelper, VehicleSearchBar
- * Last Modified: 2026-03-09
+ * Last Modified: 2026-03-25
  *
  * Key Functions:
  * - getPageInfo(): Resolves the page title and subtitle from the current route
  * - handleNavigation(): Navigates to vehicle module routes and closes the mobile drawer
  * - renderNavigationGroup(): Renders grouped sidebar navigation items
  */
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
+import { isActiveRoute, navigationGroups, vehicleRoutes } from '../utils/navigationHelper';
+import { usePermissions } from '../../../hooks/usePermissions';
 import VehicleSearchBar from '../shared/VehicleSearchBar';
 import './VehicleLayout.scss';
 
@@ -22,6 +23,42 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const sidebarRef = useRef(null);
   const [isMobile, setIsMobile] = useState(false);
   const isTrackingPage = location.pathname.includes('/tracking');
+  const { hasAnyPermission, hasPermission } = usePermissions();
+  const canCreateVehicle = hasPermission('_Create_Vehicle');
+
+  const visibleNavigationGroups = useMemo(() => {
+    const canAccessItem = (item) => {
+      if (Array.isArray(item.permissionAll) && item.permissionAll.length > 0) {
+        return item.permissionAll.every((permission) => hasPermission(permission));
+      }
+
+      if (Array.isArray(item.permissionAny) && item.permissionAny.length > 0) {
+        return hasAnyPermission(item.permissionAny);
+      }
+
+      return true;
+    };
+
+    const filterItems = (items) => items.reduce((visibleItems, item) => {
+      const children = Array.isArray(item.children)
+        ? item.children.filter(canAccessItem)
+        : undefined;
+      const itemVisible = canAccessItem(item) || Boolean(children?.length);
+
+      if (!itemVisible) {
+        return visibleItems;
+      }
+
+      visibleItems.push(children ? { ...item, children } : item);
+      return visibleItems;
+    }, []);
+
+    return {
+      main: filterItems(navigationGroups.main),
+      operations: filterItems(navigationGroups.operations),
+      configuration: filterItems(navigationGroups.configuration)
+    };
+  }, [hasAnyPermission, hasPermission]);
 
   // Track viewport to switch to drawer-like behavior on mobile
   useEffect(() => {
@@ -200,36 +237,50 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
         {/* Navigation */}
         <div className="sidebar-content">
           {/* Main Navigation Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Main</div>}
-            <nav className="nav-menu">
-              {renderNavigationGroup(navigationGroups.main, 'main')}
-            </nav>
-          </div>
+          {visibleNavigationGroups.main.length > 0 && (
+            <>
+              <div className="nav-group">
+                {!sidebarCollapsed && <div className="group-label">Main</div>}
+                <nav className="nav-menu">
+                  {renderNavigationGroup(visibleNavigationGroups.main, 'main')}
+                </nav>
+              </div>
 
-          <div className="nav-separator"></div>
+              {(visibleNavigationGroups.operations.length > 0 || visibleNavigationGroups.configuration.length > 0) && (
+                <div className="nav-separator"></div>
+              )}
+            </>
+          )}
 
           {/* Operations Navigation Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Operations</div>}
-            <nav className="nav-menu">
-              {renderNavigationGroup(navigationGroups.operations, 'operations')}
-            </nav>
-          </div>
+          {visibleNavigationGroups.operations.length > 0 && (
+            <>
+              <div className="nav-group">
+                {!sidebarCollapsed && <div className="group-label">Operations</div>}
+                <nav className="nav-menu">
+                  {renderNavigationGroup(visibleNavigationGroups.operations, 'operations')}
+                </nav>
+              </div>
 
-          <div className="nav-separator"></div>
+              {visibleNavigationGroups.configuration.length > 0 && (
+                <div className="nav-separator"></div>
+              )}
+            </>
+          )}
 
           {/* Configuration Navigation Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Configuration</div>}
-            <nav className="nav-menu">
-              {renderNavigationGroup(navigationGroups.configuration, 'configuration')}
-            </nav>
-          </div>
+          {visibleNavigationGroups.configuration.length > 0 && (
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Configuration</div>}
+              <nav className="nav-menu">
+                {renderNavigationGroup(visibleNavigationGroups.configuration, 'configuration')}
+              </nav>
+            </div>
+          )}
 
           {/* Quick Action Button */}
-          {!sidebarCollapsed && (
-            <div className="add-vehicle-btn" onClick={() => handleNavigation('/vehicles/fleet#vehicleaction')}>
+          {!sidebarCollapsed && canCreateVehicle && (
+            <div className="add-vehicle-btn" onClick={() => handleNavigation(vehicleRoutes.addVehicle)}>
               <i className="fa-light fa-plus"></i>
               <span>Add New Vehicle</span>
             </div>

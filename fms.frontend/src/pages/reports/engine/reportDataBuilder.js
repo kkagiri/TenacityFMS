@@ -1791,7 +1791,7 @@ const mapAlarmReport = (rawRecords) => {
             rowNumber: index + 1,
             occurredAt: formatUtcDateTimeToLocal(getValue(record, ['occurredAt', 'OccurredAt', 'dateTime', 'DateTime'])),
             ptsId: normalizeText(getValue(record, ['ptsId', 'PtsId']), '-'),
-            deviceLabel: `${normalizeText(getValue(record, ['deviceType', 'DeviceType']), '-') } #${normalizeText(getValue(record, ['deviceNumber', 'DeviceNumber']), '-')}`,
+            deviceLabel: `${normalizeText(getValue(record, ['deviceType', 'DeviceType']), '-')} #${normalizeText(getValue(record, ['deviceNumber', 'DeviceNumber']), '-')}`,
             alertCode: normalizeText(getValue(record, ['alertCode', 'AlertCode']), '-'),
             alarmType: normalizeText(getValue(record, ['alarmType', 'AlarmType']), '-'),
             severity,
@@ -1815,6 +1815,45 @@ const mapAlarmReport = (rawRecords) => {
             activeCount,
             resolvedCount,
             uniqueDevices,
+        },
+    };
+};
+
+const mapVehicleDocumentCompliance = (rawRecords) => {
+    const mapped = rawRecords.map((record, index) => {
+        const statusName = normalizeText(getValue(record, ['statusName', 'StatusName', 'status', 'Status']), '-');
+        const daysUntilExpiry = numberOrZero(getValue(record, ['daysUntilExpiry', 'DaysUntilExpiry']));
+
+        return {
+            rowNumber: index + 1,
+            vehicleRegistration: normalizeText(getValue(record, ['vehicleRegistration', 'VehicleRegistration']), '-'),
+            siteName: normalizeText(getValue(record, ['siteName', 'SiteName']), '-'),
+            vehicleTypeName: normalizeText(getValue(record, ['vehicleTypeName', 'VehicleTypeName']), '-'),
+            complianceCategoryName: normalizeText(getValue(record, ['complianceCategoryName', 'ComplianceCategoryName']), '-'),
+            documentTypeName: normalizeText(getValue(record, ['documentTypeName', 'DocumentTypeName']), '-'),
+            documentNumber: normalizeText(getValue(record, ['documentNumber', 'DocumentNumber']), '-'),
+            issuingAuthority: normalizeText(getValue(record, ['issuingAuthority', 'IssuingAuthority']), '-'),
+            issueDate: formatDate(getValue(record, ['issueDate', 'IssueDate'])),
+            expiryDate: formatDate(getValue(record, ['expiryDate', 'ExpiryDate'])),
+            alertLeadDays: numberOrZero(getValue(record, ['alertLeadDays', 'AlertLeadDays'])),
+            statusName,
+            statusClass: statusName.toLowerCase() === 'expired' ? 'text-danger' : daysUntilExpiry <= 30 ? 'text-success' : 'text-muted',
+            daysUntilExpiry,
+            notes: normalizeText(getValue(record, ['notes', 'Notes']), '-'),
+        };
+    });
+
+    return {
+        records: mapped,
+        summary: {
+            totalRecords: mapped.length,
+            validCount: mapped.filter((row) => row.statusName.toLowerCase() === 'valid').length,
+            expiringCount: mapped.filter((row) => {
+                const normalizedStatus = row.statusName.toLowerCase();
+                return normalizedStatus === 'expiring' || normalizedStatus === 'expiringsoon';
+            }).length,
+            expiredCount: mapped.filter((row) => row.statusName.toLowerCase() === 'expired').length,
+            siteCount: new Set(mapped.map((row) => row.siteName)).size,
         },
     };
 };
@@ -1845,6 +1884,8 @@ const transformBySource = (sourceId, rawRecords, container, queryParams) => {
             return mapStorageReceivedVsDispensed(rawRecords);
         case 'alarm-report':
             return mapAlarmReport(rawRecords);
+        case 'vehicle-document-compliance':
+            return mapVehicleDocumentCompliance(rawRecords);
         case 'route-analysis':
             return mapVehicleTripAnalysis(rawRecords, queryParams);
         case 'live-trip-operations':

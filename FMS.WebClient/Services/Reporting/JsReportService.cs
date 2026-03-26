@@ -1386,6 +1386,7 @@ namespace FMS.WebClient.Services.Reporting
                 "issue-tracker-report" => JsReportHtmlTemplates.IssueTracker(),
                 "consumption-by-refills-report" => JsReportHtmlTemplates.ConsumptionByRefills(),
                 "transaction-history-summary-report" => JsReportHtmlTemplates.TransactionHistorySummary(),
+                "vehicle-document-compliance-report" => JsReportHtmlTemplates.VehicleDocumentCompliance(),
                 "live-trip-operations-report" => LiveTripOperationsHtmlTemplate.Get(),
                 _ => string.Empty
             };

@@ -1,15 +1,20 @@
 /**
  * File: VehicleDocumentsGrid.jsx
  * Purpose: Data grid wrapper for vehicle compliance records.
- * Dependencies: DevExtreme DataGrid.
+ * Dependencies: DevExtreme DataGrid, ExcelJS, file-saver.
  * Last Modified: 2026-03-25
  */
 
-import React from "react";
-import DataGrid, { Column, FilterRow, Pager, Paging, SearchPanel } from "devextreme-react/data-grid";
+import React, { useCallback, useRef } from "react";
+import DataGrid, { Column, Export, FilterRow, Item as ToolbarItem, Pager, Paging, SearchPanel, Toolbar } from "devextreme-react/data-grid";
+import { Workbook } from "exceljs";
+import saveAs from "file-saver";
+import { exportDataGrid } from "devextreme/excel_exporter";
 import { formatDisplayDate } from "../VehicleDocuments.shared";
 
 const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete }) => {
+  const dataGridRef = useRef(null);
+
   const renderStatusCell = ({ data }) => (
     <span className={`vehicle-documents-page__status vehicle-documents-page__status--${data.statusTone}`}>
       {data.statusLabel}
@@ -44,9 +49,36 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete }) => {
     </div>
   );
 
+  const handleExporting = useCallback((event) => {
+    const workbook = new Workbook();
+    const worksheet = workbook.addWorksheet("Vehicle Documents");
+
+    exportDataGrid({
+      component: event.component,
+      worksheet,
+      autoFilterEnabled: true,
+      customizeCell: ({ gridCell, excelCell }) => {
+        if (gridCell.rowType === "header") {
+          excelCell.font = { bold: true, color: { argb: "FF201F1E" } };
+          excelCell.fill = {
+            type: "pattern",
+            pattern: "solid",
+            fgColor: { argb: "FFEAF3FB" },
+          };
+        }
+      },
+    }).then(() => workbook.xlsx.writeBuffer())
+      .then((buffer) => {
+        saveAs(new Blob([buffer], { type: "application/octet-stream" }), "VehicleDocuments.xlsx");
+      });
+
+    event.cancel = true;
+  }, []);
+
   return (
     <div className="vehicle-documents-page__grid-shell">
       <DataGrid
+        ref={dataGridRef}
         dataSource={documents}
         keyExpr="id"
         showBorders={true}
@@ -55,11 +87,17 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete }) => {
         allowColumnResizing={true}
         rowAlternationEnabled={true}
         noDataText={loading ? "Loading vehicle documents..." : "No vehicle documents match the current scope."}
+        onExporting={handleExporting}
       >
+        <Export enabled={true} formats={["xlsx"]} allowExportSelectedData={false} />
+        <Toolbar>
+          <ToolbarItem name="searchPanel" location="before" />
+          <ToolbarItem name="exportButton" location="after" />
+        </Toolbar>
         <SearchPanel visible={true} width={280} placeholder="Search documents..." />
         <FilterRow visible={true} />
         <Paging defaultPageSize={10} />
-        <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50]} showInfo={true} />
+        <Pager showPageSizeSelector={true} allowedPageSizes={[10, 20, 50, 100]} showInfo={true} />
 
         <Column dataField="vehicleLabel" caption="Vehicle" minWidth={140} />
         <Column dataField="siteName" caption="Site" minWidth={120} />

@@ -1,3 +1,9 @@
+/**
+ * File: VehicleComplianceRequirement.cs
+ * Purpose: Defines vehicle compliance requirements assigned by site or vehicle type.
+ * Dependencies: Vehicle compliance enums, site and vehicle type entities.
+ * Last Modified: 2026-03-25
+ */
 using System;
 using FMS.Domain.Entities.Features.VehicleManagement;
 

@@ -2,7 +2,7 @@
  * File:          VehicleFleetPage.js
  * Purpose:       M365 Admin Center style vehicle fleet page with SlidePanel details.
  * Dependencies:  M365PageHeader, SlidePanel, VehicleDataGrid, VehicleDetailPanel
- * Last Modified: 2026-02-26
+ * Last Modified: 2026-03-25
  *
  * Key Components:
  * - M365 page header with Add Vehicle action
@@ -19,6 +19,7 @@ import SlidePanel from "../../../components/ui/SlidePanel";
 import VehicleDataGrid from "./VehicleDataGrid";
 import VehicleAddForm from "./VehicleAddForm";
 import VehicleDetailPanel from "./VehicleDetailPanel";
+import { usePermissions } from "../../../hooks/usePermissions";
 
 import "./VehicleFleetPage.scss";
 
@@ -26,22 +27,30 @@ const VehicleFleetPage = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const vehicles = useSelector((state) => state.vehicle.vehicles);
+  const { hasPermission } = usePermissions();
+  const canCreateVehicle = hasPermission("_Create_Vehicle");
 
   const [showAddPanel, setShowAddPanel] = useState(false);
   const [selectedVehicleId, setSelectedVehicleId] = useState(null);
 
   // Check for hash navigation on mount
   useEffect(() => {
-    if (location.hash === "#vehicleaction") {
+    if (location.hash === "#vehicleaction" && canCreateVehicle) {
       setShowAddPanel(true);
+    } else if (location.hash === "#vehicleaction" && !canCreateVehicle) {
+      navigate(location.pathname, { replace: true });
     }
-  }, [location]);
+  }, [canCreateVehicle, location, navigate]);
 
   /* ── Add Vehicle ── */
   const handleAddVehicle = useCallback(() => {
+    if (!canCreateVehicle) {
+      return;
+    }
+
     setShowAddPanel(true);
     navigate(`${location.pathname}#vehicleaction`, { replace: true });
-  }, [navigate, location.pathname]);
+  }, [canCreateVehicle, navigate, location.pathname]);
 
   const handleCloseAddPanel = useCallback(() => {
     setShowAddPanel(false);
@@ -82,9 +91,11 @@ const VehicleFleetPage = () => {
         icon="fa-light fa-truck"
         count={vehicles?.length}
       >
-        <button className="m365-btn m365-btn--primary" onClick={handleAddVehicle}>
-          <i className="fa-light fa-plus" /> Add Vehicle
-        </button>
+        {canCreateVehicle && (
+          <button className="m365-btn m365-btn--primary" onClick={handleAddVehicle}>
+            <i className="fa-light fa-plus" /> Add Vehicle
+          </button>
+        )}
       </M365PageHeader>
 
       {/* ── DataGrid ── */}
@@ -102,7 +113,7 @@ const VehicleFleetPage = () => {
 
       {/* ── Add Vehicle Panel ── */}
       <SlidePanel
-        open={showAddPanel}
+        open={showAddPanel && canCreateVehicle}
         onClose={handleCloseAddPanel}
         title="Add New Vehicle"
         width={720}

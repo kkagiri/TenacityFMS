@@ -1,3 +1,9 @@
+/**
+ * File: vehicleDocumentActions.js
+ * Purpose: Redux thunks for vehicle document CRUD, settings, compliance, and reporting endpoints.
+ * Dependencies: axiosInstance.
+ * Last Modified: 2026-03-25
+ */
 import axiosInstance from "../../api/axiosInstance";
 
 const getApiErrorMessage = (error, fallbackMessage) => {
@@ -151,6 +157,66 @@ export const bulkCreateVehicleComplianceRequirements = (payload) => async () => 
         return {
             isSuccess: false,
             message: getApiErrorMessage(error, "Failed to create compliance assignments")
+        };
+    }
+};
+
+export const getVehicleDocumentIssuingAuthorities = () => async () => {
+    try {
+        const response = await axiosInstance.get("/vehicledocuments/settings/issuing-authorities");
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to load issuing authorities"),
+        };
+    }
+};
+
+export const getVehicleDocumentUserPreferences = () => async () => {
+    try {
+        const response = await axiosInstance.get("/vehicledocuments/settings/reminder-defaults/current-user");
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to load your reminder defaults"),
+        };
+    }
+};
+
+export const saveVehicleDocumentUserPreferences = (payload) => async () => {
+    try {
+        const response = await axiosInstance.put("/vehicledocuments/settings/reminder-defaults/current-user", payload);
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to save your reminder defaults"),
+        };
+    }
+};
+
+export const renameVehicleDocumentIssuingAuthority = (payload) => async () => {
+    try {
+        const response = await axiosInstance.put("/vehicledocuments/settings/issuing-authorities", payload);
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to update issuing authority"),
+        };
+    }
+};
+
+export const deleteVehicleDocumentIssuingAuthority = (payload) => async () => {
+    try {
+        const response = await axiosInstance.post("/vehicledocuments/settings/issuing-authorities/delete", payload);
+        return response.data;
+    } catch (error) {
+        return {
+            isSuccess: false,
+            message: getApiErrorMessage(error, "Failed to delete issuing authority"),
         };
     }
 };

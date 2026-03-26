@@ -21,13 +21,37 @@ import {
 
 export const usePermissions = () => {
   const token = useSelector(state => state.auth.token);
+  const user = useSelector(state => state.auth.user);
   const myPermissions = useSelector(state => state.auth.myPermissions);
   const permissionsLoaded = useSelector(state => state.auth.permissionsLoaded);
 
   // Permissions come from Redux (fetched from GET /Permission/me)
   const permissions = useMemo(() => {
-    return myPermissions || [];
-  }, [myPermissions]);
+    const reduxPermissions = Array.isArray(myPermissions) ? myPermissions : [];
+    const userPermissions = Array.isArray(user?.permissions)
+      ? user.permissions
+      : Array.isArray(user?.Permissions)
+        ? user.Permissions
+        : [];
+
+    const merged = [...new Set([...reduxPermissions, ...userPermissions])];
+
+    // DEBUG: Remove after investigation
+    console.group('[usePermissions] DEBUG');
+    console.log('auth.user:', user);
+    console.log('auth.user?.id / auth.user?.Id:', user?.id, user?.Id);
+    console.log('auth.user?.userName / auth.user?.UserName:', user?.userName, user?.UserName);
+    console.log('auth.user?.roles:', user?.roles, user?.Roles);
+    console.log('auth.myPermissions (raw from Redux):', myPermissions);
+    console.log('auth.myPermissions type:', typeof myPermissions, 'isArray:', Array.isArray(myPermissions), 'length:', myPermissions?.length);
+    console.log('user.permissions fallback:', userPermissions);
+    console.log('permissionsLoaded:', permissionsLoaded);
+    console.log('MERGED permissions count:', merged.length);
+    console.log('MERGED permissions:', merged);
+    console.groupEnd();
+
+    return merged;
+  }, [myPermissions, user, permissionsLoaded]);
 
   // Build a lowercase Set for fast lookups
   const permissionSet = useMemo(() => {

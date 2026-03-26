@@ -24,7 +24,7 @@
  * share one evaluator (e.g., IssueTracker → System evaluator).
  *
  * Scopes (physical entities that an expression can target):
- * - SiteId, TankId, DeviceId, VehicleId, UserId, ProductId
+ * - SiteId, TankId, DeviceId, VehicleId, VehicleTypeId, UserId, ProductId
  */
 
 using System.Collections.Generic;
@@ -58,7 +58,7 @@ namespace FMS.Application.Features.EventEngine.DTOs
 
         /// <summary>
         /// Which scope filters apply to this type.
-        /// Possible values: SiteId, TankId, VehicleId, DeviceId, UserId, ProductId
+        /// Possible values: SiteId, TankId, VehicleId, VehicleTypeId, DeviceId, UserId, ProductId
         /// </summary>
         public string[] AvailableScopeFilters { get; set; } = System.Array.Empty<string>();
 
@@ -379,6 +379,27 @@ namespace FMS.Application.Features.EventEngine.DTOs
                     AvailableScopeFilters = new[] { "SiteId", "VehicleId" },
                     DefaultSeverity = "Medium",
                     DefaultCooldownMinutes = 30
+                },
+                new()
+                {
+                    AlertTypeKey = VehicleDocumentComplianceEvent.EventTypeName,
+                    EventType = VehicleDocumentComplianceEvent.EventTypeName,
+                    DisplayName = "Vehicle Document Compliance",
+                    Description = "Triggers when a vehicle document is due soon or has expired, with document download context available in the message.",
+                    Category = "GPS & Vehicle",
+                    CategoryIcon = "fa-light fa-id-card",
+                    AvailableConditions = new List<ConditionFieldDto>
+                    {
+                        new("subTypeFilter", "Status", "select", false, null,
+                            new[] { "VehicleDocumentExpiringSoon", "VehicleDocumentExpired" }),
+                        new("complianceCategoryFilter", "Compliance Category", "select", false, null,
+                            new[] { "InsuranceCertificate", "VehicleRegistration", "NtsaInspectionCertificate", "KenhaRoadPermit", "KenhaPermitExemption", "SpeedGovernorCertificate", "DrivingLicense", "Other" }),
+                        new("documentTypeFilter", "Document Type", "select", false, null,
+                            new[] { "Insurance", "Registration", "Inspection", "RoadPermit", "Other" })
+                    },
+                    AvailableScopeFilters = new[] { "SiteId", "VehicleId", "VehicleTypeId" },
+                    DefaultSeverity = "Medium",
+                    DefaultCooldownMinutes = 1440
                 },
 
                 // ═══════════════════════════════════════════════════

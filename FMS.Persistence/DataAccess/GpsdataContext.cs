@@ -250,6 +250,7 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
     public virtual DbSet<EmployeeDocument> EmployeeDocuments { get; set; }
     public virtual DbSet<VehicleDocument> VehicleDocuments { get; set; }
     public virtual DbSet<VehicleComplianceRequirement> VehicleComplianceRequirements { get; set; }
+    public virtual DbSet<VehicleDocumentUserPreference> VehicleDocumentUserPreferences { get; set; }
 
     // Vehicle Transfer System
     public virtual DbSet<FMS.Domain.Entities.Features.VehicleManagement.VehicleTransfer> VehicleTransfers { get; set; }
@@ -569,6 +570,8 @@ public partial class GpsdataContext : IdentityDbContext<User, Role, string>
         try { modelBuilder.ApplyConfiguration(new TaskConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring TaskConfiguration: {ex.Message}"); }
 
         try { modelBuilder.ApplyConfiguration(new VehicleDocumentConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new VehicleComplianceRequirementConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleComplianceRequirementConfiguration: {ex.Message}"); }
+        try { modelBuilder.ApplyConfiguration(new VehicleDocumentUserPreferenceConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleDocumentUserPreferenceConfiguration: {ex.Message}"); }
 
         // Vehicle Transfer Configurations
         try { modelBuilder.ApplyConfiguration(new VehicleTransferConfiguration()); } catch (Exception ex) { Console.WriteLine($"Error configuring VehicleTransferConfiguration: {ex.Message}"); }

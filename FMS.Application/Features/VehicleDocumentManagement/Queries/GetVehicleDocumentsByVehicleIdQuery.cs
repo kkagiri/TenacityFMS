@@ -2,7 +2,6 @@ using FMS.Application.Common;
 using FMS.Application.Features.VehicleDocumentManagement.Dtos;
 using MediatR;
 using System.Collections.Generic;
-using AutoMapper;
 using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
@@ -15,12 +14,10 @@ public record GetVehicleDocumentsByVehicleIdQuery(int VehicleId) : IRequest<FMSR
 public class GetVehicleDocumentsByVehicleIdQueryHandler : IRequestHandler<GetVehicleDocumentsByVehicleIdQuery, FMSResponse<List<VehicleDocumentDto>>>
 {
     private readonly GpsdataContext _context;
-    private readonly IMapper _mapper;
 
-    public GetVehicleDocumentsByVehicleIdQueryHandler(GpsdataContext context, IMapper mapper)
+    public GetVehicleDocumentsByVehicleIdQueryHandler(GpsdataContext context)
     {
         _context = context;
-        _mapper = mapper;
     }
 
     public async Task<FMSResponse<List<VehicleDocumentDto>>> Handle(GetVehicleDocumentsByVehicleIdQuery request, CancellationToken cancellationToken)
@@ -28,28 +25,32 @@ public class GetVehicleDocumentsByVehicleIdQueryHandler : IRequestHandler<GetVeh
 
         try
         {
-            var existingVehicle = await _context.Vehicles.FindAsync(request.VehicleId);
-            if (existingVehicle == null)
+            var vehicleExists = await _context.Vehicles
+                .AsNoTracking()
+                .AnyAsync(vehicle => vehicle.VehicleId == request.VehicleId, cancellationToken);
+            if (!vehicleExists)
             {
                 return FMSResponse<List<VehicleDocumentDto>>.Failed($"Vehicle with id {request.VehicleId} not found");
             }
-            var documents = await _context.VehicleDocuments
-                .Include(d => d.Vehicle)
+
+            var rows = await _context.VehicleDocuments
+                .AsNoTracking()
                 .Where(d => d.VehicleId == request.VehicleId)
+                .ProjectToVehicleDocumentRows()
                 .ToListAsync(cancellationToken);
 
-            if (documents == null || !documents.Any())
+            if (!rows.Any())
             {
                 return FMSResponse<List<VehicleDocumentDto>>.Success(new List<VehicleDocumentDto>(), "No documents found for this vehicle.");
             }
 
-            var documentDtos = _mapper.Map<List<VehicleDocumentDto>>(documents);
+            var documentDtos = rows.ToDtos();
 
             return FMSResponse<List<VehicleDocumentDto>>.Success(documentDtos, "Documents retrieved successfully");
         }
         catch (System.Exception ex)
         {
-            return FMSResponse<List<VehicleDocumentDto>>.Failed($"An error occurred while retrieving documents: {ex.Message}");
+            return FMSResponse<List<VehicleDocumentDto>>.SystemError($"An error occurred while retrieving documents: {ex.Message}");
         }
     }
 }

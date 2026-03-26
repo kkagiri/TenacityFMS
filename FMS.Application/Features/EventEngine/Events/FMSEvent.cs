@@ -90,6 +90,13 @@ namespace FMS.Application.Features.EventEngine.Events
         public virtual ReportAttachmentMetadata? GetReportAttachmentMetadata() => null;
 
         /// <summary>
+        /// Returns file attachment metadata for email delivery.
+        /// Override in subclasses that want to attach one or more stored files.
+        /// Returns an empty collection by default.
+        /// </summary>
+        public virtual IReadOnlyCollection<FileAttachmentMetadata> GetFileAttachmentMetadata() => Array.Empty<FileAttachmentMetadata>();
+
+        /// <summary>
         /// Returns a channel-specific HTML body for email delivery.
         /// Override when email needs richer content than the in-app/plain-text message.
         /// Returns null by default so email falls back to the normal template flow.
@@ -138,5 +145,15 @@ namespace FMS.Application.Features.EventEngine.Events
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
         public string FileNamePrefix { get; set; } = "Report";
+    }
+
+    /// <summary>
+    /// Metadata describing a stored file to attach directly to notification emails.
+    /// </summary>
+    public class FileAttachmentMetadata
+    {
+        public string FilePath { get; set; } = string.Empty;
+        public string FileName { get; set; } = string.Empty;
+        public string? ContentType { get; set; }
     }
 }

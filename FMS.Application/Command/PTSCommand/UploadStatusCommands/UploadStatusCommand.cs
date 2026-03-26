@@ -508,6 +508,18 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     continue;
                 }
 
+                // Enrich volume from calibration chart if PTS device sends 0
+                // Must happen BEFORE averaging so PhysicalStockValue uses calibrated volume
+                if (!probeMeasurement.ProductVolume.HasValue || probeMeasurement.ProductVolume <= 0)
+                {
+                    var calibratedVolume = await _probeReadingEnrichmentService
+                        .EnrichVolumeFromCalibrationAsync(tank.Id, probeMeasurement.ProductHeight, cancellationToken);
+                    if (calibratedVolume.HasValue)
+                    {
+                        probeMeasurement.ProductVolume = (float)calibratedVolume.Value;
+                    }
+                }
+
                 var updated = await TryApplyAveragedPhysicalStockUpdateAsync(
                     tank,
                     probeMeasurement,
@@ -516,18 +528,6 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 if (updated)
                 {
                     updatesApplied++;
-                }
-
-                // Enrich volume from calibration chart if PTS device sends 0
-                var enrichedVolume = probeMeasurement.ProductVolume;
-                if (!enrichedVolume.HasValue || enrichedVolume <= 0)
-                {
-                    var calibratedVolume = await _probeReadingEnrichmentService
-                        .EnrichVolumeFromCalibrationAsync(tank.Id, probeMeasurement.ProductHeight, cancellationToken);
-                    if (calibratedVolume.HasValue)
-                    {
-                        enrichedVolume = (float)calibratedVolume.Value;
-                    }
                 }
 
                 // Persist probe reading only when height changed or max interval elapsed (Redis cadence check)
@@ -544,7 +544,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                         ProductHeight = probeMeasurement.ProductHeight,
                         WaterHeight = probeMeasurement.WaterHeight,
                         Temperature = probeMeasurement.Temperature,
-                        ProductVolume = enrichedVolume,
+                        ProductVolume = probeMeasurement.ProductVolume,
                         WaterVolume = probeMeasurement.WaterVolume,
                         ProductTcvolume = probeMeasurement.ProductTemperatureCompensatedVolume,
                         ProductDensity = probeMeasurement.ProductDensity,

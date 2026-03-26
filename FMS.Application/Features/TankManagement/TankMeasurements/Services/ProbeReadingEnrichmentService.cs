@@ -7,7 +7,7 @@
  * Key Functions:
  * - ShouldSaveReadingAsync(): Compares current reading against Redis-cached last save; skips if height unchanged and within interval.
  * - MarkReadingSavedAsync(): Caches last-saved height + timestamp in Redis after a successful persist.
- * - EnrichVolumeFromCalibrationAsync(): Loads calibration chart (Redis-cached, 1h TTL) and interpolates height→volume.
+ * - EnrichVolumeFromCalibrationAsync(): Loads calibration chart (Redis-cached, 1h TTL) and interpolates height→volume. Converts probe mm to chart cm.
  */
 using System;
 using System.Collections.Generic;
@@ -158,9 +158,17 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 return null;
             }
 
-            // The calibration chart uses integer mm heights; probe reading is a double mm
-            var heightMm = (int)Math.Round(productHeightMm.Value, MidpointRounding.AwayFromZero);
-            var volume = InterpolateVolume(records, heightMm);
+            // PTS probe measurements are in mm; calibration charts store heights in cm.
+            // Convert mm → cm for chart lookup, falling back to raw mm if cm is out of range.
+            var heightCm = (int)Math.Round(productHeightMm.Value / 10.0, MidpointRounding.AwayFromZero);
+            var volume = InterpolateVolume(records, heightCm);
+
+            if (!volume.HasValue)
+            {
+                // Fallback: try raw value in case chart and probe share the same unit
+                var heightRaw = (int)Math.Round(productHeightMm.Value, MidpointRounding.AwayFromZero);
+                volume = InterpolateVolume(records, heightRaw);
+            }
 
             return volume.HasValue ? (double)Math.Round(volume.Value, 3, MidpointRounding.AwayFromZero) : null;
         }

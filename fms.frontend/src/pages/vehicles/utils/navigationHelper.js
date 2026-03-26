@@ -2,7 +2,7 @@
  * File: navigationHelper.js
  * Purpose: Centralizes vehicle-module routes and sidebar navigation metadata.
  * Dependencies: Vehicle module route structure.
- * Last Modified: 2026-03-10
+ * Last Modified: 2026-03-25
  */
 
 export const vehicleRoutes = {
@@ -63,6 +63,7 @@ export const navigationGroups = {
       icon: 'fa-light fa-cars',
       path: vehicleRoutes.fleet,
       badge: null,
+      permissionAny: ['_Read_Vehicle'],
       description: 'Manage all vehicles in your fleet'
     },
     {
@@ -71,12 +72,14 @@ export const navigationGroups = {
       icon: 'fa-light fa-location-dot',
       path: vehicleRoutes.tracking,
       badge: 'Live',
+      permissionAny: ['_Read_VehicleTracking', '_Read_Vehicle'],
     },
     {
       id: 'geofence-management',
       title: 'Geofence Management',
       icon: 'fa-light fa-map-location-dot',
       path: vehicleRoutes.geofenceManagement,
+      permissionAny: ['_Read_Geofence', '_Read_VehicleTracking', '_Read_Vehicle'],
       description: 'Manage fleet geofences, fueling route validation, and trip classification boundaries'
     }
   ],
@@ -87,6 +90,7 @@ export const navigationGroups = {
       icon: 'fa-light fa-route',
       path: vehicleRoutes.trips,
       badge: 'New',
+      permissionAny: ['_Read_VehicleTrips', '_Read_Vehicle'],
       description: 'Review persisted trip groups and detection modes',
       children: [
         {
@@ -94,6 +98,7 @@ export const navigationGroups = {
           title: 'Trip Settings',
           icon: 'fa-light fa-sliders',
           path: vehicleRoutes.tripSettings,
+          permissionAny: ['_Read_VehicleTrips', '_Edit_VehicleTrips', '_Read_Vehicle', '_Edit_Vehicle'],
           description: 'Control realtime trip execution settings'
         },
         {
@@ -101,21 +106,10 @@ export const navigationGroups = {
           title: 'Cluster Preview',
           icon: 'fa-light fa-chart-scatter-bubble',
           path: vehicleRoutes.tripClusterPreview,
+          permissionAny: ['_Read_VehicleTrips', '_Read_Vehicle'],
           description: 'Preview cluster detection with timeline and speed analytics'
         }
       ]
-    },
-    {
-      id: 'consumption',
-      title: 'Fuel Consumption',
-      icon: 'fa-light fa-gas-pump',
-      path: vehicleRoutes.consumption,
-    },
-    {
-      id: 'consumption-comparison',
-      title: 'Consumption Comparison',
-      icon: 'fa-light fa-chart-mixed',
-      path: vehicleRoutes.consumptionComparison,
     },
     {
       id: 'maintenance',
@@ -123,18 +117,21 @@ export const navigationGroups = {
       icon: 'fa-light fa-wrench',
       path: vehicleRoutes.maintenance,
       badge: null,
+      permissionAny: ['_Read_VehicleMaintenance', '_Read_Vehicle'],
     },
     {
       id: 'documents',
       title: 'Documents',
       icon: 'fa-light fa-file-lines',
       path: vehicleRoutes.documents,
+      permissionAny: ['_Read_VehicleDocuments', '_Read_Vehicle'],
     },
     {
       id: 'transfers',
       title: 'Vehicle Transfers',
       icon: 'fa-light fa-truck-arrow-right',
       path: vehicleRoutes.transfers,
+      permissionAny: ['_Read_VehicleTransfer', '_Create_VehicleTransfer', '_Manage_VehicleTransfer'],
     },
     {
       id: 'reports',

@@ -20,6 +20,7 @@ using Microsoft.Extensions.Options;
 using System;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace FMS.Infrastructure.Services
@@ -67,6 +68,31 @@ namespace FMS.Infrastructure.Services
             {
                 _logger.LogError(ex, "Error deleting file: {FilePath}", filePath);
                 return false;
+            }
+        }
+
+        public async Task<byte[]?> ReadFileAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            if (string.IsNullOrWhiteSpace(filePath))
+            {
+                return null;
+            }
+
+            try
+            {
+                var physicalPath = GetPhysicalPath(filePath);
+                if (string.IsNullOrWhiteSpace(physicalPath) || !File.Exists(physicalPath))
+                {
+                    _logger.LogWarning("File not found for read: {FilePath}", physicalPath);
+                    return null;
+                }
+
+                return await File.ReadAllBytesAsync(physicalPath, cancellationToken);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error reading file for attachment: {FilePath}", filePath);
+                return null;
             }
         }
 

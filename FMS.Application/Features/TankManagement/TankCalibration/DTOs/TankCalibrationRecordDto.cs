@@ -5,7 +5,7 @@
  * Last Modified: 2026-03-23
  *
  * Key Properties:
- * - Height: Calibration height in millimeters.
+ * - Height: Calibration height in centimeters (PTS chart convention; probe measurements are in mm).
  * - Volume: Volume at the calibration height.
  * - PassesNumber: Optional interval-volume pass count.
  */

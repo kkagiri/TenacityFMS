@@ -410,6 +410,8 @@ namespace FMS.Application.Features.EventEngine.Engine
         {
             var customEmailBodyHtml = fmsEvent.GetCustomEmailBodyHtml();
             var reportMeta = fmsEvent.GetReportAttachmentMetadata();
+            var fileAttachments = fmsEvent.GetFileAttachmentMetadata()?.ToList() ?? new List<FileAttachmentMetadata>();
+
             if (reportMeta != null && IsAttachReportEnabled(expression))
             {
                 return new
@@ -421,6 +423,12 @@ namespace FMS.Application.Features.EventEngine.Engine
                     severity = fmsEvent.Severity,
                     templateVariables = templateVars,
                     EmailBodyHtml = customEmailBodyHtml,
+                    fileAttachments = fileAttachments.Select(attachment => new
+                    {
+                        filePath = attachment.FilePath,
+                        fileName = attachment.FileName,
+                        contentType = attachment.ContentType
+                    }).ToList(),
                     reportAttachment = new
                     {
                         reportType = reportMeta.ReportType,
@@ -431,6 +439,26 @@ namespace FMS.Application.Features.EventEngine.Engine
                         endDate = reportMeta.EndDate.ToString("o"),
                         fileNamePrefix = reportMeta.FileNamePrefix
                     }
+                };
+            }
+
+            if (fileAttachments.Count > 0)
+            {
+                return new
+                {
+                    eventType = fmsEvent.EventType,
+                    eventCategory = fmsEvent.EventCategory,
+                    expressionId = expression.Id,
+                    expressionName = expression.Name,
+                    severity = fmsEvent.Severity,
+                    templateVariables = templateVars,
+                    EmailBodyHtml = customEmailBodyHtml,
+                    fileAttachments = fileAttachments.Select(attachment => new
+                    {
+                        filePath = attachment.FilePath,
+                        fileName = attachment.FileName,
+                        contentType = attachment.ContentType
+                    }).ToList()
                 };
             }
 

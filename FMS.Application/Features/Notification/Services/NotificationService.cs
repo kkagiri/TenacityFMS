@@ -14,8 +14,10 @@ using System.Linq;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
+using System.IO;
 using FMS.Application.Common.Constants;
 using FMS.Application.Common;
+using FMS.Application.CommonInterface;
 using FMS.Application.Features.Notification.DTOs;
 using FMS.Application.Features.Notification.Enums;
 using FMS.Application.Features.Notification.Services;
@@ -52,6 +54,8 @@ namespace FMS.Application.Features.Notification.Services
         private readonly IMapper _mapper;
         private readonly IPolicyRulesProcessor _policyRulesProcessor;
         private readonly IScheduledReportDeliveryService? _scheduledReportDeliveryService;
+        private readonly IFileHandlingService? _fileHandlingService;
+        private const int MaxEventFileAttachmentBytes = 7 * 1024 * 1024;
 
         public NotificationService(
             IMapper mapper,
@@ -62,6 +66,7 @@ namespace FMS.Application.Features.Notification.Services
             ISmsService smsService,
             ISystemUserService systemUserService,
             INotificationRecipientResolver recipientResolver,
+            IFileHandlingService? fileHandlingService = null,
             ICategoryMetadataProvider? categoryMetadata = null,
             INotificationChannelRegistry? channelRegistry = null,
             IPolicyRulesProcessor? policyRulesProcessor = null,
@@ -75,6 +80,7 @@ namespace FMS.Application.Features.Notification.Services
             _smsService = smsService;
             _systemUserService = systemUserService;
             _recipientResolver = recipientResolver;
+            _fileHandlingService = fileHandlingService;
             _categoryMetadata = categoryMetadata ?? new InMemoryCategoryMetadataProvider();
             _channelRegistry = channelRegistry;
             _policyRulesProcessor = policyRulesProcessor ?? new NullPolicyRulesProcessor();
@@ -1379,7 +1385,7 @@ namespace FMS.Application.Features.Notification.Services
                 }
 
                 // Try to build event report PDF attachment (e.g., TankVolumeHistory for stock discrepancy events)
-                var eventAttachments = await TryBuildEventReportAttachmentAsync(notification, cancellationToken);
+                var eventAttachments = await BuildEventAttachmentsAsync(notification, cancellationToken);
 
                 var customEmailBody = TryGetCustomEmailBodyFromData(notification.Data);
                 if (!string.IsNullOrWhiteSpace(customEmailBody))
@@ -1429,6 +1435,15 @@ namespace FMS.Application.Features.Notification.Services
         /// and generates the PDF attachment via ScheduledReportDeliveryService.
         /// Returns an empty list when no report is requested or the service is unavailable.
         /// </summary>
+        private async Task<List<EmailAttachmentDto>> BuildEventAttachmentsAsync(
+            Noti.Notification notification, CancellationToken cancellationToken)
+        {
+            var attachments = new List<EmailAttachmentDto>();
+            attachments.AddRange(await TryBuildEventReportAttachmentAsync(notification, cancellationToken));
+            attachments.AddRange(await TryBuildEventFileAttachmentsAsync(notification, cancellationToken));
+            return attachments;
+        }
+
         private async Task<List<EmailAttachmentDto>> TryBuildEventReportAttachmentAsync(
             Noti.Notification notification, CancellationToken cancellationToken)
         {
@@ -1489,6 +1504,74 @@ namespace FMS.Application.Features.Notification.Services
             }
         }
 
+        private async Task<List<EmailAttachmentDto>> TryBuildEventFileAttachmentsAsync(
+            Noti.Notification notification,
+            CancellationToken cancellationToken)
+        {
+            if (_fileHandlingService == null || string.IsNullOrWhiteSpace(notification.Data))
+            {
+                return new List<EmailAttachmentDto>();
+            }
+
+            try
+            {
+                var dataObject = JObject.Parse(notification.Data);
+                var fileAttachments = dataObject["fileAttachments"];
+                if (fileAttachments == null || fileAttachments.Type != JTokenType.Array)
+                {
+                    return new List<EmailAttachmentDto>();
+                }
+
+                var attachments = new List<EmailAttachmentDto>();
+                foreach (var attachmentToken in fileAttachments.Children<JObject>())
+                {
+                    var filePath = attachmentToken.Value<string>("filePath");
+                    if (string.IsNullOrWhiteSpace(filePath))
+                    {
+                        continue;
+                    }
+
+                    var content = await _fileHandlingService.ReadFileAsync(filePath, cancellationToken);
+                    if (content == null || content.Length == 0)
+                    {
+                        continue;
+                    }
+
+                    if (content.Length > MaxEventFileAttachmentBytes)
+                    {
+                        _logger.LogWarning(
+                            "Skipping event file attachment for notification {NotificationId} because it exceeds the size limit: {Size}",
+                            notification.NotificationId,
+                            content.Length);
+                        continue;
+                    }
+
+                    var fileName = attachmentToken.Value<string>("fileName");
+                    var contentType = attachmentToken.Value<string>("contentType");
+
+                    attachments.Add(new EmailAttachmentDto
+                    {
+                        FileName = string.IsNullOrWhiteSpace(fileName)
+                            ? Path.GetFileName(filePath.TrimEnd('/').TrimEnd('\\'))
+                            : fileName,
+                        ContentType = string.IsNullOrWhiteSpace(contentType)
+                            ? GetContentTypeFromFileName(fileName ?? filePath)
+                            : contentType,
+                        Content = content
+                    });
+                }
+
+                return attachments;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Failed to build event file attachment for notification {NotificationId}. Email will be sent without the direct file attachment.",
+                    notification.NotificationId);
+                return new List<EmailAttachmentDto>();
+            }
+        }
+
         /// <summary>
         /// Strips HTML tags and collapses whitespace to produce clean plain text.
         /// Used for system (SignalR) and push channels where the MessageTemplate
@@ -1530,6 +1613,26 @@ namespace FMS.Application.Features.Notification.Services
                 _logger.LogDebug(ex, "Could not parse notification Data for custom email body");
                 return null;
             }
+        }
+
+        private static string GetContentTypeFromFileName(string? fileName)
+        {
+            var extension = Path.GetExtension(fileName ?? string.Empty).ToLowerInvariant();
+
+            return extension switch
+            {
+                ".pdf" => "application/pdf",
+                ".jpg" => "image/jpeg",
+                ".jpeg" => "image/jpeg",
+                ".png" => "image/png",
+                ".gif" => "image/gif",
+                ".doc" => "application/msword",
+                ".docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+                ".xls" => "application/vnd.ms-excel",
+                ".xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                ".txt" => "text/plain",
+                _ => "application/octet-stream"
+            };
         }
 
         private static bool IsScheduledReportNotification(Noti.Notification notification)

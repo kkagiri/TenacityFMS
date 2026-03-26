@@ -28,6 +28,7 @@ import liveTripOperations from './liveTripOperations';
 import tankLevelDetail from './tankLevelDetail';
 import alarmReport from './alarmReport';
 import storageReceivedVsDispensed from './storageReceivedVsDispensed';
+import vehicleDocumentCompliance from './vehicleDocumentCompliance';
 
 /**
  * All registered report sources keyed by sourceId.
@@ -66,6 +67,7 @@ const builtInSources = [
     tankLevelDetail,
     alarmReport,
     storageReceivedVsDispensed,
+    vehicleDocumentCompliance,
 ];
 
 builtInSources.forEach((source) => {

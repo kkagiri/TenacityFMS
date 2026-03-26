@@ -38,6 +38,7 @@ public class GetVehicleComplianceDashboardQueryHandler : IRequestHandler<GetVehi
 
             var vehicles = await _context.Vehicles
                 .AsNoTracking()
+                .Where(vehicle => vehicle.IsActive == 1)
                 .Select(vehicle => new VehicleScopeRow
                 {
                     VehicleId = vehicle.VehicleId,
@@ -50,6 +51,7 @@ public class GetVehicleComplianceDashboardQueryHandler : IRequestHandler<GetVehi
 
             var allDocuments = await _context.VehicleDocuments
                 .AsNoTracking()
+                .ProjectToVehicleDocumentRows()
                 .ToListAsync(cancellationToken);
 
             var applicableRequirements = requirements
@@ -89,7 +91,7 @@ public class GetVehicleComplianceDashboardQueryHandler : IRequestHandler<GetVehi
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error generating vehicle compliance dashboard.");
-            return FMSResponse<VehicleComplianceDashboardDto>.Failed("Error generating vehicle compliance dashboard.");
+            return FMSResponse<VehicleComplianceDashboardDto>.SystemError("Error generating vehicle compliance dashboard.");
         }
     }
 
@@ -107,7 +109,7 @@ public class GetVehicleComplianceDashboardQueryHandler : IRequestHandler<GetVehi
         };
     }
 
-    private static ComplianceDashboardRecord BuildRecord(ApplicableComplianceRequirementRow requirement, VehicleDocument? document)
+    private static ComplianceDashboardRecord BuildRecord(ApplicableComplianceRequirementRow requirement, VehicleDocumentQueryRow? document)
     {
         if (document == null)
         {

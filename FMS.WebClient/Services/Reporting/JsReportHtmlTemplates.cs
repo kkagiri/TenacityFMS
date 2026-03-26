@@ -63,6 +63,11 @@ namespace FMS.WebClient.Services.Reporting
             StorageReceivedVsDispensedSummary(), StorageReceivedVsDispensedTable(),
             "No storage receipt or dispensing data found for the selected criteria.");
 
+        public static string VehicleDocumentCompliance() => BuildGenericTemplate(
+            "Vehicle Document Compliance Report", "#0078d4",
+            VehicleDocumentComplianceSummary(), VehicleDocumentComplianceTable(),
+            "No vehicle document compliance records found for the selected criteria.");
+
         public static string IssueTracker() => BuildGenericTemplate(
             "Issue Tracker Report", "#0ea5e9",
             IssueTrackerSummary(), IssueTrackerTable(),
@@ -231,6 +236,54 @@ namespace FMS.WebClient.Services.Reporting
         <div class=""summary-card card-warning""><div class=""value"">{{summary.totalDispensed}}</div><div class=""label"">Total Dispensed (L)</div></div>
         <div class=""summary-card card-info""><div class=""value"">{{summary.netChange}}</div><div class=""label"">Net Change (L)</div></div>
     </div>";
+
+        private static string VehicleDocumentComplianceSummary() => @"
+    <div class=""summary-section"">
+        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalRecords}}</div><div class=""label"">Documents</div></div>
+        <div class=""summary-card card-success""><div class=""value"">{{summary.validCount}}</div><div class=""label"">Valid</div></div>
+        <div class=""summary-card card-warning""><div class=""value"">{{summary.expiringCount}}</div><div class=""label"">Due Soon</div></div>
+        <div class=""summary-card card-info""><div class=""value"">{{summary.expiredCount}}</div><div class=""label"">Expired</div></div>
+    </div>";
+
+        private static string VehicleDocumentComplianceTable() => @"
+        <table class=""data-table"">
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Vehicle</th>
+                    <th>Site</th>
+                    <th>Vehicle Type</th>
+                    <th>Compliance Category</th>
+                    <th>Document Type</th>
+                    <th>Document Number</th>
+                    <th>Authority</th>
+                    <th>Issue Date</th>
+                    <th>Expiry Date</th>
+                    <th class=""text-right"">Lead Days</th>
+                    <th>Status</th>
+                    <th class=""text-right"">Days Left</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{#each records}}
+                <tr>
+                    <td>{{this.rowNumber}}</td>
+                    <td>{{this.vehicleRegistration}}</td>
+                    <td>{{this.siteName}}</td>
+                    <td>{{this.vehicleTypeName}}</td>
+                    <td>{{this.complianceCategoryName}}</td>
+                    <td>{{this.documentTypeName}}</td>
+                    <td>{{this.documentNumber}}</td>
+                    <td>{{this.issuingAuthority}}</td>
+                    <td>{{this.issueDate}}</td>
+                    <td>{{this.expiryDate}}</td>
+                    <td class=""text-right"">{{this.alertLeadDays}}</td>
+                    <td class=""{{this.statusClass}}"">{{this.statusName}}</td>
+                    <td class=""text-right font-bold"">{{this.daysUntilExpiry}}</td>
+                </tr>
+                {{/each}}
+            </tbody>
+        </table>";
 
         private static string TankLevelDetailTable() => @"
         <table class=""data-table"">

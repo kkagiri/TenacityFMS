@@ -1,8 +1,17 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+/**
+ * File: AppDrawer.js
+ * Purpose: Renders the launcher-style app drawer and filters module visibility by user permissions.
+ * Dependencies: react, react-dom, react-router-dom, usePermissions hook
+ * Last Modified: 2026-03-25
+ *
+ * Key Functions:
+ * - AppDrawer(): Positions the drawer and shows only modules the current user can access
+ */
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import ReactDOM from "react-dom";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
 import "./AppDrawer.scss";
+import { usePermissions } from "../../hooks/usePermissions";
 
 const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const navigate = useNavigate();
@@ -10,25 +19,16 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
   const containerRef = useRef(null); // Add ref for the container
   const [position, setPosition] = useState({ top: 70, left: 12 });
   const [drawerHeight, setDrawerHeight] = useState(100); // State for dynamic height
+  const { hasAnyPermission, isAuthenticated } = usePermissions();
 
-  // Get current user from Redux store
-  const currentUser = useSelector(state => state.auth.user);
-
-  // Get user roles, handle both 'roles' and 'Roles' properties
-  const userRoles = currentUser?.roles || currentUser?.Roles || [];
-
-  // If roles are not yet loaded, do not default to 'guest'.
-  // Instead, treat as if no role is assigned, preventing the drawer from showing guest-only modules.
-  const primaryRole = userRoles.length > 0 ? userRoles[0].toLowerCase() : null;
-
-  const modules = [
+  const modules = useMemo(() => [
     {
       id: 1,
       name: "Dashboard",
       icon: "fa-light fa-chart-line",
       route: "/home",
       color: "#0078d4",
-      roles: ["admin", "management", "user", "guest", "poweruser"] // Available to all roles
+      requiredPermissions: ["_View_Dashboard", "Dashboard Module"]
     },
     {
       id: 2,
@@ -36,7 +36,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-car",
       route: "/vehicles",
       color: "#107c10",
-      roles: ["admin", "management", "user", "poweruser"] // Not available to guests
+      requiredPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer"]
     },
     {
       id: 3,
@@ -44,7 +44,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-users",
       route: "/employees",
       color: "#ff8c00",
-      roles: ["admin", "management", "user", "poweruser"] // to allow users to see employees for assignment
+      requiredPermissions: ["Employee Module", "_Read_Employee"]
     },
     {
       id: 4,
@@ -52,7 +52,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-gas-pump",
       route: "/atg",
       color: "#d13438",
-      roles: ["admin", "management", "user", "poweruser"] // Operators need access to fueling
+      requiredPermissions: ["ATG", "FuelRefil", "FuelingRuleModule", "PTSServiceModule", "PushDeviceModule", "_Manage_ATG", "_Read_PTSDevice", "_Read_FuelingRule", "_Read_FuelRefill"]
     },
     {
       id: 5,
@@ -60,7 +60,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-exclamation-triangle",
       route: "/issue-tracker",
       color: "#881798",
-      roles: ["admin", "management", "user", "poweruser"] // Users can report issues
+      requiredPermissions: ["IssueTracker", "IssueManagementV2Module", "_Read_Issues", "_Manage_Issues"]
     },
     {
       id: 6,
@@ -68,7 +68,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-chart-pie",
       route: "/reports",
       color: "#7c3aed",
-      roles: ["admin", "management", "user"] // Users can view basic reports
+      requiredPermissions: ["Data Analysis Module", "ReportingModule", "ReportModule", "StockReportModule", "TankVolumeHistoryModule", "_Read_Reporting", "_Generate_Report", "_Read_VehicleConsumptionReport", "_Read_FuelRefillReport", "_Read_StockReport", "_Read_TankVolumeHistory", "_Read_PTSDevice"]
     },
     {
       id: 7,
@@ -76,7 +76,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-oil-can",
       route: "/tankstock",
       color: "#498205",
-      roles: ["admin", "management", "user", "poweruser"] // Users need tank stock access
+      requiredPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_TankReconciliation", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_DailyTankReconciliation", "_Read_TankVolumeDataCorrection", "_Read_TankVolumeHistory"]
     },
     {
       id: 8,
@@ -84,7 +84,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-cog",
       route: "/admin",
       color: "#005a70",
-      roles: ["admin"] // ADMIN ONLY
+      requiredPermissions: ["Admin Module", "_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"]
     },
 
     {
@@ -93,7 +93,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-bell",
       route: "/event-expressions",
       color: "#e74856",
-      roles: ["admin", "management", "poweruser"] // All roles should see events
+      requiredPermissions: ["_Read_EventExpression"]
     },
     {
       id: 11,
@@ -101,14 +101,31 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-wrench",
       route: "/maintenance",
       color: "#ea580c",
-      roles: ["admin", "management", "user", "poweruser"] // All users can access maintenance
+      requiredPermissions: ["VehicleMaintenanceModule", "Vehicle Module", "_Read_VehicleMaintenance", "_Read_Vehicle"]
     }
-  ];
+  ], []);
 
-  // Filter modules based on user role
-  const filteredModules = modules.filter(module =>
-    module.roles.includes(primaryRole)
-  );
+  const filteredModules = useMemo(() => {
+    if (!isAuthenticated) {
+      console.warn('[AppDrawer] Not authenticated – returning empty modules');
+      return [];
+    }
+
+    // DEBUG: Remove after investigation
+    console.group('[AppDrawer] Module Filtering DEBUG');
+    modules.forEach((m) => {
+      const match = hasAnyPermission(m.requiredPermissions);
+      console.log(
+        `${match ? '✅' : '❌'} ${m.name}`,
+        '| requiredPermissions:', m.requiredPermissions
+      );
+    });
+    console.groupEnd();
+
+    const result = modules.filter((module) => hasAnyPermission(module.requiredPermissions));
+    console.log('[AppDrawer] filteredModules count:', result.length, result.map(m => m.name));
+    return result;
+  }, [hasAnyPermission, isAuthenticated, modules]);
 
   // Calculate dynamic height based on number of modules
   const calculateDrawerHeight = useCallback(() => {

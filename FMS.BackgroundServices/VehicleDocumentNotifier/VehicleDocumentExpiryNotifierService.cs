@@ -8,6 +8,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -56,6 +57,9 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
         DateTime processingHorizon = DateTime.UtcNow.Date.AddDays(365);
         List<VehicleDocument> documentsToNotify = await context.VehicleDocuments
             .Include(vd => vd.Vehicle)
+            .ThenInclude(vehicle => vehicle.WorkingSite)
+            .Include(vd => vd.Vehicle)
+            .ThenInclude(vehicle => vehicle.VehicleType)
             .Where(vd => vd.ExpiryDate <= processingHorizon)
             .ToListAsync(stoppingToken);
 
@@ -78,21 +82,48 @@ public class VehicleDocumentExpiryNotifierService : BackgroundService
                 // Fire SystemEvent for document expiry through the event expression engine
                 if (eventEngine != null)
                 {
-                    var docEvent = new SystemEvent
+                    var documentUrl = doc.DocumentFileUrl ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(documentUrl) && !documentUrl.StartsWith("/api/v1/files/", StringComparison.OrdinalIgnoreCase))
                     {
+                        documentUrl = $"/api/v1/files/{documentUrl.TrimStart('/')}";
+                    }
+
+                    var docEvent = new VehicleDocumentComplianceEvent
+                    {
+                        SiteId = doc.Vehicle?.WorkingSiteId,
                         Severity = priority,
                         SubType = daysUntilExpiry <= 0 ? "VehicleDocumentExpired" : "VehicleDocumentExpiringSoon",
                         SourceComponent = "VehicleDocumentNotifier",
                         Message = message,
                         ReferenceType = "VehicleDocument",
+                        DocumentId = doc.Id,
+                        VehicleId = doc.VehicleId,
+                        VehicleNo = doc.Vehicle?.HyoungNo ?? string.Empty,
+                        VehicleTypeId = doc.Vehicle?.VehicleTypeId,
+                        VehicleTypeName = doc.Vehicle?.VehicleType?.Name ?? string.Empty,
+                        SiteName = doc.Vehicle?.WorkingSite?.Name ?? string.Empty,
+                        DocumentTypeName = doc.DocumentType.ToString(),
+                        ComplianceCategoryName = doc.ComplianceCategory.ToString(),
+                        DocumentNumber = doc.DocumentNumber,
+                        IssuingAuthority = doc.IssuingAuthority,
+                        DocumentFileName = doc.DocumentFileName ?? string.Empty,
+                        ExpiryDate = doc.ExpiryDate,
+                        DaysUntilExpiry = daysUntilExpiry,
+                        AlertLeadDays = doc.AlertLeadDays,
+                        DocumentFileUrl = documentUrl,
                     };
                     docEvent.Data["DocumentId"] = doc.Id.ToString();
                     docEvent.Data["DocumentType"] = doc.DocumentType.ToString();
                     docEvent.Data["ComplianceCategory"] = doc.ComplianceCategory.ToString();
                     docEvent.Data["VehicleNo"] = doc.Vehicle?.HyoungNo ?? "";
+                    docEvent.Data["VehicleTypeId"] = doc.Vehicle?.VehicleTypeId;
+                    docEvent.Data["VehicleTypeName"] = doc.Vehicle?.VehicleType?.Name ?? string.Empty;
+                    docEvent.Data["SiteName"] = doc.Vehicle?.WorkingSite?.Name ?? string.Empty;
+                    docEvent.Data["DocumentFileName"] = doc.DocumentFileName ?? string.Empty;
                     docEvent.Data["DaysUntilExpiry"] = daysUntilExpiry;
                     docEvent.Data["AlertLeadDays"] = doc.AlertLeadDays;
                     docEvent.Data["ExpiryDate"] = doc.ExpiryDate.ToString("yyyy-MM-dd");
+                    docEvent.Data["DocumentFileUrl"] = documentUrl;
                     await eventEngine.ProcessAsync(docEvent, stoppingToken);
                 }
                 _logger.LogInformation(

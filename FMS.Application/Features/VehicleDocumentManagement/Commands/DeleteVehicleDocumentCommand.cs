@@ -4,6 +4,7 @@ using MediatR;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using System;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -26,22 +27,21 @@ public class DeleteVehicleDocumentCommandHandler : IRequestHandler<DeleteVehicle
     {
         try
         {
-            var vehicleDocument = await _context.VehicleDocuments.FirstOrDefaultAsync(vd => vd.Id == request.Id, cancellationToken);
+            var deletedCount = await _context.VehicleDocuments
+                .Where(vd => vd.Id == request.Id)
+                .ExecuteDeleteAsync(cancellationToken);
 
-            if (vehicleDocument == null)
+            if (deletedCount == 0)
             {
                 return FMSResponse<bool>.Failed("Vehicle document not found.");
             }
-
-            _context.VehicleDocuments.Remove(vehicleDocument);
-            await _context.SaveChangesAsync(cancellationToken);
 
             return FMSResponse<bool>.Success(true, "Vehicle document deleted successfully.");
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting vehicle document.");
-            return FMSResponse<bool>.Failed("Error deleting vehicle document.");
+            return FMSResponse<bool>.SystemError("Error deleting vehicle document.");
         }
     }
 }

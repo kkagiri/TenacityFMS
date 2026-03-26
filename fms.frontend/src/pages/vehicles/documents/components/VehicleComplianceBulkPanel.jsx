@@ -9,13 +9,27 @@ import React from "react";
 import SlidePanel from "../../../../components/ui/SlidePanel";
 import {
   COMPLIANCE_CATEGORY_OPTIONS,
-  DOCUMENT_TYPE_OPTIONS,
   REQUIREMENT_TARGET_OPTIONS,
+  getComplianceEntry,
 } from "../VehicleDocuments.shared";
 
-const VehicleComplianceBulkPanel = ({ open, onClose, onSubmit, isSubmitting, formState, setFormState, sites, vehicleTypes }) => {
+const VehicleComplianceBulkPanel = ({ open, onClose, onSubmit, isSubmitting, formState, setFormState, sites, vehicleTypes, documentCatalog }) => {
   const targets = Number(formState.targetType) === 1 ? sites : vehicleTypes;
   const selectedTargetIds = new Set(formState.targetIds);
+  const selectedComplianceEntry = getComplianceEntry(documentCatalog, formState.complianceCategory);
+  const documentTypeLabel = selectedComplianceEntry?.documentTypeName || "Auto-set from compliance category";
+
+  const handleComplianceCategoryChange = (event) => {
+    const nextComplianceCategory = event.target.value;
+    const nextComplianceEntry = getComplianceEntry(documentCatalog, nextComplianceCategory);
+
+    setFormState((currentState) => ({
+      ...currentState,
+      complianceCategory: nextComplianceCategory,
+      documentType: nextComplianceEntry?.documentType ?? "",
+      defaultIssuingAuthority: nextComplianceEntry?.defaultIssuingAuthority || currentState.defaultIssuingAuthority,
+    }));
+  };
 
   const toggleTarget = (targetId) => {
     setFormState((currentState) => {
@@ -65,7 +79,7 @@ const VehicleComplianceBulkPanel = ({ open, onClose, onSubmit, isSubmitting, for
 
               <label className="vehicle-documents-panel__field">
                 <span>Compliance category</span>
-                <select className="vehicle-documents-panel__select" value={formState.complianceCategory} onChange={(event) => setFormState((currentState) => ({ ...currentState, complianceCategory: event.target.value }))}>
+                <select className="vehicle-documents-panel__select" value={formState.complianceCategory} onChange={handleComplianceCategoryChange}>
                   <option value="">Select category</option>
                   {COMPLIANCE_CATEGORY_OPTIONS.map((option) => (
                     <option key={option.value} value={option.value}>{option.label}</option>
@@ -75,12 +89,8 @@ const VehicleComplianceBulkPanel = ({ open, onClose, onSubmit, isSubmitting, for
 
               <label className="vehicle-documents-panel__field">
                 <span>Document type</span>
-                <select className="vehicle-documents-panel__select" value={formState.documentType} onChange={(event) => setFormState((currentState) => ({ ...currentState, documentType: event.target.value }))}>
-                  <option value="">Select type</option>
-                  {DOCUMENT_TYPE_OPTIONS.map((option) => (
-                    <option key={option.value} value={option.value}>{option.label}</option>
-                  ))}
-                </select>
+                <input className="vehicle-documents-panel__input" type="text" value={documentTypeLabel} readOnly disabled />
+                <span className="vehicle-documents-panel__hint">Auto-linked from the selected compliance category.</span>
               </label>
 
               <label className="vehicle-documents-panel__field">
