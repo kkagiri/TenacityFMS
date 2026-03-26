@@ -16,6 +16,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Configuration;
+using FMS.Application.Features.FMS.Tank;
 using FMS.Application.Features.ATG.Common;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
@@ -129,17 +130,25 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 if (!probeMeasurement.ProductVolume.HasValue || probeMeasurement.ProductVolume <= 0)
                 {
                     var calibratedVolume = await _probeReadingEnrichmentService
-                        .EnrichVolumeFromCalibrationAsync(tank.Id, probeMeasurement.ProductHeight, cancellationToken);
+                        .EnrichVolumeFromCalibrationAsync(
+                            tank.Id,
+                            tank.ProbeNumber ?? probeMeasurement.ProbeNumber,
+                            tank.CalibrationChartSource,
+                            probeMeasurement.ProductHeight,
+                            cancellationToken);
                     if (calibratedVolume.HasValue)
                     {
                         probeMeasurement.ProductVolume = (float)calibratedVolume.Value;
                     }
                 }
 
-                var updated = await TryApplyAveragedPhysicalStockUpdateAsync(tank, probeMeasurement, updateIntervalSeconds);
-                if (updated)
+                if (ShouldUpdatePhysicalStockFromUploadStatus(tank))
                 {
-                    updatesApplied++;
+                    var updated = await TryApplyAveragedPhysicalStockUpdateAsync(tank, probeMeasurement, updateIntervalSeconds);
+                    if (updated)
+                    {
+                        updatesApplied++;
+                    }
                 }
 
                 var shouldSave = await _probeReadingEnrichmentService
@@ -395,6 +404,13 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 tank.PtsId);
 
             return null;
+        }
+
+        private static bool ShouldUpdatePhysicalStockFromUploadStatus(Tank tank)
+        {
+            var normalizedSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(tank.ProbePhysicalStockUpdateSource);
+            return string.IsNullOrWhiteSpace(normalizedSource)
+                || string.Equals(normalizedSource, TankProbeConfigurationOptions.UploadStatus, StringComparison.Ordinal);
         }
 
         private async Task<bool> TryApplyAveragedPhysicalStockUpdateAsync(Tank tank, ProbeMeasurement probeMeasurement, int updateIntervalSeconds)

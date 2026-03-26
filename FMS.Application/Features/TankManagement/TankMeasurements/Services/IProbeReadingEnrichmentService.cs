@@ -30,6 +30,6 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
         /// If ProductVolume is 0 or null, attempt to derive it from the tank's calibration chart using linear interpolation.
         /// Returns the calculated volume in liters, or null if no calibration data is available.
         /// </summary>
-        Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, double? productHeightMm, CancellationToken cancellationToken = default);
+        Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, int? probeNumber, string? preferredChartSource, double? productHeightMm, CancellationToken cancellationToken = default);
     }
 }

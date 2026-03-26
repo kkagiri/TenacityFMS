@@ -41,6 +41,18 @@ namespace FMS.Application.Features.FMS.Tank
         /// </summary>
         public bool UsePtsProbeReadings { get; set; }
 
+        /// <summary>
+        /// Selects which sensor stream owns automatic physical stock updates for this tank.
+        /// Supported values: upload-status, tank-measurement.
+        /// </summary>
+        public string? ProbePhysicalStockUpdateSource { get; set; }
+
+        /// <summary>
+        /// Selects the preferred local calibration chart source when ProductVolume must be derived from ProductHeight.
+        /// Supported values: auto, manual, automatic, interval-volume, fms-learned.
+        /// </summary>
+        public string? CalibrationChartSource { get; set; }
+
         public int SiteId { get; set; }
         public decimal? DiscrepancyThreshold { get; set; }
         public decimal? TankLength { get; set; }

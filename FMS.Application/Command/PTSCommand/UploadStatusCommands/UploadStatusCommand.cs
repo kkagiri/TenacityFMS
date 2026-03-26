@@ -7,6 +7,7 @@
 using FMS.Application.Command.PTSCommand.PumpCommands;
 using FMS.Application.Common;
 using FMS.Application.Common.Constants;
+using FMS.Application.Features.FMS.Tank;
 using FMS.Application.Features.TankManagement.Deliveries.Services;
 using FMS.Application.Features.TankManagement.TankMeasurements.Services;
 using FMS.Application.Common.PTSResponse;
@@ -520,21 +521,29 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 if (!probeMeasurement.ProductVolume.HasValue || probeMeasurement.ProductVolume <= 0)
                 {
                     var calibratedVolume = await _probeReadingEnrichmentService
-                        .EnrichVolumeFromCalibrationAsync(tank.Id, probeMeasurement.ProductHeight, cancellationToken);
+                        .EnrichVolumeFromCalibrationAsync(
+                            tank.Id,
+                            tank.ProbeNumber ?? probeMeasurement.ProbeNumber,
+                            tank.CalibrationChartSource,
+                            probeMeasurement.ProductHeight,
+                            cancellationToken);
                     if (calibratedVolume.HasValue)
                     {
                         probeMeasurement.ProductVolume = (float)calibratedVolume.Value;
                     }
                 }
 
-                var updated = await TryApplyAveragedPhysicalStockUpdateAsync(
-                    tank,
-                    probeMeasurement,
-                    updateIntervalSeconds);
-
-                if (updated)
+                if (ShouldUpdatePhysicalStockFromUploadStatus(tank))
                 {
-                    updatesApplied++;
+                    var updated = await TryApplyAveragedPhysicalStockUpdateAsync(
+                        tank,
+                        probeMeasurement,
+                        updateIntervalSeconds);
+
+                    if (updated)
+                    {
+                        updatesApplied++;
+                    }
                 }
 
                 // Persist probe reading only when height changed or max interval elapsed (Redis cadence check)
@@ -819,6 +828,13 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 tank.PtsId);
 
             return null;
+        }
+
+        private static bool ShouldUpdatePhysicalStockFromUploadStatus(Tank tank)
+        {
+            var normalizedSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(tank.ProbePhysicalStockUpdateSource);
+            return string.IsNullOrWhiteSpace(normalizedSource)
+                || string.Equals(normalizedSource, TankProbeConfigurationOptions.UploadStatus, StringComparison.Ordinal);
         }
 
         private async Task<bool> TryApplyAveragedPhysicalStockUpdateAsync(Tank tank, ProbeMeasurement probeMeasurement, int updateIntervalSeconds)

@@ -66,6 +66,14 @@ namespace FMS.Persistence.EntityConfigurations
                     .HasMaxLength(50)
                     .IsRequired(false);
 
+                builder.Property(e => e.ProbePhysicalStockUpdateSource)
+                    .HasMaxLength(32)
+                    .IsRequired(false);
+
+                builder.Property(e => e.CalibrationChartSource)
+                    .HasMaxLength(32)
+                    .IsRequired(false);
+
                 // =====================================================
                 // Location Validation Properties
                 // =====================================================

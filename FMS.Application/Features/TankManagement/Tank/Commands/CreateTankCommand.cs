@@ -34,6 +34,19 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
         {
             try
             {
+                var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(request.TankDto.ProbePhysicalStockUpdateSource);
+                var normalizedCalibrationChartSource = TankProbeConfigurationOptions.NormalizeCalibrationChartSource(request.TankDto.CalibrationChartSource);
+
+                if (!string.IsNullOrWhiteSpace(request.TankDto.ProbePhysicalStockUpdateSource) && normalizedPhysicalStockUpdateSource == null)
+                {
+                    throw new ArgumentException("ProbePhysicalStockUpdateSource must be upload-status or tank-measurement");
+                }
+
+                if (!string.IsNullOrWhiteSpace(request.TankDto.CalibrationChartSource) && normalizedCalibrationChartSource == null)
+                {
+                    throw new ArgumentException("CalibrationChartSource must be auto, manual, automatic, interval-volume, or fms-learned");
+                }
+
                 // Direct property assignment instead of AutoMapper
                 var tank = new Tank
                 {
@@ -55,6 +68,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                     ProbeNumber = request.TankDto.ProbeNumber,
                     PtsTankId = request.TankDto.PtsTankId,
                     UsePtsProbeReadings = request.TankDto.UsePtsProbeReadings,
+                    ProbePhysicalStockUpdateSource = normalizedPhysicalStockUpdateSource,
+                    CalibrationChartSource = normalizedCalibrationChartSource,
 
                     // Fuel Grade
                     FuelGradeId = request.TankDto.FuelGradeId,

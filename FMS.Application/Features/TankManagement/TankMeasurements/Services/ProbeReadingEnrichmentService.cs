@@ -15,6 +15,7 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
+using FMS.Application.Features.FMS.Tank;
 using FMS.Application.Features.TankManagement.TankCalibration;
 using FMS.Application.Features.TankManagement.TankCalibration.DTOs;
 using FMS.Application.Services.Configuration;
@@ -22,6 +23,7 @@ using FMS.Persistence.DataAccess;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using StackExchange.Redis;
+using TankCalibrationSnapshot = global::FMS.Domain.Entities.Features.TankStockManagement.TankCalibrationSnapshot;
 
 namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
 {
@@ -39,6 +41,12 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
         {
             PropertyNamingPolicy = JsonNamingPolicy.CamelCase
         };
+
+        private sealed class CachedCalibrationChart
+        {
+            public string ChartType { get; set; } = TankProbeConfigurationOptions.Auto;
+            public List<TankCalibrationRecordDto> Records { get; set; } = new();
+        }
 
         public ProbeReadingEnrichmentService(
             IConnectionMultiplexer redisConnection,
@@ -145,15 +153,15 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
 
         #region Calibration Volume Enrichment
 
-        public async Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, double? productHeightMm, CancellationToken cancellationToken = default)
+        public async Task<double?> EnrichVolumeFromCalibrationAsync(int tankId, int? probeNumber, string? preferredChartSource, double? productHeightMm, CancellationToken cancellationToken = default)
         {
             if (!productHeightMm.HasValue || productHeightMm.Value <= 0)
             {
                 return null;
             }
 
-            var records = await GetCachedCalibrationRecordsAsync(tankId, cancellationToken);
-            if (records == null || records.Count < 2)
+            var chart = await GetCachedCalibrationChartAsync(tankId, probeNumber, preferredChartSource, cancellationToken);
+            if (chart?.Records == null || chart.Records.Count < 2)
             {
                 return null;
             }
@@ -161,36 +169,51 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
             // PTS probe measurements are in mm; calibration charts store heights in cm.
             // Convert mm → cm for chart lookup, falling back to raw mm if cm is out of range.
             var heightCm = (int)Math.Round(productHeightMm.Value / 10.0, MidpointRounding.AwayFromZero);
-            var volume = InterpolateVolume(records, heightCm);
+            var volume = InterpolateVolume(chart.Records, heightCm);
 
             if (!volume.HasValue)
             {
                 // Fallback: try raw value in case chart and probe share the same unit
                 var heightRaw = (int)Math.Round(productHeightMm.Value, MidpointRounding.AwayFromZero);
-                volume = InterpolateVolume(records, heightRaw);
+                volume = InterpolateVolume(chart.Records, heightRaw);
+            }
+
+            if (volume.HasValue)
+            {
+                _logger.LogDebug(
+                    "[ProbeEnrichment] Derived {Volume}L for tank {TankId}, probe {ProbeNumber}, height {HeightMm}mm using {ChartType} chart",
+                    volume.Value,
+                    tankId,
+                    probeNumber,
+                    productHeightMm.Value,
+                    chart.ChartType);
             }
 
             return volume.HasValue ? (double)Math.Round(volume.Value, 3, MidpointRounding.AwayFromZero) : null;
         }
 
         /// <summary>
-        /// Loads calibration chart records from Redis cache, falling back to DB.
-        /// Tries chart types in priority order: interval-volume → manual → automatic → fms-learned.
+        /// Loads a usable calibration chart from Redis cache, falling back to DB.
+        /// Default priority favors manual and automatic charts before interval-volume because
+        /// interval-volume snapshots may contain readiness placeholders rather than usable volume curves.
         /// </summary>
-        private async Task<List<TankCalibrationRecordDto>?> GetCachedCalibrationRecordsAsync(int tankId, CancellationToken cancellationToken)
+        private async Task<CachedCalibrationChart?> GetCachedCalibrationChartAsync(int tankId, int? probeNumber, string? preferredChartSource, CancellationToken cancellationToken)
         {
-            var redisKey = $"calibration:chart:{tankId}";
+            var normalizedPreferredChartSource = TankProbeConfigurationOptions.NormalizeCalibrationChartSource(preferredChartSource)
+                ?? TankProbeConfigurationOptions.Auto;
+            var probeKey = probeNumber.HasValue && probeNumber.Value > 0 ? probeNumber.Value.ToString() : "any";
+            var redisKey = $"calibration:chart:{tankId}:{probeKey}:{normalizedPreferredChartSource}";
 
             try
             {
-                // Try Redis cache first
                 var cached = await _redisDb.StringGetAsync(redisKey);
                 if (cached.HasValue)
                 {
-                    var cachedRecords = JsonSerializer.Deserialize<List<TankCalibrationRecordDto>>(cached.ToString(), JsonOptions);
-                    if (cachedRecords != null && cachedRecords.Count >= 2)
+                    var cachedChart = JsonSerializer.Deserialize<CachedCalibrationChart>(cached.ToString(), JsonOptions);
+                    if (cachedChart != null && TryPrepareUsableRecords(cachedChart.Records, out var cachedRecords))
                     {
-                        return cachedRecords;
+                        cachedChart.Records = cachedRecords;
+                        return cachedChart;
                     }
                 }
             }
@@ -199,23 +222,11 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 _logger.LogWarning(ex, "[ProbeEnrichment] Redis calibration cache read failed for tank {TankId}", tankId);
             }
 
-            // Fallback: load from DB — try chart types in priority order
-            var chartTypePriority = new[]
-            {
-                TankCalibrationChartTypes.IntervalVolume,
-                TankCalibrationChartTypes.Manual,
-                TankCalibrationChartTypes.Automatic,
-                TankCalibrationChartTypes.FmsLearned
-            };
+            var chartTypePriority = GetChartTypePriority(normalizedPreferredChartSource);
 
             foreach (var chartType in chartTypePriority)
             {
-                var snapshot = await _context.TankCalibrationSnapshots
-                    .AsNoTracking()
-                    .Where(s => s.TankId == tankId && s.ChartType == chartType)
-                    .OrderByDescending(s => s.RecordedAtUtc)
-                    .ThenByDescending(s => s.Id)
-                    .FirstOrDefaultAsync(cancellationToken);
+                var snapshot = await GetLatestCalibrationSnapshotAsync(tankId, probeNumber, chartType, cancellationToken);
 
                 if (snapshot?.RecordsJson == null)
                 {
@@ -223,18 +234,25 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                 }
 
                 var records = JsonSerializer.Deserialize<List<TankCalibrationRecordDto>>(snapshot.RecordsJson, JsonOptions);
-                if (records == null || records.Count < 2)
+                if (!TryPrepareUsableRecords(records, out var preparedRecords))
                 {
+                    _logger.LogDebug(
+                        "[ProbeEnrichment] Ignoring unusable {ChartType} calibration snapshot for tank {TankId}, probe {ProbeNumber}",
+                        chartType,
+                        tankId,
+                        probeNumber);
                     continue;
                 }
 
-                // Sort by height ascending for interpolation
-                records = records.OrderBy(r => r.Height).ToList();
+                var chart = new CachedCalibrationChart
+                {
+                    ChartType = chartType,
+                    Records = preparedRecords
+                };
 
-                // Cache in Redis for 1 hour
                 try
                 {
-                    var serialized = JsonSerializer.Serialize(records, JsonOptions);
+                    var serialized = JsonSerializer.Serialize(chart, JsonOptions);
                     await _redisDb.StringSetAsync(redisKey, serialized, expiry: TimeSpan.FromHours(1));
                 }
                 catch (Exception ex)
@@ -242,14 +260,128 @@ namespace FMS.Application.Features.TankManagement.TankMeasurements.Services
                     _logger.LogWarning(ex, "[ProbeEnrichment] Redis calibration cache write failed for tank {TankId}", tankId);
                 }
 
-                _logger.LogDebug("[ProbeEnrichment] Loaded calibration chart ({ChartType}, {Count} records) for tank {TankId}",
-                    chartType, records.Count, tankId);
+                _logger.LogDebug(
+                    "[ProbeEnrichment] Loaded calibration chart ({ChartType}, {Count} records) for tank {TankId}, probe {ProbeNumber}",
+                    chartType,
+                    preparedRecords.Count,
+                    tankId,
+                    probeNumber);
 
-                return records;
+                return chart;
             }
 
-            _logger.LogDebug("[ProbeEnrichment] No calibration chart found for tank {TankId}", tankId);
+            _logger.LogDebug(
+                "[ProbeEnrichment] No usable calibration chart found for tank {TankId}, probe {ProbeNumber}, preferred source {PreferredChartSource}",
+                tankId,
+                probeNumber,
+                normalizedPreferredChartSource);
             return null;
+        }
+
+        private static string[] GetChartTypePriority(string normalizedPreferredChartSource)
+        {
+            return normalizedPreferredChartSource switch
+            {
+                TankProbeConfigurationOptions.Manual => new[]
+                {
+                    TankCalibrationChartTypes.Manual,
+                    TankCalibrationChartTypes.Automatic,
+                    TankCalibrationChartTypes.FmsLearned,
+                    TankCalibrationChartTypes.IntervalVolume
+                },
+                TankProbeConfigurationOptions.Automatic => new[]
+                {
+                    TankCalibrationChartTypes.Automatic,
+                    TankCalibrationChartTypes.Manual,
+                    TankCalibrationChartTypes.FmsLearned,
+                    TankCalibrationChartTypes.IntervalVolume
+                },
+                TankProbeConfigurationOptions.FmsLearned => new[]
+                {
+                    TankCalibrationChartTypes.FmsLearned,
+                    TankCalibrationChartTypes.Manual,
+                    TankCalibrationChartTypes.Automatic,
+                    TankCalibrationChartTypes.IntervalVolume
+                },
+                TankProbeConfigurationOptions.IntervalVolume => new[]
+                {
+                    TankCalibrationChartTypes.IntervalVolume,
+                    TankCalibrationChartTypes.Manual,
+                    TankCalibrationChartTypes.Automatic,
+                    TankCalibrationChartTypes.FmsLearned
+                },
+                _ => new[]
+                {
+                    TankCalibrationChartTypes.Manual,
+                    TankCalibrationChartTypes.Automatic,
+                    TankCalibrationChartTypes.FmsLearned,
+                    TankCalibrationChartTypes.IntervalVolume
+                }
+            };
+        }
+
+        private async Task<TankCalibrationSnapshot?> GetLatestCalibrationSnapshotAsync(
+            int tankId,
+            int? probeNumber,
+            string chartType,
+            CancellationToken cancellationToken)
+        {
+            var baseQuery = _context.TankCalibrationSnapshots
+                .AsNoTracking()
+                .Where(s => s.TankId == tankId && s.ChartType == chartType);
+
+            if (probeNumber.HasValue && probeNumber.Value > 0)
+            {
+                var exactProbeMatch = await baseQuery
+                    .Where(s => s.ProbeNumber == probeNumber.Value)
+                    .OrderByDescending(s => s.RecordedAtUtc)
+                    .ThenByDescending(s => s.Id)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (exactProbeMatch != null)
+                {
+                    return exactProbeMatch;
+                }
+            }
+
+            return await baseQuery
+                .OrderByDescending(s => s.RecordedAtUtc)
+                .ThenByDescending(s => s.Id)
+                .FirstOrDefaultAsync(cancellationToken);
+        }
+
+        private static bool TryPrepareUsableRecords(
+            List<TankCalibrationRecordDto>? records,
+            out List<TankCalibrationRecordDto> preparedRecords)
+        {
+            preparedRecords = new List<TankCalibrationRecordDto>();
+            if (records == null || records.Count < 2)
+            {
+                return false;
+            }
+
+            preparedRecords = records
+                .GroupBy(record => record.Height)
+                .Select(group => group.OrderByDescending(record => record.Volume).First())
+                .OrderBy(record => record.Height)
+                .ToList();
+
+            if (preparedRecords.Count < 2)
+            {
+                return false;
+            }
+
+            if (preparedRecords[^1].Height <= preparedRecords[0].Height)
+            {
+                return false;
+            }
+
+            if (preparedRecords.Max(record => record.Volume) <= 0)
+            {
+                return false;
+            }
+
+            return true;
         }
 
         /// <summary>

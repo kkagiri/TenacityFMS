@@ -1,4 +1,4 @@
-package com.fmsmobile;
+package com.Hyoung;
 
 import com.facebook.react.ReactActivity;
 import com.facebook.react.ReactActivityDelegate;

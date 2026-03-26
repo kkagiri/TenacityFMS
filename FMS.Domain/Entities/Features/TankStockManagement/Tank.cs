@@ -37,6 +37,19 @@ public partial class Tank
     /// </summary>
     public bool UsePtsProbeReadings { get; set; } = false;
 
+    /// <summary>
+    /// Controls which sensor stream is allowed to update PhysicalStockValue automatically.
+    /// Supported values: upload-status, tank-measurement. Null preserves legacy behavior.
+    /// </summary>
+    public string? ProbePhysicalStockUpdateSource { get; set; }
+
+    /// <summary>
+    /// Controls which local calibration chart should be used when PTS sends ProductVolume as zero.
+    /// Supported values: auto, manual, automatic, interval-volume, fms-learned.
+    /// Null preserves automatic fallback selection.
+    /// </summary>
+    public string? CalibrationChartSource { get; set; }
+
     public sbyte? UseBookKeeping { get; set; }
     public int SiteId { get; set; }
     public decimal? DiscrepancyThreshold { get; set; }

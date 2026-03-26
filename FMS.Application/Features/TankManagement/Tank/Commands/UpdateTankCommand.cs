@@ -58,6 +58,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankCommands
                 tank.PtsTankId = request.Tank.PtsTankId;
                 tank.UsePtsProbeReadings = request.Tank.UsePtsProbeReadings;
 
+                var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(request.Tank.ProbePhysicalStockUpdateSource);
+                if (!string.IsNullOrWhiteSpace(request.Tank.ProbePhysicalStockUpdateSource) && normalizedPhysicalStockUpdateSource == null)
+                {
+                    throw new ArgumentException("ProbePhysicalStockUpdateSource must be upload-status or tank-measurement");
+                }
+
+                var normalizedCalibrationChartSource = TankProbeConfigurationOptions.NormalizeCalibrationChartSource(request.Tank.CalibrationChartSource);
+                if (!string.IsNullOrWhiteSpace(request.Tank.CalibrationChartSource) && normalizedCalibrationChartSource == null)
+                {
+                    throw new ArgumentException("CalibrationChartSource must be auto, manual, automatic, interval-volume, or fms-learned");
+                }
+
+                tank.ProbePhysicalStockUpdateSource = normalizedPhysicalStockUpdateSource;
+                tank.CalibrationChartSource = normalizedCalibrationChartSource;
+
                 // Fuel Grade
                 tank.FuelGradeId = request.Tank.FuelGradeId;
                 tank.FuelGradeName = request.Tank.FuelGradeName;

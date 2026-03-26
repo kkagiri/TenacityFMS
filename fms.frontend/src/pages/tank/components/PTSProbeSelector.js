@@ -22,6 +22,12 @@
  * - onRetryTanks         (func):   Retry tank config fetch
  * - usePtsProbeReadings  (bool):   Auto-stock toggle
  * - onToggleAutoStock    (func):   Toggle auto-stock
+ * - probePhysicalStockUpdateSource (string): Owner for physical stock updates
+ * - onProbePhysicalStockUpdateSourceChange (func): Change stock owner
+ * - calibrationChartSource (string): Preferred local calibration source
+ * - onCalibrationChartSourceChange (func): Change calibration source
+ * - onOpenCalibrationPreview (func): Open calibration preview popup
+ * - onOpenCalibrationHelp (func): Open calibration help panel
  */
 import React, { useMemo } from "react";
 import { SelectBox } from "devextreme-react/select-box";
@@ -34,6 +40,20 @@ const fmtVol = (value) =>
         : `${Number(value).toLocaleString(undefined, { maximumFractionDigits: 2 })} L`;
 
 const fmtTemp = (value) => (value == null ? "N/A" : `${Number(value).toFixed(1)} °C`);
+
+const PHYSICAL_STOCK_SOURCE_OPTIONS = [
+    { value: "", label: "System default", hint: "Preserve the existing fallback behavior for this tank." },
+    { value: "upload-status", label: "UploadStatus probe readings", hint: "Use the UploadStatus pipeline to own automatic physical stock updates." },
+    { value: "tank-measurement", label: "Tank measurement pipeline", hint: "Use persisted tank measurements as the physical stock source of truth." },
+];
+
+const CALIBRATION_SOURCE_OPTIONS = [
+    { value: "", label: "Auto priority", hint: "Prefer the best usable local chart automatically." },
+    { value: "manual", label: "Manual chart", hint: "Prefer the synced manual calibration chart first." },
+    { value: "automatic", label: "PTS automatic chart", hint: "Prefer the PTS automatic calibration chart first." },
+    { value: "interval-volume", label: "Interval-volume chart", hint: "Prefer interval-volume snapshots when they are usable." },
+    { value: "fms-learned", label: "FMS learned chart", hint: "Prefer the learned FMS calibration chart first." },
+];
 
 const PTSProbeSelector = ({
     availableProbes,
@@ -52,6 +72,12 @@ const PTSProbeSelector = ({
     onRetryTanks,
     usePtsProbeReadings,
     onToggleAutoStock,
+    probePhysicalStockUpdateSource,
+    onProbePhysicalStockUpdateSourceChange,
+    calibrationChartSource,
+    onCalibrationChartSourceChange,
+    onOpenCalibrationPreview,
+    onOpenCalibrationHelp,
 }) => {
     const selectedProbe = useMemo(
         () => availableProbes.find((probe) => probe.probeNumber === selectedProbeNumber),
@@ -61,6 +87,16 @@ const PTSProbeSelector = ({
     const selectedTank = useMemo(
         () => availableTanks.find((tank) => tank.id === selectedPtsTankId),
         [availableTanks, selectedPtsTankId]
+    );
+
+    const selectedPhysicalStockSource = useMemo(
+        () => PHYSICAL_STOCK_SOURCE_OPTIONS.find((option) => option.value === probePhysicalStockUpdateSource) || PHYSICAL_STOCK_SOURCE_OPTIONS[0],
+        [probePhysicalStockUpdateSource]
+    );
+
+    const selectedCalibrationSource = useMemo(
+        () => CALIBRATION_SOURCE_OPTIONS.find((option) => option.value === calibrationChartSource) || CALIBRATION_SOURCE_OPTIONS[0],
+        [calibrationChartSource]
     );
 
     return (
@@ -285,27 +321,87 @@ const PTSProbeSelector = ({
 
             {selectedProbeNumber && (
                 <M365SectionCard title="Auto Stock Updates" icon="fa-light fa-gauge-high">
-                    <div className="tw-flex tw-items-center tw-justify-between tw-py-1">
-                        <div>
-                            <span className="m365-field__label tw-mb-0">Enable Auto Physical Stock Updates</span>
-                            <p className="m365-field__hint">
-                                Automatically update this tank&apos;s physical stock from probe readings
-                            </p>
+                    <div className="tw-space-y-4">
+                        <div className="tw-flex tw-items-center tw-justify-between tw-py-1">
+                            <div>
+                                <span className="m365-field__label tw-mb-0">Enable Auto Physical Stock Updates</span>
+                                <p className="m365-field__hint">
+                                    Automatically update this tank&apos;s physical stock from probe readings
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={onToggleAutoStock}
+                                className={`m365-toggle ${usePtsProbeReadings ? "m365-toggle--on" : ""}`}
+                            >
+                                <span className="m365-toggle__thumb" />
+                            </button>
                         </div>
-                        <button
-                            type="button"
-                            onClick={onToggleAutoStock}
-                            className={`m365-toggle ${usePtsProbeReadings ? "m365-toggle--on" : ""}`}
-                        >
-                            <span className="m365-toggle__thumb" />
-                        </button>
+                        <div>
+                            <label className="m365-field__label">Physical Stock Owner</label>
+                            <select
+                                className="m365-select"
+                                value={probePhysicalStockUpdateSource ?? ""}
+                                onChange={(event) => onProbePhysicalStockUpdateSourceChange(event.target.value)}
+                            >
+                                {PHYSICAL_STOCK_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value || "default"} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="m365-field__hint">{selectedPhysicalStockSource.hint}</p>
+                        </div>
+                        <div>
+                            <label className="m365-field__label">Local Calibration Source</label>
+                            <select
+                                className="m365-select"
+                                value={calibrationChartSource ?? ""}
+                                onChange={(event) => onCalibrationChartSourceChange(event.target.value)}
+                            >
+                                {CALIBRATION_SOURCE_OPTIONS.map((option) => (
+                                    <option key={option.value || "auto"} value={option.value}>
+                                        {option.label}
+                                    </option>
+                                ))}
+                            </select>
+                            <p className="m365-field__hint">{selectedCalibrationSource.hint}</p>
+                        </div>
+                        <div className="tw-flex tw-flex-wrap tw-gap-2">
+                            <button
+                                type="button"
+                                className="m365-btn m365-btn--ghost"
+                                onClick={onOpenCalibrationPreview}
+                            >
+                                <i className="fa-light fa-flask"></i>
+                                Preview Height To Volume
+                            </button>
+                            <button
+                                type="button"
+                                className="m365-btn m365-btn--ghost"
+                                onClick={onOpenCalibrationHelp}
+                            >
+                                <i className="fa-light fa-circle-question"></i>
+                                Explain Calibration Source
+                            </button>
+                        </div>
+                        {usePtsProbeReadings && (
+                            <p className="tw-mt-1" style={{ fontSize: 12, color: "var(--m365-success)" }}>
+                                <i className="fa-light fa-check-circle tw-mr-1" />
+                                UploadStatus readings can now update physical stock for this mapped probe
+                            </p>
+                        )}
+                        {!usePtsProbeReadings && probePhysicalStockUpdateSource === "upload-status" && (
+                            <p className="m365-field__hint">
+                                UploadStatus is selected as the owner, but automatic probe updates are currently disabled.
+                            </p>
+                        )}
+                        {probePhysicalStockUpdateSource === "tank-measurement" && (
+                            <p className="m365-field__hint">
+                                Physical stock will only move when a tank measurement is persisted for this tank.
+                            </p>
+                        )}
                     </div>
-                    {usePtsProbeReadings && (
-                        <p className="tw-mt-1" style={{ fontSize: 12, color: "var(--m365-success)" }}>
-                            <i className="fa-light fa-check-circle tw-mr-1" />
-                            Physical stock will be updated automatically from probe measurements
-                        </p>
-                    )}
                 </M365SectionCard>
             )}
         </>

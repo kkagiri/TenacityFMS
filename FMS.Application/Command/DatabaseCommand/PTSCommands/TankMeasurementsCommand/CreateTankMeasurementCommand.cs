@@ -8,6 +8,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.ATG;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
+using FMS.Application.Features.FMS.Tank;
 using FMS.Application.Services.Configuration;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.Features.TankStockManagement;
@@ -118,8 +119,12 @@ namespace FMS.Application.Command.DatabaseCommand.PTSCommands.TankMeasurementsCo
 
                     //Cursor: Check system configuration for sensor-based physical stock updates
                     var enableSensorPhysicalStock = await GetConfigurationValueAsync("Tank.EnableSensorPhysicalStockUpdate", false, cancellationToken);
+                    var normalizedPhysicalStockUpdateSource = TankProbeConfigurationOptions.NormalizePhysicalStockUpdateSource(tank.ProbePhysicalStockUpdateSource);
+                    var shouldUpdatePhysicalStockFromTankMeasurement =
+                        string.Equals(normalizedPhysicalStockUpdateSource, TankProbeConfigurationOptions.TankMeasurement, StringComparison.Ordinal)
+                        || (string.IsNullOrWhiteSpace(normalizedPhysicalStockUpdateSource) && enableSensorPhysicalStock);
 
-                    if (enableSensorPhysicalStock && tankMeasurementDto.ProductVolume.HasValue && tankMeasurementDto.ProductVolume.Value > 0)
+                    if (shouldUpdatePhysicalStockFromTankMeasurement && tankMeasurementDto.ProductVolume.HasValue && tankMeasurementDto.ProductVolume.Value > 0)
                     {
                         // Update physical stock from sensor reading
                         tank.PhysicalStockValue = (decimal)tankMeasurementDto.ProductVolume.Value;

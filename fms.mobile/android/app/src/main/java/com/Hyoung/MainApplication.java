@@ -1,4 +1,4 @@
-package com.fmsmobile;
+package com.Hyoung;
 
 import android.app.Application;
 import com.facebook.react.PackageList;
@@ -60,8 +60,12 @@ public class MainApplication extends Application implements ReactApplication {
     // Flipper is only available in debug builds
     if (BuildConfig.DEBUG) {
       try {
-        Class<?> flipperClass = Class.forName("com.fmsmobile.ReactNativeFlipper");
-        flipperClass.getMethod("initializeFlipper", android.content.Context.class, com.facebook.react.ReactInstanceManager.class)
+        Class<?> flipperClass = Class.forName("com.Hyoung.ReactNativeFlipper");
+        flipperClass
+            .getMethod(
+                "initializeFlipper",
+                android.content.Context.class,
+                com.facebook.react.ReactInstanceManager.class)
             .invoke(null, this, getReactNativeHost().getReactInstanceManager());
       } catch (ClassNotFoundException e) {
         // Flipper not available in release builds

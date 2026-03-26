@@ -73,7 +73,7 @@ android {
 
     compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace "com.fmsmobile"
+    namespace "com.Hyoung"
 
     buildFeatures {
         buildConfig true

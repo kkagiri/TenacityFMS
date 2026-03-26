@@ -56,6 +56,32 @@ const getHealthQualityBadge = (quality) => {
   }
 };
 
+const getPhysicalStockOwnerLabel = (value) => {
+  switch ((value || "").toLowerCase()) {
+    case "upload-status":
+      return "UploadStatus probe readings";
+    case "tank-measurement":
+      return "Tank measurement pipeline";
+    default:
+      return "System default";
+  }
+};
+
+const getCalibrationSourceLabel = (value) => {
+  switch ((value || "").toLowerCase()) {
+    case "manual":
+      return "Manual chart";
+    case "automatic":
+      return "PTS automatic chart";
+    case "interval-volume":
+      return "Interval-volume chart";
+    case "fms-learned":
+      return "FMS learned chart";
+    default:
+      return "Auto priority";
+  }
+};
+
 const enabledBadge = (v) =>
   v
     ? <span className="m365-badge m365-badge--success">Enabled</span>
@@ -454,6 +480,10 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
               <span className="m365-info-cell__value">{enabledBadge(tank.usePtsProbeReadings)}</span>
             </div>
             <div className="m365-info-cell">
+              <span className="m365-info-cell__label">Physical Stock Owner</span>
+              <span className="m365-info-cell__value">{getPhysicalStockOwnerLabel(tank.probePhysicalStockUpdateSource)}</span>
+            </div>
+            <div className="m365-info-cell">
               <span className="m365-info-cell__label">Live Volume</span>
               <span className="m365-info-cell__value">
                 {selectedProbe?.productVolume != null
@@ -553,6 +583,10 @@ const TankDetailPanel = ({ tank, liveStatus, connectionStatus, onEdit, onHistory
                       ? `${fmtNumber(calibrationData.heightVolume.volume)} L at ${fmtNumber(calibrationData.heightVolume.height)} mm`
                       : "Unavailable"}
                   </span>
+                </div>
+                <div className="m365-info-cell">
+                  <span className="m365-info-cell__label">Local Chart Preference</span>
+                  <span className="m365-info-cell__value">{getCalibrationSourceLabel(tank.calibrationChartSource)}</span>
                 </div>
                 {calibrationData?.health && (
                   <>
