@@ -21,6 +21,7 @@ import { TextBox } from 'devextreme-react/text-box';
 import { TextArea } from 'devextreme-react/text-area';
 import notify from 'devextreme/ui/notify';
 import reportingService from '../../../services/reportingService';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './TemplateManager.scss';
 
 const DEFAULT_TEMPLATE = `<!DOCTYPE html>
@@ -76,6 +77,8 @@ const DEFAULT_TEMPLATE = `<!DOCTYPE html>
 
 const TemplateManager = () => {
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
+    const canManageTemplates = hasPermission('_Manage_ReportTemplates');
     const [loading, setLoading] = useState(false);
     const [templates, setTemplates] = useState([]);
     const [showCreatePopup, setShowCreatePopup] = useState(false);
@@ -159,30 +162,34 @@ const TemplateManager = () => {
     const renderActions = useCallback(
         (cellInfo) => (
             <div className="tw-flex tw-gap-2">
-                <Button
-                    icon="fa-light fa-edit"
-                    hint="Edit in Designer"
-                    stylingMode="text"
-                    onClick={() => navigate(`/reports/templates/designer/${cellInfo.data.name}`)}
-                />
+                {canManageTemplates && (
+                    <Button
+                        icon="fa-light fa-edit"
+                        hint="Edit in Designer"
+                        stylingMode="text"
+                        onClick={() => navigate(`/reports/templates/designer/${cellInfo.data.name}`)}
+                    />
+                )}
                 <Button
                     icon="fa-light fa-eye"
                     hint="Preview"
                     stylingMode="text"
                     onClick={() => navigate(`/reports/engine?template=${cellInfo.data.name}`)}
                 />
-                <Button
-                    icon="fa-light fa-trash"
-                    hint="Delete"
-                    stylingMode="text"
-                    onClick={() => {
-                        setDeleteTarget(cellInfo.data);
-                        setShowDeletePopup(true);
-                    }}
-                />
+                {canManageTemplates && (
+                    <Button
+                        icon="fa-light fa-trash"
+                        hint="Delete"
+                        stylingMode="text"
+                        onClick={() => {
+                            setDeleteTarget(cellInfo.data);
+                            setShowDeletePopup(true);
+                        }}
+                    />
+                )}
             </div>
         ),
-        [navigate]
+        [canManageTemplates, navigate]
     );
 
     return (
@@ -199,12 +206,14 @@ const TemplateManager = () => {
                         Create and manage Handlebars report templates for JSReport
                     </p>
                 </div>
-                <Button
-                    icon="fa-light fa-plus"
-                    text="New Template"
-                    type="default"
-                    onClick={() => setShowCreatePopup(true)}
-                />
+                {canManageTemplates && (
+                    <Button
+                        icon="fa-light fa-plus"
+                        text="New Template"
+                        type="default"
+                        onClick={() => setShowCreatePopup(true)}
+                    />
+                )}
             </div>
 
             <DataGrid

@@ -248,6 +248,17 @@
         transform: translateY(-1px);
       }
 
+      &--disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+
+        &:hover {
+          background: rgba(96, 165, 250, 0.2);
+          border-color: rgba(96, 165, 250, 0.3);
+          transform: none;
+        }
+      }
+
       i {
         font-size: 1rem;
         color: #93c5fd;

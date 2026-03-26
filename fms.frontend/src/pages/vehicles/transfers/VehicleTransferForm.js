@@ -139,7 +139,7 @@ const VehicleTransferForm = ({ vehicleId, existingTransferId, onClose, onSuccess
 
   useEffect(() => {
     if (users.length === 0) {
-      dispatch(fetchUsers());
+      dispatch(fetchUsers()).catch(() => {});
     }
   }, [dispatch, users.length]);
 

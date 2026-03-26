@@ -10,6 +10,7 @@ import { LoadPanel } from "devextreme-react/load-panel";
 import { DataGrid, Column, FilterRow, Paging, SearchPanel, Selection } from "devextreme-react/data-grid";
 
 const GeofenceSyncTab = ({
+  canManage = false,
   availableGroups,
   loadingAvailableGroups,
   onSelectionChanged,
@@ -33,7 +34,7 @@ const GeofenceSyncTab = ({
             type="success"
             stylingMode="contained"
             onClick={onSyncSelected}
-            disabled={syncing || selectedGroupIds.length === 0}
+            disabled={syncing || selectedGroupIds.length === 0 || !canManage}
           />
           <Button
             text="Sync all"
@@ -41,7 +42,7 @@ const GeofenceSyncTab = ({
             type="default"
             stylingMode="outlined"
             onClick={onSyncAll}
-            disabled={syncing}
+            disabled={syncing || !canManage}
           />
         </div>
       </div>

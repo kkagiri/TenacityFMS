@@ -67,7 +67,7 @@ const VehicleTransferListPage = () => {
 
   useEffect(() => {
     dispatch(fetchSiteList());
-    dispatch(fetchUsers());
+    dispatch(fetchUsers()).catch(() => {});
     loadTransfers();
   }, [dispatch]);
 

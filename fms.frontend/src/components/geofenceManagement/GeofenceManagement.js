@@ -11,6 +11,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "devextreme-react/button";
 import { LoadPanel } from "devextreme-react/load-panel";
 import notify from "devextreme/ui/notify";
+import { usePermissions } from "../../hooks/usePermissions";
 import geofenceService from "../../api/geofenceService";
 import SlidePanel from "../ui/SlidePanel";
 import SiteGeofenceMapPopup from "../../pages/site/components/SiteGeofenceMapPopup";
@@ -36,6 +37,8 @@ const GeofenceManagement = ({
   getCreateMapViewport = null,
   autoOpenCreateOnMount = false,
 }) => {
+  const { hasPermission } = usePermissions();
+  const canManage = hasPermission('_Manage_Geofence');
   const [loading, setLoading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -552,7 +555,7 @@ const GeofenceManagement = ({
               Last sync: {formatDateTime(lastSyncTime)}
             </span>
           )}
-          <Button text="Sync from GPSGate" icon="fa-light fa-arrows-rotate" type="default" stylingMode="contained" onClick={() => setShowSyncConfirm(true)} disabled={syncing} />
+          <Button text="Sync from GPSGate" icon="fa-light fa-arrows-rotate" type="default" stylingMode="contained" onClick={() => setShowSyncConfirm(true)} disabled={syncing || !canManage} />
         </div>
       </div>
 
@@ -585,6 +588,7 @@ const GeofenceManagement = ({
       <div className="tw-bg-white tw-rounded-b-lg tw-shadow-sm">
         {selectedTabId === "geofences" && (
           <GeofenceGeofencesTab
+            canManage={canManage}
             deleting={deleting}
             geofences={geofencesWithUsage}
             geofenceGroups={geofenceGroups}
@@ -609,6 +613,7 @@ const GeofenceManagement = ({
 
         {selectedTabId === "groups" && (
           <GeofenceGroupsTab
+            canManage={canManage}
             geofenceGroups={geofenceGroups}
             geofences={geofencesWithUsage}
             onCreateGroup={() => {
@@ -626,6 +631,7 @@ const GeofenceManagement = ({
 
         {selectedTabId === "sync" && (
           <GeofenceSyncTab
+            canManage={canManage}
             availableGroups={availableGroups}
             loadingAvailableGroups={loadingAvailableGroups}
             onSelectionChanged={(e) => setSelectedGroupIds(e.selectedRowKeys || [])}

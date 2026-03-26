@@ -1,8 +1,8 @@
 /**
  * File: useVehicleTrackingGeofenceManager.js
  * Purpose: Manages tracking geofence state, CRUD workflows, and form/workspace props for the vehicle tracking page
- * Dependencies: React, geofenceService, geofenceOverlayUtils, DevExtreme notify
- * Last Modified: 2026-03-21
+ * Dependencies: React, usePermissions, geofenceService, geofenceOverlayUtils, DevExtreme notify
+ * Last Modified: 2026-03-26
  *
  * Key Functions:
  * - refreshTrackingGeofenceContext(): Loads geofence groups and geofences for the workspace
@@ -12,6 +12,7 @@
  */
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import notify from 'devextreme/ui/notify';
+import { usePermissions } from '../../../../hooks/usePermissions';
 import geofenceService from '../../../../api/geofenceService';
 import { resolvePolygonPath, resolveRoutePath } from '../../../../utils/geofenceOverlayUtils';
 
@@ -60,6 +61,8 @@ const buildShapeFromGeofence = (geofence) => {
 };
 
 const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoView }) => {
+    const { hasPermission } = usePermissions();
+    const canManageGeofences = hasPermission('_Manage_Geofence');
     const [isGeofencePanelOpen, setIsGeofencePanelOpen] = useState(false);
     const [trackingGeofenceGroups, setTrackingGeofenceGroups] = useState([]);
     const [trackingGeofences, setTrackingGeofences] = useState([]);
@@ -141,6 +144,15 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
         }
     }, []);
 
+    const ensureCanManageGeofences = useCallback(() => {
+        if (canManageGeofences) {
+            return true;
+        }
+
+        notify('You do not have permission to manage geofences.', 'warning', 3000);
+        return false;
+    }, [canManageGeofences]);
+
     useEffect(() => {
         if (!selectedTrackingGeofenceGroup) {
             return;
@@ -167,12 +179,16 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
     }, [resetTrackingGeofenceDraft]);
 
     const handleOpenCreateGeofencePanel = useCallback(() => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         setPreviewGeofence(null);
         setPreviewColor(null);
         setEditingGeofence(null);
         resetTrackingGeofenceDraft(getViewportSnapshot?.() || null);
         setIsGeofencePanelOpen(true);
-    }, [getViewportSnapshot, resetTrackingGeofenceDraft]);
+    }, [ensureCanManageGeofences, getViewportSnapshot, resetTrackingGeofenceDraft]);
 
     const handleTrackingGroupClick = useCallback((group) => {
         setSelectedTrackingGeofenceGroup(group);
@@ -181,6 +197,10 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
     }, []);
 
     const handleEditTrackingGroup = useCallback(async (group) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         const newName = window.prompt('Group name:', group.name);
         if (newName == null || !newName.trim() || newName.trim() === group.name) {
             return;
@@ -193,9 +213,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceGroupSaving,
             successMessage: 'Group updated',
         });
-    }, [refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation]);
 
     const handleDeleteTrackingGroup = useCallback(async (group) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         if (!window.confirm(`Delete group "${group.name}"?`)) {
             return;
         }
@@ -212,9 +236,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceGroupSaving,
             successMessage: 'Group deleted',
         });
-    }, [refreshTrackingGeofenceContext, runMutation, selectedTrackingGeofenceGroup?.id]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation, selectedTrackingGeofenceGroup?.id]);
 
     const handleToggleTrackingFueling = useCallback(async (group) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         await runMutation({
             action: () => geofenceService.updateGroupAllowedForFueling(group.id, !group.isAllowedForFueling),
             errorMessage: 'Failed to update fueling setting',
@@ -222,9 +250,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceGroupSaving,
             successMessage: `Fueling ${group.isAllowedForFueling ? 'disabled' : 'enabled'} for "${group.name}"`,
         });
-    }, [refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation]);
 
     const handleAddTrackingGroup = useCallback(async () => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         const name = window.prompt('New group name:');
         if (!name?.trim()) {
             return;
@@ -237,9 +269,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceGroupSaving,
             successMessage: 'Group created',
         });
-    }, [refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation]);
 
     const handleChangeTrackingClassification = useCallback(async (geofence, classification) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         await runMutation({
             action: () => geofenceService.updateGeofenceClassification(geofence.id, classification || 'Unknown'),
             errorMessage: 'Failed to update classification',
@@ -247,7 +283,7 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceSaving,
             successMessage: `Classification changed to ${classification}`,
         });
-    }, [refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation]);
 
     const handleZoomTrackingGeofence = useCallback(async (geofence, group = null) => {
         if (!geofence) {
@@ -275,6 +311,10 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
     }, [scrollMapIntoView, selectedTrackingGeofenceGroup?.colour]);
 
     const handleDeleteTrackingGeofence = useCallback(async (geofence) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         if (!window.confirm(`Delete geofence "${geofence.name}"?`)) {
             return;
         }
@@ -289,9 +329,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             setBusy: setIsTrackingGeofenceSaving,
             successMessage: 'Geofence deleted',
         });
-    }, [refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, refreshTrackingGeofenceContext, runMutation]);
 
     const handleEditTrackingGeofence = useCallback(async (geofence) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         if (!geofence) {
             return;
         }
@@ -319,9 +363,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
         } catch (error) {
             notify(error?.message || 'Failed to load geofence for editing', 'error', 4000);
         }
-    }, [getViewportSnapshot, trackingGeofenceGroups]);
+    }, [ensureCanManageGeofences, getViewportSnapshot, trackingGeofenceGroups]);
 
     const handleCreateTrackingGeofence = useCallback(async (payload) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         await runMutation({
             action: () => geofenceService.createGeofence(payload),
             errorMessage: 'Failed to create geofence',
@@ -333,9 +381,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             successMessage: 'Geofence created successfully',
             useResponseMessage: true,
         });
-    }, [handleCloseGeofencePanel, refreshTrackingGeofenceContext, runMutation]);
+    }, [ensureCanManageGeofences, handleCloseGeofencePanel, refreshTrackingGeofenceContext, runMutation]);
 
     const handleUpdateTrackingGeofence = useCallback(async (payload) => {
+        if (!ensureCanManageGeofences()) {
+            return;
+        }
+
         if (!editingGeofence) {
             return;
         }
@@ -351,9 +403,13 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
             successMessage: 'Geofence updated successfully',
             useResponseMessage: true,
         });
-    }, [editingGeofence, handleCloseGeofencePanel, refreshTrackingGeofenceContext, runMutation]);
+    }, [editingGeofence, ensureCanManageGeofences, handleCloseGeofencePanel, refreshTrackingGeofenceContext, runMutation]);
 
     const handleCreateTrackingGeofenceGroup = useCallback(async (payload) => {
+        if (!ensureCanManageGeofences()) {
+            return null;
+        }
+
         const response = await runMutation({
             action: () => geofenceService.createGeofenceGroup(payload),
             errorMessage: 'Failed to create geofence group',
@@ -376,7 +432,7 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
         }
 
         return normalizedGroups.find((group) => group.name === payload.name) || null;
-    }, [runMutation]);
+    }, [ensureCanManageGeofences, runMutation]);
 
     const handleTrackingGeofenceTypeChange = useCallback((value) => {
         setTrackingGeofenceType(value);
@@ -400,6 +456,7 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
 
     const geofenceWorkspaceProps = useMemo(() => ({
         allGeofences: trackingGeofences,
+        canManageGeofences,
         groups: trackingGeofenceGroups,
         loading: isTrackingGeofenceLoading,
         onAddGeofence: handleOpenCreateGeofencePanel,
@@ -425,6 +482,7 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
         handleTrackingGroupClick,
         handleZoomTrackingGeofence,
         isTrackingGeofenceLoading,
+        canManageGeofences,
         selectedTrackingGeofenceGroup,
         trackingGeofenceGroups,
         trackingGeofences,
@@ -433,8 +491,11 @@ const useVehicleTrackingGeofenceManager = ({ getViewportSnapshot, scrollMapIntoV
     const geofenceDialogProps = useMemo(() => ({
         onClose: handleCloseGeofencePanel,
         open: isGeofencePanelOpen,
+        subtitle: canManageGeofences
+            ? 'Define area, group, and fueling behaviour'
+            : 'Manage permission is required to create or edit geofences',
         title: editingGeofence ? 'Edit geofence' : 'Create geofence',
-    }), [editingGeofence, handleCloseGeofencePanel, isGeofencePanelOpen]);
+    }), [canManageGeofences, editingGeofence, handleCloseGeofencePanel, isGeofencePanelOpen]);
 
     const geofenceFormProps = useMemo(() => ({
         compact: true,

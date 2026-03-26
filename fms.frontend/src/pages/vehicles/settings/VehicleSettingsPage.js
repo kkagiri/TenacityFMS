@@ -1,8 +1,11 @@
 import React, { useState } from 'react';
 import GpsGateTagManagement from './GpsGateTagManagement';
+import { usePermissions } from '../../../hooks/usePermissions';
 
 const VehicleSettingsPage = () => {
   const [activeTab, setActiveTab] = useState('general');
+  const { hasAnyPermission } = usePermissions();
+  const canEditSettings = hasAnyPermission(['_Edit_Vehicle', '_Manage_Site']);
 
   const tabs = [
     { id: 'general', label: 'General Settings', icon: 'fa-light fa-cog' },
@@ -36,11 +39,18 @@ const VehicleSettingsPage = () => {
       {activeTab === 'gpsgate' && <GpsGateTagManagement />}
 
       {activeTab === 'general' && (
+        <fieldset disabled={!canEditSettings} className="tw-border-0 tw-p-0 tw-m-0">
         <div className="tw-bg-white tw-rounded-lg tw-shadow-lg tw-p-6">
           <h2 className="tw-text-2xl tw-font-bold tw-text-gray-800 tw-mb-4">Vehicle Settings</h2>
           <p className="tw-text-gray-600 tw-mb-6">
             Configure vehicle management preferences and system settings
           </p>
+          {!canEditSettings && (
+            <div className="tw-bg-amber-50 tw-border tw-border-amber-200 tw-rounded-lg tw-p-3 tw-mb-4 tw-text-amber-800 tw-text-sm">
+              <i className="fa-light fa-lock tw-mr-2"></i>
+              You don't have permission to edit vehicle settings.
+            </div>
+          )}
 
           <div className="tw-grid tw-grid-cols-1 lg:tw-grid-cols-2 tw-gap-6">
             {/* General Settings */}
@@ -263,6 +273,7 @@ const VehicleSettingsPage = () => {
             </button>
           </div>
         </div>
+        </fieldset>
       )}
     </div>
   );

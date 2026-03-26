@@ -24,6 +24,7 @@ const VehicleDocumentSettingsPanel = ({
   authoritySaving,
   onRenameAuthority,
   onDeleteAuthority,
+  canEdit = true,
 }) => {
   const navigate = useNavigate();
   const [draftDefaults, setDraftDefaults] = useState({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS });
@@ -98,8 +99,8 @@ const VehicleDocumentSettingsPanel = ({
           </div>
 
           <div className="vehicle-documents-panel__footer vehicle-documents-panel__footer--inline">
-            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--ghost" onClick={() => setDraftDefaults({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS, ...(notificationDefaults || {}) })} disabled={saving || loading}>Reset</button>
-            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--primary" onClick={handleSave} disabled={saving || loading}>{saving ? "Saving..." : "Save my reminder defaults"}</button>
+            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--ghost" onClick={() => setDraftDefaults({ ...DEFAULT_NOTIFICATION_REMINDER_SETTINGS, ...(notificationDefaults || {}) })} disabled={saving || loading || !canEdit}>Reset</button>
+            <button type="button" className="vehicle-documents-panel__button vehicle-documents-panel__button--primary" onClick={handleSave} disabled={saving || loading || !canEdit}>{saving ? "Saving..." : "Save my reminder defaults"}</button>
           </div>
         </section>
 
@@ -147,13 +148,13 @@ const VehicleDocumentSettingsPanel = ({
                   <div className="vehicle-document-settings-panel__authority-actions">
                     {isEditing ? (
                       <>
-                        <button type="button" className="vehicle-documents-panel__mini-button" onClick={() => onRenameAuthority(authority.name, editingAuthorityValue)} disabled={authoritySaving}>Save</button>
+                        <button type="button" className="vehicle-documents-panel__mini-button" onClick={() => onRenameAuthority(authority.name, editingAuthorityValue)} disabled={authoritySaving || !canEdit}>Save</button>
                         <button type="button" className="vehicle-documents-panel__mini-button" onClick={() => { setEditingAuthorityName(""); setEditingAuthorityValue(""); }} disabled={authoritySaving}>Cancel</button>
                       </>
                     ) : (
                       <>
-                        <button type="button" className="vehicle-documents-panel__mini-button" onClick={() => { setEditingAuthorityName(authority.name); setEditingAuthorityValue(authority.name); }} disabled={authoritySaving}>Edit</button>
-                        <button type="button" className="vehicle-documents-panel__mini-button vehicle-documents-panel__mini-button--danger" onClick={() => onDeleteAuthority(authority.name)} disabled={authoritySaving}>Delete</button>
+                        <button type="button" className="vehicle-documents-panel__mini-button" onClick={() => { setEditingAuthorityName(authority.name); setEditingAuthorityValue(authority.name); }} disabled={authoritySaving || !canEdit}>Edit</button>
+                        <button type="button" className="vehicle-documents-panel__mini-button vehicle-documents-panel__mini-button--danger" onClick={() => onDeleteAuthority(authority.name)} disabled={authoritySaving || !canEdit}>Delete</button>
                       </>
                     )}
                   </div>
