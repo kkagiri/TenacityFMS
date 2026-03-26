@@ -426,7 +426,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
             }
         }
 
-        private void QueueDeferredProbeProcessing(string deviceId, ProbeStatus probeStatus)
+        private void QueueDeferredProbeProcessing(string deviceId, Domain.Entities.PTS.PTSStatus.ProbeStatus.ProbeStatus probeStatus)
         {
             _ = Task.Run(async () =>
             {

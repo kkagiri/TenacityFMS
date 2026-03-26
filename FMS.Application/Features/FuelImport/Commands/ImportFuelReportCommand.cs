@@ -853,54 +853,54 @@ namespace FMS.Application.Features.FuelImport.Commands
 
             var latestRecordHtml = latestRecord == null
                 ? "<p style=\"margin:0;color:#6b7280;\">No latest record snapshot was available.</p>"
-                : $@"<table style=\"width: 100 %; border - collapse:collapse; font - size:13px;\">
-                        < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">Record Date</td><td style=\"padding:6px 0;\">{Encode(latestRecord.RecordDate.ToString("dd - MMM - yyyy HH: mm"))}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Vehicle</td><td style=\"padding:6px 0;\">{Encode(latestRecord.VehicleLabel)}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Site</td><td style=\"padding:6px 0;\">{Encode(latestRecord.SiteLabel)}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Shift</td><td style=\"padding:6px 0;\">{Encode(latestRecord.Shift)}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Employee</td><td style=\"padding:6px 0;\">{Encode(latestRecord.EmployeeName)}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Total Fuel</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.TotalFuel))}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Total Distance</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.TotalDistance))}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Engine Hours</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.EngineHours))}</td></tr>
-                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Fuel Efficiency</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.FuelEfficiency))}</td></tr>
-                    </ table > ";
+                : $@"<table style=""width:100%;border-collapse:collapse;font-size:13px;"">
+                        <tr><td style=""padding:6px 0;font-weight:600;width:180px;"">Record Date</td><td style=""padding:6px 0;"">{Encode(latestRecord.RecordDate.ToString("dd-MMM-yyyy HH:mm"))}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Vehicle</td><td style=""padding:6px 0;"">{Encode(latestRecord.VehicleLabel)}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Site</td><td style=""padding:6px 0;"">{Encode(latestRecord.SiteLabel)}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Shift</td><td style=""padding:6px 0;"">{Encode(latestRecord.Shift)}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Employee</td><td style=""padding:6px 0;"">{Encode(latestRecord.EmployeeName)}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Total Fuel</td><td style=""padding:6px 0;"">{Encode(FormatNumber(latestRecord.TotalFuel))}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Total Distance</td><td style=""padding:6px 0;"">{Encode(FormatNumber(latestRecord.TotalDistance))}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Engine Hours</td><td style=""padding:6px 0;"">{Encode(FormatNumber(latestRecord.EngineHours))}</td></tr>
+                        <tr><td style=""padding:6px 0;font-weight:600;"">Fuel Efficiency</td><td style=""padding:6px 0;"">{Encode(FormatNumber(latestRecord.FuelEfficiency))}</td></tr>
+                    </table>";
 
             return $@"<!DOCTYPE html>
 <html>
-<body style=\"font - family:Segoe UI, Arial, sans-serif; background:#f8fafc;color:#0f172a;margin:0;padding:24px;\">
-    < div style =\"max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;\">
-        < h2 style =\"margin:0 0 12px;font-size:22px;\">File Importation Notification Details</h2>
-        < p style =\"margin:0 0 20px;color:#475569;line-height:1.6;\">{Encode(message)}</p>
+<body style=""font-family:Segoe UI, Arial, sans-serif;background:#f8fafc;color:#0f172a;margin:0;padding:24px;"">
+    <div style=""max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;"">
+        <h2 style=""margin:0 0 12px;font-size:22px;"">File Importation Notification Details</h2>
+        <p style=""margin:0 0 20px;color:#475569;line-height:1.6;"">{Encode(message)}</p>
 
-        < div style =\"margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
-            < div style =\"font-weight:700;margin-bottom:12px;\">Import File Summary</div>
-            < table style =\"width:100%;border-collapse:collapse;font-size:13px;\">
-                < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">File Name</td><td style=\"padding:6px 0;\">{Encode(sourceFileName)}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">File Path</td><td style=\"padding:6px 0;word-break:break-all;\">{Encode(request.SourceFilePath)}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Import Mode</td><td style=\"padding:6px 0;\">{Encode(request.ImportMode)}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Report Type</td><td style=\"padding:6px 0;\">{Encode(request.SourceReportType)}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Detected Site</td><td style=\"padding:6px 0;\">{Encode(request.SourceDetectedSiteName)}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Report ID</td><td style=\"padding:6px 0;\">{Encode(reportId)}</td></tr>
-            </ table >
-        </ div >
+        <div style=""margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:12px;"">Import File Summary</div>
+            <table style=""width:100%;border-collapse:collapse;font-size:13px;"">
+                <tr><td style=""padding:6px 0;font-weight:600;width:180px;"">File Name</td><td style=""padding:6px 0;"">{Encode(sourceFileName)}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">File Path</td><td style=""padding:6px 0;word-break:break-all;"">{Encode(request.SourceFilePath)}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Import Mode</td><td style=""padding:6px 0;"">{Encode(request.ImportMode)}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Report Type</td><td style=""padding:6px 0;"">{Encode(request.SourceReportType)}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Detected Site</td><td style=""padding:6px 0;"">{Encode(request.SourceDetectedSiteName)}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Report ID</td><td style=""padding:6px 0;"">{Encode(reportId)}</td></tr>
+            </table>
+        </div>
 
-        < div style =\"margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
-            < div style =\"font-weight:700;margin-bottom:12px;\">Import Counts</div>
-            < table style =\"width:100%;border-collapse:collapse;font-size:13px;\">
-                < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">Imported</td><td style=\"padding:6px 0;\">{successCount}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Failed</td><td style=\"padding:6px 0;\">{failedCount}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Skipped</td><td style=\"padding:6px 0;\">{skippedCount}</td></tr>
-                < tr >< td style =\"padding:6px 0;font-weight:600;\">Duplicates</td><td style=\"padding:6px 0;\">{duplicateCount}</td></tr>
-            </ table >
-        </ div >
+        <div style=""margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:12px;"">Import Counts</div>
+            <table style=""width:100%;border-collapse:collapse;font-size:13px;"">
+                <tr><td style=""padding:6px 0;font-weight:600;width:180px;"">Imported</td><td style=""padding:6px 0;"">{successCount}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Failed</td><td style=""padding:6px 0;"">{failedCount}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Skipped</td><td style=""padding:6px 0;"">{skippedCount}</td></tr>
+                <tr><td style=""padding:6px 0;font-weight:600;"">Duplicates</td><td style=""padding:6px 0;"">{duplicateCount}</td></tr>
+            </table>
+        </div>
 
-        < div style =\"padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
-            < div style =\"font-weight:700;margin-bottom:12px;\">Latest Record In File</div>
-            { latestRecordHtml}
-        </ div >
-    </ div >
-</ body >
-</ html > ";
+        <div style=""padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;"">
+            <div style=""font-weight:700;margin-bottom:12px;"">Latest Record In File</div>
+            {latestRecordHtml}
+        </div>
+    </div>
+</body>
+</html>";
         }
 
         private sealed class ImportLatestRecordSnapshot
