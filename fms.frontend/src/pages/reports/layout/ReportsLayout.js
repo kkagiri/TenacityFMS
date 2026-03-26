@@ -12,12 +12,20 @@ import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
 import { getAllReportSources } from '../sources';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './ReportsLayout.scss';
 
 const ReportsLayout = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const { hasPermission, hasAnyPermission } = usePermissions();
+
+  const canSeeReportEngine = hasAnyPermission(['_Read_Reporting', '_Generate_Report']);
+  const canSeeTemplates = hasPermission('_Manage_ReportTemplates');
+  const canSeeScheduling = hasPermission('_Manage_ReportSchedules');
+  const canSeeMonitoring = hasAnyPermission(['_Read_Reporting', '_Manage_ReportTemplates']);
+  const canSeeDataManagement = hasPermission('_Manage_FuelImport');
 
   // ── Navigation Items ──
 
@@ -152,6 +160,7 @@ const ReportsLayout = ({ children }) => {
             </nav>
           </div>
 
+          {canSeeReportEngine && (<>
           <div className="nav-separator"></div>
 
           {/* Report Engine Group */}
@@ -182,6 +191,9 @@ const ReportsLayout = ({ children }) => {
             </nav>
           </div>
 
+          </>)}
+
+          {canSeeTemplates && (<>
           <div className="nav-separator"></div>
 
           {/* Templates Group */}
@@ -212,6 +224,9 @@ const ReportsLayout = ({ children }) => {
             </nav>
           </div>
 
+          </>)}
+
+          {canSeeScheduling && (<>
           <div className="nav-separator"></div>
 
           {/* Scheduling Group */}
@@ -242,6 +257,9 @@ const ReportsLayout = ({ children }) => {
             </nav>
           </div>
 
+          </>)}
+
+          {canSeeMonitoring && (<>
           <div className="nav-separator"></div>
 
           {/* Monitoring Group */}
@@ -272,6 +290,9 @@ const ReportsLayout = ({ children }) => {
             </nav>
           </div>
 
+          </>)}
+
+          {canSeeDataManagement && (<>
           <div className="nav-separator"></div>
 
           {/* Data Management Group */}
@@ -301,6 +322,7 @@ const ReportsLayout = ({ children }) => {
               })}
             </nav>
           </div>
+          </>)}
         </div>
       </aside>
 

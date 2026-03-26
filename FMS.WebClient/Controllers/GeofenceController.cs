@@ -33,7 +33,7 @@ namespace FMS.WebClient.Controllers;
 [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
 [ApiController]
 [Route("api/v1/[controller]")]
-[RequirePermission(Permissions.Vehicle.Read)]
+[RequirePermission(Permissions.Geofence.Read)]
 public class GeofenceController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -94,6 +94,7 @@ public class GeofenceController : ControllerBase
     /// Sync geofences from GPSGate (synchronous - blocks until complete)
     /// For long-running syncs, use the async endpoint POST /geofences/sync-jobs instead
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPost("geofences/sync")]
     public async Task<IActionResult> SyncGeofences([FromBody] SyncGeofencesRequestDTO? request)
     {
@@ -109,6 +110,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Create a new GPSGate geofence and sync it into the local cache.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPost("geofences")]
     public async Task<IActionResult> CreateGeofence([FromBody] CreateGeofenceRequestDTO request)
     {
@@ -119,6 +121,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Delete a synced GPSGate geofence and mark it inactive locally.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpDelete("geofences/{id}")]
     public async Task<IActionResult> DeleteGeofence(int id)
     {
@@ -129,6 +132,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Update an existing GPSGate geofence and sync it into the local cache.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPut("geofences/{id}")]
     public async Task<IActionResult> UpdateGeofence(int id, [FromBody] CreateGeofenceRequestDTO request)
     {
@@ -139,6 +143,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Update the operational classification of a geofence (Parking, Load, Dump, Fuel, Workshop).
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPatch("geofences/{id}/classification")]
     public async Task<IActionResult> UpdateGeofenceClassification(int id, [FromBody] UpdateGeofenceClassificationRequestDTO request)
     {
@@ -160,6 +165,7 @@ public class GeofenceController : ControllerBase
     /// If GroupIds are provided, only those specific groups will be synced (selective sync).
     /// If GroupIds are not provided, all geofences and groups will be synced (full sync).
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPost("sync-jobs")]
     public async Task<IActionResult> StartSyncJob([FromBody] SyncGeofencesRequestDTO? request)
     {
@@ -258,6 +264,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Create a GPSGate geofence group and sync it into local cache.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPost("groups")]
     public async Task<IActionResult> CreateGeofenceGroup([FromBody] CreateGeofenceGroupRequestDTO request)
     {
@@ -268,6 +275,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Update a synced GPSGate geofence group.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPut("groups/{id}")]
     public async Task<IActionResult> UpdateGeofenceGroup(int id, [FromBody] UpdateGeofenceGroupRequestDTO request)
     {
@@ -283,6 +291,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Delete a synced GPSGate geofence group.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpDelete("groups/{id}")]
     public async Task<IActionResult> DeleteGeofenceGroup(int id)
     {
@@ -293,6 +302,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Add an existing synced geofence to an existing synced group.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPost("groups/{id}/geofences")]
     public async Task<IActionResult> AddGeofenceToGroup(int id, [FromBody] GeofenceGroupMembershipRequestDTO request)
     {
@@ -308,6 +318,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Remove a synced geofence from a synced group.
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpDelete("groups/{groupId}/geofences/{geofenceId}")]
     public async Task<IActionResult> RemoveGeofenceFromGroup(int groupId, int geofenceId)
     {
@@ -324,6 +335,7 @@ public class GeofenceController : ControllerBase
     /// Update a geofence group's IsAllowedForFueling flag
     /// This is part of the global geofence policy - when enabled, fueling is allowed within this group's geofences
     /// </summary>
+    [RequirePermission(Permissions.Geofence.Manage)]
     [HttpPatch("groups/{id}/allowed-for-fueling")]
     public async Task<IActionResult> UpdateGroupAllowedForFueling(int id, [FromBody] UpdateGroupAllowedForFuelingRequestDTO request)
     {
@@ -364,6 +376,7 @@ public class GeofenceController : ControllerBase
     /// </summary>
     /// <param name="request">Bypass configuration including type, duration, and target IDs</param>
     /// <returns>The bypass status including active bypasses</returns>
+    [RequirePermission(Permissions.Geofence.ManageBypass)]
     [HttpPost("validation/temporary-bypass")]
     public async Task<IActionResult> EnableTemporaryBypass([FromBody] EnableTemporaryBypassRequestDTO request)
     {
@@ -384,6 +397,7 @@ public class GeofenceController : ControllerBase
     /// <summary>
     /// Cancel the current temporary bypass
     /// </summary>
+    [RequirePermission(Permissions.Geofence.ManageBypass)]
     [HttpDelete("validation/temporary-bypass")]
     public async Task<IActionResult> CancelTemporaryBypass()
     {
@@ -400,6 +414,7 @@ public class GeofenceController : ControllerBase
     /// Cancel a specific bypass by its ID
     /// </summary>
     /// <param name="bypassId">The ID of the bypass to cancel</param>
+    [RequirePermission(Permissions.Geofence.ManageBypass)]
     [HttpDelete("validation/temporary-bypass/{bypassId}")]
     public async Task<IActionResult> CancelBypassById(int bypassId)
     {

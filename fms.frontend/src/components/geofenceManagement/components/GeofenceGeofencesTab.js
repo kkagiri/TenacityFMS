@@ -96,6 +96,7 @@ const renderUsageBadges = (cellData) => {
 };
 
 const GeofenceGeofencesTab = ({
+  canManage = false,
   deleting,
   geofences,
   geofenceGroups = [],
@@ -279,12 +280,12 @@ const GeofenceGeofencesTab = ({
             {isCreating ? (
               <Button text="Cancel drawing" icon="fa-light fa-xmark" stylingMode="outlined" type="normal" onClick={onCancelCreate} />
             ) : (
-              <Button text="Create" icon="fa-light fa-plus" type="default" stylingMode="contained" onClick={onCreate} />
+              <Button text="Create" icon="fa-light fa-plus" type="default" stylingMode="contained" onClick={onCreate} disabled={!canManage} />
             )}
-            <Button text="Edit" icon="fa-light fa-pen-to-square" stylingMode="outlined" onClick={onEdit} disabled={!selectedGeofence} />
+            <Button text="Edit" icon="fa-light fa-pen-to-square" stylingMode="outlined" onClick={onEdit} disabled={!selectedGeofence || !canManage} />
             <Button text="Preview" icon="fa-light fa-map-location-dot" stylingMode="outlined" onClick={onPreview} disabled={!selectedGeofence} />
-            <Button text="Trip class." icon="fa-light fa-industry-windows" stylingMode="outlined" onClick={onWorksite} disabled={!selectedGeofence} />
-            <Button text={deleting ? "Deleting..." : "Delete"} icon="fa-light fa-trash" stylingMode="outlined" type="danger" onClick={onDelete} disabled={!selectedGeofence || deleting} />
+            <Button text="Trip class." icon="fa-light fa-industry-windows" stylingMode="outlined" onClick={onWorksite} disabled={!selectedGeofence || !canManage} />
+            <Button text={deleting ? "Deleting..." : "Delete"} icon="fa-light fa-trash" stylingMode="outlined" type="danger" onClick={onDelete} disabled={!selectedGeofence || deleting || !canManage} />
           </div>
         </div>
 

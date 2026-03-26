@@ -36,7 +36,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-car",
       route: "/vehicles",
       color: "#107c10",
-      requiredPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer"]
+      requiredPermissions: ["Vehicle Module", "VehicleTrackingModule", "VehicleMaintenanceModule", "VehicleDocumentsModule", "VehicleTransferModule", "VehicleHealthModule", "GeofenceModule", "_Read_Vehicle", "_Read_VehicleTracking", "_Read_VehicleTrips", "_Read_VehicleMaintenance", "_Read_VehicleDocuments", "_Read_VehicleTransfer", "_Read_Geofence"]
     },
     {
       id: 3,
@@ -84,7 +84,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-cog",
       route: "/admin",
       color: "#005a70",
-      requiredPermissions: ["Admin Module", "_Manage_Users", "_Manage_Roles", "_Manage_Site", "_Manage_ATG", "_Manage_ExpectedAverage", "_Manage_Issues", "_Manage_Device"]
+      requiredPermissions: ["Admin Module", "_Manage_Users", "_Manage_Roles", "_Manage_Site"]
     },
 
     {
@@ -107,23 +107,10 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
 
   const filteredModules = useMemo(() => {
     if (!isAuthenticated) {
-      console.warn('[AppDrawer] Not authenticated – returning empty modules');
       return [];
     }
 
-    // DEBUG: Remove after investigation
-    console.group('[AppDrawer] Module Filtering DEBUG');
-    modules.forEach((m) => {
-      const match = hasAnyPermission(m.requiredPermissions);
-      console.log(
-        `${match ? '✅' : '❌'} ${m.name}`,
-        '| requiredPermissions:', m.requiredPermissions
-      );
-    });
-    console.groupEnd();
-
     const result = modules.filter((module) => hasAnyPermission(module.requiredPermissions));
-    console.log('[AppDrawer] filteredModules count:', result.length, result.map(m => m.name));
     return result;
   }, [hasAnyPermission, isAuthenticated, modules]);
 

@@ -12,7 +12,7 @@ import saveAs from "file-saver";
 import { exportDataGrid } from "devextreme/excel_exporter";
 import { formatDisplayDate } from "../VehicleDocuments.shared";
 
-const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete }) => {
+const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete, canEdit, canDelete }) => {
   const dataGridRef = useRef(null);
 
   const renderStatusCell = ({ data }) => (
@@ -40,12 +40,16 @@ const VehicleDocumentsGrid = ({ documents, loading, onEdit, onDelete }) => {
 
   const renderActionCell = ({ data }) => (
     <div className="vehicle-documents-page__actions">
-      <button type="button" className="vehicle-documents-page__icon-btn" onClick={() => onEdit(data)} title="Edit document">
-        <i className="fa-light fa-pen" />
-      </button>
-      <button type="button" className="vehicle-documents-page__icon-btn vehicle-documents-page__icon-btn--danger" onClick={() => onDelete(data)} title="Delete document">
-        <i className="fa-light fa-trash" />
-      </button>
+      {canEdit && onEdit && (
+        <button type="button" className="vehicle-documents-page__icon-btn" onClick={() => onEdit(data)} title="Edit document">
+          <i className="fa-light fa-pen" />
+        </button>
+      )}
+      {canDelete && onDelete && (
+        <button type="button" className="vehicle-documents-page__icon-btn vehicle-documents-page__icon-btn--danger" onClick={() => onDelete(data)} title="Delete document">
+          <i className="fa-light fa-trash" />
+        </button>
+      )}
     </div>
   );
 

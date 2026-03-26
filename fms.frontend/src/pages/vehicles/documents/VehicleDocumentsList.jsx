@@ -9,6 +9,7 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate } from "react-router-dom";
 import notify from "devextreme/ui/notify";
+import { usePermissions } from "../../../hooks/usePermissions";
 import { fetchVehicleList } from "../../../redux/actions/vehicleActions";
 import { fetchSiteList } from "../../../redux/actions/siteActions";
 import { fetchVehicleTypes } from "../../../redux/actions/vehicleTypeActions";
@@ -62,6 +63,10 @@ const STATUS_TO_REPORT_STATUS = {
 const VehicleDocumentsList = ({ vehicleId }) => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
+  const { hasPermission } = usePermissions();
+  const canCreate = hasPermission('_Create_VehicleDocuments');
+  const canEdit = hasPermission('_Edit_VehicleDocuments');
+  const canDelete = hasPermission('_Delete_VehicleDocuments');
   const fixedVehicleId = Number(vehicleId) > 0 ? Number(vehicleId) : null;
 
   const [documents, setDocuments] = useState([]);
@@ -492,7 +497,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
           <p className="vehicle-documents-page__subtitle">Track uploaded compliance records, assign requirements by site or vehicle type, and review due versus completed coverage.</p>
         </div>
         <div className="vehicle-documents-page__header-actions">
-          <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setSettingsPanelOpen(true)} disabled={settingsSaving || authoritySaving}>
+          <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setSettingsPanelOpen(true)} disabled={settingsSaving || authoritySaving || !canEdit}>
             <i className="fa-light fa-sliders" />
             Settings
           </button>
@@ -504,16 +509,18 @@ const VehicleDocumentsList = ({ vehicleId }) => {
             <i className="fa-light fa-rotate-right" />
             Refresh
           </button>
-          {!fixedVehicleId ? (
+          {!fixedVehicleId && canCreate ? (
             <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--ghost" onClick={() => setBulkPanelOpen(true)} disabled={loadingLookups}>
               <i className="fa-light fa-layer-group" />
               Bulk assign
             </button>
           ) : null}
-          <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--primary" onClick={openCreatePanel} disabled={loadingLookups}>
-            <i className="fa-light fa-plus" />
-            Add document
-          </button>
+          {canCreate && (
+            <button type="button" className="vehicle-documents-page__button vehicle-documents-page__button--primary" onClick={openCreatePanel} disabled={loadingLookups}>
+              <i className="fa-light fa-plus" />
+              Add document
+            </button>
+          )}
         </div>
       </div>
 
@@ -546,7 +553,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         onStatusChange={setSelectedStatus}
       />
 
-      <VehicleDocumentsGrid documents={visibleDocuments} loading={loadingDocuments} onEdit={openEditPanel} onDelete={handleDelete} />
+      <VehicleDocumentsGrid documents={visibleDocuments} loading={loadingDocuments} onEdit={canEdit ? openEditPanel : undefined} onDelete={canDelete ? handleDelete : undefined} canEdit={canEdit} canDelete={canDelete} />
 
       <VehicleDocumentFormPanel
         open={documentPanelOpen}
@@ -587,6 +594,7 @@ const VehicleDocumentsList = ({ vehicleId }) => {
         authoritySaving={authoritySaving}
         onRenameAuthority={handleRenameAuthority}
         onDeleteAuthority={handleDeleteAuthority}
+        canEdit={canEdit}
       />
     </div>
   );

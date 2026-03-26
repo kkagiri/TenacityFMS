@@ -36,20 +36,6 @@ export const usePermissions = () => {
 
     const merged = [...new Set([...reduxPermissions, ...userPermissions])];
 
-    // DEBUG: Remove after investigation
-    console.group('[usePermissions] DEBUG');
-    console.log('auth.user:', user);
-    console.log('auth.user?.id / auth.user?.Id:', user?.id, user?.Id);
-    console.log('auth.user?.userName / auth.user?.UserName:', user?.userName, user?.UserName);
-    console.log('auth.user?.roles:', user?.roles, user?.Roles);
-    console.log('auth.myPermissions (raw from Redux):', myPermissions);
-    console.log('auth.myPermissions type:', typeof myPermissions, 'isArray:', Array.isArray(myPermissions), 'length:', myPermissions?.length);
-    console.log('user.permissions fallback:', userPermissions);
-    console.log('permissionsLoaded:', permissionsLoaded);
-    console.log('MERGED permissions count:', merged.length);
-    console.log('MERGED permissions:', merged);
-    console.groupEnd();
-
     return merged;
   }, [myPermissions, user, permissionsLoaded]);
 

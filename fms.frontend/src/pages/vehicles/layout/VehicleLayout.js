@@ -279,9 +279,13 @@ const VehicleLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
           )}
 
           {/* Quick Action Button */}
-          {!sidebarCollapsed && canCreateVehicle && (
-            <div className="add-vehicle-btn" onClick={() => handleNavigation(vehicleRoutes.addVehicle)}>
-              <i className="fa-light fa-plus"></i>
+          {!sidebarCollapsed && (
+            <div
+              className={`add-vehicle-btn${!canCreateVehicle ? ' add-vehicle-btn--disabled' : ''}`}
+              onClick={() => canCreateVehicle && handleNavigation(vehicleRoutes.addVehicle)}
+              title={!canCreateVehicle ? 'You do not have permission to add vehicles' : 'Add a new vehicle'}
+            >
+              <i className={`fa-light ${canCreateVehicle ? 'fa-plus' : 'fa-lock'}`}></i>
               <span>Add New Vehicle</span>
             </div>
           )}

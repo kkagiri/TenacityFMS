@@ -2,7 +2,7 @@
  * File: VehicleTrackingGeofenceWorkspacePanel.js
  * Purpose: Renders geofence groups and group members inside a generic tracking workspace pane.
  * Dependencies: React, VehicleTrackingGeofenceGroupsPanel.scss
- * Last Modified: 2026-03-18
+ * Last Modified: 2026-03-26
  *
  * Key Components:
  * - VehicleTrackingGeofenceWorkspacePanel(): Embedded geofence browser for workspace pane assignment.
@@ -37,6 +37,7 @@ const CLASSIFICATION_BADGE = {
 
 const VehicleTrackingGeofenceWorkspacePanel = ({
   allGeofences = [],
+  canManageGeofences = false,
   groups = [],
   loading = false,
   onAddGeofence,
@@ -73,6 +74,10 @@ const VehicleTrackingGeofenceWorkspacePanel = ({
   }, [contextMenu, geofenceContextMenu]);
 
   const handleGroupContextMenu = useCallback((event, group) => {
+    if (!canManageGeofences) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
@@ -80,16 +85,20 @@ const VehicleTrackingGeofenceWorkspacePanel = ({
     setSelectedGroup(group);
     setGeofenceContextMenu(null);
     setContextMenu({ ...nextPosition, group });
-  }, [setSelectedGroup]);
+  }, [canManageGeofences, setSelectedGroup]);
 
   const handleGeofenceContextMenu = useCallback((event, geofence) => {
+    if (!canManageGeofences) {
+      return;
+    }
+
     event.preventDefault();
     event.stopPropagation();
 
     const nextPosition = clampMenuPosition(event.clientX, event.clientY, 220, 120);
     setContextMenu(null);
     setGeofenceContextMenu({ ...nextPosition, geofence });
-  }, []);
+  }, [canManageGeofences]);
 
   const searchTerm = searchText.trim().toLowerCase();
 
@@ -130,6 +139,8 @@ const VehicleTrackingGeofenceWorkspacePanel = ({
             type="button"
             className="vehicle-tracking-geofence-toolbar-button"
             onClick={onAddGroup}
+            disabled={!canManageGeofences}
+            title={canManageGeofences ? 'Create a geofence group' : 'Requires geofence manage permission'}
           >
             <i className="fa-light fa-folder-plus"></i>
             <span>Group</span>
@@ -138,6 +149,8 @@ const VehicleTrackingGeofenceWorkspacePanel = ({
             type="button"
             className="vehicle-tracking-geofence-toolbar-button vehicle-tracking-geofence-toolbar-button--primary"
             onClick={onAddGeofence}
+            disabled={!canManageGeofences}
+            title={canManageGeofences ? 'Create a geofence' : 'Requires geofence manage permission'}
           >
             <i className="fa-light fa-plus"></i>
             <span>Geofence</span>

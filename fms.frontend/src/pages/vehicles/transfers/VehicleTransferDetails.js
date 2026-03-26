@@ -34,7 +34,7 @@ const VehicleTransferDetails = ({ transfer, onClose, onRefresh }) => {
   const [pdfLoading, setPdfLoading] = useState(false);
 
   useEffect(() => {
-    dispatch(fetchUsers());
+    dispatch(fetchUsers()).catch(() => {});
   }, [dispatch]);
 
   const workshopUsers = useMemo(
