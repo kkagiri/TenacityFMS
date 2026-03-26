@@ -3,7 +3,7 @@
  * Purpose: Admin notification history page showing ALL system notifications
  *          with M365 Admin Center Fluent design, filters, detail panel with HTML rendering.
  * Dependencies: react, devextreme-react/data-grid, notificationsApi
- * Last Modified: 2026-02-25
+ * Last Modified: 2026-03-26
  *
  * Key Functions/Components:
  * - loadNotifications: Loads all system notifications via admin-history endpoint.
@@ -30,6 +30,67 @@ const formatDateTime = (value) => {
     hour: "2-digit",
     minute: "2-digit",
   });
+};
+
+const parseNotificationData = (rawData) => {
+  if (!rawData) return null;
+
+  if (typeof rawData === "object") {
+    return rawData;
+  }
+
+  try {
+    return JSON.parse(rawData);
+  } catch {
+    return null;
+  }
+};
+
+const isFileImportNotification = (notification) => {
+  if (!notification) return false;
+
+  return (
+    notification.categoryName === "File Importation Notification Details" ||
+    notification.category === "File Importation Notification Details" ||
+    notification.triggerSource === "FuelImport"
+  );
+};
+
+const getLatestRecord = (notification) => {
+  const data = notification?.parsedData;
+  if (!data || typeof data !== "object") return null;
+  return data.LatestRecord || data.latestRecord || null;
+};
+
+const getImportedFileName = (notification) => {
+  const data = notification?.parsedData;
+  if (!data || typeof data !== "object") return null;
+
+  return data.FileName || data.fileName || "—";
+};
+
+const getLatestRecordDisplay = (notification) => {
+  const latestRecord = getLatestRecord(notification);
+  if (!latestRecord) return "—";
+
+  const recordDate = formatDateTime(latestRecord.RecordDate || latestRecord.recordDate);
+  const vehicleLabel = latestRecord.VehicleLabel || latestRecord.vehicleLabel || "Unknown Vehicle";
+  const siteLabel = latestRecord.SiteLabel || latestRecord.siteLabel || "Unknown Site";
+  const shift = latestRecord.Shift || latestRecord.shift || "Unknown Shift";
+
+  return `${recordDate} | ${vehicleLabel} | ${siteLabel} | ${shift}`;
+};
+
+const getImportCounts = (notification) => {
+  const data = notification?.parsedData;
+  if (!data || typeof data !== "object") return null;
+
+  return {
+    successCount: data.SuccessCount ?? data.successCount ?? 0,
+    failedCount: data.FailedCount ?? data.failedCount ?? 0,
+    skippedCount: data.SkippedCount ?? data.skippedCount ?? 0,
+    duplicateCount: data.DuplicateCount ?? data.duplicateCount ?? 0,
+  };
 };
 
 const NotificationHistory = () => {
@@ -62,7 +123,18 @@ const NotificationHistory = () => {
       });
 
       if (result.isSuccess) {
-        setNotifications(Array.isArray(result.data) ? result.data : []);
+        const normalizedNotifications = (Array.isArray(result.data) ? result.data : []).map((notification) => {
+          const parsedData = parseNotificationData(notification.data);
+
+          return {
+            ...notification,
+            parsedData,
+            importedFileName: getImportedFileName({ parsedData }),
+            latestRecordDisplay: getLatestRecordDisplay({ parsedData }),
+          };
+        });
+
+        setNotifications(normalizedNotifications);
         setTotalCount(result.totalCount || 0);
       } else {
         notify(result.message || "Failed to load notifications", "error", 3000);
@@ -181,7 +253,44 @@ const NotificationHistory = () => {
     );
   };
 
+  const renderFileName = (cellInfo) => {
+    const isImport = isFileImportNotification(cellInfo.data);
+    const fileName = cellInfo.data?.importedFileName;
+
+    if (!isImport || !fileName || fileName === "—") {
+      return <span className="nh-secondary-text">—</span>;
+    }
+
+    return (
+      <div className="nh-file-cell">
+        <i className="fa-light fa-file-excel nh-file-cell__icon"></i>
+        <span className="nh-file-cell__name" title={fileName}>{fileName}</span>
+      </div>
+    );
+  };
+
+  const renderLatestRecord = (cellInfo) => {
+    const isImport = isFileImportNotification(cellInfo.data);
+    const latestRecordDisplay = cellInfo.data?.latestRecordDisplay;
+
+    if (!isImport || !latestRecordDisplay || latestRecordDisplay === "—") {
+      return <span className="nh-secondary-text">—</span>;
+    }
+
+    return <span className="nh-latest-record-cell" title={latestRecordDisplay}>{latestRecordDisplay}</span>;
+  };
+
   const hasActiveFilters = filters.status || filters.type || filters.priority || filters.search || filters.dateFrom || filters.dateTo;
+
+  const selectedNotificationData = selectedNotification?.parsedData || parseNotificationData(selectedNotification?.data);
+  const selectedLatestRecord = getLatestRecord({ parsedData: selectedNotificationData });
+  const selectedImportCounts = getImportCounts({ parsedData: selectedNotificationData });
+  const selectedFileName = getImportedFileName({ parsedData: selectedNotificationData });
+  const selectedFilePath = selectedNotificationData?.FilePath || selectedNotificationData?.filePath || "—";
+  const selectedReportType = selectedNotificationData?.ReportType || selectedNotificationData?.reportType || "—";
+  const selectedDetectedSite = selectedNotificationData?.DetectedSiteName || selectedNotificationData?.detectedSiteName || "—";
+  const selectedImportMode = selectedNotificationData?.ImportMode || selectedNotificationData?.importMode || "—";
+  const selectedReportId = selectedNotificationData?.ReportId || selectedNotificationData?.reportId || "—";
 
   return (
     <div className="nh-page">
@@ -277,204 +386,314 @@ const NotificationHistory = () => {
 
       {/* Notification Grid */}
       <div className="nh-grid-container">
-          <DataGrid
-            dataSource={notifications}
-            showBorders={false}
-            showRowLines={true}
-            showColumnLines={false}
-            rowAlternationEnabled={false}
-            columnAutoWidth={true}
-            hoverStateEnabled={true}
-            onRowClick={handleRowClick}
-            loadPanel={{ enabled: loading }}
-            noDataText="No notifications found"
-            className="nh-datagrid"
-          >
-            <Sorting mode="multiple" />
-            <Paging defaultPageSize={PAGE_SIZE} />
-            <Pager
-              showPageSizeSelector={true}
-              allowedPageSizes={[25, 50, 100]}
-              showInfo={true}
-            />
-            <Column dataField="title" caption="Title" minWidth={200} />
-            <Column dataField="type" caption="Type" cellRender={renderTypeBadge} width={110} />
-            <Column dataField="status" caption="Status" cellRender={renderStatusBadge} width={110} />
-            <Column dataField="priority" caption="Priority" cellRender={renderPriorityBadge} width={100} />
-            <Column
-              caption="Recipients"
-              cellRender={renderRecipientCount}
-              width={180}
-              allowSorting={false}
-            />
-            <Column dataField="categoryName" caption="Category" width={130} />
-            <Column dataField="triggerSource" caption="Source" width={110} />
-            <Column dataField="createdAt" caption="Created" cellRender={renderDateTime} width={160} sortOrder="desc" />
-            <Column caption="" cellRender={renderActions} width={50} allowSorting={false} />
-          </DataGrid>
-        </div>
+        <DataGrid
+          dataSource={notifications}
+          showBorders={false}
+          showRowLines={true}
+          showColumnLines={false}
+          rowAlternationEnabled={false}
+          columnAutoWidth={true}
+          hoverStateEnabled={true}
+          onRowClick={handleRowClick}
+          loadPanel={{ enabled: loading }}
+          noDataText="No notifications found"
+          className="nh-datagrid"
+        >
+          <Sorting mode="multiple" />
+          <Paging defaultPageSize={PAGE_SIZE} />
+          <Pager
+            showPageSizeSelector={true}
+            allowedPageSizes={[25, 50, 100]}
+            showInfo={true}
+          />
+          <Column dataField="title" caption="Title" minWidth={200} />
+          <Column caption="Imported File" cellRender={renderFileName} minWidth={220} allowSorting={false} />
+          <Column caption="Latest Record" cellRender={renderLatestRecord} minWidth={260} allowSorting={false} />
+          <Column dataField="type" caption="Type" cellRender={renderTypeBadge} width={110} />
+          <Column dataField="status" caption="Status" cellRender={renderStatusBadge} width={110} />
+          <Column dataField="priority" caption="Priority" cellRender={renderPriorityBadge} width={100} />
+          <Column
+            caption="Recipients"
+            cellRender={renderRecipientCount}
+            width={180}
+            allowSorting={false}
+          />
+          <Column dataField="categoryName" caption="Category" width={130} />
+          <Column dataField="triggerSource" caption="Source" width={110} />
+          <Column dataField="createdAt" caption="Created" cellRender={renderDateTime} width={160} sortOrder="desc" />
+          <Column caption="" cellRender={renderActions} width={50} allowSorting={false} />
+        </DataGrid>
+      </div>
 
       {/* Detail Panel — uses global SlidePanel (portal to body, below header) */}
       <SlidePanel open={panelOpen} onClose={handleClosePanel} title="Notification Details" width={720}>
         {selectedNotification && (
           <div className="nh-panel-body">
-                {/* Title & Badges */}
-                <div className="nh-panel-section">
-                  <h4 className="nh-panel-title">{selectedNotification.title}</h4>
-                  <div className="nh-panel-badges">
-                    {renderStatusBadge({ value: selectedNotification.status })}
-                    {renderTypeBadge({ value: selectedNotification.type })}
-                    {renderPriorityBadge({ value: selectedNotification.priority })}
+            {/* Title & Badges */}
+            <div className="nh-panel-section">
+              <h4 className="nh-panel-title">{selectedNotification.title}</h4>
+              <div className="nh-panel-badges">
+                {renderStatusBadge({ value: selectedNotification.status })}
+                {renderTypeBadge({ value: selectedNotification.type })}
+                {renderPriorityBadge({ value: selectedNotification.priority })}
+              </div>
+            </div>
+
+            {/* Meta Info */}
+            <div className="nh-panel-section nh-panel-meta">
+              <div className="nh-meta-row">
+                <span className="nh-meta-label">
+                  <i className="fa-light fa-calendar"></i> Created
+                </span>
+                <span className="nh-meta-value">{formatDateTime(selectedNotification.createdAt)}</span>
+              </div>
+              {selectedNotification.sentAt && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-paper-plane"></i> Sent
+                  </span>
+                  <span className="nh-meta-value">{formatDateTime(selectedNotification.sentAt)}</span>
+                </div>
+              )}
+              {selectedNotification.categoryName && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-tag"></i> Category
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.categoryName}</span>
+                </div>
+              )}
+              {selectedNotification.policyName && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-shield"></i> Policy
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.policyName}</span>
+                </div>
+              )}
+              {selectedNotification.triggerSource && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-bolt"></i> Source
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.triggerSource}</span>
+                </div>
+              )}
+              {selectedNotification.siteName && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-location-dot"></i> Site
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.siteName}</span>
+                </div>
+              )}
+              {selectedNotification.vehicleName && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-truck"></i> Vehicle
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.vehicleName}</span>
+                </div>
+              )}
+              {selectedNotification.tankName && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-droplet"></i> Tank
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.tankName}</span>
+                </div>
+              )}
+              {selectedNotification.sendAttempts > 0 && (
+                <div className="nh-meta-row">
+                  <span className="nh-meta-label">
+                    <i className="fa-light fa-rotate"></i> Attempts
+                  </span>
+                  <span className="nh-meta-value">{selectedNotification.sendAttempts}</span>
+                </div>
+              )}
+            </div>
+
+            {/* Error message */}
+            {selectedNotification.errorMessage && (
+              <div className="nh-panel-section">
+                <div className="m365-info-banner m365-info-banner--error">
+                  <i className="fa-light fa-circle-exclamation m365-info-banner__icon"></i>
+                  <div className="m365-info-banner__content">
+                    <span className="m365-info-banner__text">{selectedNotification.errorMessage}</span>
                   </div>
                 </div>
+              </div>
+            )}
 
-                {/* Meta Info */}
-                <div className="nh-panel-section nh-panel-meta">
-                  <div className="nh-meta-row">
-                    <span className="nh-meta-label">
-                      <i className="fa-light fa-calendar"></i> Created
-                    </span>
-                    <span className="nh-meta-value">{formatDateTime(selectedNotification.createdAt)}</span>
-                  </div>
-                  {selectedNotification.sentAt && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-paper-plane"></i> Sent
-                      </span>
-                      <span className="nh-meta-value">{formatDateTime(selectedNotification.sentAt)}</span>
-                    </div>
-                  )}
-                  {selectedNotification.categoryName && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-tag"></i> Category
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.categoryName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.policyName && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-shield"></i> Policy
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.policyName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.triggerSource && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-bolt"></i> Source
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.triggerSource}</span>
-                    </div>
-                  )}
-                  {selectedNotification.siteName && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-location-dot"></i> Site
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.siteName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.vehicleName && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-truck"></i> Vehicle
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.vehicleName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.tankName && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-droplet"></i> Tank
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.tankName}</span>
-                    </div>
-                  )}
-                  {selectedNotification.sendAttempts > 0 && (
-                    <div className="nh-meta-row">
-                      <span className="nh-meta-label">
-                        <i className="fa-light fa-rotate"></i> Attempts
-                      </span>
-                      <span className="nh-meta-value">{selectedNotification.sendAttempts}</span>
-                    </div>
-                  )}
-                </div>
+            {/* Message content */}
+            {selectedNotification.message && (
+              <div className="nh-panel-section">
+                <div className="nh-section-label">Message</div>
+                <div className="nh-message-box">{selectedNotification.message}</div>
+              </div>
+            )}
 
-                {/* Error message */}
-                {selectedNotification.errorMessage && (
-                  <div className="nh-panel-section">
-                    <div className="m365-info-banner m365-info-banner--error">
-                      <i className="fa-light fa-circle-exclamation m365-info-banner__icon"></i>
-                      <div className="m365-info-banner__content">
-                        <span className="m365-info-banner__text">{selectedNotification.errorMessage}</span>
+            {isFileImportNotification(selectedNotification) && (
+              <div className="nh-panel-section">
+                <div className="nh-section-label">File Import Details</div>
+
+                <div className="nh-import-card">
+                  <div className="nh-import-card__section">
+                    <div className="nh-import-card__title">File Summary</div>
+                    <div className="nh-import-grid">
+                      <div className="nh-import-cell">
+                        <span className="nh-import-cell__label">File Name</span>
+                        <span className="nh-import-cell__value">{selectedFileName}</span>
+                      </div>
+                      <div className="nh-import-cell">
+                        <span className="nh-import-cell__label">Report ID</span>
+                        <span className="nh-import-cell__value nh-import-cell__value--mono">{selectedReportId}</span>
+                      </div>
+                      <div className="nh-import-cell nh-import-cell--full">
+                        <span className="nh-import-cell__label">File Path</span>
+                        <span className="nh-import-cell__value nh-import-cell__value--wrap">{selectedFilePath}</span>
+                      </div>
+                      <div className="nh-import-cell">
+                        <span className="nh-import-cell__label">Report Type</span>
+                        <span className="nh-import-cell__value">{selectedReportType}</span>
+                      </div>
+                      <div className="nh-import-cell">
+                        <span className="nh-import-cell__label">Detected Site</span>
+                        <span className="nh-import-cell__value">{selectedDetectedSite}</span>
+                      </div>
+                      <div className="nh-import-cell">
+                        <span className="nh-import-cell__label">Import Mode</span>
+                        <span className="nh-import-cell__value">{selectedImportMode}</span>
                       </div>
                     </div>
                   </div>
-                )}
 
-                {/* Message content */}
-                {selectedNotification.message && (
-                  <div className="nh-panel-section">
-                    <div className="nh-section-label">Message</div>
-                    <div className="nh-message-box">{selectedNotification.message}</div>
-                  </div>
-                )}
-
-                {/* JSON Metadata (Data field) */}
-                {selectedNotification.data && (
-                  <div className="nh-panel-section">
-                    <div className="nh-section-label">Event Data</div>
-                    <div className="nh-message-box nh-json-data">
-                      {(() => {
-                        try {
-                          return JSON.stringify(JSON.parse(selectedNotification.data), null, 2);
-                        } catch {
-                          return selectedNotification.data;
-                        }
-                      })()}
-                    </div>
-                  </div>
-                )}
-
-                {/* Recipients */}
-                {selectedNotification.recipients && selectedNotification.recipients.length > 0 && (
-                  <div className="nh-panel-section">
-                    <div className="nh-section-label">
-                      Recipients
-                      <span className="m365-page-header__count">{selectedNotification.recipients.length}</span>
-                    </div>
-                    <div className="nh-recipient-list">
-                      {selectedNotification.recipients.map((r, idx) => (
-                        <div key={idx} className="nh-recipient-item">
-                          <div className="nh-recipient-item__info">
-                            <i className="fa-light fa-user"></i>
-                            <span className="nh-recipient-item__name">{r.userName || r.email || r.userId || "Unknown"}</span>
-                            {r.email && r.userName && (
-                              <span className="nh-recipient-item__email">{r.email}</span>
-                            )}
-                          </div>
-                          <div className="nh-recipient-item__status">
-                            {r.deliveryMethod && (
-                              <span className="m365-badge m365-badge--neutral">{r.deliveryMethod}</span>
-                            )}
-                            {r.deliveryStatus && (
-                              <span className={`m365-badge ${r.deliveryStatus.toLowerCase() === "delivered" ? "m365-badge--success" :
-                                  r.deliveryStatus.toLowerCase() === "failed" ? "m365-badge--error" :
-                                    r.deliveryStatus.toLowerCase() === "sent" ? "m365-badge--primary" :
-                                      "m365-badge--neutral"
-                                }`}>
-                                {r.deliveryStatus}
-                              </span>
-                            )}
-                            {r.isRead && <span className="m365-badge m365-badge--success">Read</span>}
-                          </div>
+                  {selectedImportCounts && (
+                    <div className="nh-import-card__section">
+                      <div className="nh-import-card__title">Import Counts</div>
+                      <div className="nh-import-grid nh-import-grid--compact">
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Imported</span>
+                          <span className="nh-import-cell__value">{selectedImportCounts.successCount}</span>
                         </div>
-                      ))}
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Failed</span>
+                          <span className="nh-import-cell__value">{selectedImportCounts.failedCount}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Skipped</span>
+                          <span className="nh-import-cell__value">{selectedImportCounts.skippedCount}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Duplicates</span>
+                          <span className="nh-import-cell__value">{selectedImportCounts.duplicateCount}</span>
+                        </div>
+                      </div>
                     </div>
+                  )}
+
+                  <div className="nh-import-card__section">
+                    <div className="nh-import-card__title">Latest Record In File</div>
+                    {selectedLatestRecord ? (
+                      <div className="nh-import-grid nh-import-grid--compact">
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Record Date</span>
+                          <span className="nh-import-cell__value">{formatDateTime(selectedLatestRecord.RecordDate || selectedLatestRecord.recordDate)}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Vehicle</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.VehicleLabel || selectedLatestRecord.vehicleLabel || "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Site</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.SiteLabel || selectedLatestRecord.siteLabel || "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Shift</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.Shift || selectedLatestRecord.shift || "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Employee</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.EmployeeName || selectedLatestRecord.employeeName || "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Total Fuel</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.TotalFuel ?? selectedLatestRecord.totalFuel ?? "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Total Distance</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.TotalDistance ?? selectedLatestRecord.totalDistance ?? "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Engine Hours</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.EngineHours ?? selectedLatestRecord.engineHours ?? "—"}</span>
+                        </div>
+                        <div className="nh-import-cell">
+                          <span className="nh-import-cell__label">Fuel Efficiency</span>
+                          <span className="nh-import-cell__value">{selectedLatestRecord.FuelEfficiency ?? selectedLatestRecord.fuelEfficiency ?? "—"}</span>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="nh-message-box">No latest record snapshot is available for this notification.</div>
+                    )}
                   </div>
-                )}
+                </div>
+              </div>
+            )}
+
+            {/* JSON Metadata (Data field) */}
+            {selectedNotification.data && (
+              <div className="nh-panel-section">
+                <div className="nh-section-label">Event Data</div>
+                <div className="nh-message-box nh-json-data">
+                  {(() => {
+                    try {
+                      return JSON.stringify(JSON.parse(selectedNotification.data), null, 2);
+                    } catch {
+                      return selectedNotification.data;
+                    }
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {/* Recipients */}
+            {selectedNotification.recipients && selectedNotification.recipients.length > 0 && (
+              <div className="nh-panel-section">
+                <div className="nh-section-label">
+                  Recipients
+                  <span className="m365-page-header__count">{selectedNotification.recipients.length}</span>
+                </div>
+                <div className="nh-recipient-list">
+                  {selectedNotification.recipients.map((r, idx) => (
+                    <div key={idx} className="nh-recipient-item">
+                      <div className="nh-recipient-item__info">
+                        <i className="fa-light fa-user"></i>
+                        <span className="nh-recipient-item__name">{r.userName || r.email || r.userId || "Unknown"}</span>
+                        {r.email && r.userName && (
+                          <span className="nh-recipient-item__email">{r.email}</span>
+                        )}
+                      </div>
+                      <div className="nh-recipient-item__status">
+                        {r.deliveryMethod && (
+                          <span className="m365-badge m365-badge--neutral">{r.deliveryMethod}</span>
+                        )}
+                        {r.deliveryStatus && (
+                          <span className={`m365-badge ${r.deliveryStatus.toLowerCase() === "delivered" ? "m365-badge--success" :
+                            r.deliveryStatus.toLowerCase() === "failed" ? "m365-badge--error" :
+                              r.deliveryStatus.toLowerCase() === "sent" ? "m365-badge--primary" :
+                                "m365-badge--neutral"
+                            }`}>
+                            {r.deliveryStatus}
+                          </span>
+                        )}
+                        {r.isRead && <span className="m365-badge m365-badge--success">Read</span>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
       </SlidePanel>

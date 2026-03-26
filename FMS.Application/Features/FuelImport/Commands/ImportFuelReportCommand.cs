@@ -1,6 +1,17 @@
+/**
+ * File: ImportFuelReportCommand.cs
+ * Purpose: Imports fuel consumption rows, tracks import history, and creates user-facing notifications.
+ * Dependencies: GpsdataContext, INotificationService, FrontEndHub, AutoMapper
+ * Last Modified: 2026-03-26
+ *
+ * Key Types:
+ * - ImportFuelReportCommand: Import request including optional source file metadata
+ * - ImportFuelReportCommandHandler: Validation, duplicate handling, persistence, history, notifications
+ */
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 using AutoMapper;
@@ -29,6 +40,11 @@ namespace FMS.Application.Features.FuelImport.Commands
         public bool OverwriteExisting { get; set; } = false;
         public string UserId { get; set; } // For tracking who imported
         public string JobId { get; set; } // Async job correlation ID (optional)
+        public string? SourceFileName { get; set; }
+        public string? SourceFilePath { get; set; }
+        public string? SourceReportType { get; set; }
+        public string? SourceDetectedSiteName { get; set; }
+        public string ImportMode { get; set; } = "Manual Import";
     }
 
     public class ImportFuelReportResult
@@ -131,6 +147,7 @@ namespace FMS.Application.Features.FuelImport.Commands
             var vehicleConsumptions = new List<Vehicleconsumption>();
             var resultConsumptions = new List<ConsumptionDTO>();
             List<ImportDuplicateError> skippedDuplicates = new List<ImportDuplicateError>();
+            var sourceModels = request.Models.ToList();
 
             _progressInfo = new ImportProgressInfo
             {
@@ -208,13 +225,14 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                     // Create persistent notification for duplicate detection
                     await CreateImportNotificationAsync(
+                        request,
                         reportId,
-                        request.UserId,
                         isSuccess: false,
                         successCount: 0,
                         failedCount: 0,
                         skippedCount: duplicateCheck.Count(),
                         duplicateCount: duplicateCheck.Count(),
+                        sourceModels: sourceModels,
                         errorMessage: $"{duplicateCheck.Count()} duplicate record(s) detected - import stopped.",
                         cancellationToken: cancellationToken);
 
@@ -287,6 +305,18 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                 if (!request.Models.Any())
                 {
+                    await CreateImportNotificationAsync(
+                        request,
+                        reportId,
+                        isSuccess: true,
+                        successCount: 0,
+                        failedCount: 0,
+                        skippedCount: skippedDuplicates.Count,
+                        duplicateCount: skippedDuplicates.Count,
+                        sourceModels: sourceModels,
+                        errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                        cancellationToken: cancellationToken);
+
                     return new FMSResponse<ImportFuelReportResult>
                     {
                         IsSuccess = true,
@@ -352,7 +382,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                 _logger.LogInformation("Successfully saved {Count} records to database", vehicleConsumptions.Count);
 
                 // ✅ NEW: Track import history for calendar visualization
-                await TrackImportHistory(request.Models, reportId, request.UserId, "Success", cancellationToken);
+                await TrackImportHistory(sourceModels, reportId, request.UserId, "Success", cancellationToken, request.SourceFileName);
 
                 foreach (var savedEntity in vehicleConsumptions)
                 {
@@ -397,13 +427,14 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                 // Create persistent notification for successful import
                 await CreateImportNotificationAsync(
+                    request,
                     reportId,
-                    request.UserId,
                     isSuccess: true,
                     successCount: successResponse.Data.SuccessCount,
                     failedCount: successResponse.Data.FailureCount,
                     skippedCount: successResponse.Data.SkippedCount,
                     duplicateCount: successResponse.Data.DuplicateCount,
+                    sourceModels: sourceModels,
                     cancellationToken: cancellationToken);
 
                 return successResponse;
@@ -465,7 +496,7 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                     if (savedCount > 0)
                     {
-                        await TrackImportHistory(request.Models, reportId, request.UserId, "Partial", cancellationToken);
+                        await TrackImportHistory(sourceModels, reportId, request.UserId, "Partial", cancellationToken, request.SourceFileName);
 
                         var partialResponse = new FMSResponse<ImportFuelReportResult>
                         {
@@ -485,19 +516,32 @@ namespace FMS.Application.Features.FuelImport.Commands
                         };
 
                         await CreateImportNotificationAsync(
+                            request,
                             reportId,
-                            request.UserId,
                             isSuccess: true,
                             successCount: savedCount,
                             failedCount: processedWithErrors,
                             skippedCount: skippedDuplicates.Count,
                             duplicateCount: skippedDuplicates.Count,
+                            sourceModels: sourceModels,
                             cancellationToken: cancellationToken);
 
                         return partialResponse;
                     }
                     else
                     {
+                        await CreateImportNotificationAsync(
+                            request,
+                            reportId,
+                            isSuccess: true,
+                            successCount: 0,
+                            failedCount: 0,
+                            skippedCount: skippedDuplicates.Count,
+                            duplicateCount: skippedDuplicates.Count,
+                            sourceModels: sourceModels,
+                            errorMessage: $"All {skippedDuplicates.Count} records were duplicates and skipped.",
+                            cancellationToken: cancellationToken);
+
                         // All records were duplicates
                         return new FMSResponse<ImportFuelReportResult>
                         {
@@ -520,7 +564,7 @@ namespace FMS.Application.Features.FuelImport.Commands
 
                 // Original error handling for non-skip cases
                 await UpdateProgressAsync(processedCount, 0, processedCount, "Failed: Database Error");
-                await TrackImportHistory(request.Models, reportId, request.UserId, "Failed", cancellationToken, ex.Message);
+                await TrackImportHistory(sourceModels, reportId, request.UserId, "Failed", cancellationToken, request.SourceFileName, ex.Message);
 
                 var errorResponse = new FMSResponse<ImportFuelReportResult>();
                 errorResponse.IsSuccess = false;
@@ -556,13 +600,14 @@ namespace FMS.Application.Features.FuelImport.Commands
                 // Create persistent notification for failed import
                 var failedData = errorResponse.Data ?? new ImportFuelReportResult();
                 await CreateImportNotificationAsync(
+                    request,
                     reportId,
-                    request.UserId,
                     isSuccess: false,
                     successCount: failedData.SuccessCount,
                     failedCount: failedData.FailureCount > 0 ? failedData.FailureCount : 1,
                     skippedCount: failedData.SkippedCount,
                     duplicateCount: failedData.DuplicateCount,
+                    sourceModels: sourceModels,
                     errorMessage: errorResponse.Message,
                     cancellationToken: cancellationToken);
 
@@ -573,7 +618,7 @@ namespace FMS.Application.Features.FuelImport.Commands
         /// <summary>
         /// NEW: Track import history for calendar visualization
         /// </summary>
-        private async Task TrackImportHistory(List<ConsumptionDTO> models, string reportId, string userId, string status, CancellationToken cancellationToken, string notes = null)
+        private async Task TrackImportHistory(List<ConsumptionDTO> models, string reportId, string userId, string status, CancellationToken cancellationToken, string? fileName = null, string notes = null)
         {
             try
             {
@@ -610,7 +655,7 @@ namespace FMS.Application.Features.FuelImport.Commands
                     SkippedCount = 0,
                     DuplicateCount = 0,
                     Status = status,
-                    FileName = null, // Can be enhanced to track filename if available
+                    FileName = fileName,
                     ImportedBy = userId ?? "System"
                 };
 
@@ -631,13 +676,14 @@ namespace FMS.Application.Features.FuelImport.Commands
         /// Creates a persistent notification for fuel import completion
         /// </summary>
         private async Task CreateImportNotificationAsync(
+            ImportFuelReportCommand request,
             string reportId,
-            string userId,
             bool isSuccess,
             int successCount,
             int failedCount,
             int skippedCount,
             int duplicateCount,
+            List<ConsumptionDTO> sourceModels,
             string errorMessage = null,
             CancellationToken cancellationToken = default)
         {
@@ -645,70 +691,95 @@ namespace FMS.Application.Features.FuelImport.Commands
             {
                 var notificationType = isSuccess ? NotificationType.Info : NotificationType.Error;
                 var priority = isSuccess ? NotificationPriority.Medium : NotificationPriority.High;
+                var sourceFileName = string.IsNullOrWhiteSpace(request.SourceFileName) ? "Manual Import" : request.SourceFileName;
+                var latestRecord = await BuildLatestRecordSnapshotAsync(sourceModels, cancellationToken);
 
                 string title;
                 string message;
 
                 if (isSuccess && failedCount == 0 && skippedCount == 0)
                 {
-                    title = "Fuel Import Completed";
-                    message = $"Successfully imported {successCount} fuel consumption record(s). Report ID: {reportId}";
+                    title = "File Import Completed";
+                    message = $"File '{sourceFileName}' imported successfully with {successCount} fuel consumption record(s). Report ID: {reportId}";
                 }
                 else if (isSuccess && (skippedCount > 0 || duplicateCount > 0))
                 {
-                    title = "Fuel Import Completed with Skipped Records";
-                    message = $"Imported {successCount} record(s). {skippedCount} skipped, {duplicateCount} duplicate(s). Report ID: {reportId}";
+                    title = "File Import Completed with Skipped Records";
+                    message = $"File '{sourceFileName}' imported {successCount} record(s). {skippedCount} skipped, {duplicateCount} duplicate(s). Report ID: {reportId}";
                     notificationType = NotificationType.Warning;
                 }
                 else if (!isSuccess && duplicateCount > 0)
                 {
-                    title = "Fuel Import Stopped - Duplicates Found";
-                    message = $"Import stopped: {duplicateCount} duplicate record(s) already exist in the database.";
+                    title = "File Import Stopped - Duplicates Found";
+                    message = $"File '{sourceFileName}' import stopped: {duplicateCount} duplicate record(s) already exist in the database.";
                 }
                 else
                 {
-                    title = "Fuel Import Failed";
-                    message = errorMessage ?? $"Import failed with {failedCount} error(s). Please check the data and try again.";
+                    title = "File Import Failed";
+                    message = errorMessage ?? $"File '{sourceFileName}' import failed with {failedCount} error(s). Please check the data and try again.";
                 }
 
-                var request = new CreateNotificationRequest
+                if (latestRecord != null)
+                {
+                    message += $" Latest record: {latestRecord.RecordDate:dd-MMM-yyyy HH:mm} | {latestRecord.VehicleLabel} | {latestRecord.SiteLabel} | {latestRecord.Shift}.";
+                }
+
+                var eventData = new
+                {
+                    ReportId = reportId,
+                    FileName = sourceFileName,
+                    FilePath = request.SourceFilePath,
+                    ReportType = request.SourceReportType,
+                    DetectedSiteName = request.SourceDetectedSiteName,
+                    ImportMode = request.ImportMode,
+                    SuccessCount = successCount,
+                    FailedCount = failedCount,
+                    SkippedCount = skippedCount,
+                    DuplicateCount = duplicateCount,
+                    LatestRecord = latestRecord,
+                    ImportManagementLink = "/reports/import-management",
+                    EmailBodyHtml = BuildImportNotificationEmailBody(
+                        sourceFileName,
+                        reportId,
+                        request,
+                        successCount,
+                        failedCount,
+                        skippedCount,
+                        duplicateCount,
+                        message,
+                        latestRecord)
+                };
+
+                var notificationRequest = new CreateNotificationRequest
                 {
                     Type = notificationType,
                     CategoryId = (int)WellKnownCategories.Generic,
+                    CategoryName = "File Importation Notification Details",
                     Priority = priority,
                     Title = title,
                     Message = message,
                     TriggerSource = "FuelImport",
-                    TriggeredBy = userId ?? "System",
-                    Data = new
-                    {
-                        ReportId = reportId,
-                        SuccessCount = successCount,
-                        FailedCount = failedCount,
-                        SkippedCount = skippedCount,
-                        DuplicateCount = duplicateCount
-                    },
+                    TriggeredBy = request.UserId ?? "System",
+                    Data = eventData,
                     DisableFallbackAllUsers = true, // Only send to the uploader, not all users
-                    Recipients = !string.IsNullOrEmpty(userId)
+                    Recipients = !string.IsNullOrEmpty(request.UserId)
                         ? new List<NotificationRecipientDto>
                         {
                             new NotificationRecipientDto
                             {
-                                UserId = userId,
-                                DeliveryMethods = new List<string> { "System" }, // In-app only, no email
+                                UserId = request.UserId,
+                                DeliveryMethods = new List<string> { DeliveryMethod.System.ToString(), DeliveryMethod.Email.ToString() },
                                 ResolvedFrom = "FuelImport"
                             }
                         }
                         : null
                 };
 
-                var result = await _notificationService.CreateNotificationAsync(request, cancellationToken);
+                var result = await _notificationService.CreateNotificationAsync(notificationRequest, cancellationToken);
 
                 if (result.IsSuccess)
                 {
                     _logger.LogInformation("Created import notification for reportId {ReportId}: {Title}", reportId, title);
-                    // Send the notification immediately
-                    await _notificationService.SendNotificationAsync(result.Data, cancellationToken);
                 }
                 else
                 {
@@ -720,6 +791,131 @@ namespace FMS.Application.Features.FuelImport.Commands
                 _logger.LogError(ex, "Failed to create import notification for reportId {ReportId}", reportId);
                 // Don't fail the import if notification creation fails
             }
+        }
+
+        private async Task<ImportLatestRecordSnapshot?> BuildLatestRecordSnapshotAsync(
+            List<ConsumptionDTO> models,
+            CancellationToken cancellationToken)
+        {
+            if (models == null || models.Count == 0)
+            {
+                return null;
+            }
+
+            var latest = models
+                .OrderByDescending(model => model.Date)
+                .ThenByDescending(model => model.RowIndex ?? -1)
+                .First();
+
+            var vehicleLabel = latest.VehicleId > 0
+                ? await _context.Vehicles
+                    .Where(vehicle => vehicle.VehicleId == latest.VehicleId)
+                    .Select(vehicle => vehicle.HyoungNo)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            var siteLabel = latest.SiteId > 0
+                ? await _context.Sites
+                    .Where(site => site.Id == latest.SiteId)
+                    .Select(site => site.Name)
+                    .FirstOrDefaultAsync(cancellationToken)
+                : null;
+
+            return new ImportLatestRecordSnapshot
+            {
+                RecordDate = latest.Date,
+                VehicleId = latest.VehicleId,
+                VehicleLabel = string.IsNullOrWhiteSpace(vehicleLabel) ? $"Vehicle #{latest.VehicleId}" : vehicleLabel,
+                SiteId = latest.SiteId,
+                SiteLabel = string.IsNullOrWhiteSpace(siteLabel) ? $"Site #{latest.SiteId}" : siteLabel,
+                Shift = latest.IsNightShift ? "Night Shift" : "Day Shift",
+                EmployeeName = latest.EmployeeName,
+                TotalFuel = latest.TotalFuel,
+                TotalDistance = latest.TotalDistance,
+                EngineHours = latest.EngHours,
+                FuelEfficiency = latest.FuelEfficiency,
+            };
+        }
+
+        private static string BuildImportNotificationEmailBody(
+            string sourceFileName,
+            string reportId,
+            ImportFuelReportCommand request,
+            int successCount,
+            int failedCount,
+            int skippedCount,
+            int duplicateCount,
+            string message,
+            ImportLatestRecordSnapshot? latestRecord)
+        {
+            static string Encode(string? value) => WebUtility.HtmlEncode(value ?? string.Empty);
+            static string FormatNumber(decimal? value) => value.HasValue ? value.Value.ToString("N2") : "-";
+
+            var latestRecordHtml = latestRecord == null
+                ? "<p style=\"margin:0;color:#6b7280;\">No latest record snapshot was available.</p>"
+                : $@"<table style=\"width: 100 %; border - collapse:collapse; font - size:13px;\">
+                        < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">Record Date</td><td style=\"padding:6px 0;\">{Encode(latestRecord.RecordDate.ToString("dd - MMM - yyyy HH: mm"))}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Vehicle</td><td style=\"padding:6px 0;\">{Encode(latestRecord.VehicleLabel)}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Site</td><td style=\"padding:6px 0;\">{Encode(latestRecord.SiteLabel)}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Shift</td><td style=\"padding:6px 0;\">{Encode(latestRecord.Shift)}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Employee</td><td style=\"padding:6px 0;\">{Encode(latestRecord.EmployeeName)}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Total Fuel</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.TotalFuel))}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Total Distance</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.TotalDistance))}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Engine Hours</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.EngineHours))}</td></tr>
+                        < tr >< td style =\"padding:6px 0;font-weight:600;\">Fuel Efficiency</td><td style=\"padding:6px 0;\">{Encode(FormatNumber(latestRecord.FuelEfficiency))}</td></tr>
+                    </ table > ";
+
+            return $@"<!DOCTYPE html>
+<html>
+<body style=\"font - family:Segoe UI, Arial, sans-serif; background:#f8fafc;color:#0f172a;margin:0;padding:24px;\">
+    < div style =\"max-width:760px;margin:0 auto;background:#ffffff;border:1px solid #e2e8f0;border-radius:12px;padding:24px;\">
+        < h2 style =\"margin:0 0 12px;font-size:22px;\">File Importation Notification Details</h2>
+        < p style =\"margin:0 0 20px;color:#475569;line-height:1.6;\">{Encode(message)}</p>
+
+        < div style =\"margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
+            < div style =\"font-weight:700;margin-bottom:12px;\">Import File Summary</div>
+            < table style =\"width:100%;border-collapse:collapse;font-size:13px;\">
+                < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">File Name</td><td style=\"padding:6px 0;\">{Encode(sourceFileName)}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">File Path</td><td style=\"padding:6px 0;word-break:break-all;\">{Encode(request.SourceFilePath)}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Import Mode</td><td style=\"padding:6px 0;\">{Encode(request.ImportMode)}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Report Type</td><td style=\"padding:6px 0;\">{Encode(request.SourceReportType)}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Detected Site</td><td style=\"padding:6px 0;\">{Encode(request.SourceDetectedSiteName)}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Report ID</td><td style=\"padding:6px 0;\">{Encode(reportId)}</td></tr>
+            </ table >
+        </ div >
+
+        < div style =\"margin:0 0 20px;padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
+            < div style =\"font-weight:700;margin-bottom:12px;\">Import Counts</div>
+            < table style =\"width:100%;border-collapse:collapse;font-size:13px;\">
+                < tr >< td style =\"padding:6px 0;font-weight:600;width:180px;\">Imported</td><td style=\"padding:6px 0;\">{successCount}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Failed</td><td style=\"padding:6px 0;\">{failedCount}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Skipped</td><td style=\"padding:6px 0;\">{skippedCount}</td></tr>
+                < tr >< td style =\"padding:6px 0;font-weight:600;\">Duplicates</td><td style=\"padding:6px 0;\">{duplicateCount}</td></tr>
+            </ table >
+        </ div >
+
+        < div style =\"padding:16px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;\">
+            < div style =\"font-weight:700;margin-bottom:12px;\">Latest Record In File</div>
+            { latestRecordHtml}
+        </ div >
+    </ div >
+</ body >
+</ html > ";
+        }
+
+        private sealed class ImportLatestRecordSnapshot
+        {
+            public DateTime RecordDate { get; set; }
+            public int VehicleId { get; set; }
+            public string VehicleLabel { get; set; } = null!;
+            public int SiteId { get; set; }
+            public string SiteLabel { get; set; } = null!;
+            public string Shift { get; set; } = null!;
+            public string? EmployeeName { get; set; }
+            public decimal? TotalFuel { get; set; }
+            public decimal? TotalDistance { get; set; }
+            public decimal? EngineHours { get; set; }
+            public decimal? FuelEfficiency { get; set; }
         }
 
         private async Task<List<string>> ValidateImportData(List<ConsumptionDTO> models, CancellationToken cancellationToken)

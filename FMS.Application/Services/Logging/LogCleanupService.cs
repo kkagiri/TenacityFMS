@@ -32,6 +32,7 @@ namespace FMS.Application.Services.Logging
             @"C:\Logs\FMS.Webclient\startup",
             @"C:\Logs\FMS.Webclient\gps",
             @"C:\Logs\FMS.Webclient\fuel",
+            @"C:\Logs\FMS.Webclient\import",
             @"C:\Logs\FMS.Webclient\signalr",
             @"C:\Logs\FMS.Webclient\issues",
             @"C:\Logs\FMS.Webclient\efcore",

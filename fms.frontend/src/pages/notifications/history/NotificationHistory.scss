@@ -2,7 +2,7 @@
  * File: NotificationHistory.scss
  * Purpose: M365 Admin Center Fluent Design styles for notification history page.
  * Dependencies: M365 design tokens from SKILL.md
- * Last Modified: 2026-02-25
+ * Last Modified: 2026-03-26
  */
 
 // ── M365 Design Tokens ──
@@ -26,7 +26,11 @@ $m365-bg-card: #ffffff;
   flex-direction: column;
   height: 100%;
   background: $m365-bg-surface;
-  font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+  font-family:
+    "Segoe UI",
+    -apple-system,
+    system-ui,
+    sans-serif;
   overflow: hidden;
   position: relative;
 }
@@ -209,7 +213,9 @@ $m365-bg-card: #ffffff;
   border-radius: 4px;
   border: none;
   cursor: pointer;
-  transition: background 0.15s, border-color 0.15s;
+  transition:
+    background 0.15s,
+    border-color 0.15s;
   white-space: nowrap;
 
   &--primary {
@@ -360,7 +366,11 @@ $m365-bg-card: #ffffff;
 .nh-datagrid {
   .dx-datagrid {
     border: none;
-    font-family: "Segoe UI", -apple-system, system-ui, sans-serif;
+    font-family:
+      "Segoe UI",
+      -apple-system,
+      system-ui,
+      sans-serif;
   }
 
   .dx-datagrid-headers {
@@ -411,6 +421,42 @@ $m365-bg-card: #ffffff;
 .nh-datetime {
   font-size: 12px;
   color: $m365-text-secondary;
+}
+
+.nh-secondary-text {
+  font-size: 12px;
+  color: $m365-text-tertiary;
+}
+
+.nh-file-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+
+  &__icon {
+    color: $m365-primary;
+    font-size: 13px;
+    flex-shrink: 0;
+  }
+
+  &__name {
+    font-size: 13px;
+    color: $m365-text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+.nh-latest-record-cell {
+  display: inline-block;
+  max-width: 100%;
+  font-size: 12px;
+  color: $m365-text-secondary;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 // ── Panel Body (content styles inside SlidePanel) ──
@@ -514,6 +560,72 @@ $m365-bg-card: #ffffff;
   word-break: break-word;
 }
 
+.nh-import-card {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.nh-import-card__section {
+  padding: 14px;
+  background: $m365-bg-surface;
+  border: 1px solid $m365-border-light;
+  border-radius: 6px;
+}
+
+.nh-import-card__title {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: $m365-text-secondary;
+  margin-bottom: 12px;
+}
+
+.nh-import-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+
+  &--compact {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.nh-import-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+
+  &--full {
+    grid-column: 1 / -1;
+  }
+
+  &__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: $m365-text-tertiary;
+  }
+
+  &__value {
+    font-size: 13px;
+    color: $m365-text;
+    word-break: break-word;
+
+    &--mono {
+      font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
+      font-size: 12px;
+    }
+
+    &--wrap {
+      white-space: pre-wrap;
+    }
+  }
+}
+
 // ── JSON Data display ──
 .nh-json-data {
   font-family: "Cascadia Code", "Consolas", "Courier New", monospace;
@@ -611,5 +723,10 @@ $m365-bg-card: #ffffff;
         width: 100%;
       }
     }
+  }
+
+  .nh-import-grid,
+  .nh-import-grid--compact {
+    grid-template-columns: 1fr;
   }
 }

@@ -4,7 +4,7 @@
  *          Routes logs to domain-specific files based on SourceContext (class name).
  *          All log entries include the originating class name.
  * Dependencies: Serilog, Serilog.Sinks.File, Serilog.Sinks.Console
- * Last Modified: 2026-02-13
+ * Last Modified: 2026-03-26
  *
  * Key Methods:
  * - ConfigureLogging(): Main entry point — configures all log sinks and routing
@@ -14,6 +14,7 @@
  *   errors/       - Errors & Fatals only
  *   gps/          - GPS/Vehicle tracking (GPSGate, stale positions)
  *   fuel/         - Fuel & Tank operations (refills, stock, transfers)
+ *   import/       - Fuel import scanning, parsing, tracker, and import-management diagnostics
  *   signalr/      - SignalR & Hub events (ptsHub, dashboardHub)
  *   issues/       - Issue tracker (OnlineChecker, auto-created issues)
  *   efcore/       - EF Core SQL commands (INSERT, SELECT, UPDATE)
@@ -94,6 +95,11 @@ public static class FmsLoggingConfiguration
         AddCategoryLogger(lc, "fuel", "fuel-.log",
             sourceContextContains: new[] { "Fuel", "Tank", "Reconciliation", "Delivery" },
             messageContains: new[] { "fuel", "Fuel", "tank", "Tank", "refill", "Refill", "delivery", "Delivery" });
+
+        // ─── IMPORT: Fuel import scan, parsing, tracker, and import-management diagnostics ───
+        AddCategoryLogger(lc, "import", "import-.log",
+            sourceContextContains: new[] { "FuelImport", "ImportFuelReport", "ExcelParsingService", "FileTrackerService" },
+            messageContains: new[] { "Auto-import", "fuel import", "File imported", "Import command", "Import Management", "scan path" });
 
         // ─── SIGNALR: Hub connections, real-time events ───
         AddCategoryLogger(lc, "signalr", "signalr-.log",
@@ -209,7 +215,7 @@ public static class FmsLoggingConfiguration
     {
         var subDirs = new[]
         {
-            "app", "errors", "startup", "gps", "fuel",
+            "app", "errors", "startup", "gps", "fuel", "import",
             "signalr", "issues", "efcore", "audit"
         };
 

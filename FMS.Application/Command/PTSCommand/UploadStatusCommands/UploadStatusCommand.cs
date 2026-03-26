@@ -22,6 +22,7 @@ using FMS.Application.Services;
 using FMS.Application.Services.Configuration;
 using FMS.Application.Services.TankStock; //Cursor: Add for tank transfer service
 using FMS.Application.Features.Notification.DTOs;
+using FMS.Application.Features.PTS.Services;
 using FMS.Domain.Entities.enums;
 using FMS.Domain.Entities.PTS;
 using FMS.Domain.Entities.PTS.Enums;
@@ -157,10 +158,7 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
 
                 if (uploadstatus?.Probes != null)
                 {
-                    await ProcessLiveProbeStatusInternalLogic(deviceId!, uploadstatus.Probes, cancellationToken);
-
-                    // Process probe alarms from UploadStatus (Low/High product alarms, water alarms, leakage)
-                    await ProcessProbeAlarmsFromUploadStatusAsync(deviceId!, uploadstatus.Probes, cancellationToken);
+                    QueueDeferredProbeProcessing(deviceId!, uploadstatus.Probes);
                 }
 
                 //  if (uploadstatus?.Readers != null)
@@ -301,18 +299,12 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                 // Combine all active pumps
                 var allActivePumps = fillingPumps.Concat(eotPumps).ToList();
 
-                foreach (var pump in allActivePumps)
-                {
-                    var pumpId = pump.Key;
-                    var transactionId = pump.Value;
+                var contextTasks = allActivePumps
+                    .Select(pump => GetFuelingContextFromRedis(deviceId, pump.Value, pump.Key))
+                    .ToList();
 
-                    // Try to get context from Redis
-                    var context = await GetFuelingContextFromRedis(deviceId, transactionId, pumpId);
-                    if (context != null)
-                    {
-                        contexts.Add(context);
-                    }
-                }
+                var resolvedContexts = await Task.WhenAll(contextTasks);
+                contexts.AddRange(resolvedContexts.Where(context => context != null)!);
             }
             catch (Exception ex)
             {
@@ -338,32 +330,31 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     return null;
                 }
 
-                // **DEBUG: Log the raw Redis context JSON**
-                _logger.LogInformation("[UploadStatus] 📦 REDIS CONTEXT RETRIEVED for device {DeviceId}, transaction {TransactionId}: {ContextJson}",
-                    deviceId, transactionId, contextJson.ToString());
+                var transactionContext = JsonSerializer.Deserialize<TransactionContext>(contextJson!);
+                if (transactionContext == null)
+                {
+                    return null;
+                }
 
-                var redisContext = JsonSerializer.Deserialize<JsonElement>(contextJson!);
-
-                // Extract values from Redis context
-                var vehicleId = redisContext.TryGetProperty("VehicleId", out var vIdProp) && vIdProp.ValueKind != JsonValueKind.Null
-                    ? vIdProp.GetInt32() : (int?)null;
-                var tankId = redisContext.TryGetProperty("TankId", out var tIdProp) && tIdProp.ValueKind != JsonValueKind.Null
-                    ? tIdProp.GetInt32() : (int?)null;
-                var userId = redisContext.TryGetProperty("UserId", out var uIdProp) && uIdProp.ValueKind != JsonValueKind.Null
-                    ? uIdProp.GetString() : null;
-                var connectionType = redisContext.TryGetProperty("ConnectionType", out var ctProp)
-                    ? ctProp.GetString() : null;
-                var autoClose = redisContext.TryGetProperty("AutoCloseTransaction", out var acProp)
-                    ? acProp.GetBoolean() : false;
-                var authorizedAt = redisContext.TryGetProperty("AuthorizedAt", out var aaProp)
-                    ? aaProp.GetDateTime() : (DateTime?)null;
-                var odometer = redisContext.TryGetProperty("Odometer", out var odProp) && odProp.ValueKind != JsonValueKind.Null
-                    ? odProp.GetDecimal() : (decimal?)null;
+                var vehicleId = transactionContext.VehicleId;
+                var isTransferMode = transactionContext.IsTransferMode || transactionContext.SourceTankId.HasValue || transactionContext.DestinationTankId.HasValue;
+                var tankId = transactionContext.TankId ?? transactionContext.SourceTankId;
+                var userId = transactionContext.UserId;
+                var connectionType = transactionContext.ConnectionType;
+                var autoClose = transactionContext.AutoCloseTransaction;
+                var authorizedAt = transactionContext.AuthorizedAt;
+                var odometer = transactionContext.Odometer;
+                var tag = transactionContext.Tag;
+                var nozzleId = transactionContext.Nozzle;
 
                 // Determine mode based on VehicleId and TankId
                 // Using strong-typed constants to avoid magic strings
                 string mode = PumpOperationMode.Unknown;
-                if (vehicleId.HasValue && vehicleId > 0)
+                if (isTransferMode)
+                {
+                    mode = PumpOperationMode.Transfer;
+                }
+                else if (vehicleId.HasValue && vehicleId > 0)
                 {
                     mode = PumpOperationMode.Vehicle;
                 }
@@ -372,44 +363,41 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     mode = PumpOperationMode.Transfer;
                 }
 
-                // Lookup vehicle name if applicable
-                string? vehicleName = null;
-                if (vehicleId.HasValue && vehicleId > 0)
+                var vehicleName = transactionContext.VehicleName;
+                if (string.IsNullOrWhiteSpace(vehicleName) && vehicleId.HasValue && vehicleId > 0)
                 {
-                    var vehicle = await _context.Vehicles
-                        .Where(v => v.VehicleId == vehicleId)
-                        .Select(v => new { v.NumberPlate, v.HyoungNo })
-                        .FirstOrDefaultAsync();
-                    vehicleName = vehicle?.NumberPlate ?? vehicle?.HyoungNo ?? $"Vehicle {vehicleId}";
+                    vehicleName = $"Vehicle {vehicleId}";
                 }
 
-                // Lookup tank name if applicable
-                string? tankName = null;
-                if (tankId.HasValue && tankId > 0)
+                var tankName = transactionContext.TankName;
+                if (string.IsNullOrWhiteSpace(tankName) && isTransferMode)
                 {
-                    var tank = await _context.Tanks
-                        .Where(t => t.Id == tankId)
-                        .Select(t => t.Name)
-                        .FirstOrDefaultAsync();
-                    tankName = tank ?? $"Tank {tankId}";
+                    var sourceTankName = transactionContext.SourceTankName;
+                    var destinationTankName = transactionContext.DestinationTankName;
+
+                    if (!string.IsNullOrWhiteSpace(sourceTankName) && !string.IsNullOrWhiteSpace(destinationTankName))
+                    {
+                        tankName = $"{sourceTankName} -> {destinationTankName}";
+                    }
+                    else
+                    {
+                        tankName = sourceTankName ?? destinationTankName;
+                    }
                 }
 
-                // Lookup user name if applicable
-                string? userName = null;
-                if (!string.IsNullOrEmpty(userId))
+                if (string.IsNullOrWhiteSpace(tankName) && tankId.HasValue && tankId > 0)
                 {
-                    var user = await _context.Users
-                        .Where(u => u.Id == userId)
-                        .Select(u => u.UserName)
-                        .FirstOrDefaultAsync();
-                    userName = user ?? userId;
+                    tankName = $"Tank {tankId}";
                 }
 
-                // **DEBUG: Log extracted context values**
-                _logger.LogDebug("[UploadStatus] 📊 FUELING CONTEXT BUILT - Device: {DeviceId}, Transaction: {TransactionId}, " +
-                    "VehicleId: {VehicleId}, VehicleName: {VehicleName}, TankId: {TankId}, TankName: {TankName}, " +
-                    "UserId: {UserId}, UserName: {UserName}, Odometer: {Odometer}, Mode: {Mode}, AutoClose: {AutoClose}",
-                    deviceId, transactionId, vehicleId, vehicleName, tankId, tankName, userId, userName, odometer, mode, autoClose);
+                var userName = transactionContext.UserName;
+                if (string.IsNullOrWhiteSpace(userName) && !string.IsNullOrWhiteSpace(userId))
+                {
+                    userName = userId;
+                }
+
+                _logger.LogDebug("[UploadStatus] Built fast fueling context for device {DeviceId}, transaction {TransactionId}, pump {PumpId}",
+                    deviceId, transactionId, pumpId);
 
                 return new PumpFuelingContext
                 {
@@ -422,6 +410,8 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     TankName = tankName,
                     FueledByUserId = userId,
                     FueledByUserName = userName,
+                    Tag = tag,
+                    NozzleId = nozzleId,
                     ConnectionType = connectionType,
                     AutoCloseTransaction = autoClose,
                     AuthorizedAt = authorizedAt,
@@ -434,6 +424,23 @@ namespace FMS.Application.Command.PTSCommand.UploadStatusCommands
                     deviceId, transactionId);
                 return null;
             }
+        }
+
+        private void QueueDeferredProbeProcessing(string deviceId, ProbeStatus probeStatus)
+        {
+            _ = Task.Run(async () =>
+            {
+                try
+                {
+                    using var scope = _serviceScopeFactory.CreateScope();
+                    var probeProcessingService = scope.ServiceProvider.GetRequiredService<IUploadStatusProbeProcessingService>();
+                    await probeProcessingService.ProcessAsync(deviceId, probeStatus, CancellationToken.None);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "[UploadStatus] Deferred probe processing failed for device {DeviceId}", deviceId);
+                }
+            });
         }
 
         // Internal processing logic - NO Hub calls

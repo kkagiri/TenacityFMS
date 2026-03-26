@@ -116,7 +116,7 @@ namespace FMS.Application.Features.Notification.Services
                 //Cursor: Validation (aligned to DTO enums/ids)
                 var validationErrors = new List<string>();
 
-                if (request.CategoryId <= 0)
+                if (request.CategoryId <= 0 && string.IsNullOrWhiteSpace(request.CategoryName))
                     validationErrors.Add("Notification categoryId is required");
 
                 if (string.IsNullOrWhiteSpace(request.Title))
@@ -148,9 +148,11 @@ namespace FMS.Application.Features.Notification.Services
                 }
 
                 // Map incoming CategoryId (enum/int) to display name and resolve to existing DB category Id
-                var categoryName = Enum.IsDefined(typeof(WellKnownCategories), request.CategoryId) ?
-                    ((WellKnownCategories)request.CategoryId).ToString() :
-                    request.CategoryId.ToString();
+                var categoryName = !string.IsNullOrWhiteSpace(request.CategoryName)
+                    ? request.CategoryName.Trim()
+                    : Enum.IsDefined(typeof(WellKnownCategories), request.CategoryId)
+                        ? ((WellKnownCategories)request.CategoryId).ToString()
+                        : request.CategoryId.ToString();
 
                 // Resolve actual FK id in DB by Name to avoid mismatches with enum numeric values
                 var resolvedCategoryId = await _context.NotificationCategories
@@ -1403,7 +1405,9 @@ namespace FMS.Application.Features.Notification.Services
                 var emailTemplate = policy?.EmailTemplate ?? GetDefaultEmailTemplate();
 
                 // Use display name for category
-                var categoryDisplayName = GetCategoryDisplayName(notification.NotificationCategoryId);
+                var categoryDisplayName = !string.IsNullOrWhiteSpace(notification.Category)
+                    ? notification.Category
+                    : GetCategoryDisplayName(notification.NotificationCategoryId);
 
                 var emailContent = FormatTemplate(emailTemplate, new
                 {
@@ -1863,7 +1867,9 @@ namespace FMS.Application.Features.Notification.Services
                 var smsTemplate = policy?.SmsTemplate ?? "{Title}: {Message}";
 
                 // Convert category ID back to enum name for display
-                var categoryDisplayName = GetCategoryDisplayName(notification.NotificationCategoryId);
+                var categoryDisplayName = !string.IsNullOrWhiteSpace(notification.Category)
+                    ? notification.Category
+                    : GetCategoryDisplayName(notification.NotificationCategoryId);
 
                 var smsContent = FormatTemplate(smsTemplate, new
                 {

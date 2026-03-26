@@ -39,6 +39,12 @@ public class UpdateAutoImportSettingsCommandHandler
         PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
     };
 
+    private static readonly Dictionary<string, string> LegacyScanPathMappings = new(StringComparer.OrdinalIgnoreCase)
+    {
+        [@"Z:\Heavy Report"] = @"\\10.0.10.150\reports\Heavy Report",
+        [@"Z:\Truck Report"] = @"\\10.0.10.150\reports\Truck Report",
+    };
+
     public UpdateAutoImportSettingsCommandHandler(
         GpsdataContext context,
         ILogger<UpdateAutoImportSettingsCommandHandler> logger)
@@ -54,6 +60,10 @@ public class UpdateAutoImportSettingsCommandHandler
         {
             var settings = request.Settings;
             var now = DateTime.UtcNow;
+
+            settings.Profiles = (settings.Profiles ?? new List<FuelAutoImportProfileDto>())
+                .Select(NormalizeProfile)
+                .ToList();
 
             // Serialize profiles to JSON
             var profilesJson = JsonSerializer.Serialize(settings.Profiles ?? new List<FuelAutoImportProfileDto>(), JsonOptions);
@@ -117,5 +127,18 @@ public class UpdateAutoImportSettingsCommandHandler
             _logger.LogError(ex, "Error updating fuel auto-import settings");
             return FMSResponse<FuelAutoImportSettingsDto>.Failed("Failed to save auto-import settings");
         }
+    }
+
+    private static FuelAutoImportProfileDto NormalizeProfile(FuelAutoImportProfileDto profile)
+    {
+        if (string.IsNullOrWhiteSpace(profile.ScanPath))
+            return profile;
+
+        var normalized = profile.ScanPath.Trim().TrimEnd('\\', '/');
+        if (!LegacyScanPathMappings.TryGetValue(normalized, out var mappedPath))
+            return profile;
+
+        profile.ScanPath = mappedPath;
+        return profile;
     }
 }

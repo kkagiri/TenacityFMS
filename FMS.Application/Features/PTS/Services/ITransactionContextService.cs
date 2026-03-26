@@ -62,6 +62,16 @@ namespace FMS.Application.Features.PTS.Services
         public int? TankId { get; set; }
 
         /// <summary>
+        /// The source tank ID for transfer operations.
+        /// </summary>
+        public int? SourceTankId { get; set; }
+
+        /// <summary>
+        /// The destination tank ID for transfer operations.
+        /// </summary>
+        public int? DestinationTankId { get; set; }
+
+        /// <summary>
         /// The vehicle ID (if applicable).
         /// </summary>
         public int? VehicleId { get; set; }
@@ -72,6 +82,31 @@ namespace FMS.Application.Features.PTS.Services
         public string? UserId { get; set; }
 
         /// <summary>
+        /// Friendly vehicle display name captured at authorization time.
+        /// </summary>
+        public string? VehicleName { get; set; }
+
+        /// <summary>
+        /// Friendly source/current tank display name captured at authorization time.
+        /// </summary>
+        public string? TankName { get; set; }
+
+        /// <summary>
+        /// Friendly source tank display name for transfer operations.
+        /// </summary>
+        public string? SourceTankName { get; set; }
+
+        /// <summary>
+        /// Friendly destination tank display name for transfer operations.
+        /// </summary>
+        public string? DestinationTankName { get; set; }
+
+        /// <summary>
+        /// Friendly username captured at authorization time.
+        /// </summary>
+        public string? UserName { get; set; }
+
+        /// <summary>
         /// The site ID for configuration lookup.
         /// </summary>
         public int? SiteId { get; set; }
@@ -80,6 +115,16 @@ namespace FMS.Application.Features.PTS.Services
         /// Vehicle odometer reading at time of fueling.
         /// </summary>
         public decimal? Odometer { get; set; }
+
+        /// <summary>
+        /// Requested transfer volume for tank transfer operations.
+        /// </summary>
+        public double? Volume { get; set; }
+
+        /// <summary>
+        /// Optional reason captured during tank transfer authorization.
+        /// </summary>
+        public string? Reason { get; set; }
 
         /// <summary>
         /// Vehicle fuel level before fueling (from GPS sensor when available).
@@ -156,5 +201,10 @@ namespace FMS.Application.Features.PTS.Services
         /// The employee/driver ID who is performing the fueling.
         /// </summary>
         public int? EmployeeId { get; set; }
+
+        /// <summary>
+        /// Indicates whether this transaction is a tank transfer.
+        /// </summary>
+        public bool IsTransferMode { get; set; }
     }
 }

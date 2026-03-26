@@ -17,6 +17,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 using FMS.Application.Common;
+using FMS.Application.Features.PTS.Services;
 using FMS.Application.Infrastructure.DistCacheTracker;
 using FMS.Application.Infrastructure.Expections.Base;
 using FMS.Application.PTSServices.PumpService;
@@ -287,17 +288,32 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     _logger.LogDebug("[TankTransferAuth] Could not get fuel grade info: {Error}", ex.Message);
                 }
 
-                var transferContext = new
+                string? userName = null;
+                if (!string.IsNullOrWhiteSpace(request.UserId))
+                {
+                    userName = await _context.Users
+                        .AsNoTracking()
+                        .Where(u => u.Id == request.UserId)
+                        .Select(u => u.UserName)
+                        .FirstOrDefaultAsync(cancellationToken);
+                }
+
+                var transferContext = new TransactionContext
                 {
                     DeviceId = request.DeviceId,
                     TransactionId = confirmation.Transaction,
                     PumpId = request.PumpId,
-                    Nozzle = request.Nozzle, // **ADDED** - Nozzle for pump transaction record
+                    TankId = request.SourceTankId,
+                    TankName = sourceTank?.Name,
                     SourceTankId = request.SourceTankId,
+                    SourceTankName = sourceTank?.Name,
                     DestinationTankId = request.DestinationTankId,
+                    DestinationTankName = destinationTank?.Name,
+                    Nozzle = request.Nozzle, // **ADDED** - Nozzle for pump transaction record
                     Volume = request.Volume,
                     Reason = request.Reason,
                     UserId = request.UserId,
+                    UserName = userName,
                     FuelGradeId = fuelGradeId,     // **ADDED** - Fuel grade for pump transaction record
                     FuelGradeName = fuelGradeName, // **ADDED** - Fuel grade name for pump transaction record
                     IsTransferMode = true, // **CRITICAL FLAG** - Tells EOT processing this is a transfer
