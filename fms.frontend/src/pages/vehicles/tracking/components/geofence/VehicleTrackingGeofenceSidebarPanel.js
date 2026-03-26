@@ -2,7 +2,7 @@
  * File: VehicleTrackingGeofenceSidebarPanel.js
  * Purpose: Provides an embedded geofence groups browser for the tracking sidebar tab.
  * Dependencies: React, VehicleTrackingGeofenceGroupsPanel.scss
- * Last Modified: 2026-03-18
+ * Last Modified: 2026-03-26
  *
  * Key Components:
  * - VehicleTrackingGeofenceSidebarPanel(): Embedded geofence group list with quick actions.
@@ -11,6 +11,7 @@ import React from 'react';
 import './VehicleTrackingGeofenceGroupsPanel.scss';
 
 const VehicleTrackingGeofenceSidebarPanel = ({
+    canManageGeofences = false,
     groups = [],
     loading = false,
     onAddGeofence,
@@ -40,6 +41,8 @@ const VehicleTrackingGeofenceSidebarPanel = ({
                     type="button"
                     className="vehicle-tracking-geofence-toolbar-button"
                     onClick={onAddGroup}
+                    disabled={!canManageGeofences}
+                    title={canManageGeofences ? 'Create a geofence group' : 'Requires geofence manage permission'}
                 >
                     <i className="fa-light fa-folder-plus"></i>
                     <span>Add group</span>
@@ -48,6 +51,8 @@ const VehicleTrackingGeofenceSidebarPanel = ({
                     type="button"
                     className="vehicle-tracking-geofence-toolbar-button vehicle-tracking-geofence-toolbar-button--primary"
                     onClick={onAddGeofence}
+                    disabled={!canManageGeofences}
+                    title={canManageGeofences ? 'Create a geofence' : 'Requires geofence manage permission'}
                 >
                     <i className="fa-light fa-plus"></i>
                     <span>Add geofence</span>

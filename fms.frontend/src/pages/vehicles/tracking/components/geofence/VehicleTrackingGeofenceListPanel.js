@@ -2,7 +2,7 @@
  * File: VehicleTrackingGeofenceListPanel.js
  * Purpose: Floating panel showing a DataGrid of geofences for a selected group on the tracking page with right-click context menu.
  * Dependencies: React, ReactDOM, devextreme-react/data-grid.
- * Last Modified: 2026-03-18
+ * Last Modified: 2026-03-26
  *
  * Key Components:
  * - DataGrid with geofence name, type, classification
@@ -62,6 +62,7 @@ const getDefaultPosition = () => {
 };
 
 const VehicleTrackingGeofenceListPanel = ({
+  canManageGeofences = false,
   open,
   onClose,
   group,
@@ -137,11 +138,15 @@ const VehicleTrackingGeofenceListPanel = ({
   };
 
   const handleRowContextMenu = useCallback((e, geofence) => {
+    if (!canManageGeofences) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     const nextPosition = clampMenuPosition(e.clientX, e.clientY);
     setContextMenu({ ...nextPosition, geofence });
-  }, []);
+  }, [canManageGeofences]);
 
   const geofences = useMemo(() => {
     if (!group || !Array.isArray(group.geofences)) return [];

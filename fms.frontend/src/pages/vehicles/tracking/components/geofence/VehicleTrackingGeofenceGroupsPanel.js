@@ -2,7 +2,7 @@
  * File: VehicleTrackingGeofenceGroupsPanel.js
  * Purpose: Floating panel listing geofence groups on the tracking page with context menu, add group/geofence controls.
  * Dependencies: React, ReactDOM, VehicleTrackingGeofencePanel shell pattern.
- * Last Modified: 2026-03-18
+ * Last Modified: 2026-03-26
  *
  * Key Components:
  * - Group list with color dots, fueling indicators, geofence counts
@@ -48,6 +48,7 @@ const getDefaultPosition = () => {
 };
 
 const VehicleTrackingGeofenceGroupsPanel = ({
+  canManageGeofences = false,
   open,
   onClose,
   groups = [],
@@ -126,11 +127,15 @@ const VehicleTrackingGeofenceGroupsPanel = ({
   };
 
   const handleGroupContextMenu = useCallback((e, group) => {
+    if (!canManageGeofences) {
+      return;
+    }
+
     e.preventDefault();
     e.stopPropagation();
     const nextPosition = clampMenuPosition(e.clientX, e.clientY);
     setContextMenu({ ...nextPosition, group });
-  }, []);
+  }, [canManageGeofences]);
 
   const filteredGroups = useMemo(() => {
     const term = searchText.trim().toLowerCase();
@@ -172,6 +177,7 @@ const VehicleTrackingGeofenceGroupsPanel = ({
             className="geofence-groups-panel__icon-btn"
             title="Add Group"
             onClick={onAddGroup}
+            disabled={!canManageGeofences}
           >
             <i className="fa-light fa-folder-plus"></i>
           </button>
@@ -180,6 +186,7 @@ const VehicleTrackingGeofenceGroupsPanel = ({
             className="geofence-groups-panel__icon-btn"
             title="Add Geofence"
             onClick={onAddGeofence}
+            disabled={!canManageGeofences}
           >
             <i className="fa-light fa-plus"></i>
           </button>
