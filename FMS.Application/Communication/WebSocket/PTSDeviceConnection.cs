@@ -318,6 +318,44 @@ namespace FMS.Application.Communication.webSocket
                     }
                 }
 
+                // Fallback #3: If there is exactly ONE pending request and the response
+                // is NOT an unsolicited periodic message (UploadStatus), complete it.
+                // PTS devices often don't echo back the PtsId or orignal PacketId —
+                // they replace PtsId with their own device ID and generate a new PacketId.
+                // Since each device connection is a single request-response channel,
+                // the one pending request is the only possible match.
+                if (matchedTcs == null && _pendingRequests.Count == 1)
+                {
+                    // Only apply this fallback for non-periodic messages.
+                    // UploadStatus is sent autonomously every ~10 s and is NOT a command response.
+                    var isUnsolicitedPeriodic = ptsMessage.Packets?.Count > 0
+                        && ptsMessage.Packets.All(p =>
+                            string.Equals(p.Type, "UploadStatus", StringComparison.OrdinalIgnoreCase));
+
+                    if (!isUnsolicitedPeriodic)
+                    {
+                        // Grab the single pending entry
+                        var singleEntry = _pendingRequests.FirstOrDefault();
+                        if (!string.IsNullOrEmpty(singleEntry.Key)
+                            && _pendingRequests.TryRemove(singleEntry.Key, out matchedTcs))
+                        {
+                            matchedCorrelationId = singleEntry.Key;
+                            _logger.LogInformation(
+                                "Fallback match: completed pending request {CorrelationId} with response " +
+                                "PtsId={PtsId} from device {DeviceId} (device did not echo correlation ID).",
+                                matchedCorrelationId, ptsMessage.PtsId, _deviceId);
+
+                            // Also clean up any stale packet-ID mappings for this correlation
+                            var stalePacketIds = _packetIdToCorrelationId
+                                .Where(kvp => kvp.Value == matchedCorrelationId)
+                                .Select(kvp => kvp.Key)
+                                .ToList();
+                            foreach (var staleId in stalePacketIds)
+                                _packetIdToCorrelationId.TryRemove(staleId, out _);
+                        }
+                    }
+                }
+
                 // If we found a matching request, complete it
                 if (matchedTcs != null)
                 {
@@ -505,7 +543,7 @@ namespace FMS.Application.Communication.webSocket
                         return;
                     }
 
-                } while (!result.EndOfMessage && !_cancellationTokenSource.IsCancellationRequested);
+                } while (!result.EndOfMessage && !(_cancellationTokenSource?.IsCancellationRequested ?? true));
 
                 // Now we have the full message in messageBuilder
                 var completeMessage = messageBuilder.ToString();

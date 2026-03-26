@@ -12,15 +12,15 @@ public class VehicleDocument
     public DateTime IssueDate { get; private set; }
     public DateTime ExpiryDate { get; private set; }
     public int AlertLeadDays { get; private set; }
-    public string IssuingAuthority { get; private set; }
-    public string Notes { get; private set; }
-    public string DocumentFileName { get; private set; }
-    public string DocumentFileUrl { get; private set; }
+    public string? IssuingAuthority { get; private set; }
+    public string? Notes { get; private set; }
+    public string? DocumentFileName { get; private set; }
+    public string? DocumentFileUrl { get; private set; }
     public DocumentStatus Status { get; private set; }
     public DateTime CreatedAt { get; private set; }
     public string CreatedBy { get; private set; }
     public DateTime? UpdatedAt { get; private set; }
-    public string UpdatedBy { get; private set; }
+    public string? UpdatedBy { get; private set; }
 
     // Navigation
     public virtual Vehicle Vehicle { get; private set; }
