@@ -1,8 +1,8 @@
 # Feature Documentation: Vehicle Document Compliance Management System
 
-> **Version:** V2  
-> **Last Updated:** 2026-03-27  
-> **Status:** Active Production  
+> **Version:** V2
+> **Last Updated:** 2026-03-27
+> **Status:** Active Production
 > **Domain Folder:** `FMS.Application/Features/VehicleDocumentManagement/`
 
 ---
@@ -253,7 +253,7 @@ Stores per-user default reminder lead days for each compliance category.
 | `ReminderLeadDays` | `INT` | Required, Default 30 |
 | Audit columns | — | Same pattern as above |
 
-**Indexes:** `IX_vehicle_document_user_preferences_UserId` (non-unique)  
+**Indexes:** `IX_vehicle_document_user_preferences_UserId` (non-unique)
 **Unique:** `UK_vehicle_document_user_preferences_UserId_ComplianceCategory`
 
 **Foreign Keys:**
@@ -345,8 +345,8 @@ All commands and queries use MediatR with command/handler co-located in the same
 
 ## 6. API Layer — Controller Endpoints
 
-**File:** `FMS.WebClient/Controllers/VehicleManagement/VehicleDocumentsController.cs`  
-**Route Base:** `api/v1/vehicledocuments`  
+**File:** `FMS.WebClient/Controllers/VehicleManagement/VehicleDocumentsController.cs`
+**Route Base:** `api/v1/vehicledocuments`
 **Auth:** JWT-based, `[Authorize]` + `[RequirePermission(Permissions.Vehicle.Read)]`
 
 ### Endpoint Reference
@@ -379,9 +379,9 @@ All commands and queries use MediatR with command/handler co-located in the same
 
 ## 7. Background Service — Expiry Notifier
 
-**File:** `FMS.BackgroundServices/VehicleDocumentNotifier/VehicleDocumentExpiryNotifierService.cs`  
-**Type:** `BackgroundService` (hosted service)  
-**Schedule:** Runs once per 24-hour cycle  
+**File:** `FMS.BackgroundServices/VehicleDocumentNotifier/VehicleDocumentExpiryNotifierService.cs`
+**Type:** `BackgroundService` (hosted service)
+**Schedule:** Runs once per 24-hour cycle
 **Registration:** `services.AddHostedService<VehicleDocumentExpiryNotifierService>()`
 
 ### Processing Logic
@@ -519,7 +519,7 @@ Follows the **M365 Fluent Design** system:
 
 ## 9. Permissions
 
-**File:** `FMS.Application/Common/Constants/PermissionConstants.cs`  
+**File:** `FMS.Application/Common/Constants/PermissionConstants.cs`
 **Class:** `Permissions.VehicleDocuments`
 
 | Constant | Value | Controls |
