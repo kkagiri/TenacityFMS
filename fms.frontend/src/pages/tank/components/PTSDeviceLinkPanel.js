@@ -25,6 +25,18 @@ import PTSProbeSelector from "./PTSProbeSelector";
 const AUTO_CALIBRATION_SOURCE = "";
 const DEFAULT_PHYSICAL_STOCK_SOURCE = "";
 const PREVIEW_CHART_TYPES = ["manual", "automatic", "interval-volume", "fms-learned"];
+const PREVIEW_PRODUCT_VOLUME_SOURCE_OPTIONS = [
+    { value: "", label: "System default" },
+    { value: "pts", label: "PTS product volume" },
+    { value: "fms-calibrated", label: "FMS calibrated volume" },
+];
+const PREVIEW_CALIBRATION_SOURCE_OPTIONS = [
+    { value: "", label: "Auto priority" },
+    { value: "manual", label: "Manual chart" },
+    { value: "automatic", label: "PTS automatic chart" },
+    { value: "interval-volume", label: "Interval-volume chart" },
+    { value: "fms-learned", label: "FMS learned chart" },
+];
 
 const getChartDisplayName = (value) => {
     switch (value) {
@@ -504,25 +516,12 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
 
             const preferredSource = calibrationChartSource || null;
             const effectiveChartType = resolveEffectiveChartType(preferredSource, snapshotsByType);
-            const fallbackTrace = buildFallbackTrace(preferredSource, snapshotsByType);
-            const historyChartType = effectiveChartType || preferredSource || "manual";
-
-            let historyRows = [];
-            try {
-                const historyResult = await ptsConfigService.getTankCalibrationHistory(tank.id, historyChartType, 1, 5);
-                historyRows = Array.isArray(historyResult?.data) ? historyResult.data : [];
-            } catch (historyError) {
-                console.warn("[PTSDeviceLinkPanel] Failed to load calibration history preview", historyError);
-            }
 
             setPreviewData({
                 snapshotsByType,
                 preferredChartType: preferredSource,
                 effectiveChartType,
-                fallbackTrace,
                 effectiveSnapshot: effectiveChartType ? snapshotsByType[effectiveChartType] || null : null,
-                historyChartType,
-                historyRows,
             });
         } catch (error) {
             setPreviewData(null);
@@ -534,15 +533,22 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
         }
     }, [tank?.id, calibrationChartSource]);
 
-    const openCalibrationPreview = useCallback(async () => {
+    const openCalibrationPreview = useCallback(() => {
         const suggestedHeight = selectedProbe?.productHeight != null
             ? Math.max(0, Math.round(Number(selectedProbe.productHeight)))
             : null;
 
         setPreviewHeightInput(suggestedHeight ? String(suggestedHeight) : "");
         setPreviewOpen(true);
-        await loadCalibrationPreview();
-    }, [loadCalibrationPreview, selectedProbe?.productHeight]);
+    }, [selectedProbe?.productHeight]);
+
+    useEffect(() => {
+        if (!previewOpen) {
+            return;
+        }
+
+        loadCalibrationPreview();
+    }, [previewOpen, calibrationChartSource, loadCalibrationPreview]);
 
     /* ── save ── */
     const handleSave = useCallback(async () => {
@@ -683,213 +689,117 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
                 open={previewOpen}
                 onClose={() => setPreviewOpen(false)}
                 title="Calibration Preview"
-                width={980}
+                width={760}
                 panelClassName="m365-pts-preview-panel-shell"
             >
                 <div className="m365-pts-calibration-preview">
-                    <div className="m365-pts-calibration-preview__intro">
-                        <div>
-                            <h4>Height to volume test</h4>
-                            <p>
-                                This preview uses the local tank calibration snapshots already stored in FMS. It does not change the calibration entity or write any values back to the controller.
-                            </p>
+                    <div className="m365-pts-calibration-preview__card">
+                        <div className="tw-grid tw-gap-4 md:tw-grid-cols-3">
+                            <div>
+                                <label className="m365-field__label">Product Height (mm)</label>
+                                <input
+                                    type="number"
+                                    className="m365-input"
+                                    min={0}
+                                    step={1}
+                                    value={previewHeightInput}
+                                    onChange={(event) => setPreviewHeightInput(event.target.value)}
+                                    placeholder="Enter probe height"
+                                />
+                            </div>
+                            <div>
+                                <label className="m365-field__label">Stored Volume Source</label>
+                                <select
+                                    className="m365-select"
+                                    value={productVolumeSource ?? ""}
+                                    onChange={(event) => setProductVolumeSource(event.target.value)}
+                                >
+                                    {PREVIEW_PRODUCT_VOLUME_SOURCE_OPTIONS.map((option) => (
+                                        <option key={option.value || "preview-volume-default"} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            <div>
+                                <label className="m365-field__label">Calibration Source</label>
+                                <select
+                                    className="m365-select"
+                                    value={calibrationChartSource ?? ""}
+                                    onChange={(event) => setCalibrationChartSource(event.target.value)}
+                                >
+                                    {PREVIEW_CALIBRATION_SOURCE_OPTIONS.map((option) => (
+                                        <option key={option.value || "preview-chart-default"} value={option.value}>
+                                            {option.label}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                        <button
-                            type="button"
-                            className="m365-btn m365-btn--ghost"
-                            onClick={loadCalibrationPreview}
-                            disabled={previewLoading}
-                        >
-                            <i className={`fa-light ${previewLoading ? "fa-spinner fa-spin" : "fa-rotate-right"}`}></i>
-                            Refresh Preview
-                        </button>
-                    </div>
 
-                    <div className="m365-pts-calibration-preview__summary">
-                        <div className="m365-pts-calibration-preview__summary-card">
-                            <span className="m365-pts-calibration-preview__label">Preferred source</span>
-                            <strong>{getChartDisplayName(calibrationChartSource)}</strong>
-                        </div>
-                        <div className="m365-pts-calibration-preview__summary-card">
-                            <span className="m365-pts-calibration-preview__label">Resolved source</span>
-                            <strong>{getChartDisplayName(previewData?.effectiveChartType)}</strong>
-                        </div>
-                        <div className="m365-pts-calibration-preview__summary-card">
-                            <span className="m365-pts-calibration-preview__label">Stored volume source</span>
-                            <strong>{getProductVolumeSourceSummary(productVolumeSource)}</strong>
-                        </div>
-                        <div className="m365-pts-calibration-preview__summary-card">
-                            <span className="m365-pts-calibration-preview__label">Physical stock owner</span>
-                            <strong>{getPhysicalStockSourceSummary(probePhysicalStockUpdateSource)}</strong>
-                        </div>
-                    </div>
-
-                    <div className="m365-pts-calibration-preview__card m365-pts-calibration-preview__card--trace">
-                        <h5>Auto fallback decision trace</h5>
-                        <p className="m365-pts-calibration-preview__meta">
-                            This is the exact order the preview checked before resolving the local chart source.
+                        <p className="m365-field__hint tw-mt-3">
+                            {selectedProbe?.productHeight != null
+                                ? `Live probe ${selectedProbe.probeNumber} currently reports ${Number(selectedProbe.productHeight).toFixed(1)} mm.`
+                                : "Use any probe height to test the selected local calibration data."}
                         </p>
-                        {previewData?.fallbackTrace?.length ? (
-                            <div className="m365-pts-calibration-preview__trace-list">
-                                {previewData.fallbackTrace.map((item, index) => {
-                                    const badgeClass = item.decision === "selected" || item.decision === "fallback-selected"
-                                        ? "m365-badge--success"
-                                        : item.hasSnapshot
-                                            ? "m365-badge--warning"
-                                            : "m365-badge--neutral";
-
-                                    const badgeText = item.decision === "selected"
-                                        ? "Selected"
-                                        : item.decision === "fallback-selected"
-                                            ? "Used after fallback"
-                                            : item.hasSnapshot
-                                                ? "Skipped"
-                                                : "Missing";
-
-                                    return (
-                                        <div key={`${item.chartType}-${index}`} className="m365-pts-calibration-preview__trace-item">
-                                            <div className="m365-pts-calibration-preview__trace-index">{index + 1}</div>
-                                            <div className="m365-pts-calibration-preview__trace-body">
-                                                <div className="m365-pts-calibration-preview__trace-head">
-                                                    <strong>{getChartDisplayName(item.chartType)}</strong>
-                                                    <span className={`m365-badge ${badgeClass}`}>{badgeText}</span>
-                                                </div>
-                                                <div className="m365-pts-calibration-preview__meta">{item.reason}</div>
-                                                <div className="m365-pts-calibration-preview__trace-foot">
-                                                    <span>{item.recordCount} row(s)</span>
-                                                    <span>{item.recordedAtUtc ? new Date(item.recordedAtUtc).toLocaleString() : "No snapshot timestamp"}</span>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        ) : (
-                            <div className="m365-pts-calibration-preview__empty">
-                                No decision trace is available for this preview.
-                            </div>
-                        )}
                     </div>
 
-                    <div className="m365-pts-calibration-preview__tester">
-                        <div>
-                            <label className="m365-field__label">Test Product Height (mm)</label>
-                            <input
-                                type="number"
-                                className="m365-input"
-                                min={0}
-                                step={1}
-                                value={previewHeightInput}
-                                onChange={(event) => setPreviewHeightInput(event.target.value)}
-                                placeholder="Enter a probe height in millimetres"
-                            />
-                            <p className="m365-field__hint">
-                                {selectedProbe?.productHeight != null
-                                    ? `Live probe ${selectedProbe.probeNumber} currently reports ${Number(selectedProbe.productHeight).toFixed(1)} mm.`
-                                    : "Use any height you want to test against the local snapshot records."}
-                            </p>
-                        </div>
-                        <div className="m365-pts-calibration-preview__result">
-                            <span className="m365-pts-calibration-preview__label">Derived volume</span>
-                            <strong>
+                    <div className="m365-pts-calibration-preview__card">
+                        <span className="m365-pts-calibration-preview__label">Converted volume</span>
+                        <div className="tw-mt-2 tw-flex tw-flex-wrap tw-items-end tw-gap-3">
+                            <strong style={{ fontSize: 28, color: "var(--m365-primary)" }}>
                                 {previewEvaluation?.volume != null
                                     ? `${Number(previewEvaluation.volume).toLocaleString(undefined, { maximumFractionDigits: 2 })} L`
                                     : "Unavailable"}
                             </strong>
-                            <p>
-                                {previewEvaluation?.volume != null
-                                    ? `Lookup used ${previewEvaluation.lookupHeight} ${previewEvaluation.lookupUnit} from the resolved local snapshot.`
-                                    : "No usable local snapshot matched the current selection and test height."}
-                            </p>
-                            {previewEvaluation?.attempts?.length ? (
-                                <div className="m365-pts-calibration-preview__attempts">
-                                    {previewEvaluation.attempts.map((attempt, index) => (
-                                        <div key={`${attempt.label}-${index}`} className="m365-pts-calibration-preview__attempt-row">
-                                            <span className={`m365-badge ${attempt.outcome === "succeeded" ? "m365-badge--success" : "m365-badge--warning"}`}>
-                                                {attempt.outcome === "succeeded" ? "Succeeded" : "Failed"}
-                                            </span>
-                                            <div>
-                                                <strong>{attempt.label}</strong>
-                                                <div className="m365-pts-calibration-preview__meta">{attempt.detail}</div>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                            ) : null}
+                            <span className="m365-pts-calibration-preview__meta">
+                                {previewHeightValue != null ? `${previewHeightValue} mm` : "Enter a height"}
+                                {" · "}
+                                {getProductVolumeSourceSummary(productVolumeSource)}
+                                {" · "}
+                                {`Resolved chart: ${getChartDisplayName(previewData?.effectiveChartType)}`}
+                            </span>
                         </div>
+                        <p className="tw-mt-2">
+                            {previewEvaluation?.volume != null
+                                ? `Lookup used ${previewEvaluation.lookupHeight} ${previewEvaluation.lookupUnit} from the selected local calibration snapshot.`
+                                : "No usable local calibration data matched the current source, chart selection, and entered height."}
+                        </p>
                     </div>
 
                     {previewError && <div className="m365-pts-calibration-preview__error">{previewError}</div>}
 
-                    <div className="m365-pts-calibration-preview__grid">
-                        <div className="m365-pts-calibration-preview__card">
-                            <h5>Local snapshot sources</h5>
-                            {PREVIEW_CHART_TYPES.map((chartType) => {
-                                const snapshot = previewData?.snapshotsByType?.[chartType] || null;
-                                const records = normalizeRecords(snapshot?.records);
-                                const usable = hasUsableRecords(records);
-                                return (
-                                    <div key={chartType} className="m365-pts-calibration-preview__snapshot-row">
-                                        <div>
-                                            <strong>{getChartDisplayName(chartType)}</strong>
-                                            <div className="m365-pts-calibration-preview__meta">
-                                                {snapshot?.recordedAtUtc
-                                                    ? `Recorded ${new Date(snapshot.recordedAtUtc).toLocaleString()}`
-                                                    : "No local snapshot stored"}
-                                            </div>
-                                        </div>
-                                        <div className="m365-pts-calibration-preview__snapshot-stats">
-                                            <span className={`m365-badge ${usable ? "m365-badge--success" : "m365-badge--warning"}`}>
-                                                {usable ? "Usable" : "Missing / empty"}
-                                            </span>
-                                            <span>{records.length} rows</span>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-
-                        <div className="m365-pts-calibration-preview__card">
-                            <h5>Resolved snapshot sample</h5>
-                            {previewData?.effectiveSnapshot?.records?.length ? (
-                                normalizeRecords(previewData.effectiveSnapshot.records).slice(0, 8).map((record, index) => (
-                                    <div key={`${record.height}-${index}`} className="m365-pts-calibration-preview__record-row">
-                                        <span>{record.height} mm/cm</span>
-                                        <span>{Number(record.volume).toLocaleString(undefined, { maximumFractionDigits: 2 })} L</span>
-                                        <span>{record.passesNumber > 0 ? `${record.passesNumber} pass(es)` : "-"}</span>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="m365-pts-calibration-preview__empty">
-                                    No usable snapshot rows are available for the resolved source.
-                                </div>
-                            )}
-                        </div>
-
-                        <div className="m365-pts-calibration-preview__card">
-                            <h5>Recent local history</h5>
-                            <p className="m365-pts-calibration-preview__meta">
-                                Showing the latest saved snapshots for {getChartDisplayName(previewData?.historyChartType)}.
-                            </p>
-                            {previewData?.historyRows?.length ? (
-                                previewData.historyRows.map((row) => (
-                                    <div key={row.id} className="m365-pts-calibration-preview__history-row">
-                                        <div>
-                                            <strong>{new Date(row.recordedAtUtc).toLocaleString()}</strong>
-                                            <div className="m365-pts-calibration-preview__meta">{row.source || "Unknown source"}</div>
-                                        </div>
-                                        <div className="m365-pts-calibration-preview__snapshot-stats">
-                                            <span>{row.recordCount || 0} rows</span>
-                                            <span>{row.probeNumber ? `Probe ${row.probeNumber}` : "No probe"}</span>
-                                        </div>
-                                    </div>
-                                ))
-                            ) : (
-                                <div className="m365-pts-calibration-preview__empty">
-                                    No local snapshot history is available for the resolved source.
-                                </div>
-                            )}
-                        </div>
+                    <div className="m365-pts-calibration-preview__card">
+                        <h5>Selected calibration data</h5>
+                        <p className="m365-pts-calibration-preview__meta">
+                            Showing the height-to-volume rows from {getChartDisplayName(previewData?.effectiveChartType)}.
+                        </p>
+                        {previewData?.effectiveSnapshot?.records?.length ? (
+                            <div style={{ maxHeight: 360, overflowY: "auto", marginTop: 12 }}>
+                                <table className="tw-w-full tw-text-sm tw-border-collapse">
+                                    <thead>
+                                        <tr style={{ borderBottom: "1px solid var(--m365-border-light, #edebe9)" }}>
+                                            <th style={{ textAlign: "left", padding: "0 0 10px 0" }}>Height</th>
+                                            <th style={{ textAlign: "left", padding: "0 0 10px 0" }}>Volume</th>
+                                            <th style={{ textAlign: "left", padding: "0 0 10px 0" }}>Passes</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {normalizeRecords(previewData.effectiveSnapshot.records).map((record, index) => (
+                                            <tr key={`${record.height}-${index}`} style={{ borderBottom: "1px solid var(--m365-border-light, #edebe9)" }}>
+                                                <td style={{ padding: "10px 0" }}>{record.height} mm/cm</td>
+                                                <td style={{ padding: "10px 0" }}>{Number(record.volume).toLocaleString(undefined, { maximumFractionDigits: 2 })} L</td>
+                                                <td style={{ padding: "10px 0" }}>{record.passesNumber > 0 ? record.passesNumber : "-"}</td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        ) : (
+                            <div className="m365-pts-calibration-preview__empty">
+                                No usable snapshot rows are available for the current calibration selection.
+                            </div>
+                        )}
                     </div>
                 </div>
             </SlidePanel>
@@ -940,10 +850,13 @@ const PTSDeviceLinkPanel = ({ tank, onLinked, onClose }) => {
 
                         <section className="m365-pts-help-panel__card">
                             <h4><i className="fa-light fa-waveform-lines"></i> Stored Product Volume Source</h4>
+                            <p>
+                                This setting decides which value FMS writes into the persisted <strong>UploadStatus ProductVolume</strong> field for this tank. It does not decide who owns <strong>PhysicalStockValue</strong>; that is controlled separately by <strong>Physical Stock Owner</strong>.
+                            </p>
                             <ul className="m365-pts-help-panel__list">
-                                <li><strong>System default</strong>: keep a positive PTS ProductVolume when it arrives, otherwise derive from local calibration.</li>
-                                <li><strong>PTS product volume</strong>: trust the probe ProductVolume when it is usable; calibration is only a fallback when the PTS volume is missing.</li>
-                                <li><strong>FMS calibrated volume</strong>: prefer local height-to-volume calibration for the stored UploadStatus ProductVolume and only fall back to PTS when no usable local chart exists.</li>
+                                <li><strong>System default</strong>: preserve the old behavior. A positive PTS ProductVolume is stored first, and FMS local calibration is only used when the probe volume is missing or unusable.</li>
+                                <li><strong>PTS product volume</strong>: make the probe ProductVolume the source of truth for the stored UploadStatus volume. FMS local calibration is only used as a fallback when the probe does not send a usable volume.</li>
+                                <li><strong>FMS calibrated volume</strong>: make FMS local calibration the source of truth for the stored UploadStatus volume. If no usable local chart exists, FMS falls back to the probe ProductVolume instead of leaving the reading empty.</li>
                             </ul>
                         </section>
 

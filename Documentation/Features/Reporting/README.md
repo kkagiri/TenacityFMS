@@ -1,6 +1,6 @@
 # FMS Reporting System
 
-Comprehensive reporting system for the FMS application using **JsReport** as the primary report engine with Handlebars HTML templates, server-side PDF/Excel rendering, and scheduled email delivery.
+Comprehensive reporting system for the FMS application using **JsReport** as the primary report engine with Handlebars HTML templates, server-side PDF/Excel rendering, scheduled delivery, and async background generation.
 
 > **Note**: DevExtreme Reporting (REPX-based) exists as a secondary/legacy engine. JsReport is the active, primary system for all new reports.
 
@@ -8,13 +8,49 @@ Comprehensive reporting system for the FMS application using **JsReport** as the
 
 The reporting system provides:
 
-- **9 built-in report sources** covering fuel management, device management, and operations
-- **Server-side rendering** via JsReport (ChromePdf for PDF, HtmlToXlsx for Excel)
-- **Customizable Handlebars templates** with letterhead branding
-- **Scheduled report delivery** via email (integrated with the notification system)
-- **Execution monitoring** with history tracking and statistics
-- **Template management** with a Monaco-based in-browser editor
+- **16 built-in report sources** covering fuel, storage, fleet, device, route, compliance, and operational reporting
+- **Server-side rendering** via JsReport for HTML preview, PDF generation, and Excel generation
+- **Scheduled report delivery** via email through the notification scheduler
+- **Report monitoring** with execution history, success and failure tracking, duration metrics, and error visibility
+- **Background production** using async report jobs with SignalR progress updates and job orchestration
+- **Customization** through editable Handlebars templates, Monaco-based template editing, and letterhead branding
+- **Report importation and ingestion workflows** for reporting-adjacent fuel import processes and custom template onboarding
 - **Multi-format output**: HTML preview, PDF download, Excel download, CSV export
+
+## Reporting Feature Update
+
+The current reporting system is built around the following operational capabilities:
+
+| Feature | What it does |
+|----------|-------------|
+| **Scheduling** | Lets users create recurring or one-time report deliveries with source, filters, recipients, frequency, timezone, and output format. Schedules are executed through the existing notification infrastructure rather than a separate scheduler. |
+| **Report Monitoring** | Tracks report executions through history views, statistics cards, status indicators, and error messages so administrators can see which reports succeeded, failed, or are taking too long. |
+| **Background Production** | Supports asynchronous report generation for heavier jobs. A job is submitted, processed in the background, and progress is broadcast through SignalR events such as `ReportJobStarted`, `ReportJobProgress`, `ReportJobCompleted`, and `ReportJobError`. |
+| **Customization** | Allows built-in templates to be edited and custom templates to be added. Templates are Handlebars HTML files stored on disk, can be managed through the Template Manager UI, and support company letterhead branding. |
+| **Report Importation** | Covers two reporting-adjacent import scenarios: custom or user-supplied templates can be onboarded into the template store, and fuel-import reporting endpoints support auto-import, single-file import, import summaries, retry flows, and settings management for external fuel report ingestion. |
+
+## Report Types And What They Do
+
+The reporting module currently exposes the following built-in source types through the source registry:
+
+| Report Type | Category | What it does |
+|-------------|----------|--------------|
+| `pump-transaction` | Fuel Management | Lists pump dispensing transactions with volume, nozzle, vehicle, operator, and tank context. |
+| `vehicle-consumption` | Fuel Management | Analyses fuel consumption by vehicle across a date range, with grouping by site and vehicle type. |
+| `fuel-refill` | Fuel Management | Shows refill records with quantity, site, vehicle, and fuel-average related details. |
+| `delivery` | Fuel Management | Summarises fuel deliveries, including supplier, delivered quantity, and receiving tank details. |
+| `consumption-by-refills` | Fuel Management | Calculates consumption using refill-to-refill intervals for vehicles or equipment. |
+| `tank-volume-history` | Storage And Tank Management | Provides detailed tank transaction history including opening, closing, deliveries, dispensing, and transfers. |
+| `transaction-history-summary` | Storage And Tank Management | Produces a summarized view of tank transaction activity over time for operational review. |
+| `tank-level-detail` | Storage And Tank Management | Shows detailed tank-level balance movements, references, operators, and quantity changes. |
+| `storage-received-vs-dispensed` | Storage And Tank Management | Compares tank receipts, dispensing, transfers, and closing variance to highlight stock movement differences. |
+| `device-offline` | Device Management | Tracks device offline events with duration and threshold-based filtering for uptime monitoring. |
+| `pts-device` | Device Management | Reports on current and historical PTS device status, uptime, and connectivity. |
+| `alarm-report` | Device Management | Lists alarms raised by devices and probes, including severity, state, code, and source details. |
+| `issue-tracker` | Operations | Reports operational issues using site, vehicle, status, category, and template filters. |
+| `route-analysis` | Operations | Analyses route execution, confidence, anomalies, geofence or cluster behavior, and route quality outcomes. |
+| `live-trip-operations` | Operations | Shows currently active trip operations, trip counts, live cycle counts, and vehicles that are idle outside work zones. |
+| `vehicle-document-compliance` | Fleet Compliance | Reports vehicle document validity, upcoming expiries, expired items, issuing authority, and vehicle compliance status. |
 
 ## Documentation
 
@@ -30,17 +66,12 @@ The reporting system provides:
 
 ### Report Sources
 
-| Source ID | Category | Description |
-|-----------|----------|-------------|
-| `pump-transaction` | Fuel Management | Pump transaction records |
-| `vehicle-consumption` | Fuel Management | Vehicle fuel consumption |
-| `fuel-refill` | Fuel Management | Fuel refill records |
-| `delivery` | Fuel Management | Fuel delivery records |
-| `tank-volume-history` | Fuel Management | Tank volume history |
-| `consumption-by-refills` | Fuel Management | Consumption calculated from refills |
-| `device-offline` | Device Management | Device offline events |
-| `pts-device` | Device Management | PTS device status |
-| `issue-tracker` | Operations | Issue tracker records |
+| Scope | Current State |
+|-------|---------------|
+| Built-in source registry | 16 sources |
+| Output formats | HTML, PDF, Excel, CSV |
+| Delivery modes | Interactive generation, scheduled delivery, background generation |
+| Template model | Built-in embedded templates plus custom/user-supplied templates |
 
 ### Key URLs
 
@@ -51,6 +82,7 @@ The reporting system provides:
 | `/reports/templates` | Manage Handlebars HTML templates |
 | `/reports/scheduling` | Create and manage scheduled report emails |
 | `/reports/monitoring` | View execution history and statistics |
+| `/reports/gallery` | Browse the full report catalog |
 
 ### Key API Endpoints
 
@@ -61,6 +93,7 @@ The reporting system provides:
 | `/api/v1/ReportGenerator/preview/{templateName}` | POST | Render HTML preview |
 | `/api/v1/ReportGenerator/render/pdf/{templateName}` | POST | Render PDF |
 | `/api/v1/ReportGenerator/render/excel/{templateName}` | POST | Render Excel |
+| `/api/v1/ReportGenerator/generate-async` | POST | Submit a background report job |
 
 ## Project Structure
 
@@ -137,4 +170,5 @@ Frontend:
 | Version | Date | Changes |
 |---------|------|---------|
 | v1.0.0 | 2024-01-24 | Initial DevExtreme reporting (DataGrid, PivotGrid, Gallery) |
-| v2.0.0 | 2025 | JsReport engine, 9 source types, template management, scheduling, monitoring |
+| v2.0.0 | 2025 | JsReport engine, template management, scheduling, and monitoring introduced |
+| v2.1.0 | 2026 | Expanded source registry, async background production, stronger execution monitoring, and reporting-adjacent import workflows |

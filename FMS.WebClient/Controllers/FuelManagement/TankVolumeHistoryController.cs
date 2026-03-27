@@ -10,10 +10,12 @@
  * - UpdateTransaction(): Performs admin-only direct transaction updates.
  */
 using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using System.Security.Claims;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
+using FMS.Application.Features.TankManagement.TankVolumeHistory.DTOs;
 using FMS.Application.Features.TankManagement.TankVolumeHistory.Queries;
 using FMS.Application.Queries.Database.FMSQuery.TankVolumeHistory;
 using FMS.Application.Services.Configuration;
@@ -226,6 +228,49 @@ namespace FMS.WebClient.Controllers
             catch (Exception ex)
             {
                 return BadRequest($"Delete failed: {ex.Message}");
+            }
+        }
+
+        [HttpPost("bulk-validate-delete")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Delete)]
+        public async Task<IActionResult> ValidateBulkDelete([FromBody] BulkDeleteTransactionRequest request)
+        {
+            if (request.TransactionIds == null || request.TransactionIds.Count == 0)
+                return BadRequest("At least one transaction ID must be provided");
+
+            var result = await _mediator.Send(new ValidateBulkDeleteTankVolumeHistoryCommand(request.TransactionIds, request.UserConfirmed));
+            if (!result.IsSuccess)
+                return BadRequest(result);
+
+            return Ok(result.Data);
+        }
+
+        [HttpPost("bulk-delete")]
+        [Authorize(AuthenticationSchemes = JwtBearerDefaults.AuthenticationScheme)]
+        [RequirePermission(Permissions.TankVolumeHistory.Delete)]
+        public async Task<IActionResult> BulkDelete([FromBody] BulkDeleteTransactionRequest request)
+        {
+            if (request.TransactionIds == null || request.TransactionIds.Count == 0)
+                return BadRequest("At least one transaction ID must be provided");
+
+            try
+            {
+                string? deletedBy = TryGetCurrentUserId(out var currentUserId) ? currentUserId : null;
+
+                var result = await _mediator.Send(new BulkDeleteTankVolumeHistoryCommand(
+                    request.TransactionIds,
+                    deletedBy ?? string.Empty,
+                    request.UserConfirmed));
+
+                if (!result.IsSuccess)
+                    return BadRequest(result);
+
+                return Ok(result.Data);
+            }
+            catch (Exception ex)
+            {
+                return BadRequest($"Bulk delete failed: {ex.Message}");
             }
         }
 
@@ -450,6 +495,12 @@ namespace FMS.WebClient.Controllers
     public class DeleteTransactionRequest
     {
         public string? DeletionReason { get; set; }
+        public bool UserConfirmed { get; set; }
+    }
+
+    public class BulkDeleteTransactionRequest
+    {
+        public List<int> TransactionIds { get; set; } = new();
         public bool UserConfirmed { get; set; }
     }
 }

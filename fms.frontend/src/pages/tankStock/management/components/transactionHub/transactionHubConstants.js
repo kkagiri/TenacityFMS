@@ -63,6 +63,14 @@ export const defaultDeleteConfirmationState = {
   userConfirmed: false
 };
 
+export const defaultBulkDeleteConfirmationState = {
+  visible: false,
+  transactions: [],
+  validationResult: null,
+  isDeleting: false,
+  userConfirmed: false
+};
+
 /**
  * Default edit state
  */

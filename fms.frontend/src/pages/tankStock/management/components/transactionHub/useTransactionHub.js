@@ -20,7 +20,7 @@ import { fetchVehicleList } from '../../../../../redux/actions/vehicleActions';
 import { fetchEmployees } from '../../../../../redux/actions/employeeActions';
 import { fetchUsersForFilter } from '../../../../../redux/actions/userActions';
 import { sortTransactions, buildFiltersObject } from './transactionHubUtils';
-import { defaultDeleteConfirmationState, defaultGroupByState, defaultEditState } from './transactionHubConstants';
+import { defaultBulkDeleteConfirmationState, defaultDeleteConfirmationState, defaultGroupByState, defaultEditState } from './transactionHubConstants';
 
 // Import service with fallback
 let transactionDeleteService;
@@ -34,6 +34,12 @@ try {
     },
     deleteTransaction: async () => {
       throw new Error('Delete service is not available');
+    },
+    validateBulkDelete: async () => {
+      throw new Error('Bulk delete validation service is not available');
+    },
+    bulkDeleteTransactions: async () => {
+      throw new Error('Bulk delete service is not available');
     }
   };
 }
@@ -329,6 +335,150 @@ export const useDeleteTransaction = (handleRefresh) => {
     handleCancelDelete,
     handleToggleDetails,
     handleConfirmChange
+  };
+};
+
+export const useBulkDeleteTransaction = (handleRefresh, clearSelection) => {
+  const [bulkDeleteConfirmation, setBulkDeleteConfirmation] = useState(defaultBulkDeleteConfirmationState);
+
+  const handleBulkDeleteTransactions = useCallback(async (transactions) => {
+    if (!Array.isArray(transactions) || transactions.length === 0) {
+      notify({
+        message: 'Select at least one transaction to delete.',
+        type: 'warning',
+        displayTime: 3000,
+        position: 'top center'
+      });
+      return;
+    }
+
+    const transactionIds = transactions
+      .map((transaction) => transaction?.id)
+      .filter((id) => Number.isFinite(id));
+
+    setBulkDeleteConfirmation({
+      ...defaultBulkDeleteConfirmationState,
+      visible: true,
+      transactions
+    });
+
+    setTimeout(async () => {
+      try {
+        const validation = await transactionDeleteService.validateBulkDelete(transactionIds);
+
+        if (validation?.success) {
+          setBulkDeleteConfirmation((prev) => ({
+            ...prev,
+            validationResult: validation.data
+          }));
+          return;
+        }
+
+        if (validation?.details) {
+          setBulkDeleteConfirmation((prev) => ({
+            ...prev,
+            validationResult: validation.details
+          }));
+          return;
+        }
+
+        throw new Error(validation?.error || 'Bulk validation failed');
+      } catch (error) {
+        console.error('Error validating bulk delete:', error);
+        notify({
+          message: `Failed to validate bulk delete: ${error.message}`,
+          type: 'error',
+          displayTime: 4000,
+          position: 'top center'
+        });
+
+        setTimeout(() => {
+          setBulkDeleteConfirmation(defaultBulkDeleteConfirmationState);
+        }, 100);
+      }
+    }, 50);
+  }, []);
+
+  const executeBulkDelete = useCallback(async () => {
+    const transactionIds = bulkDeleteConfirmation.transactions
+      .map((transaction) => transaction?.id)
+      .filter((id) => Number.isFinite(id));
+
+    if (transactionIds.length === 0) {
+      return;
+    }
+
+    setBulkDeleteConfirmation((prev) => ({ ...prev, isDeleting: true }));
+
+    try {
+      const result = await transactionDeleteService.bulkDeleteTransactions(
+        transactionIds,
+        bulkDeleteConfirmation.userConfirmed
+      );
+
+      if (result?.success) {
+        notify({
+          message: result.data?.summaryMessage || `Deleted ${result.data?.deletedTransactionCount || transactionIds.length} transaction(s) successfully.`,
+          type: 'success',
+          displayTime: 3500,
+          position: 'top center'
+        });
+
+        clearSelection?.();
+        setBulkDeleteConfirmation(defaultBulkDeleteConfirmationState);
+        setTimeout(() => {
+          handleRefresh();
+        }, 100);
+        return;
+      }
+
+      if (result?.details) {
+        setBulkDeleteConfirmation((prev) => ({
+          ...prev,
+          isDeleting: false,
+          validationResult: result.details
+        }));
+
+        notify({
+          message: result.error || result.details?.summaryMessage || 'Bulk delete could not be completed.',
+          type: 'warning',
+          displayTime: 4000,
+          position: 'top center'
+        });
+        return;
+      }
+
+      throw new Error(result?.error || 'Failed to delete selected transactions');
+    } catch (error) {
+      console.error('Error deleting selected transactions:', error);
+      notify({
+        message: `Failed to delete selected transactions: ${error.message}`,
+        type: 'error',
+        displayTime: 4000,
+        position: 'top center'
+      });
+
+      setBulkDeleteConfirmation((prev) => ({ ...prev, isDeleting: false }));
+    }
+  }, [bulkDeleteConfirmation.transactions, bulkDeleteConfirmation.userConfirmed, clearSelection, handleRefresh]);
+
+  const handleCancelBulkDelete = useCallback(() => {
+    setBulkDeleteConfirmation(defaultBulkDeleteConfirmationState);
+  }, []);
+
+  const handleBulkConfirmChange = useCallback((confirmed) => {
+    setBulkDeleteConfirmation((prev) => ({
+      ...prev,
+      userConfirmed: confirmed
+    }));
+  }, []);
+
+  return {
+    bulkDeleteConfirmation,
+    handleBulkDeleteTransactions,
+    executeBulkDelete,
+    handleCancelBulkDelete,
+    handleBulkConfirmChange
   };
 };
 

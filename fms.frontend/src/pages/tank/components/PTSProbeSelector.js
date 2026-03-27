@@ -58,9 +58,9 @@ const CALIBRATION_SOURCE_OPTIONS = [
 ];
 
 const PRODUCT_VOLUME_SOURCE_OPTIONS = [
-    { value: "", label: "System default", hint: "Use existing behavior: keep positive PTS volume, otherwise derive from local calibration." },
-    { value: "pts", label: "PTS product volume", hint: "Trust the probe ProductVolume when it is usable and only derive from calibration if PTS volume is missing." },
-    { value: "fms-calibrated", label: "FMS calibrated volume", hint: "Prefer local height-to-volume calibration for the stored UploadStatus ProductVolume." },
+    { value: "", label: "System default", hint: "Use legacy behavior: store the probe ProductVolume when it is positive, otherwise fall back to FMS local calibration." },
+    { value: "pts", label: "PTS product volume", hint: "Use the PTS probe ProductVolume as the stored UploadStatus volume whenever the probe sends a usable value." },
+    { value: "fms-calibrated", label: "FMS calibrated volume", hint: "Use FMS local height-to-volume calibration as the stored UploadStatus volume whenever a usable local chart exists." },
 ];
 
 const PTSProbeSelector = ({

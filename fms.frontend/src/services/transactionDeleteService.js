@@ -1,3 +1,14 @@
+/**
+ * File: transactionDeleteService.js
+ * Purpose: Wraps single and bulk tank volume history delete API calls for the frontend.
+ * Dependencies: axiosInstance
+ * Last Modified: 2026-03-27
+ *
+ * Key Functions:
+ * - validateDelete(): Checks whether a single transaction can be deleted.
+ * - validateBulkDelete(): Requests server-side validation for selected transaction IDs.
+ * - bulkDeleteTransactions(): Executes the confirmed bulk delete request.
+ */
 import axiosInstance from '../api/axiosInstance';
 
 /**
@@ -113,6 +124,72 @@ class TransactionDeleteService {
       return {
         success: false,
         error: error.message || 'Unknown error occurred during deletion'
+      };
+    }
+  }
+
+  async validateBulkDelete(transactionIds) {
+    try {
+      if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+        throw new Error('At least one transaction ID is required');
+      }
+
+      const response = await axiosInstance.post('/tankvolumehistory/bulk-validate-delete', {
+        transactionIds,
+        userConfirmed: false
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error validating bulk delete:', error);
+
+      if (error.response?.data) {
+        return {
+          success: false,
+          error: error.response.data.message || error.response.data,
+          details: error.response.data.data || error.response.data
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred during bulk validation'
+      };
+    }
+  }
+
+  async bulkDeleteTransactions(transactionIds, userConfirmed = false) {
+    try {
+      if (!Array.isArray(transactionIds) || transactionIds.length === 0) {
+        throw new Error('At least one transaction ID is required');
+      }
+
+      const response = await axiosInstance.post('/tankvolumehistory/bulk-delete', {
+        transactionIds,
+        userConfirmed
+      });
+
+      return {
+        success: true,
+        data: response.data
+      };
+    } catch (error) {
+      console.error('Error performing bulk delete:', error);
+
+      if (error.response?.data) {
+        return {
+          success: false,
+          error: error.response.data.message || error.response.data,
+          details: error.response.data.data || error.response.data
+        };
+      }
+
+      return {
+        success: false,
+        error: error.message || 'Unknown error occurred during bulk deletion'
       };
     }
   }

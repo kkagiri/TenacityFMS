@@ -53,6 +53,7 @@ using FMS.WebClient.Services.SignalR;
 using FMS.Application.Features.Notification.Services;
 using FMS.Application.Features.Notification.Services.Businessfunction;
 using FMS.Application.Features.Notification.Services.RecipientResolver;
+using FMS.Application.Features.PTS.Services;
 using FMS.Application.Features.PTSService.Services;
 using FMS.Application.Features.VehicleTrips.Services;
 using FMS.Application.Features.VehicleTrips.Validators;
@@ -557,6 +558,7 @@ public static class FmsServiceCollectionExtensions
 
         // Tank Management Services
         services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
+        services.AddScoped<ITankVolumeHistoryDeleteCoordinatorService, TankVolumeHistoryDeleteCoordinatorService>();
         services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ITankCalibrationStorageService,
             FMS.Application.Features.TankManagement.TankCalibration.Services.TankCalibrationStorageService>();
         services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ITankCalibrationValidator,
@@ -566,6 +568,11 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<FMS.Application.Features.TankManagement.TankCalibration.Services.ICalibrationLearningService,
             FMS.Application.Features.TankManagement.TankCalibration.Services.CalibrationLearningService>();
         services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); //Cursor: Add pump tank transfer service
+        services.AddScoped<IUploadStatusRedisService, UploadStatusRedisService>();
+        services.AddScoped<IUploadStatusBroadcastService, UploadStatusBroadcastService>();
+        services.AddScoped<IUploadStatusForcedCompletionService, UploadStatusForcedCompletionService>();
+        services.AddScoped<IUploadStatusEndOfTransactionService, UploadStatusEndOfTransactionService>();
+        services.AddScoped<IUploadStatusPumpStatusProcessingService, UploadStatusPumpStatusProcessingService>();
         services.AddScoped<FMS.Application.Features.TankManagement.TankMeasurements.Services.IProbeReadingEnrichmentService,
             FMS.Application.Features.TankManagement.TankMeasurements.Services.ProbeReadingEnrichmentService>();
         services.AddScoped<FMS.Application.Features.TankManagement.TankMeasurements.Services.IUploadStatusProbeProcessingService,

@@ -463,6 +463,11 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IAuthorizationStateTracker, AuthorizationStateTracker>();
             services.AddScoped<ITankVolumeAdjustmentService, TankVolumeAdjustmentService>();
             services.AddScoped<IPumpTankTransferService, PumpTankTransferService>(); // Required by UploadStatusCommandHandler
+            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusRedisService, FMS.Application.Features.PTS.Services.UploadStatusRedisService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusBroadcastService, FMS.Application.Features.PTS.Services.UploadStatusBroadcastService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusForcedCompletionService, FMS.Application.Features.PTS.Services.UploadStatusForcedCompletionService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusEndOfTransactionService, FMS.Application.Features.PTS.Services.UploadStatusEndOfTransactionService>();
+            services.AddScoped<FMS.Application.Features.PTS.Services.IUploadStatusPumpStatusProcessingService, FMS.Application.Features.PTS.Services.UploadStatusPumpStatusProcessingService>();
             services.AddScoped<IAuthorizationHandler, PermissionHandler>();
             services.AddScoped<IPumpService, PumpService>();
             services.AddScoped<IPTSConfigService, PTSConfigService>();
@@ -525,6 +530,7 @@ namespace FMS.PTS.WindowsService
             services.AddScoped<IServiceControlService, ServiceControlService>();
             services.AddScoped<IWidgetFactoryService, WidgetFactoryService>();
             services.AddScoped<ITankVolumeHistoryDeletionService, TankVolumeHistoryDeletionService>();
+            services.AddScoped<ITankVolumeHistoryDeleteCoordinatorService, TankVolumeHistoryDeleteCoordinatorService>();
 
             // Register widget factory dependencies
             services.AddScoped<WidgetFactoryCoordinator>();

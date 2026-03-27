@@ -64,11 +64,13 @@ import { TransactionFilters } from "./transactionHub/TransactionFilters";
 import { GroupingControls } from "./transactionHub/GroupingControls";
 import {
   useTransactionData,
+  useBulkDeleteTransaction,
   useDeleteTransaction,
   useEditTransaction,
   useDataGridGrouping,
 } from "./transactionHub/useTransactionHub";
 import { EditTransactionDialog } from "./transactionHub/EditTransactionDialog";
+import { BulkDeleteConfirmationDialog } from "./transactionHub/BulkDeleteConfirmationDialog";
 // Hooks
 import { usePermissions } from "../../../../hooks/usePermissions";
 import useReportJobTracking from "../../../../hooks/useReportJobTracking";
@@ -154,10 +156,26 @@ const TransactionHub = () => {
 
   // Local state for manual refill form
   const [showManualRefillForm, setShowManualRefillForm] = useState(false);
+  const [selectedRowKeys, setSelectedRowKeys] = useState([]);
+  const [selectedTransactions, setSelectedTransactions] = useState([]);
 
   // Chart view state
   const [showChartView, setShowChartView] = useState(false);
   const [selectedChartType, setSelectedChartType] = useState('candlestick');
+
+  const clearSelectedTransactions = useCallback(() => {
+    setSelectedRowKeys([]);
+    setSelectedTransactions([]);
+    dataGridRef.current?.instance?.clearSelection();
+  }, []);
+
+  const {
+    bulkDeleteConfirmation,
+    handleBulkDeleteTransactions,
+    executeBulkDelete,
+    handleCancelBulkDelete,
+    handleBulkConfirmChange,
+  } = useBulkDeleteTransaction(handleRefresh, clearSelectedTransactions);
 
   // Refresh data after successful manual refill
   const handleManualRefillSuccess = useCallback(() => {
@@ -197,6 +215,11 @@ const TransactionHub = () => {
     if (e.rowType === "group") {
       return;
     }
+  }, []);
+
+  const onSelectionChanged = useCallback((e) => {
+    setSelectedRowKeys(e?.selectedRowKeys || []);
+    setSelectedTransactions(Array.isArray(e?.selectedRowsData) ? e.selectedRowsData.filter((row) => row?.id) : []);
   }, []);
 
   // Format timestamp for display in East Africa Time (UTC+3)
@@ -379,6 +402,23 @@ const TransactionHub = () => {
                   className="transaction-hub__action-btn transaction-hub__action-btn--first"
                 />
 
+                {canDeleteTankVolumeHistory && (
+                  <Button
+                    text={selectedRowKeys.length > 0 ? `Bulk Delete (${selectedRowKeys.length})` : "Bulk Delete"}
+                    icon="fa-light fa-trash"
+                    type="default"
+                    stylingMode="outlined"
+                    onClick={() => handleBulkDeleteTransactions(selectedTransactions)}
+                    hint="Delete selected transactions"
+                    className="transaction-hub__action-btn"
+                    disabled={
+                      isLoading ||
+                      bulkDeleteConfirmation.isDeleting ||
+                      selectedRowKeys.length === 0
+                    }
+                  />
+                )}
+
                 <DropDownButton
                   text="Actions"
                   icon="fa-light fa-bolt"
@@ -440,12 +480,14 @@ const TransactionHub = () => {
             keyExpr="id"
             showBorders={true}
             ref={dataGridRef}
+            selectedRowKeys={selectedRowKeys}
             showColumnLines={true}
             showRowLines={true}
             allowColumnResizing={true}
             showColumnHeaders={true}
             className="tw-h-full"
             onRowClick={onRowClick}
+            onSelectionChanged={onSelectionChanged}
           >
             <FilterPanel visible={true} />
             <GroupPanel visible={false} />
@@ -769,6 +811,16 @@ const TransactionHub = () => {
         onCancel={handleCancelDelete}
         onExecuteDelete={executeDelete}
         tanks={tanks}
+      />
+
+      <BulkDeleteConfirmationDialog
+        visible={bulkDeleteConfirmation.visible}
+        validationResult={bulkDeleteConfirmation.validationResult}
+        isDeleting={bulkDeleteConfirmation.isDeleting}
+        userConfirmed={bulkDeleteConfirmation.userConfirmed}
+        onConfirmChange={handleBulkConfirmChange}
+        onCancel={handleCancelBulkDelete}
+        onExecuteDelete={executeBulkDelete}
       />
 
       {/* Edit Transaction Dialog Component */}
