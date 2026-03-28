@@ -71,8 +71,13 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
                 return FMSResponse<List<VehicleDTO>>.Failed("Limit must be between 1 and 100");
             }
 
-            var searchTerm = request.SearchTerm.Trim();
+            var searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
             var limit = request.Limit ?? 10;
+
+            if (searchTerm.Length < 2)
+            {
+                return FMSResponse<List<VehicleDTO>>.Failed("Search term does not contain enough latin1-compatible characters for search");
+            }
 
             // Build optimized query - apply filters first, then search
             var query = _context.Vehicles
@@ -134,7 +139,7 @@ public class SearchVehicleQueryHandler : IRequestHandler<SearchVehicleQuery, FMS
             }
 
             _logger.LogInformation("Vehicle search for '{SearchTerm}' returned {ResultCount} results",
-                request.SearchTerm, results.Count);
+                searchTerm, results.Count);
 
             return FMSResponse<List<VehicleDTO>>.Success(
                 results,

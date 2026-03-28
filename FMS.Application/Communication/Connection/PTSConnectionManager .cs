@@ -85,10 +85,11 @@ namespace FMS.Application.Communication.Connection
         /// <exception cref="Exception"></exception>
         public async Task<PTSMessage> SendMessageAsync(string deviceId, string message)
         {
+            PTSDeviceConnection connection = null;
             try
             {
                 //Get the connection of the device
-                if (!_deviceConnections.TryGetValue(deviceId, out var connection) || connection == null)
+                if (!_deviceConnections.TryGetValue(deviceId, out connection) || connection == null)
                 {
                     throw new KeyNotFoundException($"Device {deviceId} not found");
                 }
@@ -116,7 +117,21 @@ namespace FMS.Application.Communication.Connection
             {
                 if (ex is InvalidOperationException || ex is ObjectDisposedException || ex is OperationCanceledException)
                 {
-                    RemoveConnection(deviceId);
+                    // Only remove the connection if it is still the same instance we used.
+                    // A new connection may have been registered via AddConnection while we were waiting,
+                    // and removing it would leave the device with no connection at all.
+                    if (connection != null
+                        && _deviceConnections.TryGetValue(deviceId, out var currentConnection)
+                        && ReferenceEquals(currentConnection, connection))
+                    {
+                        RemoveConnection(deviceId);
+                    }
+                    else
+                    {
+                        _logger.LogInformation(
+                            "Skipping connection removal for device {DeviceId} — connection was already replaced",
+                            deviceId);
+                    }
                 }
 
                 _logger.LogError(ex, "Error sending message to device {DeviceId}", deviceId);
@@ -126,22 +141,36 @@ namespace FMS.Application.Communication.Connection
 
         public void AddConnection(string deviceId, PTSDeviceConnection connection)
         {
+            // Atomically register the new connection and capture any existing one.
+            // The new connection MUST be in the dictionary before the old one is disposed,
+            // so that SendMessageAsync's ReferenceEquals guard works correctly.
+            PTSDeviceConnection existingConnection = null;
+            _deviceConnections.AddOrUpdate(
+                deviceId,
+                connection,
+                (_, existing) =>
+                {
+                    existingConnection = existing;
+                    return connection;
+                });
 
-            if (_deviceConnections.TryGetValue(deviceId, out var existingConnection))
+            if (existingConnection != null)
             {
                 _logger.LogWarning("Replacing existing connection for device {DeviceId}", deviceId);
-                try
+                // Dispose in background — the new connection is already registered
+                _ = Task.Run(async () =>
                 {
-                    // Ensure cleanup of existing connection
-                    _ = existingConnection.DisposeAsync();
-                }
-                catch (Exception ex)
-                {
-                    _logger.LogError(ex, "Error disposing existing connection for device {DeviceId}", deviceId);
-                }
+                    try
+                    {
+                        await existingConnection.DisposeAsync();
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error disposing replaced connection for device {DeviceId}", deviceId);
+                    }
+                });
             }
 
-            _deviceConnections.AddOrUpdate(deviceId, connection, (_, _) => connection);
             _logger.LogInformation("Added/Updated connection for device {DeviceId}", deviceId);
         }
 

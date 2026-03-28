@@ -1319,21 +1319,23 @@ namespace FMS.WebClient.Services.Reporting
 
         private async Task<string> LoadTemplate(string templateName)
         {
+            var resolvedTemplateName = ResolveTemplateName(templateName);
+
             // Always prefer embedded (compiled) templates over disk files.
             // Disk files may be stale from a previous deployment and miss
             // new fields (e.g. variance). If the embedded template exists,
             // use it and silently repair the disk copy.
-            if (TryGetEmbeddedTemplate(templateName, out var embedded))
+            if (TryGetEmbeddedTemplate(resolvedTemplateName, out var embedded))
             {
                 // Fire-and-forget repair so disk stays in sync for external editors
-                _ = TryRepairTemplateFileAsync(templateName, embedded);
+                _ = TryRepairTemplateFileAsync(resolvedTemplateName, embedded);
                 return embedded;
             }
 
             // No embedded template — use disk file (custom / user-uploaded templates)
-            var content = await _templateManager.GetTemplateAsync(templateName);
+            var content = await _templateManager.GetTemplateAsync(resolvedTemplateName);
             if (string.IsNullOrEmpty(content))
-                throw new FileNotFoundException($"Template '{templateName}' not found.");
+                throw new FileNotFoundException($"Template '{resolvedTemplateName}' not found.");
             return content;
         }
 
@@ -1392,6 +1394,15 @@ namespace FMS.WebClient.Services.Reporting
             };
 
             return !string.IsNullOrWhiteSpace(content);
+        }
+
+        private static string ResolveTemplateName(string templateName)
+        {
+            return templateName switch
+            {
+                "transaction-volume-history-report" => "tank-volume-history-report",
+                _ => templateName
+            };
         }
 
         private async Task TryRepairTemplateFileAsync(string templateName, string embeddedTemplate)

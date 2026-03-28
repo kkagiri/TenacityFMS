@@ -44,8 +44,13 @@ public class SearchEmployeeQueryHandler(GpsdataContext context, IMapper mapper) 
                 return FMSResponse<List<EmployeeDto>>.Failed("Limit must be between 1 and 100");
             }
 
-            string searchTerm = request.SearchTerm.Trim();
+            string searchTerm = LegacyMySqlSearchTermNormalizer.NormalizeForLikeSearch(request.SearchTerm);
             int limit = request.Limit ?? 50;
+
+            if (searchTerm.Length < 2)
+            {
+                return FMSResponse<List<EmployeeDto>>.Failed("Search term does not contain enough latin1-compatible characters for search");
+            }
 
             // Build optimized query - apply filters first, then search
             IQueryable<Domain.Entities.Employee> query = context.Employees

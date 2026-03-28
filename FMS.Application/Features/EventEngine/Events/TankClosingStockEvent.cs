@@ -105,7 +105,7 @@ namespace FMS.Application.Features.EventEngine.Events
             return new ReportAttachmentMetadata
             {
                 ReportType = "TransactionVolumeHistory",
-                TemplateName = "transaction-volume-history-report",
+                TemplateName = "tank-volume-history-report",
                 TankId = TankId,
                 SiteId = SiteId,
                 StartDate = BusinessDateUtc.Date,
