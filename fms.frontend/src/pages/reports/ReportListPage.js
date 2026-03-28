@@ -21,7 +21,8 @@ import DataGrid, {
     GroupPanel,
 } from 'devextreme-react/data-grid';
 import { Button } from 'devextreme-react/button';
-import { getAllReportSources, getCategories } from './sources';
+import { filterReportSourcesByPermission, getAllReportSources } from './sources';
+import { usePermissions } from '../../hooks/usePermissions';
 import { reportsRoutes } from './utils/navigationHelper';
 import './ReportListPage.scss';
 
@@ -39,16 +40,33 @@ const getCategoryColor = (category) =>
 
 const ReportListPage = () => {
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
     const [searchParams] = useSearchParams();
     const initialView = searchParams.get('view') === 'gallery' ? 'gallery' : 'list';
     const [viewMode, setViewMode] = useState(initialView);
     const [searchText, setSearchText] = useState('');
     const [selectedCategory, setSelectedCategory] = useState('All');
 
-    const allSources = useMemo(() => getAllReportSources(), []);
+    const allSources = useMemo(
+        () => filterReportSourcesByPermission(getAllReportSources(), hasPermission),
+        [hasPermission]
+    );
     const categories = useMemo(
-        () => [{ name: 'All', icon: 'fa-light fa-list' }, ...getCategories()],
-        []
+        () => [
+            { name: 'All', icon: 'fa-light fa-list' },
+            ...Array.from(
+                new Map(
+                    allSources.map((source) => [
+                        source.category,
+                        {
+                            name: source.category,
+                            icon: source.categoryIcon || 'fa-light fa-folder',
+                        },
+                    ])
+                ).values()
+            ),
+        ],
+        [allSources]
     );
 
     const reports = useMemo(() => allSources.map((s) => ({

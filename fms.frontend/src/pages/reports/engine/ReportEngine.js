@@ -18,7 +18,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { SelectBox } from 'devextreme-react/select-box';
 import ProgressBar from 'devextreme-react/progress-bar';
 import notify from 'devextreme/ui/notify';
-import { getReportSource, getAllReportSources } from '../sources/reportSourceRegistry';
+import { filterReportSourcesByPermission, getAllReportSources } from '../sources/reportSourceRegistry';
 import ReportParameterForm from './ReportParameterForm';
 import ReportFormatSelector from './ReportFormatSelector';
 import ReportOutputViewer from './ReportOutputViewer';
@@ -28,17 +28,26 @@ import useReportJobTracking from '../../../hooks/useReportJobTracking';
 import { ReportJobStatus } from '../../../hooks/useReportJobTracking';
 import RequestReportEmailPanel from '../../../components/Reporting/RequestReportEmailPanel';
 import ScheduleReportPanel from '../../../components/Reporting/ScheduleReportPanel';
+import { usePermissions } from '../../../hooks/usePermissions';
 import './ReportEngine.scss';
 
 const ReportEngine = () => {
     const { sourceId } = useParams();
     const [searchParams] = useSearchParams();
     const navigate = useNavigate();
+    const { hasPermission } = usePermissions();
 
     // Source selection
-    const allSources = useMemo(() => getAllReportSources(), []);
+    const allSources = useMemo(
+        () => filterReportSourcesByPermission(getAllReportSources(), hasPermission),
+        [hasPermission]
+    );
     const [activeSourceId, setActiveSourceId] = useState(sourceId || '');
-    const activeSource = useMemo(() => getReportSource(activeSourceId), [activeSourceId]);
+    const activeSource = useMemo(
+        () => allSources.find((source) => source.id === activeSourceId) || null,
+        [activeSourceId, allSources]
+    );
+    const hasNotifiedMissingSourceRef = useRef(false);
 
     // State
     const [filters, setFilters] = useState({});
@@ -146,10 +155,42 @@ const ReportEngine = () => {
 
     // Sync source from URL params
     useEffect(() => {
-        if (sourceId && sourceId !== activeSourceId) {
+        if (sourceId && allSources.some((source) => source.id === sourceId) && sourceId !== activeSourceId) {
             setActiveSourceId(sourceId);
         }
-    }, [sourceId]);
+    }, [activeSourceId, allSources, sourceId]);
+
+    useEffect(() => {
+        if (!sourceId) {
+            hasNotifiedMissingSourceRef.current = false;
+            return;
+        }
+
+        if (!allSources.length) {
+            setActiveSourceId('');
+            return;
+        }
+
+        if (allSources.some((source) => source.id === sourceId)) {
+            hasNotifiedMissingSourceRef.current = false;
+            return;
+        }
+
+        const fallbackSourceId = allSources[0]?.id || '';
+        if (fallbackSourceId && activeSourceId !== fallbackSourceId) {
+            setActiveSourceId(fallbackSourceId);
+            navigate(`/reports/engine/${fallbackSourceId}`, { replace: true });
+        }
+
+        if (!hasNotifiedMissingSourceRef.current) {
+            notify({
+                message: 'You do not have access to that report source.',
+                type: 'warning',
+                displayTime: 3000,
+            });
+            hasNotifiedMissingSourceRef.current = true;
+        }
+    }, [activeSourceId, allSources, navigate, sourceId]);
 
     // Initialize filters when source changes
     useEffect(() => {
@@ -375,13 +416,13 @@ const ReportEngine = () => {
                 // large to render within the 12-second timeout window.  Instead,
                 // show an immediate informational message and fall through to the
 
-        if (selectedFormat === 'html' && useUnifiedBackendPath) {
-            notify({
-                message: 'Generating HTML in background to keep HTML/PDF output identical...',
-                type: 'info',
-                displayTime: 2800,
-            });
-        }
+                if (selectedFormat === 'html' && useUnifiedBackendPath) {
+                    notify({
+                        message: 'Generating HTML in background to keep HTML/PDF output identical...',
+                        type: 'info',
+                        displayTime: 2800,
+                    });
+                }
                 // async background job path below.
                 const _recordArray = Array.isArray(dataResult.data?.data)
                     ? dataResult.data.data

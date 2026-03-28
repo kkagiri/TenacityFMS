@@ -19,10 +19,7 @@ namespace FMS.WebClient.Services.Reporting
         // â”€â”€â”€ Entry Points (called from JsReportTemplateManager) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
         public static string PumpTransaction() => PumpTransactionHtmlTemplate.Get();
-        public static string VehicleConsumption() => BuildGenericTemplate(
-            "Vehicle Consumption Report", "#4776E6",
-            VehicleConsumptionSummary(), VehicleConsumptionTable(),
-            "No vehicle consumption data found for the selected criteria.");
+        public static string VehicleConsumption() => VehicleConsumptionHtmlTemplate.Get();
 
         public static string FuelRefill() => BuildGenericTemplate(
             "Fuel Refill Report", "#11998e",
@@ -815,21 +812,6 @@ namespace FMS.WebClient.Services.Reporting
             </tr>
         </tfoot>
     </table>{{/if}}";
-
-        private static string VehicleConsumptionSummary() => @"    {{#if summary}}
-    <div class=""summary-section"">
-        <div class=""summary-card card-primary""><div class=""value"">{{summary.totalVehicles}}</div><div class=""label"">Vehicles</div></div>
-        <div class=""summary-card card-success""><div class=""value"">{{summary.totalVolume}} L</div><div class=""label"">Total Volume</div></div>
-        <div class=""summary-card card-warning""><div class=""value"">{{summary.totalCost}}</div><div class=""label"">Total Cost</div></div>
-        <div class=""summary-card card-info""><div class=""value"">{{summary.avgConsumption}}</div><div class=""label"">Avg km/l</div></div>
-    </div>{{/if}}";
-
-        private static string VehicleConsumptionTable() => @"    {{#if records}}
-    <table class=""data-table""><thead><tr><th>#</th><th>Vehicle</th><th>Plate</th><th>Type</th><th>Site</th><th class=""text-right"">Volume (L)</th><th class=""text-right"">Distance (km)</th><th class=""text-right"">km/l</th><th class=""text-right"">Cost</th></tr></thead>
-        <tbody>{{#each records}}<tr>
-            <td class=""text-center text-muted"">{{rowNumber}}</td><td class=""font-bold"">{{vehicleName}}</td><td>{{numberPlate}}</td><td>{{vehicleType}}</td><td>{{siteName}}</td>
-            <td class=""text-right text-success font-bold"">{{volume}}</td><td class=""text-right"">{{distance}}</td><td class=""text-right font-bold"">{{consumption}}</td><td class=""text-right"">{{cost}}</td>
-        </tr>{{/each}}</tbody></table>{{/if}}";
 
         private static string FuelRefillSummary() => @"    {{#if summary}}
     <div class=""summary-section"">

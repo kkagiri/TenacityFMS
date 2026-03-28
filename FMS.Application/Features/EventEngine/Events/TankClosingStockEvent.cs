@@ -53,6 +53,8 @@ namespace FMS.Application.Features.EventEngine.Events
         public int TransactionCount { get; set; }             // Number of transactions for the day
         public string BusinessDate { get; set; } = string.Empty; // Business day date (display)
         public DateTime BusinessDateUtc { get; set; }              // Business day date (UTC, for report queries)
+        public DateTime? BusinessWindowStartUtc { get; set; }      // Actual business window start (opening stock timestamp)
+        public DateTime? BusinessWindowEndUtc { get; set; }        // Actual business window end (closing stock timestamp)
         public string ReportUrl { get; set; } = string.Empty;  // Deep-link to TankVolumeHistory report
 
         public TankClosingStockEvent()
@@ -102,14 +104,17 @@ namespace FMS.Application.Features.EventEngine.Events
         {
             if (TankId == null && SiteId == null) return null;
 
+            var reportStart = BusinessWindowStartUtc ?? BusinessDateUtc.Date;
+            var reportEnd = BusinessWindowEndUtc ?? BusinessDateUtc.Date.AddDays(1).AddTicks(-1);
+
             return new ReportAttachmentMetadata
             {
                 ReportType = "TransactionVolumeHistory",
                 TemplateName = "tank-volume-history-report",
                 TankId = TankId,
                 SiteId = SiteId,
-                StartDate = BusinessDateUtc.Date,
-                EndDate = BusinessDateUtc.Date.AddDays(1).AddTicks(-1),
+                StartDate = reportStart,
+                EndDate = reportEnd,
                 FileNamePrefix = $"TankVolumeHistory_{TankName?.Replace(" ", "_") ?? "Tank"}"
             };
         }

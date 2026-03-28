@@ -11,7 +11,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { reportsRoutes, isActiveRoute } from '../utils/navigationHelper';
-import { getAllReportSources } from '../sources';
+import { filterReportSourcesByPermission, getAllReportSources } from '../sources';
 import { usePermissions } from '../../../hooks/usePermissions';
 import './ReportsLayout.scss';
 
@@ -20,8 +20,12 @@ const ReportsLayout = ({ children }) => {
   const location = useLocation();
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const { hasPermission, hasAnyPermission } = usePermissions();
+  const accessibleReportSources = useMemo(
+    () => filterReportSourcesByPermission(getAllReportSources(), hasPermission),
+    [hasPermission]
+  );
 
-  const canSeeReportEngine = hasAnyPermission(['_Read_Reporting', '_Generate_Report']);
+  const canSeeReportEngine = accessibleReportSources.length > 0 || hasAnyPermission(['_Read_Reporting', '_Generate_Report']);
   const canSeeTemplates = hasPermission('_Manage_ReportTemplates');
   const canSeeScheduling = hasPermission('_Manage_ReportSchedules');
   const canSeeMonitoring = hasAnyPermission(['_Read_Reporting', '_Manage_ReportTemplates']);
@@ -46,14 +50,13 @@ const ReportsLayout = ({ children }) => {
 
   // Report Engine — one entry per registered source
   const reportEngineItems = useMemo(() => {
-    const sources = getAllReportSources();
-    return sources.map((src) => ({
+    return accessibleReportSources.map((src) => ({
       id: `engine-${src.id}`,
       title: src.name,
       icon: src.icon || 'fa-light fa-file-chart-column',
       path: reportsRoutes.engineSource(src.id),
     }));
-  }, []);
+  }, [accessibleReportSources]);
 
   const templateItems = useMemo(() => [
     {
@@ -161,167 +164,167 @@ const ReportsLayout = ({ children }) => {
           </div>
 
           {canSeeReportEngine && (<>
-          <div className="nav-separator"></div>
+            <div className="nav-separator"></div>
 
-          {/* Report Engine Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Report Engine</div>}
-            <nav className="nav-menu">
-              {reportEngineItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={(e) => handleNavigation(item.path, e)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleNavigation(item.path, e);
-                    }}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
+            {/* Report Engine Group */}
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Report Engine</div>}
+              <nav className="nav-menu">
+                {reportEngineItems.map((item) => {
+                  const isActive = isActiveRoute(location.pathname, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={(e) => handleNavigation(item.path, e)}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      title={sidebarCollapsed ? item.title : ''}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleNavigation(item.path, e);
+                      }}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        {!sidebarCollapsed && <span>{item.title}</span>}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                  );
+                })}
+              </nav>
+            </div>
 
           </>)}
 
           {canSeeTemplates && (<>
-          <div className="nav-separator"></div>
+            <div className="nav-separator"></div>
 
-          {/* Templates Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Templates</div>}
-            <nav className="nav-menu">
-              {templateItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={(e) => handleNavigation(item.path, e)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleNavigation(item.path, e);
-                    }}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
+            {/* Templates Group */}
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Templates</div>}
+              <nav className="nav-menu">
+                {templateItems.map((item) => {
+                  const isActive = isActiveRoute(location.pathname, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={(e) => handleNavigation(item.path, e)}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      title={sidebarCollapsed ? item.title : ''}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleNavigation(item.path, e);
+                      }}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        {!sidebarCollapsed && <span>{item.title}</span>}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                  );
+                })}
+              </nav>
+            </div>
 
           </>)}
 
           {canSeeScheduling && (<>
-          <div className="nav-separator"></div>
+            <div className="nav-separator"></div>
 
-          {/* Scheduling Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Scheduling</div>}
-            <nav className="nav-menu">
-              {schedulingItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={(e) => handleNavigation(item.path, e)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleNavigation(item.path, e);
-                    }}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
+            {/* Scheduling Group */}
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Scheduling</div>}
+              <nav className="nav-menu">
+                {schedulingItems.map((item) => {
+                  const isActive = isActiveRoute(location.pathname, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={(e) => handleNavigation(item.path, e)}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      title={sidebarCollapsed ? item.title : ''}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleNavigation(item.path, e);
+                      }}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        {!sidebarCollapsed && <span>{item.title}</span>}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                  );
+                })}
+              </nav>
+            </div>
 
           </>)}
 
           {canSeeMonitoring && (<>
-          <div className="nav-separator"></div>
+            <div className="nav-separator"></div>
 
-          {/* Monitoring Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Monitoring</div>}
-            <nav className="nav-menu">
-              {monitoringItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={(e) => handleNavigation(item.path, e)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleNavigation(item.path, e);
-                    }}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
+            {/* Monitoring Group */}
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Monitoring</div>}
+              <nav className="nav-menu">
+                {monitoringItems.map((item) => {
+                  const isActive = isActiveRoute(location.pathname, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={(e) => handleNavigation(item.path, e)}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      title={sidebarCollapsed ? item.title : ''}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleNavigation(item.path, e);
+                      }}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        {!sidebarCollapsed && <span>{item.title}</span>}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                  );
+                })}
+              </nav>
+            </div>
 
           </>)}
 
           {canSeeDataManagement && (<>
-          <div className="nav-separator"></div>
+            <div className="nav-separator"></div>
 
-          {/* Data Management Group */}
-          <div className="nav-group">
-            {!sidebarCollapsed && <div className="group-label">Data Management</div>}
-            <nav className="nav-menu">
-              {dataManagementItems.map((item) => {
-                const isActive = isActiveRoute(location.pathname, item.path);
-                return (
-                  <div
-                    key={item.id}
-                    onClick={(e) => handleNavigation(item.path, e)}
-                    className={`nav-item ${isActive ? 'active' : ''}`}
-                    title={sidebarCollapsed ? item.title : ''}
-                    role="button"
-                    tabIndex={0}
-                    onKeyPress={(e) => {
-                      if (e.key === 'Enter') handleNavigation(item.path, e);
-                    }}
-                  >
-                    <div className="nav-item-content">
-                      <i className={item.icon}></i>
-                      {!sidebarCollapsed && <span>{item.title}</span>}
+            {/* Data Management Group */}
+            <div className="nav-group">
+              {!sidebarCollapsed && <div className="group-label">Data Management</div>}
+              <nav className="nav-menu">
+                {dataManagementItems.map((item) => {
+                  const isActive = isActiveRoute(location.pathname, item.path);
+                  return (
+                    <div
+                      key={item.id}
+                      onClick={(e) => handleNavigation(item.path, e)}
+                      className={`nav-item ${isActive ? 'active' : ''}`}
+                      title={sidebarCollapsed ? item.title : ''}
+                      role="button"
+                      tabIndex={0}
+                      onKeyPress={(e) => {
+                        if (e.key === 'Enter') handleNavigation(item.path, e);
+                      }}
+                    >
+                      <div className="nav-item-content">
+                        <i className={item.icon}></i>
+                        {!sidebarCollapsed && <span>{item.title}</span>}
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </nav>
-          </div>
+                  );
+                })}
+              </nav>
+            </div>
           </>)}
         </div>
       </aside>

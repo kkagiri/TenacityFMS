@@ -345,6 +345,20 @@ namespace FMS.Application.Features.PTS.Services
                         ["CompletionSource"] = "LastTransactionData"
                     };
 
+                    _logger.LogInformation(
+                        "[UploadStatus] IDLE TRANSFER PAYLOAD - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, SourceTank {SourceTankId}, DestinationTank {DestinationTankId}, Volume {Volume}, Nozzle {Nozzle}, FuelGradeId {FuelGradeId}, FuelGrade {FuelGradeName}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}'",
+                        deviceId,
+                        pumpId,
+                        transactionId,
+                        transactionContext.SourceTankId,
+                        transactionContext.DestinationTankId,
+                        volume,
+                        transactionContext.Nozzle,
+                        transactionContext.FuelGradeId,
+                        transactionContext.FuelGradeName,
+                        transactionContext.AutoCloseTransaction,
+                        transactionContext.ConnectionType);
+
                     QueueAutoCompletion(deviceId, pumpId, transactionId, transferStatusData);
                     return;
                 }
@@ -425,11 +439,31 @@ namespace FMS.Application.Features.PTS.Services
 
         private void QueueAutoCompletion(string deviceId, int pumpId, int transactionId, JObject statusData)
         {
+            _logger.LogInformation(
+                "[UploadStatus] IDLE AUTO-COMPLETE QUEUED - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, IsTransferMode {IsTransferMode}, TankId {TankId}, DestinationTankId {DestinationTankId}, VehicleId {VehicleId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}', CompletionSource '{CompletionSource}'",
+                deviceId,
+                pumpId,
+                transactionId,
+                statusData.Value<bool?>("IsTransferMode") ?? false,
+                statusData.Value<int?>("TankId"),
+                statusData.Value<int?>("DestinationTankId"),
+                statusData.Value<int?>("VehicleId"),
+                statusData.Value<bool?>("AutoCloseTransaction") ?? false,
+                statusData.Value<string>("ConnectionType") ?? string.Empty,
+                statusData.Value<string>("CompletionSource") ?? string.Empty);
+
             _ = Task.Run(async () =>
             {
                 try
                 {
                     await _autoCompletionService.ProcessEndOfTransactionAsync(deviceId, pumpId, transactionId, statusData);
+
+                    _logger.LogInformation(
+                        "[UploadStatus] IDLE AUTO-COMPLETE INVOCATION FINISHED - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, IsTransferMode {IsTransferMode}",
+                        deviceId,
+                        pumpId,
+                        transactionId,
+                        statusData.Value<bool?>("IsTransferMode") ?? false);
                 }
                 catch (Exception ex)
                 {

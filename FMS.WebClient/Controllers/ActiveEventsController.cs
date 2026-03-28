@@ -58,7 +58,7 @@ namespace FMS.WebClient.Controllers
         /// Lists active events with optional filtering.
         /// </summary>
         [HttpGet]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? eventType = null,
             [FromQuery] string? state = null,
@@ -105,7 +105,7 @@ namespace FMS.WebClient.Controllers
         /// Gets a single active event by ID.
         /// </summary>
         [HttpGet("{id:int}")]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken = default)
         {
             try
@@ -132,7 +132,7 @@ namespace FMS.WebClient.Controllers
         /// Returns aggregated statistics for the dashboard.
         /// </summary>
         [HttpGet("stats")]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetStats(
             [FromQuery] int? siteId = null,
             CancellationToken cancellationToken = default)
@@ -175,7 +175,7 @@ namespace FMS.WebClient.Controllers
         /// Acknowledges an active event.
         /// </summary>
         [HttpPost("{id:int}/acknowledge")]
-        [RequirePermission(Permissions.EventExpression.Edit)]
+        [RequirePermission(Permissions.EventExpression.Edit, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> Acknowledge(int id, CancellationToken cancellationToken = default)
         {
             try
@@ -231,7 +231,7 @@ namespace FMS.WebClient.Controllers
         /// Resolves an active event.
         /// </summary>
         [HttpPost("{id:int}/resolve")]
-        [RequirePermission(Permissions.EventExpression.Edit)]
+        [RequirePermission(Permissions.EventExpression.Edit, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> Resolve(
             int id,
             [FromBody] ResolveEventRequest? request = null,
@@ -292,7 +292,7 @@ namespace FMS.WebClient.Controllers
         /// Bulk acknowledges multiple active events.
         /// </summary>
         [HttpPost("bulk-acknowledge")]
-        [RequirePermission(Permissions.EventExpression.Edit)]
+        [RequirePermission(Permissions.EventExpression.Edit, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> BulkAcknowledge(
             [FromBody] BulkEventActionRequest request,
             CancellationToken cancellationToken = default)

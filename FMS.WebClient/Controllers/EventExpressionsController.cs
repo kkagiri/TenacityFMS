@@ -51,7 +51,7 @@ namespace FMS.WebClient.Controllers
         /// Lists event expressions with optional filtering.
         /// </summary>
         [HttpGet]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetAll(
             [FromQuery] string? eventType = null,
             [FromQuery] int? siteId = null,
@@ -69,7 +69,7 @@ namespace FMS.WebClient.Controllers
         /// Gets a single event expression by ID.
         /// </summary>
         [HttpGet("{id:int}")]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetById(int id, CancellationToken cancellationToken = default)
         {
             var query = new GetEventExpressionByIdQuery(id);
@@ -82,7 +82,7 @@ namespace FMS.WebClient.Controllers
         /// Powers the frontend dropdown/form when creating an EventExpression.
         /// </summary>
         [HttpGet("types")]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetTypes(CancellationToken cancellationToken = default)
         {
             var query = new GetEventExpressionTypesQuery();
@@ -94,7 +94,7 @@ namespace FMS.WebClient.Controllers
         /// Gets execution history for a specific event expression.
         /// </summary>
         [HttpGet("{id:int}/executions")]
-        [RequirePermission(Permissions.EventExpression.Read)]
+        [RequirePermission(Permissions.EventExpression.Read, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> GetExecutions(
             int id,
             [FromQuery] DateTime? fromDate = null,
@@ -113,7 +113,7 @@ namespace FMS.WebClient.Controllers
         /// Creates a new event expression.
         /// </summary>
         [HttpPost]
-        [RequirePermission(Permissions.EventExpression.Create)]
+        [RequirePermission(Permissions.EventExpression.Create, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> Create(
             [FromBody] CreateEventExpressionRequest request,
             CancellationToken cancellationToken = default)
@@ -140,7 +140,7 @@ namespace FMS.WebClient.Controllers
         /// Updates an existing event expression.
         /// </summary>
         [HttpPut("{id:int}")]
-        [RequirePermission(Permissions.EventExpression.Edit)]
+        [RequirePermission(Permissions.EventExpression.Edit, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> Update(
             int id,
             [FromBody] UpdateEventExpressionRequest request,
@@ -165,7 +165,7 @@ namespace FMS.WebClient.Controllers
         /// Soft-deletes (deactivates) an event expression.
         /// </summary>
         [HttpDelete("{id:int}")]
-        [RequirePermission(Permissions.EventExpression.Delete)]
+        [RequirePermission(Permissions.EventExpression.Delete, Permissions.Admin.ATGAdmin)]
         public async Task<IActionResult> Delete(int id, CancellationToken cancellationToken = default)
         {
             var userId = GetCurrentUserId();

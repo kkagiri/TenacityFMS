@@ -7,16 +7,36 @@
  * Last Modified: 2026-02-19
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { isActiveRoute, navigationGroups } from '../utils/navigationHelper';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { isActiveRoute, navigationGroups, eventExpressionPermissions } from '../utils/navigationHelper';
 import './EventExpressionsLayout.scss';
 
 const EventExpressionsLayout = ({ children, currentPath }) => {
     const navigate = useNavigate();
     const location = useLocation();
+    const { hasAnyPermission } = usePermissions();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [mobileOpen, setMobileOpen] = useState(false);
+    const canReadExpressions = hasAnyPermission(eventExpressionPermissions.read);
+    const canCreateExpressions = hasAnyPermission(eventExpressionPermissions.create);
+
+    const visibleMainItems = useMemo(
+        () => navigationGroups.main.filter(() => canReadExpressions),
+        [canReadExpressions]
+    );
+
+    const visibleOperationItems = useMemo(
+        () => navigationGroups.operations.filter((item) => {
+            if (item.id === 'create') {
+                return canCreateExpressions;
+            }
+
+            return canReadExpressions;
+        }),
+        [canCreateExpressions, canReadExpressions]
+    );
 
     // Close mobile sidebar on route change
     useEffect(() => {
@@ -85,56 +105,62 @@ const EventExpressionsLayout = ({ children, currentPath }) => {
 
                 {/* Navigation */}
                 <div className="sidebar-content">
-                    <div className="nav-group">
-                        {!sidebarCollapsed && <div className="group-label">Main</div>}
-                        <nav className="nav-menu">
-                            {navigationGroups.main.map((item) => {
-                                const isActive = isActiveRoute(currentPath, item.path);
-                                return (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => handleNavigation(item.path)}
-                                        className={`nav-item ${isActive ? 'active' : ''}`}
-                                        title={sidebarCollapsed ? item.title : ''}
-                                    >
-                                        <div className="nav-item-content">
-                                            <i className={item.icon}></i>
-                                            {!sidebarCollapsed && <span>{item.title}</span>}
+                    {visibleMainItems.length > 0 && (
+                        <div className="nav-group">
+                            {!sidebarCollapsed && <div className="group-label">Main</div>}
+                            <nav className="nav-menu">
+                                {visibleMainItems.map((item) => {
+                                    const isActive = isActiveRoute(currentPath, item.path);
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => handleNavigation(item.path)}
+                                            className={`nav-item ${isActive ? 'active' : ''}`}
+                                            title={sidebarCollapsed ? item.title : ''}
+                                        >
+                                            <div className="nav-item-content">
+                                                <i className={item.icon}></i>
+                                                {!sidebarCollapsed && <span>{item.title}</span>}
+                                            </div>
+                                            {!sidebarCollapsed && item.badge && (
+                                                <span className={`nav-badge ${item.badge === 'Live' ? 'live' : ''}`}>
+                                                    {item.badge}
+                                                </span>
+                                            )}
                                         </div>
-                                        {!sidebarCollapsed && item.badge && (
-                                            <span className={`nav-badge ${item.badge === 'Live' ? 'live' : ''}`}>
-                                                {item.badge}
-                                            </span>
-                                        )}
-                                    </div>
-                                );
-                            })}
-                        </nav>
-                    </div>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    )}
 
-                    <div className="nav-separator"></div>
+                    {visibleMainItems.length > 0 && visibleOperationItems.length > 0 && (
+                        <div className="nav-separator"></div>
+                    )}
 
-                    <div className="nav-group">
-                        {!sidebarCollapsed && <div className="group-label">Operations</div>}
-                        <nav className="nav-menu">
-                            {navigationGroups.operations.map((item) => {
-                                const isActive = isActiveRoute(currentPath, item.path);
-                                return (
-                                    <div
-                                        key={item.id}
-                                        onClick={() => handleNavigation(item.path)}
-                                        className={`nav-item ${isActive ? 'active' : ''}`}
-                                        title={sidebarCollapsed ? item.title : ''}
-                                    >
-                                        <div className="nav-item-content">
-                                            <i className={item.icon}></i>
-                                            {!sidebarCollapsed && <span>{item.title}</span>}
+                    {visibleOperationItems.length > 0 && (
+                        <div className="nav-group">
+                            {!sidebarCollapsed && <div className="group-label">Operations</div>}
+                            <nav className="nav-menu">
+                                {visibleOperationItems.map((item) => {
+                                    const isActive = isActiveRoute(currentPath, item.path);
+                                    return (
+                                        <div
+                                            key={item.id}
+                                            onClick={() => handleNavigation(item.path)}
+                                            className={`nav-item ${isActive ? 'active' : ''}`}
+                                            title={sidebarCollapsed ? item.title : ''}
+                                        >
+                                            <div className="nav-item-content">
+                                                <i className={item.icon}></i>
+                                                {!sidebarCollapsed && <span>{item.title}</span>}
+                                            </div>
                                         </div>
-                                    </div>
-                                );
-                            })}
-                        </nav>
-                    </div>
+                                    );
+                                })}
+                            </nav>
+                        </div>
+                    )}
                 </div>
             </aside>
 

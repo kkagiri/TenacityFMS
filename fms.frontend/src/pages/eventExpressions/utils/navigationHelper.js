@@ -19,6 +19,13 @@ export const eventRoutes = {
     types: '/event-expressions/types',
 };
 
+export const eventExpressionPermissions = {
+    read: ['_Read_EventExpression', '_Manage_ATG'],
+    create: ['_Create_EventExpression', '_Manage_ATG'],
+    edit: ['_Edit_EventExpression', '_Manage_ATG'],
+    delete: ['_Delete_EventExpression', '_Manage_ATG'],
+};
+
 export const getEventRoute = (subPath = '') => {
     const basePath = '/event-expressions';
     if (!subPath) return basePath;

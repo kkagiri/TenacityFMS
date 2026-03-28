@@ -262,6 +262,18 @@ namespace FMS.Application.Features.PTS.Services
                 volume,
                 transactionId);
 
+            _logger.LogInformation(
+                "[UploadStatus] EOT TRANSFER CONTEXT - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, Nozzle {Nozzle}, FuelGradeId {FuelGradeId}, FuelGrade {FuelGradeName}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}', Reason '{Reason}'",
+                transactionContext.DeviceId,
+                pumpId,
+                transactionId,
+                transactionContext.Nozzle,
+                transactionContext.FuelGradeId,
+                transactionContext.FuelGradeName,
+                transactionContext.AutoCloseTransaction,
+                transactionContext.ConnectionType,
+                transactionContext.Reason);
+
             return new JObject
             {
                 ["Pump"] = pumpId,
@@ -413,6 +425,19 @@ namespace FMS.Application.Features.PTS.Services
 
         private void QueueAutoCompletion(string deviceId, int pumpId, int transactionId, JObject statusData)
         {
+            _logger.LogInformation(
+                "[UploadStatus] EOT AUTO-COMPLETE QUEUED - Device {DeviceId}, Pump {PumpId}, Transaction {TransactionId}, IsTransferMode {IsTransferMode}, TankId {TankId}, DestinationTankId {DestinationTankId}, VehicleId {VehicleId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}', DataSource '{DataSource}'",
+                deviceId,
+                pumpId,
+                transactionId,
+                statusData.Value<bool?>("IsTransferMode") ?? false,
+                statusData.Value<int?>("TankId"),
+                statusData.Value<int?>("DestinationTankId"),
+                statusData.Value<int?>("VehicleId"),
+                statusData.Value<bool?>("AutoCloseTransaction") ?? false,
+                statusData.Value<string>("ConnectionType") ?? string.Empty,
+                statusData.Value<string>("DataSource") ?? string.Empty);
+
             _ = Task.Run(async () =>
             {
                 try

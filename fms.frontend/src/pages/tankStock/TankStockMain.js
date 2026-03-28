@@ -24,10 +24,10 @@ import VolumeCorrectionMain from "../tankManagement/volumeCorrection/VolumeCorre
 import withPermissionProtection from "../../utils/withPermissionProtection";
 
 const AdminStockAnalytics = withPermissionProtection(StockAnalytics, ["_Read_TankStock"]);
-const AdminReconciliationMain = withPermissionProtection(ReconciliationMain, ["_Read_TankReconciliation", "_Read_TankStock"]);
+const AdminReconciliationMain = withPermissionProtection(ReconciliationMain, ["_Read_TankStock"]);
 const AdminFuelDataComparisonMain = withPermissionProtection(FuelDataComparisonMain, ["_Read_FuelComparison", "_Read_TankStock"]);
 const AdminFuelAuditMain = withPermissionProtection(FuelAuditMain, ["_Read_FuelAudit", "_Read_TankStock"]);
-const AdminVolumeCorrectionMain = withPermissionProtection(VolumeCorrectionMain, ["_Read_TankVolumeDataCorrection", "_Read_TankStock"]);
+const AdminVolumeCorrectionMain = withPermissionProtection(VolumeCorrectionMain, ["_Read_TankStock"]);
 
 const TankStockMain = () => {
   return (
