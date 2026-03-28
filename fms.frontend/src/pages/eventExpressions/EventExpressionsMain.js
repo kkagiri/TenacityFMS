@@ -18,7 +18,9 @@
 
 import React from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import withPermissionProtection from '../../utils/withPermissionProtection';
 import EventExpressionsLayout from './layout/EventExpressionsLayout';
+import { eventExpressionPermissions } from './utils/navigationHelper';
 
 // Dashboard
 import EventExpressionsDashboard from './dashboard/EventExpressionsDashboard';
@@ -32,6 +34,41 @@ import EventTypesReference from './components/EventTypesReference';
 // Active Events
 import ActiveEventsList from './activeEvents/ActiveEventsList';
 
+const ProtectedEventExpressionsDashboard = withPermissionProtection(
+    EventExpressionsDashboard,
+    eventExpressionPermissions.read
+);
+
+const ProtectedEventExpressionList = withPermissionProtection(
+    EventExpressionList,
+    eventExpressionPermissions.read
+);
+
+const ProtectedCreateEventExpressionForm = withPermissionProtection(
+    EventExpressionForm,
+    eventExpressionPermissions.create
+);
+
+const ProtectedEditEventExpressionForm = withPermissionProtection(
+    EventExpressionForm,
+    eventExpressionPermissions.edit
+);
+
+const ProtectedExecutionHistory = withPermissionProtection(
+    ExecutionHistory,
+    eventExpressionPermissions.read
+);
+
+const ProtectedEventTypesReference = withPermissionProtection(
+    EventTypesReference,
+    eventExpressionPermissions.read
+);
+
+const ProtectedActiveEventsList = withPermissionProtection(
+    ActiveEventsList,
+    eventExpressionPermissions.read
+);
+
 const EventExpressionsMain = () => {
     const location = useLocation();
 
@@ -39,19 +76,19 @@ const EventExpressionsMain = () => {
         <EventExpressionsLayout currentPath={location.pathname}>
             <Routes>
                 {/* Dashboard */}
-                <Route index element={<EventExpressionsDashboard />} />
+                <Route index element={<ProtectedEventExpressionsDashboard />} />
 
                 {/* Expression management */}
-                <Route path="expressions" element={<EventExpressionList />} />
-                <Route path="create" element={<EventExpressionForm />} />
-                <Route path=":id/edit" element={<EventExpressionForm />} />
-                <Route path=":id/executions" element={<ExecutionHistory />} />
+                <Route path="expressions" element={<ProtectedEventExpressionList />} />
+                <Route path="create" element={<ProtectedCreateEventExpressionForm />} />
+                <Route path=":id/edit" element={<ProtectedEditEventExpressionForm />} />
+                <Route path=":id/executions" element={<ProtectedExecutionHistory />} />
 
                 {/* Active events */}
-                <Route path="active-events" element={<ActiveEventsList />} />
+                <Route path="active-events" element={<ProtectedActiveEventsList />} />
 
                 {/* Reference */}
-                <Route path="types" element={<EventTypesReference />} />
+                <Route path="types" element={<ProtectedEventTypesReference />} />
 
                 {/* Fallback */}
                 <Route path="*" element={<Navigate to="/event-expressions" replace />} />

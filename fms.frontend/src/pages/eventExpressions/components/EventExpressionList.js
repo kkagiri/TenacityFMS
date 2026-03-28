@@ -32,14 +32,21 @@ import {
     deleteEventExpression,
     setFilters
 } from '../../../redux/slices/eventExpressionSlice';
+import { usePermissions } from '../../../hooks/usePermissions';
+import { eventExpressionPermissions } from '../utils/navigationHelper';
 import './EventExpressionList.scss';
 
 const EventExpressionList = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
+    const { hasAnyPermission } = usePermissions();
     const { expressions, loading, filters } = useSelector(
         (state) => state.eventExpressions
     );
+    const canCreateExpressions = hasAnyPermission(eventExpressionPermissions.create);
+    const canEditExpressions = hasAnyPermission(eventExpressionPermissions.edit);
+    const canDeleteExpressions = hasAnyPermission(eventExpressionPermissions.delete);
+    const canViewExecutions = hasAnyPermission(eventExpressionPermissions.read);
 
     useEffect(() => {
         dispatch(fetchEventExpressions(filters));
@@ -85,19 +92,23 @@ const EventExpressionList = () => {
             const { id, name, isSystem } = cellData.data;
             return (
                 <div className="tw-flex tw-gap-2">
-                    <Button
-                        icon="fa-light fa-pen-to-square"
-                        hint="Edit"
-                        stylingMode="text"
-                        onClick={() => handleEdit(id)}
-                    />
-                    <Button
-                        icon="fa-light fa-clock-rotate-left"
-                        hint="Execution History"
-                        stylingMode="text"
-                        onClick={() => handleViewExecutions(id)}
-                    />
-                    {!isSystem && (
+                    {canEditExpressions && (
+                        <Button
+                            icon="fa-light fa-pen-to-square"
+                            hint="Edit"
+                            stylingMode="text"
+                            onClick={() => handleEdit(id)}
+                        />
+                    )}
+                    {canViewExecutions && (
+                        <Button
+                            icon="fa-light fa-clock-rotate-left"
+                            hint="Execution History"
+                            stylingMode="text"
+                            onClick={() => handleViewExecutions(id)}
+                        />
+                    )}
+                    {!isSystem && canDeleteExpressions && (
                         <Button
                             icon="fa-light fa-trash"
                             hint="Deactivate"
@@ -108,7 +119,7 @@ const EventExpressionList = () => {
                 </div>
             );
         },
-        [handleEdit, handleViewExecutions, handleDelete]
+        [canDeleteExpressions, canEditExpressions, canViewExecutions, handleDelete, handleEdit, handleViewExecutions]
     );
 
     const renderStatus = useCallback((cellData) => {
@@ -173,13 +184,15 @@ const EventExpressionList = () => {
                     stylingMode="outlined"
                     onClick={handleRefresh}
                 />
-                <Button
-                    text="Create Expression"
-                    icon="fa-light fa-plus"
-                    type="default"
-                    stylingMode="contained"
-                    onClick={handleCreate}
-                />
+                {canCreateExpressions && (
+                    <Button
+                        text="Create Expression"
+                        icon="fa-light fa-plus"
+                        type="default"
+                        stylingMode="contained"
+                        onClick={handleCreate}
+                    />
+                )}
             </div>
 
             <DataGrid

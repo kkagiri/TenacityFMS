@@ -17,6 +17,7 @@ using FMS.Application.Common;
 using FMS.Application.CommonInterface;
 using FMS.Application.Features.ExpectedFuelAverage.Services;
 using FMS.Application.Features.FMS.FuelRefil;
+using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Features.Vehicle.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
@@ -38,6 +39,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
         private readonly ILogger<CreateFuelRrefillCommandCommandHandler> _logger;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
+        private readonly ClosingStockDiscrepancyRefreshService _closingDiscrepancyRefreshService;
         private readonly IVehicleSiteAutoAssignmentService? _siteAutoAssignmentService;
         private readonly IVehicleGpsOfflineAlertService? _gpsOfflineAlertService;
         private readonly IGPSGateDriverNameService? _driverNameService;
@@ -49,6 +51,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             IMapper mapper,
             TankVolumeHistoryIntegrationService tankVolumeHistoryService,
             TankStockFutureRecordsService futureRecordsService,
+            ClosingStockDiscrepancyRefreshService closingDiscrepancyRefreshService,
             IExpectedFuelAverageAlertService expectedFuelAverageAlertService,
             IVehicleSiteAutoAssignmentService? siteAutoAssignmentService = null,
             IVehicleGpsOfflineAlertService? gpsOfflineAlertService = null,
@@ -59,6 +62,7 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
             _mapper = mapper;
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
+            _closingDiscrepancyRefreshService = closingDiscrepancyRefreshService;
             _expectedFuelAverageAlertService = expectedFuelAverageAlertService;
             _siteAutoAssignmentService = siteAutoAssignmentService;
             _gpsOfflineAlertService = gpsOfflineAlertService;
@@ -383,6 +387,15 @@ namespace FMS.Application.Features.TankManagement.FuelRefill.Commands
                     fuelRefil,
                     fuelByUser?.UserName,
                     cancellationToken);
+
+                if (entryDate.Date < DateTime.UtcNow.Date)
+                {
+                    await _closingDiscrepancyRefreshService.RefreshClosingDiscrepancyAsync(
+                        tank.Id,
+                        fuelRefilDto.Date.Value,
+                        fuelRefil.FuelBy ?? fuelByUser?.UserName ?? "System",
+                        cancellationToken);
+                }
 
                 // Map to DTO to avoid serializing navigation properties (which causes massive response size)
                 var resultDto = _mapper.Map<FuelRefilDTO>(fuelRefil);

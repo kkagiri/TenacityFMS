@@ -8,6 +8,7 @@ using FMS.Application.Common;
 using FMS.Application.Features.EventEngine.Engine;
 using FMS.Application.Features.EventEngine.Events;
 using FMS.Application.Features.FMS.Delivery.cs;
+using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Application.Util;
 using FMS.Domain.Entities;
@@ -31,8 +32,9 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly IEventExpressionEngine _eventEngine;
+        private readonly ClosingStockDiscrepancyRefreshService _closingDiscrepancyRefreshService;
 
-        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine)
+        public CreateDeliveryCommandHandler(GpsdataContext context, ILogger<CreateDeliveryCommandHandler> logger, IMapper mapper, IMediator mediator, TankVolumeHistoryIntegrationService tankVolumeHistoryService, TankStockFutureRecordsService futureRecordsService, IEventExpressionEngine eventEngine, ClosingStockDiscrepancyRefreshService closingDiscrepancyRefreshService)
         {
             _context = context;
             _logger = logger;
@@ -41,6 +43,7 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
             _tankVolumeHistoryService = tankVolumeHistoryService;
             _futureRecordsService = futureRecordsService;
             _eventEngine = eventEngine;
+            _closingDiscrepancyRefreshService = closingDiscrepancyRefreshService;
         }
 
         public async Task<FMSResponseMessage> Handle(CreateDeliveryCommand request, CancellationToken cancellationToken)
@@ -268,6 +271,15 @@ namespace FMS.Application.Command.DatabaseCommand.DeliveriesCommands
                 {
                     // Event engine failure should never block delivery creation
                     _logger.LogWarning(eventEx, "Failed to fire ManualDelivery event for DeliveryId {DeliveryId}", delivery.Id);
+                }
+
+                if (deliveryDate.Date < DateTime.UtcNow.Date)
+                {
+                    await _closingDiscrepancyRefreshService.RefreshClosingDiscrepancyAsync(
+                        request.DeliveryDTO.TankId,
+                        deliveryDate,
+                        request.DeliveryDTO.RecordedBy ?? user.UserName ?? "System",
+                        cancellationToken);
                 }
 
                 return new FMSResponseMessage(true, "Delivery created successfully");

@@ -75,8 +75,8 @@ namespace FMS.Application.Services.TankStock
                 var pumpTransactionId = transferData.Value<int?>("PumpTransactionId");
 
                 _logger.LogInformation(
-                    "[PumpTransfer] Processing pump transfer: Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, User: {User}",
-                    sourceTankId, destinationTankId, volume, userId);
+                    "[PumpTransfer] Processing pump transfer: Source Tank {SourceTank} -> Dest Tank {DestTank}, Volume: {Volume} L, User: {User}, TransferDate {TransferDate}, PumpTransactionId {PumpTransactionId}, Reason '{Reason}'",
+                    sourceTankId, destinationTankId, volume, userId, transferDate, pumpTransactionId, reason);
 
                 // **STEP 1: VALIDATE TANKS EXIST**
                 var sourceTank = await _context.Tanks.FindAsync(sourceTankId);
@@ -84,20 +84,20 @@ namespace FMS.Application.Services.TankStock
 
                 if (sourceTank == null)
                 {
-                    _logger.LogError("[PumpTransfer] Source tank {TankId} not found", sourceTankId);
+                    _logger.LogError("[PumpTransfer] Source tank {TankId} not found for PumpTransactionId {PumpTransactionId}", sourceTankId, pumpTransactionId);
                     return FMSResponse<TankTransferDTO>.NotFound($"Source tank {sourceTankId} not found");
                 }
 
                 if (destinationTank == null)
                 {
-                    _logger.LogError("[PumpTransfer] Destination tank {TankId} not found", destinationTankId);
+                    _logger.LogError("[PumpTransfer] Destination tank {TankId} not found for PumpTransactionId {PumpTransactionId}", destinationTankId, pumpTransactionId);
                     return FMSResponse<TankTransferDTO>.NotFound($"Destination tank {destinationTankId} not found");
                 }
 
                 // **STEP 2: VALIDATE VOLUME**
                 if (volume <= 0)
                 {
-                    _logger.LogError("[PumpTransfer] Invalid volume: {Volume}", volume);
+                    _logger.LogError("[PumpTransfer] Invalid volume {Volume} for PumpTransactionId {PumpTransactionId}", volume, pumpTransactionId);
                     return FMSResponse<TankTransferDTO>.ValidationFailed(
                         new List<string> { "Transfer volume must be greater than 0" });
                 }

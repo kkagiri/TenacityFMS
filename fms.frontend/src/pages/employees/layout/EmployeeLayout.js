@@ -10,6 +10,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { usePermissions } from "../../../hooks/usePermissions";
 import {
   employeeRoutes,
   isActiveRoute,
@@ -21,11 +22,13 @@ import "./EmployeeLayout.scss";
 const EmployeeLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { hasPermission } = usePermissions();
   const sidebarRef = useRef(null);
   const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(
     window.innerWidth <= 768
   );
+  const canCreateEmployees = hasPermission("_Create_Employee");
 
   useEffect(() => {
     const onResize = () => {
@@ -144,9 +147,8 @@ const EmployeeLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
           >
             <i
-              className={`fa-light ${
-                sidebarCollapsed ? "fa-angles-right" : "fa-angles-left"
-              }`}
+              className={`fa-light ${sidebarCollapsed ? "fa-angles-right" : "fa-angles-left"
+                }`}
             ></i>
           </button>
         </div>
@@ -168,7 +170,7 @@ const EmployeeLayout = ({ children, currentPath, pageTitle, pageSubtitle }) => {
             <nav>{renderNavigationGroup(navigationGroups.history, "history")}</nav>
           </div>
 
-          {!sidebarCollapsed && (
+          {!sidebarCollapsed && canCreateEmployees && (
             <button
               type="button"
               className="employee-sidebar__cta"

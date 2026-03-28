@@ -7,6 +7,7 @@ using AutoMapper;
 using FMS.Application.Command.DatabaseCommand.TankVolumeHistoryCommand;
 using FMS.Application.Common;
 using FMS.Application.Features.FMS.TankTransfer;
+using FMS.Application.Features.TankManagement.Services;
 using FMS.Application.Services.TankStock;
 using FMS.Domain.Entities;
 using FMS.Domain.Entities.enums;
@@ -27,8 +28,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
         private readonly IMediator _mediator;
         private readonly TankStockFutureRecordsService _futureRecordsService;
         private readonly TankVolumeHistoryIntegrationService _tankVolumeHistoryService;
+        private readonly ClosingStockDiscrepancyRefreshService _closingDiscrepancyRefreshService;
 
-        public CreateTankTransferHandler(GpsdataContext context, ILogger<CreateTankTransferHandler> logger, IMapper mapper, IMediator mediator, TankStockFutureRecordsService futureRecordsService, TankVolumeHistoryIntegrationService tankVolumeHistoryService)
+        public CreateTankTransferHandler(GpsdataContext context, ILogger<CreateTankTransferHandler> logger, IMapper mapper, IMediator mediator, TankStockFutureRecordsService futureRecordsService, TankVolumeHistoryIntegrationService tankVolumeHistoryService, ClosingStockDiscrepancyRefreshService closingDiscrepancyRefreshService)
         {
             _context = context;
             _logger = logger;
@@ -36,6 +38,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
             _mediator = mediator;
             _futureRecordsService = futureRecordsService;
             _tankVolumeHistoryService = tankVolumeHistoryService;
+            _closingDiscrepancyRefreshService = closingDiscrepancyRefreshService;
         }
 
         public async Task<FMSResponseMessage<TankTransferDTO>> Handle(CreateTankTransfer request, CancellationToken cancellationToken)
@@ -379,6 +382,21 @@ namespace FMS.Application.Command.DatabaseCommand.TankTransferCommand
 
                 // Save TankStock updates
                 await _context.SaveChangesAsync(cancellationToken);
+
+                if (transferDate.Date < DateTime.UtcNow.Date)
+                {
+                    var refreshedBy = request.TankTransferDTO.RecordedBy ?? "System";
+                    await _closingDiscrepancyRefreshService.RefreshClosingDiscrepancyAsync(
+                        sourceTank.Id,
+                        transferDate,
+                        refreshedBy,
+                        cancellationToken);
+                    await _closingDiscrepancyRefreshService.RefreshClosingDiscrepancyAsync(
+                        destinationTank.Id,
+                        transferDate,
+                        refreshedBy,
+                        cancellationToken);
+                }
 
                 return new FMSResponseMessage<TankTransferDTO>(true, "Tank Transfer successful", request.TankTransferDTO);
             }

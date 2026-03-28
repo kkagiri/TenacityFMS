@@ -395,6 +395,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                         totalTransfersOut ?? 0,
                         tank,
                         entryDate,
+                        businessDayStart,
+                        closingStockTimestamp,
                         cancellationToken);
                 }
                 catch (Exception ex)
@@ -459,6 +461,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             decimal totalTransfersOut,
             Tank tank,
             DateTime entryDate,
+            DateTime businessDayStart,
+            DateTime closingStockTimestamp,
             CancellationToken cancellationToken = default)
         {
             var tankId = tank.Id;
@@ -497,6 +501,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 TotalDispensing = totalRefills, // Note: Refills are negative dispensing
                 TotalTransfersIn = totalTransfersIn,
                 TotalTransfersOut = totalTransfersOut,
+                BusinessWindowStartUtc = businessDayStart,
+                BusinessWindowEndUtc = closingStockTimestamp,
                 VarianceType = varianceType,
                 IsSignificantVariance = isSignificantVariance,
                 RequiresInvestigation = requiresInvestigation
@@ -781,6 +787,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
             // ─── Report / Summary ───
             public decimal NetMovement { get; set; }              // Sum of all VolumeChange
             public int TransactionCount { get; set; }             // Count of transactions (excl. opening/closing)
+            public DateTime BusinessWindowStartUtc { get; set; }
+            public DateTime BusinessWindowEndUtc { get; set; }
 
             public string VarianceType { get; set; } = string.Empty; // GAIN, LOSS, BALANCED
             public bool IsSignificantVariance { get; set; }
@@ -790,7 +798,7 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
         /// <summary>
         /// Builds a deep-link URL to the TankVolumeHistory report filtered for a specific tank and date.
         /// </summary>
-        private string BuildTankVolumeHistoryUrl(int tankId, int siteId, DateTime businessDate)
+        private string BuildTankVolumeHistoryUrl(int tankId, int siteId, DateTime windowStartUtc, DateTime windowEndUtc)
         {
             try
             {
@@ -800,8 +808,9 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                            ?? _configuration["AppSettings:FrontendBaseUrl"]
                            ?? "http://localhost:3000";
 
-                var dateStr = businessDate.ToString("yyyy-MM-dd");
-                return $"{baseUrl.TrimEnd('/')}/reports/tank-volume-history?autoApply=1&startDate={dateStr}&endDate={dateStr}&tankIds={tankId}&siteIds={siteId}";
+                var startText = Uri.EscapeDataString(windowStartUtc.ToString("yyyy-MM-ddTHH:mm:ss"));
+                var endText = Uri.EscapeDataString(windowEndUtc.ToString("yyyy-MM-ddTHH:mm:ss"));
+                return $"{baseUrl.TrimEnd('/')}/reports/tank-volume-history?autoApply=1&startDate={startText}&endDate={endText}&tankIds={tankId}&siteIds={siteId}";
             }
             catch (Exception ex)
             {
@@ -867,7 +876,11 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                 };
 
                 // Build report deep-link URL for TankVolumeHistory
-                var reportUrl = BuildTankVolumeHistoryUrl(tank.Id, tank.SiteId, reconciliation.Date);
+                var reportUrl = BuildTankVolumeHistoryUrl(
+                    tank.Id,
+                    tank.SiteId,
+                    reconciliation.BusinessWindowStartUtc,
+                    reconciliation.BusinessWindowEndUtc);
 
                 // Fire TankClosingStockEvent through the event expression engine
                 var stockEvent = new TankClosingStockEvent
@@ -900,6 +913,8 @@ namespace FMS.Application.Command.DatabaseCommand.TankStockCommand
                     TransactionCount = reconciliation.TransactionCount,
                     BusinessDate = businessDate,
                     BusinessDateUtc = reconciliation.Date,
+                    BusinessWindowStartUtc = reconciliation.BusinessWindowStartUtc,
+                    BusinessWindowEndUtc = reconciliation.BusinessWindowEndUtc,
                     ReportUrl = reportUrl,
                 };
                 var result = await _eventEngine.ProcessAsync(stockEvent, cancellationToken);

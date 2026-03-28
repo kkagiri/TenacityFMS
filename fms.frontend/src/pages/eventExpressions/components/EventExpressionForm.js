@@ -43,6 +43,7 @@ import { fetchVehicleList } from '../../../redux/actions/vehicleActions';
 import { fetchVehicleTypes } from '../../../redux/actions/vehicleTypeActions';
 import notificationsApi from '../../../dataservice/notificationsApi';
 import axiosInstance from '../../../api/axiosInstance';
+import { usePermissions } from '../../../hooks/usePermissions';
 import StepBasicInfo from './steps/StepBasicInfo';
 import StepEventTriggers from './steps/StepEventTriggers';
 import StepScope from './steps/StepScope';
@@ -52,6 +53,7 @@ import StepMessageTemplate, {
     VEHICLE_DOCUMENT_QUICK_TEMPLATE,
     VEHICLE_DOCUMENT_QUICK_TITLE
 } from './steps/StepMessageTemplate';
+import { eventExpressionPermissions } from '../utils/navigationHelper';
 import './EventExpressionForm.scss';
 
 const STEP_TITLES = [
@@ -125,7 +127,11 @@ const EventExpressionForm = () => {
     const dispatch = useDispatch();
     const navigate = useNavigate();
     const { id } = useParams();
+    const { hasAnyPermission } = usePermissions();
     const isEditing = !!id;
+    const canSaveExpression = hasAnyPermission(
+        isEditing ? eventExpressionPermissions.edit : eventExpressionPermissions.create
+    );
 
     const {
         selectedExpression,
@@ -651,6 +657,15 @@ const EventExpressionForm = () => {
     // ─── Submit: create/update policy first, then save expression ───
     const handleSubmit = useCallback(
         async (e) => {
+            if (!canSaveExpression) {
+                notify(
+                    `You do not have permission to ${isEditing ? 'update' : 'create'} event expressions.`,
+                    'warning',
+                    3500
+                );
+                return;
+            }
+
             const validationGroup = e.validationGroup;
             if (validationGroup) {
                 const validationResult = validationGroup.validate();
@@ -786,6 +801,7 @@ const EventExpressionForm = () => {
             selectedUserIds,
             recipientRules,
             selectedTypeMetadata,
+            canSaveExpression,
             id,
             isEditing,
             navigate
@@ -948,7 +964,7 @@ const EventExpressionForm = () => {
                         type="default"
                         stylingMode="contained"
                         icon={saving ? undefined : 'fa-light fa-check'}
-                        disabled={saving}
+                        disabled={saving || !canSaveExpression}
                         useSubmitBehavior={false}
                         onClick={handleSubmit}
                     />

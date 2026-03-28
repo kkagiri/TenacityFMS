@@ -50,7 +50,7 @@ const QUICK_ACTIONS = [
     label: 'Active Events',
     icon: 'fa-exclamation-triangle',
     route: '/event-expressions',
-    permission: '_Read_EventExpression',
+    permission: ['_Read_EventExpression', '_Manage_ATG'],
     color: 'red'
   },
   {
@@ -82,12 +82,16 @@ const QuickActionsWidget = ({
   onConfigChange
 }) => {
   const navigate = useNavigate();
-  const { hasPermission } = usePermissions();
+  const { hasAnyPermission, hasPermission } = usePermissions();
 
   // Filter actions based on user permissions
   const availableActions = useMemo(() => {
-    return QUICK_ACTIONS.filter(action => hasPermission(action.permission));
-  }, [hasPermission]);
+    return QUICK_ACTIONS.filter((action) => (
+      Array.isArray(action.permission)
+        ? hasAnyPermission(action.permission)
+        : hasPermission(action.permission)
+    ));
+  }, [hasAnyPermission, hasPermission]);
 
   // Handle action click
   const handleActionClick = (action) => {

@@ -254,6 +254,15 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     Tag = null // NO TAG for tank transfers
                 };
 
+                _logger.LogInformation(
+                    "[TankTransferAuth] Pump authorize request - Device {DeviceId}, Pump {PumpId}, Nozzle {Nozzle}, Dose {Dose}, AutoCloseTransaction {AutoCloseTransaction}, TransactionEnabled {TransactionEnabled}",
+                    request.DeviceId,
+                    request.PumpId,
+                    request.Nozzle,
+                    request.Volume,
+                    pumpAuthorizeData.AutoCloseTransaction,
+                    pumpAuthorizeData.TransactionEnabled);
+
                 var confirmation = await _pumpService.PumpAuthorizeAsync(request.DeviceId, pumpAuthorizeData);
 
                 if (confirmation == null)
@@ -319,6 +328,8 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                     IsTransferMode = true, // **CRITICAL FLAG** - Tells EOT processing this is a transfer
                     AuthorizedAt = DateTime.UtcNow,
                     StartTime = DateTime.UtcNow,
+                    ConnectionType = string.Empty,
+                    AutoCloseTransaction = false,
                     VehicleId = (int?)null, // Explicitly NULL for transfers
                     Tag = (string?)null     // Explicitly NULL for transfers
                 };
@@ -330,8 +341,27 @@ namespace FMS.Application.Command.PTSCommand.PumpCommands
                 await _redisDb.StringSetAsync(redisKey, contextJson, expiry: TimeSpan.FromHours(2));
 
                 _logger.LogInformation(
-                    "[TankTransferAuth] **CONTEXT STORED** ✅ - Redis key: {RedisKey}, IsTransferMode: true, Nozzle: {Nozzle}, FuelGrade: {FuelGrade}",
-                    redisKey, request.Nozzle, fuelGradeName);
+                    "[TankTransferAuth] **CONTEXT STORED** ✅ - Redis key: {RedisKey}, Tx {TransactionId}, SourceTank {SourceTankId}, DestinationTank {DestinationTankId}, Nozzle {Nozzle}, FuelGradeId {FuelGradeId}, FuelGrade {FuelGrade}, IsTransferMode {IsTransferMode}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}', Reason '{Reason}'",
+                    redisKey,
+                    confirmation.Transaction,
+                    request.SourceTankId,
+                    request.DestinationTankId,
+                    request.Nozzle,
+                    fuelGradeId,
+                    fuelGradeName,
+                    transferContext.IsTransferMode,
+                    transferContext.AutoCloseTransaction,
+                    transferContext.ConnectionType,
+                    transferContext.Reason);
+
+                if (!transferContext.AutoCloseTransaction || string.IsNullOrWhiteSpace(transferContext.ConnectionType))
+                {
+                    _logger.LogWarning(
+                        "[TankTransferAuth] Transfer context may require manual completion downstream - Tx {TransactionId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}'",
+                        confirmation.Transaction,
+                        transferContext.AutoCloseTransaction,
+                        transferContext.ConnectionType);
+                }
 
                 // **STEP 6: UPDATE AUTHORIZATION STATE TRACKER**
                 var authState = new AuthState

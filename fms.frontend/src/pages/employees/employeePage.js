@@ -118,12 +118,17 @@ const EmployeePage = () => {
 
   useEffect(() => {
     if (location.hash !== "#add-employee") return;
+    if (!canCreate) {
+      notify("You do not have permission to add employees.", "warning", 2500);
+      navigate(location.pathname, { replace: true });
+      return;
+    }
     setSelectedEmployee(null);
     setFormMode("create");
     setFormOpen(true);
     setDetailOpen(false);
     navigate(location.pathname, { replace: true });
-  }, [location.hash, location.pathname, navigate]);
+  }, [canCreate, location.hash, location.pathname, navigate]);
 
   const refresh = useCallback(() => {
     fetchData();
@@ -144,11 +149,15 @@ const EmployeePage = () => {
   }, []);
 
   const handleOpenCreate = useCallback(() => {
+    if (!canCreate) {
+      notify("You do not have permission to add employees.", "warning", 2500);
+      return;
+    }
     setSelectedEmployee(null);
     setFormMode("create");
     setDetailOpen(false);
     setFormOpen(true);
-  }, []);
+  }, [canCreate]);
 
   const handleOpenEdit = useCallback(
     (employee) => {

@@ -18,9 +18,10 @@ import { SelectBox } from 'devextreme-react/select-box';
 import notify from 'devextreme/ui/notify';
 import SlidePanel from '../ui/SlidePanel';
 import ReportParameterForm from '../../pages/reports/engine/ReportParameterForm';
-import { getAllReportSources, getReportSource } from '../../pages/reports/sources/reportSourceRegistry';
+import { filterReportSourcesByPermission, getAllReportSources, getReportSource } from '../../pages/reports/sources/reportSourceRegistry';
 import { submitReportJob } from '../../api/reportJobApi';
 import { fetchUsers } from '../../redux/actions/userActions';
+import { usePermissions } from '../../hooks/usePermissions';
 import './RequestReportEmailPanel.scss';
 
 /** Email format options */
@@ -37,11 +38,18 @@ const RequestReportEmailPanel = ({ open, onClose, initialSourceId = '' }) => {
     const dispatch = useDispatch();
     const systemUsers = useSelector((state) => state.user?.users || []);
     const currentUser = useSelector((state) => state.auth?.user);
+    const { hasPermission } = usePermissions();
 
     // ── Report source ──
-    const allSources = useMemo(() => getAllReportSources(), []);
+    const allSources = useMemo(
+        () => filterReportSourcesByPermission(getAllReportSources(), hasPermission),
+        [hasPermission]
+    );
     const [selectedSourceId, setSelectedSourceId] = useState(initialSourceId);
-    const activeSource = useMemo(() => getReportSource(selectedSourceId), [selectedSourceId]);
+    const activeSource = useMemo(
+        () => allSources.find((source) => source.id === selectedSourceId) || null,
+        [allSources, selectedSourceId]
+    );
 
     // ── Parameters & format ──
     const [filters, setFilters] = useState({});

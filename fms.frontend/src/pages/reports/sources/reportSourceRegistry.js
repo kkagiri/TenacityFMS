@@ -91,6 +91,24 @@ export const getAllReportSources = () => {
     return Array.from(SOURCE_REGISTRY.values());
 };
 
+export const canAccessReportSource = (source, hasPermission) => {
+    if (!source) {
+        return false;
+    }
+
+    if (!source.permission) {
+        return true;
+    }
+
+    return typeof hasPermission === 'function'
+        ? hasPermission(source.permission)
+        : false;
+};
+
+export const filterReportSourcesByPermission = (sources, hasPermission) => {
+    return (sources || []).filter((source) => canAccessReportSource(source, hasPermission));
+};
+
 /**
  * Get sources filtered by category
  * @param {string} category
@@ -124,6 +142,8 @@ export const registerReportSource = (source) => {
 };
 
 export default {
+    canAccessReportSource,
+    filterReportSourcesByPermission,
     getReportSource,
     getAllReportSources,
     getReportSourcesByCategory,

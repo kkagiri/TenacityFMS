@@ -68,7 +68,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-chart-pie",
       route: "/reports",
       color: "#7c3aed",
-      requiredPermissions: ["Data Analysis Module", "ReportingModule", "ReportModule", "StockReportModule", "TankVolumeHistoryModule", "_Read_Reporting", "_Generate_Report", "_Read_VehicleConsumptionReport", "_Read_FuelRefillReport", "_Read_StockReport", "_Read_TankVolumeHistory", "_Read_PTSDevice"]
+      requiredPermissions: ["Data Analysis Module", "ReportingModule", "ReportModule", "StockReportModule", "TankVolumeHistoryModule", "_Read_Reporting", "_Generate_Report", "_Read_VehicleConsumptionReport", "_Read_FuelRefillReport", "_Read_TankVolumeHistory", "_Read_PTSDevice"]
     },
     {
       id: 7,
@@ -76,7 +76,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-oil-can",
       route: "/tankstock",
       color: "#498205",
-      requiredPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_TankReconciliation", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_DailyTankReconciliation", "_Read_TankVolumeDataCorrection", "_Read_TankVolumeHistory"]
+      requiredPermissions: ["TankStockModule", "TankReconciliationModule", "FuelComparisonModule", "FuelAuditModule", "DailyTankReconciliationModule", "TankVolumeDataCorrectionModule", "TankVolumeHistoryModule", "_Read_TankStock", "_Read_FuelComparison", "_Read_FuelAudit", "_Read_TankVolumeHistory"]
     },
     {
       id: 8,
@@ -93,7 +93,7 @@ const AppDrawer = ({ isOpen, onClose, buttonRef }) => {
       icon: "fa-light fa-bell",
       route: "/event-expressions",
       color: "#e74856",
-      requiredPermissions: ["_Read_EventExpression"]
+      requiredPermissions: ["_Read_EventExpression", "_Manage_ATG"]
     },
     {
       id: 11,

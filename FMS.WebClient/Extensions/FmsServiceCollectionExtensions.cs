@@ -662,6 +662,7 @@ public static class FmsServiceCollectionExtensions
         services.AddScoped<IInTankDeliveryDetectionService, InTankDeliveryDetectionService>();
         services.AddScoped<IServerSideDeliveryDetectionService, ServerSideDeliveryDetectionService>();
         services.AddScoped<TankStockFutureRecordsService>();
+        services.AddScoped<ClosingStockDiscrepancyRefreshService>();
         services.AddScoped<OpeningStockValidationService>();
         services.AddScoped<FMS.Application.Features.TankManagement.BulkImport.Services.BulkImportValidationService>();
         // Data validation and correction services for tank volume history

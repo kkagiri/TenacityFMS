@@ -75,11 +75,38 @@ namespace FMS.Application.Services
                 _logger.LogInformation("[AutoComplete] EndOfTransaction detected for device {DeviceId}, pump {Pump}, transaction {Transaction}",
                     deviceId, pump, transaction);
 
+                _logger.LogInformation(
+                    "[AutoComplete] Incoming status data - Device {DeviceId}, Pump {Pump}, Transaction {Transaction}, IsTransferMode {IsTransferMode}, TankId {TankId}, DestinationTankId {DestinationTankId}, VehicleId {VehicleId}, Volume {Volume}, Amount {Amount}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}', CompletionSource '{CompletionSource}', DetectedVia '{DetectedVia}'",
+                    deviceId,
+                    pump,
+                    transaction,
+                    statusData.Value<bool?>("IsTransferMode") ?? false,
+                    statusData.Value<int?>("TankId"),
+                    statusData.Value<int?>("DestinationTankId"),
+                    statusData.Value<int?>("VehicleId"),
+                    statusData.Value<decimal?>("Volume"),
+                    statusData.Value<decimal?>("Amount"),
+                    statusData.Value<bool?>("AutoCloseTransaction") ?? false,
+                    statusData.Value<string>("ConnectionType") ?? string.Empty,
+                    statusData.Value<string>("CompletionSource") ?? string.Empty,
+                    statusData.Value<string>("DetectedVia") ?? string.Empty);
+
                 // Step 1: Check if this transaction should be auto-completed
                 var shouldAutoComplete = await ShouldAutoCompleteTransaction(deviceId, transaction);
 
                 if (!shouldAutoComplete)
                 {
+                    _logger.LogWarning(
+                        "[AutoComplete] Manual completion branch selected - Device {DeviceId}, Pump {Pump}, Transaction {Transaction}, IsTransferMode {IsTransferMode}, TankId {TankId}, DestinationTankId {DestinationTankId}, AutoCloseTransaction {AutoCloseTransaction}, ConnectionType '{ConnectionType}'",
+                        deviceId,
+                        pump,
+                        transaction,
+                        statusData.Value<bool?>("IsTransferMode") ?? false,
+                        statusData.Value<int?>("TankId"),
+                        statusData.Value<int?>("DestinationTankId"),
+                        statusData.Value<bool?>("AutoCloseTransaction") ?? false,
+                        statusData.Value<string>("ConnectionType") ?? string.Empty);
+
                     _logger.LogInformation("[AutoComplete] Transaction {Transaction} on device {DeviceId} requires manual completion",
                         transaction, deviceId);
 
@@ -164,6 +191,19 @@ namespace FMS.Application.Services
 
                 _logger.LogInformation("[AutoComplete] Auto-completion check for {DeviceId}:{Transaction} - AutoClose: {AutoClose}, ConnectionType: {ConnectionType}, Result: {ShouldAuto}",
                     deviceId, transaction, autoClose, connectionType, shouldAuto);
+
+                if (!shouldAuto)
+                {
+                    _logger.LogWarning(
+                        "[AutoComplete] Auto-completion disabled by context - Device {DeviceId}, Transaction {Transaction}, AutoClose {AutoClose}, ConnectionType '{ConnectionType}', IsTransferMode {IsTransferMode}, TankId {TankId}, DestinationTankId {DestinationTankId}",
+                        deviceId,
+                        transaction,
+                        autoClose,
+                        connectionType,
+                        context.TryGetProperty("IsTransferMode", out var transferProp) && transferProp.ValueKind == JsonValueKind.True,
+                        context.TryGetProperty("TankId", out var tankProp) && tankProp.ValueKind == JsonValueKind.Number ? tankProp.GetInt32() : (int?)null,
+                        context.TryGetProperty("DestinationTankId", out var destProp) && destProp.ValueKind == JsonValueKind.Number ? destProp.GetInt32() : (int?)null);
+                }
 
                 return shouldAuto;
 

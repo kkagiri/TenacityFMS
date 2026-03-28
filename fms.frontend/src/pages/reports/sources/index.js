@@ -20,6 +20,8 @@ export { default as alarmReport } from './alarmReport';
 export { default as storageReceivedVsDispensed } from './storageReceivedVsDispensed';
 
 export {
+    canAccessReportSource,
+    filterReportSourcesByPermission,
     getReportSource,
     getAllReportSources,
     getReportSourcesByCategory,

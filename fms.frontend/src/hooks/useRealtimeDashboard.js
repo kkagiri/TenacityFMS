@@ -33,7 +33,7 @@ export const useRealtimeDashboard = (options = {}) => {
   const isAuthenticated = useSelector(state => state.auth.isAuthenticated);
 
   // Permissions
-  const { hasPermission } = usePermissions();
+  const { hasAnyPermission, hasPermission } = usePermissions();
 
   // Real-time connection state
   const [connectionStatus, setConnectionStatus] = useState('disconnected');
@@ -551,15 +551,21 @@ export const useRealtimeDashboard = (options = {}) => {
       'quickActions': '_View_Dashboard',
       'stats': '_View_Dashboard',
       'systemModules': 'Dashboard Module',
-      'events': '_Read_EventExpression',
+      'events': ['_Read_EventExpression', '_Manage_ATG'],
       'performance': '_View_Dashboard',
       'fuelManagement': 'FuelRefil',
       'tankStatus': 'TankStockModule'
     };
 
     const permission = widgetPermissions[widgetName];
-    return permission ? hasPermission(permission) : true;
-  }, [hasPermission]);
+    if (!permission) {
+      return true;
+    }
+
+    return Array.isArray(permission)
+      ? hasAnyPermission(permission)
+      : hasPermission(permission);
+  }, [hasAnyPermission, hasPermission]);
 
   // Initialize on mount
   useEffect(() => {
