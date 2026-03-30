@@ -56,6 +56,17 @@ public class FuelAutoImportService : IFuelAutoImportService
         [@"Z:\Truck Report"] = @"\\10.0.10.150\reports\Truck Report",
     };
 
+    private static readonly Dictionary<string, string> SiteAliases = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["FOOTBRIDGE"] = "BRIDGE",
+        ["IP"] = "Industrial Plot",
+        ["british embassy"] = "BHC",
+        ["LANGATA KIBERA"] = "LANGATA-KIBERA",
+        ["NARO MORU"] = "NARUMORO",
+        ["OLKARI KEDONG"] = "OLKARIA-KEDONG",
+        ["OLKARIA KEDONG"] = "OLKARIA-KEDONG"
+    };
+
     public FuelAutoImportService(
         IExcelParsingService parsingService,
         IFileTrackerService fileTrackerService,
@@ -353,7 +364,6 @@ public class FuelAutoImportService : IFuelAutoImportService
     private async Task<Dictionary<string, int>> BuildSiteLookupAsync()
     {
         var sites = await _context.Sites
-            .Where(s => s.IsActive == true)
             .Select(s => new { s.Id, s.Name })
             .ToListAsync();
 
@@ -361,22 +371,13 @@ public class FuelAutoImportService : IFuelAutoImportService
         foreach (var site in sites)
         {
             if (!string.IsNullOrWhiteSpace(site.Name))
-                lookup.TryAdd(site.Name.Trim(), site.Id);
+                AddLookupValue(lookup, site.Name.Trim(), site.Id);
         }
 
-        // Add reverse mappings so that report names resolve to DB site names
-        // e.g., "FOOTBRIDGE" in report → "BRIDGE" in DB
-        var siteMappings = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["FOOTBRIDGE"] = "BRIDGE",
-            ["IP"] = "Industrial Plot",
-            ["british embassy"] = "BHC"
-        };
-
-        foreach (var (reportName, dbName) in siteMappings)
+        foreach (var (reportName, dbName) in SiteAliases)
         {
             if (lookup.TryGetValue(dbName, out var siteId))
-                lookup.TryAdd(reportName, siteId);
+                AddLookupValue(lookup, reportName, siteId);
         }
 
         return lookup;
@@ -512,7 +513,16 @@ public class FuelAutoImportService : IFuelAutoImportService
     {
         if (string.IsNullOrWhiteSpace(siteName))
             return 0;
-        return siteLookup.TryGetValue(siteName.Trim(), out var id) ? id : 0;
+
+        var trimmedSiteName = siteName.Trim();
+        if (siteLookup.TryGetValue(trimmedSiteName, out var id))
+            return id;
+
+        if (SiteAliases.TryGetValue(trimmedSiteName, out var mappedSiteName)
+            && siteLookup.TryGetValue(mappedSiteName, out id))
+            return id;
+
+        return siteLookup.TryGetValue(NormalizeSiteKey(trimmedSiteName), out id) ? id : 0;
     }
 
     private static string NormalizeScanPath(string scanPath)
@@ -522,6 +532,20 @@ public class FuelAutoImportService : IFuelAutoImportService
 
         var normalized = scanPath.Trim().TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar);
         return LegacyScanPathMappings.TryGetValue(normalized, out var mappedPath) ? mappedPath : normalized;
+    }
+
+    private static void AddLookupValue(Dictionary<string, int> lookup, string siteName, int siteId)
+    {
+        lookup.TryAdd(siteName, siteId);
+        lookup.TryAdd(NormalizeSiteKey(siteName), siteId);
+    }
+
+    private static string NormalizeSiteKey(string value)
+    {
+        return System.Text.RegularExpressions.Regex.Replace(
+            value.Trim().ToUpperInvariant(),
+            @"[^A-Z0-9]+",
+            string.Empty);
     }
 
     #endregion

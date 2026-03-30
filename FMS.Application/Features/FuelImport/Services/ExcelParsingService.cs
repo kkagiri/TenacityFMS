@@ -37,7 +37,18 @@ public class ExcelParsingService : IExcelParsingService
     {
         ["FOOTBRIDGE"] = "BRIDGE",
         ["IP"] = "Industrial Plot",
-        ["british embassy"] = "BHC"
+        ["british embassy"] = "BHC",
+        ["LANGATA KIBERA"] = "LANGATA-KIBERA",
+        ["NARO MORU"] = "NARUMORO",
+        ["OLKARI KEDONG"] = "OLKARIA-KEDONG",
+        ["OLKARIA KEDONG"] = "OLKARIA-KEDONG"
+    };
+
+    private static readonly string[] MonthTokens =
+    {
+        "january", "jan", "february", "feb", "march", "mar", "april", "apr", "may",
+        "june", "jun", "july", "jul", "august", "aug", "september", "sep", "october", "oct",
+        "november", "nov", "december", "dec"
     };
 
     // km/l filename pattern: "{SITENAME} Fuel Report {MONTH} {YEAR}.xlsx"
@@ -90,6 +101,13 @@ public class ExcelParsingService : IExcelParsingService
                 metadata.DetectedSiteName = match.Groups[1].Value.Trim();
                 metadata.DetectedMonth = match.Groups[2].Value.ToUpperInvariant();
                 metadata.DetectedYear = int.TryParse(match.Groups[3].Value, out var y) ? y : null;
+            }
+            else
+            {
+                metadata.DetectedSiteName = TryExtractKmLSiteName(fileName);
+                var (month, year) = TryExtractMonthAndYear(fileName, filePath);
+                metadata.DetectedMonth = month;
+                metadata.DetectedYear = year;
             }
         }
 
@@ -486,7 +504,57 @@ public class ExcelParsingService : IExcelParsingService
         if (SiteNameMappings.TryGetValue(name, out var mappedName))
             name = mappedName;
 
-        return siteIdLookup.TryGetValue(name.ToLowerInvariant(), out var id) ? id : 0;
+        if (siteIdLookup.TryGetValue(name, out var id))
+            return id;
+
+        var normalizedKey = NormalizeSiteKey(name);
+        return siteIdLookup.TryGetValue(normalizedKey, out id) ? id : 0;
+    }
+
+    private static string? TryExtractKmLSiteName(string fileName)
+    {
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        if (string.IsNullOrWhiteSpace(baseName))
+            return null;
+
+        var cleaned = Regex.Replace(baseName, @"\b(19|20)\d{2}\b", " ", RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, $@"\b({string.Join("|", MonthTokens)})\b", " ", RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @"\b(daily|fuel|report|template|repaired)\b", " ", RegexOptions.IgnoreCase);
+        cleaned = Regex.Replace(cleaned, @"[^A-Za-z0-9]+", " ");
+        cleaned = Regex.Replace(cleaned, @"\s+", " ").Trim();
+
+        if (string.IsNullOrWhiteSpace(cleaned))
+            return null;
+
+        if (SiteNameMappings.TryGetValue(cleaned, out var mappedName))
+            return mappedName;
+
+        var tokens = cleaned.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return string.Join(" ", tokens.Select(token => token.Length <= 3
+            ? token.ToUpperInvariant()
+            : CultureInfo.InvariantCulture.TextInfo.ToTitleCase(token.ToLowerInvariant())));
+    }
+
+    private static (string? Month, int? Year) TryExtractMonthAndYear(string fileName, string filePath)
+    {
+        var searchText = $"{Path.GetFileNameWithoutExtension(fileName)} {filePath}";
+        var monthMatch = Regex.Match(searchText,
+            $@"\b({string.Join("|", MonthTokens)})\b",
+            RegexOptions.IgnoreCase);
+
+        string? month = monthMatch.Success ? monthMatch.Groups[1].Value.ToUpperInvariant() : null;
+
+        var yearMatch = Regex.Match(searchText, @"\b((?:19|20)\d{2})\b");
+        int? year = yearMatch.Success && int.TryParse(yearMatch.Groups[1].Value, out var parsedYear)
+            ? parsedYear
+            : null;
+
+        return (month, year);
+    }
+
+    private static string NormalizeSiteKey(string value)
+    {
+        return Regex.Replace(value.Trim().ToUpperInvariant(), @"[^A-Z0-9]+", string.Empty);
     }
 
     #endregion
