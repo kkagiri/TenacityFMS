@@ -392,7 +392,9 @@ const ReportEngine = () => {
         const params = buildQueryParams();
         const useUnifiedBackendPath =
             activeSource?.id === 'tank-volume-history' ||
-            activeSource?.id === 'transaction-history-summary';
+            activeSource?.id === 'transaction-history-summary' ||
+            activeSource?.id === 'monthly-fleet-report' ||
+            activeSource?.id === 'weekly-fleet-report';
 
         // ── HTML preview: try sync preview, then auto-fallback to background on timeout ──
         if (selectedFormat === 'html' && !useUnifiedBackendPath) {
@@ -541,6 +543,33 @@ const ReportEngine = () => {
             const templateName = templateOverride || activeSource.defaultTemplate;
             if (!templateName) return;
 
+            // Sources that have no direct data endpoint must go through the background job path
+            const backendOnlySources = ['tank-volume-history', 'transaction-history-summary', 'monthly-fleet-report', 'weekly-fleet-report'];
+            if (backendOnlySources.includes(activeSource.id)) {
+                const queryParams = buildQueryParams();
+                const paramMap = {};
+                Object.entries(queryParams).forEach(([k, v]) => {
+                    paramMap[k] = Array.isArray(v) ? v.join(',') : String(v);
+                });
+                if (!paramMap.timeZone) {
+                    paramMap.timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+                }
+                const result = await submitReportJob({
+                    sourceId: activeSource.id,
+                    templateName,
+                    outputFormat: format,
+                    parameters: paramMap,
+                    deliverByEmail: false,
+                });
+                if (result) {
+                    notify({ message: `${format.toUpperCase()} generation started. Track progress below.`, type: 'info', displayTime: 3000 });
+                } else {
+                    notify({ message: 'Failed to start report generation', type: 'error' });
+                }
+                setSelectedFormat(prev);
+                return;
+            }
+
             setGenerating(true);
             try {
                 const queryParams = buildQueryParams();
@@ -587,7 +616,7 @@ const ReportEngine = () => {
                 setSelectedFormat(prev);
             }
         },
-        [activeSource, buildQueryParams, selectedFormat, templateOverride]
+        [activeSource, buildQueryParams, selectedFormat, templateOverride, submitReportJob]
     );
 
     return (
